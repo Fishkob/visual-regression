@@ -63,7 +63,7 @@ spec:
                   name: vrt-secrets
                   key: minio-secret-key
             - name: RUSTFS_VOLUMES
-              value: /data/rustfs{0...3}
+              value: /data
             - name: RUSTFS_ADDRESS
               value: 0.0.0.0:9000
             - name: RUSTFS_CONSOLE_ADDRESS

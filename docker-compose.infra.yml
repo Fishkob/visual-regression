@@ -29,16 +29,13 @@ services:
     environment:
       RUSTFS_ACCESS_KEY: minioadmin
       RUSTFS_SECRET_KEY: minioadmin
-      RUSTFS_VOLUMES: /data/rustfs{0...3}
+      RUSTFS_VOLUMES: /data
       RUSTFS_ADDRESS: 0.0.0.0:9000
       RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
       RUSTFS_CONSOLE_ENABLE: "true"
       RUSTFS_OBS_LOG_DIRECTORY: /app/logs
     volumes:
-      - rustfsdata0:/data/rustfs0
-      - rustfsdata1:/data/rustfs1
-      - rustfsdata2:/data/rustfs2
-      - rustfsdata3:/data/rustfs3
+      - rustfsdata:/data
       - rustfslogs:/app/logs
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:9000/health >/dev/null 2>&1 || exit 1"]
@@ -50,14 +47,11 @@ services:
   volume-permission-helper:
     image: alpine
     volumes:
-      - rustfsdata0:/data0
-      - rustfsdata1:/data1
-      - rustfsdata2:/data2
-      - rustfsdata3:/data3
+      - rustfsdata:/data
       - rustfslogs:/logs
     command: >
       sh -c "
-        chown -R 10001:10001 /data0 /data1 /data2 /data3 /logs &&
+        chown -R 10001:10001 /data /logs &&
         echo 'Volume permissions fixed' &&
         exit 0
       "
@@ -78,8 +72,5 @@ services:
 
 volumes:
   pgdata:
-  rustfsdata0:
-  rustfsdata1:
-  rustfsdata2:
-  rustfsdata3:
+  rustfsdata:
   rustfslogs:
