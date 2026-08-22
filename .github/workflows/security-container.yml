@@ -1,0 +1,55 @@
+name: Security (Container Scan)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  trivy-images:
+    name: Trivy Image Scan (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [backend, worker, frontend, pdf-sidecar, migrate]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build image
+        run: |
+          case "${{ matrix.service }}" in
+            backend)     docker build -f backend/Dockerfile         -t visual-regression-backend . ;;
+            worker)      docker build -f backend/Dockerfile.worker   -t visual-regression-worker . ;;
+            frontend)    docker build -f frontend/Dockerfile         -t visual-regression-frontend . ;;
+            pdf-sidecar) docker build -f pdf-sidecar/Dockerfile      -t visual-regression-pdf-sidecar ./pdf-sidecar ;;
+            migrate)     docker build -f backend/Dockerfile.migrate  -t visual-regression-migrate . ;;
+          esac
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: visual-regression-${{ matrix.service }}
+          severity: CRITICAL,HIGH
+          format: table
+          exit-code: "1"
+
+  trivy-config:
+    name: Trivy Config Scan (IaC / Dockerfiles)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Scan IaC config with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          format: table
+          exit-code: "1"

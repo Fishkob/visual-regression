@@ -1,0 +1,33 @@
+name: SDK Sync Check
+
+on:
+  workflow_call:
+
+jobs:
+  sdk-sync-check:
+    name: SDK Sync Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+
+      - name: Export Swagger JSON
+        working-directory: backend
+        env:
+          SWAGGER_OUT_DIR: .
+          DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/vrt?schema=public
+        run: TS_NODE_PROJECT=tsconfig.swagger.json node --no-experimental-require-module -r ts-node/register -r tsconfig-paths/register src/scripts/swagger-export.ts
+
+      - name: Generate fresh SDK
+        run: pnpm exec openapi-ts --file openapi-ts.config.ts
+
+      - name: Check for SDK diff
+        run: |
+          if ! git diff --stat client-sdk/ | grep -q .; then
+            echo "✅ SDK is in sync with API"
+          else
+            echo "❌ SDK is out of sync! Run 'pnpm run sdk:generate' to update."
+            git diff client-sdk/
+            exit 1
+          fi

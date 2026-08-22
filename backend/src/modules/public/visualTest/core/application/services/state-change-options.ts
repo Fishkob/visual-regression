@@ -1,0 +1,112 @@
+import type { ObservabilityEvent } from '@common/domain/observability-event.type';
+import {
+  isForeignKeyViolation,
+  isSerializationError,
+} from '@common/infrastructure/retry-policy';
+import type { Prisma } from '@/prisma/client';
+
+export const DEFAULT_STATE_CHANGE_RETRY: {
+  isolationLevel: Prisma.TransactionIsolationLevel;
+  maxAttempts: number;
+} = {
+  isolationLevel: 'Serializable',
+  maxAttempts: 5,
+};
+
+// Deletion retry policy: a deletion may race a concurrent upload that creates
+// a test (or a row referencing the deleted rows) between the read and the
+// delete, which surfaces as an FK violation (P2003) that retrying resolves.
+// The default workflow retry only handles serialization failures (P2034), so
+// every deletion path must add the FK rule — this preset gives it one home.
+export const DELETION_STATE_CHANGE_RETRY: {
+  isRetryable: (err: unknown) => boolean;
+} = {
+  isRetryable: (err) => isSerializationError(err) || isForeignKeyViolation(err),
+};
+
+// Contract for the transactional state-change convention. A mutation must
+// declare what it did: a change that mutated comparisons/screenshots names the
+// testIds it affected (a non-empty tuple, so "forgot the testId" does not
+// compile), a noop explicitly states nothing needs recomputing, and a deleted
+// states that whole tests were removed (the testIds no longer exist, so they
+// cannot be named — a third shape is needed because calling a deletion a
+// "noop" would make the contract lie). A noop cannot publish events — an event
+// means something changed, which means a test must be named; a deleted cannot
+// either, for the same reason. The workflow recomputes statuses for `change`
+// results in the same transaction, and runs post-commit side effects (events,
+// stale-file cleanup) for all shapes.
+export type PersistedChange =
+  | {
+      kind: 'change';
+      affectedTestIds: readonly [string, ...string[]];
+      staleUrls?: string[];
+      events?: ObservabilityEvent[];
+    }
+  | {
+      kind: 'noop';
+      staleUrls?: string[];
+    }
+  | {
+      kind: 'deleted';
+      staleUrls?: string[];
+    };
+
+// Builders for the PersistedChange shapes. Callers name facts (which tests were
+// affected, what changed) instead of assembling the discriminated union by hand
+// — the `kind` literal, the non-empty tuple, and the optional channels live
+// here, so the contract is exercised through one small surface per shape.
+export function change(
+  affectedTestIds: readonly [string, ...string[]],
+  extras: { staleUrls?: string[]; events?: ObservabilityEvent[] } = {},
+): Extract<PersistedChange, { kind: 'change' }> {
+  return { kind: 'change', affectedTestIds, ...extras };
+}
+
+export function noop(
+  extras: { staleUrls?: string[] } = {},
+): Extract<PersistedChange, { kind: 'noop' }> {
+  return { kind: 'noop', ...extras };
+}
+
+export function deleted(
+  extras: { staleUrls?: string[] } = {},
+): Extract<PersistedChange, { kind: 'deleted' }> {
+  return { kind: 'deleted', ...extras };
+}
+
+// The change/result separation: the transaction-facing contract is the
+// PersistedChange; a mutation that needs to return a value back to its caller
+// (e.g. the upload outcome, the approved baseline URL) carries it as `result`
+// alongside the change. The workflow normalizes a bare PersistedChange to
+// `{ change, result: undefined }`, so a mutation with nothing to return just
+// returns the change — the contract stays un-decorated either way.
+export interface StateChangeOutcome<R> {
+  change: PersistedChange;
+  result: R;
+}
+
+export type StateChangeResult<R> = PersistedChange | StateChangeOutcome<R>;
+
+export interface StateChangeOptions<R> {
+  onSuccess?: (outcome: StateChangeOutcome<R>) => Promise<void>;
+  retry?: {
+    isolationLevel?: Prisma.TransactionIsolationLevel;
+    maxAttempts?: number;
+    isRetryable?: (err: unknown) => boolean;
+  };
+}
+
+export interface StoredFileChangeOptions<R> extends StateChangeOptions<R> {
+  store: () => Promise<string>;
+  change: (fileUrl: string) => Promise<StateChangeResult<R>>;
+}
+
+export interface StoredFileChangeResult<R> extends StateChangeOutcome<R> {
+  fileUrl: string;
+}
+
+// Normalizes a bare PersistedChange (a mutation with no result payload) to the
+// full outcome shape the workflow works with.
+export function toOutcome<R>(raw: StateChangeResult<R>): StateChangeOutcome<R> {
+  return 'kind' in raw ? { change: raw, result: undefined as R } : raw;
+}

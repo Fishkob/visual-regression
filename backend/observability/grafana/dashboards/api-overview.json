@@ -1,0 +1,367 @@
+{
+  "title": "Visual Regression – API Overview",
+  "uid": "vrt-api-overview",
+  "version": 2,
+  "timezone": "browser",
+  "editable": true,
+  "tags": ["visual-regression", "api", "prometheus"],
+  "refresh": "10s",
+  "panels": [
+    {
+      "title": "Request Rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[5m]))",
+          "legendFormat": "total"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": { "unit": "rps", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Request Latency (p50, p95, p99)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, sum(rate(http_request_duration_ms_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_ms_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_ms_bucket[5m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 6, "y": 0 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Error Rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))",
+          "legendFormat": "5xx ratio"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 4, "x": 14, "y": 0 },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "min": 0, "max": 1 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Requests by Status",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"2..\"}[5m]))",
+          "legendFormat": "2xx"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"4..\"}[5m]))",
+          "legendFormat": "4xx"
+        },
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m]))",
+          "legendFormat": "5xx"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "fieldConfig": {
+        "defaults": { "unit": "rps", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Upload Pipeline",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(upload_intake_duration_ms_sum[5m]) / rate(upload_intake_duration_ms_count[5m])",
+          "legendFormat": "avg duration"
+        }
+      ],
+      "gridPos": { "h": 7, "w": 6, "x": 0, "y": 8 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Upload Rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(upload_intake_total[5m]))",
+          "legendFormat": "uploads/s"
+        }
+      ],
+      "gridPos": { "h": 7, "w": 3, "x": 6, "y": 8 },
+      "fieldConfig": {
+        "defaults": { "unit": "rps", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Upload Errors",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(upload_intake_errors_total[5m]))",
+          "legendFormat": "errors/s"
+        }
+      ],
+      "gridPos": { "h": 7, "w": 3, "x": 9, "y": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "rps",
+          "min": 0,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.01 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Comparison Pipeline",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(comparison_worker_duration_ms_sum[5m]) / rate(comparison_worker_duration_ms_count[5m])",
+          "legendFormat": "avg duration"
+        }
+      ],
+      "gridPos": { "h": 7, "w": 6, "x": 12, "y": 8 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Comparison Errors",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(comparison_worker_errors_total[5m]))",
+          "legendFormat": "errors/s"
+        }
+      ],
+      "gridPos": { "h": 7, "w": 3, "x": 18, "y": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "rps",
+          "min": 0,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 0.01 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Pixel Diff Distribution",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(comparison_pixel_diff_sum[5m]) / rate(comparison_pixel_diff_count[5m])",
+          "legendFormat": "avg diff"
+        }
+      ],
+      "gridPos": { "h": 7, "w": 3, "x": 21, "y": 8 },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Approval Pipeline",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(approval_duration_ms_sum[5m]) / rate(approval_duration_ms_count[5m])",
+          "legendFormat": "avg duration"
+        }
+      ],
+      "gridPos": { "h": 7, "w": 6, "x": 0, "y": 15 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Queue Enqueue Rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(queue_enqueue_total[5m])",
+          "legendFormat": "enqueues/s"
+        },
+        {
+          "expr": "rate(queue_enqueue_errors_total[5m])",
+          "legendFormat": "errors/s"
+        }
+      ],
+      "gridPos": { "h": 7, "w": 6, "x": 6, "y": 15 },
+      "fieldConfig": {
+        "defaults": { "unit": "rps", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Domain Events",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(domain_events_total[5m])) by (event)",
+          "legendFormat": "{{event}}"
+        }
+      ],
+      "gridPos": { "h": 7, "w": 6, "x": 12, "y": 15 },
+      "fieldConfig": {
+        "defaults": { "unit": "rps", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Queue Enqueue Duration",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(queue_enqueue_duration_ms_sum[5m]) / rate(queue_enqueue_duration_ms_count[5m])",
+          "legendFormat": "avg"
+        }
+      ],
+      "gridPos": { "h": 7, "w": 3, "x": 18, "y": 15 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Approval Rate",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(approval_total[5m]))",
+          "legendFormat": "approvals/s"
+        }
+      ],
+      "gridPos": { "h": 7, "w": 3, "x": 21, "y": 15 },
+      "fieldConfig": {
+        "defaults": { "unit": "rps", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Maintenance – Orphan Cleanup",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(cleanup_orphaned_screenshots_total{type=\"deleted\"})",
+          "legendFormat": "total deleted"
+        },
+        {
+          "expr": "sum(cleanup_orphaned_screenshots_last_run)",
+          "legendFormat": "last run"
+        }
+      ],
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 22 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Maintenance – Job Cleanup",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(cleanup_failed_jobs_deleted)",
+          "legendFormat": "failed deleted"
+        },
+        {
+          "expr": "sum(cleanup_completed_jobs_deleted)",
+          "legendFormat": "completed deleted"
+        }
+      ],
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 22 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Log Volume by Container (last 60m)",
+      "type": "bargauge",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by(container) (count_over_time({container=~\"backend|worker|postgres|alloy\"}[60m]))",
+          "legendFormat": "{{container}}"
+        }
+      ],
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 28 },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": true,
+          "calcs": []
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      }
+    }
+  ]
+}

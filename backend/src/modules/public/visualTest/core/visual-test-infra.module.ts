@@ -1,0 +1,43 @@
+import { Module } from '@nestjs/common';
+import { PrismaModule } from '@prisma/prisma.module';
+import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
+import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
+import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
+import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
+import { OrphanedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/orphaned-screenshot.repository';
+import { StorageObjectReferencednessService } from '@public/visualTest/core/infrastructure/repositories/storage-object-referencedness.service';
+import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referencedness.interface';
+import { ORPHAN_SWEEP } from '@common/domain/orphan-sweep.interface';
+
+@Module({
+  imports: [PrismaModule],
+  providers: [
+    ProjectRepository,
+    UnifiedTestRepository,
+    UnifiedScreenshotRepository,
+    UnifiedComparisonsRepository,
+    VariantStore,
+    OrphanedScreenshotRepository,
+    StorageObjectReferencednessService,
+    {
+      provide: STORAGE_OBJECT_REFERENCEDNESS,
+      useExisting: StorageObjectReferencednessService,
+    },
+    {
+      provide: ORPHAN_SWEEP,
+      useExisting: OrphanedScreenshotRepository,
+    },
+  ],
+  exports: [
+    ProjectRepository,
+    UnifiedTestRepository,
+    UnifiedScreenshotRepository,
+    UnifiedComparisonsRepository,
+    VariantStore,
+    OrphanedScreenshotRepository,
+    STORAGE_OBJECT_REFERENCEDNESS,
+    ORPHAN_SWEEP,
+  ],
+})
+export class VisualTestInfraModule {}

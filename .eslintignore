@@ -1,0 +1,30 @@
+# --- ESLint ignore configuration ---
+# Node modules & build outputs
+node_modules
+dist
+coverage
+*.log
+
+# --- Workspaces ---
+frontend/dist
+client-sdk
+
+# --- Auto-generated SDK & Swagger ---
+backend/swagger.json
+
+# --- Vitest config files ---
+backend/vitest.config.ts
+backend/vitest.config.e2e.ts
+
+# --- Prisma generated files ---
+backend/prisma/migrations
+backend/prisma/schema.prisma
+
+# --- Environment / Config / Assets ---
+.env
+.env.*
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.ico

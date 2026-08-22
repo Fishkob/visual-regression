@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+. "$(dirname "$0")/_/h"
+
+# Regenerate the client SDK when the OpenAPI surface changed, staging the
+# regenerated files so lint-staged formats them before the commit.
+./scripts/sdk-generate-if-needed.sh
+
+pnpm exec lint-staged

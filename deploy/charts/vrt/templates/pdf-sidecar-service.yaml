@@ -1,0 +1,18 @@
+{{- if .Values.pdfSidecar.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: pdf-sidecar
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: pdf-sidecar
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3001
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: pdf-sidecar
+{{- end }}

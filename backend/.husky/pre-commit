@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+
+echo "Running pre-commit checks for backend"
+echo ""
+
+cd backend
+
+echo "1/6 Linting"
+pnpm run lint --fix
+
+echo ""
+echo "2/6 TypeScript check (src)"
+pnpm run typecheck
+
+echo ""
+echo "3/6 TypeScript check (test)"
+pnpm run typecheck:test
+
+echo ""
+echo "4/6 Prettier format check"
+pnpm run format:check
+
+echo ""
+echo "5/6 Unit tests"
+pnpm run test -- --run
+
+echo ""
+echo "6/6 E2E tests..."
+pnpm run test:e2e
+
+echo ""
+echo "All pre-commit checks passed!"

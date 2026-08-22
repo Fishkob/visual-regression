@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "noEmit": true,
+    "incremental": false,
+    "tsBuildInfoFile": null,
+    "types": ["vitest/globals", "node", "express", "multer", "jest"],
+    "paths": {
+      "@app": ["./src/app.module"],
+      "@config/*": ["./src/config/*"],
+      "@prisma/*": ["./src/prisma/*"],
+      "@common/*": ["./src/common/*"],
+      "@public/*": ["./src/modules/public/*"],
+      "@internal/*": ["./src/modules/internal/*"],
+      "@shared/*": ["./src/modules/shared/*"],
+      "@/*": ["./src/*"],
+      "@test/*": ["./test/*"]
+    }
+  },
+  "include": ["src/**/*", "test/**/*"]
+}

@@ -1,0 +1,1870 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/metrics": {
+      "get": {
+        "operationId": "MetricsController_getMetrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Prometheus metrics"
+          }
+        },
+        "tags": [
+          "Metrics"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/upload": {
+      "post": {
+        "operationId": "UploadController_upload",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testKind",
+            "required": true,
+            "in": "query",
+            "description": "Kind of test (image or pdf)",
+            "schema": {
+              "enum": [
+                "image",
+                "pdf"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "File and upload parameters",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload result (identical, baseline created, or queued)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/IdenticalResultDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BaselineCreatedResultDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ComparisonQueuedResultDto"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file type or upload data"
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "summary": "Upload a file (image or PDF) and compare with the baseline",
+        "tags": [
+          "Upload"
+        ]
+      }
+    },
+    "/projects/pending": {
+      "get": {
+        "operationId": "ProjectsController_getProjectsWithPendingFlag",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "description": "Record offset (0-based), alternative to page",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Page size, alternative to limit",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns all projects with their pending flag (true/false)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProjectDto"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "number"
+                        },
+                        "limit": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        },
+                        "totalPages": {
+                          "type": "number"
+                        },
+                        "hasNextPage": {
+                          "type": "boolean"
+                        },
+                        "hasPreviousPage": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get all projects with pending flag",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{projectName}": {
+      "delete": {
+        "operationId": "ProjectsController_deleteProject",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "description": "The name of the project to delete",
+            "schema": {
+              "example": "checkout-ui",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "summary": "Delete a project and its related data",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "get": {
+        "operationId": "ProjectsController_getOneProject",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "description": "Name of the project",
+            "schema": {
+              "example": "checkout-ui",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a project including its latest test statuses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "summary": "Get a specific project with its latest test statuses",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects": {
+      "post": {
+        "operationId": "ProjectsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created successfully",
+            "schema": {
+              "example": {
+                "id": "project-123",
+                "name": "checkout-ui",
+                "createdAt": "2023-10-07T12:34:56.000Z"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Project name already in use"
+          }
+        },
+        "summary": "Create a new project",
+        "tags": [
+          "Projects"
+        ]
+      },
+      "get": {
+        "operationId": "ProjectsController_getAllProjects",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "description": "Record offset (0-based), alternative to page",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Page size, alternative to limit",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns all projects"
+          }
+        },
+        "summary": "Get all projects",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/approval": {
+      "post": {
+        "operationId": "ApprovalsController_approveVisualTest",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveComparisonBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApproveResultDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Comparison not found"
+          }
+        },
+        "summary": "Approve a pending visual comparison",
+        "tags": [
+          "Approvals"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/pdf-approval": {
+      "post": {
+        "operationId": "ApprovalsController_approvePdfTest",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveComparisonBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApproveResultDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Comparison not found"
+          }
+        },
+        "summary": "Approve a pending PDF comparison",
+        "tags": [
+          "Approvals"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests": {
+      "get": {
+        "operationId": "TestsQueriesController_getTestsForProject",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "description": "Record offset (0-based), alternative to page",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Page size, alternative to limit",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "description": "Filter by test kind (image or pdf)",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedProjectTestDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List all tests for a specific project",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/kind": {
+      "get": {
+        "operationId": "TestsQueriesController_getKind",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test kind (pdf or visual)"
+          }
+        },
+        "summary": "Get the test kind (pdf or visual)",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/meta/pending": {
+      "get": {
+        "operationId": "TestsQueriesController_getTestsWithPendingStatus",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "description": "Record offset (0-based), alternative to page",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Page size, alternative to limit",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPendingTestDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List tests with pending approvals in project",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}": {
+      "get": {
+        "operationId": "TestsQueriesController_getVisualTestDetails",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "description": "Variant filter — at least one of viewport/browser/environment is required",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Visual test details including variants, baselines and comparisons",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisualTestDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Visual test not found"
+          }
+        },
+        "summary": "Get details for a specific visual test (single variant or all variants)",
+        "tags": [
+          "Tests"
+        ]
+      },
+      "delete": {
+        "operationId": "TestCommandsController_deleteVisualTest",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          }
+        },
+        "summary": "Delete a visual test or a specific variant if filters are provided",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/pdf-details": {
+      "get": {
+        "operationId": "PdfController_getPdfTestDetails",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "description": "Variant filter — at least one of viewport/browser/environment is required",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF test details with baseline and comparison information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PdfTestDetailsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get PDF test details including baseline and comparison",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/pdf-render": {
+      "get": {
+        "operationId": "PdfController_renderPdfPage",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "pdfUrl",
+            "required": true,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rendered page PNG URL and page count"
+          }
+        },
+        "summary": "Render a single PDF page as PNG (cached in MinIO)",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/pdf-download": {
+      "get": {
+        "operationId": "PdfController_downloadPdf",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "description": "Which PDF to download: baseline, candidate, or diff",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "description": "Variant filter — at least one of viewport/browser/environment is required",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF file streamed with Content-Disposition attachment"
+          },
+          "404": {
+            "description": "PDF not found"
+          }
+        },
+        "summary": "Download baseline, candidate, or diff PDF for a test",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/threshold": {
+      "patch": {
+        "operationId": "TestCommandsController_updateThreshold",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "preview",
+            "required": false,
+            "in": "query",
+            "description": "When true, returns how many pending comparisons the value would auto-accept without mutating anything",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateThresholdDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateThresholdResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update pixelDiffThreshold for a specific variant",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "All systems operational",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailedHealthDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "One or more systems are unhealthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailedHealthDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthController_readiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Application ready to serve traffic",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailedHealthDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Application not ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailedHealthDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/db": {
+      "get": {
+        "operationId": "HealthController_checkDatabase",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Database connection is healthy"
+          },
+          "503": {
+            "description": "Database unavailable"
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/minio": {
+      "get": {
+        "operationId": "HealthController_checkStorage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "MinIO storage is available"
+          },
+          "503": {
+            "description": "MinIO unavailable"
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Visual Regression API",
+    "description": "OpenAPI documentation for upload and comparison endpoints",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v1"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "ComparisonOutcome": {
+        "type": "string",
+        "enum": [
+          "identical",
+          "baseline_created",
+          "comparison_queued"
+        ]
+      },
+      "BaselineCreatedResultDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonOutcome"
+              }
+            ]
+          },
+          "testId": {
+            "type": "string"
+          },
+          "fileUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "testId",
+          "fileUrl"
+        ]
+      },
+      "IdenticalResultDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonOutcome"
+              }
+            ]
+          },
+          "mismatchPixelCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "status",
+          "mismatchPixelCount"
+        ]
+      },
+      "ComparisonErrorCode": {
+        "type": "string",
+        "enum": [
+          "image_difference",
+          "pdf_difference"
+        ]
+      },
+      "ComparisonQueuedResultDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonOutcome"
+              }
+            ]
+          },
+          "error": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonErrorCode"
+              }
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "error",
+          "message"
+        ]
+      },
+      "ComparisonStatus": {
+        "type": "string",
+        "enum": [
+          "UNCHANGED",
+          "PENDING_APPROVAL",
+          "APPROVED"
+        ]
+      },
+      "ComparisonStatusWrapper": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonStatus"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "CreateProjectDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "checkout-ui"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "VariantDto": {
+        "type": "object",
+        "properties": {
+          "viewport": {
+            "type": "string",
+            "example": "1920x1080",
+            "description": "Viewport resolution"
+          },
+          "browser": {
+            "type": "string",
+            "example": "chrome",
+            "description": "Browser used"
+          },
+          "environment": {
+            "type": "string",
+            "example": "staging",
+            "description": "Environment or build context"
+          }
+        },
+        "required": [
+          "viewport",
+          "browser",
+          "environment"
+        ]
+      },
+      "TestStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "UNCHANGED",
+          "PENDING_APPROVAL"
+        ],
+        "description": "Latest status of the test variant"
+      },
+      "VisualTestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "example": "image"
+          },
+          "variant": {
+            "$ref": "#/components/schemas/VariantDto"
+          },
+          "latestStatus": {
+            "example": "UNCHANGED",
+            "description": "Latest status of the test variant",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestStatus"
+              }
+            ]
+          }
+        }
+      },
+      "ProjectDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "project_123"
+          },
+          "name": {
+            "type": "string",
+            "example": "checkout-flow"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2025-10-11T10:15:00Z"
+          },
+          "visualTests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VisualTestDto"
+            }
+          },
+          "pending": {
+            "type": "boolean",
+            "description": "Whether the project has pending comparisons"
+          }
+        }
+      },
+      "ApproveComparisonBodyDto": {
+        "type": "object",
+        "properties": {
+          "comparisonId": {
+            "type": "string",
+            "example": "cm0xyz123",
+            "description": "Id of the comparison the reviewer approved"
+          }
+        },
+        "required": [
+          "comparisonId"
+        ]
+      },
+      "ApproveResultDto": {
+        "type": "object",
+        "properties": {
+          "approved": {
+            "type": "boolean",
+            "example": true,
+            "description": "Indicates that the approval was successful"
+          },
+          "newBaselineUrl": {
+            "type": "string",
+            "example": "http://localhost/baseline-new.png",
+            "description": "URL of the new baseline object after approval"
+          }
+        },
+        "required": [
+          "approved",
+          "newBaselineUrl"
+        ]
+      },
+      "ProjectTestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "status": {
+            "description": "Latest status of the test",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestStatus"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "kind"
+        ]
+      },
+      "PaginationMetaDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "page",
+          "limit",
+          "total",
+          "totalPages",
+          "hasNextPage",
+          "hasPreviousPage"
+        ]
+      },
+      "PaginatedProjectTestDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectTestDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "PendingTestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "variant": {
+            "$ref": "#/components/schemas/VariantDto"
+          },
+          "latestStatus": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "PaginatedPendingTestDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingTestDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "ScreenshotType": {
+        "type": "string",
+        "enum": [
+          "BASELINE",
+          "CURRENT"
+        ]
+      },
+      "ScreenshotDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "visualTestId": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "imageHash": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "pixelDiffThreshold": {
+            "type": "number",
+            "description": "Maximum allowed pixel mismatch between baseline and candidate"
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScreenshotType"
+              }
+            ]
+          },
+          "variant": {
+            "$ref": "#/components/schemas/VariantDto"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "ComparisonDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "diffImageUrl": {
+            "type": "string"
+          },
+          "mismatchPixelCount": {
+            "type": "number"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonStatus"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "candidate": {
+            "$ref": "#/components/schemas/ScreenshotDto"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/ScreenshotDto"
+          },
+          "thresholdExceeded": {
+            "type": "boolean",
+            "description": "True if mismatchPixelCount exceeds baseline.pixelDiffThreshold"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "thresholdExceeded"
+        ]
+      },
+      "VisualTestDetailsDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "baseline": {
+            "description": "Baseline screenshot, if one exists",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScreenshotDto"
+              }
+            ]
+          },
+          "comparison": {
+            "description": "Latest comparison result, if available",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonDto"
+              }
+            ]
+          }
+        }
+      },
+      "PdfVariantDetailsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pdfUrl": {
+            "type": "string"
+          },
+          "imageHash": {
+            "type": "string"
+          },
+          "pageCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "viewport": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pdfUrl",
+          "imageHash",
+          "pageCount",
+          "viewport",
+          "browser",
+          "environment"
+        ]
+      },
+      "PdfCandidateDetailsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pdfUrl": {
+            "type": "string"
+          },
+          "imageHash": {
+            "type": "string"
+          },
+          "viewport": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pdfUrl",
+          "imageHash",
+          "viewport",
+          "browser",
+          "environment"
+        ]
+      },
+      "PdfComparisonDetailsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "baselineId": {
+            "type": "string"
+          },
+          "diffPdfUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "pageCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "mismatchPageCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonStatus"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "candidate": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PdfCandidateDetailsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "baselineId",
+          "diffPdfUrl",
+          "pageCount",
+          "mismatchPageCount",
+          "status",
+          "createdAt",
+          "candidate"
+        ]
+      },
+      "PdfTestDetailsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestStatus"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "baseline": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PdfVariantDetailsDto"
+              }
+            ]
+          },
+          "comparison": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PdfComparisonDetailsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "kind",
+          "createdAt",
+          "baseline",
+          "comparison"
+        ]
+      },
+      "UpdateThresholdDto": {
+        "type": "object",
+        "properties": {
+          "threshold": {
+            "type": "number",
+            "description": "Allowed pixel difference threshold",
+            "example": 25
+          }
+        },
+        "required": [
+          "threshold"
+        ]
+      },
+      "UpdateThresholdResultDto": {
+        "type": "object",
+        "properties": {
+          "test": {
+            "type": "string",
+            "example": "product_mobile",
+            "description": "Name of the test that was updated"
+          },
+          "status": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "number"
+          },
+          "autoAcceptedCount": {
+            "type": "number",
+            "example": 2,
+            "description": "Number of pending comparisons the update auto-accepted (or would auto-accept, for a preview)"
+          }
+        },
+        "required": [
+          "test"
+        ]
+      },
+      "DetailedHealthDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded",
+              "unhealthy"
+            ]
+          },
+          "results": {
+            "type": "object"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "buildInfo": {
+            "type": "object",
+            "description": "Build metadata"
+          },
+          "uptime": {
+            "type": "number"
+          },
+          "checks": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "status",
+          "results",
+          "timestamp",
+          "version",
+          "buildInfo",
+          "uptime",
+          "checks"
+        ]
+      }
+    }
+  }
+}

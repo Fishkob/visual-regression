@@ -1,0 +1,47 @@
+name: Security (Dependency Scan)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, develop]
+    paths:
+      - "package.json"
+      - "**/package.json"
+      - "pnpm-lock.yaml"
+      - "pdf-sidecar/pom.xml"
+      - "osv-scanner.toml"
+      - "scripts/security/**"
+      - ".github/workflows/security-dependency.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "package.json"
+      - "**/package.json"
+      - "pnpm-lock.yaml"
+      - "pdf-sidecar/pom.xml"
+      - "osv-scanner.toml"
+      - "scripts/security/**"
+      - ".github/workflows/security-dependency.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  dependency-scan:
+    name: Dependency Scan (osv-scanner)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install osv-scanner
+        run: |
+          curl -sSL -o /tmp/osv-scanner https://github.com/google/osv-scanner/releases/download/v2.5.0/osv-scanner_linux_amd64
+          chmod +x /tmp/osv-scanner
+
+      - name: Scan dependencies
+        run: |
+          /tmp/osv-scanner scan source --recursive --config osv-scanner.toml --format=json --output-file=osv-results.json . || true
+
+      - name: Gate on critical/high
+        run: python3 scripts/security/osv-gate.py osv-results.json

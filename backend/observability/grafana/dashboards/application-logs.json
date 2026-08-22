@@ -1,0 +1,141 @@
+{
+  "title": "Visual Regression – Application Logs",
+  "uid": "vrt-application-logs",
+  "version": 3,
+  "timezone": "browser",
+  "editable": true,
+  "tags": ["visual-regression", "logs", "loki"],
+  "refresh": "10s",
+  "panels": [
+    {
+      "title": "Log Volume by Container",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by(container) (count_over_time({container=~\"backend|worker|postgres|alloy\"}[5m]))",
+          "legendFormat": "{{container}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "min": 0 },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "backend" },
+            "properties": [{ "id": "color", "value": { "fixed": "#7EB26D" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "worker" },
+            "properties": [{ "id": "color", "value": { "fixed": "#EAB839" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "postgres" },
+            "properties": [{ "id": "color", "value": { "fixed": "#6ED0E0" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Log Rate (errors + warnings)",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by(container) (rate({container=~\"backend|worker\"} |= `\"level\":\"error\"` [5m]))",
+          "legendFormat": "errors – {{container}}"
+        },
+        {
+          "expr": "sum by(container) (rate({container=~\"backend|worker\"} |= `\"level\":\"warn\"` [5m]))",
+          "legendFormat": "warnings – {{container}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": {
+        "defaults": { "unit": "rps", "min": 0 },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "/errors/" },
+            "properties": [{ "id": "color", "value": { "fixed": "#BF1B00" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "/warnings/" },
+            "properties": [{ "id": "color", "value": { "fixed": "#F9BA4B" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Log Volume over Time",
+      "type": "timeseries",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by(container) (rate({container=~\"backend|worker\"}[1m]))",
+          "legendFormat": "{{container}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "fieldConfig": {
+        "defaults": { "unit": "rps", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Log Volume by Container (total)",
+      "type": "bargauge",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "sum by(container) (count_over_time({container=~\"backend|worker|postgres|alloy\"}[$__range]))",
+          "legendFormat": "{{container}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0 },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "backend" },
+            "properties": [{ "id": "color", "value": { "fixed": "#7EB26D" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "worker" },
+            "properties": [{ "id": "color", "value": { "fixed": "#EAB839" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "postgres" },
+            "properties": [{ "id": "color", "value": { "fixed": "#6ED0E0" } }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Latest Log Entries",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{container=~\"backend|worker\"}",
+          "legendFormat": "",
+          "maxLines": 20
+        }
+      ],
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 24 },
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": false
+      }
+    }
+  ]
+}

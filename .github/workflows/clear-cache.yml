@@ -1,0 +1,22 @@
+name: Clear Cache
+
+on:
+  workflow_dispatch:
+
+jobs:
+  clear-cache:
+    name: Clear GitHub Actions caches
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Clear all GitHub Actions caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "=== Listing all caches ==="
+          gh actions cache list --repo ${{ github.repository }} --limit 100 --json id,key -q '.[].key' | while read -r key; do
+            echo "Deleting cache: $key"
+            gh actions cache delete "$key" --repo ${{ github.repository }} || true
+          done
+          echo "Done"

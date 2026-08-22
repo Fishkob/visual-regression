@@ -1,0 +1,146 @@
+model Project {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  createdAt DateTime     @default(now())
+  unifiedTests UnifiedTest[]
+}
+
+model UnifiedTest {
+  id        String     @id @default(cuid())
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  name      String
+  kind      TestKind   @default(image)
+  status    TestStatus @default(PENDING)
+  createdAt DateTime   @default(now())
+
+  variants     UnifiedVariant[]
+  screenshots  UnifiedScreenshot[]
+  comparisons  UnifiedComparison[]
+
+  @@unique([projectId, name])
+  @@map("UnifiedTest")
+}
+
+model UnifiedVariant {
+  id          String             @id @default(cuid())
+  test        UnifiedTest        @relation(fields: [testId], references: [id], onDelete: Cascade)
+  testId      String
+  viewport    String
+  browser     String
+  environment String
+  baselineId  String?            @unique
+  baseline    UnifiedScreenshot? @relation("BaselineVariant", fields: [baselineId], references: [id])
+  screenshots UnifiedScreenshot[]
+
+  @@unique([testId, viewport, browser, environment])
+  @@map("UnifiedVariant")
+}
+
+model UnifiedScreenshot {
+  id                 String            @id @default(cuid())
+  test               UnifiedTest       @relation(fields: [testId], references: [id], onDelete: Cascade)
+  testId             String
+  variantId          String?
+  variant            UnifiedVariant?   @relation(fields: [variantId], references: [id])
+  type               ScreenshotType
+  imageHash          String
+  imageUrl           String
+  pageCount          Int?
+  pixelDiffThreshold Int               @default(0)
+  createdAt          DateTime          @default(now())
+
+  asBaseline         UnifiedVariant?       @relation("BaselineVariant")
+  asBaselineComp     UnifiedComparison[]   @relation("BaselineComparison")
+  asCandidateComp    UnifiedComparison[]   @relation("CandidateComparison")
+
+  @@unique([testId, variantId, type])
+  @@index([testId, type])
+  @@map("UnifiedScreenshot")
+}
+
+model UnifiedComparison {
+  id                 String              @id @default(cuid())
+  test               UnifiedTest         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  testId             String
+  pageCount          Int?
+  mismatchPixelCount Int
+  mismatchPageCount  Int?
+  diffImageUrl       String?
+  diffPdfUrl         String?
+  status             ComparisonStatus
+  baselineId         String
+  candidateId        String?
+  createdAt          DateTime            @default(now())
+
+  baseline  UnifiedScreenshot             @relation("BaselineComparison", fields: [baselineId], references: [id])
+  candidate UnifiedScreenshot?            @relation("CandidateComparison", fields: [candidateId], references: [id])
+
+  @@index([testId])
+  @@index([status])
+  @@index([baselineId])
+  @@index([candidateId])
+  @@map("UnifiedComparison")
+}
+
+model ComparisonJob {
+  id                  String        @id @default(cuid())
+  testId              String
+  payload             Json
+  candidateId         String?
+  variantViewport     String?
+  variantBrowser      String?
+  variantEnvironment  String?
+  status              JobStatus     @default(PENDING)
+  attempts            Int           @default(0)
+  maxAttempts         Int           @default(3)
+  nextAttemptAt       DateTime?
+  processingStartedAt DateTime?
+  heartbeatAt         DateTime?
+  error               String?
+  createdAt           DateTime      @default(now())
+  completedAt         DateTime?
+
+  @@index([status, nextAttemptAt])
+  @@index([status, heartbeatAt])
+  @@index([status, candidateId])
+  @@index([createdAt])
+}
+
+enum TestKind {
+  image
+  pdf
+}
+
+enum ScreenshotType {
+  BASELINE
+  CURRENT
+}
+
+enum ComparisonStatus {
+  UNCHANGED
+  PENDING_APPROVAL
+  APPROVED
+}
+
+enum TestStatus {
+  PENDING
+  UNCHANGED
+  PENDING_APPROVAL
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated"
+}

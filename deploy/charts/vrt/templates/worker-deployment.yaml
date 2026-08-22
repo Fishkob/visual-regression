@@ -1,0 +1,119 @@
+{{- if .Values.worker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.worker.securityContext.runAsUser }}
+        fsGroup: {{ .Values.worker.securityContext.fsGroup }}
+      containers:
+        - name: worker
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          image: "{{ .Values.images.worker.repository }}:{{ .Values.images.worker.tag }}"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          ports:
+            - containerPort: 3003
+              name: health
+              protocol: TCP
+          env:
+            - name: NODE_MODE
+              value: worker
+            - name: NODE_ENV
+              value: {{ .Values.worker.env.NODE_ENV }}
+            - name: POSTGRES_HOST
+              value: {{ .Values.worker.env.POSTGRES_HOST }}
+            - name: POSTGRES_PORT
+              value: "{{ .Values.worker.env.POSTGRES_PORT }}"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: vrt-secrets
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vrt-secrets
+                  key: postgres-password
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: vrt-secrets
+                  key: postgres-db
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
+            - name: MINIO_ENDPOINT
+              value: {{ .Values.worker.env.MINIO_ENDPOINT }}
+            - name: MINIO_PORT
+              value: "{{ .Values.worker.env.MINIO_PORT }}"
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vrt-secrets
+                  key: minio-access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vrt-secrets
+                  key: minio-secret-key
+            - name: MINIO_BUCKET
+              value: {{ .Values.worker.env.MINIO_BUCKET }}
+            - name: MINIO_USE_SSL
+              value: "{{ .Values.worker.env.MINIO_USE_SSL }}"
+            - name: MINIO_PUBLIC_URL
+              value: "http://{{ .Values.minioHost }}"
+            - name: PDF_SIDECAR_HEALTH_URL
+              value: "{{ .Values.worker.env.PDF_SIDECAR_HEALTH_URL }}"
+            - name: LOG_LEVEL
+              value: {{ .Values.worker.env.LOG_LEVEL }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "{{ .Values.worker.env.OTEL_EXPORTER_OTLP_ENDPOINT }}"
+          resources:
+            requests:
+              cpu: {{ .Values.worker.resources.requests.cpu }}
+              memory: {{ .Values.worker.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.worker.resources.limits.cpu }}
+              memory: {{ .Values.worker.resources.limits.memory }}
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: health
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      imagePullSecrets:
+        - name: ghcr-secret
+{{- end }}

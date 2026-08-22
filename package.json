@@ -1,0 +1,103 @@
+{
+  "name": "visual-regression",
+  "version": "1.0.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "bootstrap": "pnpm run db:prepare && pnpm run sdk:generate && pnpm run sdk:build",
+    "db:prepare": "pnpm --filter ./backend db:prepare",
+    "sdk:build": "pnpm --filter ./client-sdk build",
+    "start": "./scripts/dev.sh docker",
+    "dev": "./scripts/dev.sh infra && concurrently -k -n backend,frontend \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
+    "dev:start": "pnpm run dev",
+    "dev:infra": "./scripts/dev.sh infra",
+    "dev:docker": "./scripts/dev.sh docker",
+    "dev:seed": "./scripts/dev.sh seed",
+    "dev:stop": "./scripts/dev.sh stop",
+    "dev:reset": "./scripts/dev.sh reset",
+    "dev:delete": "./scripts/dev.sh delete",
+    "seed": "pnpm run seed:all",
+    "seed:all": "pnpm run seed:demo && pnpm run seed:e2e && pnpm run seed:dev",
+    "seed:demo": "pnpm --filter ./backend exec tsx src/scripts/seeds/seed-demo.ts",
+    "seed:e2e": "pnpm --filter ./backend exec tsx src/scripts/seeds/seed-e2e.ts",
+    "seed:dev": "pnpm --filter ./backend exec tsx src/scripts/seeds/seed-dev.ts",
+    "dev:backend": "pnpm --filter ./backend copy:prisma && concurrently -k -n api,worker \"pnpm --filter ./backend start:dev\" \"pnpm --filter ./backend start:worker\"",
+    "dev:frontend": "pnpm --filter ./frontend dev",
+    "dev:generate": "pnpm run sdk:generate",
+    "unitTest": "pnpm --filter ./backend test -- test/unit",
+    "unitTest:cov": "pnpm --filter ./backend test:cov -- test/unit",
+    "coverage:open": "npx --yes opener backend/coverage/lcov-report/index.html",
+    "e2eTest": "cross-env NODE_ENV=test pnpm --filter ./backend test:e2e -- test/e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,vue,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,vue,md}\"",
+    "lint": "pnpm --filter ./backend lint",
+    "lint:check": "pnpm --filter ./backend lint:check",
+    "lint:check:all": "pnpm --filter ./backend lint:check && pnpm --filter ./frontend lint:check",
+    "ci:all": "pnpm run typecheck:all && pnpm run lint:check:all && pnpm run build:frontend && pnpm --filter ./frontend test -- --run && pnpm run format:check",
+    "typecheck": "pnpm --filter ./backend typecheck",
+    "typecheck:all": "pnpm --filter ./backend typecheck && pnpm --filter ./backend typecheck:test && pnpm --filter ./frontend typecheck",
+    "prepare": "husky",
+    "sdk:generate": "./scripts/sdk-generate.sh",
+    "build": "pnpm run sdk:generate && pnpm run sdk:build && pnpm run build:frontend && pnpm run build:backend",
+    "build:frontend": "pnpm --filter ./frontend build",
+    "build:backend": "pnpm --filter ./backend build",
+    "docker:build:backend": "docker build -f backend/Dockerfile -t visual-regression-backend .",
+    "docker:build:frontend": "docker build -f frontend/Dockerfile -t visual-regression-frontend .",
+    "docker:build:worker": "docker build -f backend/Dockerfile.worker -t visual-regression-worker ."
+  },
+  "workspaces": [
+    "frontend",
+    "backend",
+    "client-sdk"
+  ],
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/engines",
+      "@scarf/scarf",
+      "esbuild",
+      "msgpackr-extract",
+      "prisma",
+      "vue-demi"
+    ],
+    "overrides": {
+      "js-yaml@4.2.0": "4.3.1",
+      "js-yaml@5.2.1": "5.2.2"
+    }
+  },
+  "lint-staged": {
+    "frontend/src/**/*.{ts,vue}": [
+      "pnpm -C frontend lint --fix",
+      "pnpm -C frontend typecheck",
+      "pnpm -C frontend test -- --run",
+      "prettier --write"
+    ],
+    "frontend/**/*.json": "prettier --write",
+    "backend/src/**/*.ts": [
+      "pnpm -C backend lint",
+      "pnpm -C backend typecheck",
+      "pnpm -C backend test -- test/unit",
+      "prettier --write"
+    ],
+    "backend/test/**/*.ts": [
+      "pnpm -C backend lint",
+      "pnpm -C backend typecheck:test",
+      "pnpm -C backend test -- test/unit",
+      "prettier --write"
+    ],
+    "**/*.{ts,tsx,js,json,vue,md}": "prettier --write"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.99.0",
+    "concurrently": "^10.0.4",
+    "cross-env": "^10.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3"
+  }
+}

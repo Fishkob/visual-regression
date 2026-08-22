@@ -1,0 +1,42 @@
+# --- Prettier ignore configuration ---
+# Ignoriere Build- und generierte Dateien
+node_modules
+dist
+coverage
+.env
+.env.*
+*.log
+
+# --- Monorepo-Workspaces ---
+frontend/dist
+client-sdk
+
+# --- API / Codegen-Output ---
+swagger.json
+
+# --- Assets & statische Dateien ---
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.ico
+
+# --- Prisma ---
+backend/prisma/migrations
+backend/prisma/generated
+backend/src/generated
+
+# --- Test fixtures ---
+backend/test/e2e/global/docker-state.json
+frontend/test-results
+
+# --- IDE / System ---
+.idea
+.DS_Store
+.vscode/backend/node_modules/
+
+# --- Docs (prettier mangles DDD underscore conventions) ---
+CONTEXT.md
+
+# --- OpenCode ---
+.opencode

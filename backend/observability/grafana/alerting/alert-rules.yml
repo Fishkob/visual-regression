@@ -1,0 +1,179 @@
+apiVersion: 1
+groups:
+  - name: VRT Critical Alerts
+    interval: 30s
+    rules:
+      - uid: high_error_rate
+        title: High Error Rate
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m])
+              intervalMs: 10000
+              maxDataPoints: 100
+              refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            queryType: ''
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: $A > 0.05
+              refId: B
+              type: math
+            relativeTimeRange:
+              from: 300
+              to: 0
+            queryType: ''
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: API error rate exceeds 5%
+          description: 'Error rate is {{ printf "%.2f" $A }}% over the last 5 minutes'
+        labels:
+          severity: critical
+          team: platform
+
+      - uid: high_latency
+        title: High Latency
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: histogram_quantile(0.99, rate(http_request_duration_ms_bucket[5m]))
+              intervalMs: 10000
+              maxDataPoints: 100
+              refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            queryType: ''
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: '$A > 2000'
+              refId: B
+              type: math
+            relativeTimeRange:
+              from: 300
+              to: 0
+            queryType: ''
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: API p99 latency exceeds 2s
+          description: 'p99 latency is {{ printf "%.0f" $A }}ms over the last 5 minutes'
+        labels:
+          severity: warning
+          team: platform
+
+      - uid: service_down
+        title: API Service Down
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: 'up{job="visual-regression-api"}'
+              intervalMs: 10000
+              maxDataPoints: 100
+              refId: A
+            relativeTimeRange:
+              from: 120
+              to: 0
+            queryType: ''
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: $A == 0
+              refId: B
+              type: math
+            relativeTimeRange:
+              from: 120
+              to: 0
+            queryType: ''
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: Visual Regression API is unreachable
+          description: 'Prometheus target {{ $labels.job }} has been down for over 1 minute'
+        labels:
+          severity: critical
+          team: platform
+
+      - uid: pdf_sidecar_down
+        title: PDF Sidecar Down
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: 'up{job="pdf-sidecar"}'
+              intervalMs: 10000
+              maxDataPoints: 100
+              refId: A
+            relativeTimeRange:
+              from: 120
+              to: 0
+            queryType: ''
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: $A == 0
+              refId: B
+              type: math
+            relativeTimeRange:
+              from: 120
+              to: 0
+            queryType: ''
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          summary: PDF Sidecar is unreachable
+          description: 'Prometheus target {{ $labels.job }} has been down for over 1 minute'
+        labels:
+          severity: critical
+          team: platform
+
+      - uid: queue_backpressure
+        title: Queue Backpressure
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: queue_failed_jobs{queue=~"comparison|pdf_comparison"}
+              intervalMs: 10000
+              maxDataPoints: 100
+              refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            queryType: ''
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: $A > 100
+              refId: B
+              type: math
+            relativeTimeRange:
+              from: 300
+              to: 0
+            queryType: ''
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: Failed jobs exceed threshold
+          description: '{{ printf "%.0f" $A }} failed jobs in the comparison queue'
+        labels:
+          severity: warning
+          team: platform

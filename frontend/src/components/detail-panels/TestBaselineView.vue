@@ -1,0 +1,23 @@
+<template>
+  <div class="max-w-xl mx-auto space-y-4 text-center">
+    <h3 class="text-sm font-semibold text-muted-foreground">
+      Only baseline available
+    </h3>
+
+    <img
+      :src="baseline.imageUrl"
+      alt="Baseline"
+      loading="lazy"
+      class="border rounded shadow-lg w-[500px] h-[400px] object-contain mx-auto"
+      data-testid="base-image-block"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import type { Screenshot } from "@/domains/visual-test/visual-test.model";
+
+defineProps<{
+  baseline: Screenshot;
+}>();
+</script>

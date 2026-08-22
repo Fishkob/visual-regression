@@ -1,0 +1,190 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { TransactionContext } from '@/prisma/transaction-context';
+import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
+import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import type { TestKind, TestStatus } from '@/prisma/client';
+import { createMock } from '@test/utils/create-mock';
+
+describe('UnifiedTestRepository', () => {
+  let repository: UnifiedTestRepository;
+  let mockTxCtx: jest.Mocked<TransactionContext>;
+  let mockClient: any;
+  let mockProjects: jest.Mocked<ProjectRepository>;
+
+  beforeEach(async () => {
+    mockClient = {
+      unifiedTest: {
+        findUnique: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(),
+        upsert: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
+        deleteMany: jest.fn(),
+        count: jest.fn(),
+      },
+      unifiedVariant: {
+        findUnique: jest.fn(),
+        findFirst: jest.fn(),
+      },
+    };
+
+    mockTxCtx = createMock<TransactionContext>();
+    Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });
+
+    mockProjects = createMock<ProjectRepository>();
+    mockProjects.getOrCreate.mockResolvedValue({
+      id: 'proj-1',
+      name: 'my-project',
+      createdAt: new Date(),
+    });
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UnifiedTestRepository,
+        { provide: ProjectRepository, useValue: mockProjects },
+        { provide: TransactionContext, useValue: mockTxCtx },
+      ],
+    }).compile();
+
+    repository = module.get(UnifiedTestRepository);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('findByProjectNameAndTestName', () => {
+    it('returns test with selected fields', async () => {
+      const test = {
+        id: 'test-1',
+        name: 'my-test',
+        kind: 'image' as TestKind,
+        createdAt: new Date(),
+      };
+      mockClient.unifiedTest.findFirst.mockResolvedValue(test);
+
+      const result = await repository.findByProjectNameAndTestName(
+        'my-project',
+        'my-test',
+      );
+
+      expect(result).toEqual(test);
+      expect(mockClient.unifiedTest.findFirst).toHaveBeenCalledWith({
+        where: { name: 'my-test', project: { name: 'my-project' } },
+        select: { id: true, name: true, kind: true, createdAt: true },
+      });
+    });
+
+    it('returns null when not found', async () => {
+      mockClient.unifiedTest.findFirst.mockResolvedValue(null);
+
+      const result = await repository.findByProjectNameAndTestName(
+        'my-project',
+        'non-existent',
+      );
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findIdsByProjectId', () => {
+    it('returns only the ids of tests for a project', async () => {
+      const tests = [
+        { id: 'test-1', name: 'a', projectId: 'proj-1' },
+        { id: 'test-2', name: 'b', projectId: 'proj-1' },
+      ];
+      mockClient.unifiedTest.findMany.mockResolvedValue(tests);
+
+      const result = await repository.findIdsByProjectId('proj-1');
+
+      expect(result).toEqual(['test-1', 'test-2']);
+      expect(mockClient.unifiedTest.findMany).toHaveBeenCalledWith({
+        where: { projectId: 'proj-1' },
+        select: { id: true },
+      });
+    });
+
+    it('returns empty array when no tests', async () => {
+      mockClient.unifiedTest.findMany.mockResolvedValue([]);
+
+      const result = await repository.findIdsByProjectId('proj-1');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('updateStatus', () => {
+    it('updates the test status', async () => {
+      mockClient.unifiedTest.update.mockResolvedValue(undefined);
+
+      await repository.updateStatus('test-1', 'PENDING_APPROVAL' as TestStatus);
+
+      expect(mockClient.unifiedTest.update).toHaveBeenCalledWith({
+        where: { id: 'test-1' },
+        data: { status: 'PENDING_APPROVAL' },
+      });
+    });
+  });
+
+  describe('deleteByIds', () => {
+    it('deletes multiple tests in one query', async () => {
+      mockClient.unifiedTest.deleteMany.mockResolvedValue({ count: 2 });
+
+      await repository.deleteByIds(['test-1', 'test-2']);
+
+      expect(mockClient.unifiedTest.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: ['test-1', 'test-2'] } },
+      });
+    });
+
+    it('skips the query for an empty id list', async () => {
+      await repository.deleteByIds([]);
+
+      expect(mockClient.unifiedTest.deleteMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('ensureTest', () => {
+    it('ensures project and test exist, returns testId', async () => {
+      const test = { id: 'test-1', kind: 'image' as TestKind };
+      mockClient.unifiedTest.upsert.mockResolvedValue(test);
+
+      const result = await repository.ensureTest(
+        'my-project',
+        'my-test',
+        'image' as TestKind,
+      );
+
+      expect(result).toEqual({ testId: 'test-1' });
+      expect(mockProjects.getOrCreate).toHaveBeenCalledWith('my-project');
+      expect(mockClient.unifiedTest.upsert).toHaveBeenCalledWith({
+        where: { projectId_name: { projectId: 'proj-1', name: 'my-test' } },
+        create: { projectId: 'proj-1', name: 'my-test', kind: 'image' },
+        update: {},
+      });
+    });
+
+    it('allows re-uploading a test whose kind matches', async () => {
+      const test = { id: 'test-1', kind: 'image' as TestKind };
+      mockClient.unifiedTest.upsert.mockResolvedValue(test);
+
+      const result = await repository.ensureTest(
+        'my-project',
+        'my-test',
+        'image' as TestKind,
+      );
+
+      expect(result).toEqual({ testId: 'test-1' });
+    });
+
+    it('rejects an upload whose kind conflicts with the persisted test kind', async () => {
+      const test = { id: 'test-1', kind: 'image' as TestKind };
+      mockClient.unifiedTest.upsert.mockResolvedValue(test);
+
+      await expect(
+        repository.ensureTest('my-project', 'my-test', 'pdf' as TestKind),
+      ).rejects.toMatchObject({ code: 'CONFLICT' });
+    });
+  });
+});

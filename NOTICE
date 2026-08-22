@@ -1,0 +1,12 @@
+Visual Regression Platform
+Copyright 2024-2026
+
+This product includes software from the following projects:
+
+- NestJS (https://nestjs.com) - MIT License
+- Vue.js (https://vuejs.org) - MIT License
+- Prisma (https://prisma.io) - Apache License 2.0
+- MinIO (https://min.io) - Apache License 2.0
+- Tailwind CSS (https://tailwindcss.com) - MIT License
+
+Third-party components are used under their respective licenses.

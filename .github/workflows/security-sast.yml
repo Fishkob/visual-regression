@@ -1,0 +1,42 @@
+name: Security (SAST)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, develop]
+    paths:
+      - "backend/src/**"
+      - "frontend/src/**"
+      - "client-sdk/**"
+      - "pdf-sidecar/**"
+      - "scripts/security/**"
+      - ".github/workflows/security-sast.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "backend/src/**"
+      - "frontend/src/**"
+      - "client-sdk/**"
+      - "pdf-sidecar/**"
+      - "scripts/security/**"
+      - ".github/workflows/security-sast.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  semgrep:
+    name: Semgrep (security-audit)
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:1.172.0
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Scan with semgrep
+        run: |
+          semgrep scan --config p/security-audit --sarif --output semgrep.sarif . || true
+
+      - name: Gate on error findings
+        run: python3 scripts/security/semgrep-gate.py semgrep.sarif

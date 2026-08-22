@@ -1,0 +1,25 @@
+/.idea/*
+/node_modules/
+/client-sdk/node_modules/
+/client-sdk/dist/
+/dist/
+/backend/dist/
+/frontend/dist/
+/frontend/coverage/
+.env
+.DS_Store
+.worktrees/
+
+# Local Helm overrides with credentials
+deploy/charts/vrt/values.local.yaml
+.superpowers/
+/.agents/skills/grill-with-docs/ADR-FORMAT.md
+/.agents/skills/grill-with-docs/CONTEXT-FORMAT.md
+/.agents/skills/grill-with-docs/SKILL.md
+/visual-regression.iml
+/pdf-sidecar/target/
+/pdf-sidecar/dependency-reduced-pom.xml
+
+# Security scan artifacts (local gate runs)
+*.sarif
+/osv-results.json

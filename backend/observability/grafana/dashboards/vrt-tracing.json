@@ -1,0 +1,155 @@
+{
+  "title": "Visual Regression – Tracing",
+  "uid": "vrt-tracing",
+  "version": 2,
+  "timezone": "browser",
+  "editable": true,
+  "tags": ["visual-regression", "tracing", "tempo"],
+  "refresh": "10s",
+  "panels": [
+    {
+      "title": "Service Graph",
+      "type": "nodeGraph",
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "targets": [
+        {
+          "queryType": "serviceMap",
+          "serviceMap": {
+            "dataSource": "prometheus",
+            "serviceMap": { "datasourceUid": "prometheus" }
+          }
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": {}, "overrides": [] }
+    },
+    {
+      "title": "Request Rate by Service",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by(service_name) (rate(traces_span_metrics_calls_total[5m]))",
+          "legendFormat": "{{service_name}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "fieldConfig": {
+        "defaults": { "unit": "rps", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Trace Duration (p50, p95, p99)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, sum(rate(traces_span_metrics_duration_milliseconds_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(traces_span_metrics_duration_milliseconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(traces_span_metrics_duration_milliseconds_bucket[5m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Error Rate by Service",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by(service_name) (rate(traces_span_metrics_calls_total{status_code=\"STATUS_CODE_ERROR\"}[5m]))",
+          "legendFormat": "{{service_name}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 8 },
+      "fieldConfig": {
+        "defaults": { "unit": "rps", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Latency p95 by Service",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by(le, service_name) (rate(traces_span_metrics_duration_milliseconds_bucket[5m])))",
+          "legendFormat": "p95 – {{service_name}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 8 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Top Slowest Spans",
+      "type": "table",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "topk(10, avg by(service_name, span_name) (rate(traces_span_metrics_duration_milliseconds_sum[5m]) / rate(traces_span_metrics_duration_milliseconds_count[5m])))",
+          "legendFormat": "avg ms",
+          "format": "table"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "min": 0 },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Value" },
+            "properties": [{ "id": "unit", "value": "ms" }]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Span Call Rate by Operation",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "topk(5, sum by(span_name) (rate(traces_span_metrics_calls_total[5m])))",
+          "legendFormat": "{{span_name}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
+      "fieldConfig": {
+        "defaults": { "unit": "rps", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Recent Traces",
+      "type": "table",
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "targets": [
+        {
+          "query": "{}",
+          "queryType": "traceql",
+          "limit": 20,
+          "tableType": "traces"
+        }
+      ],
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 16 },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    }
+  ]
+}

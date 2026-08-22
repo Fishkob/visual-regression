@@ -1,0 +1,32 @@
+name: Setup
+description: Install pnpm deps and generate Prisma client (requires checkout first)
+
+inputs:
+  generate-prisma:
+    description: Whether to generate Prisma client
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+      with:
+        version: 9
+
+    - name: Setup Node
+      uses: actions/setup-node@v6
+      with:
+        node-version: 24
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Generate Prisma Client
+      if: ${{ inputs.generate-prisma == 'true' }}
+      shell: bash
+      env:
+        DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/vrt?schema=public
+      run: pnpm --filter ./backend prisma:generate

@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist", // <– kompiliert alles hier rein
+    "declaration": true, // erzeugt .d.ts-Typen
+    "emitDeclarationOnly": false, // erzeugt .js und .d.ts
+    "noEmit": false,
+    "removeComments": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts", "node_modules", "dist"]
+}

@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@playwright/test": [
+        "../../node_modules/.pnpm/playwright@1.58.2/node_modules/playwright/test"
+      ]
+    }
+  },
+  "include": ["**/*.ts"]
+}

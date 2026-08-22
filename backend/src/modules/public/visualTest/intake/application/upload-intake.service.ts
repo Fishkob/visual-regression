@@ -1,0 +1,399 @@
+import { createHash, randomUUID } from 'crypto';
+import { Inject, Injectable } from '@nestjs/common';
+import { Tracker } from '@common/tracker/tracker.service';
+import { DomainError } from '@common/domain/domain-error';
+import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
+import {
+  change,
+  noop,
+  type PersistedChange,
+  type StateChangeOutcome,
+} from '@public/visualTest/core/application/services/state-change-options';
+import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
+import {
+  STORAGE_PROVIDER,
+  IStorageProvider,
+} from '@common/domain/storage-provider.interface';
+import { assertNever } from '@common/utils/assert-never';
+import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
+import {
+  type BaselineCreatedUploadDecision,
+  type ComparisonQueuedUploadDecision,
+  type UploadDecision,
+} from '@public/visualTest/core/domain/policies/upload-decision-policy';
+import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
+import { JOB_PRODUCER, IJobProducer } from '@common/domain/job-queue.interface';
+import {
+  ComparisonOutcome,
+  ComparisonErrorCode,
+} from '@common/domain/upload-outcome';
+import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
+import type { JobData } from '@common/domain/job-data.types';
+import type { AnyUploadResult } from '@common/domain/unified-upload-result.type';
+import type { TestKind } from '@common/domain/test-kind';
+import {
+  KIND_FILE_EXTENSIONS,
+  KIND_MIME_TYPES,
+} from '@common/domain/test-kind';
+import { TRACKED_OPERATIONS } from '@common/domain/metrics-catalog';
+import {
+  PDF_PAGE_COUNTER,
+  IPdfPageCounter,
+} from '@common/domain/pdf-sidecar.interface';
+
+export interface UploadParams {
+  projectName: string;
+  testName: string;
+  viewport: string;
+  browser: string;
+  environment: string;
+  file: Express.Multer.File;
+}
+
+interface UploadKindConfig {
+  trackerSpanName: string;
+  queuedErrorCode: ComparisonErrorCode;
+  queuedMessage: string;
+}
+
+// The per-kind variance for the upload pipeline: the tracker span name and the
+// queued result copy. Everything else (decision, baseline/candidate writes,
+// file naming) is kind-agnostic and lives in the service. The only behavioral
+// hook is the PDF page count, handled as a single branch below.
+const UPLOAD_KIND_CONFIG: Record<TestKind, UploadKindConfig> = {
+  image: {
+    trackerSpanName: TRACKED_OPERATIONS.upload.image,
+    queuedErrorCode: ComparisonErrorCode.IMAGE_DIFFERENCE,
+    queuedMessage: 'Comparison queued — check test results.',
+  },
+  pdf: {
+    trackerSpanName: TRACKED_OPERATIONS.upload.pdf,
+    queuedErrorCode: ComparisonErrorCode.PDF_DIFFERENCE,
+    queuedMessage: 'PDF comparison queued — check test results.',
+  },
+};
+
+interface PreparedComparison {
+  staleUrls: string[];
+  jobData: JobData;
+}
+
+@Injectable()
+export class UploadIntake {
+  constructor(
+    private readonly tracker: Tracker,
+    private readonly workflow: StateChangeWorkflow,
+    private readonly retirement: ComparisonRetirementService,
+    @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
+    private readonly decisions: UploadDecisionResolver,
+    private readonly screenshots: UnifiedScreenshotRepository,
+    @Inject(JOB_PRODUCER) private readonly jobQueue: IJobProducer,
+    @Inject(PDF_PAGE_COUNTER) private readonly pageCounter: IPdfPageCounter,
+  ) {}
+
+  async upload(params: UploadParams, kind: TestKind): Promise<AnyUploadResult> {
+    assertKindMatchesMime(kind, params.file.mimetype);
+    return this.tracker.track(
+      UPLOAD_KIND_CONFIG[kind].trackerSpanName,
+      async () => {
+        const fileHash = createHash('sha256')
+          .update(params.file.buffer)
+          .digest('hex');
+
+        // The identical fast path is a pure gate: it avoids storing a file that
+        // the stored path would immediately discard, and it never creates a
+        // project/test row (a failed upload must not leave side effects behind).
+        // It re-resolves inside its own retried Serializable transaction; if a
+        // concurrent approval replaced the baseline in between, it returns null
+        // and the stored path below re-resolves atomically and wins.
+        const identicalDecision = await this.decisions.resolveIdentical(
+          params,
+          fileHash,
+        );
+        if (identicalDecision !== null) {
+          const identicalResult = await this.tryIdentical(params, fileHash);
+          if (identicalResult !== null) return identicalResult;
+        }
+
+        // Resolve the document page count outside the transaction. For PDFs this
+        // hits the sidecar over HTTP — doing it here keeps the network call out
+        // of the Serializable transaction and avoids re-invoking it on retry.
+        const pageCount =
+          kind === 'pdf'
+            ? await this.pageCounter.count(params.file.buffer)
+            : undefined;
+
+        const stored = await this.workflow.executeWithStoredFile({
+          store: () => this.storeUpload(kind, fileHash, params),
+          change: async (fileUrl) => {
+            const fresh = await this.decisions.resolveStored(
+              kind,
+              params,
+              fileHash,
+            );
+            return this.applyStoredChange(
+              kind,
+              fresh,
+              params,
+              fileUrl,
+              pageCount,
+            );
+          },
+        });
+
+        return stored.result;
+      },
+    );
+  }
+
+  private async tryIdentical(
+    params: UploadParams,
+    fileHash: string,
+  ): Promise<AnyUploadResult | null> {
+    const outcome = await this.workflow.executeStateChange<{
+      superseded: boolean;
+    }>(async () => {
+      // Read-only re-resolution inside the transaction: the gate must not
+      // ensureTest, otherwise a test deleted between the gate and here is
+      // resurrected and the noop commits its freshly created rows. resolveIdentical
+      // is the side-effect-free resolution shape — it never ensures a row.
+      const fresh = await this.decisions.resolveIdentical(params, fileHash);
+      if (!fresh) {
+        return { change: noop(), result: { superseded: false } };
+      }
+      const superseded = await this.supersedeIdentical(fresh.testId, params);
+      return { change: superseded, result: { superseded: true } };
+    });
+    if (!outcome.result.superseded) return null;
+    return identicalResult();
+  }
+
+  // An identical upload retires the variant's pending comparison + candidate
+  // and cancels its queued diff jobs. One owner for the identical rule: both
+  // the fast path and the stored path (which re-resolves after a concurrent
+  // baseline replacement) produce the same outcome + stale files.
+  private async supersedeIdentical(
+    testId: string,
+    params: UploadParams,
+  ): Promise<Extract<PersistedChange, { kind: 'change' }>> {
+    const variant = this.toVariant(params);
+    // One recipe owns the identical retirement: supersede the pending change
+    // (cancel queued jobs) and reclaim the CURRENT candidate row, so a
+    // PROCESSING diff job's only supersede-detector (the CURRENT row's hash)
+    // fails and it retires its moot candidate instead of committing a stale
+    // comparison.
+    const staleUrls = await this.retirement.supersedeIdenticalForVariant(
+      testId,
+      variant,
+    );
+    return change([testId], { staleUrls });
+  }
+
+  private async applyStoredChange(
+    kind: TestKind,
+    fresh: UploadDecision,
+    params: UploadParams,
+    fileUrl: string,
+    pageCount?: number,
+  ): Promise<StateChangeOutcome<AnyUploadResult>> {
+    switch (fresh.status) {
+      case ComparisonOutcome.IDENTICAL: {
+        const identical = await this.supersedeIdentical(fresh.testId, params);
+        return {
+          change: change(identical.affectedTestIds, {
+            // The stored file was written for nothing — reclaim it through the
+            // workflow's single post-commit stale-file channel alongside the
+            // retired diff artifacts.
+            staleUrls: [fileUrl, ...(identical.staleUrls ?? [])],
+          }),
+          result: identicalResult(),
+        };
+      }
+      case ComparisonOutcome.BASELINE_CREATED: {
+        await this.writeBaseline(fresh, params, fileUrl, pageCount);
+        return {
+          change: change([fresh.testId], {
+            events: [
+              {
+                kind: 'screenshot_uploaded',
+                visualTestId: fresh.testId,
+                type: 'BASELINE',
+              },
+            ],
+          }),
+          result: {
+            status: ComparisonOutcome.BASELINE_CREATED,
+            testId: fresh.testId,
+            fileUrl,
+          } as const,
+        };
+      }
+      case ComparisonOutcome.COMPARISON_QUEUED: {
+        const staleUrls = await this.writeComparisonAndEnqueue(
+          kind,
+          fresh,
+          params,
+          fileUrl,
+          pageCount,
+        );
+        return {
+          change: change([fresh.testId], {
+            staleUrls,
+            events: [
+              {
+                kind: 'screenshot_uploaded',
+                visualTestId: fresh.testId,
+                type: 'CURRENT',
+              },
+            ],
+          }),
+          result: this.queuedResult(kind),
+        };
+      }
+      default:
+        return assertNever(fresh);
+    }
+  }
+
+  private storeUpload(
+    kind: TestKind,
+    contentHash: string,
+    params: UploadParams,
+  ): Promise<string> {
+    const fileName = uploadObjectName(kind, contentHash);
+    return this.storage.putObject(
+      fileName,
+      params.file.buffer,
+      KIND_MIME_TYPES[kind],
+    );
+  }
+
+  private queuedResult(kind: TestKind): AnyUploadResult {
+    const config = UPLOAD_KIND_CONFIG[kind];
+    return {
+      status: ComparisonOutcome.COMPARISON_QUEUED,
+      error: config.queuedErrorCode,
+      message: config.queuedMessage,
+    };
+  }
+
+  private async writeBaseline(
+    decision: BaselineCreatedUploadDecision,
+    params: UploadParams,
+    fileUrl: string,
+    pageCount?: number,
+  ): Promise<void> {
+    await this.screenshots.upsertBaselineForVariant({
+      testId: decision.testId,
+      contentHash: decision.contentHash,
+      contentUrl: fileUrl,
+      variant: this.toVariant(params),
+      pageCount,
+    });
+  }
+
+  private async writeComparisonAndEnqueue(
+    kind: TestKind,
+    decision: ComparisonQueuedUploadDecision,
+    params: UploadParams,
+    fileUrl: string,
+    pageCount?: number,
+  ): Promise<string[]> {
+    const staleUrls = await this.retirement.supersedeForVariant(
+      decision.testId,
+      this.toVariant(params),
+    );
+    const prepared = await this.prepareComparison(
+      kind,
+      decision,
+      params,
+      fileUrl,
+      pageCount,
+    );
+    await this.jobQueue.enqueue(prepared.jobData);
+    return [...staleUrls, ...prepared.staleUrls];
+  }
+
+  // A new upload supersedes the pending change for this variant: its
+  // comparison + candidate are retired and any queued diff jobs cancelled.
+  private toVariant(params: UploadParams): Variant {
+    return Variant.fromStrings(
+      params.viewport,
+      params.browser,
+      params.environment,
+    );
+  }
+
+  private async createCandidate(
+    decision: ComparisonQueuedUploadDecision,
+    params: UploadParams,
+    fileUrl: string,
+    pageCount?: number,
+  ): Promise<{ id: string; replacedUrl: string | null }> {
+    return this.screenshots.upsertCandidateForVariant({
+      testId: decision.testId,
+      contentHash: decision.contentHash,
+      contentUrl: fileUrl,
+      variant: this.toVariant(params),
+      pageCount,
+    });
+  }
+
+  private async prepareComparison(
+    kind: TestKind,
+    decision: ComparisonQueuedUploadDecision,
+    params: UploadParams,
+    fileUrl: string,
+    pageCount?: number,
+  ): Promise<PreparedComparison> {
+    const { testId, contentHash, baseline } = decision;
+    const variant = this.toVariant(params);
+    const candidate = await this.createCandidate(
+      decision,
+      params,
+      fileUrl,
+      pageCount,
+    );
+    const jobData: JobData = {
+      testKind: kind,
+      testId,
+      candidateHash: contentHash,
+      candidate: { id: candidate.id, url: fileUrl },
+      baseline: { id: baseline.id, url: baseline.fileUrl },
+      variant: variant.toRecord(),
+    };
+    // The replaced candidate URL funnels through the same "safe to reclaim"
+    // owner every other reclamation uses, so an old candidate file that a
+    // baseline or live comparison still references is never deleted.
+    const replacedUrls = candidate.replacedUrl
+      ? await this.screenshots.filterReclaimableUrls([candidate.replacedUrl])
+      : [];
+    return {
+      staleUrls: replacedUrls,
+      jobData,
+    };
+  }
+}
+
+function assertKindMatchesMime(kind: TestKind, mimetype: string): void {
+  const expected = KIND_MIME_TYPES[kind];
+  if (mimetype !== expected) {
+    throw new DomainError(
+      `MIME type "${mimetype}" does not match test kind "${kind}"`,
+      'BAD_REQUEST',
+    );
+  }
+}
+
+// The identical outcome, single-sourced: both the fast path and the stored
+// path (which re-resolves after a concurrent baseline replacement) return the
+// same shape, so the upload result contract edits in one place.
+function identicalResult(): AnyUploadResult {
+  return { status: ComparisonOutcome.IDENTICAL, mismatchPixelCount: 0 };
+}
+
+// A per-upload unique object name: a fresh randomUUID guarantees two uploads of
+// identical content (and even identical clocks) never collide.
+export function uploadObjectName(kind: TestKind, hash: string): string {
+  return `${hash}-${randomUUID()}.${KIND_FILE_EXTENSIONS[kind]}`;
+}

@@ -1,0 +1,84 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: visual-regression-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: visual-regression-dev
+    app.kubernetes.io/part-of: vrt
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Fishkob/visual-regression.git
+    targetRevision: main
+    path: deploy/charts/vrt
+    helm:
+      values: |
+        namespace: vrt-dev
+        domain: dev.vrt.local
+
+        images:
+          backend:
+            tag: develop
+          frontend:
+            tag: develop
+
+        backend:
+          replicas: 1
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+
+        frontend:
+          replicas: 1
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+
+        postgres:
+          enabled: true
+          storage: 1Gi
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+
+        minio:
+          enabled: true
+          storage: 2Gi
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: vrt-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m0s

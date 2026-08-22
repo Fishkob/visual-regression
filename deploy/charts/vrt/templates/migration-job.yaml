@@ -1,0 +1,73 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+  namespace: {{ .Values.namespace }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-weight": "-5"
+spec:
+  template:
+    metadata:
+      labels:
+        app: db-migrate
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: db-migrate
+          image: "{{ .Values.images.migrate.repository }}:{{ .Values.images.migrate.tag }}"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          command:
+            - /bin/sh
+            - -c
+            - |
+              for i in $(seq 1 30); do
+                node -e "require('net').createConnection({port:5432,host:'$POSTGRES_HOST'}).on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))" 2>/dev/null && break
+                echo "waiting for postgres..."
+                sleep 2
+              done
+              /app/node_modules/.bin/prisma migrate deploy
+          env:
+            - name: HOME
+              value: /tmp
+            - name: POSTGRES_HOST
+              value: {{ .Values.backend.env.POSTGRES_HOST }}
+            - name: POSTGRES_PORT
+              value: "{{ .Values.backend.env.POSTGRES_PORT }}"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: vrt-secrets
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vrt-secrets
+                  key: postgres-password
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: vrt-secrets
+                  key: postgres-db
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      imagePullSecrets:
+        - name: ghcr-secret
