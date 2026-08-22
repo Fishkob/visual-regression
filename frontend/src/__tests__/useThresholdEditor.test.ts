@@ -4,6 +4,7 @@ import {
   useThresholdEditor,
   type ThresholdEditorOptions,
 } from "@/composables/useThresholdEditor";
+import type { Screenshot } from "@/domains/visual-test/visual-test.model";
 
 const mockPreview = vi.fn();
 const mockMutate = vi.hoisted(() => vi.fn());
@@ -33,6 +34,11 @@ describe("useThresholdEditor", () => {
     mockPreview.mockReset();
   });
 
+  const baseline = (pixelDiffThreshold: number): Screenshot => ({
+    imageUrl: "/images/baseline.png",
+    pixelDiffThreshold,
+  });
+
   const createOptions = (
     overrides: Partial<ThresholdEditorOptions> = {},
   ): ThresholdEditorOptions => ({
@@ -48,7 +54,7 @@ describe("useThresholdEditor", () => {
 
   it("initializes threshold from baseline", () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.5 } as any,
+      baseline: baseline(0.5),
     });
 
     const { threshold } = useThresholdEditor(options);
@@ -68,7 +74,7 @@ describe("useThresholdEditor", () => {
 
   it("initializes inputValue from threshold", () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.1 } as any,
+      baseline: baseline(0.1),
     });
 
     const { inputValue } = useThresholdEditor(options);
@@ -78,7 +84,7 @@ describe("useThresholdEditor", () => {
 
   it("resets input to current threshold on handleCancelThreshold", () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.5 } as any,
+      baseline: baseline(0.5),
     });
 
     const { inputValue, handleCancelThreshold } = useThresholdEditor(options);
@@ -93,7 +99,7 @@ describe("useThresholdEditor", () => {
 
   it("shows confirmation when the server preview reports an auto-accept", async () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.1 } as any,
+      baseline: baseline(0.1),
     });
     mockPreview.mockResolvedValue(previewResponse(1));
 
@@ -114,7 +120,7 @@ describe("useThresholdEditor", () => {
 
   it("commits directly when the server preview reports no auto-accept", async () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.1 } as any,
+      baseline: baseline(0.1),
     });
     mockPreview.mockResolvedValue(previewResponse(0));
 
@@ -129,7 +135,7 @@ describe("useThresholdEditor", () => {
 
   it("does not show a confirm when there is no pending comparison to accept", async () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.1 } as any,
+      baseline: baseline(0.1),
     });
     mockPreview.mockResolvedValue(previewResponse(0));
 
@@ -144,7 +150,7 @@ describe("useThresholdEditor", () => {
 
   it("resets input on cancel", async () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.5 } as any,
+      baseline: baseline(0.5),
     });
     mockPreview.mockResolvedValue(previewResponse(1));
 
@@ -169,7 +175,7 @@ describe("useThresholdEditor", () => {
 
   it("commits the pending threshold on confirm", async () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.5 } as any,
+      baseline: baseline(0.5),
     });
     mockPreview.mockResolvedValue(previewResponse(1));
 
@@ -203,7 +209,7 @@ describe("useThresholdEditor", () => {
 
   it("clamps negative values to 0 on blur", async () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.5 } as any,
+      baseline: baseline(0.5),
     });
     mockPreview.mockResolvedValue(previewResponse(0));
 
@@ -218,7 +224,7 @@ describe("useThresholdEditor", () => {
 
   it("resets input when non-numeric value entered", async () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.5 } as any,
+      baseline: baseline(0.5),
     });
 
     const { inputValue, onBlur } = useThresholdEditor(options);
@@ -232,7 +238,7 @@ describe("useThresholdEditor", () => {
 
   it("keeps the typed value when the preview reports no auto-accept", async () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.1 } as any,
+      baseline: baseline(0.1),
     });
     mockPreview.mockResolvedValue(previewResponse(0));
 
@@ -247,7 +253,7 @@ describe("useThresholdEditor", () => {
 
   it("does not commit blindly when the preview fails", async () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.1 } as any,
+      baseline: baseline(0.1),
     });
     mockPreview.mockRejectedValue(new Error("preview failed"));
 
@@ -266,7 +272,7 @@ describe("useThresholdEditor", () => {
 
   it("initializes with provided baseline threshold", () => {
     const options = createOptions({
-      baseline: { pixelDiffThreshold: 0.8 } as any,
+      baseline: baseline(0.8),
     });
 
     const { threshold } = useThresholdEditor(options);

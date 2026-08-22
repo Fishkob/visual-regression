@@ -51,11 +51,13 @@ const project: Project = {
   ],
 };
 
-vi.mock("@/composables/useProjects", () => ({
-  useProjectDetailQuery: vi.fn(),
+const { useProjectDetailQueryMock } = vi.hoisted(() => ({
+  useProjectDetailQueryMock: vi.fn(),
 }));
 
-import { useProjectDetailQuery } from "@/composables/useProjects";
+vi.mock("@/composables/useProjects", () => ({
+  useProjectDetailQuery: useProjectDetailQueryMock,
+}));
 
 describe("useProjectDetailPage", () => {
   beforeEach(() => {
@@ -63,7 +65,7 @@ describe("useProjectDetailPage", () => {
   });
 
   function mockProject(value: Project = project) {
-    (useProjectDetailQuery as any).mockReturnValue({
+    useProjectDetailQueryMock.mockReturnValue({
       data: ref(value),
       isLoading: ref(false),
       error: ref(null),
@@ -117,7 +119,7 @@ describe("useProjectDetailPage", () => {
     const refetch = vi.fn();
     const isLoading = ref(true);
     const error = ref<Error | null>(null);
-    (useProjectDetailQuery as any).mockReturnValue({
+    useProjectDetailQueryMock.mockReturnValue({
       data: ref(project),
       isLoading,
       error,

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { mockApi } from "../ct/routes/api.routes";
-import { PROJECT_CHECKOUT_UI_RESPONSE } from "../ct/mocks/projects.mocks";
+import { mockApi } from "./routes/api.routes";
+import { PROJECT_CHECKOUT_UI_RESPONSE } from "./mocks/projects.mocks";
 import type { Routed } from "../../src/views/ProjectDetailView.story";
 
 test.describe("ProjectDetail", () => {

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { mockApi } from "../ct/routes/api.routes";
-import { PROJECTS_PENDING_RESPONSE } from "../ct/mocks/projects.mocks";
+import { mockApi } from "./routes/api.routes";
+import { PROJECTS_PENDING_RESPONSE } from "./mocks/projects.mocks";
 
 test.describe("ProjectList", () => {
   test("shows projects", async ({ mount, page }) => {

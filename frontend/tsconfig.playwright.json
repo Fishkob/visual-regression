@@ -5,7 +5,6 @@
     "src/**/*.ts",
     "src/**/*.vue",
     "playwright/gallery/**/*.ts",
-    "tests/pages/**/*.ts",
     "tests/ct/**/*.ts"
   ],
   "exclude": ["node_modules", "dist"],

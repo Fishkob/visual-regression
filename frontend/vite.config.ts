@@ -32,7 +32,7 @@ export default defineConfig({
     globals: true,
     exclude: [
       "**/node_modules/**",
-      "**/tests/pages/**",
+      "**/tests/ct/**",
       "**/tests/e2e/**",
       "**/e2e/**",
     ],
@@ -43,6 +43,7 @@ export default defineConfig({
       exclude: [
         "src/**/*.d.ts",
         "src/**/*.test.ts",
+        "src/**/*.story.ts",
         "src/__tests__/**",
         "src/main.ts",
         "src/App.vue",
@@ -50,6 +51,12 @@ export default defineConfig({
         "tests/**",
         "node_modules/**",
       ],
+      thresholds: {
+        statements: 60,
+        branches: 45,
+        functions: 45,
+        lines: 60,
+      },
     },
   },
 });

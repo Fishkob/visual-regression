@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useRouteParams } from "@/composables/useRouteParams";
 
 const mockRoute = {
-  params: {},
+  params: {} as Record<string, unknown>,
   query: {},
 };
 
@@ -48,7 +48,7 @@ describe("useRouteParams", () => {
   });
 
   it("handles non-string param values", () => {
-    mockRoute.params = { projectName: 123 as any };
+    mockRoute.params = { projectName: 123 };
 
     const { projectName } = useRouteParams();
 

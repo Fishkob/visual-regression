@@ -2,6 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ref } from "vue";
 import { useVisualTestDetailsPage } from "@/composables/useTestDetailsPage";
 
+const { useQueryMock } = vi.hoisted(() => ({
+  useQueryMock: vi.fn(),
+}));
+
+useQueryMock.mockReturnValue({
+  data: ref(undefined),
+  isLoading: ref(false),
+  error: ref(null),
+  refetch: vi.fn(),
+});
+
 vi.mock("@sdk", () => ({
   testsQueriesControllerGetTestsWithPendingStatus: vi.fn(),
   testsQueriesControllerGetVisualTestDetails: vi.fn(() =>
@@ -13,12 +24,7 @@ vi.mock("@sdk", () => ({
 }));
 
 vi.mock("@tanstack/vue-query", () => ({
-  useQuery: vi.fn(() => ({
-    data: ref(undefined),
-    isLoading: ref(false),
-    error: ref(null),
-    refetch: vi.fn(),
-  })),
+  useQuery: useQueryMock,
   useMutation: vi.fn(() => ({
     mutate: vi.fn(),
   })),
@@ -66,7 +72,6 @@ describe("useVisualTestDetailsPage (image)", () => {
   });
 
   it("generates viewKey from project, test, filters, and comparison", async () => {
-    const { useQuery } = await import("@tanstack/vue-query");
     const mockData = ref({
       comparison: {
         id: "cmp-123",
@@ -74,7 +79,7 @@ describe("useVisualTestDetailsPage (image)", () => {
       },
     });
 
-    (useQuery as any).mockReturnValue({
+    useQueryMock.mockReturnValue({
       data: mockData,
       isLoading: ref(false),
       error: ref(null),
@@ -97,10 +102,9 @@ describe("useVisualTestDetailsPage (image)", () => {
   });
 
   it("generates viewKey with empty strings when no comparison", async () => {
-    const { useQuery } = await import("@tanstack/vue-query");
     const mockData = ref(undefined);
 
-    (useQuery as any).mockReturnValue({
+    useQueryMock.mockReturnValue({
       data: mockData,
       isLoading: ref(false),
       error: ref(null),
@@ -114,12 +118,11 @@ describe("useVisualTestDetailsPage (image)", () => {
   });
 
   it("updates viewKey when filters change", async () => {
-    const { useQuery } = await import("@tanstack/vue-query");
     const mockData = ref({
       comparison: { id: "cmp-123" },
     });
 
-    (useQuery as any).mockReturnValue({
+    useQueryMock.mockReturnValue({
       data: mockData,
       isLoading: ref(false),
       error: ref(null),

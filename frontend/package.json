@@ -5,8 +5,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "lint": "eslint \"src/**/*.{ts,vue}\" \"playwright/gallery/**/*.ts\" \"tests/pages/**/*.ts\" \"tests/ct/**/*.ts\" \"playwright-ct.config.ts\" --fix",
-    "lint:check": "eslint \"src/**/*.{ts,vue}\" \"playwright/gallery/**/*.ts\" \"tests/pages/**/*.ts\" \"tests/ct/**/*.ts\" \"playwright-ct.config.ts\"",
+    "lint": "eslint \"src/**/*.{ts,vue}\" \"playwright/gallery/**/*.ts\" \"tests/ct/**/*.ts\" \"playwright-ct.config.ts\" --fix",
+    "lint:check": "eslint \"src/**/*.{ts,vue}\" \"playwright/gallery/**/*.ts\" \"tests/ct/**/*.ts\" \"playwright-ct.config.ts\"",
     "typecheck": "vue-tsc --noEmit && vue-tsc --noEmit -p tsconfig.playwright.json",
     "format": "prettier --write \"src/**/*.{ts,vue,js,json,css,md}\"",
     "dev": "vite",
@@ -35,7 +35,6 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "1.62.1",
-    "@testing-library/jest-dom": "^7.0.0",
     "@types/node": "^26.2.0",
     "@typescript-eslint/eslint-plugin": "^8.66.0",
     "@typescript-eslint/parser": "^8.66.0",

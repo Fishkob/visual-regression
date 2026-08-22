@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { mockApi } from "../ct/routes/api.routes";
+import { mockApi } from "./routes/api.routes";
 import {
   PROJECT_TEST_DETAILS_ONLY_BASELINE_RESPONSE,
   VISUAL_TEST_DETAILS_PENDING,
   VISUAL_TEST_PENDING_META,
-} from "../ct/mocks/visualTest.mocks";
+} from "./mocks/visualTest.mocks";
 import type { Routed } from "../../src/views/VisualTestDetailsView.story";
 
 const BASELINE_ONLY_ROUTE =
