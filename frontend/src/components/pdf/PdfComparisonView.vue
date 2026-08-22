@@ -20,6 +20,7 @@ const props = defineProps<{
   testName: string;
   baseline: PdfScreenshot;
   comparison: PdfComparison;
+  isApproving?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -158,6 +159,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
 
     <ApproveSkipFooter
       :approved="isApproved(comparison.status)"
+      :is-approving="props.isApproving"
       @skip="emit('skip')"
       @approve="emit('approve')"
     />

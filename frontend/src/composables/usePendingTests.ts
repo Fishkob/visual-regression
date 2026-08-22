@@ -24,46 +24,37 @@ export function usePendingTestsQuery(
       nameRef.value ? pendingTestQueryKeys.list(nameRef.value) : [],
     ),
     enabled,
-    fetchPage: (skip, take) => {
-      const name = nameRef.value;
-      if (!name) return Promise.resolve({ data: [], meta: { total: 0 } });
-      return testsQueriesControllerGetTestsWithPendingStatus({
-        path: { projectName: name },
+    fetchPage: (skip, take) =>
+      testsQueriesControllerGetTestsWithPendingStatus({
+        path: { projectName: nameRef.value },
         query: { skip, take },
-      });
-    },
+      }),
     map: mapPendingTests,
   });
 }
 
-// Single owner of the pending-list cache write. The review session must remove
-// the approved/skipped test from the pending cache optimistically; it does so
-// through this seam instead of hand-rolling cancel/get/set on a query it does
-// not own. Returns the previous value + query key so the caller can roll back
-// on failure.
-export async function optimisticallyRemovePendingTest(
+// Single owner of the pending-list cache write, including its two-phase
+// transaction. The review session removes the approved/skipped test from the
+// pending cache optimistically; it does so through this seam instead of
+// hand-rolling the cancel/get/set/rollback pairing on a query it does not own.
+// Returns a `restore` closure that replays the pre-removal snapshot, so the
+// caller never touches the previous/keys artifacts themselves.
+export async function withPendingTestRemoved(
   client: QueryClient,
   projectName: string,
   currentKey: string,
-): Promise<{
-  previous: PendingTest[] | undefined;
-  keys: readonly string[];
-}> {
+): Promise<{ restore: () => void }> {
   const keys = pendingTestQueryKeys.list(projectName);
   await client.cancelQueries({ queryKey: keys });
   const previous = client.getQueryData<PendingTest[]>(keys);
   client.setQueryData<PendingTest[]>(keys, (old) =>
     (old ?? []).filter((t) => keyOf(t) !== currentKey),
   );
-  return { previous, keys };
-}
-
-export function restorePendingTestCache(
-  client: QueryClient,
-  keys: readonly string[],
-  previous: PendingTest[] | undefined,
-): void {
-  if (previous) {
-    client.setQueryData(keys, previous);
-  }
+  return {
+    restore: () => {
+      if (previous) {
+        client.setQueryData(keys, previous);
+      }
+    },
+  };
 }

@@ -23,10 +23,15 @@ describe("useTestNavigation", () => {
   });
 
   describe("navigateToProjectDone", () => {
-    it("navigates to project done page", async () => {
+    it("navigates to project done page by route name", async () => {
       const { navigateToProjectDone } = useTestNavigation(createOptions());
 
       navigateToProjectDone();
+
+      expect(mockPush).toHaveBeenCalledWith({
+        name: "approval-done",
+        params: { projectName: "test-project" },
+      });
     });
 
     it("uses updated projectName when navigating", async () => {
@@ -35,6 +40,11 @@ describe("useTestNavigation", () => {
 
       projectName.value = "updated-project";
       navigateToProjectDone();
+
+      expect(mockPush).toHaveBeenCalledWith({
+        name: "approval-done",
+        params: { projectName: "updated-project" },
+      });
     });
   });
 

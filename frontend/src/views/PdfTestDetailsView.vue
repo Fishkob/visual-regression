@@ -9,12 +9,20 @@ import AsyncState from "@/components/AsyncState.vue";
 
 const { projectName, testName, filters } = useRouteParams();
 
-const { data, isLoading, error, refetch, viewKey, handleApprove, handleSkip } =
-  usePdfTestDetailsPage({
-    projectName,
-    testName,
-    filters,
-  });
+const {
+  data,
+  isLoading,
+  error,
+  refetch,
+  viewKey,
+  handleApprove,
+  handleSkip,
+  isApproving,
+} = usePdfTestDetailsPage({
+  projectName,
+  testName,
+  filters,
+});
 </script>
 
 <template>
@@ -43,6 +51,7 @@ const { data, isLoading, error, refetch, viewKey, handleApprove, handleSkip } =
         :test-name="testName"
         :baseline="data.baseline"
         :comparison="data.comparison"
+        :is-approving="isApproving"
         @approve="handleApprove"
         @skip="handleSkip"
       />

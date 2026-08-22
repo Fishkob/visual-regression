@@ -24,13 +24,13 @@ export function useProjectsWithPendingQuery() {
 export function useProjectDetailQuery(
   projectName: MaybeRef<string | undefined>,
 ) {
-  return useSdkQuery<{ projectName: string | undefined }, ProjectDto, Project>({
+  return useSdkQuery({
     args: { projectName },
-    keyOf: ({ projectName }) =>
-      projectName ? projectQueryKeys.detail(projectName) : [],
+    required: ["projectName"],
+    keyOf: ({ projectName }) => projectQueryKeys.detail(projectName),
     sdkFn: ({ projectName }) =>
-      projectsControllerGetOneProject({ path: { projectName: projectName! } }),
-    map: (data) => {
+      projectsControllerGetOneProject({ path: { projectName } }),
+    map: (data: ProjectDto | undefined) => {
       if (!data) throw new Error("Project not found");
       return mapProject(data);
     },

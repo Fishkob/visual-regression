@@ -49,15 +49,31 @@ export function useDomainQuery<T>(
   } as UndefinedInitialQueryOptions<T, Error, T, QueryKey>);
 }
 
+// The args a required-key list narrows to: each declared required key is no
+// longer possibly-undefined, so keyOf/sdkFn never see the "not ready" state.
+export type ReadyArgs<T, K extends keyof T> = {
+  [P in keyof T]: P extends K ? NonNullable<T[P]> : T[P];
+};
+
 // The SDK-driven sibling of useDomainQuery. A domain query is always the same
-// shape — reactive args, a key built from them (collapsing to [] when the args
-// are not ready yet), one SDK call, and a mapper over the unwrapped response —
+// shape — reactive args, one SDK call, a mapper over the unwrapped response —
 // so this absorbs the unref/gate/getData/map ceremony a caller would otherwise
-// re-type. Callers become a declaration: args + keyOf + sdkFn + map.
-export function useSdkQuery<TArgs extends object, TDto, TModel>(options: {
-  args: { [K in keyof TArgs]: MaybeRef<TArgs[K]> };
-  keyOf: (args: TArgs) => QueryKey;
-  sdkFn: (args: TArgs) => Promise<unknown>;
+// re-type. The `required` list names the args that must be truthy before the
+// query may run: until then the key collapses to [] (the disabled convention
+// useDomainQuery owns) and keyOf/sdkFn receive narrowed args, so callers stop
+// re-encoding `x && y ? key : []` gates and `x!` assertions. The payload type
+// TDto is inferred from the mapper's parameter, so an SDK function whose DTO
+// the OpenAPI spec leaves `unknown` still maps precisely.
+export function useSdkQuery<
+  TArgs extends object,
+  TDto,
+  TModel,
+  K extends keyof TArgs,
+>(options: {
+  args: { [P in keyof TArgs]: MaybeRef<TArgs[P]> };
+  required: readonly K[];
+  keyOf: (args: ReadyArgs<TArgs, K>) => QueryKey;
+  sdkFn: (args: ReadyArgs<TArgs, K>) => Promise<unknown>;
   map: (data: TDto | undefined) => TModel;
   enabled?: MaybeRef<boolean>;
   placeholderData?: unknown;
@@ -71,13 +87,20 @@ export function useSdkQuery<TArgs extends object, TDto, TModel>(options: {
     return unwrapped;
   });
 
+  const readyRef = computed(() =>
+    options.required.every((key) => Boolean(argsRef.value[key])),
+  );
+  const readyArgs = computed(() => argsRef.value as ReadyArgs<TArgs, K>);
+
   return useDomainQuery<TModel>({
-    queryKey: computed(() => options.keyOf(argsRef.value)),
+    queryKey: computed(() =>
+      readyRef.value ? options.keyOf(readyArgs.value) : [],
+    ),
     enabled: options.enabled,
     retry: options.retry,
     placeholderData: options.placeholderData,
     queryFn: async () => {
-      const response = await options.sdkFn(argsRef.value);
+      const response = await options.sdkFn(readyArgs.value);
       return options.map(getData<TDto>(response));
     },
   });

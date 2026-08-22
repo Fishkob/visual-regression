@@ -10,14 +10,17 @@ export interface TestNavigationOptions {
 // One navigator behind two call sites. The review loop passes `fromLoop: true`
 // so the destination reads "continued a pass" (keep skip-memory, lib/review-pass);
 // every other entry (table click, deep link) leaves it off and starts a fresh
-// pass. The loop-mark rides the route entry itself, so a later direct entry
-// (deep link, refresh, back-navigation) never inherits it.
+// pass. The loop-mark rides the route entry itself — see lib/review-pass for
+// what that means for refresh and back-navigation.
 export function useTestNavigation(options: TestNavigationOptions) {
   const router = useRouter();
   const { projectName } = options;
 
   function navigateToProjectDone() {
-    router.push(`/projects/${projectName.value}/done`);
+    router.push({
+      name: "approval-done",
+      params: { projectName: projectName.value },
+    });
   }
 
   function navigateToTest(

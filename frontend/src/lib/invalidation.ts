@@ -3,7 +3,7 @@ import { projectQueryKeys } from "@/domains/projects/query-keys";
 import { pendingTestQueryKeys } from "@/domains/pending-tests/query-keys";
 import { visualTestQueryKeys } from "@/domains/visual-test/query-keys";
 import { pdfTestQueryKeys } from "@/domains/pdf-test/query-keys";
-import type { VariantParams } from "@/lib/variant-key";
+import type { TestDetailsArgs } from "@/lib/variant-key";
 
 export function invalidateProjectDetail(
   client: QueryClient,
@@ -15,15 +15,11 @@ export function invalidateProjectDetail(
   });
 }
 
-export type TestDetailsArgs = {
-  projectName: string;
-  testName: string;
-} & VariantParams;
-
 // Single home for "invalidating the reviewable-details query for one test". The
 // per-kind detail query keys are the only variance, so the invalidation rule
 // (details query + the project/pending list that the directory renders) is one
 // function parameterized by the key builder instead of two near-identical twins.
+// The identity tuple is the one variant-key owns.
 function invalidateTestDetails(
   client: QueryClient,
   args: TestDetailsArgs,

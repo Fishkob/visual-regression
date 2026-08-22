@@ -6,12 +6,6 @@ import { getData } from "@/lib/sdk";
 interface SdkMutationOptions<TData, TVariables, TContext> {
   /** The raw SDK call — returns the SDK response object, unwrapped inside. */
   mutationFn: (variables: TVariables) => Promise<unknown>;
-  /**
-   * When true (default), a response whose payload is empty throws instead of
-   * resolving with undefined — mutations that only need the side effect (a
-   * delete) opt out.
-   */
-  requireData?: boolean;
   successMessage?:
     | string
     | ((
@@ -53,9 +47,8 @@ interface SdkMutationOptions<TData, TVariables, TContext> {
 
 // Deep module over the mutation ceremony: unwraps the SDK payload with getData
 // (the query seam already absorbs this — a caller would otherwise re-type
-// getData + empty-check + throw at every payload-reading call site), then adds
-// toast + invalidation. Callers become a declaration: sdkFn + messages +
-// invalidate.
+// getData + empty-check at every payload-reading call site), then adds toast +
+// invalidation. Callers become a declaration: sdkFn + messages + invalidate.
 export function useSdkMutation<TData, TVariables, TContext = undefined>(
   config: SdkMutationOptions<TData, TVariables, TContext>,
 ) {
@@ -65,7 +58,7 @@ export function useSdkMutation<TData, TVariables, TContext = undefined>(
     mutationFn: async (variables) => {
       const response = await config.mutationFn(variables);
       const data = getData<TData>(response);
-      if (config.requireData !== false && data === undefined) {
+      if (data === undefined) {
         throw new Error("Empty response from endpoint");
       }
       return data as TData;

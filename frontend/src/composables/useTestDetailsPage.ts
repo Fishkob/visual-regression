@@ -5,8 +5,6 @@ import {
   approvalsControllerApproveVisualTest,
   pdfControllerGetPdfTestDetails,
   testsQueriesControllerGetVisualTestDetails,
-  type PdfTestDetailsDto,
-  type VisualTestDetailsDto,
 } from "@sdk";
 import { pdfTestQueryKeys } from "@/domains/pdf-test/query-keys";
 import { visualTestQueryKeys } from "@/domains/visual-test/query-keys";
@@ -14,7 +12,11 @@ import type { PdfTestDetails } from "@/domains/pdf-test/pdf-test.model";
 import type { VisualTestDetails } from "@/domains/visual-test/visual-test.model";
 import { mapPdfTestDetails } from "@/domains/pdf-test/pdf-test.mapper";
 import { mapVisualTestDetails } from "@/domains/visual-test/visual-test.mapper";
-import { viewKeyOf, type VariantParams } from "@/lib/variant-key";
+import {
+  viewKeyOf,
+  type TestDetailsArgs,
+  type VariantParams,
+} from "@/lib/variant-key";
 import {
   invalidatePdfTestDetails,
   invalidateVisualTestDetails,
@@ -50,10 +52,7 @@ interface TestDetailsAdapter<
     testName: string,
     comparisonId: string,
   ) => Promise<unknown>;
-  invalidateDetails: (
-    client: QueryClient,
-    args: { projectName: string; testName: string } & VariantParams,
-  ) => void;
+  invalidateDetails: (client: QueryClient, args: TestDetailsArgs) => void;
   // The kind-specific artifact that forces a fresh comparison panel when it
   // changes (image: diff image URL, PDF: diff PDF URL). A third kind supplies
   // its own key here instead of the shell casting for it.
@@ -65,26 +64,17 @@ export function useVisualDetailsQuery(
   testName: Ref<string>,
   filters: Ref<VariantParams>,
 ) {
-  return useSdkQuery<
-    {
-      projectName: string;
-      testName: string;
-      filters: VariantParams;
-    },
-    VisualTestDetailsDto,
-    VisualTestDetails | null
-  >({
+  return useSdkQuery({
     args: { projectName, testName, filters },
+    required: ["projectName", "testName"],
     keyOf: ({ projectName, testName, filters }) =>
-      projectName && testName
-        ? visualTestQueryKeys.details({ projectName, testName, ...filters })
-        : [],
+      visualTestQueryKeys.details({ projectName, testName, ...filters }),
     sdkFn: ({ projectName, testName, filters }) =>
       testsQueriesControllerGetVisualTestDetails({
         path: { projectName, testName },
         query: { ...filters },
       }),
-    map: (data) => mapVisualTestDetails(data),
+    map: mapVisualTestDetails,
   });
 }
 
@@ -93,26 +83,17 @@ export function usePdfDetailsQuery(
   testName: Ref<string>,
   filters: Ref<VariantParams>,
 ) {
-  return useSdkQuery<
-    {
-      projectName: string;
-      testName: string;
-      filters: VariantParams;
-    },
-    PdfTestDetailsDto,
-    PdfTestDetails | null
-  >({
+  return useSdkQuery({
     args: { projectName, testName, filters },
+    required: ["projectName", "testName"],
     keyOf: ({ projectName, testName, filters }) =>
-      projectName && testName
-        ? pdfTestQueryKeys.details(projectName, testName, filters)
-        : [],
+      pdfTestQueryKeys.details(projectName, testName, filters),
     sdkFn: ({ projectName, testName, filters }) =>
       pdfControllerGetPdfTestDetails({
         path: { projectName, testName },
         query: { ...filters },
       }),
-    map: (data) => mapPdfTestDetails(data),
+    map: mapPdfTestDetails,
   });
 }
 

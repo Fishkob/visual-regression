@@ -6,6 +6,7 @@ import type { Comparison } from "@/domains/visual-test/visual-test.model";
 
 const props = defineProps<{
   comparison: Comparison;
+  isApproving?: boolean;
 }>();
 
 defineEmits<{
@@ -31,6 +32,7 @@ defineEmits<{
 
       <ApproveSkipFooter
         :approved="isApproved(props.comparison.status)"
+        :is-approving="props.isApproving"
         @skip="$emit('skip')"
         @approve="$emit('approve')"
       />

@@ -167,21 +167,36 @@ describe("useThresholdEditor", () => {
     expect(inputValue.value).toBe("0.5");
   });
 
-  it("commits pending threshold on confirm", async () => {
+  it("commits the pending threshold on confirm", async () => {
     const options = createOptions({
       baseline: { pixelDiffThreshold: 0.5 } as any,
     });
     mockPreview.mockResolvedValue(previewResponse(1));
 
-    const { onBlur, handleConfirmThreshold, confirmVisible, pendingThreshold } =
-      useThresholdEditor(options);
+    const {
+      inputValue,
+      onBlur,
+      handleConfirmThreshold,
+      confirmVisible,
+      pendingThreshold,
+    } = useThresholdEditor(options);
 
-    const { inputValue } = useThresholdEditor(options);
     inputValue.value = "100";
     await onBlur();
 
+    expect(confirmVisible.value).toBe(true);
+
     handleConfirmThreshold();
 
+    expect(mockMutate).toHaveBeenCalledOnce();
+    expect(mockMutate).toHaveBeenCalledWith({
+      projectName: "test-project",
+      testName: "test-login-form",
+      threshold: 100,
+      viewport: "1920x1080",
+      browser: "chrome",
+      environment: undefined,
+    });
     expect(confirmVisible.value).toBe(false);
     expect(pendingThreshold.value).toBeNull();
   });

@@ -126,7 +126,10 @@ describe("useReviewSession", () => {
 
     handleSkip();
 
-    expect(mockPush).toHaveBeenCalledWith("/projects/test-project/done");
+    expect(mockPush).toHaveBeenCalledWith({
+      name: "approval-done",
+      params: { projectName: "test-project" },
+    });
   });
 
   it("starts a fresh pass when entered directly (no loop navigation state)", () => {
@@ -189,7 +192,7 @@ describe("useReviewSession", () => {
   });
 
   describe("mutation callbacks", () => {
-    it("onMutate removes current test from cache and returns previous", async () => {
+    it("onMutate removes current test from cache and returns a restore closure", async () => {
       const args = createArgs();
       useReviewSession(args);
 
@@ -206,8 +209,7 @@ describe("useReviewSession", () => {
       expect(filtered).toHaveLength(1);
       expect(filtered[0].name).toBe("signup-form");
       expect(context).toEqual({
-        previous: previousData,
-        keys: ["pending-tests", "list", "test-project"],
+        restore: expect.any(Function),
         currentVariant: {
           viewport: "1920x1080",
           browser: "chrome",
@@ -215,6 +217,12 @@ describe("useReviewSession", () => {
         },
         currentTestName: "login-form",
       });
+
+      context.restore();
+      expect(mockSetQueryData).toHaveBeenLastCalledWith(
+        ["pending-tests", "list", "test-project"],
+        previousData,
+      );
     });
 
     it("onSuccess navigates to next test after the server confirms", async () => {
@@ -238,10 +246,10 @@ describe("useReviewSession", () => {
     it("onError does not navigate away from the failed test", () => {
       const args = createArgs();
       useReviewSession(args);
+      const restore = vi.fn();
 
       mutationOptions.onError(new Error("fail"), undefined, {
-        previous: args.pendingTests.value,
-        keys: ["pending-tests", "list", "test-project"],
+        restore,
         currentVariant: {
           viewport: "1920x1080",
           browser: "chrome",
@@ -251,30 +259,25 @@ describe("useReviewSession", () => {
       });
 
       expect(mockPush).not.toHaveBeenCalled();
+      expect(restore).toHaveBeenCalledOnce();
     });
 
-    it("onError restores previous cache when context has previous", () => {
+    it("onError restores the pending cache through the returned closure", () => {
       const args = createArgs();
       useReviewSession(args);
+      const restore = vi.fn();
 
-      const previousData: PendingTest[] = [
-        {
-          name: "login-form",
+      mutationOptions.onError(new Error("fail"), undefined, {
+        restore,
+        currentVariant: {
           viewport: "1920x1080",
           browser: "chrome",
           environment: "prod",
         },
-      ];
-
-      mutationOptions.onError(new Error("fail"), undefined, {
-        previous: previousData,
-        keys: ["pending-tests", "list", "test-project"],
+        currentTestName: "login-form",
       });
 
-      expect(mockSetQueryData).toHaveBeenCalledWith(
-        ["pending-tests", "list", "test-project"],
-        previousData,
-      );
+      expect(restore).toHaveBeenCalledOnce();
     });
 
     it("onError does not restore cache without context", () => {
@@ -289,19 +292,10 @@ describe("useReviewSession", () => {
     it("onError restores cache and fires exactly one contextual toast", () => {
       const args = createArgs();
       useReviewSession(args);
-
-      const previousData: PendingTest[] = [
-        {
-          name: "login-form",
-          viewport: "1920x1080",
-          browser: "chrome",
-          environment: "prod",
-        },
-      ];
+      const restore = vi.fn();
 
       mutationOptions.onError(new Error("fail"), undefined, {
-        previous: previousData,
-        keys: ["pending-tests", "list", "test-project"],
+        restore,
         currentVariant: {
           viewport: "1920x1080",
           browser: "chrome",
@@ -310,10 +304,7 @@ describe("useReviewSession", () => {
         currentTestName: "login-form",
       });
 
-      expect(mockSetQueryData).toHaveBeenCalledWith(
-        ["pending-tests", "list", "test-project"],
-        previousData,
-      );
+      expect(restore).toHaveBeenCalledOnce();
       expect(toast.error).toHaveBeenCalledTimes(1);
       expect(toast.error).toHaveBeenCalledWith(
         'Could not approve 1920x1080 / chrome / prod of "login-form"',

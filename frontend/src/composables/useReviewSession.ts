@@ -1,8 +1,11 @@
 import { watch, type Ref } from "vue";
 import { useQueryClient, type QueryClient } from "@tanstack/vue-query";
 import type { ApproveResultDto } from "@sdk";
-import { keyOf } from "@/lib/variant-key";
-import type { VariantParams } from "@/lib/variant-key";
+import {
+  keyOf,
+  type TestDetailsArgs,
+  type VariantParams,
+} from "@/lib/variant-key";
 import { formatVariantLabel } from "@/lib/format-variant-label";
 import {
   isSeen,
@@ -12,18 +15,14 @@ import {
 } from "@/lib/review-pass";
 import { useTestNavigation } from "@/composables/useTestNavigation";
 import type { PendingTest } from "@/domains/pending-tests/pending-test";
-import {
-  optimisticallyRemovePendingTest,
-  restorePendingTestCache,
-} from "@/composables/usePendingTests";
+import { withPendingTestRemoved } from "@/composables/usePendingTests";
 import { useSdkMutation } from "@/composables/useSdkMutation";
 
 // The skip-memory + fresh/continued-pass rule lives in lib/review-pass — see
 // CONTEXT.md for the pass semantics.
 
 interface ReviewSessionContext {
-  previous: PendingTest[] | undefined;
-  keys: readonly string[];
+  restore: () => void;
   currentVariant: VariantParams;
   currentTestName: string;
 }
@@ -35,10 +34,7 @@ export interface ReviewSessionOptions {
   pendingTests: Ref<PendingTest[]>;
   currentComparisonId: Ref<string | undefined>;
   approve: (comparisonId: string) => Promise<unknown>;
-  invalidateDetails: (
-    client: QueryClient,
-    args: { projectName: string; testName: string } & VariantParams,
-  ) => void;
+  invalidateDetails: (client: QueryClient, args: TestDetailsArgs) => void;
 }
 
 export function useReviewSession(args: ReviewSessionOptions) {
@@ -57,9 +53,10 @@ export function useReviewSession(args: ReviewSessionOptions) {
     keyOf({ name: testName.value, ...filters.value });
 
   // Entered directly (not via the loop's navigateToTest) means a fresh pass for
-  // this project: a deep link or refresh must not inherit skip-marks from an
-  // earlier session. The rule lives in lib/review-pass — beginPassForProject
-  // reads the history.state mark the loop writes on its navigations.
+  // this project. The rule lives in lib/review-pass — beginPassForProject reads
+  // the history.state mark the loop writes on its navigations. The mark rides
+  // the route entry, so a back-navigation to a loop-marked test continues the
+  // pass, while a table click or deep link starts fresh.
   beginPassForProject(projectName.value);
   watch(projectName, (name) => resetReviewSeen(name));
 
@@ -81,17 +78,15 @@ export function useReviewSession(args: ReviewSessionOptions) {
     mutationFn: approve,
 
     onMutate: async () => {
-      const currentKey = buildCurrentKey();
-      // The pending-list cache write is owned by the pending-tests seam —
-      // cancel + snapshot + optimistic remove all live beside the query.
-      const { previous, keys } = await optimisticallyRemovePendingTest(
+      // The pending-list cache transaction is owned by the pending-tests seam:
+      // this only declares the removal and keeps the restore closure for rollback.
+      const { restore } = await withPendingTestRemoved(
         queryClient,
         projectName.value,
-        currentKey,
+        buildCurrentKey(),
       );
       return {
-        previous,
-        keys,
+        restore,
         currentVariant: { ...filters.value },
         currentTestName: testName.value,
       };
@@ -123,9 +118,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
     },
 
     onError: (_error, _variables, context) => {
-      if (context?.previous && context?.keys) {
-        restorePendingTestCache(queryClient, context.keys, context.previous);
-      }
+      context?.restore?.();
     },
   });
 

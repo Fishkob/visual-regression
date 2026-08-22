@@ -2,8 +2,8 @@
 //  - the skip-memory seen-set (keyed by project, module-scoped so it survives
 //    component unmounts without leaking across projects or sessions), and
 //  - the fresh/continued-pass rule, which rides history.state on loop
-//    navigations so a direct entry (deep link, refresh, back-navigation) starts
-//    a fresh pass instead of inheriting skip-marks — see CONTEXT.md.
+//    navigations so a direct entry starts a fresh pass instead of inheriting
+//    skip-marks — see CONTEXT.md.
 // useReviewSession (the pass loop) and useTestNavigation (the loop's navigator)
 // both compose this module instead of coordinating through each other.
 const reviewSeenByProject = new Map<string, Set<string>>();
@@ -41,10 +41,17 @@ export function isFromReviewLoopNavigation(): boolean {
   return window.history.state?.fromReviewLoop === true;
 }
 
-// The fresh/continued-pass rule, one owner: a pass entered directly (deep
-// link, refresh, back-navigation) resets the project's skip-memory; only a
-// loop-marked navigation continues an existing pass. useReviewSession composes
-// this instead of re-encoding the rule at its call site.
+// The fresh/continued-pass rule, one owner. A pass is fresh (skip-memory reset)
+// whenever the current history entry carries no loop mark — a table click or a
+// typed deep link. A loop-marked entry continues the pass; because the mark
+// rides the entry itself:
+//  - back-navigation restores the entry's mark, so a reviewer stepping back
+//    stays in the pass and already-skipped tests are not re-offered; and
+//  - a full page refresh keeps the mark too, which is moot: the in-memory
+//    seen-set is re-instantiated empty on reload, so the pass starts fresh
+//    anyway.
+// useReviewSession composes this instead of re-encoding the rule at its call
+// site.
 export function beginPassForProject(projectName: string): void {
   if (!isFromReviewLoopNavigation()) {
     resetReviewSeen(projectName);

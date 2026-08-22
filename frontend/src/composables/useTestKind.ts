@@ -12,21 +12,16 @@ export function useTestKind(
   projectName: MaybeRef<string | undefined>,
   testName: MaybeRef<string | undefined>,
 ) {
-  const { data, isLoading, error, refetch } = useSdkQuery<
-    { projectName: string | undefined; testName: string | undefined },
-    { kind: string },
-    { kind: TestKind | null }
-  >({
+  const { data, isLoading, error, refetch } = useSdkQuery({
     args: { projectName, testName },
+    required: ["projectName", "testName"],
     keyOf: ({ projectName, testName }) =>
-      projectName && testName
-        ? testKindQueryKeys.kind(projectName, testName)
-        : [],
+      testKindQueryKeys.kind(projectName, testName),
     sdkFn: ({ projectName, testName }) =>
       testsQueriesControllerGetKind({
-        path: { projectName: projectName!, testName: testName! },
+        path: { projectName, testName },
       }),
-    map: (data) => {
+    map: (data: { kind: string } | undefined) => {
       const kind = data?.kind ?? null;
       return { kind: isTestKind(kind) ? kind : null };
     },

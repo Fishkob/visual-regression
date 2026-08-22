@@ -19,12 +19,20 @@ const { projectName, testName, filters } = useRouteParams();
 /* PAGE LOGIC (EXTRACTED)                                        */
 /* ------------------------------------------------------------- */
 
-const { data, isLoading, error, refetch, viewKey, handleApprove, handleSkip } =
-  useVisualTestDetailsPage({
-    projectName,
-    testName,
-    filters,
-  });
+const {
+  data,
+  isLoading,
+  error,
+  refetch,
+  viewKey,
+  handleApprove,
+  handleSkip,
+  isApproving,
+} = useVisualTestDetailsPage({
+  projectName,
+  testName,
+  filters,
+});
 </script>
 
 <template>
@@ -62,6 +70,7 @@ const { data, isLoading, error, refetch, viewKey, handleApprove, handleSkip } =
         v-if="data?.comparison"
         :key="viewKey"
         :comparison="data.comparison"
+        :is-approving="isApproving"
         @approve="handleApprove"
         @skip="handleSkip"
       />

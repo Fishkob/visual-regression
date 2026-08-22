@@ -60,15 +60,29 @@ describe("review-pass", () => {
     expect(isFromReviewLoopNavigation()).toBe(false);
   });
 
-  it("beginPassForProject keeps skip-memory on a continued pass", () => {
+  it("keeps skip-memory when a loop-marked entry is restored (back-navigation)", () => {
+    // The mark rides the route entry, so back-navigation restores it and the
+    // pass continues — a reviewer stepping back stays in the pass and already
+    // skipped tests are not re-offered.
     historyState.mockReturnValueOnce({ fromReviewLoop: true });
     markSeen("project-a", "key");
     beginPassForProject("project-a");
     expect(isSeen("project-a", "key")).toBe(true);
   });
 
-  it("beginPassForProject resets skip-memory on a direct entry", () => {
+  it("resets skip-memory on a direct entry (table click or deep link)", () => {
     historyState.mockReturnValueOnce(null);
+    markSeen("project-a", "key");
+    beginPassForProject("project-a");
+    expect(isSeen("project-a", "key")).toBe(false);
+  });
+
+  it("resets skip-memory on a non-loop-marked entry", () => {
+    historyState.mockReturnValueOnce({
+      back: "/",
+      current: "/",
+      forward: null,
+    });
     markSeen("project-a", "key");
     beginPassForProject("project-a");
     expect(isSeen("project-a", "key")).toBe(false);

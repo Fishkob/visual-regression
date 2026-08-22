@@ -10,27 +10,17 @@ export function usePdfPageRenderQuery(
   pdfUrl: MaybeRef<string | undefined>,
   page: MaybeRef<number>,
 ) {
-  return useSdkQuery<
-    {
-      projectName: string;
-      testName: string;
-      pdfUrl: string | undefined;
-      page: number;
-    },
-    PdfRenderResult,
-    PdfRenderResult | null
-  >({
+  return useSdkQuery({
     args: { projectName, testName, pdfUrl, page },
+    required: ["projectName", "testName", "pdfUrl"],
     keyOf: ({ projectName, testName, pdfUrl, page }) =>
-      pdfUrl && projectName && testName
-        ? pdfTestQueryKeys.renderPage(projectName, testName, pdfUrl, page)
-        : [],
+      pdfTestQueryKeys.renderPage(projectName, testName, pdfUrl, page),
     sdkFn: ({ projectName, testName, pdfUrl, page }) =>
       pdfControllerRenderPdfPage({
         path: { projectName, testName },
-        query: { pdfUrl: pdfUrl!, page },
+        query: { pdfUrl, page },
       }),
-    map: (data) => data ?? null,
+    map: (data: PdfRenderResult | undefined) => data ?? null,
     placeholderData: keepPreviousData,
   });
 }

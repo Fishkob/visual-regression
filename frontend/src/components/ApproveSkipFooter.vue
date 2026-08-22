@@ -6,6 +6,9 @@ defineProps<{
   // "Back to project" affordance and the Approve button is hidden — the test
   // is done and the reviewer should navigate on. One behavior for both kinds.
   approved: boolean;
+  // While an approval is in flight, both buttons are disabled so a double-click
+  // cannot fire two concurrent approves (the second is a guaranteed CONFLICT).
+  isApproving?: boolean;
 }>();
 
 defineEmits<{
@@ -20,6 +23,7 @@ defineEmits<{
       variant="outline"
       class="flex-1 py-4 text-base rounded-xl border-border hover:bg-muted"
       data-testid="skip"
+      :disabled="isApproving"
       @click="$emit('skip')"
     >
       {{ approved ? "Back to project" : "Skip" }}
@@ -29,6 +33,7 @@ defineEmits<{
       v-if="!approved"
       class="flex-1 py-4 text-base rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
       data-testid="approve-changes"
+      :disabled="isApproving"
       @click="$emit('approve')"
     >
       Approve changes
