@@ -26,7 +26,7 @@ describe('PdfTest upload and compare (e2e)', () => {
   });
 
   it('should create baseline on first PDF upload', async () => {
-    const pdfPath = path.join(__dirname, 'fixtures', 'sample.pdf');
+    const pdfPath = path.join(__dirname, 'fixtures', 'sample-v1.pdf');
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/projects/pdf-proj/tests/report/upload?testKind=pdf')
@@ -40,7 +40,7 @@ describe('PdfTest upload and compare (e2e)', () => {
   });
 
   it('should queue comparison on second PDF upload', async () => {
-    const pdfPath = path.join(__dirname, 'fixtures', 'sample.pdf');
+    const pdfPath = path.join(__dirname, 'fixtures', 'sample-v1.pdf');
     const pdfV2Path = path.join(__dirname, 'fixtures', 'sample-v2.pdf');
 
     await request(app.getHttpServer())
@@ -74,7 +74,7 @@ describe('PdfTest upload and compare (e2e)', () => {
   });
 
   it('should detect identical PDFs via content hash', async () => {
-    const pdfPath = path.join(__dirname, 'fixtures', 'sample.pdf');
+    const pdfPath = path.join(__dirname, 'fixtures', 'sample-v1.pdf');
 
     await request(app.getHttpServer())
       .post('/api/v1/projects/pdf-proj/tests/report/upload?testKind=pdf')

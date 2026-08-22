@@ -25,7 +25,7 @@ export const ENVIRONMENTS = ['staging', 'production', 'development'] as const;
 export const BASELINE_PATH = path.join(FIXTURES_DIR, 'baseline_black.png');
 export const RED_PATH = path.join(FIXTURES_DIR, 'baseline_red.png');
 
-export const PDF_BASELINE_PATH = path.join(PDF_FIXTURES_DIR, 'sample.pdf');
+export const PDF_BASELINE_PATH = path.join(PDF_FIXTURES_DIR, 'sample-v1.pdf');
 export const PDF_CANDIDATE_PATH = path.join(PDF_FIXTURES_DIR, 'sample-v2.pdf');
 
 export const DEMO_TESTS: Record<string, readonly string[]> = {

@@ -183,7 +183,7 @@ describe('Multi-variant screenshots (e2e)', () => {
       '..',
       'pdfTest',
       'fixtures',
-      'sample.pdf',
+      'sample-v1.pdf',
     );
     await request(app.getHttpServer())
       .post(

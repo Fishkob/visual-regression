@@ -16,7 +16,7 @@ describe('Approve PDF Test (e2e)', () => {
   let prisma: any;
   let storage: IStorageProvider;
 
-  const samplePdf = path.join(__dirname, 'fixtures', 'sample.pdf');
+  const samplePdf = path.join(__dirname, 'fixtures', 'sample-v1.pdf');
   const sampleV2Pdf = path.join(__dirname, 'fixtures', 'sample-v2.pdf');
 
   const uploadUrl =

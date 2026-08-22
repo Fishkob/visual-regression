@@ -4,7 +4,7 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-export const FIXTURES_DIR = path.join(__dirname, "../../../test/fixtures");
+export const FIXTURES_DIR = path.join(__dirname, "../../fixtures");
 
 const API_BASE = "http://localhost:3000/api/v1";
 
@@ -84,8 +84,8 @@ export async function uploadPdf(
 
 export async function setupPdfBaselines(project: string, testName: string) {
   await createProject(project);
-  await uploadPdf(project, testName + "_report", "sample.pdf");
-  await uploadPdf(project, testName + "_contract", "sample.pdf");
+  await uploadPdf(project, testName + "_report", "sample-v1.pdf");
+  await uploadPdf(project, testName + "_contract", "sample-v1.pdf");
 }
 
 export async function waitForPdfComparison(
