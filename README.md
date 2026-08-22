@@ -203,7 +203,7 @@ cd frontend && pnpm exec playwright install chromium
 Expected running services (`docker compose ps`):
 
 ```text
-postgres, minio (RustFS), pdf-sidecar, backend, worker, frontend
+postgres, rustfs, pdf-sidecar, backend, worker, frontend
 ```
 
 The worker and pdf-sidecar are mandatory: the worker runs image comparisons
@@ -309,7 +309,7 @@ A Helm chart ships in `deploy/charts/vrt/`, with an ArgoCD Application manifest 
 ./deploy/scripts/install-argocd.sh
 ```
 
-**DNS is required**: the chart routes `vrt.local` (frontend) and `minio.vrt.local` (RustFS) through the ingress — add a wildcard `*.vrt.local` DNS entry or `/etc/hosts` lines for test machines, otherwise images won't load.
+**DNS is required**: the chart routes `vrt.local` (frontend) and `rustfs.vrt.local` (RustFS) through the ingress — add a wildcard `*.vrt.local` DNS entry or `/etc/hosts` lines for test machines, otherwise images won't load.
 
 > **Image registry**: the chart pulls images from `ghcr.io/fishkob/*`. On a fresh clone you need pull access to those images, or re-point `repository` in `deploy/charts/vrt/values.yaml` to images you own.
 

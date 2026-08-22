@@ -9,7 +9,7 @@ Deploys the full stack (backend, worker, frontend, pdf-sidecar, PostgreSQL, Rust
 - A Kubernetes cluster (e.g. k3s, kind, managed cloud) with a `kubectl` context
 - **Helm 3** (for the direct Helm path) and/or **ArgoCD** (for the GitOps path)
 - An ingress controller (default NetworkPolicy allows `traefik`)
-- **DNS** for the ingress hosts: `vrt.local` (frontend) and `minio.vrt.local` (RustFS) must resolve to the cluster — wildcard `*.vrt.local` or `/etc/hosts` entries on test machines. Without DNS, the frontend loads but screenshot images do not.
+- **DNS** for the ingress hosts: `vrt.local` (frontend) and `rustfs.vrt.local` (RustFS) must resolve to the cluster — wildcard `*.vrt.local` or `/etc/hosts` entries on test machines. Without DNS, the frontend loads but screenshot images do not.
 - Pull access to the images on GHCR (`ghcr.io/fishkob/*`). For private repositories, set `secrets.ghcr_pull_secret` (a base64 Docker config) or export `GHCR_TOKEN` for `deploy.sh`.
 - PostgreSQL 16+ (a chart-internal Postgres is included; an existing external instance can be used instead — see below)
 
@@ -24,7 +24,7 @@ export GHCR_TOKEN=<PAT with read:packages>
 # Override default secrets before deploying (values.yaml ships CHANGE_ME placeholders)
 helm upgrade --install vrt deploy/charts/vrt --namespace vrt --create-namespace \
   --set secrets.postgres_password=<strong-password> \
-  --set secrets.minio_secret_key=<strong-key>
+  --set secrets.rustfs_secret_key=<strong-key>
 ```
 
 Or use the wrapper that applies the secrets automatically:
@@ -74,8 +74,8 @@ Credentials live in the `vrt-secrets` Kubernetes secret, populated from the Helm
 | `postgres_user`     | `vrt`                                    |
 | `postgres_password` | your password (CHANGE_ME in values.yaml) |
 | `postgres_db`       | `vrt`                                    |
-| `minio_access_key`  | `minioadmin`                             |
-| `minio_secret_key`  | your key (CHANGE_ME in values.yaml)      |
+| `rustfs_access_key` | `minioadmin`                             |
+| `rustfs_secret_key` | your key (CHANGE_ME in values.yaml)      |
 | `ghcr_pull_secret`  | Docker config JSON for image pulls       |
 
 **Never commit real credentials** — `values.yaml` ships `CHANGE_ME` placeholders, and the root `.gitignore` already excludes `values.local.yaml` for local overrides.
@@ -125,7 +125,7 @@ services:
       #   condition: service_completed_successfully
       # postgres:                 # remove
       #   condition: service_healthy
-      minio:
+      rustfs:
         condition: service_healthy
 
   worker:
@@ -134,7 +134,7 @@ services:
       #   condition: service_completed_successfully
       # postgres:
       #   condition: service_healthy
-      minio:
+      rustfs:
         condition: service_healthy
 ```
 
@@ -167,10 +167,10 @@ The worker and pdf-sidecar images are built whenever the target is `backend` or 
 
 The frontend loads screenshots directly from RustFS (`<img :src="imageUrl">`) — the backend does **not** proxy images. So the browser must be able to reach RustFS:
 
-- `MINIO_PUBLIC_URL` must be a **browser-reachable base URL without the bucket** — the backend appends `/bucket/<object>` itself. `http://minio:9000/vrt` would produce the broken double-bucket URL `http://minio:9000/vrt/vrt/<object>`.
-- In the Helm chart, set `minioHost` (default `minio.vrt.local`). The ingress routes that host to the RustFS service, and both the backend and worker get `MINIO_PUBLIC_URL=http://<minioHost>` from it.
-- **DNS required**: `minio.vrt.local` must resolve for users (wildcard `*.vrt.local` or an `/etc/hosts` entry on test machines). Without it, images won't load even though the deployment is healthy.
-- The chart's NetworkPolicy must allow the ingress controller to reach RustFS — `allow-ingress-to-minio` is included by default.
+- `MINIO_PUBLIC_URL` must be a **browser-reachable base URL without the bucket** — the backend appends `/bucket/<object>` itself. `http://rustfs:9000/vrt` would produce the broken double-bucket URL `http://rustfs:9000/vrt/vrt/<object>`.
+- In the Helm chart, set `rustfsHost` (default `rustfs.vrt.local`). The ingress routes that host to the RustFS service, and both the backend and worker get `MINIO_PUBLIC_URL=http://<rustfsHost>` from it.
+- **DNS required**: `rustfs.vrt.local` must resolve for users (wildcard `*.vrt.local` or an `/etc/hosts` entry on test machines). Without it, images won't load even though the deployment is healthy.
+- The chart's NetworkPolicy must allow the ingress controller to reach RustFS — `allow-ingress-to-rustfs` is included by default.
 
 ## Manual Image Tag Update
 

@@ -15,7 +15,7 @@ spec:
   tls:
   - hosts:
     - {{ .Values.domain }}
-    - {{ .Values.minioHost }}
+    - {{ .Values.rustfsHost }}
     secretName: {{ .Values.tls.secretName }}
   {{- end }}
   rules:
@@ -36,13 +36,13 @@ spec:
                 name: backend
                 port:
                   number: 3000
-    - host: {{ .Values.minioHost }}
+    - host: {{ .Values.rustfsHost }}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: minio
+                name: rustfs
                 port:
                   number: 9000

@@ -1,9 +1,9 @@
 namespace: vrt
 domain: vrt.local
-# Browser-reachable MinIO host. The backend appends `/bucket/<object>` itself,
-# so this must be the base URL WITHOUT the bucket. Routed to the MinIO service
+# Browser-reachable RustFS host. The backend appends `/bucket/<object>` itself,
+# so this must be the base URL WITHOUT the bucket. Routed to the RustFS service
 # by the ingress (see templates/ingress.yaml). Requires DNS for this host.
-minioHost: minio.vrt.local
+rustfsHost: rustfs.vrt.local
 
 secrets:
   # WARNING: Replace all values below with your own credentials before deploying.
@@ -11,8 +11,8 @@ secrets:
   postgres_user: vrt
   postgres_password: CHANGE_ME
   postgres_db: vrt
-  minio_access_key: minioadmin
-  minio_secret_key: CHANGE_ME
+  rustfs_access_key: minioadmin
+  rustfs_secret_key: CHANGE_ME
   # Set via env var when running deploy.sh:
   #   export GHCR_TOKEN=ghp_xxx && ./deploy/scripts/deploy.sh
   ghcr_pull_secret: ""
@@ -68,7 +68,7 @@ backend:
     NODE_ENV: production
     POSTGRES_HOST: postgres
     POSTGRES_PORT: "5432"
-    MINIO_ENDPOINT: minio
+    MINIO_ENDPOINT: rustfs
     MINIO_PORT: "9000"
     MINIO_BUCKET: vrt
     MINIO_USE_SSL: "false"
@@ -108,7 +108,7 @@ worker:
     NODE_ENV: production
     POSTGRES_HOST: postgres
     POSTGRES_PORT: "5432"
-    MINIO_ENDPOINT: minio
+    MINIO_ENDPOINT: rustfs
     MINIO_PORT: "9000"
     MINIO_BUCKET: vrt
     MINIO_USE_SSL: "false"
@@ -154,7 +154,7 @@ postgres:
       cpu: 500m
       memory: 512Mi
 
-minio:
+rustfs:
   enabled: true
   image: rustfs/rustfs:1.0.0-rc.3
   mcImage: minio/mc:latest

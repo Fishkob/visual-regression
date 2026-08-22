@@ -138,7 +138,7 @@ graph TB
 
   subgraph External["External Systems"]
     PG[("PostgreSQL<br/>Single database")]
-    MinioS3[("RustFS<br/>S3-compatible storage")]
+    RustfsS3[("RustFS<br/>S3-compatible storage")]
     SidecarSvc["PDF Sidecar Service<br/>(PDF comparison)"]
   end
 
@@ -155,7 +155,7 @@ graph TB
   Core --> JobQ
 
   Prisma --> PG
-  Storage --> MinioS3
+  Storage --> RustfsS3
   JobQ -->|poll| Poller
   Poller --> Processor
   Processor --> Engines
@@ -292,7 +292,7 @@ graph LR
     direction TB
     APP["App Container<br/>API + Worker<br/>Node.js / NestJS"]:::container
     PG[("PostgreSQL")]:::infra
-    MINIO["RustFS"]:::infra
+    RUSTFS["RustFS"]:::infra
     SIDECAR["PDF Sidecar"]:::container
   end
 
@@ -302,7 +302,7 @@ graph LR
 
   DEV -->|dev proxy| APP
   APP --> PG
-  APP --> MINIO
+  APP --> RUSTFS
   APP --> SIDECAR
 ```
 

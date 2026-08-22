@@ -32,15 +32,15 @@ export function setup(): void {
   };
 
   const isPostgresRunning = checkPort(5432);
-  const isMinioRunning = checkPort(9000);
+  const isRustfsRunning = checkPort(9000);
   const isPdfSidecarRunning = checkPort(3001);
 
-  if (isPostgresRunning && isMinioRunning && isPdfSidecarRunning) {
+  if (isPostgresRunning && isRustfsRunning && isPdfSidecarRunning) {
     console.log('Docker services already running, skipping docker-compose...');
     setDockerStarted(false);
   } else {
-    console.log('Starting Docker Compose (Postgres, MinIO, pdf-sidecar)...');
-    execSync('docker compose up -d postgres minio pdf-sidecar', {
+    console.log('Starting Docker Compose (Postgres, RustFS, pdf-sidecar)...');
+    execSync('docker compose up -d postgres rustfs pdf-sidecar', {
       cwd: REPO_ROOT,
       stdio: 'inherit',
     });

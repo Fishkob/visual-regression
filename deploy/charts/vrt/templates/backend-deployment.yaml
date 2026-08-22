@@ -67,18 +67,18 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: vrt-secrets
-                  key: minio-access-key
+                  key: rustfs-access-key
             - name: MINIO_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: vrt-secrets
-                  key: minio-secret-key
+                  key: rustfs-secret-key
             - name: MINIO_BUCKET
               value: {{ .Values.backend.env.MINIO_BUCKET }}
             - name: MINIO_USE_SSL
               value: "{{ .Values.backend.env.MINIO_USE_SSL }}"
             - name: MINIO_PUBLIC_URL
-              value: "http://{{ .Values.minioHost }}"
+              value: "http://{{ .Values.rustfsHost }}"
             - name: CORS_ORIGIN
               value: {{ .Values.backend.env.CORS_ORIGIN }}
             - name: LOG_LEVEL

@@ -1,33 +1,33 @@
-{{- if .Values.minio.enabled }}
+{{- if .Values.rustfs.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: minio-pvc
+  name: rustfs-pvc
   namespace: {{ .Values.namespace }}
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.minio.storage }}
+      storage: {{ .Values.rustfs.storage }}
   storageClassName: local-path
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: minio
+  name: rustfs
   namespace: {{ .Values.namespace }}
   labels:
-    app: minio
+    app: rustfs
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: minio
+      app: rustfs
   template:
     metadata:
       labels:
-        app: minio
+        app: rustfs
     spec:
       securityContext:
         runAsNonRoot: true
@@ -35,7 +35,7 @@ spec:
         runAsGroup: 10001
         fsGroup: 10001
       containers:
-        - name: minio
+        - name: rustfs
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -43,7 +43,7 @@ spec:
                 - ALL
             readOnlyRootFilesystem: true
             runAsNonRoot: true
-          image: {{ .Values.minio.image }}
+          image: {{ .Values.rustfs.image }}
           ports:
             - containerPort: 9000
               name: api
@@ -56,12 +56,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: vrt-secrets
-                  key: minio-access-key
+                  key: rustfs-access-key
             - name: RUSTFS_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: vrt-secrets
-                  key: minio-secret-key
+                  key: rustfs-secret-key
             - name: RUSTFS_VOLUMES
               value: /data
             - name: RUSTFS_ADDRESS
@@ -73,7 +73,7 @@ spec:
             - name: RUSTFS_OBS_LOG_DIRECTORY
               value: /app/logs
           volumeMounts:
-            - name: minio-storage
+            - name: rustfs-storage
               mountPath: /data
             - name: tmp
               mountPath: /tmp
@@ -81,11 +81,11 @@ spec:
               mountPath: /app/logs
           resources:
             requests:
-              cpu: {{ .Values.minio.resources.requests.cpu }}
-              memory: {{ .Values.minio.resources.requests.memory }}
+              cpu: {{ .Values.rustfs.resources.requests.cpu }}
+              memory: {{ .Values.rustfs.resources.requests.memory }}
             limits:
-              cpu: {{ .Values.minio.resources.limits.cpu }}
-              memory: {{ .Values.minio.resources.limits.memory }}
+              cpu: {{ .Values.rustfs.resources.limits.cpu }}
+              memory: {{ .Values.rustfs.resources.limits.memory }}
           livenessProbe:
             httpGet:
               path: /health
@@ -103,9 +103,9 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 3
       volumes:
-        - name: minio-storage
+        - name: rustfs-storage
           persistentVolumeClaim:
-            claimName: minio-pvc
+            claimName: rustfs-pvc
         - name: tmp
           emptyDir: {}
         - name: logs
@@ -114,10 +114,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: minio
+  name: rustfs
   namespace: {{ .Values.namespace }}
   labels:
-    app: minio
+    app: rustfs
 spec:
   type: ClusterIP
   ports:
@@ -130,15 +130,15 @@ spec:
       protocol: TCP
       name: console
   selector:
-    app: minio
+    app: rustfs
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: minio-init
+  name: rustfs-init
   namespace: {{ .Values.namespace }}
   labels:
-    app: minio-init
+    app: rustfs-init
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "1"
@@ -147,16 +147,16 @@ spec:
   template:
     metadata:
       labels:
-        app: minio-init
+        app: rustfs-init
     spec:
       containers:
-        - name: minio-init
-          image: {{ .Values.minio.mcImage }}
+        - name: rustfs-init
+          image: {{ .Values.rustfs.mcImage }}
           command:
             - /bin/sh
             - -c
             - |
-              mc alias set local http://minio:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY)
+              mc alias set local http://rustfs:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY)
               mc mb local/vrt || true
               mc anonymous set download local/vrt || true
               exit 0
@@ -165,12 +165,12 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: vrt-secrets
-                  key: minio-access-key
+                  key: rustfs-access-key
             - name: MINIO_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: vrt-secrets
-                  key: minio-secret-key
+                  key: rustfs-secret-key
       restartPolicy: OnFailure
   backoffLimit: 3
 {{- end }}

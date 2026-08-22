@@ -229,7 +229,7 @@ show_help() {
     echo ""
     echo "Commands:"
     echo "  local       Local development with hot-reload (requires pnpm)"
-    echo "  infra       Start infrastructure only (postgres, minio (RustFS), pdf-sidecar)"
+    echo "  infra       Start infrastructure only (postgres, rustfs, pdf-sidecar)"
     echo "  docker      Start all services in Docker (production-like)"
     echo "  seed        Seed database with test data"
     echo "  stop        Stop all services"

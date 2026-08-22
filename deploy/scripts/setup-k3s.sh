@@ -41,8 +41,8 @@ kubectl create secret generic vrt-secrets -n vrt \
   --from-literal=db-url="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/vrt" \
   --from-literal=postgres-user="${POSTGRES_USER}" \
   --from-literal=postgres-password="${POSTGRES_PASSWORD}" \
-  --from-literal=minio-access-key="${MINIO_ACCESS_KEY}" \
-  --from-literal=minio-secret-key="${MINIO_SECRET_KEY}" \
+  --from-literal=rustfs-access-key="${MINIO_ACCESS_KEY}" \
+  --from-literal=rustfs-secret-key="${MINIO_SECRET_KEY}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # Create image pull secret for ghcr.io
@@ -60,7 +60,7 @@ kubectl create secret docker-registry ghcr-secret -n vrt \
 echo ""
 echo "=== Setup complete ==="
 echo "Add this to your /etc/hosts (or a wildcard entry):"
-echo "  <your-server-ip> vrt.local minio.vrt.local"
+echo "  <your-server-ip> vrt.local rustfs.vrt.local"
 echo ""
 echo "Next steps:"
 echo "  1. Install ArgoCD: ./deploy/scripts/install-argocd.sh"

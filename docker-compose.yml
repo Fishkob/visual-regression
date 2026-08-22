@@ -8,7 +8,7 @@ x-app-env: &app-env
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
   POSTGRES_DB: ${POSTGRES_DB:-vrt}
   DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-vrt}
-  MINIO_ENDPOINT: minio
+  MINIO_ENDPOINT: rustfs
   MINIO_PORT: 9000
   MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
   MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
@@ -46,7 +46,7 @@ services:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy
-      minio:
+      rustfs:
         condition: service_healthy
 
   pdf-sidecar:
@@ -93,7 +93,7 @@ services:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy
-      minio:
+      rustfs:
         condition: service_healthy
       pdf-sidecar:
         condition: service_healthy
