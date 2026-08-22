@@ -6,7 +6,7 @@ sequenceDiagram
     participant SDK as Client SDK
     participant API as Backend API
     participant DB as PostgreSQL
-    participant S3 as MinIO
+    participant S3 as RustFS
     participant W as Worker
 
     CI->>SDK: uploadScreenshot(project, test, variant, image)
