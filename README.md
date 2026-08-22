@@ -203,7 +203,7 @@ cd frontend && pnpm exec playwright install chromium
 Expected running services (`docker compose ps`):
 
 ```text
-postgres, rustfs, pdf-sidecar, backend, worker, frontend
+postgres, minio (RustFS), pdf-sidecar, backend, worker, frontend
 ```
 
 The worker and pdf-sidecar are mandatory: the worker runs image comparisons
