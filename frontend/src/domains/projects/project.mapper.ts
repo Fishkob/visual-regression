@@ -2,13 +2,12 @@ import type { Project, VisualTestItem } from "./project.model";
 import type { ProjectDto, VisualTestDto } from "@sdk";
 import { isPendingApproval } from "@/domains/test-status";
 import { isTestKind } from "@/domains/test-kind";
-import { variantFromDto } from "@/lib/variant-key";
 
 function mapVisualTest(dto: VisualTestDto): VisualTestItem {
   return {
     name: dto.name,
     kind: isTestKind(dto.kind) ? dto.kind : undefined,
-    ...variantFromDto(dto.variant),
+    ...(dto.variant ?? {}),
     latestStatus: dto.latestStatus,
   };
 }

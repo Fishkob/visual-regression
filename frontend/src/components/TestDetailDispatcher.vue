@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRouteParams } from "@/composables/useRouteParams";
 import { useTestKind } from "@/composables/useTestKind";
-import { isImageKind, isPdfKind } from "@/domains/test-kind";
+import { isImageKind, isPdfKind, isTestKind } from "@/domains/test-kind";
 import VisualTestDetailsView from "@/views/VisualTestDetailsView.vue";
 import PdfTestDetailsView from "@/views/PdfTestDetailsView.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
@@ -19,7 +19,7 @@ const { kind, isLoading, error, refetch } = useTestKind(projectName, testName);
     :error="error"
     error-title="Failed to load test"
     :retry="refetch"
-    :empty="!isImageKind(kind) && !isPdfKind(kind)"
+    :empty="!isTestKind(kind)"
   >
     <template #loading>
       <TestComparisonSkeleton />

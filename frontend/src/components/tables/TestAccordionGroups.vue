@@ -9,7 +9,7 @@ import {
 import DataTable from "@/components/ui/table/DataTable.vue";
 import { getStatusCountBadge } from "@/components/StatusBadge";
 import type { VisualTestItem } from "@/domains/projects/project.model";
-import type { TestGroup } from "@/composables/useVisualTestsTable";
+import type { TestGroup } from "@/domains/projects/test-group";
 
 defineProps<{
   groups: TestGroup[];

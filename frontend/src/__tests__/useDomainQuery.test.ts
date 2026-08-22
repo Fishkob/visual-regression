@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ref } from "vue";
-import { useSdkQuery } from "@/composables/useDomainQuery";
-
+import { useSdkQuery, previewSdkRead } from "@/composables/useDomainQuery";
 const { mockUseQuery, queryOptions } = vi.hoisted(() => {
   const queryOptions: { current?: Record<string, any> } = {};
   const mockUseQuery = vi.fn((opts: Record<string, unknown>) => {
@@ -64,5 +63,29 @@ describe("useSdkQuery", () => {
     await queryOptions.current!.queryFn();
 
     expect(sdkFn).toHaveBeenCalledWith({ projectName: "my-project" });
+  });
+});
+
+describe("previewSdkRead", () => {
+  it("unwraps the data payload like the query seam", async () => {
+    const result = await previewSdkRead<{ autoAcceptedCount: number }>(() =>
+      Promise.resolve({ data: { autoAcceptedCount: 3 } }),
+    );
+
+    expect(result).toEqual({ autoAcceptedCount: 3 });
+  });
+
+  it("returns null when the response has no data member", async () => {
+    const result = await previewSdkRead(() => Promise.resolve({}));
+
+    expect(result).toBeNull();
+  });
+
+  it("returns null when the sdk call rejects", async () => {
+    const result = await previewSdkRead<{ autoAcceptedCount: number }>(() =>
+      Promise.reject(new Error("boom")),
+    );
+
+    expect(result).toBeNull();
   });
 });

@@ -2,13 +2,13 @@ import { variantKeyParts, type VariantParams } from "@/lib/variant-key";
 
 export const pdfTestQueryKeys = {
   all: () => ["pdf-tests"] as const,
-  details: (projectName: string, testName: string, filters?: VariantParams) =>
+  details: (args: { projectName: string; testName: string } & VariantParams) =>
     [
       ...pdfTestQueryKeys.all(),
       "details",
-      projectName,
-      testName,
-      ...variantKeyParts(filters),
+      args.projectName,
+      args.testName,
+      ...variantKeyParts(args),
     ] as const,
   renderPage: (
     projectName: string,

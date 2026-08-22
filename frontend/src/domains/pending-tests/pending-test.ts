@@ -1,5 +1,4 @@
 import type { PendingTestDto } from "@sdk";
-import { variantFromDto } from "@/lib/variant-key";
 
 export interface PendingTest {
   name: string;
@@ -11,7 +10,7 @@ export interface PendingTest {
 export function mapPendingTest(dto: PendingTestDto): PendingTest {
   return {
     name: dto.name,
-    ...variantFromDto(dto.variant),
+    ...(dto.variant ?? {}),
   };
 }
 

@@ -1,9 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ref } from "vue";
-import {
-  useVisualTestsTable,
-  type TestGroup,
-} from "@/composables/useVisualTestsTable";
+import { useVisualTestsTable } from "@/composables/useVisualTestsTable";
+import type { TestGroup } from "@/domains/projects/test-group";
 import {
   STATUS,
   STATUS_FILTER_PENDING,

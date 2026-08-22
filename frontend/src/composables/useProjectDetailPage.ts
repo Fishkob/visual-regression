@@ -1,9 +1,8 @@
 import { computed, reactive } from "vue";
-import { aggregateVariantStatuses, countPending } from "@/domains/test-status";
+import { countPending } from "@/domains/test-status";
 import { isPdfKind } from "@/domains/test-kind";
-import type { PdfProjectTest } from "@/domains/pdf-test/pdf-test.model";
+import { derivePdfProjectTests } from "@/domains/pdf-test/derive-pdf-project-tests";
 import type { VisualTestItem } from "@/domains/projects/project.model";
-import { groupRowsByTestName } from "@/domains/projects/group-rows-by-test-name";
 import { useProjectDetailQuery } from "@/composables/useProjects";
 import type { MaybeRef } from "@/composables/useDomainQuery";
 
@@ -29,25 +28,13 @@ export function useProjectDetailPage(
     visualTests.value.filter((t) => !isPdfKind(t.kind)),
   );
 
-  // Distinct PDF tests derived from the payload's per-variant rows: each row
-  // keeps its variant (so navigation can carry it), and the test-level status
-  // is the aggregate of its variants' statuses — the same rule the backend
-  // persists, so the directory and the server cannot drift.
-  const pdfTests = computed<PdfProjectTest[]>(() =>
-    [
-      ...groupRowsByTestName(
-        visualTests.value.filter((row) => isPdfKind(row.kind)),
-      ),
-    ].map(([name, rows]) => {
-      const first = rows[0];
-      return {
-        name,
-        status: aggregateVariantStatuses(rows.map((r) => r.latestStatus)),
-        viewport: first.viewport,
-        browser: first.browser,
-        environment: first.environment,
-      };
-    }),
+  // Distinct PDF tests derived from the payload's per-variant rows — the rule
+  // lives in the pdf-test domain next to the PdfProjectTest model, so the page
+  // stays a declaration and the directory cannot drift from the details model.
+  const pdfTests = computed(() =>
+    derivePdfProjectTests(
+      visualTests.value.filter((row) => isPdfKind(row.kind)),
+    ),
   );
 
   const screenshotPendingCount = computed(() =>

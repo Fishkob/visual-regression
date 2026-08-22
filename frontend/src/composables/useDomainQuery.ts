@@ -64,6 +64,21 @@ export type ReadyArgs<T, K extends keyof T> = {
 // re-encoding `x && y ? key : []` gates and `x!` assertions. The payload type
 // TDto is inferred from the mapper's parameter, so an SDK function whose DTO
 // the OpenAPI spec leaves `unknown` still maps precisely.
+// A one-shot SDK read for previews that must NOT populate the query cache
+// (e.g. the threshold auto-accept preview, asked on every blur). Unwraps via
+// getData exactly like the query seam, and returns null when the call fails or
+// the payload has no data member — a failed preview reads "cannot answer"
+// rather than crashing the caller. Fire-on-demand: no key, no caching, no gating.
+export async function previewSdkRead<T>(
+  sdkFn: () => Promise<unknown>,
+): Promise<T | null> {
+  try {
+    return getData<T>(await sdkFn()) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function useSdkQuery<
   TArgs extends object,
   TDto,

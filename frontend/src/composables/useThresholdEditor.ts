@@ -6,9 +6,9 @@ import {
 import { toast } from "vue-sonner";
 import { invalidateVisualTestDetails } from "@/lib/invalidation";
 import { formatVariantLabel } from "@/lib/format-variant-label";
-import { getData } from "@/lib/sdk";
 import type { VariantParams } from "@/lib/variant-key";
 import type { Screenshot } from "@/domains/visual-test/visual-test.model";
+import { previewSdkRead } from "@/composables/useDomainQuery";
 import { useSdkMutation } from "@/composables/useSdkMutation";
 
 export interface ThresholdEditorOptions {
@@ -140,15 +140,13 @@ export function useThresholdEditor(options: ThresholdEditorOptions) {
   // "mismatch <= threshold" on the client. A failed preview must NOT fall
   // through to a direct commit — the confirm step exists to protect the
   // auto-accept case, and committing without it would let an unknown number of
-  // comparisons be accepted silently. Returns null when the preview failed.
+  // comparisons be accepted silently. The unwrap + failure-to-null lives on the
+  // preview seam (previewSdkRead), not here. Returns null when the preview failed.
   async function previewAutoAccept(nextValue: number): Promise<number | null> {
-    try {
-      const args = buildArgs(nextValue);
-      const result = await callUpdateThreshold(args, true);
-      return getData<UpdateThresholdResultDto>(result)?.autoAcceptedCount ?? 0;
-    } catch {
-      return null;
-    }
+    const result = await previewSdkRead<UpdateThresholdResultDto>(() =>
+      callUpdateThreshold(buildArgs(nextValue), true),
+    );
+    return result == null ? null : (result.autoAcceptedCount ?? 0);
   }
 
   async function onBlur() {

@@ -4,14 +4,13 @@ import type {
   Comparison,
   VisualTestDetails,
 } from "./visual-test.model";
-import { variantFromDto } from "@/lib/variant-key";
 
 function mapScreenshot(dto: ScreenshotDto | undefined): Screenshot | undefined {
   if (!dto) return undefined;
   return {
     imageUrl: dto.imageUrl ?? "",
     pixelDiffThreshold: dto.pixelDiffThreshold,
-    ...variantFromDto(dto.variant),
+    ...(dto.variant ?? {}),
   };
 }
 

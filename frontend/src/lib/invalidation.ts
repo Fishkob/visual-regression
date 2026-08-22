@@ -33,25 +33,14 @@ export function invalidateVisualTestDetails(
   client: QueryClient,
   args: TestDetailsArgs,
 ) {
-  invalidateTestDetails(client, args, ({ projectName, testName, ...v }) =>
-    visualTestQueryKeys.details({ projectName, testName, ...v }),
-  );
+  invalidateTestDetails(client, args, visualTestQueryKeys.details);
 }
 
 export function invalidatePdfTestDetails(
   client: QueryClient,
   args: TestDetailsArgs,
 ) {
-  invalidateTestDetails(
-    client,
-    args,
-    ({ projectName, testName, viewport, browser, environment }) =>
-      pdfTestQueryKeys.details(projectName, testName, {
-        viewport,
-        browser,
-        environment,
-      }),
-  );
+  invalidateTestDetails(client, args, pdfTestQueryKeys.details);
 }
 
 export function invalidateProjectList(client: QueryClient) {

@@ -1,5 +1,6 @@
 import { ref, computed, type Ref } from "vue";
 import type { VisualTestItem } from "@/domains/projects/project.model";
+import type { TestGroup } from "@/domains/projects/test-group";
 import {
   countStatuses,
   iconFor,
@@ -8,32 +9,15 @@ import {
   FILTER_ALL,
   STATUS_FILTER_PENDING,
   STATUS_FILTER_OK,
-  type StatusValue,
   type VisualTestFilters,
 } from "@/domains/test-status";
 import { groupRowsByTestName } from "@/domains/projects/group-rows-by-test-name";
 
-// Re-exported so consumers keep one import site while the vocabulary itself
-// lives in the domain.
-export { FILTER_ALL, STATUS_FILTER_PENDING, STATUS_FILTER_OK };
-
 // The visual-tests table's derived state has one owner: the filter vocabulary,
 // the filter state, and the grouping all live here, so the derive→filter→group
-// pipeline stops being threaded across modules. The group shape stays exported
-// — TestAccordionGroups renders these same values rather than re-declaring
-// silently-driftable twins.
-
-export interface TestGroupBadge {
-  status: StatusValue;
-  count: number;
-  icon: ReturnType<typeof iconFor>;
-}
-
-export interface TestGroup {
-  name: string;
-  items: VisualTestItem[];
-  badges: TestGroupBadge[];
-}
+// pipeline stops being threaded across modules. The group shape lives in the
+// projects domain (test-group.ts) — TestAccordionGroups renders those same
+// values rather than re-declaring silently-driftable twins.
 
 export interface VisualTestsTableOptions {
   tests: Ref<VisualTestItem[]>;

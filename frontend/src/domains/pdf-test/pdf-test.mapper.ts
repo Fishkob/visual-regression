@@ -4,7 +4,6 @@ import type {
   PdfScreenshot,
   PdfTestDetails,
 } from "./pdf-test.model";
-import { variantFromDto } from "@/lib/variant-key";
 
 // One mapper for every screenshot-shaped DTO. Only the baseline variant carries
 // a page count (number | null, normalized to a non-null model value); the
@@ -26,7 +25,9 @@ function mapPdfScreenshot(
     pdfUrl: dto.pdfUrl,
     imageHash: dto.imageHash,
     ...("pageCount" in dto ? { pageCount: dto.pageCount ?? 0 } : {}),
-    ...variantFromDto(dto),
+    viewport: dto.viewport,
+    browser: dto.browser,
+    environment: dto.environment,
   };
 }
 

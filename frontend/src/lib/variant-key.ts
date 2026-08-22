@@ -14,23 +14,6 @@ export type TestDetailsArgs = {
   testName: string;
 } & VariantParams;
 
-type VariantDtoShape =
-  | {
-      viewport?: string;
-      browser?: string;
-      environment?: string;
-    }
-  | null
-  | undefined;
-
-export function variantFromDto(dto: VariantDtoShape): VariantParams {
-  return {
-    viewport: dto?.viewport,
-    browser: dto?.browser,
-    environment: dto?.environment,
-  };
-}
-
 export function variantKeyParts(
   filters?: VariantParams,
 ): [string, string, string] {

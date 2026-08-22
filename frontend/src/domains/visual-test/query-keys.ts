@@ -1,9 +1,8 @@
-import type { KeyParams } from "@/lib/variant-key";
-import { variantKeyParts } from "@/lib/variant-key";
+import { variantKeyParts, type VariantParams } from "@/lib/variant-key";
 
 export const visualTestQueryKeys = {
   all: () => ["visual-tests"] as const,
-  details: (args: { projectName: string; testName: string } & KeyParams) =>
+  details: (args: { projectName: string; testName: string } & VariantParams) =>
     [
       ...visualTestQueryKeys.all(),
       "details",

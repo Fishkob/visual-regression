@@ -205,6 +205,7 @@ describe("useThresholdEditor", () => {
     const options = createOptions({
       baseline: { pixelDiffThreshold: 0.5 } as any,
     });
+    mockPreview.mockResolvedValue(previewResponse(0));
 
     const { inputValue, onBlur } = useThresholdEditor(options);
 

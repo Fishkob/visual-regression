@@ -87,7 +87,7 @@ export function usePdfDetailsQuery(
     args: { projectName, testName, filters },
     required: ["projectName", "testName"],
     keyOf: ({ projectName, testName, filters }) =>
-      pdfTestQueryKeys.details(projectName, testName, filters),
+      pdfTestQueryKeys.details({ projectName, testName, ...filters }),
     sdkFn: ({ projectName, testName, filters }) =>
       pdfControllerGetPdfTestDetails({
         path: { projectName, testName },
