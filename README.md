@@ -10,7 +10,7 @@ Catch unintended visual changes before they reach production. Upload screenshots
 
 A self-hosted platform for **visual regression testing**, consisting of:
 
-- **Backend** (NestJS + Prisma + MinIO) — manages visual test storage, comparisons, and approvals
+- **Backend** (NestJS + Prisma + RustFS object storage) — manages visual test storage, comparisons, and approvals
 - **Frontend** (Vue + Vite + Tailwind) — dashboard for browsing and approving visual tests
 - **Client SDK** (TypeScript) — upload screenshots from CI pipelines or automated tests
 - **PDF Sidecar** (Java) — PDF comparison via pdfbox
@@ -70,7 +70,7 @@ Then open **http://localhost** to see the frontend.
 git clone https://github.com/Fishkob/visual-regression.git
 cd visual-regression
 
-# First-time setup: clean slate → infra (postgres, minio) → install deps → generate SDK
+# First-time setup: clean slate → infra (postgres, rustfs) → install deps → generate SDK
 pnpm run dev:reset
 
 # Start backend + frontend with hot reload (starts infra automatically if needed)
@@ -89,7 +89,7 @@ After the backend is running, populate the database with demo projects and scree
 pnpm run dev:seed
 ```
 
-**MinIO Console:** http://localhost:9001 (login: `minioadmin` / `minioadmin`)
+**RustFS Console:** http://localhost:9001 (login: `minioadmin` / `minioadmin`)
 
 ---
 
@@ -99,8 +99,8 @@ pnpm run dev:seed
 | ------------- | --------------------------------------- | --------------------------------------- |
 | Frontend      | [localhost:5173](http://localhost:5173) | [localhost:80](http://localhost)        |
 | Backend       | [localhost:3000](http://localhost:3000) | [localhost:3000](http://localhost:3000) |
-| MinIO API     | [localhost:9000](http://localhost:9000) | [localhost:9000](http://localhost:9000) |
-| MinIO Console | [localhost:9001](http://localhost:9001) | [localhost:9001](http://localhost:9001) |
+| RustFS API     | [localhost:9000](http://localhost:9000) | [localhost:9000](http://localhost:9000) |
+| RustFS Console | [localhost:9001](http://localhost:9001) | [localhost:9001](http://localhost:9001) |
 | PDF sidecar   | [localhost:3001](http://localhost:3001) | [localhost:3001](http://localhost:3001) |
 | PostgreSQL    | localhost:5432                          | localhost:5432                          |
 
@@ -147,13 +147,13 @@ visual-regression/
 ├── client-sdk/      # TypeScript SDK for CI pipeline uploads
 ├── pdf-sidecar/     # Java service for PDF comparison
 ├── docker-compose.yml           # Full stack
-├── docker-compose.infra.yml     # Infra only (postgres, minio)
+├── docker-compose.infra.yml     # Infra only (postgres, rustfs)
 └── scripts/dev.sh               # Development orchestration
 ```
 
 **Data flow:**
 
-1. **Upload** — CI pipeline uploads screenshots or PDFs via Client SDK → Backend stores in MinIO
+1. **Upload** — CI pipeline uploads screenshots or PDFs via Client SDK → Backend stores in RustFS
 2. **Comparison** — Backend creates comparison job in PostgreSQL → Worker picks up → pixelmatch diff (or pdf-sidecar for PDFs) → stores result
 3. **Approval** — Frontend fetches pending comparisons → User approves → Baseline promoted
 4. **Baseline** — Approved screenshots become the new baseline for future comparisons
@@ -172,7 +172,7 @@ pnpm run unitTest:cov              # Backend unit tests with coverage
 cd frontend && pnpm test           # Frontend unit tests
 ```
 
-Backend E2E starts the required infrastructure (Postgres, MinIO, pdf-sidecar)
+Backend E2E starts the required infrastructure (Postgres, RustFS, pdf-sidecar)
 automatically if it is not already running:
 
 ```bash
@@ -203,7 +203,7 @@ cd frontend && pnpm exec playwright install chromium
 Expected running services (`docker compose ps`):
 
 ```text
-postgres, minio, pdf-sidecar, backend, worker, frontend
+postgres, rustfs, pdf-sidecar, backend, worker, frontend
 ```
 
 The worker and pdf-sidecar are mandatory: the worker runs image comparisons
@@ -237,7 +237,7 @@ back-to-back runs:
 | `pnpm run dev`             | Start infra (if needed) + backend/frontend (hot reload) |
 | `pnpm run dev:backend`     | Backend only                                            |
 | `pnpm run dev:frontend`    | Frontend only                                           |
-| `pnpm run dev:infra`       | Start infra only (postgres, minio, pdf-sidecar)         |
+| `pnpm run dev:infra`       | Start infra only (postgres, rustfs, pdf-sidecar)        |
 | `pnpm run dev:docker`      | Run the full stack in Docker (alias for `pnpm start`)   |
 | `pnpm run dev:seed`        | Seed database (alias for `./scripts/dev.sh seed`)       |
 | `pnpm run dev:stop`        | Stop Docker services                                    |
@@ -279,7 +279,7 @@ Three run modes, depending on your goal:
 
 ### Docker Compose (self-hosted)
 
-`pnpm start` builds and runs the full stack (PostgreSQL, MinIO, backend, worker, pdf-sidecar, frontend) with a single command. Migration and MinIO bucket setup run automatically on startup. This is the recommended production-like deployment for a single host.
+`pnpm start` builds and runs the full stack (PostgreSQL, RustFS, backend, worker, pdf-sidecar, frontend) with a single command. Migration and RustFS bucket setup run automatically on startup. This is the recommended production-like deployment for a single host.
 
 ```bash
 pnpm start
@@ -292,7 +292,7 @@ To deploy with plain `docker compose` instead (no pnpm/Node needed):
 docker compose up -d --build
 ```
 
-Set production credentials (DB password, MinIO keys) via the root `.env` file — see [Environment Configuration](#environment-configuration).
+Set production credentials (DB password, RustFS keys) via the root `.env` file — see [Environment Configuration](#environment-configuration).
 
 ### Kubernetes (Helm / ArgoCD)
 
@@ -309,7 +309,7 @@ A Helm chart ships in `deploy/charts/vrt/`, with an ArgoCD Application manifest 
 ./deploy/scripts/install-argocd.sh
 ```
 
-**DNS is required**: the chart routes `vrt.local` (frontend) and `minio.vrt.local` (MinIO) through the ingress — add a wildcard `*.vrt.local` DNS entry or `/etc/hosts` lines for test machines, otherwise images won't load.
+**DNS is required**: the chart routes `vrt.local` (frontend) and `minio.vrt.local` (RustFS) through the ingress — add a wildcard `*.vrt.local` DNS entry or `/etc/hosts` lines for test machines, otherwise images won't load.
 
 > **Image registry**: the chart pulls images from `ghcr.io/fishkob/*`. On a fresh clone you need pull access to those images, or re-point `repository` in `deploy/charts/vrt/values.yaml` to images you own.
 
@@ -324,6 +324,6 @@ This platform is designed to run in a **private/trusted network**:
 - **No authentication** — All API endpoints are public. Do not expose to the internet without a reverse proxy.
 - **CORS defaults to wildcard** — Configure `CORS_ORIGIN` explicitly in production.
 - **Helm chart secrets** — Create `deploy/charts/vrt/values.local.yaml` (gitignored) for local credentials. Use external secrets management (SealedSecrets, External Secrets Operator, SOPS) for production.
-- **MinIO bucket is publicly readable** — Screenshots are served with anonymous download access. Anyone who can reach MinIO can list and download all screenshots.
+- **RustFS bucket is publicly readable** — Screenshots are served with anonymous download access. Anyone who can reach RustFS can list and download all screenshots.
 
 See [docs/deployment.md](docs/deployment.md) for production deployment guidance.

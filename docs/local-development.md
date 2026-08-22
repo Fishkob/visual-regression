@@ -16,7 +16,7 @@ npm install -g pnpm
 pnpm run dev:reset
 ```
 
-This runs `delete` (clean slate) → `infra` (postgres + minio in Docker) → `local` (pnpm install, prisma generate, migrate dev, SDK generation).
+This runs `delete` (clean slate) → `infra` (postgres + rustfs in Docker) → `local` (pnpm install, prisma generate, migrate dev, SDK generation).
 
 ## Daily Workflow
 
@@ -61,7 +61,7 @@ cd frontend && pnpm test           # Frontend unit tests
 
 ### Backend E2E
 
-Starts the required infrastructure (Postgres, MinIO, pdf-sidecar)
+Starts the required infrastructure (Postgres, RustFS, pdf-sidecar)
 automatically if it is not already running:
 
 ```bash
@@ -79,7 +79,7 @@ same stack CI uses:
 
 # 2. Wait until the frontend answers
 curl -sf http://localhost:80 >/dev/null && echo ready
-#    docker compose ps should show: postgres, minio, pdf-sidecar,
+#    docker compose ps should show: postgres, rustfs, pdf-sidecar,
 #    backend, worker, frontend (one-shot db-migrate/minio-init exit)
 
 # 3. Install the Playwright browser (first time only)
@@ -119,8 +119,8 @@ Recommended order: `lint` → `typecheck:all` → `format` → `unitTest`
 
 ```
 ./
-├── docker-compose.yml         # Full stack (postgres, minio, backend, worker, frontend)
-├── docker-compose.infra.yml   # Infra only (postgres, minio)
+├── docker-compose.yml         # Full stack (postgres, rustfs, backend, worker, frontend)
+├── docker-compose.infra.yml   # Infra only (postgres, rustfs)
 ├── scripts/dev.sh             # Main dev orchestration
 ├── backend/                   # NestJS + Prisma
 ├── frontend/                  # Vue 3 + Vite + Tailwind
@@ -133,8 +133,8 @@ Recommended order: `lint` → `typecheck:all` → `format` → `unitTest`
 | ----------- | ----- | ------ |
 | Backend     | :3000 | :3000  |
 | Frontend    | :5173 | :80    |
-| MinIO       | :9000 | :9000  |
-| MinIO UI    | :9001 | :9001  |
+| RustFS      | :9000 | :9000  |
+| RustFS UI   | :9001 | :9001  |
 | PDF sidecar | :3001 | :3001  |
 | PostgreSQL  | :5432 | :5432  |
 
@@ -163,4 +163,4 @@ Configuration is resolved in this order (later wins):
 | `frontend/.env.local.example` | —                | git-tracked template     |
 | `frontend/.env.local`         | frontend runtime | `dev.sh` (from template) |
 
-The backend `.env.local.example` documents every variable (DB, MinIO, CORS, rate limiting, OpenTelemetry); the frontend example only needs `VITE_API_BASE_URL`.
+The backend `.env.local.example` documents every variable (DB, RustFS, CORS, rate limiting, OpenTelemetry); the frontend example only needs `VITE_API_BASE_URL`.
