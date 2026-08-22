@@ -18,23 +18,50 @@ services:
       start_period: 10s
 
   minio:
-    image: minio/minio:latest
+    image: rustfs/rustfs:1.0.0-rc.3
     restart: always
-    command: server /data --console-address ":9001"
+    depends_on:
+      volume-permission-helper:
+        condition: service_completed_successfully
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      RUSTFS_ACCESS_KEY: minioadmin
+      RUSTFS_SECRET_KEY: minioadmin
+      RUSTFS_VOLUMES: /data/rustfs{0...3}
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_OBS_LOG_DIRECTORY: /app/logs
     volumes:
-      - miniodata:/data
+      - rustfsdata0:/data/rustfs0
+      - rustfsdata1:/data/rustfs1
+      - rustfsdata2:/data/rustfs2
+      - rustfsdata3:/data/rustfs3
+      - rustfslogs:/app/logs
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/health >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 40s
+
+  volume-permission-helper:
+    image: alpine
+    volumes:
+      - rustfsdata0:/data0
+      - rustfsdata1:/data1
+      - rustfsdata2:/data2
+      - rustfsdata3:/data3
+      - rustfslogs:/logs
+    command: >
+      sh -c "
+        chown -R 10001:10001 /data0 /data1 /data2 /data3 /logs &&
+        echo 'Volume permissions fixed' &&
+        exit 0
+      "
+    restart: "no"
 
   minio-init:
     image: minio/mc:latest
@@ -51,4 +78,8 @@ services:
 
 volumes:
   pgdata:
-  miniodata:
+  rustfsdata0:
+  rustfsdata1:
+  rustfsdata2:
+  rustfsdata3:
+  rustfslogs:
