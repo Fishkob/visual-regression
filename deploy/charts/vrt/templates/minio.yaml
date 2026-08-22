@@ -31,9 +31,9 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
       containers:
         - name: minio
           securityContext:
@@ -51,25 +51,34 @@ spec:
             - containerPort: 9001
               name: console
               protocol: TCP
-          args: ["server", "/data", "--console-address", ":9001"]
           env:
-            - name: MINIO_CONFIG_DIR
-              value: /data/.minio
-            - name: MINIO_ROOT_USER
+            - name: RUSTFS_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: vrt-secrets
                   key: minio-access-key
-            - name: MINIO_ROOT_PASSWORD
+            - name: RUSTFS_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: vrt-secrets
                   key: minio-secret-key
+            - name: RUSTFS_VOLUMES
+              value: /data/rustfs{0...3}
+            - name: RUSTFS_ADDRESS
+              value: 0.0.0.0:9000
+            - name: RUSTFS_CONSOLE_ADDRESS
+              value: 0.0.0.0:9001
+            - name: RUSTFS_CONSOLE_ENABLE
+              value: "true"
+            - name: RUSTFS_OBS_LOG_DIRECTORY
+              value: /app/logs
           volumeMounts:
             - name: minio-storage
               mountPath: /data
             - name: tmp
               mountPath: /tmp
+            - name: logs
+              mountPath: /app/logs
           resources:
             requests:
               cpu: {{ .Values.minio.resources.requests.cpu }}
@@ -79,7 +88,7 @@ spec:
               memory: {{ .Values.minio.resources.limits.memory }}
           livenessProbe:
             httpGet:
-              path: /minio/health/live
+              path: /health
               port: api
             initialDelaySeconds: 10
             periodSeconds: 30
@@ -87,7 +96,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /minio/health/live
+              path: /health
               port: api
             initialDelaySeconds: 5
             periodSeconds: 10
@@ -98,6 +107,8 @@ spec:
           persistentVolumeClaim:
             claimName: minio-pvc
         - name: tmp
+          emptyDir: {}
+        - name: logs
           emptyDir: {}
 ---
 apiVersion: v1
