@@ -9,7 +9,7 @@
 
 ```
 ./scripts/dev.sh local    # Start infra + install deps + hot reload
-./scripts/dev.sh infra     # Start infra only (postgres, minio)
+./scripts/dev.sh infra     # Start infra only (postgres, rustfs)
 ./scripts/dev.sh docker    # All services in Docker (production-like)
 ./scripts/dev.sh seed      # Seed database with demo + e2e + dev data
 ./scripts/dev.sh stop      # Stop Docker services
@@ -82,7 +82,7 @@ frontend/       — Vue 3 + Vite + Tailwind v4 + TanStack Query
 client-sdk/     — TypeScript SDK (auto-generated via @hey-api/openapi-ts)
 ```
 
-**Ports:** Backend `:3000`, Frontend `:5173` (local) / `:80` (Docker), MinIO `:9000` (console `:9001`), PostgreSQL `:5432`
+**Ports:** Backend `:3000`, Frontend `:5173` (local) / `:80` (Docker), RustFS `:9000` (console `:9001`), PostgreSQL `:5432`
 
 ## Agent Guidelines
 

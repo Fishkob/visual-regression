@@ -26,7 +26,7 @@ flowchart TB
 
     subgraph Infrastructure
         DB[(PostgreSQL)]
-        S3[(MinIO<br/>S3-compatible)]
+        S3[(RustFS<br/>S3-compatible)]
         PS[pdf-sidecar<br/>Java 25 + Javalin<br/>PDF Comparison]
     end
 
@@ -62,7 +62,7 @@ flowchart TB
 
 **Solid lines** = always active. **Dashed observability area** = optional, only when those components are deployed and configured.
 
-The BUS node represents the shared data access layer — all backend services read from and write to PostgreSQL and MinIO.
+The BUS node represents the shared data access layer — all backend services read from and write to PostgreSQL and RustFS.
 
 ## Backend Layered Architecture
 
@@ -129,7 +129,7 @@ graph TB
     subgraph Shared["Shared Infrastructure"]
       direction TB
       Prisma["Prisma ORM<br/>UnitOfWork · AdvisoryLock<br/>4 Repositories"]
-      Storage["MinIO Storage<br/>IStorageProvider"]
+      Storage["RustFS Storage<br/>IStorageProvider"]
       Bus["Observability<br/>Logger + Metrics (in-process)"]
       JobQ["Job Queue<br/>Postgres-backed"]
       Otel["OpenTelemetry<br/>Traces · Spans"]
@@ -138,7 +138,7 @@ graph TB
 
   subgraph External["External Systems"]
     PG[("PostgreSQL<br/>Single database")]
-    MinioS3[("MinIO<br/>S3-compatible storage")]
+    MinioS3[("RustFS<br/>S3-compatible storage")]
     SidecarSvc["PDF Sidecar Service<br/>(PDF comparison)"]
   end
 
@@ -182,7 +182,7 @@ graph TB
 | **Frontend**                      | Vue 3 + Tailwind + TanStack Query | Dashboard for browsing & approving visual tests                                |
 | **Client SDK**                    | TypeScript (generated)            | Auto-generated OpenAPI client for CI pipeline uploads                          |
 | **Database**                      | PostgreSQL                        | Projects, visual tests, screenshots, comparisons, jobs                         |
-| **Storage**                       | MinIO (S3-compatible)             | Screenshot images, diff images                                                 |
+| **Storage**                       | RustFS (S3-compatible)            | Screenshot images, diff images                                                 |
 | **Comparison Engine<br/>(Image)** | Pixelmatch                        | Pixel-level image diffing (Node.js, in-worker)                                 |
 | **Comparison Engine<br/>(PDF)**   | pdfcompare (Java)                 | Page-by-page PDF diffing via pdf-sidecar (HTTP)                                |
 | **Queue**                         | PostgreSQL (polling)              | Async comparison jobs (single `ComparisonJob` table, `testKind` discriminator) |
@@ -205,7 +205,7 @@ sequenceDiagram
   participant Pipeline as UploadPipeline
   participant Policy as UploadDecisionPolicy
   participant Repo as Repositories
-  participant Storage as MinIO
+  participant Storage as RustFS
   participant Queue as Job Queue
   participant Worker as Worker (WorkerModule)
   participant Engine as Comparison Engine
@@ -246,14 +246,14 @@ sequenceDiagram
 
 ### Image Pipeline
 
-1. **Upload**: CI pipeline uploads screenshots via Client SDK → Backend stores in MinIO
+1. **Upload**: CI pipeline uploads screenshots via Client SDK → Backend stores in RustFS
 2. **Comparison**: Backend creates `ComparisonJob` in PostgreSQL → Worker polls → pixelmatch diff (in-process) → stores result
 3. **Approval**: Frontend fetches pending comparisons → User approves → Baseline promoted in transaction
 4. **Baseline**: Approved screenshots become new baseline — next upload compares against these
 
 ### PDF Pipeline
 
-1. **Upload**: CI pipeline uploads PDF documents → Backend stores in MinIO
+1. **Upload**: CI pipeline uploads PDF documents → Backend stores in RustFS
 2. **Comparison**: Backend creates `ComparisonJob` (with `testKind: 'pdf'`) in PostgreSQL → Worker polls → Worker calls pdf-sidecar (HTTP, Java process) → stores result
 3. **Approval**: Frontend (or API) fetches pending comparisons → User approves → Baseline promoted in transaction
 4. **Baseline**: Approved PDFs become new baseline — next upload compares against these
@@ -267,7 +267,7 @@ sequenceDiagram
 | **Auth**              | None (trusted CI + simple frontend) | OAuth2/OIDC, SSO, RBAC, audit logging       |
 | **Multi-tenancy**     | Single-org deployment               | Tenant isolation, schema-per-tenant         |
 | **Observability**     | Health checks + Prometheus metrics  | Distributed tracing, SLIs/SLOs, alerting    |
-| **Storage Delivery**  | Direct MinIO URLs                   | CDN + signed URLs + caching layer           |
+| **Storage Delivery**  | Direct RustFS URLs                | CDN + signed URLs + caching layer           |
 | **Database Topology** | Single PostgreSQL instance          | Read replicas, connection pooling, sharding |
 | **Service Mesh**      | None (direct Docker Compose)        | Istio/Linkerd for mTLS, traffic management  |
 
@@ -292,7 +292,7 @@ graph LR
     direction TB
     APP["App Container<br/>API + Worker<br/>Node.js / NestJS"]:::container
     PG[("PostgreSQL")]:::infra
-    MINIO["MinIO"]:::infra
+    MINIO["RustFS"]:::infra
     SIDECAR["PDF Sidecar"]:::container
   end
 
