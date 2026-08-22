@@ -79,7 +79,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup
 
-      - name: Start infra (postgres / minio)
+      - name: Start infra (postgres / rustfs)
         run: |
           docker compose -f docker-compose.infra.yml up -d
           docker compose -f docker-compose.infra.yml ps
@@ -113,8 +113,8 @@ jobs:
             sleep 1
           done
           if [ "$READY" -ne 1 ]; then
-            docker compose -f docker-compose.infra.yml logs minio
-            echo "❌ MinIO did not become ready in time"
+            docker compose -f docker-compose.infra.yml logs rustfs
+            echo "❌ RustFS did not become ready in time"
             exit 1
           fi
 

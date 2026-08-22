@@ -30,10 +30,10 @@ POSTGRES_USER=${POSTGRES_USER:-postgres}
 read -sp "Postgres Password (default: postgres): " POSTGRES_PASSWORD
 echo ""
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-read -sp "MinIO Access Key (default: minioadmin): " MINIO_ACCESS_KEY
+read -sp "RustFS Access Key (default: minioadmin): " MINIO_ACCESS_KEY
 echo ""
 MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
-read -sp "MinIO Secret Key (default: minioadmin): " MINIO_SECRET_KEY
+read -sp "RustFS Secret Key (default: minioadmin): " MINIO_SECRET_KEY
 echo ""
 MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
 

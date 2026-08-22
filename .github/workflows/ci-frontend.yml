@@ -133,8 +133,8 @@ jobs:
             sleep 1
           done
           if [ "$READY" -ne 1 ]; then
-            docker compose -f docker-compose.yml logs minio
-            echo "❌ MinIO did not become ready in time"
+            docker compose -f docker-compose.yml logs rustfs
+            echo "❌ RustFS did not become ready in time"
             exit 1
           fi
 

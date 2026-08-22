@@ -54,7 +54,7 @@ spec:
               cpu: 200m
               memory: 256Mi
 
-        minio:
+        rustfs:
           enabled: true
           storage: 2Gi
           resources:
