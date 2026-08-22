@@ -95,14 +95,14 @@ pnpm run dev:seed
 
 ### Ports
 
-| Service       | Local Dev                               | Docker                                  |
-| ------------- | --------------------------------------- | --------------------------------------- |
-| Frontend      | [localhost:5173](http://localhost:5173) | [localhost:80](http://localhost)        |
-| Backend       | [localhost:3000](http://localhost:3000) | [localhost:3000](http://localhost:3000) |
+| Service        | Local Dev                               | Docker                                  |
+| -------------- | --------------------------------------- | --------------------------------------- |
+| Frontend       | [localhost:5173](http://localhost:5173) | [localhost:80](http://localhost)        |
+| Backend        | [localhost:3000](http://localhost:3000) | [localhost:3000](http://localhost:3000) |
 | RustFS API     | [localhost:9000](http://localhost:9000) | [localhost:9000](http://localhost:9000) |
 | RustFS Console | [localhost:9001](http://localhost:9001) | [localhost:9001](http://localhost:9001) |
-| PDF sidecar   | [localhost:3001](http://localhost:3001) | [localhost:3001](http://localhost:3001) |
-| PostgreSQL    | localhost:5432                          | localhost:5432                          |
+| PDF sidecar    | [localhost:3001](http://localhost:3001) | [localhost:3001](http://localhost:3001) |
+| PostgreSQL     | localhost:5432                          | localhost:5432                          |
 
 ---
 

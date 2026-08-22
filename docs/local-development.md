@@ -79,7 +79,7 @@ same stack CI uses:
 
 # 2. Wait until the frontend answers
 curl -sf http://localhost:80 >/dev/null && echo ready
-#    docker compose ps should show: postgres, rustfs, pdf-sidecar,
+#    docker compose ps should show: postgres, minio (RustFS), pdf-sidecar,
 #    backend, worker, frontend (one-shot db-migrate/minio-init exit)
 
 # 3. Install the Playwright browser (first time only)

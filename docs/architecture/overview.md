@@ -267,7 +267,7 @@ sequenceDiagram
 | **Auth**              | None (trusted CI + simple frontend) | OAuth2/OIDC, SSO, RBAC, audit logging       |
 | **Multi-tenancy**     | Single-org deployment               | Tenant isolation, schema-per-tenant         |
 | **Observability**     | Health checks + Prometheus metrics  | Distributed tracing, SLIs/SLOs, alerting    |
-| **Storage Delivery**  | Direct RustFS URLs                | CDN + signed URLs + caching layer           |
+| **Storage Delivery**  | Direct RustFS URLs                  | CDN + signed URLs + caching layer           |
 | **Database Topology** | Single PostgreSQL instance          | Read replicas, connection pooling, sharding |
 | **Service Mesh**      | None (direct Docker Compose)        | Istio/Linkerd for mTLS, traffic management  |
 
