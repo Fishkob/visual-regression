@@ -52,9 +52,9 @@ cmd_infra() {
         sleep 2
     done
     
-    log "Waiting for minio..."
+    log "Waiting for RustFS..."
     for i in {1..30}; do
-        curl -sf http://localhost:9000/minio/health/live >/dev/null 2>&1 && break
+        curl -sf http://localhost:9000/health >/dev/null 2>&1 && break
         sleep 2
     done
 
@@ -67,8 +67,8 @@ cmd_infra() {
     success "Infrastructure ready!"
     echo ""
     echo "  PostgreSQL: localhost:5432"
-    echo "  MinIO:      http://localhost:9000"
-    echo "  MinIO UI:   http://localhost:9001"
+    echo "  RustFS:     http://localhost:9000"
+    echo "  RustFS UI:  http://localhost:9001"
     echo "  PDF sidecar: http://localhost:3001"
 }
 
@@ -83,9 +83,9 @@ cmd_docker() {
         sleep 2
     done
     
-    log "Waiting for minio..."
+    log "Waiting for RustFS..."
     for i in {1..30}; do
-        curl -sf http://localhost:9000/minio/health/live >/dev/null 2>&1 && break
+        curl -sf http://localhost:9000/health >/dev/null 2>&1 && break
         sleep 2
     done
     
