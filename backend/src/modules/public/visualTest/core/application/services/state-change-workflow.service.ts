@@ -8,6 +8,7 @@ import { METRICS } from '@common/domain/metrics-catalog';
 import {
   retry,
   exponentialBackoffMs,
+  delay,
   isSerializationError,
 } from '@common/infrastructure/retry-policy';
 import {
@@ -170,51 +171,35 @@ export class StateChangeWorkflow {
   private async deleteStaleFiles(stale: string[]): Promise<void> {
     if (stale.length === 0) return;
     // Transient storage failures are retried with backoff so a stale diff
-    // artifact isn't leaked on a single hiccup. The retry/backoff shape is the
-    // shared retry() policy — the per-URL failure model of deleteAll is adapted
-    // into a throw that carries which URLs failed, so each attempt retries only
-    // the URLs that failed the previous one. A persistent failure is logged —
-    // it never propagates, so onSuccess still runs.
+    // artifact isn't leaked on a single hiccup. Each attempt retries only the
+    // URLs that failed the previous one (a thrown deleteAll fails everything).
+    // A persistent failure is logged — it never propagates, so onSuccess still
+    // runs.
     let pending = stale;
-    try {
-      await retry(
-        async () => {
-          const outcome = await this.storage.deleteAll(pending);
-          if (outcome.failed.length === 0) return;
-          pending = outcome.failed.map((f) => f.url);
-          throw new StaleFileDeletionFailure(outcome.failed);
-        },
-        {
-          maxAttempts: STALE_FILE_DELETE_MAX_ATTEMPTS,
-          backoffMs: (attempt) => exponentialBackoffMs(attempt - 1, 100),
-          isRetryable: () => true,
-          onRetry: (err, attempt) => {
-            const failed =
-              err instanceof StaleFileDeletionFailure ? err.failed : [];
-            this.logger.warn('Stale file deletion failed; retrying', {
-              attempt,
-              failed: failed.length,
-            });
-          },
-        },
-      );
-    } catch (err) {
-      const failed =
-        err instanceof StaleFileDeletionFailure
-          ? err.failed
-          : pending.map((url) => ({ url, error: String(err) }));
-      this.logger.error(
-        `Failed to delete ${failed.length} stale file(s) after commit: ${failed.map((f) => f.url).join(', ')}`,
-      );
+    for (
+      let attempt = 1;
+      attempt <= STALE_FILE_DELETE_MAX_ATTEMPTS;
+      attempt++
+    ) {
+      let failed: { url: string; error: string }[];
+      try {
+        failed = (await this.storage.deleteAll(pending)).failed;
+      } catch (err) {
+        failed = pending.map((url) => ({ url, error: String(err) }));
+      }
+      if (failed.length === 0) return;
+      pending = failed.map((f) => f.url);
+      if (attempt < STALE_FILE_DELETE_MAX_ATTEMPTS) {
+        this.logger.warn('Stale file deletion failed; retrying', {
+          attempt,
+          failed: pending.length,
+        });
+        await delay(exponentialBackoffMs(attempt - 1, 100));
+      }
     }
-  }
-}
-
-// deleteAll reports per-URL failures instead of throwing, so the shared retry()
-// policy needs a throw that carries which URLs failed on the previous attempt.
-class StaleFileDeletionFailure extends Error {
-  constructor(readonly failed: { url: string; error: string }[]) {
-    super(`stale file deletion failed for ${failed.length} URL(s)`);
+    this.logger.error(
+      `Failed to delete ${pending.length} stale file(s) after commit: ${pending.join(', ')}`,
+    );
   }
 }
 

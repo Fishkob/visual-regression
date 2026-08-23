@@ -15,12 +15,15 @@ import {
   IStorageProvider,
 } from '@common/domain/storage-provider.interface';
 import { assertNever } from '@common/utils/assert-never';
-import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import {
   type BaselineCreatedUploadDecision,
   type ComparisonQueuedUploadDecision,
   type UploadDecision,
 } from '@public/visualTest/core/domain/policies/upload-decision-policy';
+import {
+  UploadParams,
+  toVariant,
+} from '@public/visualTest/intake/application/upload-params';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { JOB_PRODUCER, IJobProducer } from '@common/domain/job-queue.interface';
 import {
@@ -40,15 +43,6 @@ import {
   PDF_PAGE_COUNTER,
   IPdfPageCounter,
 } from '@common/domain/pdf-sidecar.interface';
-
-export interface UploadParams {
-  projectName: string;
-  testName: string;
-  viewport: string;
-  browser: string;
-  environment: string;
-  file: Express.Multer.File;
-}
 
 interface UploadKindConfig {
   trackerSpanName: string;
@@ -176,7 +170,7 @@ export class UploadIntake {
     testId: string,
     params: UploadParams,
   ): Promise<Extract<PersistedChange, { kind: 'change' }>> {
-    const variant = this.toVariant(params);
+    const variant = toVariant(params);
     // One recipe owns the identical retirement: supersede the pending change
     // (cancel queued jobs) and reclaim the CURRENT candidate row, so a
     // PROCESSING diff job's only supersede-detector (the CURRENT row's hash)
@@ -287,7 +281,7 @@ export class UploadIntake {
       testId: decision.testId,
       contentHash: decision.contentHash,
       contentUrl: fileUrl,
-      variant: this.toVariant(params),
+      variant: toVariant(params),
       pageCount,
     });
   }
@@ -301,7 +295,7 @@ export class UploadIntake {
   ): Promise<string[]> {
     const staleUrls = await this.retirement.supersedeForVariant(
       decision.testId,
-      this.toVariant(params),
+      toVariant(params),
     );
     const prepared = await this.prepareComparison(
       kind,
@@ -314,16 +308,6 @@ export class UploadIntake {
     return [...staleUrls, ...prepared.staleUrls];
   }
 
-  // A new upload supersedes the pending change for this variant: its
-  // comparison + candidate are retired and any queued diff jobs cancelled.
-  private toVariant(params: UploadParams): Variant {
-    return Variant.fromStrings(
-      params.viewport,
-      params.browser,
-      params.environment,
-    );
-  }
-
   private async createCandidate(
     decision: ComparisonQueuedUploadDecision,
     params: UploadParams,
@@ -334,7 +318,7 @@ export class UploadIntake {
       testId: decision.testId,
       contentHash: decision.contentHash,
       contentUrl: fileUrl,
-      variant: this.toVariant(params),
+      variant: toVariant(params),
       pageCount,
     });
   }
@@ -347,7 +331,7 @@ export class UploadIntake {
     pageCount?: number,
   ): Promise<PreparedComparison> {
     const { testId, contentHash, baseline } = decision;
-    const variant = this.toVariant(params);
+    const variant = toVariant(params);
     const candidate = await this.createCandidate(
       decision,
       params,

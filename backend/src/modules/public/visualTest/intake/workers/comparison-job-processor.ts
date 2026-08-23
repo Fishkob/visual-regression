@@ -83,7 +83,7 @@ export class ComparisonJobProcessor {
       // a newer upload, or baseline replaced by an approval) is retired without
       // paying for the candidate download, the baseline download, the
       // comparison, or the diff artifact upload.
-      await this.assertJobStillCurrent(data);
+      await this.loadCurrentCandidateOrFail(data);
 
       const candidateBuffer = await this.getCandidateOrHandleMissing(data);
       if (candidateBuffer === null) return;
@@ -140,7 +140,7 @@ export class ComparisonJobProcessor {
       return await this.storage.get(data.baseline.url);
     } catch (err) {
       if (err instanceof DomainError && err.code === 'NOT_FOUND') {
-        await this.assertJobStillCurrent(data);
+        await this.loadCurrentCandidateOrFail(data);
       }
       throw err;
     }
@@ -162,7 +162,11 @@ export class ComparisonJobProcessor {
     });
   }
 
-  private async currentIfStillCurrent(
+  // The candidate-hash half of the supersession rule: the job is moot if the
+  // CURRENT candidate row no longer holds the payload's hash (a newer upload
+  // re-used the row in place). Returns the row so the diff paths can persist
+  // against it; throws SupersededDiffError when moot.
+  private async loadCurrentCandidateByHash(
     data: JobData,
   ): Promise<{ id: string; imageHash: string }> {
     const current = await this.screenshots.findCurrentByVariant(
@@ -198,24 +202,20 @@ export class ComparisonJobProcessor {
     }
   }
 
-  // Cheap pre-compare gate for the worker: a job that is already moot (a newer
-  // upload replaced the candidate, or an approval replaced the baseline) is
-  // retired before the expensive comparison + diff upload run. The in-transaction
-  // checks inside handleUnchanged/handleDiff stay as the race-closer for a job
-  // that becomes moot mid-compare.
-  private async assertJobStillCurrent(data: JobData): Promise<void> {
-    await this.currentIfJobStillCurrent(data);
-  }
-
-  // The supersession gate, single-sourced for all three call sites: asserts the
+  // The supersession rule, single-sourced for every call site: asserts the
   // candidate row still holds the payload's hash AND the baseline row/id/url
   // still match the payload, and returns the current candidate row for the
   // sites that persist against it. A job that fails either check is moot — the
   // processor retires its candidate instead of committing a stale comparison.
-  private async currentIfJobStillCurrent(
+  // This is also the cheap pre-compare gate for the worker: a job that is
+  // already moot is retired before the expensive comparison + diff upload run
+  // (the gate discards the returned row). The in-transaction calls inside
+  // handleUnchanged/handleDiff stay as the race-closer for a job that becomes
+  // moot mid-compare.
+  private async loadCurrentCandidateOrFail(
     data: JobData,
   ): Promise<{ id: string; imageHash: string }> {
-    const current = await this.currentIfStillCurrent(data);
+    const current = await this.loadCurrentCandidateByHash(data);
     await this.assertBaselineStillCurrent(data);
     return current;
   }
@@ -233,7 +233,7 @@ export class ComparisonJobProcessor {
           diffMetric: 0,
         },
       ],
-      resolveCandidate: async () => this.currentIfJobStillCurrent(data),
+      resolveCandidate: async () => this.loadCurrentCandidateOrFail(data),
     });
   }
 
@@ -254,7 +254,7 @@ export class ComparisonJobProcessor {
           this.diffMimeType(data),
         ),
       change: async (diffUrl) => {
-        const current = await this.currentIfJobStillCurrent(data);
+        const current = await this.loadCurrentCandidateOrFail(data);
         const persisted = await this.persistDiff(
           data,
           result,

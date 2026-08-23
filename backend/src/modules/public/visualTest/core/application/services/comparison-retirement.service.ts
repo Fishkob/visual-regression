@@ -32,10 +32,6 @@ export class ComparisonRetirementService {
     private readonly txCtx: TransactionContext,
   ) {}
 
-  private assertInTransaction(): void {
-    this.txCtx.assertInTransaction();
-  }
-
   // Upload path: a new upload supersedes the pending change for the variant.
   // Retires every pending comparison (nothing to keep) and cancels queued diff
   // jobs eagerly — the new job is enqueued after this call, so it is safe.
@@ -44,25 +40,40 @@ export class ComparisonRetirementService {
     testId: string,
     variant: Variant,
   ): Promise<string[]> {
-    this.assertInTransaction();
-    return this.retireVariant(testId, variant, { cancelJobs: true });
+    this.txCtx.assertInTransaction();
+    const retired = await this.comparisons.retirePendingForVariant(
+      testId,
+      variant,
+    );
+    await this.jobQueue.cancelPendingForVariant(testId, variant.toRecord());
+    return this.collectReclaimable(retired.staleDiffUrls, retired.candidateIds);
   }
 
-  // One recipe for the identical upload's retirement: supersede the variant's
-  // pending comparisons (cancel queued jobs) AND reclaim the CURRENT candidate
-  // row. Both effects are one logical operation — an identical upload makes
-  // the variant's change moot — expressed through the single option matrix
-  // instead of a bolted-on second retirement hop.
+  // Identical upload: supersede the variant's pending comparisons (cancel
+  // queued jobs) AND reclaim the CURRENT candidate row — both effects are one
+  // logical operation, because an identical upload makes the variant's change
+  // moot. Deleting the CURRENT row makes a PROCESSING diff job's
+  // supersede-detector fail, so it retires its moot candidate instead of
+  // committing a stale comparison.
   // Transaction-riding: call inside a StateChangeWorkflow change.
   async supersedeIdenticalForVariant(
     testId: string,
     variant: Variant,
   ): Promise<string[]> {
-    this.assertInTransaction();
-    return this.retireVariant(testId, variant, {
-      cancelJobs: true,
-      reclaimCurrentCandidate: true,
-    });
+    this.txCtx.assertInTransaction();
+    const retired = await this.comparisons.retirePendingForVariant(
+      testId,
+      variant,
+    );
+    await this.jobQueue.cancelPendingForVariant(testId, variant.toRecord());
+    const current = await this.screenshots.findCurrentByVariant(
+      testId,
+      variant,
+    );
+    const candidateIds = current
+      ? [...retired.candidateIds, current.id]
+      : retired.candidateIds;
+    return this.collectReclaimable(retired.staleDiffUrls, candidateIds);
   }
 
   // Approval path: retire sibling pending comparisons, delete the approved
@@ -77,11 +88,16 @@ export class ComparisonRetirementService {
     variant: Variant,
     candidateId: string,
   ): Promise<string[]> {
-    this.assertInTransaction();
-    return this.retireVariant(testId, variant, {
-      cancelJobs: true,
-      reclaimCandidateIds: [candidateId],
-    });
+    this.txCtx.assertInTransaction();
+    const retired = await this.comparisons.retirePendingForVariant(
+      testId,
+      variant,
+    );
+    await this.jobQueue.cancelPendingForVariant(testId, variant.toRecord());
+    return this.collectReclaimable(retired.staleDiffUrls, [
+      ...retired.candidateIds,
+      candidateId,
+    ]);
   }
 
   // Worker path: persist a fresh pending comparison and retire its siblings
@@ -94,13 +110,21 @@ export class ComparisonRetirementService {
       variant: Variant;
     },
   ): Promise<{ id: string; staleUrls: string[] }> {
-    this.assertInTransaction();
+    this.txCtx.assertInTransaction();
     const { variant, ...createParams } = params;
     const { id } = await this.comparisons.createPending(createParams);
-    const staleUrls = await this.retireVariant(params.testId, variant, {
-      keepComparisonId: id,
-    });
-    return { id, staleUrls };
+    const retired = await this.comparisons.retirePendingForVariant(
+      params.testId,
+      variant,
+      id,
+    );
+    return {
+      id,
+      staleUrls: await this.collectReclaimable(
+        retired.staleDiffUrls,
+        retired.candidateIds,
+      ),
+    };
   }
 
   // Variant-teardown path: delete the comparisons referencing these screenshot
@@ -114,15 +138,17 @@ export class ComparisonRetirementService {
     testId: string,
     screenshotIds: string[],
   ): Promise<{ staleUrls: string[]; candidateIds: string[] }> {
-    this.assertInTransaction();
+    this.txCtx.assertInTransaction();
     const deleted = await this.comparisons.deleteComparisonsForScreenshots(
       testId,
       screenshotIds,
     );
     await this.jobQueue.cancelPendingByCandidateIds(screenshotIds);
-    const candidateUrls = await this.reclaimCandidates(deleted.candidateIds);
     return {
-      staleUrls: [...candidateUrls, ...deleted.staleDiffUrls],
+      staleUrls: await this.collectReclaimable(
+        deleted.staleDiffUrls,
+        deleted.candidateIds,
+      ),
       candidateIds: deleted.candidateIds,
     };
   }
@@ -137,11 +163,10 @@ export class ComparisonRetirementService {
     testId: string,
     ids: string[],
   ): Promise<string[]> {
-    this.assertInTransaction();
+    this.txCtx.assertInTransaction();
     const deleted = await this.comparisons.deletePendingByIds(testId, ids);
     await this.jobQueue.cancelPendingByCandidateIds(deleted.candidateIds);
-    const candidateUrls = await this.reclaimCandidates(deleted.candidateIds);
-    return [...candidateUrls, ...deleted.staleDiffUrls];
+    return this.collectReclaimable(deleted.staleDiffUrls, deleted.candidateIds);
   }
 
   // Candidate rows are reclaimed through the single guarded owner so a row a
@@ -151,48 +176,14 @@ export class ComparisonRetirementService {
     return this.screenshots.deleteCandidatesAndCollectUrls(candidateIds);
   }
 
-  // One parameterized retirement flow behind the variant-scoped recipes: retires
-  // the pending comparisons, optionally cancels their queued jobs and reclaims
-  // the candidate rows (the retired comparisons' candidates, any explicitly
-  // named, and — for the identical path — the CURRENT candidate row, whose
-  // deletion makes a PROCESSING diff job's supersede-detector fail so it retires
-  // its moot candidate instead of committing a stale comparison). Keeping the
-  // option matrix here means a change to how jobs are cancelled or candidates
-  // are reclaimed has one home, not three.
-  private async retireVariant(
-    testId: string,
-    variant: Variant,
-    options: {
-      keepComparisonId?: string;
-      cancelJobs?: boolean;
-      reclaimCandidateIds?: string[];
-      reclaimCurrentCandidate?: boolean;
-    },
+  // Merges the retired diff artifacts with the URLs of the reclaimed candidate
+  // rows (candidate URLs first, matching the retirement order).
+  private async collectReclaimable(
+    staleDiffUrls: string[],
+    candidateIds: string[],
   ): Promise<string[]> {
-    const retired = await this.comparisons.retirePendingForVariant(
-      testId,
-      variant,
-      ...(options.keepComparisonId ? [options.keepComparisonId] : []),
-    );
-    const staleUrls = [...retired.staleDiffUrls];
-    if (options.cancelJobs) {
-      await this.jobQueue.cancelPendingForVariant(testId, variant.toRecord());
-    }
-    const candidateIds = [
-      ...retired.candidateIds,
-      ...(options.reclaimCandidateIds ?? []),
-    ];
-    if (options.reclaimCurrentCandidate) {
-      const current = await this.screenshots.findCurrentByVariant(
-        testId,
-        variant,
-      );
-      if (current) candidateIds.push(current.id);
-    }
-    if (candidateIds.length > 0) {
-      const candidateUrls = await this.reclaimCandidates(candidateIds);
-      return [...candidateUrls, ...staleUrls];
-    }
-    return staleUrls;
+    if (candidateIds.length === 0) return staleDiffUrls;
+    const candidateUrls = await this.reclaimCandidates(candidateIds);
+    return [...candidateUrls, ...staleDiffUrls];
   }
 }

@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
-import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 import {
   decideOutcome,
@@ -10,7 +9,10 @@ import {
 } from '@public/visualTest/core/domain/policies/upload-decision-policy';
 import { ComparisonOutcome } from '@common/domain/upload-outcome';
 import type { TestKind } from '@common/domain/test-kind';
-import type { UploadParams } from '@public/visualTest/intake/application/upload-intake.service';
+import {
+  UploadParams,
+  toVariant,
+} from '@public/visualTest/intake/application/upload-params';
 
 // Single owner of "what is this upload's decision": the read-only gate
 // resolution (identical fast path) and the stored-path resolution (after the
@@ -69,20 +71,12 @@ export class UploadDecisionResolver {
   ): Promise<UploadDecision> {
     const screenshotEntity = await this.screenshots.findBaselineByVariant(
       testId,
-      this.toVariant(params),
+      toVariant(params),
     );
     return decideOutcome(
       testId,
       fileHash,
       screenshotEntity ? this.toBaseline(screenshotEntity) : null,
-    );
-  }
-
-  private toVariant(params: UploadParams): Variant {
-    return Variant.fromStrings(
-      params.viewport,
-      params.browser,
-      params.environment,
     );
   }
 
