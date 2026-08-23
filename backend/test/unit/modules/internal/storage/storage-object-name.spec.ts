@@ -11,6 +11,10 @@ describe('StorageObjectName', () => {
     return new StorageObjectName(appConfig as never);
   }
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('builds a public URL from an object name', () => {
     expect(createObjectNames().toPublicUrl('pdfs/page.png')).toBe(
       'http://localhost:9000/screenshots/pdfs/page.png',

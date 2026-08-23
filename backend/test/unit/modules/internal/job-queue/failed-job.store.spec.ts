@@ -43,6 +43,7 @@ describe('FailedJobStore', () => {
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     vi.useRealTimers();
   });
 

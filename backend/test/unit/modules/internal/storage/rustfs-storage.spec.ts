@@ -69,8 +69,12 @@ describe('RustFsStorageService', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('putObject', () => {
-    it('should upload image successfully', async () => {
+    it('uploads image successfully', async () => {
       mockClient.bucketExists.mockResolvedValue(true);
       mockClient.putObject.mockResolvedValue(undefined);
 
@@ -85,7 +89,7 @@ describe('RustFsStorageService', () => {
       expect(result).toBe('http://localhost:9000/screenshots/test.png');
     });
 
-    it('should create bucket if it does not exist', async () => {
+    it('creates bucket if it does not exist', async () => {
       mockClient.bucketExists.mockResolvedValue(false);
       mockClient.makeBucket.mockResolvedValue(undefined);
       mockClient.putObject.mockResolvedValue(undefined);
@@ -100,7 +104,7 @@ describe('RustFsStorageService', () => {
       expect(result).toBe('http://localhost:9000/screenshots/new.png');
     });
 
-    it('should throw DomainError on upload failure', async () => {
+    it('throws DomainError on upload failure', async () => {
       mockClient.bucketExists.mockResolvedValue(true);
       mockClient.putObject.mockRejectedValue(new Error('upload failed'));
 
@@ -109,7 +113,7 @@ describe('RustFsStorageService', () => {
       ).rejects.toThrow(DomainError);
     });
 
-    it('should fallback to octet-stream when mime lookup returns null', async () => {
+    it('falls back to octet-stream when mime lookup returns null', async () => {
       mockClient.bucketExists.mockResolvedValue(true);
       mockClient.putObject.mockResolvedValue(undefined);
 
@@ -124,7 +128,7 @@ describe('RustFsStorageService', () => {
       );
     });
 
-    it('should use the caller-provided mime type verbatim instead of re-deriving it from the filename', async () => {
+    it('uses the caller-provided mime type verbatim instead of re-deriving it from the filename', async () => {
       mockClient.bucketExists.mockResolvedValue(true);
       mockClient.putObject.mockResolvedValue(undefined);
 
@@ -145,7 +149,7 @@ describe('RustFsStorageService', () => {
   });
 
   describe('get', () => {
-    it('should extract object name and return the image buffer', async () => {
+    it('extracts object name and returns the image buffer', async () => {
       const url = 'http://localhost:9000/screenshots/file.png';
       mockClient.getObject.mockResolvedValue(
         (async function* () {
@@ -162,14 +166,14 @@ describe('RustFsStorageService', () => {
       expect(result).toEqual(Buffer.from('image-data'));
     });
 
-    it('should throw error if URL is invalid', async () => {
+    it('throws error if URL is invalid', async () => {
       const url = 'http://otherhost/not-valid.png';
       await expect(service.get(url)).rejects.toThrow(DomainError);
     });
   });
 
   describe('delete', () => {
-    it('should extract object name and delete image', async () => {
+    it('extracts object name and deletes image', async () => {
       const url = 'http://localhost:9000/screenshots/delete-me.png';
       mockClient.removeObject.mockResolvedValue(undefined);
 
@@ -181,19 +185,19 @@ describe('RustFsStorageService', () => {
       );
     });
 
-    it('should throw error if URL is invalid', async () => {
+    it('throws error if URL is invalid', async () => {
       const url = 'http://otherhost/not-valid.png';
       await expect(service.delete(url)).rejects.toThrow(DomainError);
     });
 
-    it('should throw error if deletion fails', async () => {
+    it('throws error if deletion fails', async () => {
       const url = 'http://localhost:9000/screenshots/fail.png';
       mockClient.removeObject.mockRejectedValue(new Error('oops'));
 
       await expect(service.delete(url)).rejects.toThrow(DomainError);
     });
 
-    it('should handle non-Error throws from delete', async () => {
+    it('handles non-Error throws from delete', async () => {
       const url = 'http://localhost:9000/screenshots/fail.png';
       mockClient.removeObject.mockRejectedValue('string error');
 
@@ -202,14 +206,14 @@ describe('RustFsStorageService', () => {
   });
 
   describe('onModuleDestroy', () => {
-    it('should call client.close when available', async () => {
+    it('calls client.close when available', async () => {
       (mockClient as any).close = vi.fn().mockResolvedValue(undefined);
       await service.onModuleDestroy();
       expect((mockClient as any).close).toHaveBeenCalled();
       delete (mockClient as any).close;
     });
 
-    it('should handle close failure gracefully', async () => {
+    it('handles close failure gracefully', async () => {
       (mockClient as any).close = vi
         .fn()
         .mockRejectedValue(new Error('close failed'));
@@ -221,7 +225,7 @@ describe('RustFsStorageService', () => {
       delete (mockClient as Record<string, unknown>).close;
     });
 
-    it('should skip close when not available on client', async () => {
+    it('skips close when not available on client', async () => {
       if (typeof (mockClient as any).close === 'function') {
         delete (mockClient as any).close;
       }
@@ -231,7 +235,7 @@ describe('RustFsStorageService', () => {
       );
     });
 
-    it('should handle close returning non-Promise value', async () => {
+    it('handles close returning non-Promise value', async () => {
       (mockClient as any).close = vi.fn().mockReturnValue(undefined);
       await service.onModuleDestroy();
       expect(mockLogger.log).toHaveBeenCalledWith(
@@ -240,7 +244,7 @@ describe('RustFsStorageService', () => {
       delete (mockClient as any).close;
     });
 
-    it('should handle non-Error throws from close', async () => {
+    it('handles non-Error throws from close', async () => {
       (mockClient as any).close = vi.fn().mockRejectedValue('string error');
       await service.onModuleDestroy();
       expect(mockLogger.warn).toHaveBeenCalledWith(
@@ -252,7 +256,7 @@ describe('RustFsStorageService', () => {
   });
 
   describe('ensureBucket error path', () => {
-    it('should throw DomainError when bucketExists fails', async () => {
+    it('throws DomainError when bucketExists fails', async () => {
       mockClient.bucketExists.mockRejectedValue(
         new Error('connection refused'),
       );
@@ -262,7 +266,7 @@ describe('RustFsStorageService', () => {
       ).rejects.toThrow(DomainError);
     });
 
-    it('should handle non-Error throws from bucketExists', async () => {
+    it('handles non-Error throws from bucketExists', async () => {
       mockClient.bucketExists.mockRejectedValue('string error');
 
       await expect(
@@ -272,14 +276,14 @@ describe('RustFsStorageService', () => {
   });
 
   describe('get error path', () => {
-    it('should throw DomainError when getObject fails', async () => {
+    it('throws DomainError when getObject fails', async () => {
       const url = 'http://localhost:9000/screenshots/file.png';
       mockClient.getObject.mockRejectedValue(new Error('object not found'));
 
       await expect(service.get(url)).rejects.toThrow(DomainError);
     });
 
-    it('should handle non-Error throws from getObject', async () => {
+    it('handles non-Error throws from getObject', async () => {
       const url = 'http://localhost:9000/screenshots/file.png';
       mockClient.getObject.mockRejectedValue('string error');
 
@@ -654,7 +658,7 @@ describe('RustFsStorageService', () => {
   });
 
   describe('healthCheck', () => {
-    it('should verify bucket exists without mutating', async () => {
+    it('verifies bucket exists without mutating', async () => {
       mockClient.bucketExists.mockResolvedValue(true);
 
       await service.healthCheck();
@@ -663,7 +667,7 @@ describe('RustFsStorageService', () => {
       expect(mockClient.makeBucket).not.toHaveBeenCalled();
     });
 
-    it('should report an error when the bucket is missing', async () => {
+    it('reports an error when the bucket is missing', async () => {
       mockClient.bucketExists.mockResolvedValue(false);
 
       await expect(service.healthCheck()).rejects.toThrow(DomainError);
@@ -672,7 +676,7 @@ describe('RustFsStorageService', () => {
   });
 
   describe('ensureBucket early-return', () => {
-    it('should reuse already checked bucket on second upload', async () => {
+    it('reuses already checked bucket on second upload', async () => {
       mockClient.bucketExists.mockResolvedValue(true);
       mockClient.putObject.mockResolvedValue(undefined);
 
@@ -683,7 +687,7 @@ describe('RustFsStorageService', () => {
       expect(mockClient.putObject).toHaveBeenCalledTimes(2);
     });
 
-    it('should verify the bucket only once under concurrent first uploads', async () => {
+    it('verifies the bucket only once under concurrent first uploads', async () => {
       mockClient.bucketExists.mockResolvedValue(true);
       mockClient.putObject.mockResolvedValue(undefined);
 
@@ -698,7 +702,7 @@ describe('RustFsStorageService', () => {
   });
 
   describe('putObject with retry', () => {
-    it('should retry on transient upload failure', async () => {
+    it('retries on transient upload failure', async () => {
       mockClient.bucketExists.mockResolvedValue(true);
       mockClient.putObject
         .mockRejectedValueOnce(new Error('transient error'))
@@ -714,7 +718,7 @@ describe('RustFsStorageService', () => {
       expect(result).toBe('http://localhost:9000/screenshots/retry.png');
     });
 
-    it('should throw after max retries', async () => {
+    it('throws after max retries', async () => {
       mockClient.bucketExists.mockResolvedValue(true);
       mockClient.putObject.mockRejectedValue(new Error('persistent error'));
 
@@ -725,7 +729,7 @@ describe('RustFsStorageService', () => {
       expect(mockClient.putObject).toHaveBeenCalledTimes(3);
     });
 
-    it('should use exponential backoff between retries', async () => {
+    it('uses exponential backoff between retries', async () => {
       vi.useFakeTimers();
       mockClient.bucketExists.mockResolvedValue(true);
       mockClient.putObject
@@ -753,7 +757,7 @@ describe('RustFsStorageService', () => {
       vi.useRealTimers();
     });
 
-    it('should handle non-Error throws from upload', async () => {
+    it('handles non-Error throws from upload', async () => {
       mockClient.bucketExists.mockResolvedValue(true);
       mockClient.putObject.mockRejectedValue('string upload error');
 
@@ -764,7 +768,7 @@ describe('RustFsStorageService', () => {
   });
 
   describe('deleteAll non-Error handling', () => {
-    it('should handle non-Error throws in deleteAll', async () => {
+    it('handles non-Error throws in deleteAll', async () => {
       mockClient.removeObject.mockRejectedValue('string error');
 
       const result = await service.deleteAll([

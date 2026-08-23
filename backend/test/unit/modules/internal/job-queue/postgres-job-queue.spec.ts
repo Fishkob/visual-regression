@@ -100,6 +100,7 @@ describe('PostgresJobQueue', () => {
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     vi.useRealTimers();
   });
 
