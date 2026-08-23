@@ -126,7 +126,7 @@ export class PrismaConnection implements OnModuleInit, OnModuleDestroy {
 }
 ```
 
-Consumers: `HealthChecker`, `PrismaUnitOfWork`. (`PostgresAdvisoryLock` is listed in `PrismaModule` but does not inject `PrismaConnection` — it builds its own single-connection `pg.Pool` because advisory locks are session-scoped.)
+Consumers: `HealthChecker`, `PrismaUnitOfWork`, and the read-only repositories `TestReadRepository` and `ProjectReadRepository`. (`PostgresAdvisoryLock` is listed in `PrismaModule` but does not inject `PrismaConnection` — it builds its own single-connection `pg.Pool` because advisory locks are session-scoped.)
 
 #### `TransactionContext`
 
@@ -140,7 +140,7 @@ export class TransactionContext {
 }
 ```
 
-Consumers: the transaction-aware repositories (`UnifiedScreenshotRepository`, `UnifiedComparisonsRepository`, `UnifiedTestRepository`, `ProjectRepository`, `VariantStore`, `TestReadRepository`, `ProjectReadRepository`, `OrphanedScreenshotRepository`). Read-only consumers inject `PrismaConnection` directly.
+Consumers: the transaction-aware repositories (`UnifiedScreenshotRepository`, `UnifiedComparisonsRepository`, `UnifiedTestRepository`, `ProjectRepository`, `VariantStore`, `OrphanedScreenshotRepository`), plus `PostgresJobQueue` and `ComparisonRetirementService` — both inject `TransactionContext` to enforce the ambient-transaction contract via `assertInTransaction()` and to route the transaction client. Read-only consumers inject `PrismaConnection` directly.
 
 #### `PrismaUnitOfWork`
 

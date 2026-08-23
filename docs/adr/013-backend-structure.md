@@ -32,11 +32,11 @@ Modules live in `modules/` under two top-level directories:
 
 - **`modules/internal/*`** — Infrastructure modules that provide capabilities consumed by public modules (e.g., `storage`, `comparison-engine`, `metrics`, `health`, `data-deletion`). These are thin — typically a single service behind a port from `common/domain/`. They do not own domain concepts, do not expose domain entities, and do not have their own domain layer. Internal modules can be swapped out without affecting the domain model.
 
-- **`common/`** — Shared cross-cutting concerns that both public and internal modules depend on: domain interfaces (`IStorageProvider`, `IComparisonEngine`; `IEventBus` was removed on 2026-08-05 — see [ADR-004](./004-infrastructure-patterns.md)), base types (`ValueObject`, `DomainEvent`), event name constants and payload types, infrastructure (`tracker`, `logging`, `http`).
+- **`common/`** — Shared cross-cutting concerns that both public and internal modules depend on: domain interfaces (`IStorageProvider`, `IComparisonEngine`; `IEventBus` was removed on 2026-08-05 — see [ADR-004](./004-infrastructure-patterns.md)), base types (`DomainError`, `VariantRecord`, `UploadOutcome`), the observability-event type, infrastructure (`tracker`, `logging`, `http`).
 
 Internal modules must not import from public modules — the dependency arrow always points internal → public.
 
-**Exception:** Internal modules may import shared repository classes from `core/infrastructure/repositories/` and the modules that provide them (`VisualTestInfraModule`). Internal modules must not import domain entities, application services, or other public module types — only the repository classes and their provider tokens.
+**Exception:** Internal modules may import `VisualTestInfraModule` to consume the seam tokens it provides (e.g. `STORAGE_OBJECT_REFERENCEDNESS`, `ORPHAN_SWEEP`, or shared repository classes). Internal modules must not import domain entities, application services, or other public module types — only the seam/repository classes and their provider tokens.
 
 ---
 
@@ -126,10 +126,10 @@ AppModule (API mode — main.ts)
             HealthModule, LogIngestionModule, DlqModule, DataDeletionModule]
 
 WorkerModule (worker mode — worker.module.ts)
-  imports: [CoreInfrastructureModule, IntakeWorkerModule, ScheduleModule.forRoot()]
+  imports: [CoreInfrastructureModule, IntakeWorkerModule]
 
 CoreInfrastructureModule
-  imports: [EventBusModule, AppLoggerModule, LoggerConfigModule, TrackerModule,
+  imports: [AppLoggerModule, LoggerConfigModule, TrackerModule,
             MetricsBaseModule, ConfigModule, AppConfigModule, StorageModule, PrismaModule]
 
 VisualTestInfraModule
@@ -138,7 +138,8 @@ VisualTestInfraModule
 VisualTestApplicationModule
   imports: [VisualTestInfraModule, PrismaModule, StorageModule, JobQueueModule]
   providers: [TestResolver, TestStatusService, TestDeletionService,
-              ComparisonRetirementService, StateChangeWorkflow]
+              ComparisonRetirementService, CandidateReclamationService,
+              StateChangeWorkflow, ThresholdUpdateService]
 
 IntakeApplicationModule
   imports: [AppConfigModule, MulterModule, PrismaModule, StorageModule,
@@ -179,7 +180,7 @@ The API and worker run as separate processes sharing the same codebase, database
 - **`AppModule`** (`main.ts`) — HTTP API server. Imports `CoreInfrastructureModule`, `VisualTestApplicationModule`, `IntakeApplicationModule`, `ReviewModule`, `HealthModule`, `DataDeletionModule`, `DlqModule`, `LogIngestionModule`.
 - **`WorkerModule`** (`worker.module.ts`) — Background job consumer. Imports `CoreInfrastructureModule` and `IntakeWorkerModule`. No controllers, no HTTP stack. The `ComparisonJobPoller` runs as a polling loop processing `ComparisonJob` records from the database queue.
 
-Both processes share `PrismaModule`, `StorageModule`, `EventBusModule`. The worker receives `ComparisonEngineModule` transitively through `IntakeWorkerModule`.
+Both processes share `PrismaModule`, `StorageModule`, and the remaining `CoreInfrastructureModule` modules. The worker receives `ComparisonEngineModule` transitively through `IntakeWorkerModule`.
 
 ### Rationale
 
@@ -194,12 +195,6 @@ Both processes share `PrismaModule`, `StorageModule`, `EventBusModule`. The work
 - Worker-specific providers live in `IntakeWorkerModule`, not in `IntakeApplicationModule`. This prevents the `ComparisonJobPoller` from starting in API mode. Adding a new worker concern means adding it to `IntakeWorkerModule` — not to `IntakeApplicationModule`.
 - `ComparisonEngineModule` is imported by `IntakeWorkerModule`, not by `WorkerModule` directly. The dependency is explicit at the worker-seam level.
 - There are two `nest-cli.json` build configurations or a single build with multiple entry points.
-
-### Worker/API Composition
-
-The API (`AppModule`) imports `CoreInfrastructureModule`, `VisualTestApplicationModule`, `IntakeApplicationModule`, `ReviewModule`, plus `HealthModule`, `DataDeletionModule`, `DlqModule`, `LogIngestionModule`. The worker (`WorkerModule`) imports `CoreInfrastructureModule` and `IntakeWorkerModule` — no controllers, no HTTP stack, and crucially no `IntakeApplicationModule` (which would activate the controller). Worker-specific providers (`ComparisonJobProcessor`, `ComparisonJobPoller`, `WorkerHealthServer`) are isolated in `IntakeWorkerModule` and never loaded in API mode.
-
-Both processes share `PrismaModule`, `StorageModule`, `EventBusModule`. The worker receives `ComparisonEngineModule` transitively through `IntakeWorkerModule`.
 
 ---
 
@@ -222,5 +217,5 @@ Both processes share `PrismaModule`, `StorageModule`, `EventBusModule`. The work
 - Repository implementations belong in `core/infrastructure/repositories/` and are registered in `VisualTestInfraModule`.
 - The worker process uses `IntakeWorkerModule` as its seam. Worker-specific providers must be added there, not in `IntakeApplicationModule`. This prevents lifecycle hooks (e.g., `ComparisonJobPoller.onApplicationBootstrap`) from firing in API mode.
 - Internal modules should not define their own domain entities or domain services.
-- Domain event classes (constructors, factories) reside in `common/domain/events/` — the `DomainEvent` base type and all domain event classes live together there so cross-cutting subscribers (logging, metrics) can subscribe without importing from the domain module. Adding a new domain event means adding the class and its constant + payload interface in `common/domain/events/`.
-- Internal modules that need to read or write domain data must do so through shared repository classes, not directly via `PrismaConnection` or `TransactionContext`. This ensures domain query logic (e.g., "what counts as an orphaned screenshot") lives in the repository implementation, not in an internal module. The `DataDeletionModule` importing `VisualTestInfraModule` to consume `ScreenshotRepository` is the canonical example.
+- Observability events (`screenshot_uploaded`, `comparison_completed`, `comparison_approved`, `baseline_updated`) live as a discriminated union in `common/domain/observability-event.type.ts`. `StateChangeWorkflow` emits them synchronously to the logger + metrics in its post-commit path — there is no event bus and no `DomainEvent` base class (see ADR-004 §3). Adding a new event means extending the union and the emit switch in `common/domain/observability-event.emitter.ts`.
+- Internal modules that need to read or write domain data must do so through seams, not directly via `PrismaConnection`/`TransactionContext` or concrete public repositories. Domain query logic (e.g., "what counts as an orphaned screenshot") lives behind seams such as `STORAGE_OBJECT_REFERENCEDNESS`/`ORPHAN_SWEEP`, `PDF_RENDER_CACHE`, and `FAILED_JOB_STORE` — the `DataDeletionModule` consuming those tokens (with `VisualTestInfraModule` only providing the seam implementations) is the canonical example.

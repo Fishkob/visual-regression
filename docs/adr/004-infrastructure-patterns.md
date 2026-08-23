@@ -18,25 +18,25 @@ This ADR consolidates all three.
 
 ---
 
-## 1. MinIO/S3 Storage Abstraction
+## 1. S3-Compatible Storage Abstraction
 
 ### Decision
 
-We use MinIO as the storage backend with an abstraction layer (`IStorageProvider` interface).
+We use an S3-compatible object store as the storage backend — RustFS locally, AWS S3 (or another S3-compatible provider) in production — behind an abstraction layer (`IStorageProvider` interface).
 
 ### Rationale
 
 **Advantages:**
 
-- **S3 Compatibility**: Local development with MinIO, production can use AWS S3, GCS, Azure Blob
+- **S3 Compatibility**: Local development with RustFS, production can use AWS S3, GCS, Azure Blob
 - **Abstraction**: Interface enables swapping the storage backend without code changes
-- **Local Dev**: MinIO can be started via Docker Compose, no cloud account needed
+- **Local Dev**: RustFS can be started via Docker Compose, no cloud account needed
 - **Standard**: S3 is an industry standard — easy integration with CI/CD, CDNs, etc.
 
 **Disadvantages:**
 
-- **Complexity**: Extra infrastructure (MinIO container)
-- **Feature Gaps**: MinIO doesn't have all S3 features (e.g., certain lifecycle rules)
+- **Complexity**: Extra infrastructure (RustFS container)
+- **Feature Gaps**: The local S3-compatible server doesn't have all S3 features (e.g., certain lifecycle rules)
 
 **Alternatives Considered:**
 
@@ -46,11 +46,11 @@ We use MinIO as the storage backend with an abstraction layer (`IStorageProvider
 
 ### Consequences
 
-- `IStorageProvider` interface defines `putObject`, `get`, `deleteQuietly`, `deletePrefix`, `deleteAll`, `listObjectsWithLastModified`, `exists`, `healthCheck`. `putObject` is the single write method — it carries screenshots (image/PDF), diff artifacts, rendered page images, and the pdf-sidecar page-count blobs (renamed from `uploadImage` on 2026-08-09 because it stores non-image payloads too). URL/bucket parsing (formerly listed as `getPublicUrl`/`objectNameFromUrl`) lives in the separately-injected `StorageObjectName` helper. `listObjectsWithLastModified` serves the maintenance sweeps: `PdfRenderCacheCleanupTask` (the `pdf-render/` namespace, which is not tracked in the DB) and `UnreferencedObjectCleanupTask`, which needs object age to apply the unreferenced-object floor.
-- MinIO implements the interface for local development (`MinioStorageService`)
+- `IStorageProvider` interface defines `putObject`, `get`, `deleteQuietly`, `deletePrefix`, `deleteAll`, `listObjectsWithLastModified`, `exists`, `healthCheck`, `toPublicUrl`, `fromUrl`. `putObject` is the single write method — it carries screenshots (image/PDF), diff artifacts, rendered page images, and the pdf-sidecar page-count blobs (renamed from `uploadImage` on 2026-08-09 because it stores non-image payloads too). URL round-tripping is exposed directly on the seam (`toPublicUrl`/`fromUrl`) and backed by the separately-injected `StorageObjectName` helper, so consumers never import the concrete helper. `deletePrefix` returns the number of objects actually reclaimed. `listObjectsWithLastModified` serves the maintenance sweeps: `PdfRenderCacheCleanupTask` (the `pdf-render/` namespace, which is not tracked in the DB) and `UnreferencedObjectCleanupTask`, which needs object age to apply the unreferenced-object floor.
+- RustFS implements the interface for local development (`RustFsStorageService`, using the `minio` client library against the RustFS S3-compatible server; renamed from `MinioStorageService` when the local MinIO container was replaced by RustFS)
 - Switching to another S3-compatible provider (e.g., AWS S3, GCS) is possible by swapping the provider only
 - All file operations go through the Storage Interface
-- The abstraction was questioned during an architecture review (hypothetical seam with only one adapter). However, the seam is real — a migration from MinIO to another solution is already planned. The interface remains in place.
+- The abstraction was questioned during an architecture review (hypothetical seam with only one adapter). However, the seam is real — the local backend already moved from MinIO to RustFS by swapping the provider, and a future migration to AWS S3/GCS stays possible. The interface remains in place.
 
 ---
 

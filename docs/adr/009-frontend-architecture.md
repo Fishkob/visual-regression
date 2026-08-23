@@ -86,4 +86,4 @@ Cache invalidation rules are centralized in `lib/invalidation.ts` so mutations d
 
 ### Consequences
 
-New features add at most two files per domain concern (domain model + composable). Views must never import from `@sdk`. Mutations use centralized invalidation rules from `lib/invalidation.ts` rather than hand-listing query keys.
+New features follow the pattern: a domain concern owns its model, mapper, and query keys under `domains/<concern>/`, with the query/mutation hook inlined in the composable that owns the logic (plus occasional seam files, e.g. `test-group.ts`, `derive-pdf-project-tests.ts`). Views must never import from `@sdk`. Mutations use centralized invalidation rules from `lib/invalidation.ts` rather than hand-listing query keys.
