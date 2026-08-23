@@ -79,8 +79,8 @@ export const envValidationSchema = Joi.object({
       'Max requests per TTL window. Increased from 100 to 1000 to accommodate CI pipelines uploading multiple screenshots concurrently.',
     ),
 
-  // Metrics API key
-  METRICS_API_KEY: Joi.string().default(''),
+  // Metrics API key (empty disables the metrics endpoint per metrics-auth.guard)
+  METRICS_API_KEY: Joi.string().allow('').default(''),
 
   // Admin API key (DLQ endpoints)
   ADMIN_API_KEY: Joi.string().default(''),
