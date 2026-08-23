@@ -12,6 +12,7 @@ import {
 } from "./mocks/variants";
 import type { Routed } from "../../src/views/VisualTestDetailsView.story";
 import type { AppShell } from "../../src/AppShell.story";
+import { TEST_ID } from "@/lib/test-ids";
 
 const BASELINE_ONLY_ROUTE = `/projects/checkout-ui/tests/checkout-flow?${SAFARI_1366_768_STAGING}`;
 const PENDING_ROUTE = `/projects/checkout-ui/tests/checkout-flow?${CHROME_1920_1080_STAGING}`;
@@ -98,7 +99,7 @@ test.describe("VisualTestDetails", () => {
     await input.press("Enter");
 
     await expect(input).toHaveValue("10");
-    await expect(page.getByText(/Threshold updated/)).toBeVisible();
+    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(/Threshold updated/);
   });
 
   test("asks for confirmation when a threshold would auto-accept", async ({
@@ -125,16 +126,12 @@ test.describe("VisualTestDetails", () => {
     await input.fill("200");
     await input.press("Enter");
 
-    await expect(
-      page.getByRole("heading", { name: "Replace comparison?" }),
-    ).toBeVisible();
-    await expect(page.getByText(/New threshold: 200 px/)).toBeVisible();
+    await expect(page.getByTestId(TEST_ID.dialogTitle)).toContainText("Replace comparison?");
+    await expect(page.getByTestId(TEST_ID.dialogDescription)).toContainText(/New threshold: 200 px/);
 
-    await page.getByRole("button", { name: "Yes, continue" }).click();
+    await page.getByTestId(TEST_ID.dialogConfirm).click();
 
     await expect(input).toHaveValue("200");
-    await expect(
-      page.getByRole("heading", { name: "Replace comparison?" }),
-    ).toHaveCount(0);
+    await expect(page.getByTestId(TEST_ID.dialogTitle)).toHaveCount(0);
   });
 });

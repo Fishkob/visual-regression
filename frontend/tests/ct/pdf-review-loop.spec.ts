@@ -8,6 +8,7 @@ import {
 } from "./mocks/reviewLoop.mocks";
 import { CHROME_1920_1080_STAGING } from "./mocks/variants";
 import type { AppShell } from "../../src/AppShell.story";
+import { TEST_ID } from "@/lib/test-ids";
 
 const PROJECT = "checkout-ui";
 const testUrl = (name: string) =>
@@ -57,9 +58,7 @@ test.describe("PDF approval loop", () => {
     await component.getByTestId("approve-changes").click();
 
     await expect(page).toHaveURL(/\/done/);
-    await expect(
-      component.getByRole("heading", { name: "All comparisons reviewed" }),
-    ).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText("All comparisons reviewed");
   });
 
   test("renders the diff panel and download actions", async ({
@@ -123,9 +122,7 @@ test.describe("PDF approval loop", () => {
     await component.getByTestId("approve-changes").click();
 
     await expect(page).toHaveURL(/tests\/invoice/);
-    await expect(
-      page.getByText(/Could not approve .* "invoice"/),
-    ).toBeVisible();
+    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(/Could not approve .* "invoice"/);
     await expect(component.getByTestId("approve-changes")).toBeEnabled();
   });
 });

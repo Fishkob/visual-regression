@@ -5,6 +5,7 @@ import {
   PROJECT_EMPTY_RESPONSE,
 } from "./mocks/projects.mocks";
 import type { Routed } from "../../src/views/ProjectDetailView.story";
+import { TEST_ID } from "@/lib/test-ids";
 
 test.describe("ProjectDetail", () => {
   test("shows details", async ({ mount, page }) => {
@@ -31,10 +32,7 @@ test.describe("ProjectDetail", () => {
       { initialRoute: "/projects/checkout-ui" },
     );
 
-    await component
-      .getByRole("combobox")
-      .filter({ hasText: "Viewports" })
-      .click();
+    await component.getByTestId(TEST_ID.filterViewport).click();
     await page.getByRole("option", { name: "1920x1080" }).click();
 
     await expect(component.getByTestId("table-row")).toHaveCount(5);
@@ -53,7 +51,7 @@ test.describe("ProjectDetail", () => {
       { initialRoute: "/projects/checkout-ui" },
     );
 
-    await component.getByPlaceholder("Search test name…").fill("checkout");
+    await component.getByTestId(TEST_ID.testSearch).fill("checkout");
     await expect(component.getByTestId("table-row")).toHaveCount(6);
   });
 
@@ -72,7 +70,7 @@ test.describe("ProjectDetail", () => {
 
     await expect(component).toContainText("No tests found");
 
-    await component.getByRole("button", { name: "PDFs" }).click();
+    await component.getByTestId(TEST_ID.tabPdfs).click();
     await expect(component).toContainText("No PDF tests found");
   });
 
@@ -94,9 +92,7 @@ test.describe("ProjectDetail", () => {
 
     // The mapper throws on a missing payload, but the query retries with
     // backoff before the error state surfaces, so allow a generous wait.
-    await expect(
-      component.getByRole("button", { name: "Try again" }),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(component.getByTestId(TEST_ID.retry)).toBeVisible({ timeout: 15_000 });
     await expect(component).toContainText("Failed to load project");
   });
 });

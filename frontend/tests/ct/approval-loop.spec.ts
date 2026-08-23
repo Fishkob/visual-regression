@@ -8,6 +8,7 @@ import {
 } from "./mocks/reviewLoop.mocks";
 import { CHROME_1920_1080_STAGING } from "./mocks/variants";
 import type { AppShell } from "../../src/AppShell.story";
+import { TEST_ID } from "@/lib/test-ids";
 
 const PROJECT = "checkout-ui";
 
@@ -55,9 +56,7 @@ test.describe("Approval loop (image)", () => {
     await component.getByTestId("approve-changes").click();
 
     await expect(page).toHaveURL(/\/done/);
-    await expect(
-      component.getByRole("heading", { name: "All comparisons reviewed" }),
-    ).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText("All comparisons reviewed");
   });
 
   test("approving the only pending test lands directly on done", async ({
@@ -74,9 +73,7 @@ test.describe("Approval loop (image)", () => {
     await component.getByTestId("approve-changes").click();
 
     await expect(page).toHaveURL(/\/done/);
-    await expect(
-      component.getByRole("heading", { name: "All comparisons reviewed" }),
-    ).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText("All comparisons reviewed");
   });
 
   test("skip navigates to the next pending test without approving", async ({
@@ -121,9 +118,7 @@ test.describe("Approval loop (image)", () => {
 
     await expect(page).toHaveURL(/tests\/login-form/);
     await expect(component.getByTestId("comparison-view")).toBeVisible();
-    await expect(
-      page.getByText(/Could not approve .* "login-form"/),
-    ).toBeVisible();
+    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(/Could not approve .* "login-form"/);
     await expect(component.getByTestId("approve-changes")).toBeEnabled();
   });
 
@@ -143,9 +138,7 @@ test.describe("Approval loop (image)", () => {
 
     await expect(component.getByTestId("comparison-view")).toBeVisible();
     await component.getByTestId("approve-changes").click();
-    await expect(
-      page.getByText(/Could not approve .* "login-form"/),
-    ).toBeVisible();
+    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(/Could not approve .* "login-form"/);
 
     await component.getByTestId("skip").click();
 
