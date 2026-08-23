@@ -44,16 +44,20 @@ test.describe("Approval loop (image)", () => {
       initialRoute: testUrl("login-form"),
     });
 
-    await expect(component.getByTestId("comparison-view")).toBeVisible();
-    await expect(component.getByTestId("badge-mismatch")).toContainText("157");
+    await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.badgeMismatch)).toContainText(
+      "157",
+    );
 
-    await component.getByTestId("approve-changes").click();
+    await component.getByTestId(TEST_ID.approveChanges).click();
 
     await expect(page).toHaveURL(/tests\/checkout-flow/);
-    await expect(component.getByTestId("comparison-view")).toBeVisible();
-    await expect(component.getByTestId("badge-mismatch")).toContainText("157");
+    await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.badgeMismatch)).toContainText(
+      "157",
+    );
 
-    await component.getByTestId("approve-changes").click();
+    await component.getByTestId(TEST_ID.approveChanges).click();
 
     await expect(page).toHaveURL(/\/done/);
     await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText(
@@ -71,8 +75,8 @@ test.describe("Approval loop (image)", () => {
       initialRoute: testUrl("login-form"),
     });
 
-    await expect(component.getByTestId("comparison-view")).toBeVisible();
-    await component.getByTestId("approve-changes").click();
+    await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
+    await component.getByTestId(TEST_ID.approveChanges).click();
 
     await expect(page).toHaveURL(/\/done/);
     await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText(
@@ -95,11 +99,11 @@ test.describe("Approval loop (image)", () => {
       initialRoute: testUrl("login-form"),
     });
 
-    await expect(component.getByTestId("comparison-view")).toBeVisible();
-    await component.getByTestId("skip").click();
+    await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
+    await component.getByTestId(TEST_ID.skip).click();
 
     await expect(page).toHaveURL(/tests\/checkout-flow/);
-    await expect(component.getByTestId("comparison-view")).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
     expect(approved).toEqual([]);
   });
 
@@ -117,15 +121,15 @@ test.describe("Approval loop (image)", () => {
       initialRoute: testUrl("login-form"),
     });
 
-    await expect(component.getByTestId("comparison-view")).toBeVisible();
-    await component.getByTestId("approve-changes").click();
+    await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
+    await component.getByTestId(TEST_ID.approveChanges).click();
 
     await expect(page).toHaveURL(/tests\/login-form/);
-    await expect(component.getByTestId("comparison-view")).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Could not approve .* "login-form"/,
     );
-    await expect(component.getByTestId("approve-changes")).toBeEnabled();
+    await expect(component.getByTestId(TEST_ID.approveChanges)).toBeEnabled();
   });
 
   test("after a CONFLICT the reviewer can skip to the next test", async ({
@@ -142,15 +146,15 @@ test.describe("Approval loop (image)", () => {
       initialRoute: testUrl("login-form"),
     });
 
-    await expect(component.getByTestId("comparison-view")).toBeVisible();
-    await component.getByTestId("approve-changes").click();
+    await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
+    await component.getByTestId(TEST_ID.approveChanges).click();
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Could not approve .* "login-form"/,
     );
 
-    await component.getByTestId("skip").click();
+    await component.getByTestId(TEST_ID.skip).click();
 
     await expect(page).toHaveURL(/tests\/checkout-flow/);
-    await expect(component.getByTestId("comparison-view")).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
   });
 });

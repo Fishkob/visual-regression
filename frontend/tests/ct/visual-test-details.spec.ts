@@ -38,16 +38,18 @@ test.describe("VisualTestDetails", () => {
     await expect(component).toContainText("checkout-ui");
     await expect(component).toContainText("checkout-flow");
 
-    await expect(component.getByTestId("badge-viewport")).toContainText(
+    await expect(component.getByTestId(TEST_ID.badgeViewport)).toContainText(
       "1366x768",
     );
-    await expect(component.getByTestId("badge-browser")).toContainText(
+    await expect(component.getByTestId(TEST_ID.badgeBrowser)).toContainText(
       "Safari",
     );
-    await expect(component.getByTestId("badge-environment")).toContainText(
+    await expect(component.getByTestId(TEST_ID.badgeEnvironment)).toContainText(
       "staging",
     );
-    await expect(component.getByTestId("threshold-input")).toHaveValue("0");
+    await expect(component.getByTestId(TEST_ID.thresholdInput)).toHaveValue(
+      "0",
+    );
   });
 
   test("renders pending comparison correctly", async ({ mount, page }) => {
@@ -61,14 +63,16 @@ test.describe("VisualTestDetails", () => {
       { initialRoute: PENDING_ROUTE },
     );
 
-    await expect(component.getByTestId("approve-changes")).toBeVisible();
-    await expect(component.getByTestId("skip")).toBeVisible();
-    await expect(component.getByTestId("panel-baseline")).toBeVisible();
-    await expect(component.getByTestId("panel-candidate")).toBeVisible();
-    await expect(component.getByTestId("badge-viewport")).toBeVisible();
-    await expect(component.getByTestId("badge-browser")).toBeVisible();
-    await expect(component.getByTestId("badge-environment")).toBeVisible();
-    await expect(component.getByTestId("badge-mismatch")).toContainText("157");
+    await expect(component.getByTestId(TEST_ID.approveChanges)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.skip)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.panelBaseline)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.panelCandidate)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.badgeViewport)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.badgeBrowser)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.badgeEnvironment)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.badgeMismatch)).toContainText(
+      "157",
+    );
   });
 
   test("commits a new threshold directly when nothing auto-accepts", async ({
@@ -92,7 +96,7 @@ test.describe("VisualTestDetails", () => {
       initialRoute: PENDING_ROUTE,
     });
 
-    const input = component.getByTestId("threshold-input");
+    const input = component.getByTestId(TEST_ID.thresholdInput);
     await expect(input).toHaveValue("0");
 
     await input.fill("10");
@@ -124,7 +128,7 @@ test.describe("VisualTestDetails", () => {
       { initialRoute: PENDING_ROUTE },
     );
 
-    const input = component.getByTestId("threshold-input");
+    const input = component.getByTestId(TEST_ID.thresholdInput);
     await input.fill("200");
     await input.press("Enter");
 

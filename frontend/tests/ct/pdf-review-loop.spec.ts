@@ -43,19 +43,19 @@ test.describe("PDF approval loop", () => {
       initialRoute: testUrl("invoice"),
     });
 
-    await expect(component.getByTestId("mismatch-info")).toContainText(
+    await expect(component.getByTestId(TEST_ID.mismatchInfo)).toContainText(
       "1 of 3 pages differ",
     );
-    await expect(component.getByTestId("approve-changes")).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.approveChanges)).toBeVisible();
 
-    await component.getByTestId("approve-changes").click();
+    await component.getByTestId(TEST_ID.approveChanges).click();
 
     await expect(page).toHaveURL(/tests\/receipt/);
-    await expect(component.getByTestId("mismatch-info")).toContainText(
+    await expect(component.getByTestId(TEST_ID.mismatchInfo)).toContainText(
       "1 of 3 pages differ",
     );
 
-    await component.getByTestId("approve-changes").click();
+    await component.getByTestId(TEST_ID.approveChanges).click();
 
     await expect(page).toHaveURL(/\/done/);
     await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText(
@@ -73,15 +73,19 @@ test.describe("PDF approval loop", () => {
       initialRoute: testUrl("invoice"),
     });
 
-    await expect(component.getByTestId("mode-sidebyside")).toBeVisible();
-    await expect(component.getByTestId("mode-diff")).toBeVisible();
-    await expect(component.getByTestId("download-baseline")).toBeVisible();
-    await expect(component.getByTestId("download-candidate")).toBeVisible();
-    await expect(component.getByTestId("download-diff")).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.modeSidebyside)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.modeDiff)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.downloadBaseline)).toBeVisible();
+    await expect(
+      component.getByTestId(TEST_ID.downloadCandidate),
+    ).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.downloadDiff)).toBeVisible();
 
-    await component.getByTestId("mode-diff").click();
-    await expect(component.getByTestId("download-baseline")).toHaveCount(0);
-    await expect(component.getByTestId("download-diff")).toBeVisible();
+    await component.getByTestId(TEST_ID.modeDiff).click();
+    await expect(component.getByTestId(TEST_ID.downloadBaseline)).toHaveCount(
+      0,
+    );
+    await expect(component.getByTestId(TEST_ID.downloadDiff)).toBeVisible();
   });
 
   test("skip navigates to the next pending PDF test without approving", async ({
@@ -99,8 +103,8 @@ test.describe("PDF approval loop", () => {
       initialRoute: testUrl("invoice"),
     });
 
-    await expect(component.getByTestId("mismatch-info")).toBeVisible();
-    await component.getByTestId("skip").click();
+    await expect(component.getByTestId(TEST_ID.mismatchInfo)).toBeVisible();
+    await component.getByTestId(TEST_ID.skip).click();
 
     await expect(page).toHaveURL(/tests\/receipt/);
     expect(approved).toEqual([]);
@@ -120,13 +124,13 @@ test.describe("PDF approval loop", () => {
       initialRoute: testUrl("invoice"),
     });
 
-    await expect(component.getByTestId("mismatch-info")).toBeVisible();
-    await component.getByTestId("approve-changes").click();
+    await expect(component.getByTestId(TEST_ID.mismatchInfo)).toBeVisible();
+    await component.getByTestId(TEST_ID.approveChanges).click();
 
     await expect(page).toHaveURL(/tests\/invoice/);
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Could not approve .* "invoice"/,
     );
-    await expect(component.getByTestId("approve-changes")).toBeEnabled();
+    await expect(component.getByTestId(TEST_ID.approveChanges)).toBeEnabled();
   });
 });

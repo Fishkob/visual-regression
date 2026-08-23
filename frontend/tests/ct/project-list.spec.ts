@@ -25,8 +25,8 @@ test.describe("ProjectList", () => {
 
     const component = await mount("views/ProjectsView/Projects");
 
-    await component.getByTestId("project-search").fill("dash");
-    const rows = component.getByTestId("table-row");
+    await component.getByTestId(TEST_ID.projectSearch).fill("dash");
+    const rows = component.getByTestId(TEST_ID.tableRow);
 
     await expect(rows).toHaveCount(1);
     await expect(rows.nth(0)).toContainText("dashboard-ui");

@@ -67,7 +67,7 @@ test.describe("PDF Comparison Workflow", () => {
     });
 
     // Switch to side-by-side to expose baseline + candidate download links
-    await page.getByTestId("mode-sidebyside").click();
+    await page.getByTestId(TEST_ID.modeSidebyside).click();
 
     const [baselineDownload] = await Promise.all([
       page.waitForEvent("download"),

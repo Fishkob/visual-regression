@@ -29,12 +29,12 @@ test.describe("Image Review Loop", () => {
 
     await page.goto(projectUrl(projectName, "login-form"));
 
-    await expect(page.getByTestId("comparison-view")).toBeVisible({
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
       timeout: 10000,
     });
-    await expect(page.getByTestId("badge-mismatch")).toBeVisible();
+    await expect(page.getByTestId(TEST_ID.badgeMismatch)).toBeVisible();
 
-    await page.getByTestId("approve-changes").click();
+    await page.getByTestId(TEST_ID.approveChanges).click();
 
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Approved .* of "login-form"/,
@@ -57,7 +57,7 @@ test.describe("Image Review Loop", () => {
       "Only baseline available",
       { timeout: 10000 },
     );
-    await expect(page.getByTestId("comparison-view")).not.toBeVisible();
+    await expect(page.getByTestId(TEST_ID.comparisonView)).not.toBeVisible();
   });
 
   test("skip navigates to the next pending test", async ({ page }) => {
@@ -71,17 +71,17 @@ test.describe("Image Review Loop", () => {
 
     await page.goto(projectUrl(projectName, "login-form"));
 
-    await expect(page.getByTestId("comparison-view")).toBeVisible({
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
       timeout: 10000,
     });
     await pendingResponse;
 
-    await page.getByTestId("skip").click();
+    await page.getByTestId(TEST_ID.skip).click();
 
     await expect(page).toHaveURL(/tests\/checkout-flow/, {
       timeout: 10000,
     });
-    await expect(page.getByTestId("comparison-view")).toBeVisible({
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
       timeout: 10000,
     });
   });
@@ -97,11 +97,11 @@ test.describe("Image Review Loop", () => {
 
     await page.goto(projectUrl(projectName, "login-form"));
 
-    await expect(page.getByTestId("comparison-view")).toBeVisible({
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
       timeout: 10000,
     });
     await pendingResponse;
-    await page.getByTestId("approve-changes").click();
+    await page.getByTestId(TEST_ID.approveChanges).click();
 
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Approved .* of "login-form"/,
@@ -110,10 +110,10 @@ test.describe("Image Review Loop", () => {
     await expect(page).toHaveURL(/tests\/checkout-flow/, {
       timeout: 10000,
     });
-    await expect(page.getByTestId("comparison-view")).toBeVisible({
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
       timeout: 10000,
     });
-    await page.getByTestId("approve-changes").click();
+    await page.getByTestId(TEST_ID.approveChanges).click();
 
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Approved .* of "checkout-flow"/,

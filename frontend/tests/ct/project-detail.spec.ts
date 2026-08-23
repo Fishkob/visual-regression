@@ -19,7 +19,7 @@ test.describe("ProjectDetail", () => {
     );
 
     await expect(component).toContainText("Project: checkout-ui");
-    await expect(component.getByTestId("table-row")).toHaveCount(9);
+    await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(9);
   });
 
   test("filters by viewport and reset", async ({ mount, page }) => {
@@ -35,10 +35,10 @@ test.describe("ProjectDetail", () => {
     await component.getByTestId(TEST_ID.filterViewport).click();
     await page.getByRole("option", { name: "1920x1080" }).click();
 
-    await expect(component.getByTestId("table-row")).toHaveCount(5);
+    await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(5);
 
-    await component.getByTestId("reset-filter").click();
-    await expect(component.getByTestId("table-row")).toHaveCount(9);
+    await component.getByTestId(TEST_ID.resetFilter).click();
+    await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(9);
   });
 
   test("filters by search", async ({ mount, page }) => {
@@ -52,7 +52,7 @@ test.describe("ProjectDetail", () => {
     );
 
     await component.getByTestId(TEST_ID.testSearch).fill("checkout");
-    await expect(component.getByTestId("table-row")).toHaveCount(6);
+    await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(6);
   });
 
   test("shows the empty state for a project without tests", async ({
