@@ -10,8 +10,8 @@ test.describe("ApprovalDone", () => {
   test("shows the back-to-project-list action", async ({ mount }) => {
     const component = await mount("views/ApprovalDoneView/ApprovalDone");
 
-    await expect(component.getByRole("button")).toContainText(
-      "Back to project list",
-    );
+    await expect(
+      component.getByRole("button", { name: "Back to project list" }),
+    ).toBeVisible();
   });
 });

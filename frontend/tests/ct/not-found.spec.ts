@@ -10,8 +10,8 @@ test.describe("NotFound", () => {
   test("shows the back-to-project-list action", async ({ mount }) => {
     const component = await mount("views/NotFoundView/NotFound");
 
-    await expect(component.getByRole("button")).toContainText(
-      "Back to project list",
-    );
+    await expect(
+      component.getByRole("button", { name: "Back to project list" }),
+    ).toBeVisible();
   });
 });

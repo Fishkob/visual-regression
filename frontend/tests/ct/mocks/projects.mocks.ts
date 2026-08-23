@@ -36,6 +36,22 @@ export const PROJECTS_PENDING_RESPONSE = {
   }),
 };
 
+export const PROJECTS_PENDING_EMPTY_RESPONSE = {
+  status: 200,
+  contentType: "application/json",
+  body: JSON.stringify({
+    data: [],
+    meta: {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  }),
+};
+
 export const PROJECT_CHECKOUT_UI_RESPONSE = {
   status: 200,
   contentType: "application/json",
@@ -134,5 +150,15 @@ export const PROJECT_CHECKOUT_UI_RESPONSE = {
         latestStatus: null,
       },
     ],
+  }),
+};
+
+export const PROJECT_EMPTY_RESPONSE = {
+  status: 200,
+  contentType: "application/json",
+  body: JSON.stringify({
+    id: "cmiewt8xi0008q35zr1ugreta",
+    name: "checkout-ui",
+    visualTests: [],
   }),
 };

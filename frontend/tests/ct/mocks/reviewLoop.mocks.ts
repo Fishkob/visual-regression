@@ -64,6 +64,48 @@ export function makeImageKind(): FulfillResponse {
   return jsonResponse({ kind: "image" });
 }
 
+export function makePdfKind(): FulfillResponse {
+  return jsonResponse({ kind: "pdf" });
+}
+
+// A pending PDF comparison's details payload: baseline + comparison with a
+// diff PDF and a candidate, mirroring the DTO the pdf-details endpoint returns.
+export function makePdfReviewableDetails(name: string): FulfillResponse {
+  return jsonResponse({
+    id: `pdf-${name}`,
+    name,
+    status: "PENDING",
+    kind: "pdf",
+    createdAt: "2026-01-23T14:48:36.276Z",
+    baseline: {
+      id: `pdf-baseline-${name}`,
+      pdfUrl: `http://localhost:9000/vrt/${name}-baseline.pdf`,
+      imageHash: "hash-baseline",
+      pageCount: 3,
+      viewport: "1920x1080",
+      browser: "Chrome",
+      environment: "staging",
+    },
+    comparison: {
+      id: `cmp-${name}`,
+      baselineId: `pdf-baseline-${name}`,
+      diffPdfUrl: `http://localhost:9000/vrt/${name}-diff.pdf`,
+      pageCount: 3,
+      mismatchPageCount: 1,
+      status: "PENDING_APPROVAL",
+      createdAt: "2026-01-23T14:48:36.352Z",
+      candidate: {
+        id: `pdf-candidate-${name}`,
+        pdfUrl: `http://localhost:9000/vrt/${name}-candidate.pdf`,
+        imageHash: "hash-current",
+        viewport: "1920x1080",
+        browser: "Chrome",
+        environment: "staging",
+      },
+    },
+  });
+}
+
 export function makePendingItem(name: string) {
   return {
     name,

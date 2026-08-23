@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { mockApi } from "./routes/api.routes";
-import { PROJECTS_PENDING_RESPONSE } from "./mocks/projects.mocks";
+import {
+  PROJECTS_PENDING_EMPTY_RESPONSE,
+  PROJECTS_PENDING_RESPONSE,
+} from "./mocks/projects.mocks";
 
 test.describe("ProjectList", () => {
   test("shows projects", async ({ mount, page }) => {
@@ -26,5 +29,18 @@ test.describe("ProjectList", () => {
 
     await expect(rows).toHaveCount(1);
     await expect(rows.nth(0)).toContainText("dashboard-ui");
+  });
+
+  test("shows the empty state when there are no projects", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      ["**/api/v1/projects/pending*", PROJECTS_PENDING_EMPTY_RESPONSE],
+    ]);
+
+    const component = await mount("views/ProjectsView/Projects");
+
+    await expect(component).toContainText("No projects found");
   });
 });

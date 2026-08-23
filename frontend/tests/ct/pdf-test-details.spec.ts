@@ -4,12 +4,11 @@ import {
   PDF_TEST_DETAILS_EMPTY,
   PDF_TEST_DETAILS_BASELINE_NO_PAGE_COUNT,
 } from "./mocks/pdfTest.mocks";
+import { CHROME_1920_1080_STAGING } from "./mocks/variants";
 import type { Routed } from "../../src/views/PdfTestDetailsView.story";
 
-const ROUTE =
-  "/projects/checkout-ui/tests/invoice?viewport=1920x1080&browser=Chrome&environment=staging";
-const PDF_DETAILS_GLOB =
-  "**/api/v1/projects/checkout-ui/tests/invoice/pdf-details?viewport=1920x1080&browser=Chrome&environment=staging";
+const ROUTE = `/projects/checkout-ui/tests/invoice?${CHROME_1920_1080_STAGING}`;
+const PDF_DETAILS_GLOB = `**/api/v1/projects/checkout-ui/tests/invoice/pdf-details?${CHROME_1920_1080_STAGING}`;
 
 test.describe("PdfTestDetails", () => {
   test("shows the empty state when the test has no data", async ({

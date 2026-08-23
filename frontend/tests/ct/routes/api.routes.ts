@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { ONE_PIXEL_PNG_DATA_URL } from "../mocks/projects.mocks";
 
 type FulfillResponse = { status: number; contentType: string; body: string };
 
@@ -17,6 +18,40 @@ export async function mockApi(
   for (const [glob, res] of routes) {
     await mockGet(page, glob, res);
   }
+}
+
+// The threshold endpoint is one route with two modes split by the `preview`
+// query param: the blur-time preview that asks how many comparisons a threshold
+// would auto-accept, and the commit that actually writes it. Dispatched on the
+// query so the two can't shadow each other through glob ordering.
+export interface ThresholdBackendOptions {
+  projectName: string;
+  testName: string;
+  previewAutoAcceptedCount: number;
+  commitThreshold: number;
+}
+
+export async function mockThresholdBackend(
+  page: Page,
+  options: ThresholdBackendOptions,
+) {
+  const { projectName, testName, previewAutoAcceptedCount, commitThreshold } =
+    options;
+  await page.route(
+    `**/api/v1/projects/${projectName}/tests/${testName}/threshold*`,
+    (route) => {
+      const url = new URL(route.request().url());
+      const preview = url.searchParams.get("preview") === "true";
+      const body = preview
+        ? { autoAcceptedCount: previewAutoAcceptedCount }
+        : { threshold: commitThreshold, autoAcceptedCount: 0 };
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(body),
+      });
+    },
+  );
 }
 
 export interface PendingItem {
@@ -63,7 +98,11 @@ export async function mockReviewBackend(
     const tail = testsIndex >= 0 ? parts.slice(testsIndex + 1) : [];
     const method = route.request().method();
 
-    if (method === "POST" && tail.length === 2 && tail[1] === "approval") {
+    if (
+      method === "POST" &&
+      tail.length === 2 &&
+      (tail[1] === "approval" || tail[1] === "pdf-approval")
+    ) {
       onApprove?.(tail[0]);
       const result = approve ?? defaultApprove;
       if (result.status >= 200 && result.status < 300) {
@@ -77,6 +116,21 @@ export async function mockReviewBackend(
     if (method === "GET" && tail[0] === "meta" && tail[1] === "pending") {
       await route.fulfill(
         json(200, { data: pending, meta: { total: pending.length } }),
+      );
+      return;
+    }
+
+    if (method === "GET" && tail.length === 2 && tail[1] === "pdf-details") {
+      const response = details.get(tail[0]);
+      if (response) {
+        await route.fulfill(response);
+        return;
+      }
+    }
+
+    if (method === "GET" && tail.length === 2 && tail[1] === "pdf-render") {
+      await route.fulfill(
+        json(200, { imageUrl: ONE_PIXEL_PNG_DATA_URL, pageCount: 1 }),
       );
       return;
     }

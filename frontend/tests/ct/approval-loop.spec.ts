@@ -6,13 +6,13 @@ import {
   makePendingItem,
   makeReviewableDetails,
 } from "./mocks/reviewLoop.mocks";
+import { CHROME_1920_1080_STAGING } from "./mocks/variants";
 import type { AppShell } from "../../src/AppShell.story";
 
 const PROJECT = "checkout-ui";
-const DETAIL_QUERY = "?viewport=1920x1080&browser=Chrome&environment=staging";
 
 const testUrl = (name: string) =>
-  `/projects/${PROJECT}/tests/${name}${DETAIL_QUERY}`;
+  `/projects/${PROJECT}/tests/${name}?${CHROME_1920_1080_STAGING}`;
 
 const TWO_PENDING = {
   details: new Map([
@@ -125,5 +125,31 @@ test.describe("Approval loop (image)", () => {
       page.getByText(/Could not approve .* "login-form"/),
     ).toBeVisible();
     await expect(component.getByTestId("approve-changes")).toBeEnabled();
+  });
+
+  test("after a CONFLICT the reviewer can skip to the next test", async ({
+    mount,
+    page,
+  }) => {
+    await mockReviewBackend(page, {
+      projectName: PROJECT,
+      ...TWO_PENDING,
+      approve: makeConflictError(),
+    });
+
+    const component = await mount<typeof AppShell>("AppShell/AppShell", {
+      initialRoute: testUrl("login-form"),
+    });
+
+    await expect(component.getByTestId("comparison-view")).toBeVisible();
+    await component.getByTestId("approve-changes").click();
+    await expect(
+      page.getByText(/Could not approve .* "login-form"/),
+    ).toBeVisible();
+
+    await component.getByTestId("skip").click();
+
+    await expect(page).toHaveURL(/tests\/checkout-flow/);
+    await expect(component.getByTestId("comparison-view")).toBeVisible();
   });
 });
