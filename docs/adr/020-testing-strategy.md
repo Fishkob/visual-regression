@@ -65,7 +65,6 @@ A dedicated integration test suite (`test/integration/`) was initially created w
 
 ### Alternatives Considered
 
-- **Vitest for everything (including E2E)**: Vitest's `@vitest/browser` provides browser-based testing but requires Playwright/WebDriver as a transport layer anyway — adding Playwright directly was simpler and more capable for multi-page flows.
 - **Testing Library (RTL) + Vitest for frontend**: Standard for React projects, but Vue's `@testing-library/vue` has less traction. Playwright CT with real browser rendering gives more confidence than jsdom-based DOM assertions.
 
 ## Consequences
