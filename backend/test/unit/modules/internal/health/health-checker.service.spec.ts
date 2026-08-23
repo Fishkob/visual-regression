@@ -36,6 +36,7 @@ describe('HealthChecker', () => {
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     globalThis.fetch = originalFetch;
   });
 

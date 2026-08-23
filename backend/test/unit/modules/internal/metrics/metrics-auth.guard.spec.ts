@@ -22,8 +22,12 @@ describe('MetricsAuthGuard', () => {
     guard = new MetricsAuthGuard(appConfig as never);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('when METRICS_API_KEY is empty', () => {
-    it('should deny all requests', () => {
+    it('denies all requests', () => {
       expect(() => guard.canActivate(mockContext())).toThrow(
         UnauthorizedException,
       );
@@ -34,20 +38,20 @@ describe('MetricsAuthGuard', () => {
   });
 
   describe('when METRICS_API_KEY is set', () => {
-    it('should allow requests with matching header', () => {
+    it('allows requests with matching header', () => {
       appConfig.metrics.apiKey = 'secret123';
 
       expect(guard.canActivate(mockContext('secret123'))).toBe(true);
     });
 
-    it('should throw UnauthorizedException when header is missing', () => {
+    it('throws UnauthorizedException when header is missing', () => {
       appConfig.metrics.apiKey = 'secret123';
       expect(() => guard.canActivate(mockContext())).toThrow(
         UnauthorizedException,
       );
     });
 
-    it('should throw UnauthorizedException when header does not match', () => {
+    it('throws UnauthorizedException when header does not match', () => {
       appConfig.metrics.apiKey = 'secret123';
 
       expect(() => guard.canActivate(mockContext('wrong-key'))).toThrow(

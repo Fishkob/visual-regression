@@ -13,6 +13,10 @@ describe('DlqService', () => {
     service = new DlqService(failedJobs);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('listFailedJobs delegates to queue and maps to DTOs', async () => {
     const mockJobs = [
       {

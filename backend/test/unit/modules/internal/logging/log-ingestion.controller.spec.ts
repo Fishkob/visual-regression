@@ -19,6 +19,10 @@ describe('LogIngestionController', () => {
     controller = module.get(LogIngestionController);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('delegates to logIngestion.ingest', () => {
     const body = { message: 'test' };
     const req = { headers: {} } as Request;

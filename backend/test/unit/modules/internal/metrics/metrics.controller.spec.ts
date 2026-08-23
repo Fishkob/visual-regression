@@ -22,8 +22,12 @@ describe('MetricsController', () => {
     controller = module.get(MetricsController);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('GET /metrics', () => {
-    it('should return prometheus metrics text', async () => {
+    it('returns prometheus metrics text', async () => {
       metrics.getPrometheusMetrics.mockResolvedValue(
         '# HELP http_requests_total ...',
       );

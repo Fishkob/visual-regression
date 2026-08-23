@@ -24,6 +24,10 @@ describe('DlqController', () => {
     controller = module.get(DlqController);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('listFailedJobs', () => {
     it('returns failed jobs list', async () => {
       const mockJobs = [{ id: 'job-1', testId: 'test-1', testKind: 'image' }];

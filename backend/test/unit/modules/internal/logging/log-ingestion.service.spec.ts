@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { LogIngestionService } from '@/modules/internal/logging/log-ingestion.service';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import type { Request } from 'express';
+import { createMockLogger } from '@test/utils/mocks';
 
 describe('LogIngestionService', () => {
   let service: LogIngestionService;
@@ -12,12 +13,7 @@ describe('LogIngestionService', () => {
   }
 
   beforeEach(async () => {
-    logger = {
-      log: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-      debug: jest.fn(),
-    } as any;
+    logger = createMockLogger();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -27,6 +23,10 @@ describe('LogIngestionService', () => {
     }).compile();
 
     service = module.get(LogIngestionService);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('traceId resolution', () => {

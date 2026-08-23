@@ -34,6 +34,10 @@ describe('HealthController', () => {
     controller = module.get(HealthController);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('liveness', () => {
     it('returns ok status with build info', () => {
       checker.getBuildInfoData.mockReturnValue(buildInfo);
