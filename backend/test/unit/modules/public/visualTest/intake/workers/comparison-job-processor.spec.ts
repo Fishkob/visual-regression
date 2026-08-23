@@ -174,6 +174,10 @@ describe('ComparisonJobProcessor', () => {
     processor = module.get(ComparisonJobProcessor);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   function completedEventLabels(): Array<Record<string, string>> {
     return metrics.incrementCounter.mock.calls
       .filter(([name]) => name === 'domain_events_total')

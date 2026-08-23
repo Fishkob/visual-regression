@@ -42,6 +42,10 @@ describe('UploadController', () => {
     controller = module.get(UploadController);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('upload', () => {
     const mockFile = createMockFile({ size: 1000 });
 
