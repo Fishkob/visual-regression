@@ -4,6 +4,10 @@ import {
   validateName,
 } from '@common/http/pipes/name-validation.util';
 describe('name-validation.util', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('validateName', () => {
     it('passes for valid names with letters', () => {
       expect(() => validateName('myProject')).not.toThrow();

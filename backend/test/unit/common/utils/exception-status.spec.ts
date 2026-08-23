@@ -8,6 +8,10 @@ import {
 } from '@common/utils/exception-status';
 
 describe('exceptionHttpStatus', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('returns the status of an HttpException', () => {
     expect(exceptionHttpStatus(new BadRequestException('bad'))).toBe(400);
   });
@@ -120,6 +124,10 @@ describe('exceptionHttpStatus', () => {
 });
 
 describe('finalHttpStatus', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('promotes an array-message BadRequest to 422 like the exception filter', () => {
     expect(
       finalHttpStatus(new BadRequestException(['name must be a string'])),
@@ -148,6 +156,10 @@ describe('finalHttpStatus', () => {
 });
 
 describe('classifyPrismaError', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('maps P2002 to conflict with message and code', () => {
     const err = new Prisma.PrismaClientKnownRequestError('dup', {
       code: 'P2002',

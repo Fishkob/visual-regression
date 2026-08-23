@@ -28,6 +28,10 @@ describe('Tracker', () => {
     tracker = module.get(Tracker);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('track', () => {
     it('records metrics and logs on success', async () => {
       const fn = jest.fn().mockResolvedValue('result');

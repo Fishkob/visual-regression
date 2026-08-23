@@ -36,6 +36,10 @@ function successfulHandler(): CallHandler {
 }
 
 describe('observeFinalStatus', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('records the effective response status exactly once after a successful handler', async () => {
     const onStatus = jest.fn();
     const ctx = createMockContext();
@@ -119,6 +123,10 @@ describe('observeFinalStatus', () => {
 });
 
 describe('httpRoute', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('combines baseUrl and route path', () => {
     const req: MockReq = {
       baseUrl: '/api/v1',

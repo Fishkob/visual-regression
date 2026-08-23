@@ -54,6 +54,10 @@ describe('HttpMetricsInterceptor', () => {
     interceptor = new HttpMetricsInterceptor(metrics);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('passes through non-HTTP contexts without recording metrics', async () => {
     const ctx = createMockContext({ type: 'graphql' });
     const handler: CallHandler = {

@@ -4,6 +4,10 @@ import { validate } from 'class-validator';
 import { PaginationDto } from '@common/dto/pagination.dto';
 
 describe('PaginationDto', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   async function transform(
     query: Record<string, unknown>,
   ): Promise<PaginationDto> {

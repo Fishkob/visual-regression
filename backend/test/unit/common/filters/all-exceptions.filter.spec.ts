@@ -46,6 +46,10 @@ describe('AllExceptionsFilter', () => {
     } as unknown as ArgumentsHost;
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('DomainError handling', () => {
     it('handles DomainError with BAD_REQUEST code', () => {
       const ex = new DomainError('Invalid input', 'BAD_REQUEST');

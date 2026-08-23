@@ -2,6 +2,10 @@ import { BadRequestException } from '@nestjs/common';
 import { TestKindValidationPipe } from '@common/http/pipes/test-kind-validation.pipe';
 
 describe('TestKindValidationPipe', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   const pipe = new TestKindValidationPipe();
 
   it('accepts image', () => {

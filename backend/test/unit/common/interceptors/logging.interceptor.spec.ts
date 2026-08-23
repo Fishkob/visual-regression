@@ -35,6 +35,10 @@ describe('LoggingInterceptor (unit)', () => {
     handler = { handle: () => scheduled(['ok'], asyncScheduler) };
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   function createMockContext(): ExecutionContext {
     const res: MockRes = {
       statusCode: 200,
