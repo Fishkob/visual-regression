@@ -72,16 +72,6 @@ export function makePendingItem(name: string) {
   };
 }
 
-export function makeApproveResult(): FulfillResponse {
-  return jsonResponse(
-    {
-      approved: true,
-      newBaselineUrl: "http://localhost:9000/vrt/new-baseline.png",
-    },
-    201,
-  );
-}
-
 export function makeConflictError(): FulfillResponse {
   return jsonResponse(
     {

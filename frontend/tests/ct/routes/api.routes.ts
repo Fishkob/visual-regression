@@ -47,10 +47,11 @@ export interface ReviewBackendOptions {
 
 // A tiny stateful fake backend for review-loop specs: GET details/kind/pending
 // read from the provided maps plus a mutable pending array; POST :name/approval
-// removes the test from pending and answers with the approve result (or the
-// provided error response). Dispatch happens on the URL pathname, so the single
-// route glob needs no ordering tricks between `meta/pending`, `:name/kind` and
-// `:name`.
+// answers with the approve result (or the provided error response) and removes
+// the test from pending only on a successful approval — the real backend keeps
+// the test pending on a failed one. Dispatch happens on the URL pathname, so the
+// single route glob needs no ordering tricks between `meta/pending`, `:name/kind`
+// and `:name`.
 export async function mockReviewBackend(
   page: Page,
   options: ReviewBackendOptions,
@@ -75,9 +76,12 @@ export async function mockReviewBackend(
     const method = route.request().method();
 
     if (method === "POST" && tail.length === 2 && tail[1] === "approval") {
-      const index = pending.findIndex((item) => item.name === tail[0]);
-      if (index >= 0) pending.splice(index, 1);
-      await route.fulfill(approve ?? defaultApprove);
+      const result = approve ?? defaultApprove;
+      if (result.status >= 200 && result.status < 300) {
+        const index = pending.findIndex((item) => item.name === tail[0]);
+        if (index >= 0) pending.splice(index, 1);
+      }
+      await route.fulfill(result);
       return;
     }
 
