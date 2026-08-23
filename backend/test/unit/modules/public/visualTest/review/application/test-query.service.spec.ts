@@ -63,7 +63,7 @@ describe('TestQueryService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('getTestNames', () => {
@@ -142,7 +142,7 @@ describe('TestQueryService', () => {
   });
 
   describe('getVisualTestDetails', () => {
-    it('should return test details mapped to DTOs', async () => {
+    it('returns test details mapped to DTOs', async () => {
       const baseline = makeScreenshot();
       const comparison = makeComparison({
         baseline,
@@ -180,7 +180,7 @@ describe('TestQueryService', () => {
       });
     });
 
-    it('should return undefined comparison when none exists', async () => {
+    it('returns undefined comparison when none exists', async () => {
       reviewRead.findVisualTestDetails.mockResolvedValue({
         exists: true,
         kind: 'image',
@@ -197,7 +197,7 @@ describe('TestQueryService', () => {
       expect(result.comparison).toBeUndefined();
     });
 
-    it('should throw DomainError when the test does not exist', async () => {
+    it('throws DomainError when the test does not exist', async () => {
       reviewRead.findVisualTestDetails.mockResolvedValue({
         exists: false,
         baseline: null,
@@ -211,7 +211,7 @@ describe('TestQueryService', () => {
       ).rejects.toThrow(DomainError);
     });
 
-    it('should return details without baseline when the test exists but has no baseline yet', async () => {
+    it('returns details without baseline when the test exists but has no baseline yet', async () => {
       reviewRead.findVisualTestDetails.mockResolvedValue({
         exists: true,
         kind: 'image',
@@ -228,7 +228,7 @@ describe('TestQueryService', () => {
       expect(result).toEqual({ name: 'my-test' });
     });
 
-    it('should reject an empty variant filter instead of picking an arbitrary variant', async () => {
+    it('rejects an empty variant filter instead of picking an arbitrary variant', async () => {
       await expect(
         service.getVisualTestDetails('my-project', 'my-test', {}),
       ).rejects.toMatchObject({
@@ -238,7 +238,7 @@ describe('TestQueryService', () => {
       expect(reviewRead.findVisualTestDetails).not.toHaveBeenCalled();
     });
 
-    it('should reject an empty-string variant filter instead of picking an arbitrary variant', async () => {
+    it('rejects an empty-string variant filter instead of picking an arbitrary variant', async () => {
       await expect(
         service.getVisualTestDetails('my-project', 'my-test', {
           viewport: '',
@@ -250,7 +250,7 @@ describe('TestQueryService', () => {
       expect(reviewRead.findVisualTestDetails).not.toHaveBeenCalled();
     });
 
-    it('should reject a PDF test served through the image read model', async () => {
+    it('rejects a PDF test served through the image read model', async () => {
       reviewRead.findVisualTestDetails.mockResolvedValue({
         exists: true,
         kind: 'pdf',
@@ -297,7 +297,7 @@ describe('TestQueryService', () => {
       };
     }
 
-    it('should map entities to pdf test details when found', async () => {
+    it('maps entities to pdf test details when found', async () => {
       reviewRead.findTestWithVariants.mockResolvedValue(entityResult() as any);
 
       const result = await service.getPdfTestDetails('my-project', 'my-test', {
@@ -320,7 +320,7 @@ describe('TestQueryService', () => {
       });
     });
 
-    it('should map baseline and comparison to pdf details', async () => {
+    it('maps baseline and comparison to pdf details', async () => {
       reviewRead.findTestWithVariants.mockResolvedValue(
         entityResult({
           baseline: {
@@ -388,7 +388,7 @@ describe('TestQueryService', () => {
       });
     });
 
-    it('should leave comparison null when absent', async () => {
+    it('leaves comparison null when absent', async () => {
       reviewRead.findTestWithVariants.mockResolvedValue(entityResult() as any);
 
       const result = await service.getPdfTestDetails('my-project', 'my-test', {
@@ -398,7 +398,7 @@ describe('TestQueryService', () => {
       expect(result.comparison).toBeNull();
     });
 
-    it('should pass filters to repository', async () => {
+    it('passes filters to repository', async () => {
       reviewRead.findTestWithVariants.mockResolvedValue(entityResult() as any);
 
       await service.getPdfTestDetails('my-project', 'my-test', {
@@ -412,7 +412,7 @@ describe('TestQueryService', () => {
       );
     });
 
-    it('should throw DomainError when test not found', async () => {
+    it('throws DomainError when test not found', async () => {
       reviewRead.findTestWithVariants.mockResolvedValue(null);
 
       await expect(
@@ -422,7 +422,7 @@ describe('TestQueryService', () => {
       ).rejects.toThrow(DomainError);
     });
 
-    it('should reject an image test through the PDF details endpoint', async () => {
+    it('rejects an image test through the PDF details endpoint', async () => {
       reviewRead.findTestWithVariants.mockResolvedValue(
         entityResult({ test: { kind: 'image' } }) as any,
       );
@@ -446,7 +446,7 @@ describe('TestQueryService', () => {
       );
     });
 
-    it('should reject an empty variant filter instead of picking an arbitrary variant', async () => {
+    it('rejects an empty variant filter instead of picking an arbitrary variant', async () => {
       await expect(
         service.getPdfTestDetails('my-project', 'my-test'),
       ).rejects.toMatchObject({
@@ -456,7 +456,7 @@ describe('TestQueryService', () => {
       expect(reviewRead.findTestWithVariants).not.toHaveBeenCalled();
     });
 
-    it('should reject an empty-string variant filter instead of picking an arbitrary variant', async () => {
+    it('rejects an empty-string variant filter instead of picking an arbitrary variant', async () => {
       await expect(
         service.getPdfTestDetails('my-project', 'my-test', { viewport: '' }),
       ).rejects.toMatchObject({
