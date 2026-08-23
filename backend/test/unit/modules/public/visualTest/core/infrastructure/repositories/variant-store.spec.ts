@@ -234,6 +234,120 @@ describe('VariantStore', () => {
     });
   });
 
+  describe('findReviewVariantRow', () => {
+    it('resolves the variant with its baseline through the shared findFirst rule', async () => {
+      const baseline = {
+        id: 'base-1',
+        testId: 'test-1',
+        type: 'BASELINE',
+        imageHash: 'hash123',
+        imageUrl: 'http://example.com/base.png',
+        pageCount: 2,
+        pixelDiffThreshold: 0.1,
+        createdAt: new Date('2025-01-01T00:00:00Z'),
+      };
+      mockClient.unifiedVariant.findFirst.mockResolvedValue({
+        viewport: '1280x720',
+        browser: 'chrome',
+        environment: 'production',
+        baseline,
+      });
+
+      const result = await store.findReviewVariantRow('test-1', {
+        viewport: '1280x720',
+      });
+
+      expect(mockClient.unifiedVariant.findFirst).toHaveBeenCalledWith({
+        where: { testId: 'test-1', viewport: '1280x720' },
+        orderBy: [{ viewport: 'asc' }, { id: 'asc' }],
+        include: { baseline: true },
+      });
+      expect(result).toEqual({
+        variant: {
+          viewport: '1280x720',
+          browser: 'chrome',
+          environment: 'production',
+          baseline: {
+            id: 'base-1',
+            testId: 'test-1',
+            type: 'BASELINE',
+            imageHash: 'hash123',
+            imageUrl: 'http://example.com/base.png',
+            pageCount: 2,
+            pixelDiffThreshold: 0.1,
+            createdAt: baseline.createdAt,
+          },
+        },
+        hasAnyVariant: true,
+      });
+    });
+
+    it('reports a null baseline when the resolved variant has none yet', async () => {
+      mockClient.unifiedVariant.findFirst.mockResolvedValue({
+        viewport: '1280x720',
+        browser: 'chrome',
+        environment: 'production',
+        baseline: null,
+      });
+
+      const result = await store.findReviewVariantRow('test-1');
+
+      expect(result).toEqual({
+        variant: {
+          viewport: '1280x720',
+          browser: 'chrome',
+          environment: 'production',
+          baseline: null,
+        },
+        hasAnyVariant: true,
+      });
+    });
+
+    it('distinguishes no matching variant from no variants at all', async () => {
+      mockClient.unifiedVariant.findFirst.mockResolvedValueOnce(null);
+      mockClient.unifiedVariant.findFirst.mockResolvedValueOnce({ id: 'v-1' });
+
+      const result = await store.findReviewVariantRow('test-1', {
+        viewport: '999x999',
+      });
+
+      expect(mockClient.unifiedVariant.findFirst).toHaveBeenLastCalledWith({
+        where: { testId: 'test-1' },
+        select: { id: true },
+      });
+      expect(result).toEqual({ variant: null, hasAnyVariant: true });
+    });
+
+    it('reports hasAnyVariant false when the test has no variants at all', async () => {
+      mockClient.unifiedVariant.findFirst.mockResolvedValueOnce(null);
+      mockClient.unifiedVariant.findFirst.mockResolvedValueOnce(null);
+
+      const result = await store.findReviewVariantRow('test-1', {
+        viewport: '999x999',
+      });
+
+      expect(result).toEqual({ variant: null, hasAnyVariant: false });
+    });
+  });
+
+  describe('deleteMany', () => {
+    it('deletes the given variant rows', async () => {
+      mockClient.unifiedVariant.deleteMany.mockResolvedValue({ count: 2 });
+
+      await store.deleteMany(['v-1', 'v-2']);
+
+      expect(mockClient.unifiedVariant.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: ['v-1', 'v-2'] } },
+      });
+    });
+
+    it('skips the write for an empty id list', async () => {
+      await store.deleteMany([]);
+
+      expect(mockClient.unifiedVariant.deleteMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('variant-filter resolution', () => {
     it('resolves a partial filter to exactly one variant, matching the read seam', async () => {
       mockClient.unifiedVariant.findFirst.mockResolvedValue({
@@ -290,6 +404,17 @@ describe('VariantStore', () => {
       const result = await store.findVariantBaselineIds('test-1');
 
       expect(result).toEqual(['b1', 'b2']);
+    });
+
+    it('returns an empty array without querying when the filter resolves no variants', async () => {
+      mockClient.unifiedVariant.findFirst.mockResolvedValue(null);
+
+      const result = await store.findVariantBaselineIds('test-1', {
+        viewport: '999x999',
+      });
+
+      expect(result).toEqual([]);
+      expect(mockClient.unifiedVariant.findMany).not.toHaveBeenCalled();
     });
   });
 });

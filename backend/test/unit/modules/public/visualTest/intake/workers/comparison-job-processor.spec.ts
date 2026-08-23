@@ -27,6 +27,7 @@ import {
   IMetricsRecorder,
 } from '@common/domain/metrics-recorder.interface';
 import { DomainError } from '@common/domain/domain-error';
+import { context, propagation } from '@opentelemetry/api';
 
 describe('ComparisonJobProcessor', () => {
   let processor: ComparisonJobProcessor;
@@ -197,6 +198,30 @@ describe('ComparisonJobProcessor', () => {
         Buffer.from('file-data'),
         Buffer.from('file-data'),
       );
+    });
+
+    it('restores the trace context from the job payload when present', async () => {
+      const traceContext = { traceparent: '00-abc-123-01' };
+      const job = makeJob({ ...imageJobData, traceContext });
+      const extractSpy = jest
+        .spyOn(propagation, 'extract')
+        .mockReturnValue({ traceId: 'extracted' } as never);
+      const withSpy = jest
+        .spyOn(context, 'with')
+        .mockImplementation((_ctx, fn) => fn());
+      screenshots.findCurrentByVariant.mockResolvedValue({
+        id: 'candidate-1',
+        imageHash: 'hash-from-upload',
+      });
+      imageEngine.compare.mockResolvedValue(imageUnchanged);
+
+      await processor.processJob(job);
+
+      expect(extractSpy).toHaveBeenCalledWith(expect.anything(), traceContext);
+      expect(withSpy).toHaveBeenCalled();
+
+      extractSpy.mockRestore();
+      withSpy.mockRestore();
     });
 
     it('processes a PDF job through the pdf engine', async () => {
@@ -595,6 +620,10 @@ describe('ComparisonJobProcessor', () => {
     });
 
     it('completes silently when the candidate object is missing (moot)', async () => {
+      screenshots.findCurrentByVariant.mockResolvedValue({
+        id: 'candidate-1',
+        imageHash: 'hash-from-upload',
+      });
       storage.get.mockRejectedValue(
         new DomainError('Object not found in storage', 'NOT_FOUND'),
       );
@@ -603,6 +632,7 @@ describe('ComparisonJobProcessor', () => {
         processor.processJob(makeJob(imageJobData)),
       ).resolves.toBeUndefined();
 
+      expect(storage.get).toHaveBeenCalledWith('http://storage/candidate.png');
       expect(reclamation.reclaimCandidateInChange).toHaveBeenCalledWith({
         testId: 'test-1',
         candidateId: 'candidate-1',

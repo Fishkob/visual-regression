@@ -143,6 +143,94 @@ describe('HealthChecker', () => {
     });
   });
 
+  describe('getBuildInfoData', () => {
+    it('returns the build info from app config plus the running node version', () => {
+      const result = checker.getBuildInfoData();
+
+      expect(result).toEqual({
+        version: '1.0.0',
+        commitHash: 'abc123',
+        buildTime: '2024-01-01T00:00:00Z',
+        nodeVersion: process.version,
+      });
+    });
+  });
+
+  describe('calculateStatus', () => {
+    it('reports unhealthy whenever there are errors, regardless of warnings', () => {
+      expect(checker.calculateStatus(['database'], [])).toBe('unhealthy');
+      expect(checker.calculateStatus(['database'], ['queues'])).toBe(
+        'unhealthy',
+      );
+    });
+
+    it('reports degraded for warnings only', () => {
+      expect(checker.calculateStatus([], ['queues'])).toBe('degraded');
+    });
+
+    it('reports ok when there are no errors or warnings', () => {
+      expect(checker.calculateStatus([], [])).toBe('ok');
+    });
+  });
+
+  describe('buildResponse', () => {
+    const checks: Record<string, HealthCheckResult> = {
+      database: { status: 'ok', latencyMs: 2 },
+      queues: { status: 'degraded', latencyMs: 5 },
+    };
+
+    it('aggregates a degraded status with a results map of each check status', () => {
+      const response = checker.buildResponse(checks, [], ['queues']);
+
+      expect(response.status).toBe('degraded');
+      expect(response.results).toEqual({
+        database: 'ok',
+        queues: 'degraded',
+      });
+      expect(response.warnings).toEqual(['queues']);
+      expect(response.errors).toBeUndefined();
+    });
+
+    it('reports unhealthy and includes errors when any check failed', () => {
+      const response = checker.buildResponse(
+        { ...checks, storage: { status: 'error' } },
+        ['storage'],
+        [],
+      );
+
+      expect(response.status).toBe('unhealthy');
+      expect(response.errors).toEqual(['storage']);
+      expect(response.warnings).toBeUndefined();
+    });
+
+    it('reports ok and omits both error and warning arrays when healthy', () => {
+      const response = checker.buildResponse(
+        { database: { status: 'ok', latencyMs: 2 } },
+        [],
+        [],
+      );
+
+      expect(response.status).toBe('ok');
+      expect(response.warnings).toBeUndefined();
+      expect(response.errors).toBeUndefined();
+    });
+
+    it('includes version, build info, uptime and raw checks', () => {
+      const response = checker.buildResponse(checks, [], []);
+
+      expect(response.timestamp).toEqual(expect.any(String));
+      expect(response.version).toBe('1.0.0');
+      expect(response.buildInfo).toEqual({
+        version: '1.0.0',
+        commitHash: 'abc123',
+        buildTime: '2024-01-01T00:00:00Z',
+        nodeVersion: process.version,
+      });
+      expect(response.uptime).toBeGreaterThanOrEqual(0);
+      expect(response.checks).toEqual(checks);
+    });
+  });
+
   describe('runCheck', () => {
     it('returns database check result when found', async () => {
       const result = await checker.runCheck('database');

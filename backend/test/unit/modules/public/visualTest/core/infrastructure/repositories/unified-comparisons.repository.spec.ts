@@ -166,6 +166,130 @@ describe('UnifiedComparisonsRepository', () => {
     });
   });
 
+  describe('findDiffImageUrlsByTestIds', () => {
+    it('returns the diff urls of comparisons for the given tests', async () => {
+      mockClient.unifiedComparison.findMany.mockResolvedValue([
+        {
+          diffImageUrl: 'http://storage/a.png',
+          diffPdfUrl: 'http://storage/a.pdf',
+        },
+        { diffImageUrl: '', diffPdfUrl: 'http://storage/b.pdf' },
+      ]);
+
+      const result = await repository.findDiffImageUrlsByTestIds([
+        'test-1',
+        'test-2',
+      ]);
+
+      expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith({
+        where: { testId: { in: ['test-1', 'test-2'] } },
+        select: { diffImageUrl: true, diffPdfUrl: true },
+      });
+      expect(result).toEqual([
+        'http://storage/a.png',
+        'http://storage/a.pdf',
+        'http://storage/b.pdf',
+      ]);
+    });
+
+    it('returns an empty array without querying when no test ids are given', async () => {
+      const result = await repository.findDiffImageUrlsByTestIds([]);
+
+      expect(result).toEqual([]);
+      expect(mockClient.unifiedComparison.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findReferencedDiffUrls', () => {
+    it('returns only the given urls that a comparison row references', async () => {
+      mockClient.unifiedComparison.findMany.mockResolvedValue([
+        { diffImageUrl: 'http://storage/shared.png', diffPdfUrl: null },
+        { diffImageUrl: null, diffPdfUrl: 'http://storage/other.pdf' },
+      ]);
+
+      const result = await repository.findReferencedDiffUrls([
+        'http://storage/shared.png',
+        'http://storage/unused.png',
+      ]);
+
+      expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            {
+              diffImageUrl: {
+                in: ['http://storage/shared.png', 'http://storage/unused.png'],
+              },
+            },
+            {
+              diffPdfUrl: {
+                in: ['http://storage/shared.png', 'http://storage/unused.png'],
+              },
+            },
+          ],
+        },
+        select: { diffImageUrl: true, diffPdfUrl: true },
+      });
+      expect(result).toEqual([
+        'http://storage/shared.png',
+        'http://storage/other.pdf',
+      ]);
+    });
+
+    it('returns an empty array without querying when no urls are given', async () => {
+      const result = await repository.findReferencedDiffUrls([]);
+
+      expect(result).toEqual([]);
+      expect(mockClient.unifiedComparison.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deletePendingByIds', () => {
+    it('deletes only pending comparisons with the given ids through the guarded cascade', async () => {
+      mockClient.unifiedComparison.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'comp-1',
+            diffImageUrl: 'http://storage/diff.png',
+            diffPdfUrl: null,
+            candidateId: 'cand-1',
+          },
+        ])
+        .mockResolvedValueOnce([]);
+      mockClient.unifiedComparison.deleteMany.mockResolvedValue({ count: 1 });
+
+      const result = await repository.deletePendingByIds('test-1', ['comp-1']);
+
+      expect(mockClient.unifiedComparison.findMany).toHaveBeenNthCalledWith(1, {
+        where: {
+          testId: 'test-1',
+          id: { in: ['comp-1'] },
+          status: 'PENDING_APPROVAL',
+        },
+        select: {
+          id: true,
+          diffImageUrl: true,
+          diffPdfUrl: true,
+          candidateId: true,
+        },
+      });
+      expect(mockClient.unifiedComparison.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: ['comp-1'] } },
+      });
+      expect(result).toEqual({
+        staleDiffUrls: ['http://storage/diff.png'],
+        candidateIds: ['cand-1'],
+      });
+    });
+
+    it('returns empty results without querying when no ids are given', async () => {
+      const result = await repository.deletePendingByIds('test-1', []);
+
+      expect(result).toEqual({ staleDiffUrls: [], candidateIds: [] });
+      expect(mockClient.unifiedComparison.findMany).not.toHaveBeenCalled();
+      expect(mockClient.unifiedComparison.deleteMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('findLatestReviewableUrlsByBaselineId', () => {
     it('returns only the candidate and diff urls with the reviewable status set', async () => {
       mockClient.unifiedComparison.findFirst.mockResolvedValue({

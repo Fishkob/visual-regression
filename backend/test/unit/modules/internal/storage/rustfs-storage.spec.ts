@@ -11,6 +11,7 @@ const { mockClient } = vi.hoisted(() => {
   const makeBucket = vi.fn();
   const putObject = vi.fn();
   const removeObject = vi.fn();
+  const removeObjects = vi.fn();
   const getObject = vi.fn();
   const statObject = vi.fn();
   const listObjects = vi.fn();
@@ -20,6 +21,7 @@ const { mockClient } = vi.hoisted(() => {
       makeBucket,
       putObject,
       removeObject,
+      removeObjects,
       getObject,
       statObject,
       listObjects,
@@ -341,6 +343,70 @@ describe('RustFsStorageService', () => {
       await expect(
         service.deleteQuietly('http://otherhost/not-valid.png'),
       ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('deletePrefix', () => {
+    it('lists objects under the prefix and removes them, returning the count', async () => {
+      mockClient.listObjects.mockReturnValue(
+        (async function* () {
+          yield { name: 'pdf-render/a.png' };
+          yield { name: 'pdf-render/b.png' };
+          yield {};
+        })(),
+      );
+      mockClient.removeObjects.mockResolvedValue(undefined);
+
+      const result = await service.deletePrefix('pdf-render/');
+
+      expect(mockClient.listObjects).toHaveBeenCalledWith(
+        'screenshots',
+        'pdf-render/',
+        true,
+      );
+      expect(mockClient.removeObjects).toHaveBeenCalledWith('screenshots', [
+        'pdf-render/a.png',
+        'pdf-render/b.png',
+      ]);
+      expect(result).toBe(2);
+    });
+
+    it('skips the removal when nothing matches the prefix', async () => {
+      mockClient.listObjects.mockReturnValue((async function* () {})());
+
+      const result = await service.deletePrefix('pdf-render/');
+
+      expect(result).toBe(0);
+      expect(mockClient.removeObjects).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('url seam passthroughs', () => {
+    it('maps an object name to its public url', () => {
+      expect(service.toPublicUrl('pdfs/page.png')).toBe(
+        'http://localhost:9000/screenshots/pdfs/page.png',
+      );
+    });
+
+    it('extracts an object name from a public url', () => {
+      expect(
+        service.fromUrl('http://localhost:9000/screenshots/file.png'),
+      ).toBe('file.png');
+    });
+
+    it('returns null for a url that does not belong to the bucket', () => {
+      expect(service.fromUrl('http://otherhost/screenshots/file.png')).toBe(
+        null,
+      );
+    });
+  });
+
+  describe('exists invalid url', () => {
+    it('returns false without querying storage when the url is not parseable', async () => {
+      const result = await service.exists('http://otherhost/not-valid.png');
+
+      expect(result).toBe(false);
+      expect(mockClient.statObject).not.toHaveBeenCalled();
     });
   });
 

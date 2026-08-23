@@ -90,6 +90,20 @@ describe('TestsQueriesController', () => {
     });
   });
 
+  describe('getKind', () => {
+    it('delegates to the query service with project and test names', async () => {
+      testQuery.getKind.mockResolvedValue('pdf' as never);
+
+      const result = await controller.getKind('checkout-ui', 'report.pdf');
+
+      expect(result).toBe('pdf');
+      expect(testQuery.getKind).toHaveBeenCalledWith(
+        'checkout-ui',
+        'report.pdf',
+      );
+    });
+  });
+
   const mockVariant = Variant.fromStrings('1920x1080', 'Chrome', 'ci');
   const mockBaseline = new ScreenshotEntity({
     id: 'ss-1',
