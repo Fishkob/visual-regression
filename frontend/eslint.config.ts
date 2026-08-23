@@ -3,9 +3,9 @@ import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import vueParser from "vue-eslint-parser";
 import prettier from "eslint-config-prettier";
-import type { Linter } from "eslint";
+import type { ESLint, Linter, Rule } from "eslint";
 
-const noTextSelectors = {
+const noTextSelectors: Rule.RuleModule = {
   meta: {
     type: "problem",
     docs: {
@@ -71,7 +71,7 @@ const config: Linter.FlatConfig[] = [
     },
     plugins: {
       vue,
-      "@typescript-eslint": tsPlugin,
+      "@typescript-eslint": tsPlugin as unknown as ESLint.Plugin,
     },
     rules: {
       "vue/multi-word-component-names": "off",
@@ -89,7 +89,6 @@ const config: Linter.FlatConfig[] = [
       parser: tsParser,
       parserOptions: {
         project: "./tsconfig.json",
-        tsconfigRootDir: process.cwd(),
         ecmaVersion: 2020,
         sourceType: "module",
       },
@@ -103,7 +102,7 @@ const config: Linter.FlatConfig[] = [
       },
     },
     plugins: {
-      "@typescript-eslint": tsPlugin,
+      "@typescript-eslint": tsPlugin as unknown as ESLint.Plugin,
     },
     rules: {
       "no-undef": "error",
@@ -134,7 +133,6 @@ const config: Linter.FlatConfig[] = [
           "./tsconfig.playwright.json",
           "./tests/e2e/tsconfig.json",
         ],
-        tsconfigRootDir: process.cwd(),
         ecmaVersion: 2020,
         sourceType: "module",
       },
@@ -143,7 +141,7 @@ const config: Linter.FlatConfig[] = [
       },
     },
     plugins: {
-      "@typescript-eslint": tsPlugin,
+      "@typescript-eslint": tsPlugin as unknown as ESLint.Plugin,
       playwright: {
         rules: {
           "no-text-selectors": noTextSelectors,
