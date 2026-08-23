@@ -32,11 +32,11 @@ describe('ProjectService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('deleteProject', () => {
-    it('should delegate to TestDeletionService', async () => {
+    it('delegates to TestDeletionService', async () => {
       testDeletion.deleteProject.mockResolvedValue(undefined);
 
       await service.deleteProject('my-project');
@@ -44,7 +44,7 @@ describe('ProjectService', () => {
       expect(testDeletion.deleteProject).toHaveBeenCalledWith('my-project');
     });
 
-    it('should propagate the not-found error from the deletion service', async () => {
+    it('propagates the not-found error from the deletion service', async () => {
       testDeletion.deleteProject.mockRejectedValue(
         new DomainError('Project "non-existent" not found', 'NOT_FOUND'),
       );
@@ -56,7 +56,7 @@ describe('ProjectService', () => {
   });
 
   describe('create', () => {
-    it('should delegate project creation to the repository', async () => {
+    it('delegates project creation to the repository', async () => {
       const created = {
         id: 'proj-1',
         name: 'my-project',
@@ -72,7 +72,7 @@ describe('ProjectService', () => {
   });
 
   describe('getAllWithPendingFlag', () => {
-    it('should return paginated projects with pending flag', async () => {
+    it('returns paginated projects with pending flag', async () => {
       const pagination = new PaginationDto();
       projectRead.getAllWithPendingFlag.mockResolvedValue({
         data: [
@@ -110,7 +110,7 @@ describe('ProjectService', () => {
   });
 
   describe('findAll', () => {
-    it('should return paginated projects mapped to DTO', async () => {
+    it('returns paginated projects mapped to DTO', async () => {
       const pagination = new PaginationDto();
       const createdAt = new Date('2024-01-01');
       projects.findAll.mockResolvedValue({
@@ -129,7 +129,7 @@ describe('ProjectService', () => {
   });
 
   describe('getWithLatestVariantStatuses', () => {
-    it('should return project with mapped variant statuses', async () => {
+    it('returns project with mapped variant statuses', async () => {
       const createdAt = new Date('2024-01-01');
       projectRead.getWithLatestVariantStatuses.mockResolvedValue({
         id: 'proj-1',
@@ -175,7 +175,7 @@ describe('ProjectService', () => {
       expect(result.visualTests![1].latestStatus).toBe(TestStatus.UNCHANGED);
     });
 
-    it('should throw DomainError when project not found', async () => {
+    it('throws DomainError when project not found', async () => {
       projectRead.getWithLatestVariantStatuses.mockResolvedValue(null);
 
       await expect(

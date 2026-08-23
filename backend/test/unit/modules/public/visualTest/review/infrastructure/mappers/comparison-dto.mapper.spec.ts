@@ -45,6 +45,10 @@ function createComparison(
   } as any);
 }
 describe('mapComparisonToDto', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('maps full comparison to dto', () => {
     const comparison = createComparison();
 

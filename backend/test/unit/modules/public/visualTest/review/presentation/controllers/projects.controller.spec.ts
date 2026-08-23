@@ -25,6 +25,10 @@ describe('ProjectsController', () => {
     controller = module.get(ProjectsController);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('getProjectsWithPendingFlag', () => {
     it('returns paginated projects with pending flag', async () => {
       projectService.getAllWithPendingFlag.mockResolvedValue({

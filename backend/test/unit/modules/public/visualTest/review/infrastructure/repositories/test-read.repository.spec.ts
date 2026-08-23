@@ -189,7 +189,7 @@ describe('TestReadRepository', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('getTestNames', () => {

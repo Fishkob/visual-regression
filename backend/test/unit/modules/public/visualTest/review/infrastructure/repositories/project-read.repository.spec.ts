@@ -38,7 +38,7 @@ describe('ProjectReadRepository', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('getWithLatestVariantStatuses', () => {

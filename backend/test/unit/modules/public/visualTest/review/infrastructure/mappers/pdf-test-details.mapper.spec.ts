@@ -73,6 +73,10 @@ function createResult(
 }
 
 describe('mapTestWithVariantsToPdfDetails', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('maps a full result to pdf details', () => {
     const dto = mapTestWithVariantsToPdfDetails(createResult());
 

@@ -21,6 +21,10 @@ describe('TestCommandsController', () => {
     controller = module.get(TestCommandsController);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('updateThreshold', () => {
     it('calls testCommandService.updateThreshold with params, body, and filters', async () => {
       const body: UpdateThresholdDto = { threshold: 50 };

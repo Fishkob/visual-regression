@@ -27,6 +27,10 @@ describe('PdfController', () => {
     controller = module.get(PdfController);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('getPdfTestDetails', () => {
     it('delegates to test query service with optional filters', async () => {
       const expected = { id: 'test-1' };

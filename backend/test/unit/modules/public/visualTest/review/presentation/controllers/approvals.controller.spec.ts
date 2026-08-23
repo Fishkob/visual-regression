@@ -19,6 +19,10 @@ describe('ApprovalsController', () => {
     controller = module.get(ApprovalsController);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('approveVisualTest', () => {
     it('approves the pinned comparison for the project and test', async () => {
       approvals.approveImage.mockResolvedValue({

@@ -32,6 +32,10 @@ describe('TestsQueriesController', () => {
     controller = module.get(TestsQueriesController);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('getTestsForProject', () => {
     it('filters tests by kind', async () => {
       testQuery.getTestNames.mockResolvedValue({

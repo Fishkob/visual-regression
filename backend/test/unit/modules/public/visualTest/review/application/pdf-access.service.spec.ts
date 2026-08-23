@@ -44,6 +44,10 @@ describe('PdfAccessService', () => {
     service = module.get(PdfAccessService);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('downloads the baseline PDF', async () => {
     const result = await service.download('proj', 'test', 'baseline', {
       viewport: '1920x1080',

@@ -183,12 +183,16 @@ describe('ApprovalService', () => {
     uow = uowLocal;
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('approveImage', () => {
     function mockResolvedTest() {
       testResolver.findTestOfKind.mockResolvedValue(imageTest);
     }
 
-    it('should approve an image test and return new baseline url', async () => {
+    it('approves an image test and returns new baseline url', async () => {
       const baseline = makeBaseline();
       const candidate = makeCandidate();
       const comparison = makeComparison(baseline, candidate);
@@ -258,7 +262,7 @@ describe('ApprovalService', () => {
       );
     });
 
-    it('should throw when project not found', async () => {
+    it('throws when project not found', async () => {
       testResolver.findTestOfKind.mockRejectedValue(
         new DomainError('Project "my-project" not found', 'NOT_FOUND'),
       );
@@ -267,7 +271,7 @@ describe('ApprovalService', () => {
       ).rejects.toThrow(DomainError);
     });
 
-    it('should throw when comparison is not found', async () => {
+    it('throws when comparison is not found', async () => {
       mockResolvedTest();
       comparisons.findByIdForTest.mockResolvedValue(null);
       await expect(
@@ -275,7 +279,7 @@ describe('ApprovalService', () => {
       ).rejects.toThrow(DomainError);
     });
 
-    it('should throw when comparison is no longer pending', async () => {
+    it('throws when comparison is no longer pending', async () => {
       mockResolvedTest();
       comparisons.findByIdForTest.mockResolvedValue(
         new ComparisonEntity({
@@ -294,7 +298,7 @@ describe('ApprovalService', () => {
       ).rejects.toMatchObject({ code: 'CONFLICT' });
     });
 
-    it('should throw when comparison missing baseline', async () => {
+    it('throws when comparison missing baseline', async () => {
       mockResolvedTest();
       const comparison = makeComparison(makeBaseline(), makeCandidate()) as any;
       comparison.baseline = null;
@@ -304,7 +308,7 @@ describe('ApprovalService', () => {
       ).rejects.toThrow(DomainError);
     });
 
-    it('should throw when comparison missing candidate', async () => {
+    it('throws when comparison missing candidate', async () => {
       mockResolvedTest();
       const comparison = makeComparison(makeBaseline(), makeCandidate()) as any;
       comparison.candidate = null;
@@ -381,7 +385,7 @@ describe('ApprovalService', () => {
       testResolver.findTestOfKind.mockResolvedValue(pdfTest);
     }
 
-    it('should approve a PDF test', async () => {
+    it('approves a PDF test', async () => {
       const comparison = makePdfComparison();
       mockResolvedPdfTest();
       comparisons.findByIdForTest.mockResolvedValue(comparison);
@@ -483,7 +487,7 @@ describe('ApprovalService', () => {
       );
     });
 
-    it('should throw when comparison is not found', async () => {
+    it('throws when comparison is not found', async () => {
       mockResolvedPdfTest();
       comparisons.findByIdForTest.mockResolvedValue(null);
       await expect(
@@ -503,7 +507,7 @@ describe('ApprovalService', () => {
       expect(comparisons.completePdfApproval).not.toHaveBeenCalled();
     });
 
-    it('should throw when pending comparison missing candidate', async () => {
+    it('throws when pending comparison missing candidate', async () => {
       mockResolvedPdfTest();
       const comparison = makePdfComparison() as any;
       comparison.candidate = null;

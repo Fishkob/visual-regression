@@ -31,6 +31,10 @@ describe('TestCommandService', () => {
     service = module.get<TestCommandService>(TestCommandService);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('updateThreshold', () => {
     beforeEach(() => {
       testResolver.findTestOfKind.mockResolvedValue({
