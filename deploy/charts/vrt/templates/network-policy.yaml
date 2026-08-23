@@ -128,26 +128,6 @@ spec:
       protocol: TCP
   policyTypes:
   - Ingress
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-from-rustfs-init-to-rustfs
-  namespace: {{ .Values.namespace }}
-spec:
-  podSelector:
-    matchLabels:
-      app: rustfs
-  ingress:
-  - from:
-    - podSelector:
-        matchLabels:
-          app: rustfs-init
-    ports:
-    - port: 9000
-      protocol: TCP
-  policyTypes:
-  - Ingress
 {{- if .Values.worker.enabled }}
 ---
 apiVersion: networking.k8s.io/v1

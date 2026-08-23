@@ -157,7 +157,6 @@ postgres:
 rustfs:
   enabled: true
   image: rustfs/rustfs:1.0.0-rc.3
-  mcImage: minio/mc:latest
   storage: 10Gi
   resources:
     requests:

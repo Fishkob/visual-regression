@@ -21,22 +21,23 @@ The backend can run locally or in production using **Docker Compose**.
 
 This repository uses **pnpm workspaces**. Build and run instructions follow below.
 
-| Variable                      | Description                                                             | Default                 |
-| ----------------------------- | ----------------------------------------------------------------------- | ----------------------- |
-| `POSTGRES_HOST`               | Database host                                                           | `localhost`             |
-| `POSTGRES_PORT`               | Database port                                                           | `5432`                  |
-| `POSTGRES_USER`               | Database user                                                           | `postgres`              |
-| `POSTGRES_PASSWORD`           | Database password                                                       | `postgres`              |
-| `POSTGRES_DB`                 | Database name                                                           | `vrt`                   |
-| `RUSTFS_ENDPOINT`             | Storage host                                                            | `localhost`             |
-| `RUSTFS_PORT`                 | Storage port                                                            | `9000`                  |
-| `RUSTFS_ACCESS_KEY`           | Storage access key                                                      | `minioadmin`            |
-| `RUSTFS_SECRET_KEY`           | Storage secret key                                                      | `minioadmin`            |
-| `RUSTFS_BUCKET`               | Storage bucket                                                          | `vrt`                   |
-| `RUSTFS_USE_SSL`              | Use SSL                                                                 | `false`                 |
-| `RUSTFS_PUBLIC_URL`           | Public URL                                                              | `http://localhost:9000` |
-| `CORS_ORIGIN`                 | Allowed CORS origins                                                    | `http://localhost:5173` |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP endpoint for OpenTelemetry tracing (optional — empty = no tracing) | `""`                    |
+| Variable                      | Description                                                                    | Default                 |
+| ----------------------------- | ------------------------------------------------------------------------------ | ----------------------- |
+| `POSTGRES_HOST`               | Database host                                                                  | `localhost`             |
+| `POSTGRES_PORT`               | Database port                                                                  | `5432`                  |
+| `POSTGRES_USER`               | Database user                                                                  | `postgres`              |
+| `POSTGRES_PASSWORD`           | Database password                                                              | `postgres`              |
+| `POSTGRES_DB`                 | Database name                                                                  | `vrt`                   |
+| `RUSTFS_ENDPOINT`             | Storage host                                                                   | `localhost`             |
+| `RUSTFS_PORT`                 | Storage port                                                                   | `9000`                  |
+| `RUSTFS_ACCESS_KEY`           | Storage access key                                                             | `minioadmin`            |
+| `RUSTFS_SECRET_KEY`           | Storage secret key                                                             | `minioadmin`            |
+| `RUSTFS_BUCKET`               | Storage bucket                                                                 | `vrt`                   |
+| `RUSTFS_USE_SSL`              | Use SSL                                                                        | `false`                 |
+| `RUSTFS_PUBLIC_URL`           | Public URL                                                                     | `http://localhost:9000` |
+| `RUSTFS_ENSURE_PUBLIC_BUCKET` | Set an anonymous-read bucket policy on startup (false for strict S3 providers) | `true`                  |
+| `CORS_ORIGIN`                 | Allowed CORS origins                                                           | `http://localhost:5173` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP endpoint for OpenTelemetry tracing (optional — empty = no tracing)        | `""`                    |
 
 For Docker, these are set automatically in `docker-compose.yml`.
 

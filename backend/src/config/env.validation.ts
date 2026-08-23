@@ -28,6 +28,11 @@ export const envValidationSchema = Joi.object({
   RUSTFS_BUCKET: required,
   RUSTFS_PUBLIC_URL: requiredUrl,
   RUSTFS_USE_SSL: Joi.boolean().default(false),
+  RUSTFS_ENSURE_PUBLIC_BUCKET: Joi.boolean()
+    .default(true)
+    .description(
+      'Set an anonymous read (s3:GetObject) bucket policy on startup, replacing the former mc init step. Disable for strict S3 providers (e.g. AWS S3 with a public-access block) and configure the policy out-of-band.',
+    ),
 
   // CORS
   CORS_ORIGIN: Joi.string().default('http://localhost:5173'),

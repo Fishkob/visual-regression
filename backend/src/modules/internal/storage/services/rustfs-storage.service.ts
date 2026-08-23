@@ -1,5 +1,16 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { Client } from 'minio';
+import {
+  S3Client,
+  CreateBucketCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  GetObjectCommand,
+  HeadBucketCommand,
+  HeadObjectCommand,
+  ListObjectsV2Command,
+  PutBucketPolicyCommand,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { AppConfigService } from '@config/app-config.service';
 import {
@@ -21,7 +32,7 @@ const DELETE_CONCURRENCY = 10;
 
 @Injectable()
 export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
-  private readonly client: Client;
+  private readonly client: S3Client;
   private readonly bucket: string;
   private bucketReady: Promise<void> | null = null;
 
@@ -39,12 +50,14 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
     } = this.appConfig.rustfs;
     this.bucket = this.appConfig.rustfs.bucket;
 
-    this.client = new Client({
-      endPoint: endpoint,
-      port,
-      useSSL: isSslEnabled,
-      accessKey,
-      secretKey,
+    this.client = new S3Client({
+      endpoint: `${isSslEnabled ? 'https' : 'http'}://${endpoint}:${port}`,
+      region: 'us-east-1',
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: accessKey,
+        secretAccessKey: secretKey,
+      },
     });
 
     this.logger.log('Initialized RustFsStorageService', {
@@ -76,7 +89,7 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
   // A timeout alone only rejects the caller — the underlying RustFS stream keeps
   // draining into memory and holds the connection. This variant hands the
   // stream to the work and destroys it when the timeout fires, so a slow read
-  // or list actually stops instead of piling up buffered chunks.
+  // actually stops instead of piling up buffered chunks.
   private withStreamTimeout<T>(
     operationName: string,
     work: (onStream: (stream: { destroy?: () => void }) => void) => Promise<T>,
@@ -125,14 +138,13 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
         this.readObject(objectName, onStream),
       );
     } catch (err) {
-      const code = (err as { code?: string })?.code;
       const detail = err instanceof Error ? err.message : String(err);
       this.logger.error(
         `Failed to get object ${objectName}`,
         err instanceof Error ? err.stack : String(err),
         { bucket: this.bucket },
       );
-      if (code === 'NotFound' || code === 'NoSuchKey') {
+      if (this.isMissingObjectError(err)) {
         throw new DomainError('Object not found in storage', 'NOT_FOUND');
       }
       throw new DomainError(
@@ -146,11 +158,16 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
     objectName: string,
     onStream: (stream: { destroy?: () => void }) => void,
   ): Promise<Buffer> {
-    const stream = await this.client.getObject(this.bucket, objectName);
+    const response = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: objectName }),
+    );
+    const stream = response.Body as unknown as AsyncIterable<Uint8Array> & {
+      destroy?: () => void;
+    };
     onStream(stream);
     const chunks: Buffer[] = [];
     for await (const chunk of stream) {
-      chunks.push(chunk as Buffer);
+      chunks.push(Buffer.from(chunk));
     }
     return Buffer.concat(chunks);
   }
@@ -167,7 +184,9 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
     try {
       await this.withTimeout(
         'delete',
-        this.client.removeObject(this.bucket, objectName),
+        this.client.send(
+          new DeleteObjectCommand({ Bucket: this.bucket, Key: objectName }),
+        ),
       );
       this.logger.log(`Deleted image ${objectName} from bucket ${this.bucket}`);
     } catch (err) {
@@ -190,17 +209,14 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
 
   async deletePrefix(prefix: string): Promise<number> {
     // The list phase is bounded like every other RustFS call: a hung list
-    // stream otherwise leaves the maintenance task's advisory lock held
-    // forever (see withCronJob) and silently skips every future run. The list
-    // stream is destroyed on timeout so a hung listing stops draining.
-    const objects = await this.withStreamTimeout('listObjects', (onStream) =>
-      this.collectObjectNames(prefix, onStream),
+    // otherwise leaves the maintenance task's advisory lock held
+    // forever (see withCronJob) and silently skips every future run.
+    const objects = await this.withTimeout(
+      'listObjects',
+      this.collectObjectNames(prefix),
     );
     if (objects.length === 0) return 0;
-    await this.withTimeout(
-      'deletePrefix',
-      this.client.removeObjects(this.bucket, objects),
-    );
+    await this.withTimeout('deletePrefix', this.deleteObjectsChunked(objects));
     this.logger.log(`Deleted ${objects.length} objects with prefix ${prefix}`);
     return objects.length;
   }
@@ -209,43 +225,69 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
     prefix: string,
     timeoutMs: number = RUSTFS_OPERATION_TIMEOUT_MS,
   ): Promise<StorageObjectMetadata[]> {
-    return this.withStreamTimeout(
+    return this.withTimeout(
       'listObjects',
-      (onStream) => this.collectObjectMetadata(prefix, onStream),
+      this.collectObjectMetadata(prefix),
       timeoutMs,
     );
   }
 
-  private async collectObjectNames(
-    prefix: string,
-    onStream: (stream: { destroy?: () => void }) => void,
-  ): Promise<string[]> {
-    const objectsList = this.client.listObjects(this.bucket, prefix, true);
-    onStream(objectsList);
-    const objects: string[] = [];
-    for await (const obj of objectsList) {
-      const item = obj as { name?: string };
-      if (item.name) objects.push(item.name);
+  private async deleteObjectsChunked(keys: string[]): Promise<void> {
+    // S3 caps a single DeleteObjects request at 1000 keys.
+    const MAX_KEYS_PER_REQUEST = 1000;
+    for (let i = 0; i < keys.length; i += MAX_KEYS_PER_REQUEST) {
+      const chunk = keys.slice(i, i + MAX_KEYS_PER_REQUEST);
+      await this.client.send(
+        new DeleteObjectsCommand({
+          Bucket: this.bucket,
+          Delete: { Objects: chunk.map((key) => ({ Key: key })) },
+        }),
+      );
     }
+  }
+
+  private async collectObjectNames(prefix: string): Promise<string[]> {
+    const objects: string[] = [];
+    let continuationToken: string | undefined;
+    do {
+      const response = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      );
+      for (const item of response.Contents ?? []) {
+        if (item.Key) objects.push(item.Key);
+      }
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
     return objects;
   }
 
   private async collectObjectMetadata(
     prefix: string,
-    onStream: (stream: { destroy?: () => void }) => void,
   ): Promise<StorageObjectMetadata[]> {
-    const objectsList = this.client.listObjects(this.bucket, prefix, true);
-    onStream(objectsList);
     const objects: StorageObjectMetadata[] = [];
-    for await (const obj of objectsList) {
-      const item = obj as { name?: string; lastModified?: Date | null };
-      if (item.name) {
-        objects.push({
-          name: item.name,
-          lastModified: item.lastModified ?? null,
-        });
+    let continuationToken: string | undefined;
+    do {
+      const response = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      );
+      for (const item of response.Contents ?? []) {
+        if (item.Key) {
+          objects.push({
+            name: item.Key,
+            lastModified: item.LastModified ?? null,
+          });
+        }
       }
-    }
+      continuationToken = response.NextContinuationToken;
+    } while (continuationToken);
     return objects;
   }
 
@@ -286,12 +328,13 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
     try {
       await this.withTimeout(
         'exists',
-        this.client.statObject(this.bucket, objectName),
+        this.client.send(
+          new HeadObjectCommand({ Bucket: this.bucket, Key: objectName }),
+        ),
       );
       return true;
     } catch (err) {
-      const code = (err as { code?: string })?.code;
-      if (code === 'NotFound' || code === 'NoSuchKey') return false;
+      if (this.isMissingObjectError(err)) return false;
       const detail = err instanceof Error ? err.message : String(err);
       throw new DomainError(
         `Failed to check object existence: ${detail}`,
@@ -313,7 +356,7 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
   async healthCheck(): Promise<void> {
     const hasBucket = await this.withTimeout(
       'healthCheck',
-      this.client.bucketExists(this.bucket),
+      this.bucketExists(),
     );
     if (!hasBucket) {
       this.logger.error('Health check failed: bucket missing', undefined, {
@@ -333,13 +376,16 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
 
   private async verifyBucket(): Promise<void> {
     try {
-      const hasBucket = await this.client.bucketExists(this.bucket);
+      const hasBucket = await this.bucketExists();
       if (!hasBucket) {
-        await this.client.makeBucket(this.bucket);
+        await this.client.send(
+          new CreateBucketCommand({ Bucket: this.bucket }),
+        );
         this.logger.log(`Created missing bucket "${this.bucket}"`);
       } else {
         this.logger.debug(`Bucket "${this.bucket}" already exists`);
       }
+      await this.ensurePublicReadPolicy();
     } catch (err) {
       this.logger.error(
         'Failed to verify or create bucket',
@@ -351,6 +397,72 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
         'INTERNAL_ERROR',
       );
     }
+  }
+
+  private async bucketExists(): Promise<boolean> {
+    try {
+      await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
+      return true;
+    } catch (err) {
+      if (this.isMissingObjectError(err)) return false;
+      throw err;
+    }
+  }
+
+  // Replaces the former `mc anonymous set download` init step: the browser
+  // loads screenshots straight from RustFS, so the bucket must allow anonymous
+  // reads. Tolerates failure (logged as a warning) exactly like mc's `|| true`
+  // did — a strict provider (e.g. AWS S3 with a public-access block) must be
+  // configured out-of-band instead.
+  private async ensurePublicReadPolicy(): Promise<void> {
+    if (!this.appConfig.rustfs.ensurePublicBucket) return;
+    try {
+      await this.withTimeout(
+        'setBucketPolicy',
+        this.client.send(
+          new PutBucketPolicyCommand({
+            Bucket: this.bucket,
+            Policy: this.publicReadPolicy(),
+          }),
+        ),
+      );
+      this.logger.log(`Bucket "${this.bucket}" is publicly readable`);
+    } catch (err) {
+      this.logger.warn(
+        `Failed to set public-read policy on bucket "${this.bucket}"`,
+        { error: err instanceof Error ? err.message : String(err) },
+      );
+    }
+  }
+
+  private publicReadPolicy(): string {
+    return JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Principal: { AWS: '*' },
+          Action: ['s3:GetObject'],
+          Resource: [`arn:aws:s3:::${this.bucket}/*`],
+        },
+      ],
+    });
+  }
+
+  private isMissingObjectError(err: unknown): boolean {
+    const e = err as {
+      name?: string;
+      code?: string;
+      $metadata?: { httpStatusCode?: number };
+    };
+    return (
+      e?.name === 'NotFound' ||
+      e?.name === 'NoSuchKey' ||
+      e?.name === 'NoSuchBucket' ||
+      e?.code === 'NotFound' ||
+      e?.code === 'NoSuchKey' ||
+      e?.$metadata?.httpStatusCode === 404
+    );
   }
 
   private async putObjectInternal(
@@ -370,9 +482,14 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
 
       await this.withTimeout(
         'upload',
-        this.client.putObject(this.bucket, filename, buffer, undefined, {
-          'Content-Type': contentType,
-        }),
+        this.client.send(
+          new PutObjectCommand({
+            Bucket: this.bucket,
+            Key: filename,
+            Body: buffer,
+            ContentType: contentType,
+          }),
+        ),
       );
 
       const fileUrl = this.objectNames.toPublicUrl(filename);
@@ -396,16 +513,8 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
   async onModuleDestroy(): Promise<void> {
     this.logger.log('Shutting down RustFsStorageService...');
     try {
-      const clientWithClose = this.client as Partial<Client> & {
-        close?: () => void | Promise<void>;
-      };
-      if (typeof clientWithClose.close === 'function') {
-        const result = clientWithClose.close();
-        if (result instanceof Promise) {
-          await result;
-        }
-        this.logger.log('RustFS client connection closed');
-      }
+      this.client.destroy();
+      this.logger.log('RustFS client connection closed');
     } catch (err) {
       this.logger.warn('RustFsStorageService shutdown failed', {
         error: err instanceof Error ? err.message : String(err),

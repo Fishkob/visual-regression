@@ -50,6 +50,10 @@ export class AppConfigService {
       secretKey: this.config.getOrThrow<string>('RUSTFS_SECRET_KEY'),
       bucket: this.config.getOrThrow<string>('RUSTFS_BUCKET'),
       publicUrl: this.config.getOrThrow<string>('RUSTFS_PUBLIC_URL'),
+      // `!== false` so an unset value (Joi default true) leaves the policy
+      // step enabled and only an explicit `false` turns it off.
+      ensurePublicBucket:
+        this.config.get<boolean>('RUSTFS_ENSURE_PUBLIC_BUCKET') !== false,
     };
   }
 

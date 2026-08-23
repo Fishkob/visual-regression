@@ -89,7 +89,7 @@ After the backend is running, populate the database with demo projects and scree
 pnpm run dev:seed
 ```
 
-**RustFS Console:** http://localhost:9001 (login: `minioadmin` / `minioadmin`)
+**RustFS Console:** http://localhost:9001 (login: `minioadmin` / `minioadmin` — the RustFS default root credentials; override via `RUSTFS_ROOT_USER` / `RUSTFS_ROOT_PASSWORD` in the root `.env` for Docker deployments)
 
 ---
 
@@ -134,7 +134,16 @@ The **local dev** flow creates `backend/.env.local` and `frontend/.env.local` fr
 | `frontend/.env.local` | frontend runtime  | `dev.sh` (from `.example`) |
 | `.env.local` examples | —                 | git-tracked templates      |
 
-For Docker deployments, Compose reads root `.env` automatically (defaults cover everything except production credentials).
+For Docker deployments, Compose reads the root `.env` automatically. Set the **production credentials** there so both the servers and the app use the same values — the Compose files interpolate these variables (a mismatch between e.g. the PostgreSQL container and the backend's `DATABASE_URL` silently breaks startup):
+
+| Variable                                              | Controls                                  |
+| ----------------------------------------------------- | ----------------------------------------- |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | PostgreSQL container + backend connection |
+| `RUSTFS_ROOT_USER` / `RUSTFS_ROOT_PASSWORD`           | RustFS root credentials (server + app)    |
+| `RUSTFS_BUCKET`                                       | Storage bucket name                       |
+| `CORS_ORIGIN`                                         | Allowed browser origins                   |
+
+The backend creates the storage bucket on startup and, by default, marks it **public-read** (the browser loads screenshots directly from RustFS). Set `RUSTFS_ENSURE_PUBLIC_BUCKET=false` when using a strict S3 provider (e.g. AWS S3 with a public-access block) and configure the bucket policy out-of-band.
 
 ---
 

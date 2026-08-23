@@ -5,36 +5,48 @@ import { AppLoggerService } from '@common/logging/app-logger.service';
 import { AppConfigService } from '@config/app-config.service';
 import { DomainError } from '@common/domain/domain-error';
 import { createMockLogger } from '@test/utils/mocks';
-import { Client } from 'minio';
-const { mockClient } = vi.hoisted(() => {
-  const bucketExists = vi.fn();
-  const makeBucket = vi.fn();
-  const putObject = vi.fn();
-  const removeObject = vi.fn();
-  const removeObjects = vi.fn();
-  const getObject = vi.fn();
-  const statObject = vi.fn();
-  const listObjects = vi.fn();
+
+const { mockClient } = vi.hoisted(() => ({
+  mockClient: { send: vi.fn(), destroy: vi.fn() },
+}));
+
+vi.mock('@aws-sdk/client-s3', () => {
+  class MockS3Client {
+    constructor(public readonly config: Record<string, unknown>) {}
+    send = mockClient.send;
+    destroy = mockClient.destroy;
+  }
+  function makeCommand(name: string) {
+    return class {
+      readonly __name = name;
+      constructor(public readonly input: Record<string, unknown>) {}
+    };
+  }
   return {
-    mockClient: {
-      bucketExists,
-      makeBucket,
-      putObject,
-      removeObject,
-      removeObjects,
-      getObject,
-      statObject,
-      listObjects,
-    },
+    S3Client: MockS3Client,
+    CreateBucketCommand: makeCommand('CreateBucketCommand'),
+    DeleteObjectCommand: makeCommand('DeleteObjectCommand'),
+    DeleteObjectsCommand: makeCommand('DeleteObjectsCommand'),
+    GetObjectCommand: makeCommand('GetObjectCommand'),
+    HeadBucketCommand: makeCommand('HeadBucketCommand'),
+    HeadObjectCommand: makeCommand('HeadObjectCommand'),
+    ListObjectsV2Command: makeCommand('ListObjectsV2Command'),
+    PutBucketPolicyCommand: makeCommand('PutBucketPolicyCommand'),
+    PutObjectCommand: makeCommand('PutObjectCommand'),
   };
 });
 
-vi.mock('minio', () => {
-  const MockClient = vi.fn(function () {
-    return mockClient;
-  });
-  return { Client: MockClient };
-});
+type MockCommand = { __name: string; input: Record<string, unknown> };
+
+function sentCommands(name: string): MockCommand[] {
+  return mockClient.send.mock.calls
+    .map((call) => call[0] as MockCommand)
+    .filter((cmd) => cmd.__name === name);
+}
+
+function sentCommand(name: string): MockCommand | undefined {
+  return sentCommands(name)[0];
+}
 
 const mockLogger = createMockLogger();
 
@@ -48,6 +60,7 @@ const mockAppConfig = {
     secretKey: 'minioadmin',
     bucket: 'screenshots',
     publicUrl: 'http://localhost:9000',
+    ensurePublicBucket: false,
   },
 };
 
@@ -66,7 +79,8 @@ describe('RustFsStorageService', () => {
 
     service = module.get(RustFsStorageService);
 
-    vi.clearAllMocks();
+    mockClient.send.mockReset();
+    mockClient.destroy.mockReset();
   });
 
   afterEach(() => {
@@ -75,8 +89,7 @@ describe('RustFsStorageService', () => {
 
   describe('putObject', () => {
     it('uploads image successfully', async () => {
-      mockClient.bucketExists.mockResolvedValue(true);
-      mockClient.putObject.mockResolvedValue(undefined);
+      mockClient.send.mockResolvedValue({});
 
       const result = await service.putObject(
         'test.png',
@@ -84,15 +97,23 @@ describe('RustFsStorageService', () => {
         'image/png',
       );
 
-      expect(mockClient.bucketExists).toHaveBeenCalledWith('screenshots');
-      expect(mockClient.putObject).toHaveBeenCalled();
+      expect(sentCommand('HeadBucketCommand')?.input).toEqual({
+        Bucket: 'screenshots',
+      });
+      expect(sentCommand('PutObjectCommand')?.input).toEqual({
+        Bucket: 'screenshots',
+        Key: 'test.png',
+        Body: Buffer.from('abc'),
+        ContentType: 'image/png',
+      });
       expect(result).toBe('http://localhost:9000/screenshots/test.png');
     });
 
     it('creates bucket if it does not exist', async () => {
-      mockClient.bucketExists.mockResolvedValue(false);
-      mockClient.makeBucket.mockResolvedValue(undefined);
-      mockClient.putObject.mockResolvedValue(undefined);
+      mockClient.send
+        .mockRejectedValueOnce({ name: 'NotFound' })
+        .mockResolvedValueOnce({})
+        .mockResolvedValueOnce({});
 
       const result = await service.putObject(
         'new.png',
@@ -100,13 +121,16 @@ describe('RustFsStorageService', () => {
         'image/png',
       );
 
-      expect(mockClient.makeBucket).toHaveBeenCalledWith('screenshots');
+      expect(sentCommand('CreateBucketCommand')?.input).toEqual({
+        Bucket: 'screenshots',
+      });
       expect(result).toBe('http://localhost:9000/screenshots/new.png');
     });
 
     it('throws DomainError on upload failure', async () => {
-      mockClient.bucketExists.mockResolvedValue(true);
-      mockClient.putObject.mockRejectedValue(new Error('upload failed'));
+      mockClient.send
+        .mockResolvedValueOnce({})
+        .mockRejectedValueOnce(new Error('upload failed'));
 
       await expect(
         service.putObject('fail.png', Buffer.from('123')),
@@ -114,23 +138,20 @@ describe('RustFsStorageService', () => {
     });
 
     it('falls back to octet-stream when mime lookup returns null', async () => {
-      mockClient.bucketExists.mockResolvedValue(true);
-      mockClient.putObject.mockResolvedValue(undefined);
+      mockClient.send.mockResolvedValue({});
 
       await service.putObject('file.unknown_ext', Buffer.from('abc'));
 
-      expect(mockClient.putObject).toHaveBeenCalledWith(
-        'screenshots',
-        'file.unknown_ext',
-        Buffer.from('abc'),
-        undefined,
-        { 'Content-Type': 'application/octet-stream' },
+      expect(sentCommand('PutObjectCommand')?.input).toEqual(
+        expect.objectContaining({
+          Key: 'file.unknown_ext',
+          ContentType: 'application/octet-stream',
+        }),
       );
     });
 
     it('uses the caller-provided mime type verbatim instead of re-deriving it from the filename', async () => {
-      mockClient.bucketExists.mockResolvedValue(true);
-      mockClient.putObject.mockResolvedValue(undefined);
+      mockClient.send.mockResolvedValue({});
 
       await service.putObject(
         'document',
@@ -138,12 +159,11 @@ describe('RustFsStorageService', () => {
         'application/pdf',
       );
 
-      expect(mockClient.putObject).toHaveBeenCalledWith(
-        'screenshots',
-        'document',
-        Buffer.from('abc'),
-        undefined,
-        { 'Content-Type': 'application/pdf' },
+      expect(sentCommand('PutObjectCommand')?.input).toEqual(
+        expect.objectContaining({
+          Key: 'document',
+          ContentType: 'application/pdf',
+        }),
       );
     });
   });
@@ -151,38 +171,39 @@ describe('RustFsStorageService', () => {
   describe('get', () => {
     it('extracts object name and returns the image buffer', async () => {
       const url = 'http://localhost:9000/screenshots/file.png';
-      mockClient.getObject.mockResolvedValue(
-        (async function* () {
+      mockClient.send.mockResolvedValue({
+        Body: (async function* () {
           yield Buffer.from('image-data');
         })(),
-      );
+      });
 
       const result = await service.get(url);
 
-      expect(mockClient.getObject).toHaveBeenCalledWith(
-        'screenshots',
-        'file.png',
-      );
+      expect(sentCommand('GetObjectCommand')?.input).toEqual({
+        Bucket: 'screenshots',
+        Key: 'file.png',
+      });
       expect(result).toEqual(Buffer.from('image-data'));
     });
 
     it('throws error if URL is invalid', async () => {
       const url = 'http://otherhost/not-valid.png';
       await expect(service.get(url)).rejects.toThrow(DomainError);
+      expect(mockClient.send).not.toHaveBeenCalled();
     });
   });
 
   describe('delete', () => {
     it('extracts object name and deletes image', async () => {
       const url = 'http://localhost:9000/screenshots/delete-me.png';
-      mockClient.removeObject.mockResolvedValue(undefined);
+      mockClient.send.mockResolvedValue({});
 
       await service.delete(url);
 
-      expect(mockClient.removeObject).toHaveBeenCalledWith(
-        'screenshots',
-        'delete-me.png',
-      );
+      expect(sentCommand('DeleteObjectCommand')?.input).toEqual({
+        Bucket: 'screenshots',
+        Key: 'delete-me.png',
+      });
     });
 
     it('throws error if URL is invalid', async () => {
@@ -192,82 +213,48 @@ describe('RustFsStorageService', () => {
 
     it('throws error if deletion fails', async () => {
       const url = 'http://localhost:9000/screenshots/fail.png';
-      mockClient.removeObject.mockRejectedValue(new Error('oops'));
+      mockClient.send.mockRejectedValue(new Error('oops'));
 
       await expect(service.delete(url)).rejects.toThrow(DomainError);
     });
 
     it('handles non-Error throws from delete', async () => {
       const url = 'http://localhost:9000/screenshots/fail.png';
-      mockClient.removeObject.mockRejectedValue('string error');
+      mockClient.send.mockRejectedValue('string error');
 
       await expect(service.delete(url)).rejects.toThrow(DomainError);
     });
   });
 
   describe('onModuleDestroy', () => {
-    it('calls client.close when available', async () => {
-      (mockClient as any).close = vi.fn().mockResolvedValue(undefined);
+    it('destroys the underlying client', async () => {
       await service.onModuleDestroy();
-      expect((mockClient as any).close).toHaveBeenCalled();
-      delete (mockClient as any).close;
+      expect(mockClient.destroy).toHaveBeenCalled();
     });
 
-    it('handles close failure gracefully', async () => {
-      (mockClient as any).close = vi
-        .fn()
-        .mockRejectedValue(new Error('close failed'));
+    it('handles destroy failure gracefully', async () => {
+      mockClient.destroy.mockImplementation(() => {
+        throw new Error('destroy failed');
+      });
       await expect(service.onModuleDestroy()).resolves.toBeUndefined();
       expect(mockLogger.warn).toHaveBeenCalledWith(
         'RustFsStorageService shutdown failed',
-        { error: 'close failed' },
+        { error: 'destroy failed' },
       );
-      delete (mockClient as Record<string, unknown>).close;
-    });
-
-    it('skips close when not available on client', async () => {
-      if (typeof (mockClient as any).close === 'function') {
-        delete (mockClient as any).close;
-      }
-      await service.onModuleDestroy();
-      expect(mockLogger.log).toHaveBeenCalledWith(
-        'Shutting down RustFsStorageService...',
-      );
-    });
-
-    it('handles close returning non-Promise value', async () => {
-      (mockClient as any).close = vi.fn().mockReturnValue(undefined);
-      await service.onModuleDestroy();
-      expect(mockLogger.log).toHaveBeenCalledWith(
-        'RustFS client connection closed',
-      );
-      delete (mockClient as any).close;
-    });
-
-    it('handles non-Error throws from close', async () => {
-      (mockClient as any).close = vi.fn().mockRejectedValue('string error');
-      await service.onModuleDestroy();
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        'RustFsStorageService shutdown failed',
-        { error: 'string error' },
-      );
-      delete (mockClient as any).close;
     });
   });
 
   describe('ensureBucket error path', () => {
-    it('throws DomainError when bucketExists fails', async () => {
-      mockClient.bucketExists.mockRejectedValue(
-        new Error('connection refused'),
-      );
+    it('throws DomainError when HeadBucket fails', async () => {
+      mockClient.send.mockRejectedValue(new Error('connection refused'));
 
       await expect(
         service.putObject('test.png', Buffer.from('abc'), 'image/png'),
       ).rejects.toThrow(DomainError);
     });
 
-    it('handles non-Error throws from bucketExists', async () => {
-      mockClient.bucketExists.mockRejectedValue('string error');
+    it('handles non-Error throws from HeadBucket', async () => {
+      mockClient.send.mockRejectedValue('string error');
 
       await expect(
         service.putObject('test.png', Buffer.from('abc'), 'image/png'),
@@ -278,21 +265,21 @@ describe('RustFsStorageService', () => {
   describe('get error path', () => {
     it('throws DomainError when getObject fails', async () => {
       const url = 'http://localhost:9000/screenshots/file.png';
-      mockClient.getObject.mockRejectedValue(new Error('object not found'));
+      mockClient.send.mockRejectedValue(new Error('object not found'));
 
       await expect(service.get(url)).rejects.toThrow(DomainError);
     });
 
     it('handles non-Error throws from getObject', async () => {
       const url = 'http://localhost:9000/screenshots/file.png';
-      mockClient.getObject.mockRejectedValue('string error');
+      mockClient.send.mockRejectedValue('string error');
 
       await expect(service.get(url)).rejects.toThrow(DomainError);
     });
 
     it('maps a missing object to a NOT_FOUND DomainError', async () => {
       const url = 'http://localhost:9000/screenshots/file.png';
-      mockClient.getObject.mockRejectedValue({ code: 'NotFound' });
+      mockClient.send.mockRejectedValue({ name: 'NotFound' });
 
       await expect(service.get(url)).rejects.toMatchObject({
         code: 'NOT_FOUND',
@@ -301,7 +288,7 @@ describe('RustFsStorageService', () => {
 
     it('maps an S3 NoSuchKey error to a NOT_FOUND DomainError', async () => {
       const url = 'http://localhost:9000/screenshots/file.png';
-      mockClient.getObject.mockRejectedValue({ code: 'NoSuchKey' });
+      mockClient.send.mockRejectedValue({ name: 'NoSuchKey' });
 
       await expect(service.get(url)).rejects.toMatchObject({
         code: 'NOT_FOUND',
@@ -310,14 +297,14 @@ describe('RustFsStorageService', () => {
 
     it('keeps the underlying cause in the retrieval error', async () => {
       const url = 'http://localhost:9000/screenshots/file.png';
-      mockClient.getObject.mockRejectedValue(new Error('connection reset'));
+      mockClient.send.mockRejectedValue(new Error('connection reset'));
 
       await expect(service.get(url)).rejects.toThrow(/connection reset/);
     });
 
     it('keeps the underlying cause in the deletion error', async () => {
       const url = 'http://localhost:9000/screenshots/file.png';
-      mockClient.removeObject.mockRejectedValue(new Error('permission denied'));
+      mockClient.send.mockRejectedValue(new Error('permission denied'));
 
       await expect(service.delete(url)).rejects.toThrow(/permission denied/);
     });
@@ -326,19 +313,19 @@ describe('RustFsStorageService', () => {
   describe('deleteQuietly', () => {
     it('deletes the object without throwing on success', async () => {
       const url = 'http://localhost:9000/screenshots/quiet.png';
-      mockClient.removeObject.mockResolvedValue(undefined);
+      mockClient.send.mockResolvedValue({});
 
       await expect(service.deleteQuietly(url)).resolves.toBeUndefined();
 
-      expect(mockClient.removeObject).toHaveBeenCalledWith(
-        'screenshots',
-        'quiet.png',
-      );
+      expect(sentCommand('DeleteObjectCommand')?.input).toEqual({
+        Bucket: 'screenshots',
+        Key: 'quiet.png',
+      });
     });
 
     it('swallows deletion failures instead of throwing', async () => {
       const url = 'http://localhost:9000/screenshots/quiet-fail.png';
-      mockClient.removeObject.mockRejectedValue(new Error('oops'));
+      mockClient.send.mockRejectedValue(new Error('oops'));
 
       await expect(service.deleteQuietly(url)).resolves.toBeUndefined();
     });
@@ -352,36 +339,34 @@ describe('RustFsStorageService', () => {
 
   describe('deletePrefix', () => {
     it('lists objects under the prefix and removes them, returning the count', async () => {
-      mockClient.listObjects.mockReturnValue(
-        (async function* () {
-          yield { name: 'pdf-render/a.png' };
-          yield { name: 'pdf-render/b.png' };
-          yield {};
-        })(),
-      );
-      mockClient.removeObjects.mockResolvedValue(undefined);
+      mockClient.send
+        .mockResolvedValueOnce({
+          Contents: [{ Key: 'pdf-render/a.png' }, { Key: 'pdf-render/b.png' }],
+        })
+        .mockResolvedValueOnce({});
 
       const result = await service.deletePrefix('pdf-render/');
 
-      expect(mockClient.listObjects).toHaveBeenCalledWith(
-        'screenshots',
-        'pdf-render/',
-        true,
-      );
-      expect(mockClient.removeObjects).toHaveBeenCalledWith('screenshots', [
-        'pdf-render/a.png',
-        'pdf-render/b.png',
-      ]);
+      expect(sentCommand('ListObjectsV2Command')?.input).toEqual({
+        Bucket: 'screenshots',
+        Prefix: 'pdf-render/',
+      });
+      expect(sentCommand('DeleteObjectsCommand')?.input).toEqual({
+        Bucket: 'screenshots',
+        Delete: {
+          Objects: [{ Key: 'pdf-render/a.png' }, { Key: 'pdf-render/b.png' }],
+        },
+      });
       expect(result).toBe(2);
     });
 
     it('skips the removal when nothing matches the prefix', async () => {
-      mockClient.listObjects.mockReturnValue((async function* () {})());
+      mockClient.send.mockResolvedValueOnce({});
 
       const result = await service.deletePrefix('pdf-render/');
 
       expect(result).toBe(0);
-      expect(mockClient.removeObjects).not.toHaveBeenCalled();
+      expect(sentCommand('DeleteObjectsCommand')).toBeUndefined();
     });
   });
 
@@ -410,13 +395,13 @@ describe('RustFsStorageService', () => {
       const result = await service.exists('http://otherhost/not-valid.png');
 
       expect(result).toBe(false);
-      expect(mockClient.statObject).not.toHaveBeenCalled();
+      expect(mockClient.send).not.toHaveBeenCalled();
     });
   });
 
   describe('deleteAll', () => {
     it('deletes all urls and returns deleted urls', async () => {
-      mockClient.removeObject.mockResolvedValue(undefined);
+      mockClient.send.mockResolvedValue({});
 
       const result = await service.deleteAll([
         'http://localhost:9000/screenshots/file1.png',
@@ -428,12 +413,12 @@ describe('RustFsStorageService', () => {
         'http://localhost:9000/screenshots/file2.png',
       ]);
       expect(result.failed).toEqual([]);
-      expect(mockClient.removeObject).toHaveBeenCalledTimes(2);
+      expect(sentCommands('DeleteObjectCommand')).toHaveLength(2);
     });
 
     it('collects failed deletions separately', async () => {
-      mockClient.removeObject
-        .mockResolvedValueOnce(undefined)
+      mockClient.send
+        .mockResolvedValueOnce({})
         .mockRejectedValueOnce(new Error('permission denied'));
 
       const result = await service.deleteAll([
@@ -463,7 +448,7 @@ describe('RustFsStorageService', () => {
     it('caps the number of concurrent deletions', async () => {
       let active = 0;
       let peak = 0;
-      mockClient.removeObject.mockImplementation(async () => {
+      mockClient.send.mockImplementation(async () => {
         active++;
         peak = Math.max(peak, active);
         await new Promise((resolve) => setTimeout(resolve, 2));
@@ -478,31 +463,29 @@ describe('RustFsStorageService', () => {
       const result = await service.deleteAll(urls);
 
       expect(result.deleted).toHaveLength(25);
-      expect(mockClient.removeObject).toHaveBeenCalledTimes(25);
+      expect(sentCommands('DeleteObjectCommand')).toHaveLength(25);
       expect(peak).toBeLessThanOrEqual(10);
     });
   });
 
   describe('listObjectsWithLastModified', () => {
     it('returns object names with their lastModified stamp', async () => {
-      mockClient.listObjects.mockReturnValue(
-        (async function* () {
-          yield { name: 'candidate.png', lastModified: new Date('2026-01-01') };
-          yield {
-            name: 'pdf-render/base/pagecount',
-            lastModified: new Date('2026-01-02'),
-          };
-          yield {};
-        })(),
-      );
+      mockClient.send.mockResolvedValueOnce({
+        Contents: [
+          { Key: 'candidate.png', LastModified: new Date('2026-01-01') },
+          {
+            Key: 'pdf-render/base/pagecount',
+            LastModified: new Date('2026-01-02'),
+          },
+        ],
+      });
 
       const result = await service.listObjectsWithLastModified('');
 
-      expect(mockClient.listObjects).toHaveBeenCalledWith(
-        'screenshots',
-        '',
-        true,
-      );
+      expect(sentCommand('ListObjectsV2Command')?.input).toEqual({
+        Bucket: 'screenshots',
+        Prefix: '',
+      });
       expect(result).toEqual([
         { name: 'candidate.png', lastModified: new Date('2026-01-01') },
         {
@@ -513,11 +496,9 @@ describe('RustFsStorageService', () => {
     });
 
     it('normalizes a missing lastModified to null', async () => {
-      mockClient.listObjects.mockReturnValue(
-        (async function* () {
-          yield { name: 'no-age.png' };
-        })(),
-      );
+      mockClient.send.mockResolvedValueOnce({
+        Contents: [{ Key: 'no-age.png' }],
+      });
 
       const result = await service.listObjectsWithLastModified('');
 
@@ -525,7 +506,7 @@ describe('RustFsStorageService', () => {
     });
 
     it('returns empty array when nothing matches the prefix', async () => {
-      mockClient.listObjects.mockReturnValue((async function* () {})());
+      mockClient.send.mockResolvedValueOnce({});
 
       const result = await service.listObjectsWithLastModified('');
 
@@ -535,21 +516,21 @@ describe('RustFsStorageService', () => {
 
   describe('exists', () => {
     it('returns true when the object exists', async () => {
-      mockClient.statObject.mockResolvedValue({ size: 100 });
+      mockClient.send.mockResolvedValue({});
 
       const result = await service.exists(
         'http://localhost:9000/screenshots/file.png',
       );
 
       expect(result).toBe(true);
-      expect(mockClient.statObject).toHaveBeenCalledWith(
-        'screenshots',
-        'file.png',
-      );
+      expect(sentCommand('HeadObjectCommand')?.input).toEqual({
+        Bucket: 'screenshots',
+        Key: 'file.png',
+      });
     });
 
     it('returns false when the object is missing', async () => {
-      mockClient.statObject.mockRejectedValue({ code: 'NotFound' });
+      mockClient.send.mockRejectedValue({ name: 'NotFound' });
 
       const result = await service.exists(
         'http://localhost:9000/screenshots/file.png',
@@ -559,7 +540,7 @@ describe('RustFsStorageService', () => {
     });
 
     it('returns false for an S3 NoSuchKey error', async () => {
-      mockClient.statObject.mockRejectedValue({ code: 'NoSuchKey' });
+      mockClient.send.mockRejectedValue({ name: 'NoSuchKey' });
 
       const result = await service.exists(
         'http://localhost:9000/screenshots/file.png',
@@ -569,7 +550,7 @@ describe('RustFsStorageService', () => {
     });
 
     it('wraps non-missing errors in a DomainError', async () => {
-      mockClient.statObject.mockRejectedValue(new Error('connection reset'));
+      mockClient.send.mockRejectedValue(new Error('connection reset'));
 
       await expect(
         service.exists('http://localhost:9000/screenshots/file.png'),
@@ -580,7 +561,7 @@ describe('RustFsStorageService', () => {
   describe('operation timeout', () => {
     it('fails a hung get operation instead of hanging forever', async () => {
       vi.useFakeTimers();
-      mockClient.getObject.mockReturnValue(new Promise(() => {}));
+      mockClient.send.mockReturnValue(new Promise(() => {}));
 
       const promise = service.get('http://localhost:9000/screenshots/file.png');
       const assertion = expect(promise).rejects.toThrow(/timed out/i);
@@ -593,7 +574,7 @@ describe('RustFsStorageService', () => {
 
     it('fails a hung delete operation instead of hanging forever', async () => {
       vi.useFakeTimers();
-      mockClient.removeObject.mockReturnValue(new Promise(() => {}));
+      mockClient.send.mockReturnValue(new Promise(() => {}));
 
       const promise = service.delete(
         'http://localhost:9000/screenshots/file.png',
@@ -616,7 +597,7 @@ describe('RustFsStorageService', () => {
             return { next: () => new Promise(() => {}) };
           },
         };
-        mockClient.getObject.mockResolvedValue(neverStream as never);
+        mockClient.send.mockResolvedValue({ Body: neverStream });
 
         const promise = service.get(
           'http://localhost:9000/screenshots/file.png',
@@ -632,81 +613,70 @@ describe('RustFsStorageService', () => {
       }
     });
 
-    it('destroys the underlying list stream when a list operation times out', async () => {
+    it('fails a hung list operation instead of hanging forever', async () => {
       vi.useFakeTimers();
-      try {
-        const destroy = vi.fn();
-        const neverStream = {
-          destroy,
-          [Symbol.asyncIterator]() {
-            return { next: () => new Promise(() => {}) };
-          },
-        };
-        mockClient.listObjects.mockReturnValue(neverStream as never);
+      mockClient.send.mockReturnValue(new Promise(() => {}));
 
-        const promise = service.listObjectsWithLastModified('pdf-render/');
-        const assertion = expect(promise).rejects.toThrow(/timed out/i);
+      const promise = service.listObjectsWithLastModified('pdf-render/');
+      const assertion = expect(promise).rejects.toThrow(/timed out/i);
 
-        await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(30_000);
 
-        await assertion;
-        expect(destroy).toHaveBeenCalled();
-      } finally {
-        vi.useRealTimers();
-      }
+      await assertion;
+      vi.useRealTimers();
     });
   });
 
   describe('healthCheck', () => {
     it('verifies bucket exists without mutating', async () => {
-      mockClient.bucketExists.mockResolvedValue(true);
+      mockClient.send.mockResolvedValue({});
 
       await service.healthCheck();
 
-      expect(mockClient.bucketExists).toHaveBeenCalledWith('screenshots');
-      expect(mockClient.makeBucket).not.toHaveBeenCalled();
+      expect(sentCommand('HeadBucketCommand')?.input).toEqual({
+        Bucket: 'screenshots',
+      });
+      expect(sentCommand('CreateBucketCommand')).toBeUndefined();
     });
 
     it('reports an error when the bucket is missing', async () => {
-      mockClient.bucketExists.mockResolvedValue(false);
+      mockClient.send.mockRejectedValue({ name: 'NotFound' });
 
       await expect(service.healthCheck()).rejects.toThrow(DomainError);
-      expect(mockClient.makeBucket).not.toHaveBeenCalled();
+      expect(sentCommand('CreateBucketCommand')).toBeUndefined();
     });
   });
 
   describe('ensureBucket early-return', () => {
     it('reuses already checked bucket on second upload', async () => {
-      mockClient.bucketExists.mockResolvedValue(true);
-      mockClient.putObject.mockResolvedValue(undefined);
+      mockClient.send.mockResolvedValue({});
 
       await service.putObject('first.png', Buffer.from('a'), 'image/png');
       await service.putObject('second.png', Buffer.from('b'), 'image/png');
 
-      expect(mockClient.bucketExists).toHaveBeenCalledTimes(1);
-      expect(mockClient.putObject).toHaveBeenCalledTimes(2);
+      expect(sentCommands('HeadBucketCommand')).toHaveLength(1);
+      expect(sentCommands('PutObjectCommand')).toHaveLength(2);
     });
 
     it('verifies the bucket only once under concurrent first uploads', async () => {
-      mockClient.bucketExists.mockResolvedValue(true);
-      mockClient.putObject.mockResolvedValue(undefined);
+      mockClient.send.mockResolvedValue({});
 
       await Promise.all([
         service.putObject('first.png', Buffer.from('a'), 'image/png'),
         service.putObject('second.png', Buffer.from('b'), 'image/png'),
       ]);
 
-      expect(mockClient.bucketExists).toHaveBeenCalledTimes(1);
-      expect(mockClient.putObject).toHaveBeenCalledTimes(2);
+      expect(sentCommands('HeadBucketCommand')).toHaveLength(1);
+      expect(sentCommands('PutObjectCommand')).toHaveLength(2);
     });
   });
 
   describe('putObject with retry', () => {
     it('retries on transient upload failure', async () => {
-      mockClient.bucketExists.mockResolvedValue(true);
-      mockClient.putObject
+      mockClient.send
+        .mockResolvedValueOnce({})
         .mockRejectedValueOnce(new Error('transient error'))
-        .mockResolvedValueOnce(undefined);
+        .mockResolvedValueOnce({});
 
       const result = await service.putObject(
         'retry.png',
@@ -714,28 +684,31 @@ describe('RustFsStorageService', () => {
         'image/png',
       );
 
-      expect(mockClient.putObject).toHaveBeenCalledTimes(2);
+      expect(sentCommands('PutObjectCommand')).toHaveLength(2);
       expect(result).toBe('http://localhost:9000/screenshots/retry.png');
     });
 
     it('throws after max retries', async () => {
-      mockClient.bucketExists.mockResolvedValue(true);
-      mockClient.putObject.mockRejectedValue(new Error('persistent error'));
+      mockClient.send
+        .mockResolvedValueOnce({})
+        .mockRejectedValueOnce(new Error('persistent error'))
+        .mockRejectedValueOnce(new Error('persistent error'))
+        .mockRejectedValueOnce(new Error('persistent error'));
 
       await expect(
         service.putObject('fail.png', Buffer.from('test')),
       ).rejects.toThrow(DomainError);
 
-      expect(mockClient.putObject).toHaveBeenCalledTimes(3);
+      expect(sentCommands('PutObjectCommand')).toHaveLength(3);
     });
 
     it('uses exponential backoff between retries', async () => {
       vi.useFakeTimers();
-      mockClient.bucketExists.mockResolvedValue(true);
-      mockClient.putObject
+      mockClient.send
+        .mockResolvedValueOnce({})
         .mockRejectedValueOnce(new Error('t1'))
         .mockRejectedValueOnce(new Error('t2'))
-        .mockResolvedValueOnce(undefined);
+        .mockResolvedValueOnce({});
 
       const promise = service.putObject(
         'exp.png',
@@ -746,20 +719,21 @@ describe('RustFsStorageService', () => {
       // With base 100ms exponential backoff, the first retry fires at
       // 2^0*100 = 100ms, the second at 2^1*100 = 200ms.
       await vi.advanceTimersByTimeAsync(100);
-      expect(mockClient.putObject).toHaveBeenCalledTimes(2);
+      expect(sentCommands('PutObjectCommand')).toHaveLength(2);
 
       await vi.advanceTimersByTimeAsync(200);
       await expect(promise).resolves.toBe(
         'http://localhost:9000/screenshots/exp.png',
       );
-      expect(mockClient.putObject).toHaveBeenCalledTimes(3);
+      expect(sentCommands('PutObjectCommand')).toHaveLength(3);
 
       vi.useRealTimers();
     });
 
     it('handles non-Error throws from upload', async () => {
-      mockClient.bucketExists.mockResolvedValue(true);
-      mockClient.putObject.mockRejectedValue('string upload error');
+      mockClient.send
+        .mockResolvedValueOnce({})
+        .mockRejectedValueOnce('string upload error');
 
       await expect(
         service.putObject('fail.png', Buffer.from('test')),
@@ -769,7 +743,7 @@ describe('RustFsStorageService', () => {
 
   describe('deleteAll non-Error handling', () => {
     it('handles non-Error throws in deleteAll', async () => {
-      mockClient.removeObject.mockRejectedValue('string error');
+      mockClient.send.mockRejectedValue('string error');
 
       const result = await service.deleteAll([
         'http://localhost:9000/screenshots/file1.png',
@@ -782,7 +756,7 @@ describe('RustFsStorageService', () => {
     });
   });
 
-  describe('SSL config coercion', () => {
+  describe('client configuration', () => {
     async function buildService(
       useSsl: boolean,
     ): Promise<RustFsStorageService> {
@@ -796,6 +770,7 @@ describe('RustFsStorageService', () => {
           secretKey: 'minioadmin',
           bucket: 'screenshots',
           publicUrl: 'http://localhost:9000',
+          ensurePublicBucket: false,
         },
       };
       const module: TestingModule = await Test.createTestingModule({
@@ -809,20 +784,98 @@ describe('RustFsStorageService', () => {
       return module.get(RustFsStorageService);
     }
 
-    it('enables SSL when appConfig.rustfs.useSsl is true', async () => {
-      await buildService(true);
+    function clientConfig(
+      instance: RustFsStorageService,
+    ): Record<string, unknown> {
+      return (
+        instance as unknown as { client: { config: Record<string, unknown> } }
+      ).client.config;
+    }
 
-      expect(vi.mocked(Client)).toHaveBeenCalledWith(
-        expect.objectContaining({ useSSL: true }),
+    it('uses an https endpoint when SSL is enabled', async () => {
+      service = await buildService(true);
+
+      expect(clientConfig(service).endpoint).toBe('https://localhost:9000');
+      expect(clientConfig(service).forcePathStyle).toBe(true);
+      expect(clientConfig(service).credentials).toEqual({
+        accessKeyId: 'minioadmin',
+        secretAccessKey: 'minioadmin',
+      });
+    });
+
+    it('uses an http endpoint when SSL is disabled', async () => {
+      service = await buildService(false);
+
+      expect(clientConfig(service).endpoint).toBe('http://localhost:9000');
+    });
+  });
+
+  describe('public-read bucket policy', () => {
+    async function buildService(
+      ensurePublicBucket: boolean,
+    ): Promise<RustFsStorageService> {
+      const appConfig = {
+        storageRetry: { maxAttempts: 3, retryDelayMs: 100 },
+        rustfs: {
+          endpoint: 'localhost',
+          port: 9000,
+          useSsl: false,
+          accessKey: 'minioadmin',
+          secretKey: 'minioadmin',
+          bucket: 'screenshots',
+          publicUrl: 'http://localhost:9000',
+          ensurePublicBucket,
+        },
+      };
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          RustFsStorageService,
+          StorageObjectName,
+          { provide: AppLoggerService, useValue: mockLogger },
+          { provide: AppConfigService, useValue: appConfig },
+        ],
+      }).compile();
+      return module.get(RustFsStorageService);
+    }
+
+    it('sets a public-read policy after verifying the bucket', async () => {
+      service = await buildService(true);
+      mockClient.send.mockResolvedValue({});
+
+      await service.putObject('a.png', Buffer.from('a'), 'image/png');
+
+      const policyCommand = sentCommand('PutBucketPolicyCommand');
+      expect(policyCommand?.input.Bucket).toBe('screenshots');
+      const policy = JSON.parse(policyCommand?.input.Policy as string);
+      expect(policy.Statement[0].Action).toEqual(['s3:GetObject']);
+      expect(policy.Statement[0].Resource).toEqual([
+        'arn:aws:s3:::screenshots/*',
+      ]);
+    });
+
+    it('tolerates policy failures and still uploads', async () => {
+      service = await buildService(true);
+      mockClient.send
+        .mockResolvedValueOnce({})
+        .mockRejectedValueOnce({ name: 'AccessDenied' })
+        .mockResolvedValueOnce({});
+
+      await expect(
+        service.putObject('a.png', Buffer.from('a'), 'image/png'),
+      ).resolves.toBe('http://localhost:9000/screenshots/a.png');
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('public-read policy'),
+        expect.anything(),
       );
     });
 
-    it('disables SSL when appConfig.rustfs.useSsl is false', async () => {
-      await buildService(false);
+    it('skips the policy when ensurePublicBucket is false', async () => {
+      service = await buildService(false);
+      mockClient.send.mockResolvedValue({});
 
-      expect(vi.mocked(Client)).toHaveBeenCalledWith(
-        expect.objectContaining({ useSSL: false }),
-      );
+      await service.putObject('a.png', Buffer.from('a'), 'image/png');
+
+      expect(sentCommand('PutBucketPolicyCommand')).toBeUndefined();
     });
   });
 });
