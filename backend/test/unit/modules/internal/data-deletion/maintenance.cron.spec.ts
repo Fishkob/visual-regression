@@ -51,10 +51,10 @@ describe('MaintenanceCron', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
-  it('should run all registered tasks', async () => {
+  it('runs all registered tasks', async () => {
     task1.execute.mockResolvedValue({});
     task2.execute.mockResolvedValue({});
 
@@ -64,7 +64,7 @@ describe('MaintenanceCron', () => {
     expect(task2.execute).toHaveBeenCalledTimes(1);
   });
 
-  it('should report counters and gauges from task results', async () => {
+  it('reports counters and gauges from task results', async () => {
     const result1: MaintenanceResult = {
       counters: [
         { name: 'task_one_count', value: 5, labels: { type: 'test' } },
@@ -84,7 +84,7 @@ describe('MaintenanceCron', () => {
     expect(metrics.setGauge).toHaveBeenCalledWith('task_one_gauge', 3);
   });
 
-  it('should skip task when lock is not acquired', async () => {
+  it('skips task when lock is not acquired', async () => {
     lock.tryLock.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     task2.execute.mockResolvedValue({});
 
@@ -94,7 +94,7 @@ describe('MaintenanceCron', () => {
     expect(task2.execute).toHaveBeenCalledTimes(1);
   });
 
-  it('should continue to next task when one fails', async () => {
+  it('continues to next task when one fails', async () => {
     task1.execute.mockRejectedValue(new Error('task one failed'));
     task2.execute.mockResolvedValue({});
 
@@ -112,7 +112,7 @@ describe('MaintenanceCron', () => {
     );
   });
 
-  it('should log start and completion for each task', async () => {
+  it('logs start and completion for each task', async () => {
     task1.execute.mockResolvedValue({});
     task2.execute.mockResolvedValue({});
 
@@ -124,7 +124,7 @@ describe('MaintenanceCron', () => {
     expect(logger.log).toHaveBeenCalledWith('task two completed successfully.');
   });
 
-  it('should have @Cron metadata set', () => {
+  it('has @Cron metadata set', () => {
     const metadata = Reflect.getMetadata(
       SCHEDULE_CRON_OPTIONS,
       MaintenanceCron.prototype.runMaintenance,
@@ -133,7 +133,7 @@ describe('MaintenanceCron', () => {
     expect(metadata.cronTime).toBeDefined();
   });
 
-  it('should not report metrics when result has none', async () => {
+  it('does not report metrics when result has none', async () => {
     task1.execute.mockResolvedValue({});
     task2.execute.mockResolvedValue({});
 

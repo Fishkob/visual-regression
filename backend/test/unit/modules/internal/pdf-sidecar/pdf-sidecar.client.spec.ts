@@ -20,6 +20,7 @@ describe('PdfSidecarClient', () => {
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     globalThis.fetch = originalFetch;
   });
 

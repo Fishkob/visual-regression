@@ -71,11 +71,11 @@ describe('OrphanCleanupService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('deleteOrphanedScreenshots', () => {
-    it('should delete both current and baseline orphans and return total count', async () => {
+    it('deletes both current and baseline orphans and returns total count', async () => {
       const currentOrphans = [mockScreenshot('ss-1'), mockScreenshot('ss-2')];
       const baselineOrphans = [mockScreenshot('ss-3')];
       orphaned.findOrphanedCurrent.mockResolvedValue({
@@ -105,7 +105,7 @@ describe('OrphanCleanupService', () => {
       expect(storage.deleteAll).toHaveBeenCalledTimes(2);
     });
 
-    it('should return 0 when no orphans exist', async () => {
+    it('returns 0 when no orphans exist', async () => {
       orphaned.findOrphanedCurrent.mockResolvedValue({
         skipped: false,
         screenshots: [],
@@ -249,7 +249,7 @@ describe('OrphanCleanupService', () => {
       ]);
     });
 
-    it('should handle only baseline orphans', async () => {
+    it('handles only baseline orphans', async () => {
       orphaned.findOrphanedCurrent.mockResolvedValue({
         skipped: false,
         screenshots: [],
@@ -334,7 +334,7 @@ describe('OrphanCleanupService', () => {
       expect(storage.deleteAll).not.toHaveBeenCalled();
     });
 
-    it('should query both orphan types concurrently', async () => {
+    it('queries both orphan types concurrently', async () => {
       orphaned.findOrphanedCurrent.mockResolvedValue({
         skipped: false,
         screenshots: [],
@@ -365,7 +365,7 @@ describe('OrphanCleanupService', () => {
   });
 
   describe('MaintenanceTask interface', () => {
-    it('should implement MaintenanceTask with lockId and label', () => {
+    it('implements MaintenanceTask with lockId and label', () => {
       const task = service as unknown as MaintenanceTask;
       expect(task.lockId).toBe(1001);
       expect(task.label).toBe('orphaned cleanup');

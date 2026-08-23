@@ -9,6 +9,10 @@ import {
 } from '@internal/pdf-sidecar/pdf-render-path';
 
 describe('pdfRenderPath', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('builds the base path for a base name', () => {
     expect(pdfRenderBasePath('login-form')).toBe('pdf-render/login-form');
   });

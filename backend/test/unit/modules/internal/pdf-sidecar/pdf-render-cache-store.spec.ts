@@ -235,6 +235,7 @@ describe('PdfRenderCacheStore', () => {
     });
 
     afterEach(() => {
+      jest.restoreAllMocks();
       vi.useRealTimers();
     });
 

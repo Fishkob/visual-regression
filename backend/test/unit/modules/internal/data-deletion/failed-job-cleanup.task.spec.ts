@@ -54,17 +54,17 @@ describe('FailedJobCleanupTask', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
-  it('should have lockId and label set', async () => {
+  it('has lockId and label set', async () => {
     const module: TestingModule = await createModule();
     task = module.get(FailedJobCleanupTask);
     expect(task.lockId).toBe(1002);
     expect(task.label).toBe('failed job cleanup');
   });
 
-  it('should delete failed and completed jobs and return gauges', async () => {
+  it('deletes failed and completed jobs and returns gauges', async () => {
     failedJobs.findFailedJobs.mockResolvedValue([
       {
         id: 'job-1',
@@ -100,7 +100,7 @@ describe('FailedJobCleanupTask', () => {
       { name: 'cleanup_completed_jobs_deleted', value: 3 },
     ]);
   });
-  it('should not touch storage when no failed jobs were found', async () => {
+  it('does not touch storage when no failed jobs were found', async () => {
     failedJobs.findFailedJobs.mockResolvedValue([]);
 
     const module: TestingModule = await createModule();
@@ -112,7 +112,7 @@ describe('FailedJobCleanupTask', () => {
     expect(failedJobs.deleteFailedJobRows).not.toHaveBeenCalled();
   });
 
-  it('should use custom retention days from config', async () => {
+  it('uses custom retention days from config', async () => {
     failedJobs.findFailedJobs.mockResolvedValue([
       {
         id: 'job-1',

@@ -50,6 +50,10 @@ describe('deleteRecordsRowFirst', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('deletes rows first, then reclaims files only for the deleted rows', async () => {
     const order: string[] = [];
     storage.deleteAll.mockImplementation(async () => {

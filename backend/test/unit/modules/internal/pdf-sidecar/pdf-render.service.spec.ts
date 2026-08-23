@@ -51,11 +51,11 @@ describe('PdfRenderService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('renderPage', () => {
-    it('should throw DomainError when PDF URL is invalid', async () => {
+    it('throws DomainError when PDF URL is invalid', async () => {
       storage.fromUrl.mockReturnValue(null);
 
       await expect(service.renderPage('invalid-url', 1)).rejects.toThrow(
@@ -63,7 +63,7 @@ describe('PdfRenderService', () => {
       );
     });
 
-    it('should return cached image when page count is cached and image exists', async () => {
+    it('returns cached image when page count is cached and image exists', async () => {
       renderCache.get.mockResolvedValue(5);
       storage.exists.mockResolvedValue(true);
 
@@ -76,7 +76,7 @@ describe('PdfRenderService', () => {
       expect(renderer.renderPdfPage).not.toHaveBeenCalled();
     });
 
-    it('should re-render when cache page count exists but image was evicted', async () => {
+    it('re-renders when cache page count exists but image was evicted', async () => {
       renderCache.get.mockResolvedValue(5);
       storage.exists.mockResolvedValue(false);
       renderer.renderPdfPage.mockResolvedValue({
@@ -92,7 +92,7 @@ describe('PdfRenderService', () => {
       expect(result).toEqual({ imageUrl: cacheUrl, pageCount: 5 });
     });
 
-    it('should render PDF when page count not cached', async () => {
+    it('renders PDF when page count not cached', async () => {
       renderCache.get.mockResolvedValue(undefined);
       renderer.renderPdfPage.mockResolvedValue({
         imageBuffer: Buffer.from('rendered-page'),
@@ -109,7 +109,7 @@ describe('PdfRenderService', () => {
       expect(result).toEqual({ imageUrl: cacheUrl, pageCount: 3 });
     });
 
-    it('should throw NotFoundException when PDF file cannot be read from storage', async () => {
+    it('throws NotFoundException when PDF file cannot be read from storage', async () => {
       renderCache.get.mockResolvedValue(undefined);
       storage.get.mockRejectedValue(
         new NotFoundException('PDF file not found'),
@@ -122,7 +122,7 @@ describe('PdfRenderService', () => {
   });
 
   describe('clearCache', () => {
-    it('should evict page count cache for the PDF and report success', async () => {
+    it('evicts page count cache for the PDF and reports success', async () => {
       renderCache.evict.mockResolvedValue(true);
 
       await expect(service.clearCache(pdfUrl)).resolves.toBe(true);
@@ -130,7 +130,7 @@ describe('PdfRenderService', () => {
       expect(renderCache.evict).toHaveBeenCalledWith(baseName);
     });
 
-    it('should return false when PDF URL is invalid', async () => {
+    it('returns false when PDF URL is invalid', async () => {
       storage.fromUrl.mockReturnValue(null);
 
       await expect(service.clearCache('invalid-url')).resolves.toBe(false);
@@ -138,7 +138,7 @@ describe('PdfRenderService', () => {
       expect(renderCache.evict).not.toHaveBeenCalled();
     });
 
-    it('should log warning and return false when eviction reports failure', async () => {
+    it('logs warning and returns false when eviction reports failure', async () => {
       renderCache.evict.mockResolvedValue(false);
 
       await expect(service.clearCache(pdfUrl)).resolves.toBe(false);

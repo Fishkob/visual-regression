@@ -15,6 +15,10 @@ describe('withCronJob', () => {
     logger = createMockLogger();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('runs the task when the lock is acquired', async () => {
     const fn = jest.fn().mockResolvedValue('done');
 

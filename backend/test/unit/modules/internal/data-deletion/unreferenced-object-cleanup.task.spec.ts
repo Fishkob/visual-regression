@@ -53,7 +53,7 @@ describe('UnreferencedObjectCleanupTask', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   const old = () => new Date(Date.now() - (MAX_AGE_MS + HOURS_MS));

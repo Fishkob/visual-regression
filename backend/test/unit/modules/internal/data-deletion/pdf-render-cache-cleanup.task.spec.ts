@@ -46,7 +46,7 @@ describe('PdfRenderCacheCleanupTask', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   it('implements MaintenanceTask with its own lock id', () => {
