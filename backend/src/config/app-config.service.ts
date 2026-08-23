@@ -39,17 +39,17 @@ export class AppConfigService {
     return { url: this.config.getOrThrow<string>('DATABASE_URL') };
   }
 
-  get minio() {
+  get rustfs() {
     return {
-      endpoint: this.config.getOrThrow<string>('MINIO_ENDPOINT'),
-      port: Number(this.config.getOrThrow<number | string>('MINIO_PORT')),
-      useSsl: this.minioUseSsl(
-        this.config.getOrThrow<boolean | string>('MINIO_USE_SSL'),
+      endpoint: this.config.getOrThrow<string>('RUSTFS_ENDPOINT'),
+      port: Number(this.config.getOrThrow<number | string>('RUSTFS_PORT')),
+      useSsl: this.rustfsUseSsl(
+        this.config.getOrThrow<boolean | string>('RUSTFS_USE_SSL'),
       ),
-      accessKey: this.config.getOrThrow<string>('MINIO_ACCESS_KEY'),
-      secretKey: this.config.getOrThrow<string>('MINIO_SECRET_KEY'),
-      bucket: this.config.getOrThrow<string>('MINIO_BUCKET'),
-      publicUrl: this.config.getOrThrow<string>('MINIO_PUBLIC_URL'),
+      accessKey: this.config.getOrThrow<string>('RUSTFS_ACCESS_KEY'),
+      secretKey: this.config.getOrThrow<string>('RUSTFS_SECRET_KEY'),
+      bucket: this.config.getOrThrow<string>('RUSTFS_BUCKET'),
+      publicUrl: this.config.getOrThrow<string>('RUSTFS_PUBLIC_URL'),
     };
   }
 
@@ -128,7 +128,7 @@ export class AppConfigService {
     return { origin: this.config.get<string>('CORS_ORIGIN') };
   }
 
-  private minioUseSsl(value: boolean | string): boolean {
+  private rustfsUseSsl(value: boolean | string): boolean {
     return typeof value === 'boolean' ? value : value === 'true';
   }
 }

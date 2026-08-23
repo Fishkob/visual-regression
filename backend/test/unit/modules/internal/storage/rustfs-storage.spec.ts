@@ -38,7 +38,7 @@ const mockLogger = createMockLogger();
 
 const mockAppConfig = {
   storageRetry: { maxAttempts: 3, retryDelayMs: 100 },
-  minio: {
+  rustfs: {
     endpoint: 'localhost',
     port: 9000,
     useSsl: false,
@@ -718,7 +718,7 @@ describe('RustFsStorageService', () => {
     ): Promise<RustFsStorageService> {
       const appConfig = {
         storageRetry: { maxAttempts: 3, retryDelayMs: 100 },
-        minio: {
+        rustfs: {
           endpoint: 'localhost',
           port: 9000,
           useSsl,
@@ -739,7 +739,7 @@ describe('RustFsStorageService', () => {
       return module.get(RustFsStorageService);
     }
 
-    it('enables SSL when appConfig.minio.useSsl is true', async () => {
+    it('enables SSL when appConfig.rustfs.useSsl is true', async () => {
       await buildService(true);
 
       expect(vi.mocked(Client)).toHaveBeenCalledWith(
@@ -747,7 +747,7 @@ describe('RustFsStorageService', () => {
       );
     });
 
-    it('disables SSL when appConfig.minio.useSsl is false', async () => {
+    it('disables SSL when appConfig.rustfs.useSsl is false', async () => {
       await buildService(false);
 
       expect(vi.mocked(Client)).toHaveBeenCalledWith(

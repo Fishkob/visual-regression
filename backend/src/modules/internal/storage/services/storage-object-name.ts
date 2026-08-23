@@ -10,8 +10,8 @@ export class StorageObjectName {
     // Strip trailing slashes so a configured publicUrl ending in "/" does not
     // yield "host//bucket/..." URLs that are internally round-trippable but
     // non-canonical for CDNs/MIME routing.
-    this.publicUrl = appConfig.minio.publicUrl.replace(/\/+$/, '');
-    this.bucket = appConfig.minio.bucket;
+    this.publicUrl = appConfig.rustfs.publicUrl.replace(/\/+$/, '');
+    this.bucket = appConfig.rustfs.bucket;
   }
 
   // Public URLs round-trip through the storage layer: toPublicUrl builds a

@@ -36,8 +36,8 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
       useSsl: isSslEnabled,
       accessKey,
       secretKey,
-    } = this.appConfig.minio;
-    this.bucket = this.appConfig.minio.bucket;
+    } = this.appConfig.rustfs;
+    this.bucket = this.appConfig.rustfs.bucket;
 
     this.client = new Client({
       endPoint: endpoint,

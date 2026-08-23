@@ -21,13 +21,13 @@ export const envValidationSchema = Joi.object({
 
   DATABASE_URL: requiredUrl,
 
-  MINIO_ENDPOINT: required,
-  MINIO_PORT: Joi.number().default(9000),
-  MINIO_ACCESS_KEY: required,
-  MINIO_SECRET_KEY: required,
-  MINIO_BUCKET: required,
-  MINIO_PUBLIC_URL: requiredUrl,
-  MINIO_USE_SSL: Joi.boolean().default(false),
+  RUSTFS_ENDPOINT: required,
+  RUSTFS_PORT: Joi.number().default(9000),
+  RUSTFS_ACCESS_KEY: required,
+  RUSTFS_SECRET_KEY: required,
+  RUSTFS_BUCKET: required,
+  RUSTFS_PUBLIC_URL: requiredUrl,
+  RUSTFS_USE_SSL: Joi.boolean().default(false),
 
   // CORS
   CORS_ORIGIN: Joi.string().default('http://localhost:5173'),
@@ -36,7 +36,7 @@ export const envValidationSchema = Joi.object({
   CSP_ENABLED: Joi.boolean()
     .default(false)
     .description(
-      'Enable Content Security Policy headers. Disabled by default because MinIO cross-origin image delivery requires careful configuration.',
+      'Enable Content Security Policy headers. Disabled by default because RustFS cross-origin image delivery requires careful configuration.',
     ),
 
   /**
@@ -105,12 +105,12 @@ export const envValidationSchema = Joi.object({
     .max(10)
     .default(3)
     .description(
-      'Max total attempts (not retries-on-top) for MinIO storage operations.',
+      'Max total attempts (not retries-on-top) for RustFS storage operations.',
     ),
   STORAGE_RETRY_DELAY_MS: Joi.number()
     .min(0)
     .default(1000)
-    .description('Delay in ms between MinIO storage retries.'),
+    .description('Delay in ms between RustFS storage retries.'),
 
   // Logging
   LOG_LEVEL: Joi.string()
