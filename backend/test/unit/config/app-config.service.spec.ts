@@ -8,13 +8,13 @@ function buildAppConfig(values: Record<string, unknown>): AppConfigService {
 describe('AppConfigService', () => {
   const baseValues: Record<string, unknown> = {
     DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
-    MINIO_ENDPOINT: 'localhost',
-    MINIO_PORT: 9000,
-    MINIO_USE_SSL: 'false',
-    MINIO_ACCESS_KEY: 'test-key',
-    MINIO_SECRET_KEY: 'test-secret',
-    MINIO_BUCKET: 'visual-tests',
-    MINIO_PUBLIC_URL: 'http://localhost:9000',
+    RUSTFS_ENDPOINT: 'localhost',
+    RUSTFS_PORT: 9000,
+    RUSTFS_USE_SSL: 'false',
+    RUSTFS_ACCESS_KEY: 'test-key',
+    RUSTFS_SECRET_KEY: 'test-secret',
+    RUSTFS_BUCKET: 'visual-tests',
+    RUSTFS_PUBLIC_URL: 'http://localhost:9000',
     PDF_SIDECAR_URL: 'http://pdf-sidecar:3001',
     PDF_SIDECAR_TIMEOUT: 30_000,
     JOB_RETENTION_DAYS: 7,
@@ -42,25 +42,25 @@ describe('AppConfigService', () => {
     );
   });
 
-  it('exposes the minio group with coerced port and ssl', () => {
+  it('exposes the rustfs group with coerced port and ssl', () => {
     const config = buildAppConfig(baseValues);
-    expect(config.minio.endpoint).toBe('localhost');
-    expect(config.minio.port).toBe(9000);
-    expect(config.minio.useSsl).toBe(false);
-    expect(config.minio.accessKey).toBe('test-key');
-    expect(config.minio.secretKey).toBe('test-secret');
-    expect(config.minio.bucket).toBe('visual-tests');
-    expect(config.minio.publicUrl).toBe('http://localhost:9000');
+    expect(config.rustfs.endpoint).toBe('localhost');
+    expect(config.rustfs.port).toBe(9000);
+    expect(config.rustfs.useSsl).toBe(false);
+    expect(config.rustfs.accessKey).toBe('test-key');
+    expect(config.rustfs.secretKey).toBe('test-secret');
+    expect(config.rustfs.bucket).toBe('visual-tests');
+    expect(config.rustfs.publicUrl).toBe('http://localhost:9000');
   });
 
-  it('coerces MINIO_USE_SSL when it arrives as a string', () => {
-    const config = buildAppConfig({ ...baseValues, MINIO_USE_SSL: 'true' });
-    expect(config.minio.useSsl).toBe(true);
+  it('coerces RUSTFS_USE_SSL when it arrives as a string', () => {
+    const config = buildAppConfig({ ...baseValues, RUSTFS_USE_SSL: 'true' });
+    expect(config.rustfs.useSsl).toBe(true);
   });
 
-  it('coerces MINIO_USE_SSL when it arrives as a boolean', () => {
-    const config = buildAppConfig({ ...baseValues, MINIO_USE_SSL: true });
-    expect(config.minio.useSsl).toBe(true);
+  it('coerces RUSTFS_USE_SSL when it arrives as a boolean', () => {
+    const config = buildAppConfig({ ...baseValues, RUSTFS_USE_SSL: true });
+    expect(config.rustfs.useSsl).toBe(true);
   });
 
   it('exposes the pdf sidecar group', () => {
