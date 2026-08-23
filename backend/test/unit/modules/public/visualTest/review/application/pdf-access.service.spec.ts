@@ -13,9 +13,9 @@ import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
 
 const sources = {
-  baselineUrl: 'http://minio/baseline.pdf',
-  candidateUrl: 'http://minio/candidate.pdf',
-  diffPdfUrl: 'http://minio/diff.pdf',
+  baselineUrl: 'http://rustfs/baseline.pdf',
+  candidateUrl: 'http://rustfs/candidate.pdf',
+  diffPdfUrl: 'http://rustfs/diff.pdf',
 };
 
 describe('PdfAccessService', () => {
@@ -62,9 +62,9 @@ describe('PdfAccessService', () => {
     expect(reviewRead.assertPdfBelongsToTest).toHaveBeenCalledWith(
       'proj',
       'test',
-      'http://minio/baseline.pdf',
+      'http://rustfs/baseline.pdf',
     );
-    expect(storage.get).toHaveBeenCalledWith('http://minio/baseline.pdf');
+    expect(storage.get).toHaveBeenCalledWith('http://rustfs/baseline.pdf');
   });
 
   it('rejects a baseline url that does not belong to the test', async () => {
@@ -106,7 +106,7 @@ describe('PdfAccessService', () => {
     });
 
     expect(result.filename).toBe('test-candidate.pdf');
-    expect(storage.get).toHaveBeenCalledWith('http://minio/candidate.pdf');
+    expect(storage.get).toHaveBeenCalledWith('http://rustfs/candidate.pdf');
   });
 
   it('downloads the diff PDF', async () => {
@@ -115,7 +115,7 @@ describe('PdfAccessService', () => {
     });
 
     expect(result.filename).toBe('test-diff.pdf');
-    expect(storage.get).toHaveBeenCalledWith('http://minio/diff.pdf');
+    expect(storage.get).toHaveBeenCalledWith('http://rustfs/diff.pdf');
   });
 
   it('throws BadRequest for invalid type', async () => {
@@ -190,28 +190,28 @@ describe('PdfAccessService', () => {
   describe('renderPdfPage', () => {
     it('enforces ownership of the caller-supplied url before rendering', async () => {
       pdfRenderCache.renderPage.mockResolvedValue({
-        imageUrl: 'http://minio/render.png',
+        imageUrl: 'http://rustfs/render.png',
         pageCount: 3,
       });
 
       const result = await service.renderPdfPage(
         'proj',
         'test',
-        'http://minio/candidate.pdf',
+        'http://rustfs/candidate.pdf',
         2,
       );
 
       expect(reviewRead.assertPdfBelongsToTest).toHaveBeenCalledWith(
         'proj',
         'test',
-        'http://minio/candidate.pdf',
+        'http://rustfs/candidate.pdf',
       );
       expect(pdfRenderCache.renderPage).toHaveBeenCalledWith(
-        'http://minio/candidate.pdf',
+        'http://rustfs/candidate.pdf',
         2,
       );
       expect(result).toEqual({
-        imageUrl: 'http://minio/render.png',
+        imageUrl: 'http://rustfs/render.png',
         pageCount: 3,
       });
     });
@@ -222,7 +222,7 @@ describe('PdfAccessService', () => {
       );
 
       await expect(
-        service.renderPdfPage('proj', 'test', 'http://minio/foreign.pdf', 1),
+        service.renderPdfPage('proj', 'test', 'http://rustfs/foreign.pdf', 1),
       ).rejects.toMatchObject({
         code: 'FORBIDDEN',
       });

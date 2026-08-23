@@ -91,10 +91,10 @@ describe('Health API (e2e)', () => {
     });
   });
 
-  describe('GET /health/minio', () => {
-    it('should return ok when minio is healthy', async () => {
+  describe('GET /health/storage', () => {
+    it('should return ok when storage is healthy', async () => {
       const res = await request(app.getHttpServer())
-        .get('/api/v1/health/minio')
+        .get('/api/v1/health/storage')
         .expect(200);
 
       expect(res.body.status).toBe('ok');

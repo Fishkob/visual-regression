@@ -34,7 +34,7 @@ describe('GET /projects/:projectName/tests/meta/pending (e2e)', () => {
         testId: test.id,
         type: 'BASELINE',
         imageHash: 'abc',
-        imageUrl: 'http://minio/baseline.png',
+        imageUrl: 'http://rustfs/baseline.png',
       },
     });
     await prisma.unifiedVariant.create({
@@ -52,7 +52,7 @@ describe('GET /projects/:projectName/tests/meta/pending (e2e)', () => {
         testId: test.id,
         type: 'CURRENT',
         imageHash: 'def',
-        imageUrl: 'http://minio/current.png',
+        imageUrl: 'http://rustfs/current.png',
       },
     });
 
@@ -61,7 +61,7 @@ describe('GET /projects/:projectName/tests/meta/pending (e2e)', () => {
         testId: test.id,
         baselineId: baseline.id,
         candidateId: candidate.id,
-        diffImageUrl: 'http://minio/diff.png',
+        diffImageUrl: 'http://rustfs/diff.png',
         mismatchPixelCount: 42,
         status: ComparisonStatus.PENDING_APPROVAL,
       },

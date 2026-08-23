@@ -212,7 +212,7 @@ describe('UnreferencedObjectCleanupTask', () => {
     referencedness.findReferencedUrls.mockResolvedValue([]);
     storage.deleteAll.mockResolvedValue({
       deleted: [url('deleted.png')],
-      failed: [{ url: url('failed.png'), error: 'minio down' }],
+      failed: [{ url: url('failed.png'), error: 'rustfs down' }],
     });
 
     const result = await task.execute();
