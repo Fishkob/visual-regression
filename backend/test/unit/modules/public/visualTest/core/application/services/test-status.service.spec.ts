@@ -26,7 +26,7 @@ describe('TestStatusService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('recomputeStatus', () => {

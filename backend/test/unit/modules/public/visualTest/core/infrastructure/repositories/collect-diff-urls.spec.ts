@@ -1,6 +1,10 @@
 import { collectDiffUrls } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 
 describe('collectDiffUrls', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('returns non-empty image and pdf diff urls', () => {
     const result = collectDiffUrls([
       { diffImageUrl: 'http://storage/a.png', diffPdfUrl: null },

@@ -4,6 +4,10 @@ import {
 } from '@public/visualTest/core/domain/policies/threshold-policy';
 
 describe('ThresholdPolicy', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('decideThresholdAction', () => {
     it('deletes a comparison within the new threshold', () => {
       expect(decideThresholdAction({ mismatchPixelCount: 40 }, 50)).toBe(

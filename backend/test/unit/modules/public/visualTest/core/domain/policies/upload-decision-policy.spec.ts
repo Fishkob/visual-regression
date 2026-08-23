@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { decideOutcome } from '@public/visualTest/core/domain/policies/upload-decision-policy';
 
 describe('decideOutcome', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('returns baseline_created when no baseline exists', () => {
     const result = decideOutcome('test-1', 'hash-1', null);
     expect(result).toEqual({

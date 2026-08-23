@@ -35,7 +35,7 @@ describe('VariantStore', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('ensureVariant', () => {

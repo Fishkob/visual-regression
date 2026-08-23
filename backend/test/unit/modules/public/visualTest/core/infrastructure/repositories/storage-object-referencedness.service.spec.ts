@@ -28,7 +28,7 @@ describe('StorageObjectReferencednessService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('findReferencedUrls', () => {

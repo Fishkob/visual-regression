@@ -60,7 +60,7 @@ describe('UnifiedScreenshotRepository', () => {
 
   afterEach(() => {
     jest.useRealTimers();
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   const variant = Variant.fromStrings('1280x720', 'chrome', 'production');

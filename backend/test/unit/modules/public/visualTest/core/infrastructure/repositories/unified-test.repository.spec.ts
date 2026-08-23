@@ -51,7 +51,7 @@ describe('UnifiedTestRepository', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('findByProjectNameAndTestName', () => {

@@ -8,6 +8,10 @@ import {
 } from '@public/visualTest/core/domain/types/visual-test.types';
 
 describe('ComparisonEntity', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   const validParams = {
     id: 'cmp-1',
     visualTestId: 'vt-1',

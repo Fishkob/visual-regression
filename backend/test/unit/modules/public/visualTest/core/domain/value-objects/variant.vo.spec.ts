@@ -2,6 +2,10 @@ import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo
 import type { VariantFilter } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { DomainError } from '@common/domain/domain-error';
 describe('Variant', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('fromStrings', () => {
     it('creates variant from strings', () => {
       const v = Variant.fromStrings('1920x1080', 'Chrome', 'production');

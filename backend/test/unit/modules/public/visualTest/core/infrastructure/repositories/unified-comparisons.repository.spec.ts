@@ -52,7 +52,7 @@ describe('UnifiedComparisonsRepository', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   function prismaComparison(overrides: Record<string, unknown> = {}) {

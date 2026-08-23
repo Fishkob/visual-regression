@@ -42,7 +42,7 @@ describe('OrphanedScreenshotRepository', () => {
 
   afterEach(() => {
     jest.useRealTimers();
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('findOrphanedCurrent', () => {

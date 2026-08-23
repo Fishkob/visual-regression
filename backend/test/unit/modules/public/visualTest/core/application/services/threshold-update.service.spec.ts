@@ -72,6 +72,10 @@ describe('ThresholdUpdateService', () => {
     service = module.get(ThresholdUpdateService);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('updates baseline thresholds and auto-accepts pending comparisons within the new value', async () => {
     screenshots.findBaselineIdsByFilters.mockResolvedValue(['baseline-A']);
     comparisons.findPendingForBaselines.mockResolvedValue([comparisonRow()]);

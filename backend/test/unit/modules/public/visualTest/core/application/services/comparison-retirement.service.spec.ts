@@ -29,6 +29,10 @@ describe('ComparisonRetirementService', () => {
     );
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('transaction boundary', () => {
     it('fails loudly when a transaction-riding recipe is called outside a workflow transaction', async () => {
       txCtx.assertInTransaction.mockImplementation(() => {

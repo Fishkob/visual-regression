@@ -8,6 +8,10 @@ import {
 } from '@public/visualTest/core/domain/types/visual-test.types';
 
 describe('resolveAggregateStatusFromVariantStatuses', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('reports PENDING_APPROVAL when any variant is pending', () => {
     expect(
       resolveAggregateStatusFromVariantStatuses([
@@ -46,6 +50,10 @@ describe('resolveAggregateStatusFromVariantStatuses', () => {
 });
 
 describe('resolveVariantStatusFromComparison', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('reports PENDING_APPROVAL when the latest comparison is pending', () => {
     expect(
       resolveVariantStatusFromComparison(

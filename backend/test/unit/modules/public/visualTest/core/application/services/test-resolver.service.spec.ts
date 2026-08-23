@@ -24,6 +24,10 @@ describe('TestResolver', () => {
     service = module.get<TestResolver>(TestResolver);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('findTest', () => {
     it('returns test when found', async () => {
       tests.findByProjectNameAndTestName.mockResolvedValue({

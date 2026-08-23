@@ -17,6 +17,10 @@ describe('CandidateReclamationService', () => {
     service = new CandidateReclamationService(screenshots, workflow);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('reclaimCandidateInChange (single-candidate worker reclamation)', () => {
     it('reclaims through the guarded owner and reports a change when a candidate was deleted', async () => {
       screenshots.deleteCandidatesAndCollectUrls.mockResolvedValue([

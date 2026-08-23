@@ -3,6 +3,10 @@ import { DomainError } from '@common/domain/domain-error';
 import { ScreenshotType } from '@public/visualTest/core/domain/types/visual-test.types';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 describe('ScreenshotEntity', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   const validParams = {
     id: 'screenshot-1',
     visualTestId: 'vt-1',

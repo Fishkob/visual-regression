@@ -45,7 +45,7 @@ describe('ProjectRepository', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('findByName', () => {

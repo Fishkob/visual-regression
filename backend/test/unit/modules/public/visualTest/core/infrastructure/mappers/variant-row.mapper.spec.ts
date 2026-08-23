@@ -6,6 +6,10 @@ import {
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 
 describe('variant-row.mapper', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('variantToWhere', () => {
     it('returns an empty clause when filters are undefined', () => {
       expect(variantToWhere(undefined)).toEqual({});

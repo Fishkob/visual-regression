@@ -71,6 +71,10 @@ describe('TestDeletionService', () => {
     );
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('deleteTest', () => {
     it('treats P2003 and serialization errors as retryable on the whole-test path', async () => {
       screenshots.findAllImageUrlsForTests.mockResolvedValue([]);

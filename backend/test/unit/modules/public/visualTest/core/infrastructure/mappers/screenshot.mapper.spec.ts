@@ -2,6 +2,10 @@ import { toScreenshotEntity } from '@public/visualTest/core/infrastructure/mappe
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 
 describe('screenshot.mapper', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('toScreenshotEntity', () => {
     const prisma = {
       id: 'ss-1',

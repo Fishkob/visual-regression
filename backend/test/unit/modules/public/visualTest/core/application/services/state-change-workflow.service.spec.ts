@@ -76,7 +76,7 @@ describe('StateChangeWorkflow', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   it('emits observability for the events returned by the change after commit', async () => {
