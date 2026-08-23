@@ -11,6 +11,8 @@ test.describe("NotFound", () => {
   test("shows the back-to-project-list action", async ({ mount }) => {
     const component = await mount("views/NotFoundView/NotFound");
 
-    await expect(component.getByTestId(TEST_ID.backToProjectList)).toBeVisible();
+    await expect(
+      component.getByTestId(TEST_ID.backToProjectList),
+    ).toBeVisible();
   });
 });

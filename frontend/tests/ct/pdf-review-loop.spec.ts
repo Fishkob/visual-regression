@@ -58,7 +58,9 @@ test.describe("PDF approval loop", () => {
     await component.getByTestId("approve-changes").click();
 
     await expect(page).toHaveURL(/\/done/);
-    await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText("All comparisons reviewed");
+    await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText(
+      "All comparisons reviewed",
+    );
   });
 
   test("renders the diff panel and download actions", async ({
@@ -122,7 +124,9 @@ test.describe("PDF approval loop", () => {
     await component.getByTestId("approve-changes").click();
 
     await expect(page).toHaveURL(/tests\/invoice/);
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(/Could not approve .* "invoice"/);
+    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
+      /Could not approve .* "invoice"/,
+    );
     await expect(component.getByTestId("approve-changes")).toBeEnabled();
   });
 });

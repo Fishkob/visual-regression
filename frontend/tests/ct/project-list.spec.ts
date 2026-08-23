@@ -60,7 +60,9 @@ test.describe("ProjectList", () => {
 
     // The query retries with backoff before the error state surfaces, so allow
     // a generous wait (same as the project-detail error test).
-    await expect(component.getByTestId(TEST_ID.retry)).toBeVisible({ timeout: 15_000 });
+    await expect(component.getByTestId(TEST_ID.retry)).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(component).toContainText("Failed to load projects");
   });
 });

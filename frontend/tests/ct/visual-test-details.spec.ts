@@ -99,7 +99,9 @@ test.describe("VisualTestDetails", () => {
     await input.press("Enter");
 
     await expect(input).toHaveValue("10");
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(/Threshold updated/);
+    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
+      /Threshold updated/,
+    );
   });
 
   test("asks for confirmation when a threshold would auto-accept", async ({
@@ -126,8 +128,12 @@ test.describe("VisualTestDetails", () => {
     await input.fill("200");
     await input.press("Enter");
 
-    await expect(page.getByTestId(TEST_ID.dialogTitle)).toContainText("Replace comparison?");
-    await expect(page.getByTestId(TEST_ID.dialogDescription)).toContainText(/New threshold: 200 px/);
+    await expect(page.getByTestId(TEST_ID.dialogTitle)).toContainText(
+      "Replace comparison?",
+    );
+    await expect(page.getByTestId(TEST_ID.dialogDescription)).toContainText(
+      /New threshold: 200 px/,
+    );
 
     await page.getByTestId(TEST_ID.dialogConfirm).click();
 

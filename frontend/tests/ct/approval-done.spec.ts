@@ -11,6 +11,8 @@ test.describe("ApprovalDone", () => {
   test("shows the back-to-project-list action", async ({ mount }) => {
     const component = await mount("views/ApprovalDoneView/ApprovalDone");
 
-    await expect(component.getByTestId(TEST_ID.backToProjectList)).toBeVisible();
+    await expect(
+      component.getByTestId(TEST_ID.backToProjectList),
+    ).toBeVisible();
   });
 });

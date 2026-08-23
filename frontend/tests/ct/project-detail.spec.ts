@@ -92,7 +92,9 @@ test.describe("ProjectDetail", () => {
 
     // The mapper throws on a missing payload, but the query retries with
     // backoff before the error state surfaces, so allow a generous wait.
-    await expect(component.getByTestId(TEST_ID.retry)).toBeVisible({ timeout: 15_000 });
+    await expect(component.getByTestId(TEST_ID.retry)).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(component).toContainText("Failed to load project");
   });
 });

@@ -56,7 +56,9 @@ test.describe("Approval loop (image)", () => {
     await component.getByTestId("approve-changes").click();
 
     await expect(page).toHaveURL(/\/done/);
-    await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText("All comparisons reviewed");
+    await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText(
+      "All comparisons reviewed",
+    );
   });
 
   test("approving the only pending test lands directly on done", async ({
@@ -73,7 +75,9 @@ test.describe("Approval loop (image)", () => {
     await component.getByTestId("approve-changes").click();
 
     await expect(page).toHaveURL(/\/done/);
-    await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText("All comparisons reviewed");
+    await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText(
+      "All comparisons reviewed",
+    );
   });
 
   test("skip navigates to the next pending test without approving", async ({
@@ -118,7 +122,9 @@ test.describe("Approval loop (image)", () => {
 
     await expect(page).toHaveURL(/tests\/login-form/);
     await expect(component.getByTestId("comparison-view")).toBeVisible();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(/Could not approve .* "login-form"/);
+    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
+      /Could not approve .* "login-form"/,
+    );
     await expect(component.getByTestId("approve-changes")).toBeEnabled();
   });
 
@@ -138,7 +144,9 @@ test.describe("Approval loop (image)", () => {
 
     await expect(component.getByTestId("comparison-view")).toBeVisible();
     await component.getByTestId("approve-changes").click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(/Could not approve .* "login-form"/);
+    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
+      /Could not approve .* "login-form"/,
+    );
 
     await component.getByTestId("skip").click();
 
