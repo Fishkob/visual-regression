@@ -43,7 +43,10 @@ const emit = defineEmits<{
             emit('update:filters', { ...filters, viewport: String($event) })
           "
         >
-          <SelectTrigger class="min-w-[130px]">
+          <SelectTrigger
+            class="min-w-[130px]"
+            :data-testid="TEST_ID.filterViewport"
+          >
             <SelectValue placeholder="Viewport" />
           </SelectTrigger>
           <SelectContent>
@@ -63,7 +66,10 @@ const emit = defineEmits<{
             emit('update:filters', { ...filters, browser: String($event) })
           "
         >
-          <SelectTrigger class="min-w-[130px]">
+          <SelectTrigger
+            class="min-w-[130px]"
+            :data-testid="TEST_ID.filterBrowser"
+          >
             <SelectValue placeholder="Browser" />
           </SelectTrigger>
           <SelectContent>
@@ -86,7 +92,10 @@ const emit = defineEmits<{
             })
           "
         >
-          <SelectTrigger class="min-w-[130px]">
+          <SelectTrigger
+            class="min-w-[130px]"
+            :data-testid="TEST_ID.filterEnvironment"
+          >
             <SelectValue placeholder="Environment" />
           </SelectTrigger>
           <SelectContent>
@@ -106,7 +115,10 @@ const emit = defineEmits<{
             emit('update:filters', { ...filters, status: String($event) })
           "
         >
-          <SelectTrigger class="min-w-[130px]">
+          <SelectTrigger
+            class="min-w-[130px]"
+            :data-testid="TEST_ID.filterStatus"
+          >
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -134,6 +146,7 @@ const emit = defineEmits<{
       "
       placeholder="Search test name…"
       class="w-64 rounded-xl shadow-sm"
+      :data-testid="TEST_ID.testSearch"
     />
   </div>
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onErrorCaptured } from "vue";
+import { TEST_ID } from "@/lib/test-ids";
 
 const hasError = ref(false);
 const errorMessage = ref("");
@@ -30,6 +31,7 @@ function recover() {
       <button
         class="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
         @click="recover"
+        :data-testid="TEST_ID.retry"
       >
         Try again
       </button>

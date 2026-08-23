@@ -17,6 +17,7 @@
             : 'border-transparent text-muted-foreground',
         ]"
         @click="activeTab = 'screenshots'"
+        :data-testid="TEST_ID.tabScreenshots"
       >
         Screenshots
         <component
@@ -40,6 +41,7 @@
             : 'border-transparent text-muted-foreground',
         ]"
         @click="activeTab = 'pdfs'"
+        :data-testid="TEST_ID.tabPdfs"
       >
         PDFs
         <component
@@ -102,6 +104,7 @@
             <button
               type="button"
               class="flex w-full items-center justify-between px-4 py-3 hover:bg-muted/50 rounded transition text-left"
+              :data-testid="TEST_ID.pdfTestRow"
               @click="navigateToPdfTest(test)"
             >
               <span class="font-medium">{{ test.name }}</span>
@@ -129,6 +132,7 @@ import { useTestNavigation } from "@/composables/useTestNavigation";
 import type { PdfProjectTest } from "@/domains/pdf-test/pdf-test.model";
 import { STATUS } from "@/domains/test-status";
 import { getStatusBadge, getStatusCountBadge } from "@/components/StatusBadge";
+import { TEST_ID } from "@/lib/test-ids";
 
 const { projectName } = useRouteParams();
 const route = useRoute();

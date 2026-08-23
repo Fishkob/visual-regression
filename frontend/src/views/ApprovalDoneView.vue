@@ -4,13 +4,20 @@
   >
     <CheckCircle class="w-12 h-12 text-green-500" />
 
-    <h1 class="text-xl font-semibold">All comparisons reviewed</h1>
+    <h1 class="text-xl font-semibold" :data-testid="TEST_ID.doneHeading">
+      All comparisons reviewed
+    </h1>
 
     <p class="text-muted-foreground">
       You’ve completed all pending approvals for this project.
     </p>
 
-    <Button type="button" @click="goHome" class="mt-4">
+    <Button
+      type="button"
+      @click="goHome"
+      class="mt-4"
+      :data-testid="TEST_ID.backToProjectList"
+    >
       Back to project list
     </Button>
   </div>
@@ -20,6 +27,7 @@
 import { CheckCircle } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "vue-router";
+import { TEST_ID } from "@/lib/test-ids";
 
 const router = useRouter();
 

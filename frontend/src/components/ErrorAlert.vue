@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { AlertTriangle, XCircle, Info, RefreshCw } from "@lucide/vue";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { TEST_ID } from "@/lib/test-ids";
 
 defineProps<{
   title?: string;
@@ -34,6 +35,7 @@ defineProps<{
           v-if="retry && onRetry"
           class="mt-3 inline-flex items-center gap-2 text-sm font-medium hover:underline"
           @click="onRetry"
+          :data-testid="TEST_ID.retry"
         >
           <RefreshCw class="w-4 h-4" />
           Try again

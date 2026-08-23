@@ -8,13 +8,20 @@
       The page you’re looking for doesn’t exist.
     </p>
 
-    <Button type="button" @click="goHome"> Back to project list </Button>
+    <Button
+      type="button"
+      @click="goHome"
+      :data-testid="TEST_ID.backToProjectList"
+    >
+      Back to project list
+    </Button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
+import { TEST_ID } from "@/lib/test-ids";
 
 const router = useRouter();
 

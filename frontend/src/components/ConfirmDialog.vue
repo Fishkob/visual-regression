@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { TEST_ID } from "@/lib/test-ids";
 
 const props = defineProps<{
   open: boolean;
@@ -70,13 +71,13 @@ const cancelLabel = computed(() => props.cancelText ?? "Cancel");
   <AlertDialog v-model:open="modelOpen">
     <AlertDialogContent>
       <AlertDialogHeader>
-        <AlertDialogTitle>
+        <AlertDialogTitle :data-testid="TEST_ID.dialogTitle">
           <slot name="title">
             {{ title ?? "Confirm" }}
           </slot>
         </AlertDialogTitle>
 
-        <AlertDialogDescription>
+        <AlertDialogDescription :data-testid="TEST_ID.dialogDescription">
           <slot name="description">
             {{ description ?? "" }}
           </slot>
@@ -93,6 +94,7 @@ const cancelLabel = computed(() => props.cancelText ?? "Cancel");
           :disabled="pending"
           :class="confirmBtnClass"
           @click="onConfirm"
+          :data-testid="TEST_ID.dialogConfirm"
         >
           {{ confirmLabel }}
         </AlertDialogAction>
