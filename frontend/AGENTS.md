@@ -65,3 +65,11 @@ src/
 - Tests in `src/__tests__/` (component/composable) or `src/domains/*/__tests__/` (mapper)
 - Mock SDK via `vi.mock("@sdk", ...)`, router via `vi.mock("vue-router", ...)`
 - Use `data-testid` attributes for element queries
+
+### Language-independent selectors
+
+- Find elements via `getByTestId(TEST_ID.*)` only — constants live in `src/lib/test-ids.ts` and are imported by markup and tests alike.
+- Assert visible content with `toContainText`/`toHaveText` (these intentionally track the UI language).
+- `getByRole` without a `name` is allowed for semantics/a11y (e.g. `getByRole("heading", { level: 1 })`).
+- Data values (viewports, project/test names, badge counts) are a documented exception: `getByRole("option", { name })` and `filter({ hasText: dataValue })` are fine.
+- Enforced by the `no-text-selectors` ESLint rule for `tests/ct/**/*.ts` and `tests/e2e/**/*.ts`.
