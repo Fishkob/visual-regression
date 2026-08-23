@@ -110,7 +110,7 @@ test.describe("PDF Comparison Workflow", () => {
 
     await page.getByTestId(TEST_ID.approveChanges).click();
 
-    // After approval the Approve button disappears and the Skip button becomes "Back to project"
+    // Approving the last comparison lands on the done page showing "Back to project list"
     await expect(page.getByTestId(TEST_ID.approveChanges)).not.toBeVisible({
       timeout: 10000,
     });

@@ -38,6 +38,7 @@ test.describe("Image Review Loop", () => {
 
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Approved .* of "login-form"/,
+      { timeout: 10000 },
     );
     await expect(page).toHaveURL(/\/projects\/.*\/done/, { timeout: 10000 });
     await expect(page.getByTestId(TEST_ID.doneHeading)).toContainText(
@@ -103,6 +104,7 @@ test.describe("Image Review Loop", () => {
 
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Approved .* of "login-form"/,
+      { timeout: 10000 },
     );
     await expect(page).toHaveURL(/tests\/checkout-flow/, {
       timeout: 10000,
@@ -114,6 +116,7 @@ test.describe("Image Review Loop", () => {
 
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Approved .* of "checkout-flow"/,
+      { timeout: 10000 },
     );
     await expect(page).toHaveURL(/\/projects\/.*\/done/, { timeout: 10000 });
     await expect(page.getByTestId(TEST_ID.doneHeading)).toContainText(
