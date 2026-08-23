@@ -371,7 +371,7 @@ describe('OrphanCleanupService', () => {
       expect(task.label).toBe('orphaned cleanup');
     });
 
-    it('execute should return counters and gauges when orphans deleted', async () => {
+    it('execute returns counters and gauges when orphans deleted', async () => {
       const currentOrphans = [mockScreenshot('ss-1'), mockScreenshot('ss-2')];
       const baselineOrphans = [mockScreenshot('ss-3')];
       orphaned.findOrphanedCurrent.mockResolvedValue({
@@ -400,7 +400,7 @@ describe('OrphanCleanupService', () => {
       expect(result.gauges![0].value).toBeGreaterThan(1e12);
     });
 
-    it('execute should still report a single counter when zero orphans', async () => {
+    it('execute still reports a single counter when zero orphans', async () => {
       orphaned.findOrphanedCurrent.mockResolvedValue({
         skipped: false,
         screenshots: [],
