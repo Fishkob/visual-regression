@@ -1,10 +1,30 @@
 import { AppLoggerService } from '@common/logging/app-logger.service';
-import { FileBuilder } from '@test/builders/test-builders';
+import { Readable } from 'node:stream';
 import { createMock } from './create-mock';
 export function createMockFile(
   overrides: Partial<Express.Multer.File> = {},
 ): Express.Multer.File {
-  return FileBuilder.createMockFile(overrides);
+  const buffer = Buffer.from('fake-image-content');
+
+  const mockStream = new Readable({
+    read() {
+      this.push(null);
+    },
+  });
+
+  return {
+    fieldname: 'image',
+    originalname: 'screenshot.png',
+    encoding: '7bit',
+    mimetype: 'image/png',
+    size: buffer.length,
+    stream: mockStream,
+    buffer,
+    destination: '',
+    filename: 'screenshot.png',
+    path: '',
+    ...overrides,
+  };
 }
 
 export function createMockLogger(): jest.Mocked<AppLoggerService> {

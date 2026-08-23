@@ -12,7 +12,9 @@ import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { STORAGE_PROVIDER } from '@common/domain/storage-provider.interface';
 import type { MaintenanceTask } from '@common/domain/maintenance-task.interface';
-import { ScreenshotBuilder } from '@test/builders/test-builders';
+import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
+import { ScreenshotType } from '@public/visualTest/core/domain/types/visual-test.types';
+import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { createMock } from '@test/utils/create-mock';
 import { createMockLogger } from '@test/utils/mocks';
 
@@ -25,11 +27,16 @@ describe('OrphanCleanupService', () => {
   let logger: jest.Mocked<AppLoggerService>;
 
   function mockScreenshot(id: string) {
-    return ScreenshotBuilder.create()
-      .withId(id)
-      .withVisualTestId(id)
-      .withImageUrl(`http://storage/${id}.png`)
-      .build();
+    return new ScreenshotEntity({
+      id,
+      visualTestId: id,
+      type: ScreenshotType.BASELINE,
+      imageHash: 'hash-default',
+      imageUrl: `http://storage/${id}.png`,
+      variant: Variant.fromStrings('1920x1080', 'Chrome', 'ci'),
+      pixelDiffThreshold: 0,
+      createdAt: new Date(),
+    });
   }
 
   beforeEach(async () => {
