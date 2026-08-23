@@ -52,4 +52,45 @@ test.describe("Approval loop (image)", () => {
       component.getByRole("heading", { name: "All comparisons reviewed" }),
     ).toBeVisible();
   });
+
+  test("approving the only pending test lands directly on done", async ({
+    mount,
+    page,
+  }) => {
+    await mockReviewBackend(page, {
+      projectName: PROJECT,
+      details: new Map([["login-form", makeReviewableDetails("login-form")]]),
+      kind: new Map([["login-form", makeImageKind()]]),
+      pending: [makePendingItem("login-form")],
+    });
+
+    const component = await mount<typeof AppShell>("AppShell/AppShell", {
+      initialRoute: testUrl("login-form"),
+    });
+
+    await expect(component.getByTestId("comparison-view")).toBeVisible();
+    await component.getByTestId("approve-changes").click();
+
+    await expect(page).toHaveURL(/\/done/);
+    await expect(
+      component.getByRole("heading", { name: "All comparisons reviewed" }),
+    ).toBeVisible();
+  });
+
+  test("skip navigates to the next pending test without approving", async ({
+    mount,
+    page,
+  }) => {
+    await mockReviewBackend(page, { projectName: PROJECT, ...TWO_PENDING });
+
+    const component = await mount<typeof AppShell>("AppShell/AppShell", {
+      initialRoute: testUrl("login-form"),
+    });
+
+    await expect(component.getByTestId("comparison-view")).toBeVisible();
+    await component.getByTestId("skip").click();
+
+    await expect(page).toHaveURL(/tests\/checkout-flow/);
+    await expect(component.getByTestId("comparison-view")).toBeVisible();
+  });
 });
