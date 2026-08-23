@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { mockReviewBackend } from "./routes/api.routes";
 import {
-  makeReviewableDetails,
+  makeConflictError,
   makeImageKind,
   makePendingItem,
-  makeConflictError,
+  makeReviewableDetails,
 } from "./mocks/reviewLoop.mocks";
 import type { AppShell } from "../../src/AppShell.story";
 
@@ -24,6 +24,12 @@ const TWO_PENDING = {
     ["checkout-flow", makeImageKind()],
   ]),
   pending: [makePendingItem("login-form"), makePendingItem("checkout-flow")],
+};
+
+const ONE_PENDING = {
+  details: new Map([["login-form", makeReviewableDetails("login-form")]]),
+  kind: new Map([["login-form", makeImageKind()]]),
+  pending: [makePendingItem("login-form")],
 };
 
 test.describe("Approval loop (image)", () => {
@@ -58,12 +64,7 @@ test.describe("Approval loop (image)", () => {
     mount,
     page,
   }) => {
-    await mockReviewBackend(page, {
-      projectName: PROJECT,
-      details: new Map([["login-form", makeReviewableDetails("login-form")]]),
-      kind: new Map([["login-form", makeImageKind()]]),
-      pending: [makePendingItem("login-form")],
-    });
+    await mockReviewBackend(page, { projectName: PROJECT, ...ONE_PENDING });
 
     const component = await mount<typeof AppShell>("AppShell/AppShell", {
       initialRoute: testUrl("login-form"),
@@ -107,9 +108,7 @@ test.describe("Approval loop (image)", () => {
   }) => {
     await mockReviewBackend(page, {
       projectName: PROJECT,
-      details: new Map([["login-form", makeReviewableDetails("login-form")]]),
-      kind: new Map([["login-form", makeImageKind()]]),
-      pending: [makePendingItem("login-form")],
+      ...ONE_PENDING,
       approve: makeConflictError(),
     });
 
