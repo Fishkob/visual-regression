@@ -120,7 +120,7 @@ pnpm run dev:seed
 
 Configuration happens through environment variables, resolved in this order (later wins):
 
-1. **Defaults in `scripts/dev.sh`** — sensible local values (see the `POSTGRES_*` / `MINIO_*` vars at the top of the script).
+1. **Defaults in `scripts/dev.sh`** — sensible local values (see the `POSTGRES_*` / `RUSTFS_*` vars at the top of the script).
 2. **`.env`** (repo root, gitignored) — loaded by `dev.sh` and Docker Compose.
 3. **`backend/.env`** — loaded by `dev.sh` after the root `.env`.
 

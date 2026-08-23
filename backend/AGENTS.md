@@ -39,7 +39,7 @@ src/
 | Source       | `kebab-case.ts`            | `test-command.service.ts`       |
 | Module       | `kebab-case.module.ts`     | `visual-test.module.ts`         |
 | Controller   | `kebab-case.controller.ts` | `tests.controller.ts`           |
-| Service      | `kebab-case.service.ts`    | `minio-storage.service.ts`      |
+| Service      | `kebab-case.service.ts`    | `rustfs-storage.service.ts`     |
 | Entity       | `kebab-case.entity.ts`     | `comparison.entity.ts`          |
 | Value object | `kebab-case.vo.ts`         | `variant.vo.ts`                 |
 | DTO          | `kebab-case.dto.ts`        | `upload.dto.ts`                 |

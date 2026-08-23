@@ -144,7 +144,7 @@ Then override the `x-app-env` anchor values at runtime via environment variables
 
 - The migration job **creates its own tables** (`UnifiedTest`, `UnifiedVariant`, `UnifiedScreenshot`, `UnifiedComparison`, `ComparisonJob`) in the target database. It does not touch other databases or schemas.
 - Table name collisions are possible if the target database already has tables with those names. Use a dedicated database (via `CREATE DATABASE vrt`) to avoid conflicts.
-- The object storage (RustFS / S3-compatible) is configured separately via `MINIO_*` env vars.
+- The object storage (RustFS / S3-compatible) is configured separately via `RUSTFS_*` env vars.
 
 ---
 
@@ -167,8 +167,8 @@ The worker and pdf-sidecar images are built whenever the target is `backend` or 
 
 The frontend loads screenshots directly from RustFS (`<img :src="imageUrl">`) — the backend does **not** proxy images. So the browser must be able to reach RustFS:
 
-- `MINIO_PUBLIC_URL` must be a **browser-reachable base URL without the bucket** — the backend appends `/bucket/<object>` itself. `http://rustfs:9000/vrt` would produce the broken double-bucket URL `http://rustfs:9000/vrt/vrt/<object>`.
-- In the Helm chart, set `rustfsHost` (default `rustfs.vrt.local`). The ingress routes that host to the RustFS service, and both the backend and worker get `MINIO_PUBLIC_URL=http://<rustfsHost>` from it.
+- `RUSTFS_PUBLIC_URL` must be a **browser-reachable base URL without the bucket** — the backend appends `/bucket/<object>` itself. `http://rustfs:9000/vrt` would produce the broken double-bucket URL `http://rustfs:9000/vrt/vrt/<object>`.
+- In the Helm chart, set `rustfsHost` (default `rustfs.vrt.local`). The ingress routes that host to the RustFS service, and both the backend and worker get `RUSTFS_PUBLIC_URL=http://<rustfsHost>` from it.
 - **DNS required**: `rustfs.vrt.local` must resolve for users (wildcard `*.vrt.local` or an `/etc/hosts` entry on test machines). Without it, images won't load even though the deployment is healthy.
 - The chart's NetworkPolicy must allow the ingress controller to reach RustFS — `allow-ingress-to-rustfs` is included by default.
 
