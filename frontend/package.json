@@ -5,8 +5,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "lint": "eslint \"src/**/*.{ts,vue}\" \"playwright/gallery/**/*.ts\" \"tests/ct/**/*.ts\" \"playwright-ct.config.ts\" --fix",
-    "lint:check": "eslint \"src/**/*.{ts,vue}\" \"playwright/gallery/**/*.ts\" \"tests/ct/**/*.ts\" \"playwright-ct.config.ts\"",
+    "lint": "eslint \"src/**/*.{ts,vue}\" \"playwright/gallery/**/*.ts\" \"tests/ct/**/*.ts\" \"tests/e2e/**/*.ts\" \"playwright-ct.config.ts\" --fix",
+    "lint:check": "eslint \"src/**/*.{ts,vue}\" \"playwright/gallery/**/*.ts\" \"tests/ct/**/*.ts\" \"tests/e2e/**/*.ts\" \"playwright-ct.config.ts\"",
     "typecheck": "vue-tsc --noEmit && vue-tsc --noEmit -p tsconfig.playwright.json",
     "format": "prettier --write \"src/**/*.{ts,vue,js,json,css,md}\"",
     "dev": "vite",

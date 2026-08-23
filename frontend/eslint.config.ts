@@ -5,6 +5,50 @@ import vueParser from "vue-eslint-parser";
 import prettier from "eslint-config-prettier";
 import type { Linter } from "eslint";
 
+const noTextSelectors = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "Prefer getByTestId over text-based Playwright selectors for language-independence",
+    },
+    messages: {
+      noText:
+        "Prefer getByTestId(TEST_ID.*) over '{{ method }}' — text-based selectors break on i18n.",
+      noRoleName:
+        "Prefer getByTestId(TEST_ID.*) over getByRole with a 'name' option (role 'option' is exempt for data values).",
+    },
+    schema: [],
+  },
+  create(context) {
+    return {
+      CallExpression(node) {
+        const { callee } = node;
+        if (callee.type !== "MemberExpression" || callee.property.type !== "Identifier") {
+          return;
+        }
+        const method = callee.property.name;
+        if (method === "getByText" || method === "getByPlaceholder") {
+          context.report({ node, messageId: "noText", data: { method } });
+        }
+        if (method === "getByRole") {
+          const [roleArg, optionsArg] = node.arguments;
+          if (optionsArg?.type !== "ObjectExpression") return;
+          const role = roleArg?.type === "Literal" ? roleArg.value : undefined;
+          const hasName = optionsArg.properties.some(
+            (p) =>
+              p.type === "Property" &&
+              p.key.type === "Identifier" &&
+              p.key.name === "name",
+          );
+          if (hasName && role !== "option") {
+            context.report({ node, messageId: "noRoleName" });
+          }
+        }
+      },
+    };
+  },
+};
+
 const config: Linter.FlatConfig[] = [
   prettier,
   {
@@ -74,6 +118,7 @@ const config: Linter.FlatConfig[] = [
       "playwright/**/*.ts",
       "tests/pages/**/*.ts",
       "tests/ct/**/*.ts",
+      "tests/e2e/**/*.ts",
       "playwright-ct.config.ts",
     ],
     languageOptions: {
@@ -83,6 +128,7 @@ const config: Linter.FlatConfig[] = [
           "./tsconfig.json",
           "./tsconfig.node.json",
           "./tsconfig.playwright.json",
+          "./tests/e2e/tsconfig.json",
         ],
         tsconfigRootDir: process.cwd(),
         ecmaVersion: 2020,
@@ -94,9 +140,15 @@ const config: Linter.FlatConfig[] = [
     },
     plugins: {
       "@typescript-eslint": tsPlugin,
+      playwright: {
+        rules: {
+          "no-text-selectors": noTextSelectors,
+        },
+      },
     },
     rules: {
       "no-undef": "off",
+      "playwright/no-text-selectors": "error",
     },
   },
 ];
