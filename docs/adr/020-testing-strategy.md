@@ -30,7 +30,7 @@ There is **no integration test category**. Repository-layer tests against real P
 
 ### Vitest for Unit
 
-- **Single runner across stack**: Vitest is used in both `backend/` and `frontend/`. Its API is compatible with Jest (same `describe`/`it`/`expect`), but it runs natively on Vite's transform pipeline — no Jest-specific transforms needed.
+- **Single runner across stack**: Vitest is used in both `backend/` and `frontend/`. It exposes the standard `describe`/`it`/`expect` testing style and runs natively on Vite's transform pipeline — no framework-specific transforms needed.
 - **ESM/CJS compatible**: Vitest handles the backend's CommonJS output and the frontend's ESM modules without separate configuration.
 - **Coverage**: `@vitest/coverage-v8` provides Istanbul-compatible coverage reports. Backend targets unit tests; frontend targets composables and domain logic (excluding UI components, which are covered by Playwright CT). The backend CI job enforces a ≥70% line-coverage threshold and fails below it.
 - **In-source testing**: Backend tests use `Test.createTestingModule()` from `@nestjs/testing` — the NestJS DI container is available without HTTP overhead.
@@ -65,7 +65,6 @@ A dedicated integration test suite (`test/integration/`) was initially created w
 
 ### Alternatives Considered
 
-- **Jest only**: Jest works for both backend and frontend but requires additional configuration for ESM, TypeScript path aliases, and Vue SFC transforms. Vitest handles these natively via Vite.
 - **Cypress**: Full-featured E2E testing with time-travel debugging, but slower CI execution, no native component testing at the time of evaluation, and a different API than the unit test runner.
 - **Vitest for everything (including E2E)**: Vitest's `@vitest/browser` provides browser-based testing but requires Playwright/WebDriver as a transport layer anyway — adding Playwright directly was simpler and more capable for multi-page flows.
 - **Testing Library (RTL) + Vitest for frontend**: Standard for React projects, but Vue's `@testing-library/vue` has less traction. Playwright CT with real browser rendering gives more confidence than jsdom-based DOM assertions.
