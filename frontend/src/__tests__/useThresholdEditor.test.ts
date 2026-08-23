@@ -54,12 +54,12 @@ describe("useThresholdEditor", () => {
 
   it("initializes threshold from baseline", () => {
     const options = createOptions({
-      baseline: baseline(0.5),
+      baseline: baseline(50),
     });
 
     const { threshold } = useThresholdEditor(options);
 
-    expect(threshold.value).toBe(0.5);
+    expect(threshold.value).toBe(50);
   });
 
   it("initializes threshold to 0 when baseline is undefined", () => {
@@ -74,32 +74,32 @@ describe("useThresholdEditor", () => {
 
   it("initializes inputValue from threshold", () => {
     const options = createOptions({
-      baseline: baseline(0.1),
+      baseline: baseline(10),
     });
 
     const { inputValue } = useThresholdEditor(options);
 
-    expect(inputValue.value).toBe("0.1");
+    expect(inputValue.value).toBe("10");
   });
 
   it("resets input to current threshold on handleCancelThreshold", () => {
     const options = createOptions({
-      baseline: baseline(0.5),
+      baseline: baseline(50),
     });
 
     const { inputValue, handleCancelThreshold } = useThresholdEditor(options);
 
-    inputValue.value = "1.0";
+    inputValue.value = "30";
 
     // Internal reset happens on cancel
     handleCancelThreshold();
 
-    expect(inputValue.value).toBe("0.5");
+    expect(inputValue.value).toBe("50");
   });
 
   it("shows confirmation when the server preview reports an auto-accept", async () => {
     const options = createOptions({
-      baseline: baseline(0.1),
+      baseline: baseline(10),
     });
     mockPreview.mockResolvedValue(previewResponse(1));
 
@@ -120,7 +120,7 @@ describe("useThresholdEditor", () => {
 
   it("commits directly when the server preview reports no auto-accept", async () => {
     const options = createOptions({
-      baseline: baseline(0.1),
+      baseline: baseline(10),
     });
     mockPreview.mockResolvedValue(previewResponse(0));
 
@@ -135,7 +135,7 @@ describe("useThresholdEditor", () => {
 
   it("does not show a confirm when there is no pending comparison to accept", async () => {
     const options = createOptions({
-      baseline: baseline(0.1),
+      baseline: baseline(10),
     });
     mockPreview.mockResolvedValue(previewResponse(0));
 
@@ -150,7 +150,7 @@ describe("useThresholdEditor", () => {
 
   it("resets input on cancel", async () => {
     const options = createOptions({
-      baseline: baseline(0.5),
+      baseline: baseline(50),
     });
     mockPreview.mockResolvedValue(previewResponse(1));
 
@@ -170,12 +170,12 @@ describe("useThresholdEditor", () => {
 
     expect(confirmVisible.value).toBe(false);
     expect(pendingThreshold.value).toBeNull();
-    expect(inputValue.value).toBe("0.5");
+    expect(inputValue.value).toBe("50");
   });
 
   it("commits the pending threshold on confirm", async () => {
     const options = createOptions({
-      baseline: baseline(0.5),
+      baseline: baseline(50),
     });
     mockPreview.mockResolvedValue(previewResponse(1));
 
@@ -209,7 +209,7 @@ describe("useThresholdEditor", () => {
 
   it("clamps negative values to 0 on blur", async () => {
     const options = createOptions({
-      baseline: baseline(0.5),
+      baseline: baseline(50),
     });
     mockPreview.mockResolvedValue(previewResponse(0));
 
@@ -224,7 +224,7 @@ describe("useThresholdEditor", () => {
 
   it("resets input when non-numeric value entered", async () => {
     const options = createOptions({
-      baseline: baseline(0.5),
+      baseline: baseline(50),
     });
 
     const { inputValue, onBlur } = useThresholdEditor(options);
@@ -233,12 +233,12 @@ describe("useThresholdEditor", () => {
 
     await onBlur();
 
-    expect(inputValue.value).toBe("0.5");
+    expect(inputValue.value).toBe("50");
   });
 
   it("keeps the typed value when the preview reports no auto-accept", async () => {
     const options = createOptions({
-      baseline: baseline(0.1),
+      baseline: baseline(10),
     });
     mockPreview.mockResolvedValue(previewResponse(0));
 
@@ -253,7 +253,7 @@ describe("useThresholdEditor", () => {
 
   it("does not commit blindly when the preview fails", async () => {
     const options = createOptions({
-      baseline: baseline(0.1),
+      baseline: baseline(10),
     });
     mockPreview.mockRejectedValue(new Error("preview failed"));
 
@@ -267,16 +267,16 @@ describe("useThresholdEditor", () => {
     expect(confirmVisible.value).toBe(false);
     expect(pendingThreshold.value).toBeNull();
     expect(mockMutate).not.toHaveBeenCalled();
-    expect(inputValue.value).toBe("0.1");
+    expect(inputValue.value).toBe("10");
   });
 
   it("initializes with provided baseline threshold", () => {
     const options = createOptions({
-      baseline: baseline(0.8),
+      baseline: baseline(80),
     });
 
     const { threshold } = useThresholdEditor(options);
 
-    expect(threshold.value).toBe(0.8);
+    expect(threshold.value).toBe(80);
   });
 });

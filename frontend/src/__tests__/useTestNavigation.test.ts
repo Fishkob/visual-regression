@@ -89,12 +89,16 @@ describe("useTestNavigation", () => {
       const { navigateToTest } = useTestNavigation(createOptions());
 
       navigateToTest({ name: "", viewport: "1920x1080" });
+
+      expect(mockPush).not.toHaveBeenCalled();
     });
 
     it("does not navigate when name is undefined", () => {
       const { navigateToTest } = useTestNavigation(createOptions());
 
       navigateToTest({ viewport: "1920x1080" });
+
+      expect(mockPush).not.toHaveBeenCalled();
     });
   });
 
@@ -125,6 +129,8 @@ describe("useTestNavigation", () => {
       const { navigateToNextTest } = useTestNavigation(createOptions());
 
       navigateToNextTest({ name: "", viewport: "1280x720" });
+
+      expect(mockPush).not.toHaveBeenCalled();
     });
   });
 

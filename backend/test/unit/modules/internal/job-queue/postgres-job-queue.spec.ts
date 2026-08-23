@@ -53,6 +53,7 @@ describe('PostgresJobQueue', () => {
   let prisma: any;
   let tracker: jest.Mocked<Tracker>;
   let metrics: jest.Mocked<MetricsService>;
+  let logger: jest.Mocked<AppLoggerService>;
 
   beforeEach(async () => {
     vi.useFakeTimers();
@@ -83,7 +84,7 @@ describe('PostgresJobQueue', () => {
     );
 
     metrics = createMock<MetricsService>();
-    const logger = createMockLogger();
+    logger = createMockLogger();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -510,101 +511,179 @@ describe('PostgresJobQueue', () => {
     });
   });
 
+  const heartbeatStartedAt = new Date('2025-01-01T00:00:00Z');
+
+  function claimProcessingJob(id = 'job-1') {
+    prisma.client.$queryRawUnsafe.mockResolvedValue([
+      { id, status: 'PROCESSING', attempts: 0, maxAttempts: 3 },
+    ]);
+    prisma.client.comparisonJob.update.mockResolvedValue({});
+    prisma.client.comparisonJob.findUnique.mockResolvedValue({
+      id,
+      status: 'PROCESSING',
+      payload: jobPayload,
+      attempts: 0,
+      maxAttempts: 3,
+      processingStartedAt: heartbeatStartedAt,
+    });
+  }
+
+  // Runs processNext with a processor that stays pending until `finish` is
+  // called, so the heartbeat interval stays alive long enough to observe it.
+  function startProcessing(id = 'job-1'): {
+    processing: Promise<boolean>;
+    finish: () => void;
+  } {
+    claimProcessingJob(id);
+    prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
+
+    let finish: (() => void) | undefined;
+    const processor = jest.fn(
+      () => new Promise<void>((resolve) => (finish = resolve)),
+    );
+    return {
+      processing: queue.processNext(processor),
+      // finish is assigned lazily when the processor runs; read it at call time.
+      finish: () => finish?.(),
+    };
+  }
+
+  function heartbeatCalls(): number {
+    return prisma.client.comparisonJob.updateMany.mock.calls.filter(
+      ([args]: unknown[]) => 'heartbeatAt' in (args as { data: object }).data,
+    ).length;
+  }
+
+  // claimNext resolves through several mocked awaits; a single await only
+  // advances one microtask level, so drain the chain deterministically.
+  async function flushMicrotasks(): Promise<void> {
+    for (let i = 0; i < 20; i++) {
+      await Promise.resolve();
+    }
+  }
+
   describe('heartbeat', () => {
-    const startedAt = new Date('2025-01-01T00:00:00Z');
+    it('starts sending heartbeats at interval with an ownership guard', async () => {
+      const { processing, finish } = startProcessing();
 
-    it('starts sending heartbeats at interval with an ownership guard', () => {
-      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
-      queue['startHeartbeat']('job-1', startedAt);
-
-      expect(prisma.client.comparisonJob.updateMany).not.toHaveBeenCalled();
-
+      await flushMicrotasks();
       vi.advanceTimersByTime(5000);
 
       expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledWith({
         where: {
           id: 'job-1',
           status: 'PROCESSING',
-          processingStartedAt: startedAt,
+          processingStartedAt: heartbeatStartedAt,
         },
         data: { heartbeatAt: expect.any(Date) },
       });
+
+      finish();
+      await processing;
     });
 
-    it('sends heartbeats repeatedly at 5s interval', () => {
-      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
-      queue['startHeartbeat']('job-1', startedAt);
+    it('sends heartbeats repeatedly at 5s interval', async () => {
+      const { processing, finish } = startProcessing();
 
+      await flushMicrotasks();
       vi.advanceTimersByTime(15000);
 
-      expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledTimes(3);
+      expect(heartbeatCalls()).toBe(3);
+
+      finish();
+      await processing;
     });
 
-    it('stops sending heartbeats for the given job', () => {
-      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
-      queue['startHeartbeat']('job-1', startedAt);
-      queue['stopHeartbeat']('job-1');
+    it('stops sending heartbeats for the given job', async () => {
+      const { processing, finish } = startProcessing();
+
+      await flushMicrotasks();
+      finish();
+      await processing;
 
       vi.advanceTimersByTime(10000);
 
-      expect(prisma.client.comparisonJob.updateMany).not.toHaveBeenCalled();
+      expect(heartbeatCalls()).toBe(0);
     });
 
-    it('does nothing when stopping a job that was never started', () => {
-      expect(() => queue['stopHeartbeat']('nonexistent')).not.toThrow();
-    });
+    it('does not affect heartbeats for other jobs', async () => {
+      const first = startProcessing('job-1');
+      await flushMicrotasks();
+      const second = startProcessing('job-2');
+      await flushMicrotasks();
 
-    it('does not affect heartbeats for other jobs', () => {
-      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
-      queue['startHeartbeat']('job-1', startedAt);
-      queue['startHeartbeat']('job-2', startedAt);
-      queue['stopHeartbeat']('job-1');
-
+      first.finish();
+      await first.processing;
       vi.advanceTimersByTime(5000);
 
-      expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledTimes(1);
+      expect(heartbeatCalls()).toBe(1);
       expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledWith({
         where: {
           id: 'job-2',
           status: 'PROCESSING',
-          processingStartedAt: startedAt,
+          processingStartedAt: heartbeatStartedAt,
         },
         data: { heartbeatAt: expect.any(Date) },
       });
+
+      second.finish();
+      await second.processing;
     });
 
-    it('swallows update errors gracefully via catch', () => {
+    it('swallows update errors gracefully via catch', async () => {
+      const { processing, finish } = startProcessing();
+      await flushMicrotasks();
       prisma.client.comparisonJob.updateMany.mockRejectedValue(
         new Error('DB error'),
       );
 
-      queue['startHeartbeat']('job-1', startedAt);
-      vi.advanceTimersByTime(5000);
+      await vi.advanceTimersByTimeAsync(5000);
 
-      expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledTimes(1);
+      expect(metrics.incrementCounter).toHaveBeenCalledWith(
+        'queue_heartbeat_failures_total',
+        { queue: 'comparison' },
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Heartbeat failed'),
+        expect.any(Object),
+      );
+
+      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
+      finish();
+      await processing;
     });
 
     it('stops heartbeating a job that was reclaimed by another worker (ownership lost)', async () => {
+      const { processing, finish } = startProcessing();
       prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 0 });
-      queue['startHeartbeat']('job-1', startedAt);
 
       await vi.advanceTimersByTimeAsync(5000);
       await vi.advanceTimersByTimeAsync(10000);
 
-      expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledTimes(1);
+      expect(heartbeatCalls()).toBe(1);
+
+      finish();
+      await processing;
     });
   });
 
   describe('onModuleDestroy', () => {
-    it('clears all timers', () => {
-      queue['startHeartbeat']('job-1');
-      queue['startHeartbeat']('job-2');
+    it('clears all timers', async () => {
+      const first = startProcessing('job-1');
+      await flushMicrotasks();
+      const second = startProcessing('job-2');
+      await flushMicrotasks();
 
       queue.onModuleDestroy();
 
       vi.advanceTimersByTime(10000);
 
-      expect(prisma.client.comparisonJob.update).not.toHaveBeenCalled();
+      expect(heartbeatCalls()).toBe(0);
+
+      first.finish();
+      await first.processing;
+      second.finish();
+      await second.processing;
     });
 
     it('is safe to call when no timers exist', () => {

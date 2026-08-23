@@ -55,7 +55,7 @@ describe("mapProject", () => {
     expect(result.testCount).toBe(2);
   });
 
-  it("returns 0 testCount when visualTests is absent", () => {
+  it("leaves testCount undefined when visualTests is absent", () => {
     const result = mapProject({ id: "1", name: "p", pending: true });
     expect(result.testCount).toBeUndefined();
   });

@@ -58,25 +58,9 @@ describe("getStatusConfig", () => {
       getStatusConfig("UNCHANGED").icon,
     );
   });
-});
 
-describe("getStatusConfig", () => {
-  it("resolves PENDING through the config", () => {
-    const cfg = getStatusConfig("PENDING");
-
-    expect(cfg.label).toBe("No baseline");
-    expect(cfg).not.toBe(unknownStatusConfig);
-  });
-
-  it("resolves APPROVED through the config", () => {
-    expect(getStatusConfig("APPROVED").label).toBe("Approved");
-  });
-
-  it("falls back to unknownStatusConfig for unrecognized statuses", () => {
+  it("falls back to unknownStatusConfig for unrecognized statuses and null/undefined", () => {
     expect(getStatusConfig("SOMETHING_ELSE")).toBe(unknownStatusConfig);
-  });
-
-  it("falls back for null and undefined", () => {
     expect(getStatusConfig(null)).toBe(unknownStatusConfig);
     expect(getStatusConfig(undefined)).toBe(unknownStatusConfig);
   });
