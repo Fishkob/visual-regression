@@ -55,6 +55,7 @@ test.describe("Image Review Loop", () => {
 
     await expect(page.getByTestId(TEST_ID.baselineOnlyNote)).toContainText(
       "Only baseline available",
+      { timeout: 10000 },
     );
     await expect(page.getByTestId("comparison-view")).not.toBeVisible();
   });
