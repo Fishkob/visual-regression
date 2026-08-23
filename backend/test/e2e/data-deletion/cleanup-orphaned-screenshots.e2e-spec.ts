@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaConnection } from '@/prisma/prisma-connection';
-import { MinioStorageService } from '@internal/storage/services/minio-storage.service';
+import { RustFsStorageService } from '@internal/storage/services/rustfs-storage.service';
 import { OrphanCleanupService } from '@internal/data-deletion/services/orphan-cleanup.service';
 import { TestApp } from '../_support/utils/test-app';
 describe('OrphanCleanupService (integration)', () => {
@@ -24,7 +24,7 @@ describe('OrphanCleanupService (integration)', () => {
 
   it('should delete orphaned CURRENT screenshots and corresponding MinIO objects', async () => {
     const deleteSpy = jest
-      .spyOn(MinioStorageService.prototype, 'delete')
+      .spyOn(RustFsStorageService.prototype, 'delete')
       .mockResolvedValue();
 
     const project = await prisma.project.create({

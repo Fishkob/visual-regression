@@ -16,11 +16,11 @@ import type {
 import { StorageObjectName } from './storage-object-name';
 import * as mime from 'mime-types';
 
-const MINIO_OPERATION_TIMEOUT_MS = 30_000;
+const RUSTFS_OPERATION_TIMEOUT_MS = 30_000;
 const DELETE_CONCURRENCY = 10;
 
 @Injectable()
-export class MinioStorageService implements IStorageProvider, OnModuleDestroy {
+export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
   private readonly client: Client;
   private readonly bucket: string;
   private bucketReady: Promise<void> | null = null;
@@ -47,7 +47,7 @@ export class MinioStorageService implements IStorageProvider, OnModuleDestroy {
       secretKey,
     });
 
-    this.logger.log('Initialized MinioStorageService', {
+    this.logger.log('Initialized RustFsStorageService', {
       endpoint,
       bucket: this.bucket,
       useSSL: isSslEnabled,
@@ -57,7 +57,7 @@ export class MinioStorageService implements IStorageProvider, OnModuleDestroy {
   private withTimeout<T>(
     operationName: string,
     operation: Promise<T>,
-    timeoutMs: number = MINIO_OPERATION_TIMEOUT_MS,
+    timeoutMs: number = RUSTFS_OPERATION_TIMEOUT_MS,
     onTimeout?: () => void,
   ): Promise<T> {
     return withTimeoutHelper(
@@ -65,7 +65,7 @@ export class MinioStorageService implements IStorageProvider, OnModuleDestroy {
       timeoutMs,
       () => {
         return new DomainError(
-          `MinIO ${operationName} timed out after ${timeoutMs}ms`,
+          `RustFS ${operationName} timed out after ${timeoutMs}ms`,
           'INTERNAL_ERROR',
         );
       },
@@ -73,14 +73,14 @@ export class MinioStorageService implements IStorageProvider, OnModuleDestroy {
     );
   }
 
-  // A timeout alone only rejects the caller — the underlying MinIO stream keeps
+  // A timeout alone only rejects the caller — the underlying RustFS stream keeps
   // draining into memory and holds the connection. This variant hands the
   // stream to the work and destroys it when the timeout fires, so a slow read
   // or list actually stops instead of piling up buffered chunks.
   private withStreamTimeout<T>(
     operationName: string,
     work: (onStream: (stream: { destroy?: () => void }) => void) => Promise<T>,
-    timeoutMs: number = MINIO_OPERATION_TIMEOUT_MS,
+    timeoutMs: number = RUSTFS_OPERATION_TIMEOUT_MS,
   ): Promise<T> {
     let stream: { destroy?: () => void } | undefined;
     return this.withTimeout(
@@ -189,7 +189,7 @@ export class MinioStorageService implements IStorageProvider, OnModuleDestroy {
   }
 
   async deletePrefix(prefix: string): Promise<number> {
-    // The list phase is bounded like every other MinIO call: a hung list
+    // The list phase is bounded like every other RustFS call: a hung list
     // stream otherwise leaves the maintenance task's advisory lock held
     // forever (see withCronJob) and silently skips every future run. The list
     // stream is destroyed on timeout so a hung listing stops draining.
@@ -207,7 +207,7 @@ export class MinioStorageService implements IStorageProvider, OnModuleDestroy {
 
   async listObjectsWithLastModified(
     prefix: string,
-    timeoutMs: number = MINIO_OPERATION_TIMEOUT_MS,
+    timeoutMs: number = RUSTFS_OPERATION_TIMEOUT_MS,
   ): Promise<StorageObjectMetadata[]> {
     return this.withStreamTimeout(
       'listObjects',
@@ -394,7 +394,7 @@ export class MinioStorageService implements IStorageProvider, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    this.logger.log('Shutting down MinioStorageService...');
+    this.logger.log('Shutting down RustFsStorageService...');
     try {
       const clientWithClose = this.client as Partial<Client> & {
         close?: () => void | Promise<void>;
@@ -404,10 +404,10 @@ export class MinioStorageService implements IStorageProvider, OnModuleDestroy {
         if (result instanceof Promise) {
           await result;
         }
-        this.logger.log('Minio client connection closed');
+        this.logger.log('RustFS client connection closed');
       }
     } catch (err) {
-      this.logger.warn('MinioStorageService shutdown failed', {
+      this.logger.warn('RustFsStorageService shutdown failed', {
         error: err instanceof Error ? err.message : String(err),
       });
     }
