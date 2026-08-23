@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Monitor, Globe, Filter, RefreshCcw } from "@lucide/vue";
+import { TEST_ID } from "@/lib/test-ids";
 
 defineProps<{
   filters: VisualTestFilters;
@@ -120,7 +121,7 @@ const emit = defineEmits<{
         variant="outline"
         class="ml-2 flex items-center gap-2"
         @click="emit('reset')"
-        data-testid="reset-filter"
+        :data-testid="TEST_ID.resetFilter"
       >
         <RefreshCcw class="w-4 h-4" /> Reset
       </Button>

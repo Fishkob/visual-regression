@@ -2,6 +2,7 @@
 import InteractiveImageViewer from "@/components/detail-panels/InteractiveImageViewer.vue";
 import ApproveSkipFooter from "@/components/ApproveSkipFooter.vue";
 import { isApproved } from "@/domains/test-status";
+import { TEST_ID } from "@/lib/test-ids";
 import type { Comparison } from "@/domains/visual-test/visual-test.model";
 
 const props = defineProps<{
@@ -23,7 +24,7 @@ defineEmits<{
     enter-from-class="opacity-0 translate-x-4"
     leave-to-class="opacity-0 -translate-x-4"
   >
-    <div class="w-full" data-testid="comparison-view">
+    <div class="w-full" :data-testid="TEST_ID.comparisonView">
       <InteractiveImageViewer
         :baseline-url="comparison.baseline?.imageUrl"
         :candidate-url="comparison.candidate?.imageUrl"

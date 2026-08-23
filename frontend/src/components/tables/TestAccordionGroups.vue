@@ -10,6 +10,7 @@ import DataTable from "@/components/ui/table/DataTable.vue";
 import { getStatusCountBadge } from "@/components/StatusBadge";
 import type { VisualTestItem } from "@/domains/projects/project.model";
 import type { TestGroup } from "@/domains/projects/test-group";
+import { TEST_ID } from "@/lib/test-ids";
 
 defineProps<{
   groups: TestGroup[];
@@ -29,7 +30,7 @@ const emit = defineEmits<{
       :key="group.name"
       :value="group.name"
       class="mb-8"
-      data-testid="test-result-card"
+      :data-testid="TEST_ID.testResultCard"
     >
       <div class="rounded-xl border bg-card shadow-sm overflow-hidden">
         <AccordionTrigger

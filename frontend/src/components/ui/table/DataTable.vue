@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TEST_ID } from "@/lib/test-ids";
 
 const props = withDefaults(
   defineProps<{
@@ -88,12 +89,12 @@ function isActionsColumn(col: ColumnDef<TData, TValue>): boolean {
     <Table class="w-full border-collapse">
       <TableHeader
         class="sticky top-0 bg-muted/40 backdrop-blur supports-[backdrop-filter]:bg-muted/30 z-20 border-b"
-        data-testid="table-header"
+        :data-testid="TEST_ID.tableHeader"
       >
         <TableRow
           v-for="headerGroup in table.getHeaderGroups()"
           :key="headerGroup.id"
-          data-testid="table-header-row"
+          :data-testid="TEST_ID.tableHeaderRow"
         >
           <!-- Left gutter for row hover indicator -->
           <TableHead class="w-1 p-0"></TableHead>
@@ -101,7 +102,7 @@ function isActionsColumn(col: ColumnDef<TData, TValue>): boolean {
           <TableHead
             v-for="header in headerGroup.headers"
             :key="header.id"
-            data-testid="table-header-cell"
+            :data-testid="TEST_ID.tableHeaderCell"
             class="select-none text-left px-4 py-2 font-medium text-sm text-muted-foreground hover:bg-muted/50 rounded-sm transition-colors"
             @click="onSort(header.column, $event)"
           >
@@ -123,12 +124,12 @@ function isActionsColumn(col: ColumnDef<TData, TValue>): boolean {
         </TableRow>
       </TableHeader>
 
-      <TableBody data-testid="table-body">
+      <TableBody :data-testid="TEST_ID.tableBody">
         <template v-if="loading && data.length === 0">
           <TableRow
             v-for="i in 6"
             :key="i"
-            data-testid="skeleton-row"
+            :data-testid="TEST_ID.skeletonRow"
             class="group"
           >
             <TableCell class="w-1 p-0 bg-transparent rounded-l-md" />
@@ -151,7 +152,7 @@ function isActionsColumn(col: ColumnDef<TData, TValue>): boolean {
           <TableRow
             v-for="row in table.getRowModel().rows"
             :key="row.id"
-            data-testid="table-row"
+            :data-testid="TEST_ID.tableRow"
             :class="[
               'group transition-colors',
               props.clickableRows ? 'cursor-pointer hover:bg-muted/50' : '',

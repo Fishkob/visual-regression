@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from "vue";
 import { Button } from "@/components/ui/button";
+import { TEST_ID } from "@/lib/test-ids";
 
 const props = defineProps<{
   currentPage: number;
@@ -36,7 +37,7 @@ function next() {
 <template>
   <div
     class="flex items-center justify-center gap-4 py-3"
-    data-testid="pdf-page-navigation"
+    :data-testid="TEST_ID.pdfPageNavigation"
   >
     <Button
       variant="outline"

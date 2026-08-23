@@ -4,6 +4,7 @@ import {
   ViewModeToggle,
   type ViewMode,
 } from "@/components/ui/view-mode-toggle";
+import { TEST_ID } from "@/lib/test-ids";
 
 const props = withDefaults(
   defineProps<{
@@ -58,7 +59,7 @@ const rightPanelBorder = computed<"blue" | "red">(() => {
 
       <div class="flex items-center gap-1">
         <button
-          data-testid="zoom-out"
+          :data-testid="TEST_ID.zoomOut"
           class="p-1.5 rounded-md hover:bg-muted text-muted-foreground disabled:opacity-30"
           :disabled="zoomLevel === ZOOM_STEPS[0]"
           @click="zoomOut"
@@ -76,12 +77,12 @@ const rightPanelBorder = computed<"blue" | "red">(() => {
           </svg>
         </button>
         <span
-          data-testid="zoom-level"
+          :data-testid="TEST_ID.zoomLevel"
           class="text-xs text-muted-foreground w-10 text-center tabular-nums"
           >{{ zoomLevel }}%</span
         >
         <button
-          data-testid="zoom-in"
+          :data-testid="TEST_ID.zoomIn"
           class="p-1.5 rounded-md hover:bg-muted text-muted-foreground disabled:opacity-30"
           :disabled="zoomLevel === ZOOM_STEPS[ZOOM_STEPS.length - 1]"
           @click="zoomIn"
@@ -100,7 +101,7 @@ const rightPanelBorder = computed<"blue" | "red">(() => {
           </svg>
         </button>
         <button
-          data-testid="zoom-reset"
+          :data-testid="TEST_ID.zoomReset"
           class="p-1.5 rounded-md hover:bg-muted text-muted-foreground"
           @click="zoomReset"
         >
@@ -122,7 +123,7 @@ const rightPanelBorder = computed<"blue" | "red">(() => {
 
     <div class="flex gap-4">
       <div
-        data-testid="panel-baseline"
+        :data-testid="TEST_ID.panelBaseline"
         class="flex-1 rounded-3xl border border-gray-100 bg-white shadow p-4"
       >
         <div
@@ -149,7 +150,7 @@ const rightPanelBorder = computed<"blue" | "red">(() => {
       </div>
 
       <div
-        data-testid="panel-candidate"
+        :data-testid="TEST_ID.panelCandidate"
         class="flex-1 rounded-3xl border border-gray-100 bg-white shadow p-4 relative"
       >
         <div

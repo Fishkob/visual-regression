@@ -10,6 +10,7 @@ import EmptyState from "@/components/EmptyState.vue";
 
 import { useProjectsWithPendingQuery } from "@/composables/useProjects";
 import type { Project } from "@/domains/projects/project.model";
+import { TEST_ID } from "@/lib/test-ids";
 
 /* Query */
 const {
@@ -42,7 +43,7 @@ const filteredProjects = computed<Project[]>(() => {
         v-model="searchTerm"
         placeholder="Search project..."
         class="w-64 rounded-xl shadow-sm"
-        data-testid="project-search"
+        :data-testid="TEST_ID.projectSearch"
       />
     </div>
 

@@ -9,6 +9,7 @@ import { MoreVertical } from "@lucide/vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import { getProjectStatusBadge } from "@/components/StatusBadge";
 import { useProjectDelete } from "@/composables/useProjectDelete";
+import { TEST_ID } from "@/lib/test-ids";
 
 import type { ColumnDef } from "@tanstack/vue-table";
 import type { Project } from "@/domains/projects/project.model";
@@ -79,7 +80,7 @@ const columns: ColumnDef<Project>[] = [
         RowActionsCell,
         {
           deleteLabel: "Delete project",
-          testId: "project-actions-button",
+          testId: TEST_ID.projectActionsButton,
           onRequestDelete: () => requestDelete(row.original),
         },
         {
@@ -102,7 +103,7 @@ const columns: ColumnDef<Project>[] = [
       :data="projects"
       :loading="loading"
       @rowClick="handleRowClick"
-      data-testid="project-table"
+      :data-testid="TEST_ID.projectTable"
     />
 
     <ConfirmDialog

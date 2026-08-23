@@ -1,17 +1,25 @@
 <template>
   <div class="flex items-center gap-2 p-2">
-    <Badge variant="outline" class="px-2 py-0.5" data-testid="badge-viewport">
+    <Badge
+      variant="outline"
+      class="px-2 py-0.5"
+      :data-testid="TEST_ID.badgeViewport"
+    >
       {{ variant.viewport ?? "-" }}
     </Badge>
 
-    <Badge variant="outline" class="px-2 py-0.5" data-testid="badge-browser">
+    <Badge
+      variant="outline"
+      class="px-2 py-0.5"
+      :data-testid="TEST_ID.badgeBrowser"
+    >
       {{ variant.browser ?? "-" }}
     </Badge>
 
     <Badge
       variant="outline"
       class="px-2 py-0.5"
-      data-testid="badge-environment"
+      :data-testid="TEST_ID.badgeEnvironment"
     >
       {{ variant.environment ?? "-" }}
     </Badge>
@@ -23,7 +31,7 @@
             v-if="comparison"
             variant="destructive"
             class="px-2 py-0.5 cursor-default"
-            data-testid="badge-mismatch"
+            :data-testid="TEST_ID.badgeMismatch"
           >
             {{ comparison?.mismatchPixelCount }} px
           </Badge>
@@ -47,7 +55,7 @@
               @keydown.enter.prevent="onBlur"
               type="number"
               class="w-12 bg-transparent border-none outline-none text-center text-[13px]"
-              data-testid="threshold-input"
+              :data-testid="TEST_ID.thresholdInput"
             />
             <span class="text-gray-400 text-xs">px</span>
           </div>
@@ -102,6 +110,7 @@ import type {
   Screenshot,
   Comparison,
 } from "@/domains/visual-test/visual-test.model";
+import { TEST_ID } from "@/lib/test-ids";
 import { useThresholdEditor } from "@/composables/useThresholdEditor";
 
 const props = defineProps<{

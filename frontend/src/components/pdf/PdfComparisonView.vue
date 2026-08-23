@@ -10,6 +10,7 @@ import PdfPageNavigation from "@/components/pdf/PdfPageNavigation.vue";
 import ApproveSkipFooter from "@/components/ApproveSkipFooter.vue";
 import { isApproved } from "@/domains/test-status";
 import { downloadPdfFile, type PdfDownloadType } from "@/lib/pdf-download";
+import { TEST_ID } from "@/lib/test-ids";
 import type {
   PdfComparison,
   PdfScreenshot,
@@ -55,7 +56,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
       <ViewModeToggle v-model="viewMode" :show-diff="hasDiff" />
       <div
         class="flex-1 text-center text-sm text-muted-foreground"
-        data-testid="mismatch-info"
+        :data-testid="TEST_ID.mismatchInfo"
       >
         {{ mismatchInfo }}
       </div>
@@ -101,7 +102,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
           <a
             href="#"
             class="text-xs text-muted-foreground hover:text-foreground underline"
-            data-testid="download-baseline"
+            :data-testid="TEST_ID.downloadBaseline"
             @click.prevent="download('baseline')"
           >
             Download Baseline PDF
@@ -121,7 +122,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
           <a
             href="#"
             class="text-xs text-muted-foreground hover:text-foreground underline"
-            data-testid="download-candidate"
+            :data-testid="TEST_ID.downloadCandidate"
             @click.prevent="download('candidate')"
           >
             Download Candidate PDF
@@ -141,7 +142,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
           <a
             href="#"
             class="text-xs text-muted-foreground hover:text-foreground underline"
-            data-testid="download-diff"
+            :data-testid="TEST_ID.downloadDiff"
             @click.prevent="download('diff')"
           >
             Download Diff PDF
@@ -151,7 +152,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
       <div
         v-else-if="viewMode === 'side-by-side'"
         class="flex items-center justify-center min-h-[200px] text-muted-foreground"
-        data-testid="diff-removed-note"
+        :data-testid="TEST_ID.diffRemovedNote"
       >
         Diff removed after approval
       </div>

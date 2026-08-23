@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
+import { TEST_ID } from "@/lib/test-ids";
 
 defineProps<{
   // When the comparison is already APPROVED, the skip button becomes a
@@ -22,7 +23,7 @@ defineEmits<{
     <Button
       variant="outline"
       class="flex-1 py-4 text-base rounded-xl border-border hover:bg-muted"
-      data-testid="skip"
+      :data-testid="approved ? TEST_ID.backToProject : TEST_ID.skip"
       :disabled="isApproving"
       @click="$emit('skip')"
     >
@@ -32,7 +33,7 @@ defineEmits<{
     <Button
       v-if="!approved"
       class="flex-1 py-4 text-base rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
-      data-testid="approve-changes"
+      :data-testid="TEST_ID.approveChanges"
       :disabled="isApproving"
       @click="$emit('approve')"
     >

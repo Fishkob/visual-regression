@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { TEST_ID } from "@/lib/test-ids";
+
 export type ViewMode = "side-by-side" | "diff-only";
 
 const props = withDefaults(
@@ -15,11 +17,13 @@ const emit = defineEmits<{
   "update:modelValue": [ViewMode];
 }>();
 
-// The mode vocabulary (labels + test IDs) lives here, so the e2e contract and
-// the markup have one owner — both the image and PDF viewers compose this.
 const modes: { key: ViewMode; label: string; testId: string }[] = [
-  { key: "side-by-side", label: "Side by Side", testId: "mode-sidebyside" },
-  { key: "diff-only", label: "Diff Only", testId: "mode-diff" },
+  {
+    key: "side-by-side",
+    label: "Side by Side",
+    testId: TEST_ID.modeSidebyside,
+  },
+  { key: "diff-only", label: "Diff Only", testId: TEST_ID.modeDiff },
 ];
 
 const visibleModes = () => (props.showDiff ? modes : [modes[0]]);

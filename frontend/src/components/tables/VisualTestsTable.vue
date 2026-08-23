@@ -13,6 +13,7 @@ import { getStatusBadge } from "@/components/StatusBadge";
 import { useVisualTestsTable } from "@/composables/useVisualTestsTable";
 import { useVisualTestDelete } from "@/composables/useVisualTestDelete";
 import { useTestNavigation } from "@/composables/useTestNavigation";
+import { TEST_ID } from "@/lib/test-ids";
 
 const props = defineProps<{
   tests: VisualTestItem[];
@@ -68,7 +69,7 @@ const columns: ColumnDef<VisualTestItem>[] = [
     cell: ({ row }) =>
       h(RowActionsCell, {
         deleteLabel: "Delete variant",
-        testId: "test-actions-button",
+        testId: TEST_ID.testActionsButton,
         onRequestDelete: () => requestDelete(row.original),
       }),
   },
