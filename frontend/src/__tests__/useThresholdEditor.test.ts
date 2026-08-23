@@ -236,6 +236,25 @@ describe("useThresholdEditor", () => {
     expect(inputValue.value).toBe("50");
   });
 
+  it("parses a numeric value from v-model's number cast on blur", async () => {
+    // type="number" inputs make v-model hand the editor a number, not a string.
+    const options = createOptions({
+      baseline: baseline(10),
+    });
+    mockPreview.mockResolvedValue(previewResponse(0));
+
+    const { inputValue, onBlur } = useThresholdEditor(options);
+
+    inputValue.value = 50 as unknown as string;
+
+    await onBlur();
+
+    expect(mockMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ threshold: 50 }),
+    );
+    expect(inputValue.value).toBe(50);
+  });
+
   it("keeps the typed value when the preview reports no auto-accept", async () => {
     const options = createOptions({
       baseline: baseline(10),

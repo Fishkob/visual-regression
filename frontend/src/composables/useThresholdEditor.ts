@@ -107,11 +107,13 @@ export function useThresholdEditor(options: ThresholdEditorOptions) {
 
   // The parse + clamp rule for the threshold input, single-sourced: a non-number
   // is rejected, and a negative value is clamped to 0. Returns whether the value
-  // was clamped so the caller can normalize the visible text.
+  // was clamped so the caller can normalize the visible text. Accepts a number
+  // too — v-model on a type="number" input already casts the DOM string to a
+  // number, so the editor must not assume a string arrives.
   function parseThresholdInput(
-    raw: string,
+    raw: string | number,
   ): { value: number; clamped: boolean } | null {
-    const parsed = parseInt(raw.trim(), 10);
+    const parsed = parseInt(String(raw).trim(), 10);
     if (Number.isNaN(parsed)) return null;
     const value = Math.max(0, parsed);
     return { value, clamped: value !== parsed };
