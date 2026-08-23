@@ -5,6 +5,7 @@
     "noEmit": true,
     "skipLibCheck": true,
     "paths": {
+      "@/*": ["src/*"],
       "@playwright/test": [
         "../../node_modules/.pnpm/playwright@1.58.2/node_modules/playwright/test"
       ]

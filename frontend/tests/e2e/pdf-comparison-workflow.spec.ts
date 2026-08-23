@@ -6,6 +6,7 @@ import {
   waitForPdfComparison,
   deleteProject,
 } from "./fixtures/api";
+import { TEST_ID } from "@/lib/test-ids";
 
 let projectName: string;
 const TEST_NAME = "annual-report";
@@ -28,10 +29,12 @@ test.describe("PDF Comparison Workflow", () => {
   test("shows PDF tests in project detail", async ({ page }) => {
     await page.goto(`/projects/${encodeURIComponent(projectName)}`);
 
-    await page.getByRole("button", { name: "PDFs" }).click();
+    await page.getByTestId(TEST_ID.tabPdfs).click();
 
     await expect(
-      page.getByRole("button", { name: `${TEST_NAME}_report` }),
+      page
+        .getByTestId(TEST_ID.pdfTestRow)
+        .filter({ hasText: `${TEST_NAME}_report` }),
     ).toBeVisible({ timeout: 10000 });
   });
 
@@ -46,7 +49,7 @@ test.describe("PDF Comparison Workflow", () => {
 
     await page.goto(testUrl(projectName, `${TEST_NAME}_report`));
 
-    await expect(page.locator('[data-testid="mismatch-info"]')).toBeVisible({
+    await expect(page.getByTestId(TEST_ID.mismatchInfo)).toBeVisible({
       timeout: 10000,
     });
   });
@@ -60,7 +63,7 @@ test.describe("PDF Comparison Workflow", () => {
 
     await page.goto(testUrl(projectName, `${TEST_NAME}_report`));
 
-    await expect(page.locator('[data-testid="mismatch-info"]')).toBeVisible({
+    await expect(page.getByTestId(TEST_ID.mismatchInfo)).toBeVisible({
       timeout: 10000,
     });
 
@@ -69,7 +72,7 @@ test.describe("PDF Comparison Workflow", () => {
 
     const [baselineDownload] = await Promise.all([
       page.waitForEvent("download"),
-      page.getByText("Download Baseline PDF").click(),
+      page.getByTestId(TEST_ID.downloadBaseline).click(),
     ]);
     expect(baselineDownload.suggestedFilename()).toContain(
       "annual-report_report-baseline.pdf",
@@ -77,7 +80,7 @@ test.describe("PDF Comparison Workflow", () => {
 
     const [candidateDownload] = await Promise.all([
       page.waitForEvent("download"),
-      page.getByText("Download Candidate PDF").click(),
+      page.getByTestId(TEST_ID.downloadCandidate).click(),
     ]);
     expect(candidateDownload.suggestedFilename()).toContain(
       "annual-report_report-candidate.pdf",
@@ -85,7 +88,7 @@ test.describe("PDF Comparison Workflow", () => {
 
     const [diffDownload] = await Promise.all([
       page.waitForEvent("download"),
-      page.getByText("Download Diff PDF").click(),
+      page.getByTestId(TEST_ID.downloadDiff).click(),
     ]);
     expect(diffDownload.suggestedFilename()).toContain(
       "annual-report_report-diff.pdf",
@@ -101,19 +104,19 @@ test.describe("PDF Comparison Workflow", () => {
 
     await page.goto(testUrl(projectName, `${TEST_NAME}_report`));
 
-    await expect(page.locator('[data-testid="mismatch-info"]')).toBeVisible({
+    await expect(page.getByTestId(TEST_ID.mismatchInfo)).toBeVisible({
       timeout: 10000,
     });
 
-    await page.getByRole("button", { name: "Approve changes" }).click();
+    await page.getByTestId(TEST_ID.approveChanges).click();
 
     // After approval the Approve button disappears and the Skip button becomes "Back to project"
-    await expect(
-      page.getByRole("button", { name: "Approve changes" }),
-    ).not.toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId(TEST_ID.approveChanges)).not.toBeVisible({
+      timeout: 10000,
+    });
 
-    await expect(
-      page.getByRole("button", { name: "Back to project" }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId(TEST_ID.backToProjectList)).toBeVisible({
+      timeout: 10000,
+    });
   });
 });
