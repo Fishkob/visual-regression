@@ -43,21 +43,23 @@ export interface ReviewBackendOptions {
   kind?: Map<string, FulfillResponse>;
   pending?: PendingItem[];
   approve?: FulfillResponse;
+  onApprove?: (testName: string) => void;
 }
 
 // A tiny stateful fake backend for review-loop specs: GET details/kind/pending
 // read from the provided maps plus a mutable pending array; POST :name/approval
 // answers with the approve result (or the provided error response) and removes
 // the test from pending only on a successful approval — the real backend keeps
-// the test pending on a failed one. Dispatch happens on the URL pathname, so the
-// single route glob needs no ordering tricks between `meta/pending`, `:name/kind`
-// and `:name`.
+// the test pending on a failed one. An optional onApprove callback fires on
+// every approval POST so specs can observe that the endpoint was hit. Dispatch
+// happens on the URL pathname, so the single route glob needs no ordering
+// tricks between `meta/pending`, `:name/kind` and `:name`.
 export async function mockReviewBackend(
   page: Page,
   options: ReviewBackendOptions,
 ) {
   const pending = [...(options.pending ?? [])];
-  const { details, kind, projectName, approve } = options;
+  const { details, kind, projectName, approve, onApprove } = options;
   const json = (status: number, data: unknown): FulfillResponse => ({
     status,
     contentType: "application/json",
@@ -76,6 +78,7 @@ export async function mockReviewBackend(
     const method = route.request().method();
 
     if (method === "POST" && tail.length === 2 && tail[1] === "approval") {
+      onApprove?.(tail[0]);
       const result = approve ?? defaultApprove;
       if (result.status >= 200 && result.status < 300) {
         const index = pending.findIndex((item) => item.name === tail[0]);

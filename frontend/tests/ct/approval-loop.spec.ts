@@ -81,7 +81,12 @@ test.describe("Approval loop (image)", () => {
     mount,
     page,
   }) => {
-    await mockReviewBackend(page, { projectName: PROJECT, ...TWO_PENDING });
+    const approved: string[] = [];
+    await mockReviewBackend(page, {
+      projectName: PROJECT,
+      ...TWO_PENDING,
+      onApprove: (name) => approved.push(name),
+    });
 
     const component = await mount<typeof AppShell>("AppShell/AppShell", {
       initialRoute: testUrl("login-form"),
@@ -92,5 +97,6 @@ test.describe("Approval loop (image)", () => {
 
     await expect(page).toHaveURL(/tests\/checkout-flow/);
     await expect(component.getByTestId("comparison-view")).toBeVisible();
+    expect(approved).toEqual([]);
   });
 });
