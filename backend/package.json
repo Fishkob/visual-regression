@@ -80,7 +80,6 @@
     "@nestjs/testing": "^11.1.28",
     "@types/body-parser": "1.19.6",
     "@types/express": "^5.0.6",
-    "@types/jest": "^30.0.0",
     "@types/mime-types": "^3.0.1",
     "@types/multer": "^2.2.0",
     "@types/node": "^26.2.0",

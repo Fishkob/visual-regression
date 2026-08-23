@@ -21,7 +21,7 @@
       "@/*": ["./src/*"],
       "@test/*": ["./test/*"]
     },
-    "types": ["node", "jest", "express", "multer"],
+    "types": ["node", "express", "multer"],
     "incremental": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "skipLibCheck": true,
