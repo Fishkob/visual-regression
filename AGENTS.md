@@ -117,7 +117,7 @@ Before starting any work:
 - Domain errors via `DomainError` class with `code` property, caught by `AllExceptionsFilter`
 - Repositories extend `BaseRepository`, accessed via `UnifiedUnitOfWork`
 - Path aliases: `@common/*`, `@public/*`, `@internal/*`, `@config/*`, `@prisma/*`, `@/*`, `@test/*`
-- Test: Vitest with Jest globals, manual mocks via `jest.fn()`, builder pattern in `test/builders/`
+- Test: Vitest with Jest globals, manual mocks via `jest.fn()`, local factory helpers in specs
 - Controller params validated via `ValidationPipe`, custom pipes for file/project validation
 - Global exception filter maps DomainError codes to HTTP status, Prisma errors to 404/409
 

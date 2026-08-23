@@ -62,11 +62,14 @@ src/
 
 ## Testing
 
-- Vitest with Jest globals enabled (`jest.fn()`, `jest.mock()` available globally)
-- Unit tests in `test/unit/` mirroring `src/` structure
-- Builders in `test/builders/test-builders.ts` via fluent pattern: `ScreenshotBuilder.create().with*().build()`
-- Mocks via `test/utils/mocks.ts`: `createMockLogger()`, `createMockFile()`
-- `Test.createTestingModule({ providers: [...] })` with manual jest.fn() mocks
+- Runner ist Vitest (`globals: true`). Bevorzugt die `jest.*`-Aliasse (Vitests Jest-Kompatibilitäts-API, per `test/jest-shim.ts` auf `vi.*` gemappt) — z.B. `jest.fn()`, `jest.restoreAllMocks()`. Für APIs ohne Mapping direkt `vi.` (z.B. `vi.useRealTimers()`, `vi.unstubAllGlobals()`).
+- Ablage: Specs in `test/unit/` spiegeln `src/`; Basisname = Quellname + `.spec.ts`.
+- DI-basierte Units (Services/Controller/Repositories): Dependencies als `jest.Mocked<X>` deklarieren; in `beforeEach` via `createMock<X>()` (`@test/utils/create-mock`) erzeugen und per `Test.createTestingModule({ providers: [{ provide: X, useValue: mock }] }).compile()` verdrahten; Unit via `module.get(X)`.
+- Reine Funktionen (Pipes/Policies/Mapper/VOs): kein NestJS-Modul — direkt instanziieren, plain `expect(...)`.
+- Fixtures: lokale Factorys in der Spec (`function makeScreenshot(overrides = {})`), keine Shared Entity-Builder. Geteilt sind nur `createMock`, `createMockLogger`, `createMockFile`, `createMockStorage`, `createMockUoW` (`test/utils/mocks.ts`).
+- `afterEach`: in jeder Spec `afterEach(() => { jest.restoreAllMocks(); })`.
+- Naming: einklassige Dateien → `describe('ClassName')`; Multi-Funktions-Module → `describe('fileName')` mit innerem `describe('functionName')`. `it()`-Beschreibungen verhaltensorientiert, dritte Person, ohne "should": `it('rejects an unknown kind')`.
+- Assertions: Aufrufe → `toHaveBeenCalledWith(...)`, Ergebnisse → `toEqual(...)`, Fehler → `rejects.toMatchObject({ code: … })` / `rejects.toThrow(...)`.
 
 ## Prisma
 
