@@ -632,6 +632,69 @@ describe('UnifiedScreenshotRepository', () => {
     });
   });
 
+  describe('findAllImageUrlsForTests', () => {
+    it('returns every image url for the given test ids', async () => {
+      mockClient.unifiedScreenshot.findMany.mockResolvedValue([
+        { imageUrl: 'http://example.com/1.png' },
+        { imageUrl: 'http://example.com/2.png' },
+      ]);
+
+      const result = await repository.findAllImageUrlsForTests([
+        'test-1',
+        'test-2',
+      ]);
+
+      expect(result).toEqual([
+        'http://example.com/1.png',
+        'http://example.com/2.png',
+      ]);
+      expect(mockClient.unifiedScreenshot.findMany).toHaveBeenCalledWith({
+        where: { testId: { in: ['test-1', 'test-2'] } },
+        select: { imageUrl: true },
+      });
+    });
+
+    it('returns empty array when no test ids given', async () => {
+      const result = await repository.findAllImageUrlsForTests([]);
+
+      expect(result).toEqual([]);
+      expect(mockClient.unifiedScreenshot.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findReferencedImageUrls', () => {
+    it('returns the urls any screenshot row currently holds', async () => {
+      mockClient.unifiedScreenshot.findMany.mockResolvedValue([
+        { imageUrl: 'http://example.com/referenced.png' },
+      ]);
+
+      const result = await repository.findReferencedImageUrls([
+        'http://example.com/referenced.png',
+        'http://example.com/free.png',
+      ]);
+
+      expect(result).toEqual(['http://example.com/referenced.png']);
+      expect(mockClient.unifiedScreenshot.findMany).toHaveBeenCalledWith({
+        where: {
+          imageUrl: {
+            in: [
+              'http://example.com/referenced.png',
+              'http://example.com/free.png',
+            ],
+          },
+        },
+        select: { imageUrl: true },
+      });
+    });
+
+    it('returns empty array when no urls given', async () => {
+      const result = await repository.findReferencedImageUrls([]);
+
+      expect(result).toEqual([]);
+      expect(mockClient.unifiedScreenshot.findMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('deleteMany', () => {
     it('deletes multiple screenshots by ids', async () => {
       mockClient.unifiedScreenshot.deleteMany.mockResolvedValue({ count: 2 });
