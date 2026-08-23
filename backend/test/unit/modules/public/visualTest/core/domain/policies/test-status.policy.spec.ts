@@ -9,7 +9,7 @@ import {
 
 describe('resolveAggregateStatusFromVariantStatuses', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('reports PENDING_APPROVAL when any variant is pending', () => {
@@ -51,7 +51,7 @@ describe('resolveAggregateStatusFromVariantStatuses', () => {
 
 describe('resolveVariantStatusFromComparison', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('reports PENDING_APPROVAL when the latest comparison is pending', () => {

@@ -3,7 +3,7 @@ import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo
 
 describe('screenshot.mapper', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('toScreenshotEntity', () => {

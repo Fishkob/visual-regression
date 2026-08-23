@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { AllExceptionsFilter } from '@/common/http/all-exceptions.filter';
 import {
   ArgumentsHost,
@@ -20,21 +21,21 @@ describe('AllExceptionsFilter', () => {
   let mockResponse: Pick<Response, 'status' | 'json'> & { statusCode?: number };
   let mockRequest: Partial<Request> & { traceId?: string };
   let mockHost: ArgumentsHost;
-  let mockLogger: jest.Mocked<AppLoggerService>;
+  let mockLogger: Mocked<AppLoggerService>;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
     filter = new AllExceptionsFilter(mockLogger);
 
     const partialResponse: Partial<Response> & { statusCode?: number } = {
-      status: jest.fn(function (
+      status: vi.fn(function (
         this: Response & { statusCode?: number },
         code: number,
       ) {
         this.statusCode = code;
         return this;
       }),
-      json: jest.fn(),
+      json: vi.fn(),
     };
     mockResponse = partialResponse as Response & { statusCode?: number };
     mockRequest = { url: '/test', traceId: 'trace-123' };
@@ -47,7 +48,7 @@ describe('AllExceptionsFilter', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('DomainError handling', () => {

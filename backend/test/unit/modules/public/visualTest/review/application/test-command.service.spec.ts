@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestCommandService } from '@public/visualTest/review/application/test-command.service';
 import { TestResolver } from '@public/visualTest/core/application/services/test-resolver.service';
@@ -9,9 +10,9 @@ import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
 describe('TestCommandService', () => {
   let service: TestCommandService;
-  let screenshots: jest.Mocked<ThresholdUpdateService>;
-  let testResolver: jest.Mocked<TestResolver>;
-  let testDeletion: jest.Mocked<TestDeletionService>;
+  let screenshots: Mocked<ThresholdUpdateService>;
+  let testResolver: Mocked<TestResolver>;
+  let testDeletion: Mocked<TestDeletionService>;
 
   beforeEach(async () => {
     screenshots = createMock<ThresholdUpdateService>();
@@ -32,7 +33,7 @@ describe('TestCommandService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('updateThreshold', () => {

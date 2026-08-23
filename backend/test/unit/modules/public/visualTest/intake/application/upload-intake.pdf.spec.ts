@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { createHash } from 'crypto';
 import {
@@ -41,16 +42,16 @@ import {
 
 describe('UploadIntake (pdf kind)', () => {
   let uploadIntake: UploadIntake;
-  let tests: jest.Mocked<UnifiedTestRepository>;
-  let screenshots: jest.Mocked<UnifiedScreenshotRepository>;
+  let tests: Mocked<UnifiedTestRepository>;
+  let screenshots: Mocked<UnifiedScreenshotRepository>;
   let workflow: StateChangeWorkflow;
-  let storage: jest.Mocked<IStorageProvider>;
-  let jobQueue: jest.Mocked<IJobProducer>;
-  let tracker: jest.Mocked<Tracker>;
-  let statusService: jest.Mocked<TestStatusService>;
-  let comparisons: jest.Mocked<UnifiedComparisonsRepository>;
-  let retirement: jest.Mocked<ComparisonRetirementService>;
-  let metrics: jest.Mocked<IMetricsRecorder>;
+  let storage: Mocked<IStorageProvider>;
+  let jobQueue: Mocked<IJobProducer>;
+  let tracker: Mocked<Tracker>;
+  let statusService: Mocked<TestStatusService>;
+  let comparisons: Mocked<UnifiedComparisonsRepository>;
+  let retirement: Mocked<ComparisonRetirementService>;
+  let metrics: Mocked<IMetricsRecorder>;
 
   const testPdfBuffer = Buffer.from('test-pdf-content');
   const testPdfHash = createHash('sha256').update(testPdfBuffer).digest('hex');
@@ -96,7 +97,7 @@ describe('UploadIntake (pdf kind)', () => {
     screenshots.filterReclaimableUrls.mockImplementation((urls) =>
       Promise.resolve(urls),
     );
-    storage = createMockStorage() as unknown as jest.Mocked<IStorageProvider>;
+    storage = createMockStorage() as unknown as Mocked<IStorageProvider>;
     storage.deleteQuietly.mockResolvedValue(undefined);
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
     jobQueue = createMock<IJobProducer>();
@@ -111,8 +112,8 @@ describe('UploadIntake (pdf kind)', () => {
     retirement.supersedeIdenticalForVariant.mockResolvedValue([]);
     metrics = createMock<IMetricsRecorder>();
     const pageCounter = {
-      count: jest.fn().mockResolvedValue(3),
-    } as unknown as jest.Mocked<IPdfPageCounter>;
+      count: vi.fn().mockResolvedValue(3),
+    } as unknown as Mocked<IPdfPageCounter>;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -125,7 +126,7 @@ describe('UploadIntake (pdf kind)', () => {
         StateChangeWorkflow,
         {
           provide: PrismaUnitOfWork,
-          useValue: createMockUoW() as unknown as jest.Mocked<PrismaUnitOfWork>,
+          useValue: createMockUoW() as unknown as Mocked<PrismaUnitOfWork>,
         },
         { provide: AppLoggerService, useValue: createMockLogger() },
         { provide: STORAGE_PROVIDER, useValue: storage },
@@ -139,12 +140,12 @@ describe('UploadIntake (pdf kind)', () => {
 
     uploadIntake = module.get(UploadIntake);
     workflow = module.get(StateChangeWorkflow);
-    jest.spyOn(workflow, 'executeStateChange');
-    jest.spyOn(workflow, 'executeWithStoredFile');
+    vi.spyOn(workflow, 'executeStateChange');
+    vi.spyOn(workflow, 'executeWithStoredFile');
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('rejects an upload whose testKind does not match the file MIME type', async () => {

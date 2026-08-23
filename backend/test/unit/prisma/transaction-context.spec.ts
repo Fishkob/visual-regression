@@ -1,9 +1,10 @@
+import type { Mocked } from 'vitest';
 import { TransactionContext } from '@/prisma/transaction-context';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 
 describe('TransactionContext', () => {
   let txCtx: TransactionContext;
-  let connection: jest.Mocked<Pick<PrismaConnection, 'client'>>;
+  let connection: Mocked<Pick<PrismaConnection, 'client'>>;
 
   beforeEach(() => {
     connection = { client: {} as never };
@@ -11,7 +12,7 @@ describe('TransactionContext', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('isInTransaction', () => {

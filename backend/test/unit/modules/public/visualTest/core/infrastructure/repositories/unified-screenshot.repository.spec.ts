@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionContext } from '@/prisma/transaction-context';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
@@ -8,39 +9,39 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('UnifiedScreenshotRepository', () => {
   let repository: UnifiedScreenshotRepository;
-  let mockTxCtx: jest.Mocked<TransactionContext>;
+  let mockTxCtx: Mocked<TransactionContext>;
   let mockClient: any;
   const now = new Date('2025-01-01T00:00:00Z');
 
   beforeEach(async () => {
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
 
     mockClient = {
       unifiedScreenshot: {
-        findMany: jest.fn(),
-        findFirst: jest.fn(),
-        findUnique: jest.fn(),
-        create: jest.fn(),
-        upsert: jest.fn(),
-        update: jest.fn(),
-        updateMany: jest.fn(),
-        deleteMany: jest.fn(),
-        count: jest.fn(),
+        findMany: vi.fn(),
+        findFirst: vi.fn(),
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        upsert: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
+        deleteMany: vi.fn(),
+        count: vi.fn(),
       },
       unifiedVariant: {
-        findUnique: jest.fn(),
-        findFirst: jest.fn(),
-        findMany: jest.fn(),
-        upsert: jest.fn(),
-        update: jest.fn(),
+        findUnique: vi.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn(),
+        upsert: vi.fn(),
+        update: vi.fn(),
       },
       unifiedTest: {
-        findUnique: jest.fn(),
+        findUnique: vi.fn(),
       },
       unifiedComparison: {
-        count: jest.fn(),
-        findMany: jest.fn(),
+        count: vi.fn(),
+        findMany: vi.fn(),
       },
     };
 
@@ -59,8 +60,8 @@ describe('UnifiedScreenshotRepository', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    jest.restoreAllMocks();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   const variant = Variant.fromStrings('1280x720', 'chrome', 'production');

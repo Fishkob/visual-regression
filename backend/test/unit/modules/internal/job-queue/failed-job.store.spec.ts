@@ -23,12 +23,12 @@ describe('FailedJobStore', () => {
     prisma = {
       client: {
         comparisonJob: {
-          findMany: jest.fn(),
-          updateMany: jest.fn(),
-          findUnique: jest.fn(),
-          deleteMany: jest.fn(),
+          findMany: vi.fn(),
+          updateMany: vi.fn(),
+          findUnique: vi.fn(),
+          deleteMany: vi.fn(),
         },
-        $queryRawUnsafe: jest.fn(),
+        $queryRawUnsafe: vi.fn(),
       },
     };
 
@@ -43,7 +43,7 @@ describe('FailedJobStore', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 

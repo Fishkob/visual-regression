@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ComparisonJobProcessor } from '@public/visualTest/intake/workers/comparison-job-processor';
 import {
@@ -31,14 +32,14 @@ import { context, propagation } from '@opentelemetry/api';
 
 describe('ComparisonJobProcessor', () => {
   let processor: ComparisonJobProcessor;
-  let imageEngine: jest.Mocked<IComparisonEngine>;
-  let pdfEngine: jest.Mocked<IComparisonEngine>;
-  let storage: jest.Mocked<IStorageProvider>;
-  let retirement: jest.Mocked<ComparisonRetirementService>;
-  let reclamation: jest.Mocked<CandidateReclamationService>;
-  let screenshots: jest.Mocked<UnifiedScreenshotRepository>;
-  let metrics: jest.Mocked<IMetricsRecorder>;
-  let uow: jest.Mocked<PrismaUnitOfWork>;
+  let imageEngine: Mocked<IComparisonEngine>;
+  let pdfEngine: Mocked<IComparisonEngine>;
+  let storage: Mocked<IStorageProvider>;
+  let retirement: Mocked<ComparisonRetirementService>;
+  let reclamation: Mocked<CandidateReclamationService>;
+  let screenshots: Mocked<UnifiedScreenshotRepository>;
+  let metrics: Mocked<IMetricsRecorder>;
+  let uow: Mocked<PrismaUnitOfWork>;
 
   const imageJobData: JobData = {
     testKind: 'image',
@@ -102,12 +103,12 @@ describe('ComparisonJobProcessor', () => {
   beforeEach(async () => {
     imageEngine = {
       kind: 'image',
-      compare: jest.fn(),
-    } as unknown as jest.Mocked<IComparisonEngine>;
+      compare: vi.fn(),
+    } as unknown as Mocked<IComparisonEngine>;
     pdfEngine = {
       kind: 'pdf',
-      compare: jest.fn(),
-    } as unknown as jest.Mocked<IComparisonEngine>;
+      compare: vi.fn(),
+    } as unknown as Mocked<IComparisonEngine>;
     storage = createMock<IStorageProvider>();
     retirement = createMock<ComparisonRetirementService>();
     reclamation = createMock<CandidateReclamationService>();
@@ -115,7 +116,7 @@ describe('ComparisonJobProcessor', () => {
     metrics = createMock<IMetricsRecorder>();
     metrics.incrementCounter.mockReturnValue(undefined);
     metrics.observeHistogram.mockReturnValue(undefined);
-    uow = createMockUoW() as unknown as jest.Mocked<PrismaUnitOfWork>;
+    uow = createMockUoW() as unknown as Mocked<PrismaUnitOfWork>;
     const statusService = createMock<TestStatusService>();
     statusService.recomputeStatus.mockResolvedValue(undefined);
 
@@ -175,7 +176,7 @@ describe('ComparisonJobProcessor', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   function completedEventLabels(): Array<Record<string, string>> {
@@ -207,10 +208,10 @@ describe('ComparisonJobProcessor', () => {
     it('restores the trace context from the job payload when present', async () => {
       const traceContext = { traceparent: '00-abc-123-01' };
       const job = makeJob({ ...imageJobData, traceContext });
-      const extractSpy = jest
+      const extractSpy = vi
         .spyOn(propagation, 'extract')
         .mockReturnValue({ traceId: 'extracted' } as never);
-      const withSpy = jest
+      const withSpy = vi
         .spyOn(context, 'with')
         .mockImplementation((_ctx, fn) => fn());
       screenshots.findCurrentByVariant.mockResolvedValue({
@@ -276,7 +277,7 @@ describe('ComparisonJobProcessor', () => {
           {
             provide: TestStatusService,
             useValue: {
-              recomputeStatus: jest.fn().mockResolvedValue(undefined),
+              recomputeStatus: vi.fn().mockResolvedValue(undefined),
             },
           },
           { provide: METRICS_RECORDER, useValue: metrics },

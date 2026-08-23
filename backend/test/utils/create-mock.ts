@@ -1,3 +1,4 @@
+import type { Mock, Mocked } from 'vitest';
 const mockCache = new WeakMap();
 
 function createMockHandler(target: object): ProxyHandler<object> {
@@ -18,9 +19,9 @@ function createMockHandler(target: object): ProxyHandler<object> {
       }
       const cache = mockCache.get(target)!;
       if (!(prop in cache)) {
-        (cache as Record<string | symbol, jest.Mock>)[prop] = jest.fn();
+        (cache as Record<string | symbol, Mock>)[prop] = vi.fn();
       }
-      return (cache as Record<string | symbol, jest.Mock>)[prop];
+      return (cache as Record<string | symbol, Mock>)[prop];
     },
     set(_, prop: string | symbol, value: unknown) {
       (target as Record<string | symbol, unknown>)[prop] = value;
@@ -43,10 +44,9 @@ function createMockHandler(target: object): ProxyHandler<object> {
   };
 }
 
-export function createMock<T = Record<string, jest.Mock>>(): jest.Mocked<T> {
+export function createMock<
+  T = Record<string, (...args: any[]) => any>,
+>(): Mocked<T> {
   const target = Object.create(null);
-  return new Proxy(
-    target,
-    createMockHandler(target),
-  ) as unknown as jest.Mocked<T>;
+  return new Proxy(target, createMockHandler(target)) as unknown as Mocked<T>;
 }

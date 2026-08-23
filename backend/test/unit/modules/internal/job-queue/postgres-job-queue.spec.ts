@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PostgresJobQueue } from '@internal/job-queue/postgres-job-queue';
 import { TransactionContext } from '@/prisma/transaction-context';
@@ -51,9 +52,9 @@ const jobPayload: JobData = {
 describe('PostgresJobQueue', () => {
   let queue: PostgresJobQueue;
   let prisma: any;
-  let tracker: jest.Mocked<Tracker>;
-  let metrics: jest.Mocked<MetricsService>;
-  let logger: jest.Mocked<AppLoggerService>;
+  let tracker: Mocked<Tracker>;
+  let metrics: Mocked<MetricsService>;
+  let logger: Mocked<AppLoggerService>;
 
   beforeEach(async () => {
     vi.useFakeTimers();
@@ -62,20 +63,20 @@ describe('PostgresJobQueue', () => {
     prisma = {
       client: {
         comparisonJob: {
-          findUnique: jest.fn(),
-          findFirst: jest.fn(),
-          findMany: jest.fn(),
-          create: jest.fn(),
-          update: jest.fn(),
-          updateMany: jest.fn(),
-          deleteMany: jest.fn(),
-          count: jest.fn(),
+          findUnique: vi.fn(),
+          findFirst: vi.fn(),
+          findMany: vi.fn(),
+          create: vi.fn(),
+          update: vi.fn(),
+          updateMany: vi.fn(),
+          deleteMany: vi.fn(),
+          count: vi.fn(),
         },
-        $queryRawUnsafe: jest.fn(),
-        $executeRaw: jest.fn(),
-        $transaction: jest.fn((cb: (tx: any) => any) => cb(prisma.client)),
+        $queryRawUnsafe: vi.fn(),
+        $executeRaw: vi.fn(),
+        $transaction: vi.fn((cb: (tx: any) => any) => cb(prisma.client)),
       },
-      assertInTransaction: jest.fn(),
+      assertInTransaction: vi.fn(),
     };
 
     tracker = createMock<Tracker>();
@@ -100,7 +101,7 @@ describe('PostgresJobQueue', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -296,7 +297,7 @@ describe('PostgresJobQueue', () => {
         nextAttemptAt: null,
       });
 
-      const processor = jest.fn().mockResolvedValue(undefined);
+      const processor = vi.fn().mockResolvedValue(undefined);
       prisma.client.comparisonJob.updateMany.mockResolvedValue({
         count: 1,
       });
@@ -321,7 +322,7 @@ describe('PostgresJobQueue', () => {
     it('returns null when no job available', async () => {
       prisma.client.$queryRawUnsafe.mockResolvedValue([]);
 
-      const processor = jest.fn();
+      const processor = vi.fn();
       await queue.processNext(processor);
 
       expect(processor).not.toHaveBeenCalled();
@@ -347,7 +348,7 @@ describe('PostgresJobQueue', () => {
         maxAttempts: 3,
       });
 
-      const processor = jest.fn().mockResolvedValue(undefined);
+      const processor = vi.fn().mockResolvedValue(undefined);
       prisma.client.comparisonJob.updateMany.mockResolvedValue({
         count: 1,
       });
@@ -375,7 +376,7 @@ describe('PostgresJobQueue', () => {
       ]);
       prisma.client.comparisonJob.update.mockResolvedValue({});
 
-      const processor = jest.fn();
+      const processor = vi.fn();
       await queue.processNext(processor);
 
       expect(processor).not.toHaveBeenCalled();
@@ -406,7 +407,7 @@ describe('PostgresJobQueue', () => {
         maxAttempts: 3,
       });
 
-      const processor = jest.fn().mockResolvedValue(undefined);
+      const processor = vi.fn().mockResolvedValue(undefined);
       prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
 
       await queue.processNext(processor);
@@ -420,7 +421,7 @@ describe('PostgresJobQueue', () => {
     it('reclaims stalled PROCESSING jobs by heartbeat staleness only', async () => {
       prisma.client.$queryRawUnsafe.mockResolvedValue([]);
 
-      await queue.processNext(jest.fn());
+      await queue.processNext(vi.fn());
 
       const [sql, ...params] = prisma.client.$queryRawUnsafe.mock.calls[0];
       expect(sql).toContain('"heartbeatAt" < $3');
@@ -431,7 +432,7 @@ describe('PostgresJobQueue', () => {
     it('also reclaims PROCESSING jobs whose heartbeatAt is NULL (never beat)', async () => {
       prisma.client.$queryRawUnsafe.mockResolvedValue([]);
 
-      await queue.processNext(jest.fn());
+      await queue.processNext(vi.fn());
 
       const [sql] = prisma.client.$queryRawUnsafe.mock.calls[0];
       expect(sql).toContain('"heartbeatAt" IS NULL');
@@ -456,7 +457,7 @@ describe('PostgresJobQueue', () => {
       });
       prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
 
-      const processor = jest
+      const processor = vi
         .fn()
         .mockRejectedValue(new Error('transient after crash'));
       await queue.processNext(processor);
@@ -496,7 +497,7 @@ describe('PostgresJobQueue', () => {
       });
       prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
 
-      const processor = jest.fn();
+      const processor = vi.fn();
       const result = await queue.processNext(processor);
 
       expect(result).toBe(false);
@@ -539,7 +540,7 @@ describe('PostgresJobQueue', () => {
     prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
 
     let finish: (() => void) | undefined;
-    const processor = jest.fn(
+    const processor = vi.fn(
       () => new Promise<void>((resolve) => (finish = resolve)),
     );
     return {
@@ -708,13 +709,11 @@ describe('PostgresJobQueue', () => {
         nextAttemptAt: null,
       });
 
-      prisma.client.comparisonJob.updateMany = jest
+      prisma.client.comparisonJob.updateMany = vi
         .fn()
         .mockResolvedValue({ count: 1 });
 
-      const processor = jest
-        .fn()
-        .mockRejectedValue(new Error('transient error'));
+      const processor = vi.fn().mockRejectedValue(new Error('transient error'));
 
       await queue.processNext(processor);
 
@@ -744,11 +743,11 @@ describe('PostgresJobQueue', () => {
         maxAttempts: 3,
         nextAttemptAt: null,
       });
-      prisma.client.comparisonJob.updateMany = jest
+      prisma.client.comparisonJob.updateMany = vi
         .fn()
         .mockResolvedValue({ count: 1 });
 
-      const processor = jest
+      const processor = vi
         .fn()
         .mockRejectedValue(
           new DomainError('image dimension mismatch', 'BAD_REQUEST'),
@@ -856,7 +855,7 @@ describe('PostgresJobQueue', () => {
         maxAttempts: 3,
         nextAttemptAt: null,
       });
-      prisma.client.comparisonJob.updateMany = jest
+      prisma.client.comparisonJob.updateMany = vi
         .fn()
         .mockResolvedValue({ count: 1 });
 
@@ -892,7 +891,7 @@ describe('PostgresJobQueue', () => {
         count: 1,
       });
 
-      const processor = jest.fn().mockResolvedValue(undefined);
+      const processor = vi.fn().mockResolvedValue(undefined);
       await queue.processNext(processor);
 
       expect(processor).toHaveBeenCalled();
@@ -919,7 +918,7 @@ describe('PostgresJobQueue', () => {
         count: 1,
       });
 
-      const processor = jest
+      const processor = vi
         .fn()
         .mockRejectedValue(new DomainError('processor fail', 'INVALID_STATE'));
       await queue.processNext(processor);

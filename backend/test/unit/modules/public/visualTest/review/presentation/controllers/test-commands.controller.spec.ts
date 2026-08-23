@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestCommandsController } from '@public/visualTest/review/presentation/controllers/test-commands.controller';
 import { TestCommandService } from '@public/visualTest/review/application/test-command.service';
@@ -6,7 +7,7 @@ import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/var
 import { createMock } from '@test/utils/create-mock';
 describe('TestCommandsController', () => {
   let controller: TestCommandsController;
-  let testCommandService: jest.Mocked<TestCommandService>;
+  let testCommandService: Mocked<TestCommandService>;
 
   beforeEach(async () => {
     testCommandService = createMock<TestCommandService>();
@@ -22,7 +23,7 @@ describe('TestCommandsController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('updateThreshold', () => {

@@ -70,7 +70,7 @@ describe('RustFsStorageService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('putObject', () => {

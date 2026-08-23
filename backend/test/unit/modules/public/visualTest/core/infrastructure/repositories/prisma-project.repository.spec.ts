@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionContext } from '@/prisma/transaction-context';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
@@ -6,29 +7,29 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('ProjectRepository', () => {
   let repository: ProjectRepository;
-  let mockTxCtx: jest.Mocked<TransactionContext>;
+  let mockTxCtx: Mocked<TransactionContext>;
   let mockClient: any;
 
   beforeEach(async () => {
     mockClient = {
       project: {
-        findUnique: jest.fn(),
-        findMany: jest.fn(),
-        count: jest.fn(),
-        create: jest.fn(),
-        delete: jest.fn(),
+        findUnique: vi.fn(),
+        findMany: vi.fn(),
+        count: vi.fn(),
+        create: vi.fn(),
+        delete: vi.fn(),
       },
       unifiedVariant: {
-        findMany: jest.fn(),
-        count: jest.fn(),
+        findMany: vi.fn(),
+        count: vi.fn(),
       },
       unifiedComparison: {
-        groupBy: jest.fn(),
+        groupBy: vi.fn(),
       },
       unifiedTest: {
-        findMany: jest.fn(),
+        findMany: vi.fn(),
       },
-      $queryRaw: jest.fn(),
+      $queryRaw: vi.fn(),
     };
 
     mockTxCtx = createMock<TransactionContext>();
@@ -45,7 +46,7 @@ describe('ProjectRepository', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('findByName', () => {

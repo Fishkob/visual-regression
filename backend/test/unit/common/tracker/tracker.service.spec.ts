@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Tracker } from '@common/tracker/tracker.service';
 import {
@@ -9,8 +10,8 @@ import { createMock } from '@test/utils/create-mock';
 import { createMockLogger } from '@test/utils/mocks';
 describe('Tracker', () => {
   let tracker: Tracker;
-  let metrics: jest.Mocked<IMetricsRecorder>;
-  let logger: jest.Mocked<AppLoggerService>;
+  let metrics: Mocked<IMetricsRecorder>;
+  let logger: Mocked<AppLoggerService>;
 
   beforeEach(async () => {
     metrics = createMock<IMetricsRecorder>();
@@ -29,12 +30,12 @@ describe('Tracker', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('track', () => {
     it('records metrics and logs on success', async () => {
-      const fn = jest.fn().mockResolvedValue('result');
+      const fn = vi.fn().mockResolvedValue('result');
 
       const result = await tracker.track('test_op', fn, { foo: 'bar' });
 
@@ -55,7 +56,7 @@ describe('Tracker', () => {
 
     it('records metrics and logs on failure, re-throws error', async () => {
       const error = new Error('boom');
-      const fn = jest.fn().mockRejectedValue(error);
+      const fn = vi.fn().mockRejectedValue(error);
 
       await expect(
         tracker.track('test_op', fn, { baz: 'qux' }),
@@ -80,7 +81,7 @@ describe('Tracker', () => {
     });
 
     it('works without meta', async () => {
-      const fn = jest.fn().mockResolvedValue('ok');
+      const fn = vi.fn().mockResolvedValue('ok');
 
       await tracker.track('no_meta', fn);
 
@@ -91,7 +92,7 @@ describe('Tracker', () => {
     });
 
     it('handles non-Error throws in catch', async () => {
-      const fn = jest.fn().mockRejectedValue('string error');
+      const fn = vi.fn().mockRejectedValue('string error');
 
       await expect(tracker.track('test_op', fn)).rejects.toBe('string error');
 

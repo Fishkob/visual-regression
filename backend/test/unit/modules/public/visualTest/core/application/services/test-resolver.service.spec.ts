@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestResolver } from '@public/visualTest/core/application/services/test-resolver.service';
 import { DomainError } from '@common/domain/domain-error';
@@ -6,8 +7,8 @@ import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/re
 import { createMock } from '@test/utils/create-mock';
 describe('TestResolver', () => {
   let service: TestResolver;
-  let tests: jest.Mocked<UnifiedTestRepository>;
-  let projects: jest.Mocked<ProjectRepository>;
+  let tests: Mocked<UnifiedTestRepository>;
+  let projects: Mocked<ProjectRepository>;
 
   beforeEach(async () => {
     tests = createMock<UnifiedTestRepository>();
@@ -25,7 +26,7 @@ describe('TestResolver', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('findTest', () => {

@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { LogIngestionController } from '@/modules/internal/logging/log-ingestion.controller';
 import { LogIngestionService } from '@/modules/internal/logging/log-ingestion.service';
@@ -6,7 +7,7 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('LogIngestionController', () => {
   let controller: LogIngestionController;
-  let logIngestion: jest.Mocked<LogIngestionService>;
+  let logIngestion: Mocked<LogIngestionService>;
 
   beforeEach(async () => {
     logIngestion = createMock<LogIngestionService>();
@@ -20,7 +21,7 @@ describe('LogIngestionController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('delegates to logIngestion.ingest', () => {

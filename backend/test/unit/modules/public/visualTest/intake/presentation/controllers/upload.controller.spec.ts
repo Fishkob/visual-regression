@@ -1,3 +1,4 @@
+import type { Mock, Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UploadController } from '@public/visualTest/intake/presentation/controllers/upload.controller';
 import { UploadIntake } from '@public/visualTest/intake/application/upload-intake.service';
@@ -13,7 +14,7 @@ import { createMockFile, createMockLogger } from '@test/utils/mocks';
 
 describe('UploadController', () => {
   let controller: UploadController;
-  let uploadIntake: jest.Mocked<{ upload: jest.Mock }>;
+  let uploadIntake: Mocked<{ upload: Mock }>;
 
   const projectName = 'my-project';
   const testName = 'my-test';
@@ -24,7 +25,7 @@ describe('UploadController', () => {
   };
 
   beforeEach(async () => {
-    uploadIntake = { upload: jest.fn() } as any;
+    uploadIntake = { upload: vi.fn() } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UploadController],
@@ -43,7 +44,7 @@ describe('UploadController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('upload', () => {

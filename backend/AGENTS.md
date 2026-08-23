@@ -62,12 +62,12 @@ src/
 
 ## Testing
 
-- Runner ist Vitest (`globals: true`). Bevorzugt die `jest.*`-Aliasse (Vitests Jest-Kompatibilitäts-API, per `test/jest-shim.ts` auf `vi.*` gemappt) — z.B. `jest.fn()`, `jest.restoreAllMocks()`. Für APIs ohne Mapping direkt `vi.` (z.B. `vi.useRealTimers()`, `vi.unstubAllGlobals()`).
+- Runner ist Vitest (`globals: true`). Mock-/Spy-API ist `vi.*` als global verfügbar — z.B. `vi.fn()`, `vi.spyOn()`, `vi.restoreAllMocks()`. Mock-Typen als Import aus `vitest` (`import type { Mock, Mocked } from 'vitest'`).
 - Ablage: Specs in `test/unit/` spiegeln `src/`; Basisname = Quellname + `.spec.ts`.
-- DI-basierte Units (Services/Controller/Repositories): Dependencies als `jest.Mocked<X>` deklarieren; in `beforeEach` via `createMock<X>()` (`@test/utils/create-mock`) erzeugen und per `Test.createTestingModule({ providers: [{ provide: X, useValue: mock }] }).compile()` verdrahten; Unit via `module.get(X)`.
+- DI-basierte Units (Services/Controller/Repositories): Dependencies als `Mocked<X>` deklarieren; in `beforeEach` via `createMock<X>()` (`@test/utils/create-mock`) erzeugen und per `Test.createTestingModule({ providers: [{ provide: X, useValue: mock }] }).compile()` verdrahten; Unit via `module.get(X)`.
 - Reine Funktionen (Pipes/Policies/Mapper/VOs): kein NestJS-Modul — direkt instanziieren, plain `expect(...)`.
 - Fixtures: lokale Factorys in der Spec (`function makeScreenshot(overrides = {})`), keine Shared Entity-Builder. Geteilt sind nur `createMock`, `createMockLogger`, `createMockFile`, `createMockStorage`, `createMockUoW` (`test/utils/mocks.ts`).
-- `afterEach`: in jeder Spec `afterEach(() => { jest.restoreAllMocks(); })`.
+- `afterEach`: in jeder Spec `afterEach(() => { vi.restoreAllMocks(); })`.
 - Naming: einklassige Dateien → `describe('ClassName')`; Multi-Funktions-Module → `describe('fileName')` mit innerem `describe('functionName')`. `it()`-Beschreibungen verhaltensorientiert, dritte Person, ohne "should": `it('rejects an unknown kind')`.
 - Assertions: Aufrufe → `toHaveBeenCalledWith(...)`, Ergebnisse → `toEqual(...)`, Fehler → `rejects.toMatchObject({ code: … })` / `rejects.toThrow(...)`.
 

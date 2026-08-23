@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
@@ -8,10 +9,10 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('ComparisonRetirementService', () => {
   let service: ComparisonRetirementService;
-  let comparisons: jest.Mocked<UnifiedComparisonsRepository>;
-  let screenshots: jest.Mocked<UnifiedScreenshotRepository>;
-  let jobQueue: jest.Mocked<IJobProducer>;
-  let txCtx: jest.Mocked<TransactionContext>;
+  let comparisons: Mocked<UnifiedComparisonsRepository>;
+  let screenshots: Mocked<UnifiedScreenshotRepository>;
+  let jobQueue: Mocked<IJobProducer>;
+  let txCtx: Mocked<TransactionContext>;
 
   const variant = Variant.fromStrings('1920x1080', 'chrome', 'staging');
 
@@ -30,7 +31,7 @@ describe('ComparisonRetirementService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('transaction boundary', () => {

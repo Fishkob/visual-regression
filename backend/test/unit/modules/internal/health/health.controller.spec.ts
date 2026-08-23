@@ -1,3 +1,4 @@
+import type { Mock, Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthController } from '@internal/health/health.controller';
 import { HealthChecker } from '@internal/health/health-checker.service';
@@ -8,13 +9,13 @@ import type {
 } from '@internal/health/health.types';
 import { createMock } from '@test/utils/create-mock';
 
-function mockRes(): { status: jest.Mock } {
-  return { status: jest.fn().mockReturnThis() };
+function mockRes(): { status: Mock } {
+  return { status: vi.fn().mockReturnThis() };
 }
 
 describe('HealthController', () => {
   let controller: HealthController;
-  let checker: jest.Mocked<HealthChecker>;
+  let checker: Mocked<HealthChecker>;
 
   const buildInfo: BuildInfo = {
     version: '1.0.0',
@@ -35,7 +36,7 @@ describe('HealthController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('liveness', () => {

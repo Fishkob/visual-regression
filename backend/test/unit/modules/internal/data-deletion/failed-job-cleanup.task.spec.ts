@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { FailedJobCleanupTask } from '@internal/data-deletion/tasks/failed-job-cleanup.task';
 import {
@@ -19,10 +20,10 @@ import { createMockLogger } from '@test/utils/mocks';
 
 describe('FailedJobCleanupTask', () => {
   let task: FailedJobCleanupTask;
-  let failedJobs: jest.Mocked<IFailedJobStore>;
-  let storage: jest.Mocked<IStorageProvider>;
-  let referencedness: jest.Mocked<IStorageObjectReferencedness>;
-  let logger: jest.Mocked<AppLoggerService>;
+  let failedJobs: Mocked<IFailedJobStore>;
+  let storage: Mocked<IStorageProvider>;
+  let referencedness: Mocked<IStorageObjectReferencedness>;
+  let logger: Mocked<AppLoggerService>;
 
   const defaultConfig = { jobRetention: { days: 7 } };
 
@@ -54,7 +55,7 @@ describe('FailedJobCleanupTask', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('has lockId and label set', async () => {

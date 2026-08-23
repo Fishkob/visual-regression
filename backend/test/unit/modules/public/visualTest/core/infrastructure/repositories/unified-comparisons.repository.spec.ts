@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionContext } from '@/prisma/transaction-context';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
@@ -9,31 +10,31 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('UnifiedComparisonsRepository', () => {
   let repository: UnifiedComparisonsRepository;
-  let mockTxCtx: jest.Mocked<TransactionContext>;
+  let mockTxCtx: Mocked<TransactionContext>;
   let mockClient: any;
   const now = new Date('2025-01-01T00:00:00Z');
 
   beforeEach(async () => {
     mockClient = {
       unifiedComparison: {
-        findFirst: jest.fn(),
-        findMany: jest.fn(),
-        create: jest.fn(),
-        delete: jest.fn(),
-        deleteMany: jest.fn(),
-        update: jest.fn(),
-        updateMany: jest.fn(),
-        count: jest.fn(),
-        findUnique: jest.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn(),
+        create: vi.fn(),
+        delete: vi.fn(),
+        deleteMany: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
+        count: vi.fn(),
+        findUnique: vi.fn(),
       },
       unifiedScreenshot: {
-        delete: jest.fn(),
-        findMany: jest.fn(),
-        deleteMany: jest.fn(),
+        delete: vi.fn(),
+        findMany: vi.fn(),
+        deleteMany: vi.fn(),
       },
       unifiedVariant: {
-        findUnique: jest.fn(),
-        findFirst: jest.fn(),
+        findUnique: vi.fn(),
+        findFirst: vi.fn(),
       },
     };
 
@@ -52,7 +53,7 @@ describe('UnifiedComparisonsRepository', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   function prismaComparison(overrides: Record<string, unknown> = {}) {

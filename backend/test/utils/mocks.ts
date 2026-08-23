@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { Readable } from 'node:stream';
 import { createMock } from './create-mock';
@@ -27,29 +28,29 @@ export function createMockFile(
   };
 }
 
-export function createMockLogger(): jest.Mocked<AppLoggerService> {
+export function createMockLogger(): Mocked<AppLoggerService> {
   return {
-    log: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-  } as unknown as jest.Mocked<AppLoggerService>;
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  } as unknown as Mocked<AppLoggerService>;
 }
 
 export function createMockStorage() {
   const mock = createMock();
-  mock.get = jest.fn();
-  mock.putObject = jest.fn();
-  mock.delete = jest.fn();
-  mock.deleteQuietly = jest.fn();
-  mock.deleteAll = jest.fn();
-  mock.listObjects = jest.fn();
-  mock.listObjectsWithLastModified = jest.fn();
+  mock.get = vi.fn();
+  mock.putObject = vi.fn();
+  mock.delete = vi.fn();
+  mock.deleteQuietly = vi.fn();
+  mock.deleteAll = vi.fn();
+  mock.listObjects = vi.fn();
+  mock.listObjectsWithLastModified = vi.fn();
   return mock;
 }
 
 export function createMockUoW() {
   const mock = createMock();
-  mock.execute = jest.fn(async (fn) => fn());
+  mock.execute = vi.fn(async (fn) => fn());
   return mock;
 }

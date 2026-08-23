@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionContext } from '@/prisma/transaction-context';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
@@ -7,25 +8,25 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('UnifiedTestRepository', () => {
   let repository: UnifiedTestRepository;
-  let mockTxCtx: jest.Mocked<TransactionContext>;
+  let mockTxCtx: Mocked<TransactionContext>;
   let mockClient: any;
-  let mockProjects: jest.Mocked<ProjectRepository>;
+  let mockProjects: Mocked<ProjectRepository>;
 
   beforeEach(async () => {
     mockClient = {
       unifiedTest: {
-        findUnique: jest.fn(),
-        findFirst: jest.fn(),
-        findMany: jest.fn(),
-        upsert: jest.fn(),
-        update: jest.fn(),
-        delete: jest.fn(),
-        deleteMany: jest.fn(),
-        count: jest.fn(),
+        findUnique: vi.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn(),
+        upsert: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+        deleteMany: vi.fn(),
+        count: vi.fn(),
       },
       unifiedVariant: {
-        findUnique: jest.fn(),
-        findFirst: jest.fn(),
+        findUnique: vi.fn(),
+        findFirst: vi.fn(),
       },
     };
 
@@ -51,7 +52,7 @@ describe('UnifiedTestRepository', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('findByProjectNameAndTestName', () => {

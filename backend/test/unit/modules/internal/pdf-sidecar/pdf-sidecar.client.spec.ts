@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PdfSidecarClient } from '@internal/pdf-sidecar/pdf-sidecar.client';
 import { AppLoggerService } from '@common/logging/app-logger.service';
@@ -7,7 +8,7 @@ import { DomainError } from '@common/domain/domain-error';
 
 describe('PdfSidecarClient', () => {
   let client: PdfSidecarClient;
-  let fetchMock: jest.Mock;
+  let fetchMock: Mock;
   let logger: ReturnType<typeof createMockLogger>;
   let originalFetch: typeof globalThis.fetch;
 
@@ -20,12 +21,12 @@ describe('PdfSidecarClient', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
   });
 
   beforeEach(async () => {
-    fetchMock = jest.fn();
+    fetchMock = vi.fn();
     globalThis.fetch = fetchMock;
     logger = createMockLogger();
 

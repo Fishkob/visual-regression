@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ProjectReadRepository } from '@public/visualTest/review/infrastructure/repositories/project-read.repository';
@@ -6,18 +7,18 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('ProjectReadRepository', () => {
   let repository: ProjectReadRepository;
-  let mockConnection: jest.Mocked<PrismaConnection>;
+  let mockConnection: Mocked<PrismaConnection>;
   let mockClient: any;
-  let variants: jest.Mocked<VariantStore>;
+  let variants: Mocked<VariantStore>;
 
   beforeEach(async () => {
     mockClient = {
       project: {
-        findUnique: jest.fn(),
-        findMany: jest.fn(),
-        count: jest.fn(),
+        findUnique: vi.fn(),
+        findMany: vi.fn(),
+        count: vi.fn(),
       },
-      $queryRaw: jest.fn(),
+      $queryRaw: vi.fn(),
     };
 
     mockConnection = createMock<PrismaConnection>();
@@ -38,7 +39,7 @@ describe('ProjectReadRepository', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('getWithLatestVariantStatuses', () => {

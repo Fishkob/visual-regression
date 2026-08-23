@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
@@ -45,14 +46,14 @@ function deleted(
 
 describe('StateChangeWorkflow', () => {
   let workflow: StateChangeWorkflow;
-  let uow: jest.Mocked<PrismaUnitOfWork>;
-  let storage: jest.Mocked<IStorageProvider>;
-  let statusService: jest.Mocked<TestStatusService>;
-  let logger: jest.Mocked<AppLoggerService>;
-  let metrics: jest.Mocked<IMetricsRecorder>;
+  let uow: Mocked<PrismaUnitOfWork>;
+  let storage: Mocked<IStorageProvider>;
+  let statusService: Mocked<TestStatusService>;
+  let logger: Mocked<AppLoggerService>;
+  let metrics: Mocked<IMetricsRecorder>;
 
   beforeEach(async () => {
-    uow = createMockUoW() as unknown as jest.Mocked<PrismaUnitOfWork>;
+    uow = createMockUoW() as unknown as Mocked<PrismaUnitOfWork>;
     storage = createMock<IStorageProvider>();
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
     storage.deleteQuietly.mockResolvedValue(undefined);
@@ -76,7 +77,7 @@ describe('StateChangeWorkflow', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('emits observability for the events returned by the change after commit', async () => {
@@ -100,7 +101,7 @@ describe('StateChangeWorkflow', () => {
 
   it('emits observability before running the handler cleanup after commit', async () => {
     const order: string[] = [];
-    const cleanup = jest.fn().mockImplementation(async () => {
+    const cleanup = vi.fn().mockImplementation(async () => {
       order.push('cleanup');
     });
     logger.log.mockImplementation(() => {
@@ -146,7 +147,7 @@ describe('StateChangeWorkflow', () => {
       order.push('deleteAll');
       return { deleted: [], failed: [] };
     });
-    const cleanup = jest.fn().mockImplementation(async () => {
+    const cleanup = vi.fn().mockImplementation(async () => {
       order.push('cleanup');
     });
 
@@ -234,7 +235,7 @@ describe('StateChangeWorkflow', () => {
   });
 
   it('still emits observability when the onSuccess callback throws', async () => {
-    const cleanup = jest.fn().mockRejectedValue(new Error('cleanup failed'));
+    const cleanup = vi.fn().mockRejectedValue(new Error('cleanup failed'));
 
     await workflow.executeStateChange(
       () => Promise.resolve(change({ events: [screenshotEvent()] })),
@@ -267,7 +268,7 @@ describe('StateChangeWorkflow', () => {
   });
 
   it('continues cleanup when observability emission fails without throwing', async () => {
-    const cleanup = jest.fn().mockResolvedValue(undefined);
+    const cleanup = vi.fn().mockResolvedValue(undefined);
     logger.log.mockImplementation(() => {
       throw new Error('logger down');
     });
@@ -329,9 +330,7 @@ describe('StateChangeWorkflow', () => {
 
   it('propagates a failed change without emitting observability', async () => {
     await expect(
-      workflow.executeStateChange(
-        jest.fn().mockRejectedValue(new Error('boom')),
-      ),
+      workflow.executeStateChange(vi.fn().mockRejectedValue(new Error('boom'))),
     ).rejects.toThrow('boom');
 
     expect(logger.log).not.toHaveBeenCalled();
@@ -346,14 +345,14 @@ describe('StateChangeWorkflow', () => {
           clientVersion: 'test',
         },
       );
-      uow.execute = jest
+      uow.execute = vi
         .fn()
         .mockRejectedValueOnce(serializationError)
         .mockImplementationOnce(async (fn: () => Promise<unknown>) => fn());
-      const fn = jest
+      const fn = vi
         .fn()
         .mockResolvedValue(change({ events: [screenshotEvent()] }));
-      const onSuccess = jest.fn().mockResolvedValue(undefined);
+      const onSuccess = vi.fn().mockResolvedValue(undefined);
 
       vi.useFakeTimers();
       const promise = workflow.executeStateChange(fn, {
@@ -383,7 +382,7 @@ describe('StateChangeWorkflow', () => {
     });
 
     it('applies the default Serializable retry when no retry option is given', async () => {
-      const spy = jest.spyOn(uow, 'execute');
+      const spy = vi.spyOn(uow, 'execute');
       await workflow.executeStateChange(() =>
         Promise.resolve(change({ events: [] })),
       );

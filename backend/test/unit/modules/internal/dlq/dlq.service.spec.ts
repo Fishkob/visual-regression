@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
 import { DlqService } from '@/modules/internal/dlq/dlq.service';
 import { IFailedJobStore } from '@common/domain/job-queue.interface';
 import { createMock } from '@test/utils/create-mock';
 
 describe('DlqService', () => {
   let service: DlqService;
-  let failedJobs: jest.Mocked<IFailedJobStore>;
+  let failedJobs: Mocked<IFailedJobStore>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -14,7 +14,7 @@ describe('DlqService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('listFailedJobs delegates to queue and maps to DTOs', async () => {

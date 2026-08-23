@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PdfRenderCacheStore } from '@internal/pdf-sidecar/pdf-render-cache-store';
 import {
@@ -20,7 +21,7 @@ function internal(cache: PdfRenderCacheStore): PdfRenderCacheStoreInternals {
 
 describe('PdfRenderCacheStore', () => {
   let cache: PdfRenderCacheStore;
-  let storage: jest.Mocked<IStorageProvider>;
+  let storage: Mocked<IStorageProvider>;
 
   beforeEach(async () => {
     storage = createMock<IStorageProvider>();
@@ -235,7 +236,7 @@ describe('PdfRenderCacheStore', () => {
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
       vi.useRealTimers();
     });
 

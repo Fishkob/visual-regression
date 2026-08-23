@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestsQueriesController } from '@public/visualTest/review/presentation/controllers/tests-queries.controller';
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
@@ -16,7 +17,7 @@ import { createMock } from '@test/utils/create-mock';
 import { createMockLogger } from '@test/utils/mocks';
 describe('TestsQueriesController', () => {
   let controller: TestsQueriesController;
-  let testQuery: jest.Mocked<TestQueryService>;
+  let testQuery: Mocked<TestQueryService>;
 
   beforeEach(async () => {
     testQuery = createMock<TestQueryService>();
@@ -33,7 +34,7 @@ describe('TestsQueriesController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('getTestsForProject', () => {

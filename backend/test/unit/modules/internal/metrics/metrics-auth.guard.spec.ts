@@ -23,7 +23,7 @@ describe('MetricsAuthGuard', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('when METRICS_API_KEY is empty', () => {

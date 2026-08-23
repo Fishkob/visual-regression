@@ -66,7 +66,7 @@ describe('MetricsService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('default metrics collection', () => {

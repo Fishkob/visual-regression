@@ -1,7 +1,7 @@
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 describe('VariantFilterDto', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('creates empty instance with no filters set', () => {

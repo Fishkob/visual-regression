@@ -1,3 +1,4 @@
+import type { Mock, Mocked } from 'vitest';
 import { LoggingInterceptor } from '@/common/http/logging.interceptor';
 import {
   BadRequestException,
@@ -20,13 +21,13 @@ interface MockReq {
 interface MockRes {
   statusCode: number;
   headers: Record<string, string>;
-  setHeader: jest.Mock<void, [string, string]>;
+  setHeader: Mock<(key: string, val: string) => void>;
 }
 
 describe('LoggingInterceptor (unit)', () => {
   let interceptor: LoggingInterceptor;
   let handler: CallHandler;
-  let logger: jest.Mocked<AppLoggerService>;
+  let logger: Mocked<AppLoggerService>;
 
   beforeEach(() => {
     logger = createMockLogger();
@@ -36,14 +37,14 @@ describe('LoggingInterceptor (unit)', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   function createMockContext(): ExecutionContext {
     const res: MockRes = {
       statusCode: 200,
       headers: {},
-      setHeader: jest.fn((key: string, val: string): void => {
+      setHeader: vi.fn((key: string, val: string): void => {
         res.headers[key] = val;
       }),
     };

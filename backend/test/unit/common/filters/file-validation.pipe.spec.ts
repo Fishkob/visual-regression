@@ -4,7 +4,7 @@ import { AppConfigService } from '@config/app-config.service';
 
 describe('FileValidationPipe', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   const MAX_SIZE = 5 * 1024 * 1024;

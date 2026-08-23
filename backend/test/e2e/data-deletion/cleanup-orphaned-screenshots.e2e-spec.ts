@@ -23,7 +23,7 @@ describe('OrphanCleanupService (integration)', () => {
   });
 
   it('should delete orphaned CURRENT screenshots and corresponding RustFS objects', async () => {
-    const deleteSpy = jest
+    const deleteSpy = vi
       .spyOn(RustFsStorageService.prototype, 'delete')
       .mockResolvedValue();
 

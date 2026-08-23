@@ -5,7 +5,7 @@ import {
 
 describe('ThresholdPolicy', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('decideThresholdAction', () => {

@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { withCronJob } from '@internal/data-deletion/cron/maintenance.cron';
 import type { PostgresAdvisoryLock } from '@/prisma/postgres-advisory-lock';
 import type { AppLoggerService } from '@common/logging/app-logger.service';
@@ -5,8 +6,8 @@ import { createMock } from '@test/utils/create-mock';
 import { createMockLogger } from '@test/utils/mocks';
 
 describe('withCronJob', () => {
-  let lock: jest.Mocked<PostgresAdvisoryLock>;
-  let logger: jest.Mocked<AppLoggerService>;
+  let lock: Mocked<PostgresAdvisoryLock>;
+  let logger: Mocked<AppLoggerService>;
 
   beforeEach(() => {
     lock = createMock<PostgresAdvisoryLock>();
@@ -16,11 +17,11 @@ describe('withCronJob', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('runs the task when the lock is acquired', async () => {
-    const fn = jest.fn().mockResolvedValue('done');
+    const fn = vi.fn().mockResolvedValue('done');
 
     const result = await withCronJob(lock, logger, 1001, 'task', fn);
 
@@ -30,7 +31,7 @@ describe('withCronJob', () => {
 
   it('skips without running when the lock is held elsewhere', async () => {
     lock.tryLock.mockResolvedValue(false);
-    const fn = jest.fn();
+    const fn = vi.fn();
 
     const result = await withCronJob(lock, logger, 1001, 'task', fn);
 
@@ -44,7 +45,7 @@ describe('withCronJob', () => {
 
   it('propagates lock-acquisition errors (DB down, not contention)', async () => {
     lock.tryLock.mockRejectedValue(new Error('db down'));
-    const fn = jest.fn();
+    const fn = vi.fn();
 
     await expect(withCronJob(lock, logger, 1001, 'task', fn)).rejects.toThrow(
       'db down',
@@ -54,7 +55,7 @@ describe('withCronJob', () => {
 
   it('logs a leaked lock when unlock fails, without masking the result', async () => {
     lock.unlock.mockRejectedValue(new Error('pool dead'));
-    const fn = jest.fn().mockResolvedValue('done');
+    const fn = vi.fn().mockResolvedValue('done');
 
     const result = await withCronJob(lock, logger, 1001, 'task', fn);
 

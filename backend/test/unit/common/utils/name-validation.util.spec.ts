@@ -5,7 +5,7 @@ import {
 } from '@common/http/pipes/name-validation.util';
 describe('name-validation.util', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('validateName', () => {

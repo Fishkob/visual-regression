@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { HttpMetricsInterceptor } from '@/common/http/http-metrics.interceptor';
 import {
   BadRequestException,
@@ -20,7 +21,7 @@ interface MockRes {
 
 describe('HttpMetricsInterceptor', () => {
   let interceptor: HttpMetricsInterceptor;
-  let metrics: jest.Mocked<IMetricsRecorder>;
+  let metrics: Mocked<IMetricsRecorder>;
 
   function createMockContext(
     overrides?: Partial<{
@@ -55,7 +56,7 @@ describe('HttpMetricsInterceptor', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('passes through non-HTTP contexts without recording metrics', async () => {

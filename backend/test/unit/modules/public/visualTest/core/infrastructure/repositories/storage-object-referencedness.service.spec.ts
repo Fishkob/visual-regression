@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { StorageObjectReferencednessService } from '@public/visualTest/core/infrastructure/repositories/storage-object-referencedness.service';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
@@ -6,8 +7,8 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('StorageObjectReferencednessService', () => {
   let service: StorageObjectReferencednessService;
-  let screenshots: jest.Mocked<UnifiedScreenshotRepository>;
-  let comparisons: jest.Mocked<UnifiedComparisonsRepository>;
+  let screenshots: Mocked<UnifiedScreenshotRepository>;
+  let comparisons: Mocked<UnifiedComparisonsRepository>;
 
   beforeEach(async () => {
     screenshots = createMock<UnifiedScreenshotRepository>();
@@ -28,7 +29,7 @@ describe('StorageObjectReferencednessService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('findReferencedUrls', () => {

@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { LogIngestionService } from '@/modules/internal/logging/log-ingestion.service';
 import { AppLoggerService } from '@common/logging/app-logger.service';
@@ -6,7 +7,7 @@ import { createMockLogger } from '@test/utils/mocks';
 
 describe('LogIngestionService', () => {
   let service: LogIngestionService;
-  let logger: jest.Mocked<AppLoggerService>;
+  let logger: Mocked<AppLoggerService>;
 
   function mockReq(headers?: Record<string, string>): Request {
     return { headers: { 'x-trace-id': undefined, ...headers } } as any;
@@ -26,7 +27,7 @@ describe('LogIngestionService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('traceId resolution', () => {

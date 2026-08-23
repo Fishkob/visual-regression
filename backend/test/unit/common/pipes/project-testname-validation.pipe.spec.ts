@@ -3,7 +3,7 @@ import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testna
 
 describe('ProjectTestNameValidationPipe', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   const pipe = new ProjectTestNameValidationPipe();

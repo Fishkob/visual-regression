@@ -43,15 +43,15 @@ describe('buildDeletionRecords', () => {
 
 describe('deleteRecordsRowFirst', () => {
   const storage = {
-    deleteAll: jest.fn().mockResolvedValue({ deleted: [], failed: [] }),
+    deleteAll: vi.fn().mockResolvedValue({ deleted: [], failed: [] }),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('deletes rows first, then reclaims files only for the deleted rows', async () => {
@@ -60,7 +60,7 @@ describe('deleteRecordsRowFirst', () => {
       order.push('storage');
       return { deleted: [], failed: [] };
     });
-    const deleteRows = jest.fn().mockImplementation(async () => {
+    const deleteRows = vi.fn().mockImplementation(async () => {
       order.push('db');
       return ['1', '2'];
     });
@@ -81,7 +81,7 @@ describe('deleteRecordsRowFirst', () => {
   });
 
   it('keeps the file of a row the guarded delete did NOT remove', async () => {
-    const deleteRows = jest.fn().mockResolvedValue(['1']);
+    const deleteRows = vi.fn().mockResolvedValue(['1']);
 
     const result = await deleteRecordsRowFirst({
       records: [
@@ -98,14 +98,14 @@ describe('deleteRecordsRowFirst', () => {
 
   it('applies the reclaim filter to the deleted rows files', async () => {
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
-    const reclaimUrls = jest.fn().mockResolvedValue(['b']);
+    const reclaimUrls = vi.fn().mockResolvedValue(['b']);
 
     const result = await deleteRecordsRowFirst({
       records: [
         { id: '1', url: 'a' },
         { id: '2', url: 'b' },
       ],
-      deleteRows: jest.fn().mockResolvedValue(['1', '2']),
+      deleteRows: vi.fn().mockResolvedValue(['1', '2']),
       storage,
       reclaimUrls,
     });
@@ -123,7 +123,7 @@ describe('deleteRecordsRowFirst', () => {
 
     const result = await deleteRecordsRowFirst({
       records: [{ id: '1', url: 'a' }],
-      deleteRows: jest.fn().mockResolvedValue(['1']),
+      deleteRows: vi.fn().mockResolvedValue(['1']),
       storage,
     });
 
@@ -131,7 +131,7 @@ describe('deleteRecordsRowFirst', () => {
   });
 
   it('returns early for empty input', async () => {
-    const deleteRows = jest.fn();
+    const deleteRows = vi.fn();
 
     const result = await deleteRecordsRowFirst({
       records: [],

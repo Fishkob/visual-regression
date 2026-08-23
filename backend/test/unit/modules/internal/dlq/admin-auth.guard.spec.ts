@@ -23,7 +23,7 @@ describe('AdminAuthGuard', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('when ADMIN_API_KEY is empty', () => {

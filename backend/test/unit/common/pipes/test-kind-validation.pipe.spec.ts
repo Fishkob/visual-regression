@@ -3,7 +3,7 @@ import { TestKindValidationPipe } from '@common/http/pipes/test-kind-validation.
 
 describe('TestKindValidationPipe', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   const pipe = new TestKindValidationPipe();

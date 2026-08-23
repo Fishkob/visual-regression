@@ -46,7 +46,7 @@ function createComparison(
 }
 describe('mapComparisonToDto', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('maps full comparison to dto', () => {

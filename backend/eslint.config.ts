@@ -14,7 +14,6 @@ export default tseslint.config(
       'src/swagger*.ts',
       'src/scripts/**',
       'src/prisma/**',
-      'test/jest-shim.ts',
       'test/**/*.ts',
     ],
   },
@@ -91,7 +90,6 @@ export default tseslint.config(
     languageOptions: {
       globals: {
         ...globals.vitest,
-        ...globals.jest,
       },
       sourceType: 'commonjs',
       parserOptions: {

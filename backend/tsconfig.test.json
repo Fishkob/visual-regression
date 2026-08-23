@@ -5,7 +5,7 @@
     "noEmit": true,
     "incremental": false,
     "tsBuildInfoFile": null,
-    "types": ["vitest/globals", "node", "express", "multer", "jest"],
+    "types": ["vitest/globals", "node", "express", "multer"],
     "paths": {
       "@app": ["./src/app.module"],
       "@config/*": ["./src/config/*"],

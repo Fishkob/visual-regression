@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
 import { TestReadRepository } from '@public/visualTest/review/infrastructure/repositories/test-read.repository';
@@ -14,8 +15,8 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('TestQueryService', () => {
   let service: TestQueryService;
-  let reviewRead: jest.Mocked<TestReadRepository>;
-  let testResolver: jest.Mocked<TestResolver>;
+  let reviewRead: Mocked<TestReadRepository>;
+  let testResolver: Mocked<TestResolver>;
 
   const variant = Variant.fromStrings('1920x1080', 'chrome', 'staging');
 
@@ -63,7 +64,7 @@ describe('TestQueryService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('getTestNames', () => {

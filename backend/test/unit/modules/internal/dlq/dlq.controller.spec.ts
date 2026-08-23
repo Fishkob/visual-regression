@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DlqController } from '@/modules/internal/dlq/dlq.controller';
 import { DlqService } from '@/modules/internal/dlq/dlq.service';
@@ -7,7 +8,7 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('DlqController', () => {
   let controller: DlqController;
-  let dlqService: jest.Mocked<DlqService>;
+  let dlqService: Mocked<DlqService>;
 
   beforeEach(async () => {
     dlqService = createMock<DlqService>();
@@ -25,7 +26,7 @@ describe('DlqController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('listFailedJobs', () => {

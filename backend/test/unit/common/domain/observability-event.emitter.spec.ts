@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
 import {
   emitObservabilityEvent,
   EVENT_COUNTER,
@@ -9,8 +9,8 @@ import type { IMetricsRecorder } from '@common/domain/metrics-recorder.interface
 import { createMock } from '@test/utils/create-mock';
 
 describe('emitObservabilityEvent', () => {
-  let logger: jest.Mocked<Pick<AppLoggerService, 'log' | 'warn' | 'error'>>;
-  let metrics: jest.Mocked<
+  let logger: Mocked<Pick<AppLoggerService, 'log' | 'warn' | 'error'>>;
+  let metrics: Mocked<
     Pick<IMetricsRecorder, 'incrementCounter' | 'observeHistogram'>
   >;
 
@@ -23,7 +23,7 @@ describe('emitObservabilityEvent', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('logs and counts a screenshot upload', () => {

@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
@@ -10,9 +11,9 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('ProjectService', () => {
   let service: ProjectService;
-  let projects: jest.Mocked<ProjectRepository>;
-  let projectRead: jest.Mocked<ProjectReadRepository>;
-  let testDeletion: jest.Mocked<TestDeletionService>;
+  let projects: Mocked<ProjectRepository>;
+  let projectRead: Mocked<ProjectReadRepository>;
+  let testDeletion: Mocked<TestDeletionService>;
 
   beforeEach(async () => {
     projects = createMock<ProjectRepository>();
@@ -32,7 +33,7 @@ describe('ProjectService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('deleteProject', () => {

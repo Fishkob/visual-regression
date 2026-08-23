@@ -1,7 +1,7 @@
 import { RequestContext } from '@common/logging/request-context';
 describe('RequestContext', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('returns undefined for get outside run context', () => {

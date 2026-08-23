@@ -15,7 +15,7 @@ describe('AppModule', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('compiles without errors (no circular deps, all imports resolved)', async () => {

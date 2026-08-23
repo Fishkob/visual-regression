@@ -4,7 +4,7 @@ import { DomainError } from '@common/domain/domain-error';
 
 describe('decodeJobData', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('decodes a valid image job payload', () => {

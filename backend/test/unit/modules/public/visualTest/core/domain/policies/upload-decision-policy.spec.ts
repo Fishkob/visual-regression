@@ -3,7 +3,7 @@ import { decideOutcome } from '@public/visualTest/core/domain/policies/upload-de
 
 describe('decideOutcome', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('returns baseline_created when no baseline exists', () => {

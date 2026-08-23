@@ -2,7 +2,7 @@ import { collectDiffUrls } from '@public/visualTest/core/infrastructure/reposito
 
 describe('collectDiffUrls', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('returns non-empty image and pdf diff urls', () => {

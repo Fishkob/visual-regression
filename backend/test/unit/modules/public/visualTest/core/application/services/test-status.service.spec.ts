@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestStatusService } from '@public/visualTest/core/application/services/test-status.service';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
@@ -7,8 +8,8 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('TestStatusService', () => {
   let service: TestStatusService;
-  let tests: jest.Mocked<UnifiedTestRepository>;
-  let variants: jest.Mocked<VariantStore>;
+  let tests: Mocked<UnifiedTestRepository>;
+  let variants: Mocked<VariantStore>;
 
   beforeEach(async () => {
     tests = createMock<UnifiedTestRepository>();
@@ -26,7 +27,7 @@ describe('TestStatusService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('recomputeStatus', () => {

@@ -1,30 +1,31 @@
+import type { Mock } from 'vitest';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 
 describe('PrismaUnitOfWork', () => {
   let uow: PrismaUnitOfWork;
-  let connection: { $transaction: jest.Mock };
-  let txCtx: { run: jest.Mock };
+  let connection: { $transaction: Mock };
+  let txCtx: { run: Mock };
 
   beforeEach(() => {
     connection = {
-      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+      $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn('tx'),
       ),
     };
     txCtx = {
-      run: jest.fn(async (_tx: unknown, fn: () => Promise<unknown>) => fn()),
+      run: vi.fn(async (_tx: unknown, fn: () => Promise<unknown>) => fn()),
     };
 
     uow = new PrismaUnitOfWork(connection as any, txCtx as any);
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('execute', () => {
     it('runs the operation inside a transaction context', async () => {
-      const fn = jest.fn().mockResolvedValue('result');
+      const fn = vi.fn().mockResolvedValue('result');
 
       const result = await uow.execute(fn);
 
@@ -34,7 +35,7 @@ describe('PrismaUnitOfWork', () => {
     });
 
     it('propagates the isolationLevel to the underlying transaction', async () => {
-      const fn = jest.fn().mockResolvedValue('done');
+      const fn = vi.fn().mockResolvedValue('done');
 
       await uow.execute(fn, { isolationLevel: 'Serializable' });
 

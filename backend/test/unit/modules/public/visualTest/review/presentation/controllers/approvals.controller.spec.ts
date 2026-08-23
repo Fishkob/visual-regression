@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ApprovalsController } from '@public/visualTest/review/presentation/controllers/approvals.controller';
 import { ApprovalService } from '@public/visualTest/review/application/approval.service';
@@ -6,7 +7,7 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('ApprovalsController', () => {
   let controller: ApprovalsController;
-  let approvals: jest.Mocked<ApprovalService>;
+  let approvals: Mocked<ApprovalService>;
 
   beforeEach(async () => {
     approvals = createMock<ApprovalService>();
@@ -20,7 +21,7 @@ describe('ApprovalsController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('approveVisualTest', () => {

@@ -16,7 +16,7 @@ describe('WorkerModule', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('compiles the worker graph standalone (every worker provider resolvable)', async () => {

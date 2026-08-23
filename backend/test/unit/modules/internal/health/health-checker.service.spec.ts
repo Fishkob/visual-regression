@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthChecker } from '@internal/health/health-checker.service';
 import { AppConfigService } from '@config/app-config.service';
@@ -12,9 +13,9 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('HealthChecker', () => {
   let checker: HealthChecker;
-  let prisma: jest.Mocked<PrismaConnection>;
-  let storage: jest.Mocked<IStorageProvider>;
-  let jobQueue: jest.Mocked<IJobQueue>;
+  let prisma: Mocked<PrismaConnection>;
+  let storage: Mocked<IStorageProvider>;
+  let jobQueue: Mocked<IJobQueue>;
   let originalFetch: typeof globalThis.fetch;
 
   const appConfig = {
@@ -36,7 +37,7 @@ describe('HealthChecker', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
   });
 

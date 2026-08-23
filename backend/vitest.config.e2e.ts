@@ -5,7 +5,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    setupFiles: ['test/jest-shim.ts'],
     include: ['test/**/*.e2e-spec.ts'],
     exclude: ['**/node_modules/**'],
     testTimeout: 30000,

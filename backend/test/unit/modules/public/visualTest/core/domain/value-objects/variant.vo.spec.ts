@@ -3,7 +3,7 @@ import type { VariantFilter } from '@public/visualTest/core/domain/value-objects
 import { DomainError } from '@common/domain/domain-error';
 describe('Variant', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('fromStrings', () => {

@@ -1,7 +1,7 @@
 import { DomainError } from '@common/domain/domain-error';
 describe('DomainError', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('constructor', () => {

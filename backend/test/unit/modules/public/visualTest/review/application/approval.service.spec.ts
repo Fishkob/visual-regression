@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DomainError } from '@common/domain/domain-error';
 import { ApprovalService } from '@public/visualTest/review/application/approval.service';
@@ -38,15 +39,15 @@ import { AppLoggerService } from '@common/logging/app-logger.service';
 
 describe('ApprovalService', () => {
   let service: ApprovalService;
-  let statusService: jest.Mocked<TestStatusService>;
-  let testResolver: jest.Mocked<TestResolver>;
-  let metrics: jest.Mocked<IMetricsRecorder>;
-  let storage: jest.Mocked<IStorageProvider>;
-  let uow: jest.Mocked<PrismaUnitOfWork>;
-  let screenshots: jest.Mocked<UnifiedScreenshotRepository>;
-  let comparisons: jest.Mocked<UnifiedComparisonsRepository>;
-  let retirement: jest.Mocked<ComparisonRetirementService>;
-  let pdfRenderCache: jest.Mocked<IPdfRenderCache>;
+  let statusService: Mocked<TestStatusService>;
+  let testResolver: Mocked<TestResolver>;
+  let metrics: Mocked<IMetricsRecorder>;
+  let storage: Mocked<IStorageProvider>;
+  let uow: Mocked<PrismaUnitOfWork>;
+  let screenshots: Mocked<UnifiedScreenshotRepository>;
+  let comparisons: Mocked<UnifiedComparisonsRepository>;
+  let retirement: Mocked<ComparisonRetirementService>;
+  let pdfRenderCache: Mocked<IPdfRenderCache>;
 
   const imageTest = { id: 'test-1', name: 'my-test', kind: 'image' as const };
   const pdfTest = { id: 'test-1', name: 'my-test', kind: 'pdf' as const };
@@ -155,10 +156,9 @@ describe('ApprovalService', () => {
     tracker.track.mockImplementation((_: string, fn: () => Promise<any>) =>
       fn(),
     );
-    const uowLocal =
-      createMockUoW() as unknown as jest.Mocked<PrismaUnitOfWork>;
+    const uowLocal = createMockUoW() as unknown as Mocked<PrismaUnitOfWork>;
     uow = uowLocal;
-    storage = createMockStorage() as unknown as jest.Mocked<IStorageProvider>;
+    storage = createMockStorage() as unknown as Mocked<IStorageProvider>;
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
 
     const module: TestingModule = await Test.createTestingModule({
@@ -184,7 +184,7 @@ describe('ApprovalService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('approveImage', () => {

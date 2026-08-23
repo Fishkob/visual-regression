@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ComparisonJobPoller } from '@public/visualTest/intake/workers/comparison-job-poller';
 import { JOB_QUEUE, IJobQueue } from '@common/domain/job-queue.interface';
@@ -39,10 +40,10 @@ function makeMockJob(
 
 describe('ComparisonJobPoller', () => {
   let poller: ComparisonJobPoller;
-  let queue: jest.Mocked<IJobQueue>;
-  let processor: jest.Mocked<ComparisonJobProcessor>;
-  let healthServer: jest.Mocked<IWorkerHealth>;
-  let logger: jest.Mocked<AppLoggerService>;
+  let queue: Mocked<IJobQueue>;
+  let processor: Mocked<ComparisonJobProcessor>;
+  let healthServer: Mocked<IWorkerHealth>;
+  let logger: Mocked<AppLoggerService>;
   let capturedTimeouts: Array<{ cb: () => void; ms: number }>;
   let capturedIntervals: Array<{ cb: () => void; ms: number }>;
 
@@ -55,22 +56,22 @@ describe('ComparisonJobPoller', () => {
   beforeEach(async () => {
     capturedTimeouts = [];
     capturedIntervals = [];
-    jest.spyOn(globalThis, 'setTimeout').mockImplementation(((
+    vi.spyOn(globalThis, 'setTimeout').mockImplementation(((
       cb: () => void,
       ms: number,
     ) => {
       capturedTimeouts.push({ cb, ms });
       return capturedTimeouts.length;
     }) as typeof globalThis.setTimeout);
-    jest.spyOn(globalThis, 'clearTimeout').mockImplementation(jest.fn());
-    jest.spyOn(globalThis, 'setInterval').mockImplementation(((
+    vi.spyOn(globalThis, 'clearTimeout').mockImplementation(vi.fn());
+    vi.spyOn(globalThis, 'setInterval').mockImplementation(((
       cb: () => void,
       ms: number,
     ) => {
       capturedIntervals.push({ cb, ms });
       return capturedIntervals.length;
     }) as typeof globalThis.setInterval);
-    jest.spyOn(globalThis, 'clearInterval').mockImplementation(jest.fn());
+    vi.spyOn(globalThis, 'clearInterval').mockImplementation(vi.fn());
 
     queue = createMock<IJobQueue>();
     processor = createMock<ComparisonJobProcessor>();
@@ -91,7 +92,7 @@ describe('ComparisonJobPoller', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('onApplicationBootstrap', () => {

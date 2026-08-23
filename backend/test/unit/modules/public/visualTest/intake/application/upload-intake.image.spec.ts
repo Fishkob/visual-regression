@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { createHash } from 'crypto';
 import {
@@ -37,16 +38,16 @@ import {
 
 describe('UploadIntake (image kind)', () => {
   let uploadIntake: UploadIntake;
-  let tests: jest.Mocked<UnifiedTestRepository>;
-  let screenshots: jest.Mocked<UnifiedScreenshotRepository>;
+  let tests: Mocked<UnifiedTestRepository>;
+  let screenshots: Mocked<UnifiedScreenshotRepository>;
   let workflow: StateChangeWorkflow;
-  let storage: jest.Mocked<IStorageProvider>;
-  let jobQueue: jest.Mocked<IJobProducer>;
-  let tracker: jest.Mocked<Tracker>;
-  let statusService: jest.Mocked<TestStatusService>;
-  let comparisons: jest.Mocked<UnifiedComparisonsRepository>;
-  let retirement: jest.Mocked<ComparisonRetirementService>;
-  let metrics: jest.Mocked<IMetricsRecorder>;
+  let storage: Mocked<IStorageProvider>;
+  let jobQueue: Mocked<IJobProducer>;
+  let tracker: Mocked<Tracker>;
+  let statusService: Mocked<TestStatusService>;
+  let comparisons: Mocked<UnifiedComparisonsRepository>;
+  let retirement: Mocked<ComparisonRetirementService>;
+  let metrics: Mocked<IMetricsRecorder>;
 
   const testBuffer = Buffer.from('test-image-content');
   const testHash = createHash('sha256').update(testBuffer).digest('hex');
@@ -72,7 +73,7 @@ describe('UploadIntake (image kind)', () => {
   }
 
   beforeEach(async () => {
-    jest.spyOn(Date, 'now').mockReturnValue(testDate);
+    vi.spyOn(Date, 'now').mockReturnValue(testDate);
 
     tests = createMock<UnifiedTestRepository>();
     tests.findByProjectNameAndTestName.mockResolvedValue({
@@ -85,7 +86,7 @@ describe('UploadIntake (image kind)', () => {
     screenshots.filterReclaimableUrls.mockImplementation((urls) =>
       Promise.resolve(urls),
     );
-    storage = createMockStorage() as unknown as jest.Mocked<IStorageProvider>;
+    storage = createMockStorage() as unknown as Mocked<IStorageProvider>;
     storage.deleteQuietly.mockResolvedValue(undefined);
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
     jobQueue = createMock<IJobProducer>();
@@ -111,7 +112,7 @@ describe('UploadIntake (image kind)', () => {
         StateChangeWorkflow,
         {
           provide: PrismaUnitOfWork,
-          useValue: createMockUoW() as unknown as jest.Mocked<PrismaUnitOfWork>,
+          useValue: createMockUoW() as unknown as Mocked<PrismaUnitOfWork>,
         },
         { provide: AppLoggerService, useValue: createMockLogger() },
         { provide: STORAGE_PROVIDER, useValue: storage },
@@ -119,18 +120,18 @@ describe('UploadIntake (image kind)', () => {
         { provide: Tracker, useValue: tracker },
         { provide: TestStatusService, useValue: statusService },
         { provide: METRICS_RECORDER, useValue: metrics },
-        { provide: PDF_PAGE_COUNTER, useValue: { count: jest.fn() } },
+        { provide: PDF_PAGE_COUNTER, useValue: { count: vi.fn() } },
       ],
     }).compile();
 
     uploadIntake = module.get(UploadIntake);
     workflow = module.get(StateChangeWorkflow);
-    jest.spyOn(workflow, 'executeStateChange');
-    jest.spyOn(workflow, 'executeWithStoredFile');
+    vi.spyOn(workflow, 'executeStateChange');
+    vi.spyOn(workflow, 'executeWithStoredFile');
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('rejects an upload whose testKind does not match the file MIME type', async () => {

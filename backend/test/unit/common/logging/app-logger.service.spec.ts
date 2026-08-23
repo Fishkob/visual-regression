@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { RequestContext } from '@common/logging/request-context';
 vi.mock('@common/logging/request-context', () => ({
@@ -32,7 +33,7 @@ describe('AppLoggerService', () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('calls pino.info with formatted string message', () => {
@@ -151,7 +152,7 @@ describe('AppLoggerService', () => {
   });
 
   it('uses no-trace when RequestContext returns undefined', () => {
-    (RequestContext.traceId as jest.Mock).mockReturnValue(undefined);
+    (RequestContext.traceId as Mock).mockReturnValue(undefined);
 
     logger.log('test');
 

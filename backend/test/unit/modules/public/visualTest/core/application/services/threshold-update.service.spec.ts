@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DomainError } from '@common/domain/domain-error';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
@@ -25,12 +26,12 @@ import { AppLoggerService } from '@common/logging/app-logger.service';
 
 describe('ThresholdUpdateService', () => {
   let service: ThresholdUpdateService;
-  let statusService: jest.Mocked<TestStatusService>;
-  let screenshots: jest.Mocked<UnifiedScreenshotRepository>;
-  let comparisons: jest.Mocked<UnifiedComparisonsRepository>;
-  let retirement: jest.Mocked<ComparisonRetirementService>;
-  let storage: jest.Mocked<IStorageProvider>;
-  let uow: jest.Mocked<PrismaUnitOfWork>;
+  let statusService: Mocked<TestStatusService>;
+  let screenshots: Mocked<UnifiedScreenshotRepository>;
+  let comparisons: Mocked<UnifiedComparisonsRepository>;
+  let retirement: Mocked<ComparisonRetirementService>;
+  let storage: Mocked<IStorageProvider>;
+  let uow: Mocked<PrismaUnitOfWork>;
 
   function comparisonRow(
     overrides: Partial<{ id: string; mismatchPixelCount: number }> = {},
@@ -49,9 +50,9 @@ describe('ThresholdUpdateService', () => {
     comparisons = createMock<UnifiedComparisonsRepository>();
     retirement = createMock<ComparisonRetirementService>();
     retirement.retirePendingComparisons.mockResolvedValue([]);
-    storage = createMockStorage() as unknown as jest.Mocked<IStorageProvider>;
+    storage = createMockStorage() as unknown as Mocked<IStorageProvider>;
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
-    uow = createMockUoW() as unknown as jest.Mocked<PrismaUnitOfWork>;
+    uow = createMockUoW() as unknown as Mocked<PrismaUnitOfWork>;
     const metrics = createMock<IMetricsRecorder>();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -73,7 +74,7 @@ describe('ThresholdUpdateService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('updates baseline thresholds and auto-accepts pending comparisons within the new value', async () => {

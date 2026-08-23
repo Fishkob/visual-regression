@@ -5,7 +5,7 @@ import { PaginationDto } from '@common/dto/pagination.dto';
 
 describe('PaginationDto', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   async function transform(

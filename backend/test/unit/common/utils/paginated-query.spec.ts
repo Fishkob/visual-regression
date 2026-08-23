@@ -18,7 +18,7 @@ vi.mock('@common/dto/paginated-response.dto', () => ({
 
 describe('paginatedQuery', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   const mockQuery = vi.fn().mockResolvedValue({

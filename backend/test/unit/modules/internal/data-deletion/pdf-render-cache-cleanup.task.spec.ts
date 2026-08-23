@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PdfRenderCacheCleanupTask } from '@internal/data-deletion/tasks/pdf-render-cache-cleanup.task';
 import { StorageObjectName } from '@internal/storage/services/storage-object-name';
@@ -16,10 +17,10 @@ import { createMockLogger } from '@test/utils/mocks';
 
 describe('PdfRenderCacheCleanupTask', () => {
   let task: PdfRenderCacheCleanupTask;
-  let storage: jest.Mocked<IStorageProvider>;
+  let storage: Mocked<IStorageProvider>;
   let objectNames: StorageObjectName;
-  let renderCache: jest.Mocked<IPdfRenderCache>;
-  let logger: jest.Mocked<AppLoggerService>;
+  let renderCache: Mocked<IPdfRenderCache>;
+  let logger: Mocked<AppLoggerService>;
 
   beforeEach(async () => {
     storage = createMock<IStorageProvider>();
@@ -46,7 +47,7 @@ describe('PdfRenderCacheCleanupTask', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('implements MaintenanceTask with its own lock id', () => {

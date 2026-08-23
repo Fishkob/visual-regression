@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PdfRenderService } from '@internal/pdf-sidecar/pdf-render.service';
 import { PdfRenderCacheStore } from '@internal/pdf-sidecar/pdf-render-cache-store';
@@ -17,9 +18,9 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('PdfRenderService', () => {
   let service: PdfRenderService;
-  let renderCache: jest.Mocked<PdfRenderCacheStore>;
-  let renderer: jest.Mocked<IPdfPageRenderer>;
-  let storage: jest.Mocked<IStorageProvider>;
+  let renderCache: Mocked<PdfRenderCacheStore>;
+  let renderer: Mocked<IPdfPageRenderer>;
+  let storage: Mocked<IStorageProvider>;
   let logger: ReturnType<typeof createMockLogger>;
 
   const pdfUrl = 'http://storage/project/test/document.pdf';
@@ -51,7 +52,7 @@ describe('PdfRenderService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('renderPage', () => {

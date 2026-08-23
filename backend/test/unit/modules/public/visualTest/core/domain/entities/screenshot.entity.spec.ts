@@ -4,7 +4,7 @@ import { ScreenshotType } from '@public/visualTest/core/domain/types/visual-test
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 describe('ScreenshotEntity', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   const validParams = {

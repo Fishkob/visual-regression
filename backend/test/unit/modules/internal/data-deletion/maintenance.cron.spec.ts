@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SCHEDULE_CRON_OPTIONS } from '@nestjs/schedule/dist/schedule.constants';
 import { MaintenanceCron } from '@internal/data-deletion/cron/maintenance.cron';
@@ -15,11 +16,11 @@ import { createMockLogger } from '@test/utils/mocks';
 
 describe('MaintenanceCron', () => {
   let cron: MaintenanceCron;
-  let task1: jest.Mocked<MaintenanceTask>;
-  let task2: jest.Mocked<MaintenanceTask>;
-  let lock: jest.Mocked<PostgresAdvisoryLock>;
-  let metrics: jest.Mocked<MetricsService>;
-  let logger: jest.Mocked<AppLoggerService>;
+  let task1: Mocked<MaintenanceTask>;
+  let task2: Mocked<MaintenanceTask>;
+  let lock: Mocked<PostgresAdvisoryLock>;
+  let metrics: Mocked<MetricsService>;
+  let logger: Mocked<AppLoggerService>;
 
   beforeEach(async () => {
     logger = createMockLogger();
@@ -29,12 +30,12 @@ describe('MaintenanceCron', () => {
     task1 = {
       lockId: 1001,
       label: 'task one',
-      execute: jest.fn(),
+      execute: vi.fn(),
     };
     task2 = {
       lockId: 1002,
       label: 'task two',
-      execute: jest.fn(),
+      execute: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -51,7 +52,7 @@ describe('MaintenanceCron', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('runs all registered tasks', async () => {

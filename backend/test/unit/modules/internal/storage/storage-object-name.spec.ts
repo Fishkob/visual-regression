@@ -12,7 +12,7 @@ describe('StorageObjectName', () => {
   }
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('builds a public URL from an object name', () => {

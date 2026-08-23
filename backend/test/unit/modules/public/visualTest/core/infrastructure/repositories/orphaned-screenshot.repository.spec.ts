@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionContext } from '@/prisma/transaction-context';
 import { OrphanedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/orphaned-screenshot.repository';
@@ -5,25 +6,25 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('OrphanedScreenshotRepository', () => {
   let repository: OrphanedScreenshotRepository;
-  let mockTxCtx: jest.Mocked<TransactionContext>;
+  let mockTxCtx: Mocked<TransactionContext>;
   let mockClient: any;
   const now = new Date('2025-01-01T00:00:00Z');
 
   beforeEach(async () => {
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
 
     mockClient = {
       unifiedScreenshot: {
-        findMany: jest.fn(),
-        deleteMany: jest.fn(),
+        findMany: vi.fn(),
+        deleteMany: vi.fn(),
       },
       comparisonJob: {
-        findFirst: jest.fn(),
-        findMany: jest.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn(),
       },
-      $executeRaw: jest.fn(),
-      $queryRaw: jest.fn(),
+      $executeRaw: vi.fn(),
+      $queryRaw: vi.fn(),
     };
 
     mockTxCtx = createMock<TransactionContext>();
@@ -41,8 +42,8 @@ describe('OrphanedScreenshotRepository', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    jest.restoreAllMocks();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   describe('findOrphanedCurrent', () => {

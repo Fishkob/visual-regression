@@ -73,7 +73,7 @@ describe('probe', () => {
 
 describe('probeHealthUrl', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 

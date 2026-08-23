@@ -1,3 +1,4 @@
+import type { Mock, Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrphanCleanupService } from '@internal/data-deletion/services/orphan-cleanup.service';
 import {
@@ -20,11 +21,11 @@ import { createMockLogger } from '@test/utils/mocks';
 
 describe('OrphanCleanupService', () => {
   let service: OrphanCleanupService;
-  let referencedness: jest.Mocked<IStorageObjectReferencedness>;
-  let orphaned: jest.Mocked<IOrphanSweep>;
-  let storage: jest.Mocked<{ deleteAll: jest.Mock }>;
-  let uow: jest.Mocked<PrismaUnitOfWork>;
-  let logger: jest.Mocked<AppLoggerService>;
+  let referencedness: Mocked<IStorageObjectReferencedness>;
+  let orphaned: Mocked<IOrphanSweep>;
+  let storage: Mocked<{ deleteAll: Mock }>;
+  let uow: Mocked<PrismaUnitOfWork>;
+  let logger: Mocked<AppLoggerService>;
 
   function mockScreenshot(id: string) {
     return new ScreenshotEntity({
@@ -51,7 +52,7 @@ describe('OrphanCleanupService', () => {
     orphaned.deleteBaselineOrphansByIdsReturningUrls.mockImplementation(
       async (ids) => ids.map((id) => `http://storage/${id}.png`),
     );
-    storage = createMock<{ deleteAll: jest.Mock }>();
+    storage = createMock<{ deleteAll: Mock }>();
     uow = createMock<PrismaUnitOfWork>();
     uow.execute.mockImplementation(async (fn: () => Promise<unknown>) => fn());
     logger = createMockLogger();
@@ -71,7 +72,7 @@ describe('OrphanCleanupService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('deleteOrphanedScreenshots', () => {

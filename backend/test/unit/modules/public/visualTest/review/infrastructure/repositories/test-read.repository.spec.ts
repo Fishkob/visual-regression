@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { TestReadRepository } from '@public/visualTest/review/infrastructure/repositories/test-read.repository';
@@ -17,11 +18,11 @@ import {
 
 describe('TestReadRepository', () => {
   let repository: TestReadRepository;
-  let mockConnection: jest.Mocked<PrismaConnection>;
+  let mockConnection: Mocked<PrismaConnection>;
   let mockClient: any;
-  let variants: jest.Mocked<VariantStore>;
-  let comparisons: jest.Mocked<UnifiedComparisonsRepository>;
-  let tests: jest.Mocked<UnifiedTestRepository>;
+  let variants: Mocked<VariantStore>;
+  let comparisons: Mocked<UnifiedComparisonsRepository>;
+  let tests: Mocked<UnifiedTestRepository>;
   const now = new Date('2025-01-01T00:00:00Z');
 
   function baselineRow(overrides: Record<string, unknown> = {}): any {
@@ -82,31 +83,31 @@ describe('TestReadRepository', () => {
   beforeEach(async () => {
     mockClient = {
       project: {
-        findUnique: jest.fn(),
-        findMany: jest.fn(),
-        count: jest.fn(),
+        findUnique: vi.fn(),
+        findMany: vi.fn(),
+        count: vi.fn(),
       },
       unifiedTest: {
-        findUnique: jest.fn(),
-        findFirst: jest.fn(),
-        findMany: jest.fn(),
-        count: jest.fn(),
+        findUnique: vi.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn(),
+        count: vi.fn(),
       },
       unifiedVariant: {
-        findFirst: jest.fn(),
-        findMany: jest.fn(),
-        count: jest.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn(),
+        count: vi.fn(),
       },
       unifiedComparison: {
-        findFirst: jest.fn(),
-        findMany: jest.fn(),
-        count: jest.fn(),
-        groupBy: jest.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn(),
+        count: vi.fn(),
+        groupBy: vi.fn(),
       },
       unifiedScreenshot: {
-        count: jest.fn(),
+        count: vi.fn(),
       },
-      $queryRaw: jest.fn(),
+      $queryRaw: vi.fn(),
     };
 
     mockConnection = createMock<PrismaConnection>();
@@ -189,7 +190,7 @@ describe('TestReadRepository', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('getTestNames', () => {

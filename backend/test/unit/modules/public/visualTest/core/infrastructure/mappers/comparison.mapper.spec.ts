@@ -17,7 +17,7 @@ const baseRow = {
 
 describe('comparison.mapper', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('toComparisonEntityWithRelations', () => {

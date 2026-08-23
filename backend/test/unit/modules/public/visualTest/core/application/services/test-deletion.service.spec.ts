@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, type Mocked } from 'vitest';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
@@ -14,16 +14,16 @@ import { TestStatusService } from '@public/visualTest/core/application/services/
 import { createMock } from '@test/utils/create-mock';
 import { Prisma } from '@/prisma/client';
 describe('TestDeletionService', () => {
-  let tests: jest.Mocked<UnifiedTestRepository>;
-  let screenshots: jest.Mocked<UnifiedScreenshotRepository>;
-  let comparisons: jest.Mocked<UnifiedComparisonsRepository>;
-  let projects: jest.Mocked<ProjectRepository>;
-  let variants: jest.Mocked<VariantStore>;
-  let jobQueue: jest.Mocked<IJobProducer>;
-  let storage: jest.Mocked<IStorageProvider>;
-  let workflow: jest.Mocked<StateChangeWorkflow>;
-  let statusService: jest.Mocked<TestStatusService>;
-  let retirement: jest.Mocked<ComparisonRetirementService>;
+  let tests: Mocked<UnifiedTestRepository>;
+  let screenshots: Mocked<UnifiedScreenshotRepository>;
+  let comparisons: Mocked<UnifiedComparisonsRepository>;
+  let projects: Mocked<ProjectRepository>;
+  let variants: Mocked<VariantStore>;
+  let jobQueue: Mocked<IJobProducer>;
+  let storage: Mocked<IStorageProvider>;
+  let workflow: Mocked<StateChangeWorkflow>;
+  let statusService: Mocked<TestStatusService>;
+  let retirement: Mocked<ComparisonRetirementService>;
   let service: TestDeletionService;
 
   beforeEach(() => {
@@ -72,7 +72,7 @@ describe('TestDeletionService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('deleteTest', () => {

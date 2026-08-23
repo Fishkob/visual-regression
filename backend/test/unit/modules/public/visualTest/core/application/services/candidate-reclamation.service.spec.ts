@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { CandidateReclamationService } from '@public/visualTest/core/application/services/candidate-reclamation.service';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
@@ -5,8 +6,8 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('CandidateReclamationService', () => {
   let service: CandidateReclamationService;
-  let screenshots: jest.Mocked<UnifiedScreenshotRepository>;
-  let workflow: jest.Mocked<StateChangeWorkflow>;
+  let screenshots: Mocked<UnifiedScreenshotRepository>;
+  let workflow: Mocked<StateChangeWorkflow>;
 
   beforeEach(() => {
     screenshots = createMock<UnifiedScreenshotRepository>();
@@ -18,7 +19,7 @@ describe('CandidateReclamationService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('reclaimCandidateInChange (single-candidate worker reclamation)', () => {
@@ -105,7 +106,7 @@ describe('CandidateReclamationService', () => {
 
     it('resolves the candidate in-transaction via resolveCandidate when provided', async () => {
       screenshots.deleteCandidatesAndCollectUrls.mockResolvedValue([]);
-      const resolveCandidate = jest.fn().mockResolvedValue({ id: 'cand-live' });
+      const resolveCandidate = vi.fn().mockResolvedValue({ id: 'cand-live' });
 
       await service.reclaimCandidateInChange({
         testId: 'test-1',

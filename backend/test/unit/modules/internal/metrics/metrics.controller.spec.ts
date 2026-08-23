@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MetricsController } from '@internal/metrics/metrics.controller';
 import { MetricsService } from '@internal/metrics/metrics.service';
@@ -6,7 +7,7 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('MetricsController', () => {
   let controller: MetricsController;
-  let metrics: jest.Mocked<MetricsService>;
+  let metrics: Mocked<MetricsService>;
 
   beforeEach(async () => {
     metrics = createMock<MetricsService>();
@@ -23,7 +24,7 @@ describe('MetricsController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('GET /metrics', () => {

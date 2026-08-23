@@ -7,7 +7,7 @@ import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo
 
 describe('variant-row.mapper', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('variantToWhere', () => {

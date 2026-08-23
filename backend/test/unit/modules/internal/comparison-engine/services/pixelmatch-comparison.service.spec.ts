@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { PNG } from 'pngjs';
 import { PixelmatchComparisonService } from '@internal/comparison-engine/services/pixelmatch-comparison.service';
 import { AppLoggerService } from '@common/logging/app-logger.service';
@@ -5,7 +6,7 @@ import { DomainError } from '@common/domain/domain-error';
 import { createMockLogger } from '@test/utils/mocks';
 describe('PixelmatchComparisonService', () => {
   let service: PixelmatchComparisonService;
-  let mockLogger: jest.Mocked<AppLoggerService>;
+  let mockLogger: Mocked<AppLoggerService>;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
@@ -13,7 +14,7 @@ describe('PixelmatchComparisonService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   const createPngBuffer = (width: number, height: number, color: number) => {

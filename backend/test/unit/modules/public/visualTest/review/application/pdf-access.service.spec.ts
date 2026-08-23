@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PdfAccessService } from '@public/visualTest/review/application/pdf-access.service';
 import { TestReadRepository } from '@public/visualTest/review/infrastructure/repositories/test-read.repository';
@@ -20,9 +21,9 @@ const sources = {
 
 describe('PdfAccessService', () => {
   let service: PdfAccessService;
-  let reviewRead: jest.Mocked<TestReadRepository>;
-  let pdfRenderCache: jest.Mocked<IPdfRenderCache>;
-  let storage: jest.Mocked<IStorageProvider>;
+  let reviewRead: Mocked<TestReadRepository>;
+  let pdfRenderCache: Mocked<IPdfRenderCache>;
+  let storage: Mocked<IStorageProvider>;
 
   beforeEach(async () => {
     reviewRead = createMock<TestReadRepository>();
@@ -45,7 +46,7 @@ describe('PdfAccessService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('downloads the baseline PDF', async () => {

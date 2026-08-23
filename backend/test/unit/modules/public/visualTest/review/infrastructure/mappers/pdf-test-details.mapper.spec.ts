@@ -74,7 +74,7 @@ function createResult(
 
 describe('mapTestWithVariantsToPdfDetails', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('maps a full result to pdf details', () => {

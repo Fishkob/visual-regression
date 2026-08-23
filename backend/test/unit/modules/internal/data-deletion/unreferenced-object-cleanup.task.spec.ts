@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnreferencedObjectCleanupTask } from '@internal/data-deletion/tasks/unreferenced-object-cleanup.task';
 import { StorageObjectName } from '@internal/storage/services/storage-object-name';
@@ -19,10 +20,10 @@ const MAX_AGE_MS = 24 * HOURS_MS;
 
 describe('UnreferencedObjectCleanupTask', () => {
   let task: UnreferencedObjectCleanupTask;
-  let storage: jest.Mocked<IStorageProvider>;
+  let storage: Mocked<IStorageProvider>;
   let objectNames: StorageObjectName;
-  let referencedness: jest.Mocked<IStorageObjectReferencedness>;
-  let logger: jest.Mocked<AppLoggerService>;
+  let referencedness: Mocked<IStorageObjectReferencedness>;
+  let logger: Mocked<AppLoggerService>;
 
   beforeEach(async () => {
     storage = createMock<IStorageProvider>();
@@ -53,7 +54,7 @@ describe('UnreferencedObjectCleanupTask', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   const old = () => new Date(Date.now() - (MAX_AGE_MS + HOURS_MS));

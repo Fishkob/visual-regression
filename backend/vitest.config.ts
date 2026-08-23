@@ -39,7 +39,6 @@ export default defineConfig({
       RUSTFS_BUCKET: 'test',
       RUSTFS_PUBLIC_URL: 'http://localhost:9000',
     },
-    setupFiles: ['test/jest-shim.ts'],
     alias: {
       '@app': resolve(__dirname, './src/app.module'),
       '@config': resolve(__dirname, './src/config'),

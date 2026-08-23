@@ -2,7 +2,7 @@ import { envValidationSchema } from '@config/env.validation';
 
 describe('Environment Validation', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('accepts valid configuration', () => {

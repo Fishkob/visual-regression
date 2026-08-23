@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectsController } from '@public/visualTest/review/presentation/controllers/projects.controller';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
@@ -9,7 +10,7 @@ import { createMock } from '@test/utils/create-mock';
 import { createMockLogger } from '@test/utils/mocks';
 describe('ProjectsController', () => {
   let controller: ProjectsController;
-  let projectService: jest.Mocked<ProjectService>;
+  let projectService: Mocked<ProjectService>;
 
   beforeEach(async () => {
     projectService = createMock<ProjectService>();
@@ -26,7 +27,7 @@ describe('ProjectsController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('getProjectsWithPendingFlag', () => {

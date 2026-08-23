@@ -16,10 +16,10 @@ describe('Graceful Shutdown Hooks (integration)', () => {
   });
 
   it('should trigger all shutdown hooks when the app closes', async () => {
-    const prismaSpy = jest
+    const prismaSpy = vi
       .spyOn(prisma.client, '$disconnect')
       .mockResolvedValue();
-    const rustfsSpy = jest.spyOn(
+    const rustfsSpy = vi.spyOn(
       RustFsStorageService.prototype,
       'onModuleDestroy',
     );

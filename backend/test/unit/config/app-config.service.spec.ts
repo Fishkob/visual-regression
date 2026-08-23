@@ -7,7 +7,7 @@ function buildAppConfig(values: Record<string, unknown>): AppConfigService {
 
 describe('AppConfigService', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   const baseValues: Record<string, unknown> = {

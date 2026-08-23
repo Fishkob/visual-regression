@@ -9,7 +9,7 @@ import {
 
 describe('exceptionHttpStatus', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('returns the status of an HttpException', () => {
@@ -125,7 +125,7 @@ describe('exceptionHttpStatus', () => {
 
 describe('finalHttpStatus', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('promotes an array-message BadRequest to 422 like the exception filter', () => {
@@ -157,7 +157,7 @@ describe('finalHttpStatus', () => {
 
 describe('classifyPrismaError', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('maps P2002 to conflict with message and code', () => {

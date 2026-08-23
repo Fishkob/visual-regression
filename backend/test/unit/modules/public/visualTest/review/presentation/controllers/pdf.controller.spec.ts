@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PdfController } from '@public/visualTest/review/presentation/controllers/pdf.controller';
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
@@ -8,8 +9,8 @@ import { createMock } from '@test/utils/create-mock';
 import { createMockLogger } from '@test/utils/mocks';
 describe('PdfController', () => {
   let controller: PdfController;
-  let testQuery: jest.Mocked<TestQueryService>;
-  let pdfAccess: jest.Mocked<PdfAccessService>;
+  let testQuery: Mocked<TestQueryService>;
+  let pdfAccess: Mocked<PdfAccessService>;
 
   beforeEach(async () => {
     testQuery = createMock<TestQueryService>();
@@ -28,7 +29,7 @@ describe('PdfController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('getPdfTestDetails', () => {
@@ -88,7 +89,7 @@ describe('PdfController', () => {
   });
 
   describe('downloadPdf', () => {
-    let mockResponse: jest.Mocked<Response>;
+    let mockResponse: Mocked<Response>;
 
     beforeEach(() => {
       mockResponse = createMock<Response>();

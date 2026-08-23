@@ -10,7 +10,7 @@ import {
 
 describe('pdfRenderPath', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('builds the base path for a base name', () => {

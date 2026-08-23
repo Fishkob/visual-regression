@@ -37,11 +37,11 @@ function successfulHandler(): CallHandler {
 
 describe('observeFinalStatus', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('records the effective response status exactly once after a successful handler', async () => {
-    const onStatus = jest.fn();
+    const onStatus = vi.fn();
     const ctx = createMockContext();
 
     await firstValueFrom(
@@ -53,7 +53,7 @@ describe('observeFinalStatus', () => {
   });
 
   it('records the status the framework wrote (201) instead of the Express default 200', async () => {
-    const onStatus = jest.fn();
+    const onStatus = vi.fn();
     const ctx = createMockContext({ res: { statusCode: 201 } });
 
     await firstValueFrom(
@@ -64,7 +64,7 @@ describe('observeFinalStatus', () => {
   });
 
   it('records the final error status when the handler throws', async () => {
-    const onStatus = jest.fn();
+    const onStatus = vi.fn();
     const ctx = createMockContext();
     const err = new BadRequestException('validation failed');
     const failingHandler: CallHandler = {
@@ -80,7 +80,7 @@ describe('observeFinalStatus', () => {
   });
 
   it('records the filter-promoted 422 for an array-message BadRequest', async () => {
-    const onStatus = jest.fn();
+    const onStatus = vi.fn();
     const ctx = createMockContext();
     const err = new BadRequestException(['field', 'is required']);
     const failingHandler: CallHandler = {
@@ -95,7 +95,7 @@ describe('observeFinalStatus', () => {
   });
 
   it('keeps the error record even though finalize fires with the untouched response default', async () => {
-    const onStatus = jest.fn();
+    const onStatus = vi.fn();
     const ctx = createMockContext({ res: { statusCode: 200 } });
     const err = new BadRequestException('nope');
     const failingHandler: CallHandler = {
@@ -111,7 +111,7 @@ describe('observeFinalStatus', () => {
   });
 
   it('defaults to 200 when statusCode is undefined', async () => {
-    const onStatus = jest.fn();
+    const onStatus = vi.fn();
     const ctx = createMockContext({ res: { statusCode: undefined } });
 
     await firstValueFrom(
@@ -124,7 +124,7 @@ describe('observeFinalStatus', () => {
 
 describe('httpRoute', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('combines baseUrl and route path', () => {

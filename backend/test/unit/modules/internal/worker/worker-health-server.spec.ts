@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { WorkerHealthServer } from '@internal/worker/worker-health-server';
 import { AppConfigService } from '@config/app-config.service';
 import { MetricsService } from '@internal/metrics/metrics.service';
@@ -15,7 +16,7 @@ interface HealthBody {
 describe('WorkerHealthServer', () => {
   let healthServer: WorkerHealthServer;
   let baseUrl: string;
-  let metrics: jest.Mocked<MetricsService>;
+  let metrics: Mocked<MetricsService>;
 
   async function getHealth(path = '/health'): Promise<HealthBody> {
     const res = await fetch(`${baseUrl}${path}`);
@@ -45,7 +46,7 @@ describe('WorkerHealthServer', () => {
 
   afterEach(async () => {
     await healthServer.stop();
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('returns ok with a fresh lastPollAt', async () => {
@@ -67,7 +68,7 @@ describe('WorkerHealthServer', () => {
   it('returns error when lastPollAt is stale', async () => {
     healthServer.recordPoll();
     const now = Date.now();
-    jest.spyOn(Date, 'now').mockReturnValue(now + 200_000);
+    vi.spyOn(Date, 'now').mockReturnValue(now + 200_000);
 
     const body = await getHealth();
 
@@ -77,7 +78,7 @@ describe('WorkerHealthServer', () => {
 
   it('returns error when never polled and threshold elapsed since start', async () => {
     const now = Date.now();
-    jest.spyOn(Date, 'now').mockReturnValue(now + 200_000);
+    vi.spyOn(Date, 'now').mockReturnValue(now + 200_000);
 
     const body = await getHealth();
 

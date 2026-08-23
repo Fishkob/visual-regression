@@ -1,22 +1,23 @@
+import type { Mock } from 'vitest';
 import { PostgresAdvisoryLock } from '@/prisma/postgres-advisory-lock';
 import type { AppConfigService } from '@config/app-config.service';
 
 describe('PostgresAdvisoryLock', () => {
   let lock: PostgresAdvisoryLock;
-  let query: jest.Mock;
+  let query: Mock;
 
   beforeEach(() => {
-    query = jest.fn();
+    query = vi.fn();
     const appConfig = {
       database: { url: 'postgres://test:test@localhost:5432/test' },
     } as unknown as AppConfigService;
     lock = new PostgresAdvisoryLock(appConfig);
-    jest.spyOn(lock.pool, 'query').mockImplementation(query as never);
-    jest.spyOn(lock.pool, 'end').mockImplementation(jest.fn() as never);
+    vi.spyOn(lock.pool, 'query').mockImplementation(query as never);
+    vi.spyOn(lock.pool, 'end').mockImplementation(vi.fn() as never);
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('acquires the lock', async () => {

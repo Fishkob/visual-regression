@@ -9,7 +9,7 @@ import {
 
 describe('ComparisonEntity', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   const validParams = {

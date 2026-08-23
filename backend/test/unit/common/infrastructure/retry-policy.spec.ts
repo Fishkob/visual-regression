@@ -14,7 +14,7 @@ describe('decideRetry', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 

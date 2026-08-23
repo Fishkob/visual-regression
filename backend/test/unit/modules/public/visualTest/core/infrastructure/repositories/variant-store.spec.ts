@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionContext } from '@/prisma/transaction-context';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
@@ -6,18 +7,18 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('VariantStore', () => {
   let store: VariantStore;
-  let mockTxCtx: jest.Mocked<TransactionContext>;
+  let mockTxCtx: Mocked<TransactionContext>;
   let mockClient: any;
 
   beforeEach(async () => {
     mockClient = {
       unifiedVariant: {
-        findUnique: jest.fn(),
-        findFirst: jest.fn(),
-        upsert: jest.fn(),
-        update: jest.fn(),
-        findMany: jest.fn(),
-        deleteMany: jest.fn(),
+        findUnique: vi.fn(),
+        findFirst: vi.fn(),
+        upsert: vi.fn(),
+        update: vi.fn(),
+        findMany: vi.fn(),
+        deleteMany: vi.fn(),
       },
     };
 
@@ -35,7 +36,7 @@ describe('VariantStore', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('ensureVariant', () => {
