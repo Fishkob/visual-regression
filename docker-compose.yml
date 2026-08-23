@@ -15,6 +15,7 @@ x-app-env: &app-env
   RUSTFS_BUCKET: ${RUSTFS_BUCKET:-vrt}
   RUSTFS_USE_SSL: "false"
   RUSTFS_PUBLIC_URL: http://localhost:9000
+  METRICS_API_KEY: ${METRICS_API_KEY:-}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   NODE_ENV: production
   WORKER_HEALTH_URL: http://worker:3003/api/v1/health

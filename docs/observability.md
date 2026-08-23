@@ -37,20 +37,22 @@ If you already run your own monitoring infrastructure (Prometheus, Loki, Grafana
 
 1. **Traces** — Set the `OTEL_EXPORTER_OTLP_ENDPOINT` env var to your OTLP-compatible endpoint (collector, Tempo, or SaaS).
 
-2. **Metrics** — Add a scrape job to your Prometheus config (e.g. `prometheus.yml`):
+2. **Metrics** — Set `METRICS_API_KEY` on the app, then add a scrape job to your Prometheus config that sends the same key in the `x-metrics-key` header:
 
    ```yaml
    scrape_configs:
      - job_name: visual-regression-api
        metrics_path: /api/v1/metrics
+       headers:
+         x-metrics-key: ${METRICS_API_KEY}
        static_configs:
          - targets: ["<your-app-host>:3000"]
            labels:
              service: visual-regression-api
    ```
 
-   No app-side changes needed — the `/metrics` endpoint is always active. See `backend/observability/prometheus.yml` for the bundled reference config.
+   The `/api/v1/metrics` endpoint is always mounted but returns HTTP 401 until `METRICS_API_KEY` is configured — Prometheus must send it via the `x-metrics-key` header (not Authorization/Bearer). Prometheus substitutes `${METRICS_API_KEY}` from its own environment at startup. See `backend/observability/prometheus.yml` for the bundled reference config.
 
-3. **Logs** — The app writes structured JSON logs to stdout. Your existing log shipper (Promtail, Fluentd, Vector, etc.) will pick them up from the container runtime.
+3. **Logs** — The app writes structured JSON logs to stdout (Pino fields: `time`, `level`, `msg`, `logger`). Your existing log shipper (Promtail, Fluentd, Vector, etc.) will pick them up from the container runtime. Point it at your Loki and parse/relabel the JSON fields there — `backend/observability/alloy.river` (the `loki.process.json_parse` stage) is the reference pipeline.
 
 4. **Dashboards** — Import the 4 pre-built Grafana dashboards from `backend/observability/grafana/dashboards/` into your Grafana instance. They visualize traces (via Tempo), metrics (via Prometheus), and logs (via Loki).

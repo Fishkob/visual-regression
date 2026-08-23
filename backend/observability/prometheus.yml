@@ -3,8 +3,12 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
+  # The API metrics endpoint requires the METRICS_API_KEY the app is configured
+  # with, sent as the x-metrics-key header (substituted from the environment).
   - job_name: visual-regression-api
     metrics_path: /api/v1/metrics
+    headers:
+      x-metrics-key: ${METRICS_API_KEY}
     static_configs:
       - targets: ["host.docker.internal:3000"]
         labels:
