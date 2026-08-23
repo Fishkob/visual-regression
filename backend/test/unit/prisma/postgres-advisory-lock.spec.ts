@@ -15,6 +15,10 @@ describe('PostgresAdvisoryLock', () => {
     jest.spyOn(lock.pool, 'end').mockImplementation(jest.fn() as never);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('acquires the lock', async () => {
     query.mockResolvedValue({ rows: [{ pg_try_advisory_lock: true }] });
     expect(await lock.tryLock(1001)).toBe(true);

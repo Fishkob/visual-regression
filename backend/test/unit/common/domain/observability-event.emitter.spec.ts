@@ -22,6 +22,10 @@ describe('emitObservabilityEvent', () => {
       >();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('logs and counts a screenshot upload', () => {
     const event: ObservabilityEvent = {
       kind: 'screenshot_uploaded',

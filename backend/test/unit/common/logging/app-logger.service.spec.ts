@@ -32,10 +32,10 @@ describe('AppLoggerService', () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    vi.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
-  it('should call pino.info with formatted string message', () => {
+  it('calls pino.info with formatted string message', () => {
     logger.log('test message');
 
     expect(pino.info).toHaveBeenCalledWith({
@@ -49,7 +49,7 @@ describe('AppLoggerService', () => {
     });
   });
 
-  it('should call pino.info with formatted object message', () => {
+  it('calls pino.info with formatted object message', () => {
     logger.log({ key: 'value' });
 
     expect(pino.info).toHaveBeenCalledWith(
@@ -62,7 +62,7 @@ describe('AppLoggerService', () => {
     );
   });
 
-  it('should call pino.warn with formatted message', () => {
+  it('calls pino.warn with formatted message', () => {
     logger.warn('warning message');
 
     expect(pino.warn).toHaveBeenCalledWith(
@@ -74,7 +74,7 @@ describe('AppLoggerService', () => {
     );
   });
 
-  it('should call pino.debug with formatted message', () => {
+  it('calls pino.debug with formatted message', () => {
     logger.debug('debug message');
 
     expect(pino.debug).toHaveBeenCalledWith(
@@ -86,7 +86,7 @@ describe('AppLoggerService', () => {
     );
   });
 
-  it('should call pino.error with structured.err when trace provided', () => {
+  it('calls pino.error with structured.err when trace provided', () => {
     logger.error('error message', 'stack trace here');
 
     expect(pino.error).toHaveBeenCalledWith(
@@ -103,7 +103,7 @@ describe('AppLoggerService', () => {
     );
   });
 
-  it('should extract msg from object message for err.message', () => {
+  it('extracts msg from object message for err.message', () => {
     logger.error({ msg: 'structured error' }, 'stack trace');
 
     expect(pino.error).toHaveBeenCalledWith(
@@ -118,7 +118,7 @@ describe('AppLoggerService', () => {
     );
   });
 
-  it('should use Unknown error for object message without msg field', () => {
+  it('uses Unknown error for object message without msg field', () => {
     logger.error({ data: 'something' }, 'stack trace');
 
     expect(pino.error).toHaveBeenCalledWith(
@@ -131,7 +131,7 @@ describe('AppLoggerService', () => {
     );
   });
 
-  it('should call pino.error without err when no trace provided', () => {
+  it('calls pino.error without err when no trace provided', () => {
     logger.error('error without trace');
 
     const call = pino.error.mock.calls[0][0];
@@ -139,7 +139,7 @@ describe('AppLoggerService', () => {
     expect(call.msg).toBe('error without trace');
   });
 
-  it('should include extra fields in log output', () => {
+  it('includes extra fields in log output', () => {
     logger.log('message', { userId: '123' });
 
     expect(pino.info).toHaveBeenCalledWith(
@@ -150,7 +150,7 @@ describe('AppLoggerService', () => {
     );
   });
 
-  it('should use no-trace when RequestContext returns undefined', () => {
+  it('uses no-trace when RequestContext returns undefined', () => {
     (RequestContext.traceId as jest.Mock).mockReturnValue(undefined);
 
     logger.log('test');

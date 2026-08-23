@@ -14,7 +14,11 @@ describe('AppModule', () => {
     process.env.DATABASE_URL = `postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@localhost:5432/${process.env.POSTGRES_DB}`;
   });
 
-  it('should compile without errors (no circular deps, all imports resolved)', async () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('compiles without errors (no circular deps, all imports resolved)', async () => {
     const module = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();

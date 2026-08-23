@@ -5,7 +5,11 @@ describe('SwaggerAppModule', () => {
     process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
   });
 
-  it('should compile without errors (no circular deps, all imports resolved)', async () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('compiles without errors (no circular deps, all imports resolved)', async () => {
     const module = await Test.createTestingModule({
       imports: [SwaggerAppModule],
     }).compile();

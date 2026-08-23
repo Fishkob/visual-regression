@@ -10,6 +10,10 @@ describe('TransactionContext', () => {
     txCtx = new TransactionContext(connection as never);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('isInTransaction', () => {
     it('returns false outside a transaction', () => {
       expect(txCtx.isInTransaction()).toBe(false);

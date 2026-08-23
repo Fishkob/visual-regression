@@ -18,6 +18,10 @@ describe('PrismaUnitOfWork', () => {
     uow = new PrismaUnitOfWork(connection as any, txCtx as any);
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('execute', () => {
     it('runs the operation inside a transaction context', async () => {
       const fn = jest.fn().mockResolvedValue('result');

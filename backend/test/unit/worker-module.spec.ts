@@ -15,7 +15,11 @@ describe('WorkerModule', () => {
     process.env.DATABASE_URL = `postgresql://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@localhost:5432/${process.env.POSTGRES_DB}`;
   });
 
-  it('should compile the worker graph standalone (every worker provider resolvable)', async () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('compiles the worker graph standalone (every worker provider resolvable)', async () => {
     const module = await Test.createTestingModule({
       imports: [WorkerModule],
     }).compile();

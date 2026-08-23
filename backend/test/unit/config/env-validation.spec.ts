@@ -1,7 +1,11 @@
 import { envValidationSchema } from '@config/env.validation';
 
 describe('Environment Validation', () => {
-  it('should accept valid configuration', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('accepts valid configuration', () => {
     const validEnv = {
       NODE_ENV: 'development',
       DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
@@ -23,7 +27,7 @@ describe('Environment Validation', () => {
     expect(error).toBeUndefined();
   });
 
-  it('should reject invalid LOG_LEVEL', () => {
+  it('rejects invalid LOG_LEVEL', () => {
     const invalidEnv = {
       DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
       RUSTFS_ENDPOINT: 'localhost',
@@ -41,7 +45,7 @@ describe('Environment Validation', () => {
     expect(error?.message).toContain('LOG_LEVEL');
   });
 
-  it('should reject STORAGE_MAX_ATTEMPTS of 0', () => {
+  it('rejects STORAGE_MAX_ATTEMPTS of 0', () => {
     const invalidEnv = {
       DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
       RUSTFS_ENDPOINT: 'localhost',
@@ -59,7 +63,7 @@ describe('Environment Validation', () => {
     expect(error?.message).toContain('STORAGE_MAX_ATTEMPTS');
   });
 
-  it('should reject missing variables', () => {
+  it('rejects missing variables', () => {
     const invalidEnv = {
       RUSTFS_SECRET_KEY: 'test-secret',
     };
@@ -72,7 +76,7 @@ describe('Environment Validation', () => {
     expect(error?.message).toContain('RUSTFS_ACCESS_KEY');
   });
 
-  it('should default the build/deploy metadata keys', () => {
+  it('defaults the build/deploy metadata keys', () => {
     const { value, error } = envValidationSchema.validate(
       {
         DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
@@ -90,7 +94,7 @@ describe('Environment Validation', () => {
     expect(value.BUILD_TIME).toBe('unknown');
   });
 
-  it('should default the OpenTelemetry endpoint to empty', () => {
+  it('defaults the OpenTelemetry endpoint to empty', () => {
     const { value, error } = envValidationSchema.validate(
       {
         DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
@@ -106,7 +110,7 @@ describe('Environment Validation', () => {
     expect(value.OTEL_EXPORTER_OTLP_ENDPOINT).toBe('');
   });
 
-  it('should default the Swagger base URL', () => {
+  it('defaults the Swagger base URL', () => {
     const { value, error } = envValidationSchema.validate(
       {
         DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',

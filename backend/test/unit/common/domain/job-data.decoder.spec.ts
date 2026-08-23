@@ -3,6 +3,10 @@ import { decodeJobData } from '@common/domain/job-data.decoder';
 import { DomainError } from '@common/domain/domain-error';
 
 describe('decodeJobData', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('decodes a valid image job payload', () => {
     const data = decodeJobData({
       testKind: 'image',

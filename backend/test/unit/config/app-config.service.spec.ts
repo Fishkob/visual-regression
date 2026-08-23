@@ -6,6 +6,10 @@ function buildAppConfig(values: Record<string, unknown>): AppConfigService {
 }
 
 describe('AppConfigService', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   const baseValues: Record<string, unknown> = {
     DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
     RUSTFS_ENDPOINT: 'localhost',

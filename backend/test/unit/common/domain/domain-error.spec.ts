@@ -1,5 +1,9 @@
 import { DomainError } from '@common/domain/domain-error';
 describe('DomainError', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('constructor', () => {
     it('creates error with message and code', () => {
       const error = new DomainError('test error', 'BAD_REQUEST');
