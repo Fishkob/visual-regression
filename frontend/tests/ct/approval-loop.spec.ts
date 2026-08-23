@@ -124,5 +124,6 @@ test.describe("Approval loop (image)", () => {
     await expect(
       page.getByText(/Could not approve .* "login-form"/),
     ).toBeVisible();
+    await expect(component.getByTestId("approve-changes")).toBeEnabled();
   });
 });

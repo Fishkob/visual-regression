@@ -19,20 +19,6 @@ export async function mockApi(
   }
 }
 
-export async function mockPost(
-  page: Page,
-  urlGlob: string,
-  response: FulfillResponse,
-) {
-  await page.route(urlGlob, (route) => {
-    if (route.request().method() !== "POST") {
-      route.fallback();
-      return;
-    }
-    route.fulfill(response);
-  });
-}
-
 export interface PendingItem {
   name: string;
 }

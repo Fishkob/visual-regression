@@ -76,8 +76,11 @@ export function makeConflictError(): FulfillResponse {
   return jsonResponse(
     {
       statusCode: 409,
-      code: "APPROVAL_CONFLICT",
-      message: "Comparison was superseded",
+      message:
+        "The comparison you reviewed is no longer pending — it may have been superseded by a newer upload. Refresh to review the latest.",
+      timestamp: "2026-01-23T14:48:36.352Z",
+      path: "/api/v1/projects/checkout-ui/tests/login-form/approval",
+      traceId: "ct-trace",
     },
     409,
   );
