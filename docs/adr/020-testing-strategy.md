@@ -65,7 +65,7 @@ A dedicated integration test suite (`test/integration/`) was initially created w
 
 ### Alternatives Considered
 
-- **Testing Library (RTL) + Vitest for frontend**: Standard for React projects, but Vue's `@testing-library/vue` has less traction. Playwright CT with real browser rendering gives more confidence than jsdom-based DOM assertions.
+Playwright was chosen as the single browser-automation vendor for both E2E and component tests; no other runner needed replacing.
 
 ## Consequences
 
