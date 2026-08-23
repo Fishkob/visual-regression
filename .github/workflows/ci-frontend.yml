@@ -123,7 +123,7 @@ jobs:
             exit 1
           fi
 
-          echo "Waiting for MinIO..."
+          echo "Waiting for RustFS..."
           READY=0
           for i in {1..60}; do
             if nc -z 127.0.0.1 9000; then
@@ -144,9 +144,9 @@ jobs:
           for i in {1..60}; do curl -sf http://localhost:3000/api/v1/health/db && break; sleep 1; done
           curl -sf http://localhost:3000/api/v1/health/db
 
-          echo "Waiting for backend (MinIO)..."
-          for i in {1..60}; do curl -sf http://localhost:3000/api/v1/health/minio && break; sleep 1; done
-          curl -sf http://localhost:3000/api/v1/health/minio
+          echo "Waiting for backend (RustFS)..."
+          for i in {1..60}; do curl -sf http://localhost:3000/api/v1/health/storage && break; sleep 1; done
+          curl -sf http://localhost:3000/api/v1/health/storage
 
       - name: Wait for frontend
         run: |

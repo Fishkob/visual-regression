@@ -103,7 +103,7 @@ jobs:
             exit 1
           fi
 
-          echo "Waiting for MinIO..."
+          echo "Waiting for RustFS..."
           READY=0
           for i in {1..60}; do
             if nc -z 127.0.0.1 9000; then
