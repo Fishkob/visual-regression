@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaConnection } from '@/prisma/prisma-connection';
-import { MinioStorageService } from '@internal/storage/services/minio-storage.service';
+import { RustFsStorageService } from '@internal/storage/services/rustfs-storage.service';
 import { TestApp } from './_support/utils/test-app';
 describe('Graceful Shutdown Hooks (integration)', () => {
   let app: INestApplication;
@@ -19,8 +19,8 @@ describe('Graceful Shutdown Hooks (integration)', () => {
     const prismaSpy = jest
       .spyOn(prisma.client, '$disconnect')
       .mockResolvedValue();
-    const minioSpy = jest.spyOn(
-      MinioStorageService.prototype,
+    const rustfsSpy = jest.spyOn(
+      RustFsStorageService.prototype,
       'onModuleDestroy',
     );
 
@@ -29,6 +29,6 @@ describe('Graceful Shutdown Hooks (integration)', () => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     expect(prismaSpy).toHaveBeenCalledTimes(1);
-    expect(minioSpy).toHaveBeenCalledTimes(1);
+    expect(rustfsSpy).toHaveBeenCalledTimes(1);
   });
 });

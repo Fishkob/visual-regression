@@ -35,7 +35,7 @@ describe("PdfPageViewer", () => {
       props: {
         projectName: "proj",
         testName: "test",
-        pdfUrl: "http://minio/doc.pdf",
+        pdfUrl: "http://rustfs/doc.pdf",
         page: 1,
         label: "Baseline",
       },
@@ -45,7 +45,7 @@ describe("PdfPageViewer", () => {
 
   it("shows ImageDisplay when data is available", async () => {
     mockUsePdfPageRenderQuery.mockReturnValue({
-      data: ref({ imageUrl: "http://minio/render.png", pageCount: 3 }),
+      data: ref({ imageUrl: "http://rustfs/render.png", pageCount: 3 }),
       isLoading: ref(false),
       isError: ref(false),
       refetch: vi.fn(),
@@ -56,7 +56,7 @@ describe("PdfPageViewer", () => {
       props: {
         projectName: "proj",
         testName: "test",
-        pdfUrl: "http://minio/doc.pdf",
+        pdfUrl: "http://rustfs/doc.pdf",
         page: 1,
         label: "Baseline",
       },
@@ -78,7 +78,7 @@ describe("PdfPageViewer", () => {
       props: {
         projectName: "proj",
         testName: "test",
-        pdfUrl: "http://minio/doc.pdf",
+        pdfUrl: "http://rustfs/doc.pdf",
         page: 2,
         label: "Current",
       },

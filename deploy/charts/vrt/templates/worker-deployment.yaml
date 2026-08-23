@@ -62,25 +62,25 @@ spec:
                   key: postgres-db
             - name: DATABASE_URL
               value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)"
-            - name: MINIO_ENDPOINT
-              value: {{ .Values.worker.env.MINIO_ENDPOINT }}
-            - name: MINIO_PORT
-              value: "{{ .Values.worker.env.MINIO_PORT }}"
-            - name: MINIO_ACCESS_KEY
+            - name: RUSTFS_ENDPOINT
+              value: {{ .Values.worker.env.RUSTFS_ENDPOINT }}
+            - name: RUSTFS_PORT
+              value: "{{ .Values.worker.env.RUSTFS_PORT }}"
+            - name: RUSTFS_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: vrt-secrets
                   key: rustfs-access-key
-            - name: MINIO_SECRET_KEY
+            - name: RUSTFS_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: vrt-secrets
                   key: rustfs-secret-key
-            - name: MINIO_BUCKET
-              value: {{ .Values.worker.env.MINIO_BUCKET }}
-            - name: MINIO_USE_SSL
-              value: "{{ .Values.worker.env.MINIO_USE_SSL }}"
-            - name: MINIO_PUBLIC_URL
+            - name: RUSTFS_BUCKET
+              value: {{ .Values.worker.env.RUSTFS_BUCKET }}
+            - name: RUSTFS_USE_SSL
+              value: "{{ .Values.worker.env.RUSTFS_USE_SSL }}"
+            - name: RUSTFS_PUBLIC_URL
               value: "http://{{ .Values.rustfsHost }}"
             - name: PDF_SIDECAR_HEALTH_URL
               value: "{{ .Values.worker.env.PDF_SIDECAR_HEALTH_URL }}"

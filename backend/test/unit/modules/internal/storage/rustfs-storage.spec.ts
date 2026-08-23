@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MinioStorageService } from '@internal/storage/services/minio-storage.service';
+import { RustFsStorageService } from '@internal/storage/services/rustfs-storage.service';
 import { StorageObjectName } from '@internal/storage/services/storage-object-name';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { AppConfigService } from '@config/app-config.service';
@@ -38,7 +38,7 @@ const mockLogger = createMockLogger();
 
 const mockAppConfig = {
   storageRetry: { maxAttempts: 3, retryDelayMs: 100 },
-  minio: {
+  rustfs: {
     endpoint: 'localhost',
     port: 9000,
     useSsl: false,
@@ -49,20 +49,20 @@ const mockAppConfig = {
   },
 };
 
-describe('MinioStorageService', () => {
-  let service: MinioStorageService;
+describe('RustFsStorageService', () => {
+  let service: RustFsStorageService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        MinioStorageService,
+        RustFsStorageService,
         StorageObjectName,
         { provide: AppLoggerService, useValue: mockLogger },
         { provide: AppConfigService, useValue: mockAppConfig },
       ],
     }).compile();
 
-    service = module.get(MinioStorageService);
+    service = module.get(RustFsStorageService);
 
     vi.clearAllMocks();
   });
@@ -213,7 +213,7 @@ describe('MinioStorageService', () => {
         .mockRejectedValue(new Error('close failed'));
       await expect(service.onModuleDestroy()).resolves.toBeUndefined();
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        'MinioStorageService shutdown failed',
+        'RustFsStorageService shutdown failed',
         { error: 'close failed' },
       );
       delete (mockClient as Record<string, unknown>).close;
@@ -225,7 +225,7 @@ describe('MinioStorageService', () => {
       }
       await service.onModuleDestroy();
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'Shutting down MinioStorageService...',
+        'Shutting down RustFsStorageService...',
       );
     });
 
@@ -233,7 +233,7 @@ describe('MinioStorageService', () => {
       (mockClient as any).close = vi.fn().mockReturnValue(undefined);
       await service.onModuleDestroy();
       expect(mockLogger.log).toHaveBeenCalledWith(
-        'Minio client connection closed',
+        'RustFS client connection closed',
       );
       delete (mockClient as any).close;
     });
@@ -242,7 +242,7 @@ describe('MinioStorageService', () => {
       (mockClient as any).close = vi.fn().mockRejectedValue('string error');
       await service.onModuleDestroy();
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        'MinioStorageService shutdown failed',
+        'RustFsStorageService shutdown failed',
         { error: 'string error' },
       );
       delete (mockClient as any).close;
@@ -713,10 +713,12 @@ describe('MinioStorageService', () => {
   });
 
   describe('SSL config coercion', () => {
-    async function buildService(useSsl: boolean): Promise<MinioStorageService> {
+    async function buildService(
+      useSsl: boolean,
+    ): Promise<RustFsStorageService> {
       const appConfig = {
         storageRetry: { maxAttempts: 3, retryDelayMs: 100 },
-        minio: {
+        rustfs: {
           endpoint: 'localhost',
           port: 9000,
           useSsl,
@@ -728,16 +730,16 @@ describe('MinioStorageService', () => {
       };
       const module: TestingModule = await Test.createTestingModule({
         providers: [
-          MinioStorageService,
+          RustFsStorageService,
           StorageObjectName,
           { provide: AppLoggerService, useValue: mockLogger },
           { provide: AppConfigService, useValue: appConfig },
         ],
       }).compile();
-      return module.get(MinioStorageService);
+      return module.get(RustFsStorageService);
     }
 
-    it('enables SSL when appConfig.minio.useSsl is true', async () => {
+    it('enables SSL when appConfig.rustfs.useSsl is true', async () => {
       await buildService(true);
 
       expect(vi.mocked(Client)).toHaveBeenCalledWith(
@@ -745,7 +747,7 @@ describe('MinioStorageService', () => {
       );
     });
 
-    it('disables SSL when appConfig.minio.useSsl is false', async () => {
+    it('disables SSL when appConfig.rustfs.useSsl is false', async () => {
       await buildService(false);
 
       expect(vi.mocked(Client)).toHaveBeenCalledWith(

@@ -156,17 +156,17 @@ spec:
             - /bin/sh
             - -c
             - |
-              mc alias set local http://rustfs:9000 $(MINIO_ACCESS_KEY) $(MINIO_SECRET_KEY)
+              mc alias set local http://rustfs:9000 $(RUSTFS_ACCESS_KEY) $(RUSTFS_SECRET_KEY)
               mc mb local/vrt || true
               mc anonymous set download local/vrt || true
               exit 0
           env:
-            - name: MINIO_ACCESS_KEY
+            - name: RUSTFS_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: vrt-secrets
                   key: rustfs-access-key
-            - name: MINIO_SECRET_KEY
+            - name: RUSTFS_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: vrt-secrets

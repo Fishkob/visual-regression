@@ -29,7 +29,7 @@ describe('UnreferencedObjectCleanupTask', () => {
     storage.listObjectsWithLastModified.mockResolvedValue([]);
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
     objectNames = new StorageObjectName({
-      minio: { publicUrl: 'http://localhost:9000', bucket: 'screenshots' },
+      rustfs: { publicUrl: 'http://localhost:9000', bucket: 'screenshots' },
     } as never);
     storage.toPublicUrl.mockImplementation((name) =>
       objectNames.toPublicUrl(name),
@@ -212,7 +212,7 @@ describe('UnreferencedObjectCleanupTask', () => {
     referencedness.findReferencedUrls.mockResolvedValue([]);
     storage.deleteAll.mockResolvedValue({
       deleted: [url('deleted.png')],
-      failed: [{ url: url('failed.png'), error: 'minio down' }],
+      failed: [{ url: url('failed.png'), error: 'rustfs down' }],
     });
 
     const result = await task.execute();

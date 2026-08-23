@@ -78,9 +78,9 @@ export class HealthController {
     return this.#runCheck(res, 'database');
   }
 
-  @Get('minio')
-  @ApiOkResponse({ description: 'MinIO storage is available' })
-  @ApiServiceUnavailableResponse({ description: 'MinIO unavailable' })
+  @Get('storage')
+  @ApiOkResponse({ description: 'RustFS storage is available' })
+  @ApiServiceUnavailableResponse({ description: 'RustFS unavailable' })
   async checkStorage(
     @Res({ passthrough: true }) res: Response,
   ): Promise<HealthCheckResult> {

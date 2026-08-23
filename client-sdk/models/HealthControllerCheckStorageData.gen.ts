@@ -4,5 +4,5 @@ export type HealthControllerCheckStorageData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/health/minio';
+    url: '/health/storage';
 };

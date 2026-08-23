@@ -68,10 +68,10 @@ backend:
     NODE_ENV: production
     POSTGRES_HOST: postgres
     POSTGRES_PORT: "5432"
-    MINIO_ENDPOINT: rustfs
-    MINIO_PORT: "9000"
-    MINIO_BUCKET: vrt
-    MINIO_USE_SSL: "false"
+    RUSTFS_ENDPOINT: rustfs
+    RUSTFS_PORT: "9000"
+    RUSTFS_BUCKET: vrt
+    RUSTFS_USE_SSL: "false"
     CORS_ORIGIN: http://vrt.local
     LOG_LEVEL: info
     OTEL_EXPORTER_OTLP_ENDPOINT: ""
@@ -108,10 +108,10 @@ worker:
     NODE_ENV: production
     POSTGRES_HOST: postgres
     POSTGRES_PORT: "5432"
-    MINIO_ENDPOINT: rustfs
-    MINIO_PORT: "9000"
-    MINIO_BUCKET: vrt
-    MINIO_USE_SSL: "false"
+    RUSTFS_ENDPOINT: rustfs
+    RUSTFS_PORT: "9000"
+    RUSTFS_BUCKET: vrt
+    RUSTFS_USE_SSL: "false"
     PDF_SIDECAR_HEALTH_URL: http://pdf-sidecar:3001/health
     LOG_LEVEL: info
     OTEL_EXPORTER_OTLP_ENDPOINT: ""

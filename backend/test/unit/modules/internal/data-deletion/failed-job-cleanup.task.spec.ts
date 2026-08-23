@@ -176,7 +176,7 @@ describe('FailedJobCleanupTask', () => {
     ]);
     storage.deleteAll.mockResolvedValue({
       deleted: [],
-      failed: [{ url: 'http://storage/candidate.png', error: 'minio down' }],
+      failed: [{ url: 'http://storage/candidate.png', error: 'rustfs down' }],
     });
     failedJobs.deleteFailedJobRows.mockResolvedValue(['job-1']);
 
@@ -277,7 +277,7 @@ describe('FailedJobCleanupTask', () => {
     ]);
     storage.deleteAll.mockResolvedValue({
       deleted: [],
-      failed: [{ url: 'http://storage/candidate.png', error: 'minio down' }],
+      failed: [{ url: 'http://storage/candidate.png', error: 'rustfs down' }],
     });
     failedJobs.deleteFailedJobRows.mockResolvedValue(['job-1']);
 

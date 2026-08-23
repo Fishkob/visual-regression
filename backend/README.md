@@ -1,6 +1,6 @@
 # Visual Regression Backend – Production Setup
 
-A self-hosted backend for visual regression testing built with **NestJS**, **Prisma**, and **MinIO**.  
+A self-hosted backend for visual regression testing built with **NestJS**, **Prisma**, and **RustFS**.  
 It provides REST APIs for screenshot uploads, visual comparisons, and baseline management.  
 The backend can run locally or in production using **Docker Compose**.
 
@@ -28,13 +28,13 @@ This repository uses **pnpm workspaces**. Build and run instructions follow belo
 | `POSTGRES_USER`               | Database user                                                           | `postgres`              |
 | `POSTGRES_PASSWORD`           | Database password                                                       | `postgres`              |
 | `POSTGRES_DB`                 | Database name                                                           | `vrt`                   |
-| `MINIO_ENDPOINT`              | Storage host                                                            | `localhost`             |
-| `MINIO_PORT`                  | Storage port                                                            | `9000`                  |
-| `MINIO_ACCESS_KEY`            | Storage access key                                                      | `minioadmin`            |
-| `MINIO_SECRET_KEY`            | Storage secret key                                                      | `minioadmin`            |
-| `MINIO_BUCKET`                | Storage bucket                                                          | `vrt`                   |
-| `MINIO_USE_SSL`               | Use SSL                                                                 | `false`                 |
-| `MINIO_PUBLIC_URL`            | Public URL                                                              | `http://localhost:9000` |
+| `RUSTFS_ENDPOINT`             | Storage host                                                            | `localhost`             |
+| `RUSTFS_PORT`                 | Storage port                                                            | `9000`                  |
+| `RUSTFS_ACCESS_KEY`           | Storage access key                                                      | `minioadmin`            |
+| `RUSTFS_SECRET_KEY`           | Storage secret key                                                      | `minioadmin`            |
+| `RUSTFS_BUCKET`               | Storage bucket                                                          | `vrt`                   |
+| `RUSTFS_USE_SSL`              | Use SSL                                                                 | `false`                 |
+| `RUSTFS_PUBLIC_URL`           | Public URL                                                              | `http://localhost:9000` |
 | `CORS_ORIGIN`                 | Allowed CORS origins                                                    | `http://localhost:5173` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP endpoint for OpenTelemetry tracing (optional — empty = no tracing) | `""`                    |
 
@@ -94,7 +94,7 @@ A production-ready Docker Compose file is available at the repository root:
 docker compose up -d --build
 ```
 
-This starts PostgreSQL, MinIO, the backend API, worker, and frontend.
+This starts PostgreSQL, RustFS, the backend API, worker, and frontend.
 
 For a minimal setup (infrastructure only):
 
@@ -159,14 +159,14 @@ Default base URL:
 http://localhost:3000/api/v1
 ```
 
-| Endpoint                   | Description                                                    |
-| -------------------------- | -------------------------------------------------------------- |
-| `GET /api/v1/health`       | Full health check (database, storage, queues, worker, sidecar) |
-| `GET /api/v1/health/live`  | Liveness probe (process up)                                    |
-| `GET /api/v1/health/ready` | Readiness probe (same payload as `/health`)                    |
-| `GET /api/v1/health/db`    | Database status                                                |
-| `GET /api/v1/health/minio` | Storage status                                                 |
-| `GET /api/v1/docs`         | Swagger documentation                                          |
+| Endpoint                     | Description                                                    |
+| ---------------------------- | -------------------------------------------------------------- |
+| `GET /api/v1/health`         | Full health check (database, storage, queues, worker, sidecar) |
+| `GET /api/v1/health/live`    | Liveness probe (process up)                                    |
+| `GET /api/v1/health/ready`   | Readiness probe (same payload as `/health`)                    |
+| `GET /api/v1/health/db`      | Database status                                                |
+| `GET /api/v1/health/storage` | Storage status                                                 |
+| `GET /api/v1/docs`           | Swagger documentation                                          |
 
 Example:
 

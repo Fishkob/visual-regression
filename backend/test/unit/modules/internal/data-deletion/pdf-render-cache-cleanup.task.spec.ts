@@ -24,7 +24,7 @@ describe('PdfRenderCacheCleanupTask', () => {
   beforeEach(async () => {
     storage = createMock<IStorageProvider>();
     objectNames = new StorageObjectName({
-      minio: { publicUrl: 'http://localhost:9000', bucket: 'screenshots' },
+      rustfs: { publicUrl: 'http://localhost:9000', bucket: 'screenshots' },
     } as never);
     storage.toPublicUrl.mockImplementation((name) =>
       objectNames.toPublicUrl(name),

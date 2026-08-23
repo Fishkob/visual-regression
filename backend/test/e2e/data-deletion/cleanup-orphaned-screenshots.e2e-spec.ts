@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaConnection } from '@/prisma/prisma-connection';
-import { MinioStorageService } from '@internal/storage/services/minio-storage.service';
+import { RustFsStorageService } from '@internal/storage/services/rustfs-storage.service';
 import { OrphanCleanupService } from '@internal/data-deletion/services/orphan-cleanup.service';
 import { TestApp } from '../_support/utils/test-app';
 describe('OrphanCleanupService (integration)', () => {
@@ -22,9 +22,9 @@ describe('OrphanCleanupService (integration)', () => {
     await TestApp.close();
   });
 
-  it('should delete orphaned CURRENT screenshots and corresponding MinIO objects', async () => {
+  it('should delete orphaned CURRENT screenshots and corresponding RustFS objects', async () => {
     const deleteSpy = jest
-      .spyOn(MinioStorageService.prototype, 'delete')
+      .spyOn(RustFsStorageService.prototype, 'delete')
       .mockResolvedValue();
 
     const project = await prisma.project.create({
@@ -46,7 +46,7 @@ describe('OrphanCleanupService (integration)', () => {
         testId: orphanTest.id,
         type: 'CURRENT',
         imageHash: 'hash-orphan',
-        imageUrl: 'http://minio/orphan.png',
+        imageUrl: 'http://rustfs/orphan.png',
       },
     });
 
@@ -65,7 +65,7 @@ describe('OrphanCleanupService (integration)', () => {
         testId: keptTest.id,
         type: 'BASELINE',
         imageHash: 'hash-baseline',
-        imageUrl: 'http://minio/baseline.png',
+        imageUrl: 'http://rustfs/baseline.png',
       },
     });
     await prisma.unifiedVariant.create({
@@ -83,7 +83,7 @@ describe('OrphanCleanupService (integration)', () => {
         testId: keptTest.id,
         type: 'CURRENT',
         imageHash: 'hash-kept',
-        imageUrl: 'http://minio/used.png',
+        imageUrl: 'http://rustfs/used.png',
       },
     });
 
@@ -93,7 +93,7 @@ describe('OrphanCleanupService (integration)', () => {
         baselineId: baseline.id,
         candidateId: candidate.id,
         mismatchPixelCount: 50,
-        diffImageUrl: 'http://minio/diff.png',
+        diffImageUrl: 'http://rustfs/diff.png',
         status: 'PENDING_APPROVAL',
       },
     });
@@ -102,7 +102,7 @@ describe('OrphanCleanupService (integration)', () => {
 
     expect(result.deleted).toBe(1);
 
-    expect(deleteSpy).toHaveBeenCalledWith('http://minio/orphan.png');
+    expect(deleteSpy).toHaveBeenCalledWith('http://rustfs/orphan.png');
 
     const remaining = await prisma.unifiedScreenshot.findMany({
       orderBy: { createdAt: 'asc' },
@@ -111,8 +111,8 @@ describe('OrphanCleanupService (integration)', () => {
     const remainingUrls = remaining.map(
       (r: { imageUrl: string }) => r.imageUrl,
     );
-    expect(remainingUrls).toContain('http://minio/used.png');
-    expect(remainingUrls).not.toContain('http://minio/orphan.png');
-    expect(remainingUrls).toContain('http://minio/baseline.png');
+    expect(remainingUrls).toContain('http://rustfs/used.png');
+    expect(remainingUrls).not.toContain('http://rustfs/orphan.png');
+    expect(remainingUrls).toContain('http://rustfs/baseline.png');
   });
 });

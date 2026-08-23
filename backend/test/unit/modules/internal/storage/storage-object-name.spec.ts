@@ -3,7 +3,7 @@ import { StorageObjectName } from '@internal/storage/services/storage-object-nam
 describe('StorageObjectName', () => {
   function createObjectNames() {
     const appConfig = {
-      minio: {
+      rustfs: {
         bucket: 'screenshots',
         publicUrl: 'http://localhost:9000',
       },
@@ -55,7 +55,7 @@ describe('StorageObjectName', () => {
 
   it('normalizes a trailing slash on the configured publicUrl', () => {
     const objectNames = new StorageObjectName({
-      minio: {
+      rustfs: {
         bucket: 'screenshots',
         publicUrl: 'http://localhost:9000/',
       },

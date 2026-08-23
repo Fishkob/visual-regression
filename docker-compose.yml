@@ -8,13 +8,13 @@ x-app-env: &app-env
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
   POSTGRES_DB: ${POSTGRES_DB:-vrt}
   DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-vrt}
-  MINIO_ENDPOINT: rustfs
-  MINIO_PORT: 9000
-  MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
-  MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
-  MINIO_BUCKET: ${MINIO_BUCKET:-vrt}
-  MINIO_USE_SSL: "false"
-  MINIO_PUBLIC_URL: http://localhost:9000
+  RUSTFS_ENDPOINT: rustfs
+  RUSTFS_PORT: 9000
+  RUSTFS_ACCESS_KEY: ${RUSTFS_ROOT_USER:-minioadmin}
+  RUSTFS_SECRET_KEY: ${RUSTFS_ROOT_PASSWORD:-minioadmin}
+  RUSTFS_BUCKET: ${RUSTFS_BUCKET:-vrt}
+  RUSTFS_USE_SSL: "false"
+  RUSTFS_PUBLIC_URL: http://localhost:9000
   LOG_LEVEL: ${LOG_LEVEL:-info}
   NODE_ENV: production
   WORKER_HEALTH_URL: http://worker:3003/api/v1/health

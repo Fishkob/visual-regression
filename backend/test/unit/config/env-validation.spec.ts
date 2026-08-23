@@ -5,12 +5,12 @@ describe('Environment Validation', () => {
     const validEnv = {
       NODE_ENV: 'development',
       DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
-      MINIO_ENDPOINT: 'localhost',
-      MINIO_PUBLIC_URL: 'localhost:4444',
-      MINIO_PORT: 9000,
-      MINIO_ACCESS_KEY: 'test-key',
-      MINIO_SECRET_KEY: 'test-secret',
-      MINIO_BUCKET: 'visual-tests',
+      RUSTFS_ENDPOINT: 'localhost',
+      RUSTFS_PUBLIC_URL: 'localhost:4444',
+      RUSTFS_PORT: 9000,
+      RUSTFS_ACCESS_KEY: 'test-key',
+      RUSTFS_SECRET_KEY: 'test-secret',
+      RUSTFS_BUCKET: 'visual-tests',
       CORS_ORIGIN: 'cors',
       LOG_LEVEL: 'info',
       STORAGE_MAX_ATTEMPTS: 3,
@@ -26,11 +26,11 @@ describe('Environment Validation', () => {
   it('should reject invalid LOG_LEVEL', () => {
     const invalidEnv = {
       DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
-      MINIO_ENDPOINT: 'localhost',
-      MINIO_ACCESS_KEY: 'test-key',
-      MINIO_SECRET_KEY: 'test-secret',
-      MINIO_BUCKET: 'visual-tests',
-      MINIO_PUBLIC_URL: 'http://localhost:9000',
+      RUSTFS_ENDPOINT: 'localhost',
+      RUSTFS_ACCESS_KEY: 'test-key',
+      RUSTFS_SECRET_KEY: 'test-secret',
+      RUSTFS_BUCKET: 'visual-tests',
+      RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       LOG_LEVEL: 'super-verbose',
     };
 
@@ -44,11 +44,11 @@ describe('Environment Validation', () => {
   it('should reject STORAGE_MAX_ATTEMPTS of 0', () => {
     const invalidEnv = {
       DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
-      MINIO_ENDPOINT: 'localhost',
-      MINIO_ACCESS_KEY: 'test-key',
-      MINIO_SECRET_KEY: 'test-secret',
-      MINIO_BUCKET: 'visual-tests',
-      MINIO_PUBLIC_URL: 'http://localhost:9000',
+      RUSTFS_ENDPOINT: 'localhost',
+      RUSTFS_ACCESS_KEY: 'test-key',
+      RUSTFS_SECRET_KEY: 'test-secret',
+      RUSTFS_BUCKET: 'visual-tests',
+      RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       STORAGE_MAX_ATTEMPTS: 0,
     };
 
@@ -61,7 +61,7 @@ describe('Environment Validation', () => {
 
   it('should reject missing variables', () => {
     const invalidEnv = {
-      MINIO_SECRET_KEY: 'test-secret',
+      RUSTFS_SECRET_KEY: 'test-secret',
     };
 
     const { error } = envValidationSchema.validate(invalidEnv, {
@@ -69,18 +69,18 @@ describe('Environment Validation', () => {
     });
     expect(error).toBeDefined();
     expect(error?.message).toContain('DATABASE_URL');
-    expect(error?.message).toContain('MINIO_ACCESS_KEY');
+    expect(error?.message).toContain('RUSTFS_ACCESS_KEY');
   });
 
   it('should default the build/deploy metadata keys', () => {
     const { value, error } = envValidationSchema.validate(
       {
         DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
-        MINIO_ENDPOINT: 'localhost',
-        MINIO_ACCESS_KEY: 'test-key',
-        MINIO_SECRET_KEY: 'test-secret',
-        MINIO_BUCKET: 'visual-tests',
-        MINIO_PUBLIC_URL: 'http://localhost:9000',
+        RUSTFS_ENDPOINT: 'localhost',
+        RUSTFS_ACCESS_KEY: 'test-key',
+        RUSTFS_SECRET_KEY: 'test-secret',
+        RUSTFS_BUCKET: 'visual-tests',
+        RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       },
       { abortEarly: false },
     );
@@ -94,11 +94,11 @@ describe('Environment Validation', () => {
     const { value, error } = envValidationSchema.validate(
       {
         DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
-        MINIO_ENDPOINT: 'localhost',
-        MINIO_ACCESS_KEY: 'test-key',
-        MINIO_SECRET_KEY: 'test-secret',
-        MINIO_BUCKET: 'visual-tests',
-        MINIO_PUBLIC_URL: 'http://localhost:9000',
+        RUSTFS_ENDPOINT: 'localhost',
+        RUSTFS_ACCESS_KEY: 'test-key',
+        RUSTFS_SECRET_KEY: 'test-secret',
+        RUSTFS_BUCKET: 'visual-tests',
+        RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       },
       { abortEarly: false },
     );
@@ -110,11 +110,11 @@ describe('Environment Validation', () => {
     const { value, error } = envValidationSchema.validate(
       {
         DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
-        MINIO_ENDPOINT: 'localhost',
-        MINIO_ACCESS_KEY: 'test-key',
-        MINIO_SECRET_KEY: 'test-secret',
-        MINIO_BUCKET: 'visual-tests',
-        MINIO_PUBLIC_URL: 'http://localhost:9000',
+        RUSTFS_ENDPOINT: 'localhost',
+        RUSTFS_ACCESS_KEY: 'test-key',
+        RUSTFS_SECRET_KEY: 'test-secret',
+        RUSTFS_BUCKET: 'visual-tests',
+        RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       },
       { abortEarly: false },
     );

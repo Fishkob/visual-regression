@@ -74,7 +74,7 @@ describe('ProjectsController (e2e)', () => {
         testId: test.id,
         type: 'BASELINE',
         imageHash: 'abc',
-        imageUrl: 'http://minio/base.png',
+        imageUrl: 'http://rustfs/base.png',
       },
     });
     await prisma.unifiedVariant.create({
@@ -92,7 +92,7 @@ describe('ProjectsController (e2e)', () => {
         testId: test.id,
         type: 'CURRENT',
         imageHash: 'def',
-        imageUrl: 'http://minio/curr.png',
+        imageUrl: 'http://rustfs/curr.png',
       },
     });
 
@@ -102,7 +102,7 @@ describe('ProjectsController (e2e)', () => {
         baselineId: baseline.id,
         candidateId: candidate.id,
         mismatchPixelCount: 123,
-        diffImageUrl: 'http://minio/diff.png',
+        diffImageUrl: 'http://rustfs/diff.png',
         status: ComparisonStatus.PENDING_APPROVAL,
       },
     });
@@ -147,8 +147,8 @@ describe('ProjectsController (e2e)', () => {
 
   it('should delete a project and its related data', async () => {
     const config = app.get(ConfigService);
-    const baseUrl = config.getOrThrow<string>('MINIO_PUBLIC_URL');
-    const bucket = config.getOrThrow<string>('MINIO_BUCKET');
+    const baseUrl = config.getOrThrow<string>('RUSTFS_PUBLIC_URL');
+    const bucket = config.getOrThrow<string>('RUSTFS_BUCKET');
 
     const imageUrl = `${baseUrl}/${bucket}/baseline.png`;
     const currUrl = `${baseUrl}/${bucket}/current.png`;
@@ -236,8 +236,8 @@ describe('ProjectsController (e2e)', () => {
 
   it('should delete a specific test from a project', async () => {
     const config = app.get(ConfigService);
-    const baseUrl = config.getOrThrow<string>('MINIO_PUBLIC_URL');
-    const bucket = config.getOrThrow<string>('MINIO_BUCKET');
+    const baseUrl = config.getOrThrow<string>('RUSTFS_PUBLIC_URL');
+    const bucket = config.getOrThrow<string>('RUSTFS_BUCKET');
 
     const baselineUrl = `${baseUrl}/${bucket}/baseline.png`;
     const candidateUrl = `${baseUrl}/${bucket}/candidate.png`;

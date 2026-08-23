@@ -12,7 +12,7 @@ export function withTimeout<T>(
     }, timeoutMs);
   });
   // The losing promise must never surface an unhandled rejection: when the
-  // timeout fires, callers abort the underlying work (e.g. destroying a MinIO
+  // timeout fires, callers abort the underlying work (e.g. destroying a RustFS
   // stream), which makes that work's promise reject after the race already
   // settled on the timeout. Marking it handled keeps the abort from turning
   // into an unhandled rejection.

@@ -30,19 +30,19 @@ POSTGRES_USER=${POSTGRES_USER:-postgres}
 read -sp "Postgres Password (default: postgres): " POSTGRES_PASSWORD
 echo ""
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-read -sp "RustFS Access Key (default: minioadmin): " MINIO_ACCESS_KEY
+read -sp "RustFS Access Key (default: minioadmin): " RUSTFS_ACCESS_KEY
 echo ""
-MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
-read -sp "RustFS Secret Key (default: minioadmin): " MINIO_SECRET_KEY
+RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-minioadmin}
+read -sp "RustFS Secret Key (default: minioadmin): " RUSTFS_SECRET_KEY
 echo ""
-MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:-minioadmin}
 
 kubectl create secret generic vrt-secrets -n vrt \
   --from-literal=db-url="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/vrt" \
   --from-literal=postgres-user="${POSTGRES_USER}" \
   --from-literal=postgres-password="${POSTGRES_PASSWORD}" \
-  --from-literal=rustfs-access-key="${MINIO_ACCESS_KEY}" \
-  --from-literal=rustfs-secret-key="${MINIO_SECRET_KEY}" \
+  --from-literal=rustfs-access-key="${RUSTFS_ACCESS_KEY}" \
+  --from-literal=rustfs-secret-key="${RUSTFS_SECRET_KEY}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # Create image pull secret for ghcr.io

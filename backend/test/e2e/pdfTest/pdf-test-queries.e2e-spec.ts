@@ -129,7 +129,7 @@ describe('PdfTest queries (e2e)', () => {
           testId: test.id,
           type: 'BASELINE',
           imageHash: 'abc123',
-          imageUrl: 'http://minio/report.pdf',
+          imageUrl: 'http://rustfs/report.pdf',
           pageCount: 3,
         },
       });
@@ -166,7 +166,7 @@ describe('PdfTest queries (e2e)', () => {
           testId: test.id,
           type: 'BASELINE',
           imageHash: 'baseline-hash',
-          imageUrl: 'http://minio/baseline.pdf',
+          imageUrl: 'http://rustfs/baseline.pdf',
           pageCount: 5,
         },
       });
@@ -184,7 +184,7 @@ describe('PdfTest queries (e2e)', () => {
           testId: test.id,
           type: 'CURRENT',
           imageHash: 'candidate-hash',
-          imageUrl: 'http://minio/candidate.pdf',
+          imageUrl: 'http://rustfs/candidate.pdf',
           pageCount: 5,
         },
       });
@@ -197,7 +197,7 @@ describe('PdfTest queries (e2e)', () => {
           mismatchPixelCount: 0,
           mismatchPageCount: 2,
           diffImageUrl: '',
-          diffPdfUrl: 'http://minio/diff.pdf',
+          diffPdfUrl: 'http://rustfs/diff.pdf',
           status: 'PENDING_APPROVAL',
         },
       });
@@ -268,7 +268,7 @@ describe('PdfTest queries (e2e)', () => {
           testId: test.id,
           type: 'BASELINE',
           imageHash: 'desktop',
-          imageUrl: 'http://minio/desktop.pdf',
+          imageUrl: 'http://rustfs/desktop.pdf',
           pageCount: 1,
         },
       });
@@ -459,7 +459,7 @@ describe('PdfTest queries (e2e)', () => {
     it('should reject missing page parameter with 400', async () => {
       await request(app.getHttpServer())
         .get('/api/v1/projects/any/tests/any/pdf-render')
-        .query({ pdfUrl: 'http://minio/test.pdf' })
+        .query({ pdfUrl: 'http://rustfs/test.pdf' })
         .expect(400);
     });
 

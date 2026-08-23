@@ -44,7 +44,7 @@ async function bootstrapApi(): Promise<INestApplication> {
 
   // Helmet
   const isCspEnabled = appConfig.csp.enabled;
-  const minioPublicUrl = appConfig.minio.publicUrl;
+  const rustfsPublicUrl = appConfig.rustfs.publicUrl;
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -53,7 +53,7 @@ async function bootstrapApi(): Promise<INestApplication> {
             contentSecurityPolicy: {
               directives: {
                 defaultSrc: ["'self'"],
-                imgSrc: ["'self'", minioPublicUrl].filter(Boolean),
+                imgSrc: ["'self'", rustfsPublicUrl].filter(Boolean),
                 scriptSrc: ["'self'"],
                 styleSrc: ["'self'", "'unsafe-inline'"],
                 connectSrc: ["'self'"],
