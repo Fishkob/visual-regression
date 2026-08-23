@@ -30,12 +30,12 @@ POSTGRES_USER=${POSTGRES_USER:-postgres}
 read -sp "Postgres Password (default: postgres): " POSTGRES_PASSWORD
 echo ""
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-read -sp "RustFS Access Key (default: minioadmin): " RUSTFS_ACCESS_KEY
+read -sp "RustFS Access Key (default: rustfsadmin): " RUSTFS_ACCESS_KEY
 echo ""
-RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-minioadmin}
-read -sp "RustFS Secret Key (default: minioadmin): " RUSTFS_SECRET_KEY
+RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-rustfsadmin}
+read -sp "RustFS Secret Key (default: rustfsadmin): " RUSTFS_SECRET_KEY
 echo ""
-RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:-minioadmin}
+RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY:-rustfsadmin}
 
 kubectl create secret generic vrt-secrets -n vrt \
   --from-literal=db-url="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/vrt" \

@@ -30,8 +30,8 @@ This repository uses **pnpm workspaces**. Build and run instructions follow belo
 | `POSTGRES_DB`                 | Database name                                                                  | `vrt`                   |
 | `RUSTFS_ENDPOINT`             | Storage host                                                                   | `localhost`             |
 | `RUSTFS_PORT`                 | Storage port                                                                   | `9000`                  |
-| `RUSTFS_ACCESS_KEY`           | Storage access key                                                             | `minioadmin`            |
-| `RUSTFS_SECRET_KEY`           | Storage secret key                                                             | `minioadmin`            |
+| `RUSTFS_ACCESS_KEY`           | Storage access key                                                             | `rustfsadmin`           |
+| `RUSTFS_SECRET_KEY`           | Storage secret key                                                             | `rustfsadmin`           |
 | `RUSTFS_BUCKET`               | Storage bucket                                                                 | `vrt`                   |
 | `RUSTFS_USE_SSL`              | Use SSL                                                                        | `false`                 |
 | `RUSTFS_PUBLIC_URL`           | Public URL                                                                     | `http://localhost:9000` |

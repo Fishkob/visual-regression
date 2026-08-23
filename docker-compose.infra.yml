@@ -27,8 +27,8 @@ services:
       - "9000:9000"
       - "9001:9001"
     environment:
-      RUSTFS_ACCESS_KEY: ${RUSTFS_ROOT_USER:-minioadmin}
-      RUSTFS_SECRET_KEY: ${RUSTFS_ROOT_PASSWORD:-minioadmin}
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ROOT_USER:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${RUSTFS_ROOT_PASSWORD:-rustfsadmin}
       RUSTFS_VOLUMES: /data
       RUSTFS_ADDRESS: 0.0.0.0:9000
       RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001

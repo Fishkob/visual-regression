@@ -89,7 +89,7 @@ After the backend is running, populate the database with demo projects and scree
 pnpm run dev:seed
 ```
 
-**RustFS Console:** http://localhost:9001 (login: `minioadmin` / `minioadmin` — the RustFS default root credentials; override via `RUSTFS_ROOT_USER` / `RUSTFS_ROOT_PASSWORD` in the root `.env` for Docker deployments)
+**RustFS Console:** http://localhost:9001 (login: `rustfsadmin` / `rustfsadmin` — the RustFS default root credentials; override via `RUSTFS_ROOT_USER` / `RUSTFS_ROOT_PASSWORD` in the root `.env` for Docker deployments)
 
 ---
 

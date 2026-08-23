@@ -56,8 +56,8 @@ const mockAppConfig = {
     endpoint: 'localhost',
     port: 9000,
     useSsl: false,
-    accessKey: 'minioadmin',
-    secretKey: 'minioadmin',
+    accessKey: 'rustfsadmin',
+    secretKey: 'rustfsadmin',
     bucket: 'screenshots',
     publicUrl: 'http://localhost:9000',
     ensurePublicBucket: false,
@@ -766,8 +766,8 @@ describe('RustFsStorageService', () => {
           endpoint: 'localhost',
           port: 9000,
           useSsl,
-          accessKey: 'minioadmin',
-          secretKey: 'minioadmin',
+          accessKey: 'rustfsadmin',
+          secretKey: 'rustfsadmin',
           bucket: 'screenshots',
           publicUrl: 'http://localhost:9000',
           ensurePublicBucket: false,
@@ -798,8 +798,8 @@ describe('RustFsStorageService', () => {
       expect(clientConfig(service).endpoint).toBe('https://localhost:9000');
       expect(clientConfig(service).forcePathStyle).toBe(true);
       expect(clientConfig(service).credentials).toEqual({
-        accessKeyId: 'minioadmin',
-        secretAccessKey: 'minioadmin',
+        accessKeyId: 'rustfsadmin',
+        secretAccessKey: 'rustfsadmin',
       });
     });
 
@@ -820,8 +820,8 @@ describe('RustFsStorageService', () => {
           endpoint: 'localhost',
           port: 9000,
           useSsl: false,
-          accessKey: 'minioadmin',
-          secretKey: 'minioadmin',
+          accessKey: 'rustfsadmin',
+          secretKey: 'rustfsadmin',
           bucket: 'screenshots',
           publicUrl: 'http://localhost:9000',
           ensurePublicBucket,

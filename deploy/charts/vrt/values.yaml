@@ -11,7 +11,7 @@ secrets:
   postgres_user: vrt
   postgres_password: CHANGE_ME
   postgres_db: vrt
-  rustfs_access_key: minioadmin
+  rustfs_access_key: rustfsadmin
   rustfs_secret_key: CHANGE_ME
   # Set via env var when running deploy.sh:
   #   export GHCR_TOKEN=ghp_xxx && ./deploy/scripts/deploy.sh

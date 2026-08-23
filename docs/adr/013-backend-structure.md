@@ -200,11 +200,11 @@ Both processes share `PrismaModule`, `StorageModule`, and the remaining `CoreInf
 
 ## Rationale (overall)
 
-- **Separation of concerns**: Public modules model the domain; internal modules provide machinery. A developer working on "comparison approval" does not need to understand MinIO.
+- **Separation of concerns**: Public modules model the domain; internal modules provide machinery. A developer working on "comparison approval" does not need to understand RustFS.
 - **Locality**: Tracing "what happens on approval" visits 2–3 files instead of 5+.
 - **Leverage**: Fewer interfaces with the same behavior. Consolidating 6 use case classes into service methods removed boilerplate without losing clarity.
 - **Testability**: Tests exercise service methods directly rather than orchestrating mocked facades. Repository class tokens let tests substitute mocks without coupling to constructor details.
-- **Replaceability**: Swapping MinIO for AWS S3, or pixelmatch for a cloud vision API, requires changing only the internal module — the domain is insulated.
+- **Replaceability**: Swapping RustFS for AWS S3, or pixelmatch for a cloud vision API, requires changing only the internal module — the domain is insulated.
 - **Consistency**: The port + token pattern is uniform across storage, repositories, event bus, unit of work, and comparison engine.
 - **Explicit dependencies**: The `@Global()` exception is limited to genuinely cross-cutting infrastructure. Domain modules always declare their imports explicitly — the architecture is self-documenting.
 

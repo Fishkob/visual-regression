@@ -74,7 +74,7 @@ Credentials live in the `vrt-secrets` Kubernetes secret, populated from the Helm
 | `postgres_user`     | `vrt`                                    |
 | `postgres_password` | your password (CHANGE_ME in values.yaml) |
 | `postgres_db`       | `vrt`                                    |
-| `rustfs_access_key` | `minioadmin`                             |
+| `rustfs_access_key` | `rustfsadmin`                            |
 | `rustfs_secret_key` | your key (CHANGE_ME in values.yaml)      |
 | `ghcr_pull_secret`  | Docker config JSON for image pulls       |
 

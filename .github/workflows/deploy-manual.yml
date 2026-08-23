@@ -67,8 +67,8 @@ jobs:
           DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/vrt?schema=public
           STORAGE_ENDPOINT: 127.0.0.1
           STORAGE_PORT: "9000"
-          STORAGE_ACCESS_KEY: minioadmin
-          STORAGE_SECRET_KEY: minioadmin
+          STORAGE_ACCESS_KEY: rustfsadmin
+          STORAGE_SECRET_KEY: rustfsadmin
           STORAGE_BUCKET: vrt
           STORAGE_USE_SSL: "false"
         run: pnpm run test:e2e:ci
