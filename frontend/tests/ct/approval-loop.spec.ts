@@ -4,6 +4,7 @@ import {
   makeReviewableDetails,
   makeImageKind,
   makePendingItem,
+  makeConflictError,
 } from "./mocks/reviewLoop.mocks";
 import type { AppShell } from "../../src/AppShell.story";
 
@@ -98,5 +99,31 @@ test.describe("Approval loop (image)", () => {
     await expect(page).toHaveURL(/tests\/checkout-flow/);
     await expect(component.getByTestId("comparison-view")).toBeVisible();
     expect(approved).toEqual([]);
+  });
+
+  test("a CONFLICT on approve keeps the reviewer on the test", async ({
+    mount,
+    page,
+  }) => {
+    await mockReviewBackend(page, {
+      projectName: PROJECT,
+      details: new Map([["login-form", makeReviewableDetails("login-form")]]),
+      kind: new Map([["login-form", makeImageKind()]]),
+      pending: [makePendingItem("login-form")],
+      approve: makeConflictError(),
+    });
+
+    const component = await mount<typeof AppShell>("AppShell/AppShell", {
+      initialRoute: testUrl("login-form"),
+    });
+
+    await expect(component.getByTestId("comparison-view")).toBeVisible();
+    await component.getByTestId("approve-changes").click();
+
+    await expect(page).toHaveURL(/tests\/login-form/);
+    await expect(component.getByTestId("comparison-view")).toBeVisible();
+    await expect(
+      page.getByText(/Could not approve .* "login-form"/),
+    ).toBeVisible();
   });
 });
