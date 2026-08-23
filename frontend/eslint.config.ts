@@ -9,7 +9,8 @@ const noTextSelectors = {
   meta: {
     type: "problem",
     docs: {
-      description: "Prefer getByTestId over text-based Playwright selectors for language-independence",
+      description:
+        "Prefer getByTestId over text-based Playwright selectors for language-independence",
     },
     messages: {
       noText:
@@ -23,7 +24,10 @@ const noTextSelectors = {
     return {
       CallExpression(node) {
         const { callee } = node;
-        if (callee.type !== "MemberExpression" || callee.property.type !== "Identifier") {
+        if (
+          callee.type !== "MemberExpression" ||
+          callee.property.type !== "Identifier"
+        ) {
           return;
         }
         const method = callee.property.name;
