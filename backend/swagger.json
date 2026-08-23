@@ -882,7 +882,7 @@
             "description": "Rendered page PNG URL and page count"
           }
         },
-        "summary": "Render a single PDF page as PNG (cached in MinIO)",
+        "summary": "Render a single PDF page as PNG (cached in RustFS)",
         "tags": [
           "Tests"
         ]
@@ -1118,16 +1118,16 @@
         ]
       }
     },
-    "/health/minio": {
+    "/health/storage": {
       "get": {
         "operationId": "HealthController_checkStorage",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "MinIO storage is available"
+            "description": "RustFS storage is available"
           },
           "503": {
-            "description": "MinIO unavailable"
+            "description": "RustFS unavailable"
           }
         },
         "tags": [

@@ -12,8 +12,8 @@ export interface StorageObjectMetadata {
   lastModified: Date | null;
 }
 
-// The seam the public modules depend on. ADR-004 commits to swapping MinIO
-// for another S3-compatible provider, so consumers depend on this interface
+// The seam the public modules depend on. ADR-004 commits to swapping the
+// S3-compatible provider, so consumers depend on this interface
 // rather than the concrete adapter in `internal/storage`. The URL↔object-name
 // encoding lives on this seam too — the storage module owns how object keys map
 // to public URLs, so consumers round-trip through `toPublicUrl`/`fromUrl`

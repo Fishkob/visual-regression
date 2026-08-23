@@ -162,7 +162,7 @@ export const testsQueriesControllerGetVisualTestDetails = <ThrowOnError extends 
 export const pdfControllerGetPdfTestDetails = <ThrowOnError extends boolean = false>(options: Options<PdfControllerGetPdfTestDetailsData, ThrowOnError>): RequestResult<PdfControllerGetPdfTestDetailsResponses, unknown, ThrowOnError> => (options.client ?? client).get<PdfControllerGetPdfTestDetailsResponses, unknown, ThrowOnError>({ url: '/projects/{projectName}/tests/{testName}/pdf-details', ...options });
 
 /**
- * Render a single PDF page as PNG (cached in MinIO)
+ * Render a single PDF page as PNG (cached in RustFS)
  */
 export const pdfControllerRenderPdfPage = <ThrowOnError extends boolean = false>(options: Options<PdfControllerRenderPdfPageData, ThrowOnError>): RequestResult<PdfControllerRenderPdfPageResponses, unknown, ThrowOnError> => (options.client ?? client).get<PdfControllerRenderPdfPageResponses, unknown, ThrowOnError>({ url: '/projects/{projectName}/tests/{testName}/pdf-render', ...options });
 
@@ -189,4 +189,4 @@ export const healthControllerReadiness = <ThrowOnError extends boolean = false>(
 
 export const healthControllerCheckDatabase = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckDatabaseData, ThrowOnError>): RequestResult<HealthControllerCheckDatabaseResponses, HealthControllerCheckDatabaseErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckDatabaseResponses, HealthControllerCheckDatabaseErrors, ThrowOnError>({ url: '/health/db', ...options });
 
-export const healthControllerCheckStorage = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckStorageData, ThrowOnError>): RequestResult<HealthControllerCheckStorageResponses, HealthControllerCheckStorageErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckStorageResponses, HealthControllerCheckStorageErrors, ThrowOnError>({ url: '/health/minio', ...options });
+export const healthControllerCheckStorage = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckStorageData, ThrowOnError>): RequestResult<HealthControllerCheckStorageResponses, HealthControllerCheckStorageErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckStorageResponses, HealthControllerCheckStorageErrors, ThrowOnError>({ url: '/health/storage', ...options });

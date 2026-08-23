@@ -2,7 +2,7 @@
 
 export type HealthControllerCheckStorageResponses = {
     /**
-     * MinIO storage is available
+     * RustFS storage is available
      */
     200: unknown;
 };

@@ -2,7 +2,7 @@
 
 export type HealthControllerCheckStorageErrors = {
     /**
-     * MinIO unavailable
+     * RustFS unavailable
      */
     503: unknown;
 };

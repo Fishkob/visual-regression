@@ -21,7 +21,7 @@ import { METRICS } from '@common/domain/metrics-catalog';
 import { MAINTENANCE_LOCK_IDS } from '@internal/data-deletion/maintenance-lock-ids';
 
 // The PDF render cache (rendered pages + page-count blobs) is keyed by the
-// base name of the PDF it was rendered from and lives in MinIO under the
+// base name of the PDF it was rendered from and lives in RustFS under the
 // `pdf-render/` namespace — it is not tracked in the DB. Eviction only happens
 // on PDF approval, so PDFs retired by upload-supersede, test deletion, or
 // variant deletion leave their render cache behind. This task sweeps the

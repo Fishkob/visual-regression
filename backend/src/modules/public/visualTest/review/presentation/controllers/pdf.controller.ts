@@ -61,7 +61,7 @@ export class PdfController {
 
   @Get(':testName/pdf-render')
   @ApiOperation({
-    summary: 'Render a single PDF page as PNG (cached in MinIO)',
+    summary: 'Render a single PDF page as PNG (cached in RustFS)',
   })
   @ApiOkResponse({ description: 'Rendered page PNG URL and page count' })
   @ApiQuery({ name: 'pdfUrl', required: true })
