@@ -77,7 +77,7 @@ constructor(
 ) {}
 ```
 
-All six repository implementations live in `core/infrastructure/repositories/` and are registered in `VisualTestInfraModule`:
+All six repository implementations live in `core/infrastructure/repositories/` and are registered in `VisualTestInfraModule` (the directory additionally holds `StorageObjectReferencednessService` — the `STORAGE_OBJECT_REFERENCEDNESS` seam consumed by internal modules, see the Internal/Public boundary below):
 
 | Repository                     | Registered In           | Notes                                                             |
 | ------------------------------ | ----------------------- | ----------------------------------------------------------------- |
