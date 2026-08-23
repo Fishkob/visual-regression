@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ref } from "vue";
-import { useSdkQuery, previewSdkRead } from "@/composables/useDomainQuery";
+import {
+  useSdkQuery,
+  usePaginatedListQuery,
+  previewSdkRead,
+} from "@/composables/useDomainQuery";
 const { mockUseQuery, queryOptions } = vi.hoisted(() => {
   const queryOptions: { current?: Record<string, any> } = {};
   const mockUseQuery = vi.fn((opts: Record<string, unknown>) => {
@@ -63,6 +67,70 @@ describe("useSdkQuery", () => {
     await queryOptions.current!.queryFn();
 
     expect(sdkFn).toHaveBeenCalledWith({ projectName: "my-project" });
+  });
+
+  it("surfaces an SDK error response as a query error", async () => {
+    const projectName = ref("my-project");
+    const sdkFn = vi.fn(() =>
+      Promise.resolve({ error: { message: "Internal server error" } }),
+    );
+
+    useSdkQuery({
+      args: { projectName },
+      required: ["projectName"],
+      keyOf: ({ projectName }) => ["detail", projectName],
+      sdkFn,
+      map: (data: unknown) => data,
+    });
+
+    await expect(queryOptions.current!.queryFn()).rejects.toThrow(
+      "Internal server error",
+    );
+  });
+
+  it("does not treat an empty 200 body as an error", async () => {
+    const projectName = ref("my-project");
+
+    useSdkQuery({
+      args: { projectName },
+      required: ["projectName"],
+      keyOf: ({ projectName }) => ["detail", projectName],
+      sdkFn: () => Promise.resolve({ data: {} }),
+      map: (data: { kind?: string } | undefined) => data?.kind ?? null,
+    });
+
+    await expect(queryOptions.current!.queryFn()).resolves.toBeNull();
+  });
+});
+
+describe("usePaginatedListQuery", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryOptions.current = undefined;
+  });
+
+  it("surfaces an SDK error response as a query error", async () => {
+    usePaginatedListQuery({
+      queryKey: ["projects", "pending"],
+      fetchPage: () =>
+        Promise.resolve({ error: { message: "Internal server error" } }),
+      map: (items: unknown[]) => items,
+    });
+
+    await expect(queryOptions.current!.queryFn()).rejects.toThrow(
+      "Internal server error",
+    );
+  });
+
+  it("maps an empty page list without error", async () => {
+    usePaginatedListQuery({
+      queryKey: ["projects", "pending"],
+      fetchPage: () =>
+        Promise.resolve({ data: { data: [], meta: { total: 0 } } }),
+      map: (items: unknown[]) => items,
+    });
+
+    await expect(queryOptions.current!.queryFn()).resolves.toEqual([]);
   });
 });
 

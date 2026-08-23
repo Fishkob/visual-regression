@@ -43,4 +43,25 @@ test.describe("ProjectList", () => {
 
     await expect(component).toContainText("No projects found");
   });
+
+  test("shows an error with retry when loading fails", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      [
+        "**/api/v1/projects/pending*",
+        { status: 500, contentType: "application/json", body: "{}" },
+      ],
+    ]);
+
+    const component = await mount("views/ProjectsView/Projects");
+
+    // The query retries with backoff before the error state surfaces, so allow
+    // a generous wait (same as the project-detail error test).
+    await expect(
+      component.getByRole("button", { name: "Try again" }),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(component).toContainText("Failed to load projects");
+  });
 });
