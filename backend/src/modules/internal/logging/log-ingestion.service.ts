@@ -2,33 +2,49 @@ import { Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 
+const MAX_MESSAGE_LENGTH = 2_000;
+const MAX_STACK_LENGTH = 10_000;
+
+function stripControlChars(value: string): string {
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/[\u0000-\u001F\u007F]/g, ' ').trim();
+}
+
+function sanitizeString(value: unknown, max: number): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const cleaned = stripControlChars(value);
+  return cleaned.length > max ? cleaned.slice(0, max) : cleaned;
+}
+
 @Injectable()
 export class LogIngestionService {
   constructor(private readonly logger: AppLoggerService) {}
 
   ingest(body: Record<string, unknown>, req: Request): void {
     const traceId =
-      (req.headers['x-trace-id'] as string | undefined) ??
-      (typeof body.traceId === 'string' ? body.traceId : undefined) ??
-      'no-trace';
+      sanitizeString(
+        req.headers['x-trace-id'] ??
+          (typeof body.traceId === 'string' ? body.traceId : undefined),
+        128,
+      ) ?? 'no-trace';
     const message =
-      typeof body.message === 'string' ? body.message : 'Frontend log event';
-    const ctx: Record<string, unknown> = { ...body, traceId };
+      sanitizeString(body.message, MAX_MESSAGE_LENGTH) ?? 'Frontend log event';
+    // Whitelist only these keys — the body is untrusted input and must not be
+    // spread into log records wholesale.
+    const ctx: Record<string, unknown> = { traceId };
 
     if (body.stack) {
       this.logger.error(
         `[Frontend] ${message}`,
-        typeof body.stack === 'string' ? body.stack : undefined,
+        sanitizeString(body.stack, MAX_STACK_LENGTH),
         ctx,
       );
     } else if (body.type === 'web-vital') {
-      const name = typeof body.name === 'string' ? body.name : 'unknown';
+      const name = sanitizeString(body.name, MAX_MESSAGE_LENGTH) ?? 'unknown';
       const value =
         typeof body.value === 'number'
           ? body.value
-          : typeof body.value === 'string'
-            ? body.value
-            : 'unknown';
+          : (sanitizeString(body.value, MAX_MESSAGE_LENGTH) ?? 'unknown');
       this.logger.debug({ ...ctx, name, value, type: 'web-vital' });
     } else {
       this.logger.warn(`[Frontend] ${message}`, ctx);

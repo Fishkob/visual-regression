@@ -4,7 +4,7 @@ import { waitForComparison } from '../_support/utils/wait-for-comparison';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import * as path from 'path';
 import * as fs from 'fs';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 const projectName = 'checkout-ui';
 const testName = 'pending-check';
@@ -14,7 +14,7 @@ const baselinePath = path.join(
 );
 const mismatchPath = path.join(
   __dirname,
-  '../visualTest/fixtures/baseline_red.png',
+  '../visualTest/fixtures/baseline_blue.png',
 );
 
 describe('Project Pending Status (e2e)', () => {
@@ -37,7 +37,7 @@ describe('Project Pending Status (e2e)', () => {
 
   it('should toggle project.pending from true to false after approval', async () => {
     // Upload baseline
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post(
         `/api/v1/projects/${projectName}/tests/${testName}/upload?testKind=image`,
       )
@@ -48,7 +48,7 @@ describe('Project Pending Status (e2e)', () => {
       .expect(201);
 
     // Upload mismatch → returns 201 with DIFFERENT status
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post(
         `/api/v1/projects/${projectName}/tests/${testName}/upload?testKind=image`,
       )
@@ -62,7 +62,7 @@ describe('Project Pending Status (e2e)', () => {
     const comparison = await waitForComparison(app, projectName, testName);
 
     // Get project → pending should be true
-    const beforeApprove = await request(app.getHttpServer())
+    const beforeApprove = await authRequest(app)
       .get(`/api/v1/projects/pending`)
       .expect(200);
 
@@ -76,13 +76,13 @@ describe('Project Pending Status (e2e)', () => {
     );
 
     // Approve the pinned comparison
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post(`/api/v1/projects/${projectName}/tests/${testName}/approval`)
       .send({ comparisonId: comparison.body.comparison.id })
       .expect(201);
 
     // Get project again → pending should now be false
-    const afterApprove = await request(app.getHttpServer())
+    const afterApprove = await authRequest(app)
       .get(`/api/v1/projects/pending`)
       .expect(200);
 

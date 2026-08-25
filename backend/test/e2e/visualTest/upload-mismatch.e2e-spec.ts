@@ -9,7 +9,7 @@ import {
 } from '@public/visualTest/core/domain/types/visual-test.types';
 import * as path from 'path';
 import * as fs from 'fs';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Upload Mismatch (e2e)', () => {
   let app: INestApplication;
@@ -31,10 +31,10 @@ describe('Upload Mismatch (e2e)', () => {
 
   it('should detect mismatch and return ConflictException with comparison detail', async () => {
     const baseline = path.join(__dirname, 'fixtures', 'baseline_black.png');
-    const mismatch = path.join(__dirname, 'fixtures', 'baseline_red.png');
+    const mismatch = path.join(__dirname, 'fixtures', 'baseline_blue.png');
 
     // 1. Upload Baseline
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
       )
@@ -45,7 +45,7 @@ describe('Upload Mismatch (e2e)', () => {
       .expect(201);
 
     // 2. Upload Mismatch (returns 201 with different status)
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
       )

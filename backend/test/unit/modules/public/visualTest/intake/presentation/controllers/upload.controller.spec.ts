@@ -10,6 +10,12 @@ import {
   IdenticalResultDto,
 } from '@public/visualTest/intake/presentation/dto/upload.dto';
 import { AppLoggerService } from '@common/logging/app-logger.service';
+import {
+  METRICS_RECORDER,
+  IMetricsRecorder,
+} from '@common/domain/metrics-recorder.interface';
+import { UploadRateLimitService } from '@public/visualTest/intake/application/upload-rate-limit.service';
+import { createMock } from '@test/utils/create-mock';
 import { createMockFile, createMockLogger } from '@test/utils/mocks';
 
 describe('UploadController', () => {
@@ -37,6 +43,14 @@ describe('UploadController', () => {
         },
         FileValidationPipe,
         { provide: AppLoggerService, useValue: createMockLogger() },
+        {
+          provide: UploadRateLimitService,
+          useValue: createMock<UploadRateLimitService>(),
+        },
+        {
+          provide: METRICS_RECORDER,
+          useValue: createMock<IMetricsRecorder>(),
+        },
       ],
     }).compile();
 

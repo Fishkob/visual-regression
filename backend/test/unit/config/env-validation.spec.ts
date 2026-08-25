@@ -125,4 +125,73 @@ describe('Environment Validation', () => {
     expect(error).toBeUndefined();
     expect(value.SWAGGER_BASE_URL).toBe('http://localhost:3000');
   });
+
+  it('defaults the route-scoped throttle env vars', () => {
+    const { value, error } = envValidationSchema.validate(
+      {
+        DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+        RUSTFS_ENDPOINT: 'localhost',
+        RUSTFS_ACCESS_KEY: 'test-key',
+        RUSTFS_SECRET_KEY: 'test-secret',
+        RUSTFS_BUCKET: 'visual-tests',
+        RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+      },
+      { abortEarly: false },
+    );
+    expect(error).toBeUndefined();
+    expect(value.LOGIN_THROTTLE_TTL).toBe(60);
+    expect(value.LOGIN_THROTTLE_LIMIT).toBe(5);
+    expect(value.LOG_THROTTLE_TTL).toBe(60);
+    expect(value.LOG_THROTTLE_LIMIT).toBe(100);
+  });
+
+  it('defaults TRUST_PROXY to false', () => {
+    const { value, error } = envValidationSchema.validate(
+      {
+        DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+        RUSTFS_ENDPOINT: 'localhost',
+        RUSTFS_ACCESS_KEY: 'test-key',
+        RUSTFS_SECRET_KEY: 'test-secret',
+        RUSTFS_BUCKET: 'visual-tests',
+        RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+      },
+      { abortEarly: false },
+    );
+    expect(error).toBeUndefined();
+    expect(value.TRUST_PROXY).toBe(false);
+  });
+
+  it('accepts an explicit TRUST_PROXY value', () => {
+    const { value, error } = envValidationSchema.validate(
+      {
+        DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+        RUSTFS_ENDPOINT: 'localhost',
+        RUSTFS_ACCESS_KEY: 'test-key',
+        RUSTFS_SECRET_KEY: 'test-secret',
+        RUSTFS_BUCKET: 'visual-tests',
+        RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+        TRUST_PROXY: true,
+      },
+      { abortEarly: false },
+    );
+    expect(error).toBeUndefined();
+    expect(value.TRUST_PROXY).toBe(true);
+  });
+
+  it('rejects a LOGIN_THROTTLE_LIMIT of 0', () => {
+    const { error } = envValidationSchema.validate(
+      {
+        DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+        RUSTFS_ENDPOINT: 'localhost',
+        RUSTFS_ACCESS_KEY: 'test-key',
+        RUSTFS_SECRET_KEY: 'test-secret',
+        RUSTFS_BUCKET: 'visual-tests',
+        RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+        LOGIN_THROTTLE_LIMIT: 0,
+      },
+      { abortEarly: false },
+    );
+    expect(error).toBeDefined();
+    expect(error?.message).toContain('LOGIN_THROTTLE_LIMIT');
+  });
 });

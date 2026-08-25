@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { TestStatus } from '@/prisma/client';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('VisualTest queries (e2e)', () => {
   let app: INestApplication;
@@ -43,7 +43,7 @@ describe('VisualTest queries (e2e)', () => {
         },
       });
 
-      const res = await request(app.getHttpServer())
+      const res = await authRequest(app)
         .get('/api/v1/projects/test-project/tests')
         .expect(200);
 
@@ -55,7 +55,7 @@ describe('VisualTest queries (e2e)', () => {
     it('should return empty list for project with no tests', async () => {
       await prisma.project.create({ data: { name: 'empty-project' } });
 
-      const res = await request(app.getHttpServer())
+      const res = await authRequest(app)
         .get('/api/v1/projects/empty-project/tests')
         .expect(200);
 

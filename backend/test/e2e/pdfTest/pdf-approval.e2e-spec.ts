@@ -9,7 +9,7 @@ import {
 } from '@common/domain/storage-provider.interface';
 import * as path from 'path';
 import * as fs from 'fs';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Approve PDF Test (e2e)', () => {
   let app: INestApplication;
@@ -38,7 +38,7 @@ describe('Approve PDF Test (e2e)', () => {
   });
 
   function upload(file: string) {
-    return request(app.getHttpServer())
+    return authRequest(app)
       .post(uploadUrl)
       .field('viewport', 'A4')
       .field('browser', 'pdf')
@@ -72,7 +72,7 @@ describe('Approve PDF Test (e2e)', () => {
   it('should approve the pending comparison and keep the comparison row as history', async () => {
     const { comparisonId } = await uploadAndWaitForPending();
 
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post('/api/v1/projects/pdf-approval/tests/invoice/pdf-approval')
       .send({ comparisonId })
       .expect(201);
@@ -96,7 +96,7 @@ describe('Approve PDF Test (e2e)', () => {
     const { diffUrl, comparisonId } = await uploadAndWaitForPending();
     expect(await storage.exists(diffUrl)).toBe(true);
 
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post('/api/v1/projects/pdf-approval/tests/invoice/pdf-approval')
       .send({ comparisonId })
       .expect(201);
@@ -115,7 +115,7 @@ describe('Approve PDF Test (e2e)', () => {
       environment: 'production',
     });
 
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post('/api/v1/projects/pdf-approval/tests/invoice/pdf-approval')
       .send({ comparisonId: comparison.body.comparison.id })
       .expect(201);

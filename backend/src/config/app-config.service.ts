@@ -92,11 +92,40 @@ export class AppConfigService {
     };
   }
 
-  get throttle() {
+  get auth() {
+    const sessionTtlDays = Number(
+      this.config.get<string>('AUTH_SESSION_TTL_DAYS'),
+    );
     return {
-      ttl: parseInt(this.config.getOrThrow<string>('THROTTLE_TTL'), 10),
-      limit: parseInt(this.config.getOrThrow<string>('THROTTLE_LIMIT'), 10),
+      // sessionCookie name is the SESSION_COOKIE constant, not configurable
+      sessionTtlDays,
+      sessionTtlMs: sessionTtlDays * 24 * 60 * 60 * 1000,
+      cookieSecure: this.config.get<boolean>('AUTH_COOKIE_SECURE') === true,
+      apiKeyHeader: this.config.get<string>('AUTH_API_KEY_HEADER'),
+      bootstrapAdminUsername: this.config.get<string>(
+        'BOOTSTRAP_ADMIN_USERNAME',
+      ),
+      bootstrapAdminPassword: this.config.get<string>(
+        'BOOTSTRAP_ADMIN_PASSWORD',
+      ),
     };
+  }
+
+  get throttle() {
+    // THROTTLE_TTL is configured in seconds; @nestjs/throttler v6 expects ms.
+    return this.readThrottle('THROTTLE_TTL', 'THROTTLE_LIMIT');
+  }
+
+  get loginThrottle() {
+    return this.readThrottle('LOGIN_THROTTLE_TTL', 'LOGIN_THROTTLE_LIMIT');
+  }
+
+  get logThrottle() {
+    return this.readThrottle('LOG_THROTTLE_TTL', 'LOG_THROTTLE_LIMIT');
+  }
+
+  get uploadRateLimitPerMinute(): number {
+    return Number(this.config.get<string>('UPLOAD_RATE_LIMIT_PER_MINUTE'));
   }
 
   get logging() {
@@ -124,12 +153,29 @@ export class AppConfigService {
     return { baseUrl: this.config.getOrThrow<string>('SWAGGER_BASE_URL') };
   }
 
+  get trustProxy(): boolean {
+    // `=== true` (not `!== false`) so a raw string from the pre-DI bootstrap
+    // (hand-built ConfigService) never accidentally trusts the proxy.
+    return this.config.get<boolean>('TRUST_PROXY') === true;
+  }
+
   get csp() {
     return { enabled: this.config.get<boolean>('CSP_ENABLED') };
   }
 
   get cors() {
     return { origin: this.config.get<string>('CORS_ORIGIN') };
+  }
+
+  // Throttle env vars are written in seconds; @nestjs/throttler v6 expects ms.
+  private readThrottle(
+    ttlEnv: string,
+    limitEnv: string,
+  ): { ttlMs: number; limit: number } {
+    return {
+      ttlMs: parseInt(this.config.getOrThrow<string>(ttlEnv), 10) * 1000,
+      limit: parseInt(this.config.getOrThrow<string>(limitEnv), 10),
+    };
   }
 
   private rustfsUseSsl(value: boolean | string): boolean {

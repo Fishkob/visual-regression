@@ -9,4 +9,8 @@ export type UploadControllerUploadErrors = {
      * Project not found
      */
     404: unknown;
+    /**
+     * Per-key upload rate limit exceeded
+     */
+    429: unknown;
 };

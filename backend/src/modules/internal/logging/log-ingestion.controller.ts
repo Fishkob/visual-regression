@@ -6,13 +6,13 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
-import { SkipThrottle } from '@nestjs/throttler';
 import { ApiExcludeController, ApiExcludeEndpoint } from '@nestjs/swagger';
 import type { Request } from 'express';
+import { PublicEndpoint } from '@common/http/public.decorator';
 import { LogIngestionService } from './log-ingestion.service';
 
 @ApiExcludeController()
-@SkipThrottle()
+@PublicEndpoint()
 @Controller('log')
 export class LogIngestionController {
   constructor(private readonly logIngestion: LogIngestionService) {}

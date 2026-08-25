@@ -8,7 +8,7 @@ import {
 } from '@public/visualTest/core/domain/types/visual-test.types';
 import * as path from 'path';
 import * as fs from 'fs';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Upload Replace Pending (e2e)', () => {
   let app: INestApplication;
@@ -30,11 +30,11 @@ describe('Upload Replace Pending (e2e)', () => {
 
   it('should replace an existing PENDING_APPROVAL comparison with a new mismatch', async () => {
     const baseline = path.join(__dirname, 'fixtures', 'baseline_black.png');
-    const mismatch1 = path.join(__dirname, 'fixtures', 'baseline_red.png');
+    const mismatch1 = path.join(__dirname, 'fixtures', 'baseline_blue.png');
     const mismatch2 = path.join(__dirname, 'fixtures', 'baseline_blue.png');
 
     // 1. Upload baseline
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
       )
@@ -45,7 +45,7 @@ describe('Upload Replace Pending (e2e)', () => {
       .expect(201);
 
     // 2. Upload first mismatch → returns 201 with DIFFERENT status
-    const res1 = await request(app.getHttpServer())
+    const res1 = await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
       )
@@ -59,7 +59,7 @@ describe('Upload Replace Pending (e2e)', () => {
     expect(res1.body.error).toBe(ComparisonErrorCode.IMAGE_DIFFERENCE);
 
     // 3. Upload second mismatch → replaces existing pending comparison
-    const res2 = await request(app.getHttpServer())
+    const res2 = await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
       )
@@ -103,7 +103,7 @@ describe('Upload Replace Pending (e2e)', () => {
     });
 
     // 5. Upload the same baseline image again → should result in a match
-    const res3 = await request(app.getHttpServer())
+    const res3 = await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
       )

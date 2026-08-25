@@ -647,6 +647,23 @@ describe('RustFsStorageService', () => {
     });
   });
 
+  describe('onModuleInit', () => {
+    it('creates the bucket at startup so the storage health check passes before any upload', async () => {
+      mockClient.send
+        .mockRejectedValueOnce({ name: 'NotFound' })
+        .mockResolvedValueOnce({});
+
+      await service.onModuleInit();
+
+      expect(sentCommand('HeadBucketCommand')?.input).toEqual({
+        Bucket: 'screenshots',
+      });
+      expect(sentCommand('CreateBucketCommand')?.input).toEqual({
+        Bucket: 'screenshots',
+      });
+    });
+  });
+
   describe('ensureBucket early-return', () => {
     it('reuses already checked bucket on second upload', async () => {
       mockClient.send.mockResolvedValue({});

@@ -1,19 +1,22 @@
 import {
   BASELINE_PATH,
   BASE_URL,
+  BLUE_PATH,
   BROWSERS,
   DEMO_TESTS,
   ENVIRONMENTS,
-  FIXTURES_DIR,
   PROJECT_NAMES,
   VIEWPORTS,
+  resolveSeedApiKey,
+  seedAuth,
+  verifyApiKeyAuth,
 } from './fixtures';
-import * as path from 'path';
 import request from 'supertest';
 
-const RED_PATH = path.join(FIXTURES_DIR, 'baseline_red.png');
-const BLUE_PATH = path.join(FIXTURES_DIR, 'baseline_blue.png');
-const IMAGES = [BASELINE_PATH, RED_PATH, BLUE_PATH];
+const SEED_API_KEY = resolveSeedApiKey();
+const AUTH_HEADERS = seedAuth(SEED_API_KEY);
+
+const IMAGES = [BASELINE_PATH, BLUE_PATH];
 
 const DURATION_MS = 30 * 60 * 1000;
 const TARGET_UPLOADS = 270;
@@ -47,6 +50,7 @@ async function uploadVariant({
         `/api/v1/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(test)}/upload`,
       )
       .query({ testKind: 'image' })
+      .set(AUTH_HEADERS)
       .field('viewport', viewport)
       .field('browser', browser)
       .field('environment', environment)
@@ -81,9 +85,11 @@ async function approveComparison(
   environment: string,
 ) {
   try {
-    const res = await request(BASE_URL).post(
-      `/api/v1/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(test)}/approval?viewport=${encodeURIComponent(viewport)}&browser=${encodeURIComponent(browser)}&environment=${encodeURIComponent(environment)}`,
-    );
+    const res = await request(BASE_URL)
+      .post(
+        `/api/v1/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(test)}/approval?viewport=${encodeURIComponent(viewport)}&browser=${encodeURIComponent(browser)}&environment=${encodeURIComponent(environment)}`,
+      )
+      .set(AUTH_HEADERS);
     return res.status === 201;
   } catch {
     return false;
@@ -92,6 +98,8 @@ async function approveComparison(
 
 async function seed() {
   console.log('Grafana Load Test — generating 30 min of metrics...\n');
+
+  await verifyApiKeyAuth(SEED_API_KEY);
 
   const projects = PROJECT_NAMES.DEMO;
   const allTests: { project: string; test: string }[] = [];

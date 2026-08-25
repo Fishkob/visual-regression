@@ -81,6 +81,8 @@ spec:
               value: "http://{{ .Values.rustfsHost }}"
             - name: CORS_ORIGIN
               value: {{ .Values.backend.env.CORS_ORIGIN }}
+            - name: TRUST_PROXY
+              value: "{{ .Values.backend.env.TRUST_PROXY }}"
             - name: LOG_LEVEL
               value: {{ .Values.backend.env.LOG_LEVEL }}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT

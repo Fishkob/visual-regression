@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 const MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024;
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Upload Baseline (e2e)', () => {
   let app: INestApplication;
@@ -35,7 +35,7 @@ describe('Upload Baseline (e2e)', () => {
       Buffer.alloc(MAX_SCREENSHOT_SIZE + 1 - PNG_HEADER.length, 0),
     ]);
 
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
       )

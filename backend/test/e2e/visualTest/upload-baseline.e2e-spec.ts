@@ -4,7 +4,7 @@ import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonOutcome } from '@public/visualTest/core/domain/types/visual-test.types';
 import * as path from 'path';
 import * as fs from 'fs';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Upload Baseline (e2e)', () => {
   let app: INestApplication;
@@ -28,7 +28,7 @@ describe('Upload Baseline (e2e)', () => {
     const filePath = path.join(__dirname, 'fixtures', 'baseline_black.png');
     const file = fs.createReadStream(filePath);
 
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/LoginForm1/upload?testKind=image',
       )
@@ -44,7 +44,7 @@ describe('Upload Baseline (e2e)', () => {
 
   it('should return 400 when uploading a non-image file', async () => {
     const txtFile = Buffer.from('this is not an image');
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post('/api/v1/projects/checkout-ui/tests/invalid/upload?testKind=image')
       .field('viewport', '1920x1080')
       .field('browser', 'Chrome')

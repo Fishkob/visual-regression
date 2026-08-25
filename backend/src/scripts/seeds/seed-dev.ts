@@ -7,6 +7,9 @@ import {
   PDF_CANDIDATE_PATH,
   PROJECT_NAMES,
   VIEWPORTS,
+  resolveSeedApiKey,
+  seedAuth,
+  verifyApiKeyAuth,
 } from './fixtures';
 /**
  * Dev Seeder - Seeds minimal data for local development
@@ -17,12 +20,16 @@ import {
  */
 import request from 'supertest';
 
+const SEED_API_KEY = resolveSeedApiKey();
+const AUTH_HEADERS = seedAuth(SEED_API_KEY);
+
 async function createProject(name: string) {
   process.stdout.write(`Creating project "${name}"... `);
   try {
     const res = await request(BASE_URL)
       .post('/api/v1/projects')
       .set('Content-Type', 'application/json')
+      .set(AUTH_HEADERS)
       .send({ name });
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
@@ -63,6 +70,7 @@ async function uploadVariant({
         `/api/v1/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(test)}/upload`,
       )
       .query({ testKind })
+      .set(AUTH_HEADERS)
       .field('viewport', viewport)
       .field('browser', browser)
       .field('environment', environment)
@@ -78,6 +86,8 @@ async function uploadVariant({
 
 async function seed() {
   console.log('Seeding DEV local fixtures via REST...\n');
+
+  await verifyApiKeyAuth(SEED_API_KEY);
 
   for (const project of PROJECT_NAMES.DEV) {
     await createProject(project);

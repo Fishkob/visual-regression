@@ -18,6 +18,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 022 | [Observability Stack](./022-observability-stack.md)                   | Accepted          |
 | 023 | [No Reject Endpoint](./023-no-reject-endpoint.md)                     | Accepted          |
 | 024 | [Database Migrations](./024-database-migrations.md)                   | Accepted          |
+| 025 | [Authentication](./025-authentication.md)                             | Accepted          |
 
 ## Numbering
 

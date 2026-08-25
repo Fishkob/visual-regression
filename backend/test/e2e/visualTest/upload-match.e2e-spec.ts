@@ -4,7 +4,7 @@ import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonOutcome } from '@public/visualTest/core/domain/types/visual-test.types';
 import * as path from 'path';
 import * as fs from 'fs';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Upload Baseline (e2e)', () => {
   let app: INestApplication;
@@ -27,7 +27,7 @@ describe('Upload Baseline (e2e)', () => {
   it('should upload a baseline screenshot', async () => {
     const filePath = path.join(__dirname, 'fixtures', 'baseline_black.png');
 
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/LoginForm1/upload?testKind=image',
       )

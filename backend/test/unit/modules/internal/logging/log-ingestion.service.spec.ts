@@ -55,6 +55,24 @@ describe('LogIngestionService', () => {
         expect.objectContaining({ traceId: 'no-trace' }),
       );
     });
+
+    it('strips control characters from the trace id', () => {
+      const req = mockReq({ 'x-trace-id': 'a\u0000b\u001fc' });
+      service.ingest({ message: 'hello' }, req);
+      expect(logger.warn).toHaveBeenCalledWith(
+        '[Frontend] hello',
+        expect.objectContaining({ traceId: 'a b c' }),
+      );
+    });
+
+    it('caps an over-long trace id at 128 chars', () => {
+      const req = mockReq({ 'x-trace-id': 't'.repeat(200) });
+      service.ingest({ message: 'hello' }, req);
+      expect(logger.warn).toHaveBeenCalledWith(
+        '[Frontend] hello',
+        expect.objectContaining({ traceId: 't'.repeat(128) }),
+      );
+    });
   });
 
   describe('message default', () => {
@@ -133,6 +151,47 @@ describe('LogIngestionService', () => {
       expect(logger.warn).toHaveBeenCalledWith(
         '[Frontend] info log',
         expect.any(Object),
+      );
+    });
+  });
+
+  describe('sanitization', () => {
+    it('strips control characters from the message', () => {
+      service.ingest({ message: 'a\u0000b\u001fc\u007fd' }, mockReq());
+      expect(logger.warn).toHaveBeenCalledWith(
+        '[Frontend] a b c d',
+        expect.any(Object),
+      );
+    });
+
+    it('caps an over-long message at the maximum length', () => {
+      service.ingest({ message: 'x'.repeat(5_000) }, mockReq());
+      expect(logger.warn).toHaveBeenCalledWith(
+        `[Frontend] ${'x'.repeat(2_000)}`,
+        expect.any(Object),
+      );
+    });
+
+    it('strips control characters and caps an over-long stack', () => {
+      service.ingest(
+        { message: 'error', stack: `${'y'.repeat(12_000)}\u0000` },
+        mockReq(),
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        '[Frontend] error',
+        'y'.repeat(10_000),
+        expect.any(Object),
+      );
+    });
+
+    it('whitelists ctx keys instead of spreading the raw body', () => {
+      service.ingest(
+        { message: 'leak', password: 'hunter2', token: 'abc', traceId: 't-1' },
+        mockReq(),
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        '[Frontend] leak',
+        expect.not.objectContaining({ password: 'hunter2', token: 'abc' }),
       );
     });
   });

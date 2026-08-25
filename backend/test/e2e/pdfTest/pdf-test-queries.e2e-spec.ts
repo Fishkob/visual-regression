@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { TestStatus } from '@/prisma/client';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('PdfTest queries (e2e)', () => {
   let app: INestApplication;
@@ -41,7 +41,7 @@ describe('PdfTest queries (e2e)', () => {
         },
       });
 
-      const res = await request(app.getHttpServer())
+      const res = await authRequest(app)
         .get('/api/v1/projects/proj/tests')
         .expect(200);
 
@@ -54,7 +54,7 @@ describe('PdfTest queries (e2e)', () => {
     it('should return empty array for project with no tests', async () => {
       await prisma.project.create({ data: { name: 'empty-proj' } });
 
-      const res = await request(app.getHttpServer())
+      const res = await authRequest(app)
         .get('/api/v1/projects/empty-proj/tests')
         .expect(200);
 
@@ -62,7 +62,7 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should return 404 for non-existent project', async () => {
-      const res = await request(app.getHttpServer())
+      const res = await authRequest(app)
         .get('/api/v1/projects/nonexistent/tests')
         .expect(404);
 
@@ -79,7 +79,7 @@ describe('PdfTest queries (e2e)', () => {
         data: { name: 'MyPDF', projectId: project.id, kind: 'pdf' },
       });
 
-      const res = await request(app.getHttpServer())
+      const res = await authRequest(app)
         .get('/api/v1/projects/kind-proj/tests/MyPDF/kind')
         .expect(200);
 
@@ -94,7 +94,7 @@ describe('PdfTest queries (e2e)', () => {
         data: { name: 'MyVisual', projectId: project.id, kind: 'image' },
       });
 
-      const res = await request(app.getHttpServer())
+      const res = await authRequest(app)
         .get('/api/v1/projects/kind-proj2/tests/MyVisual/kind')
         .expect(200);
 
@@ -104,13 +104,13 @@ describe('PdfTest queries (e2e)', () => {
     it('should return 404 when no test exists for the name', async () => {
       await prisma.project.create({ data: { name: 'kind-proj3' } });
 
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/kind-proj3/tests/Nonexistent/kind')
         .expect(404);
     });
 
     it('should return 404 when project does not exist', async () => {
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/nonexistent/tests/Anything/kind')
         .expect(404);
     });
@@ -143,7 +143,7 @@ describe('PdfTest queries (e2e)', () => {
         },
       });
 
-      const res = await request(app.getHttpServer())
+      const res = await authRequest(app)
         .get('/api/v1/projects/detail-proj/tests/DetailTest/pdf-details')
         .query({ viewport: '1920x1080' })
         .expect(200);
@@ -202,7 +202,7 @@ describe('PdfTest queries (e2e)', () => {
         },
       });
 
-      const res = await request(app.getHttpServer())
+      const res = await authRequest(app)
         .get('/api/v1/projects/detail-proj2/tests/CompareTest/pdf-details')
         .query({ viewport: '1280x720' })
         .expect(200);
@@ -221,7 +221,7 @@ describe('PdfTest queries (e2e)', () => {
         data: { name: 'NoVariant', projectId: project.id, kind: 'pdf' },
       });
 
-      const res = await request(app.getHttpServer())
+      const res = await authRequest(app)
         .get('/api/v1/projects/detail-proj3/tests/NoVariant/pdf-details')
         .query({ viewport: '1920x1080' })
         .expect(200);
@@ -247,7 +247,7 @@ describe('PdfTest queries (e2e)', () => {
         },
       });
 
-      const res = await request(app.getHttpServer())
+      const res = await authRequest(app)
         .get('/api/v1/projects/detail-proj4/tests/EmptyVariant/pdf-details')
         .query({ viewport: '1024x768' })
         .expect(200);
@@ -282,7 +282,7 @@ describe('PdfTest queries (e2e)', () => {
         },
       });
 
-      const res = await request(app.getHttpServer())
+      const res = await authRequest(app)
         .get('/api/v1/projects/filter-proj/tests/FilterTest/pdf-details')
         .query({ viewport: '375x667' })
         .expect(200);
@@ -295,14 +295,14 @@ describe('PdfTest queries (e2e)', () => {
         data: { name: 'detail-proj5' },
       });
 
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/detail-proj5/tests/Nonexistent/pdf-details')
         .query({ viewport: '1920x1080' })
         .expect(404);
     });
 
     it('should return 404 when project does not exist', async () => {
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/nonexistent/tests/Anything/pdf-details')
         .query({ viewport: '1920x1080' })
         .expect(404);
@@ -316,7 +316,7 @@ describe('PdfTest queries (e2e)', () => {
         data: { name: 'Unfiltered', projectId: project.id, kind: 'pdf' },
       });
 
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/detail-proj6/tests/Unfiltered/pdf-details')
         .expect(400);
     });
@@ -331,7 +331,7 @@ describe('PdfTest queries (e2e)', () => {
         data: { name: 'any', projectId: project.id, kind: 'pdf' },
       });
 
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/dl-proj/tests/any/pdf-download')
         .query({ type: 'invalid', viewport: '1920x1080' })
         .expect(400);
@@ -345,7 +345,7 @@ describe('PdfTest queries (e2e)', () => {
         data: { name: 'NoBaseline', projectId: project.id, kind: 'pdf' },
       });
 
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/dl-proj2/tests/NoBaseline/pdf-download')
         .query({ type: 'baseline', viewport: '1920x1080' })
         .expect(404);
@@ -354,7 +354,7 @@ describe('PdfTest queries (e2e)', () => {
     it('should return 404 when test does not exist', async () => {
       await prisma.project.create({ data: { name: 'dl-proj3' } });
 
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/dl-proj3/tests/Nonexistent/pdf-download')
         .query({ type: 'baseline', viewport: '1920x1080' })
         .expect(404);
@@ -392,7 +392,7 @@ describe('PdfTest queries (e2e)', () => {
         },
       });
 
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/dl-proj-b/tests/TestB/pdf-download')
         .query({ type: 'baseline', viewport: '1920x1080' })
         .expect(403);
@@ -427,7 +427,7 @@ describe('PdfTest queries (e2e)', () => {
         },
       });
 
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/dl-proj-same/tests/TestTwo/pdf-download')
         .query({ type: 'baseline', viewport: '1920x1080' })
         .expect(403);
@@ -441,7 +441,7 @@ describe('PdfTest queries (e2e)', () => {
         data: { name: 'Unfiltered', projectId: project.id, kind: 'pdf' },
       });
 
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/dl-proj4/tests/Unfiltered/pdf-download')
         .query({ type: 'baseline' })
         .expect(400);
@@ -450,21 +450,21 @@ describe('PdfTest queries (e2e)', () => {
 
   describe('GET /projects/:projectName/tests/:testName/pdf-render', () => {
     it('should reject missing pdfUrl with 400', async () => {
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/any/tests/any/pdf-render')
         .query({ page: 1 })
         .expect(400);
     });
 
     it('should reject missing page parameter with 400', async () => {
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/any/tests/any/pdf-render')
         .query({ pdfUrl: 'http://rustfs/test.pdf' })
         .expect(400);
     });
 
     it('should reject invalid pdfUrl with 403', async () => {
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/any/tests/any/pdf-render')
         .query({ pdfUrl: 'not-a-valid-url', page: 1 })
         .expect(403);
@@ -493,7 +493,7 @@ describe('PdfTest queries (e2e)', () => {
         },
       });
 
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/project-b/tests/TestB/pdf-render')
         .query({
           pdfUrl: 'http://localhost:9000/vrt/project-a/report.pdf',
@@ -522,7 +522,7 @@ describe('PdfTest queries (e2e)', () => {
         },
       });
 
-      await request(app.getHttpServer())
+      await authRequest(app)
         .get('/api/v1/projects/same-proj/tests/TestTwo/pdf-render')
         .query({
           pdfUrl: 'http://localhost:9000/vrt/same-proj/report.pdf',

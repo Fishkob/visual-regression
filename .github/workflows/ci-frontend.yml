@@ -105,6 +105,10 @@ jobs:
 
       - name: Start full stack (infra + backend + frontend)
         run: docker compose -f docker-compose.yml up -d
+        env:
+          ADMIN_API_KEY: ci-frontend-admin
+          BOOTSTRAP_ADMIN_USERNAME: ci-admin
+          BOOTSTRAP_ADMIN_PASSWORD: ci-admin-secret
 
       - name: Wait for infrastructure
         run: |
@@ -166,6 +170,12 @@ jobs:
 
       - name: Seed E2E test data
         run: cd backend && pnpm exec tsx src/scripts/seeds/seed-e2e.ts
+        env:
+          ADMIN_API_KEY: ci-frontend-admin
+          E2E_API_KEY_FILE: /tmp/e2e-api-key
+
+      - name: Capture e2e API key
+        run: echo "E2E_API_KEY=$(cat /tmp/e2e-api-key)" >> "$GITHUB_ENV"
 
       - name: Install Playwright browsers
         run: |
@@ -176,6 +186,9 @@ jobs:
         working-directory: frontend
         env:
           FRONTEND_URL: http://localhost:80
+          E2E_API_KEY: ${{ env.E2E_API_KEY }}
+          E2E_ADMIN_USERNAME: ci-admin
+          E2E_ADMIN_PASSWORD: ci-admin-secret
         run: pnpm test-e2e
 
       - name: Dump docker logs on failure

@@ -5,7 +5,7 @@ import { ComparisonJobProcessor } from '@public/visualTest/intake/workers/compar
 import { ComparisonOutcome } from '@public/visualTest/core/domain/types/visual-test.types';
 import * as path from 'path';
 import * as fs from 'fs';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Cross-variant retirement (e2e)', () => {
   let app: INestApplication;
@@ -16,7 +16,7 @@ describe('Cross-variant retirement (e2e)', () => {
 
   function upload(testName: string, viewport: string, fixture: string) {
     const filePath = path.join(__dirname, 'fixtures', fixture);
-    return request(app.getHttpServer())
+    return authRequest(app)
       .post(uploadUrl(testName))
       .field('viewport', viewport)
       .field('browser', 'Chrome')
@@ -44,14 +44,14 @@ describe('Cross-variant retirement (e2e)', () => {
       '1920x1080',
       'baseline_black.png',
     ).expect(201);
-    await upload('CrossVariantRetire', '1366x768', 'baseline_red.png').expect(
+    await upload('CrossVariantRetire', '1366x768', 'baseline_blue.png').expect(
       201,
     );
 
     const queuedA = await upload(
       'CrossVariantRetire',
       '1920x1080',
-      'baseline_red.png',
+      'baseline_blue.png',
     ).expect(201);
     expect(queuedA.body.status).toBe(ComparisonOutcome.COMPARISON_QUEUED);
 
@@ -94,10 +94,10 @@ describe('Cross-variant retirement (e2e)', () => {
       '1920x1080',
       'baseline_black.png',
     ).expect(201);
-    await upload('CrossVariantRetire', '1920x1080', 'baseline_red.png').expect(
+    await upload('CrossVariantRetire', '1920x1080', 'baseline_blue.png').expect(
       201,
     );
-    await upload('CrossVariantRetire', '1366x768', 'baseline_red.png').expect(
+    await upload('CrossVariantRetire', '1366x768', 'baseline_blue.png').expect(
       201,
     );
     await upload('CrossVariantRetire', '1366x768', 'baseline_black.png').expect(

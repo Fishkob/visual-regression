@@ -11,7 +11,7 @@
     <div class="flex gap-4 mb-4 border-b">
       <button
         :class="[
-          'pb-2 px-1 -mb-px border-b-2 transition',
+          'inline-flex items-center gap-1.5 pb-2 px-1 -mb-px border-b-2 transition',
           activeTab === 'screenshots'
             ? 'border-primary text-primary'
             : 'border-transparent text-muted-foreground',
@@ -27,7 +27,7 @@
               STATUS.PENDING_APPROVAL,
               screenshotPendingCount,
               {
-                className: 'ml-1.5 px-1.5 py-0 rounded-full',
+                className: 'px-1.5 py-0 rounded-full',
               },
             )
           "
@@ -35,7 +35,7 @@
       </button>
       <button
         :class="[
-          'pb-2 px-1 -mb-px border-b-2 transition',
+          'inline-flex items-center gap-1.5 pb-2 px-1 -mb-px border-b-2 transition',
           activeTab === 'pdfs'
             ? 'border-primary text-primary'
             : 'border-transparent text-muted-foreground',
@@ -48,7 +48,7 @@
           v-if="pdfPendingCount > 0"
           :is="
             getStatusCountBadge(STATUS.PENDING_APPROVAL, pdfPendingCount, {
-              className: 'ml-1.5 px-1.5 py-0 rounded-full',
+              className: 'px-1.5 py-0 rounded-full',
             })
           "
         />

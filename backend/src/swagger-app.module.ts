@@ -4,6 +4,8 @@ import { VisualTestApplicationModule } from '@public/visualTest/core/visual-test
 import { IntakeApplicationModule } from '@public/visualTest/intake/intake-application.module';
 import { ReviewModule } from '@public/visualTest/review/review.module';
 import { HealthModule } from '@internal/health/health.module';
+import { AuthModule } from '@internal/auth/auth.module';
+import { AdminApiKeysModule } from '@internal/admin/admin-api-keys.module';
 @Module({
   imports: [
     CoreInfrastructureModule,
@@ -11,6 +13,8 @@ import { HealthModule } from '@internal/health/health.module';
     IntakeApplicationModule,
     ReviewModule,
     HealthModule,
+    AuthModule,
+    AdminApiKeysModule,
   ],
 })
 export class SwaggerAppModule {}

@@ -38,24 +38,55 @@ const zoomReset = () => {
   zoomLevel.value = 100;
 };
 
-const rightPanelUrl = computed(() => {
-  if (viewMode.value === "diff-only" && props.diffUrl) return props.diffUrl;
-  return props.candidateUrl;
-});
+const hasDiff = computed(() => Boolean(props.diffUrl));
 
-const rightPanelLabel = computed(() => {
-  return viewMode.value === "diff-only" ? "Diff" : "Candidate";
-});
+const panels = computed(() => {
+  const list: {
+    key: string;
+    label: string;
+    url?: string;
+    dotClass: string;
+    testId: string;
+  }[] = [];
 
-const rightPanelBorder = computed<"blue" | "red">(() => {
-  return viewMode.value === "diff-only" ? "red" : "blue";
+  if (viewMode.value !== "diff-only") {
+    if (props.baselineUrl)
+      list.push({
+        key: "baseline",
+        label: "Baseline",
+        url: props.baselineUrl,
+        dotClass: "bg-emerald-500",
+        testId: TEST_ID.panelBaseline,
+      });
+    if (props.candidateUrl)
+      list.push({
+        key: "candidate",
+        label: "Candidate",
+        url: props.candidateUrl,
+        dotClass: "bg-blue-500",
+        testId: TEST_ID.panelCandidate,
+      });
+  }
+
+  if (viewMode.value === "diff-only" || viewMode.value === "side-by-side") {
+    if (props.diffUrl)
+      list.push({
+        key: "diff",
+        label: "Diff",
+        url: props.diffUrl,
+        dotClass: "bg-red-500",
+        testId: TEST_ID.panelDiff,
+      });
+  }
+
+  return list;
 });
 </script>
 
 <template>
   <div>
     <div class="flex justify-between items-center mb-3">
-      <ViewModeToggle v-model="viewMode" />
+      <ViewModeToggle v-model="viewMode" :show-diff="hasDiff" />
 
       <div class="flex items-center gap-1">
         <button
@@ -121,19 +152,29 @@ const rightPanelBorder = computed<"blue" | "red">(() => {
       </div>
     </div>
 
-    <div class="flex gap-4">
+    <div
+      class="grid gap-4"
+      :class="
+        viewMode === 'diff-only'
+          ? 'grid-cols-1 mx-auto max-w-5xl'
+          : hasDiff
+            ? 'grid-cols-3'
+            : 'grid-cols-2'
+      "
+    >
       <div
-        :data-testid="TEST_ID.panelBaseline"
-        class="flex-1 rounded-3xl border border-gray-100 bg-white shadow p-4"
+        v-for="panel in panels"
+        :key="panel.key"
+        :data-testid="panel.testId"
+        class="rounded-3xl border border-gray-100 bg-white shadow p-4"
       >
         <div
           class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3"
         >
-          <span class="w-3 h-3 rounded-full bg-emerald-500" />
-          <span>Baseline</span>
+          <span class="w-3 h-3 rounded-full" :class="panel.dotClass" />
+          <span>{{ panel.label }}</span>
         </div>
         <div
-          v-if="baselineUrl"
           class="flex items-center justify-center min-h-[300px] max-h-[70vh] overflow-hidden"
           :style="{
             transform: `scale(${zoomLevel / 100})`,
@@ -141,44 +182,9 @@ const rightPanelBorder = computed<"blue" | "red">(() => {
           }"
         >
           <img
-            :src="baselineUrl"
-            alt="Baseline"
-            loading="lazy"
-            class="max-h-full max-w-full object-contain select-none"
-          />
-        </div>
-      </div>
-
-      <div
-        :data-testid="TEST_ID.panelCandidate"
-        class="flex-1 rounded-3xl border border-gray-100 bg-white shadow p-4 relative"
-      >
-        <div
-          class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3"
-        >
-          <span
-            class="w-3 h-3 rounded-full"
-            :class="
-              rightPanelBorder === 'red'
-                ? 'bg-red-500'
-                : rightPanelBorder === 'blue'
-                  ? 'bg-blue-500'
-                  : 'bg-emerald-500'
-            "
-          />
-          <span>{{ rightPanelLabel }}</span>
-        </div>
-        <div
-          class="flex items-center justify-center min-h-[300px] max-h-[70vh] overflow-hidden relative"
-          :style="{
-            transform: `scale(${zoomLevel / 100})`,
-            transformOrigin: 'top left',
-          }"
-        >
-          <img
-            v-if="rightPanelUrl"
-            :src="rightPanelUrl"
-            :alt="rightPanelLabel"
+            v-if="panel.url"
+            :src="panel.url"
+            :alt="panel.label"
             loading="lazy"
             class="max-h-full max-w-full object-contain select-none"
           />

@@ -5,6 +5,7 @@ import type { QueuedJob } from '@common/domain/job-queue.interface';
 import type { JobData } from '@common/domain/job-data.types';
 import type { VariantFilter } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import request from 'supertest';
+import { authRequest } from './authenticated-request';
 
 const TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 200;
@@ -30,7 +31,7 @@ export async function waitForComparison(
   const start = Date.now();
 
   while (Date.now() - start < TIMEOUT_MS) {
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .get(`/api/v1/projects/${projectName}/tests/${testName}`)
       .query(filters);
 
@@ -42,7 +43,7 @@ export async function waitForComparison(
     // rejects them with 400). Fall back to it so PDF e2e specs can wait for
     // their comparison the same way image specs do.
     if (res.status === 400) {
-      const pdfRes = await request(app.getHttpServer())
+      const pdfRes = await authRequest(app)
         .get(`/api/v1/projects/${projectName}/tests/${testName}/pdf-details`)
         .query(filters);
       if (pdfRes.status === 200 && pdfRes.body.comparison) {

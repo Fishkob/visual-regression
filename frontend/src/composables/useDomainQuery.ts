@@ -5,7 +5,7 @@ import {
   type UndefinedInitialQueryOptions,
   type UseQueryReturnType,
 } from "@tanstack/vue-query";
-import { getData } from "@/lib/sdk";
+import { unwrapSdkData, getData } from "@/lib/sdk";
 import { DEFAULT_PAGE_SIZE, fetchAllPages } from "@/lib/pagination";
 
 // The paginated-DTO shape every list endpoint returns: an items array plus a
@@ -79,28 +79,6 @@ export async function previewSdkRead<T>(
   }
 }
 
-// The query seam's unwrap: mirrors getData but refuses to treat an SDK error
-// response as data. The generated client runs with throwOnError off, so a
-// non-2xx response resolves as `{ error, request, response }` instead of
-// throwing — without this check it would flow through getData as undefined and
-// map to an empty state rather than the error UI. A 200 empty body resolves as
-// `{ data: {} }` (no `error` member) and keeps unwrapping normally.
-function unwrapSdkQueryData<T>(response: unknown): T | undefined {
-  if (typeof response === "object" && response && "error" in response) {
-    throw new Error(sdkErrorMessage((response as { error: unknown }).error));
-  }
-  return getData<T>(response);
-}
-
-function sdkErrorMessage(error: unknown): string {
-  if (typeof error === "string") return error;
-  if (typeof error === "object" && error) {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === "string") return message;
-  }
-  return "Request failed";
-}
-
 export function useSdkQuery<
   TArgs extends object,
   TDto,
@@ -138,7 +116,7 @@ export function useSdkQuery<
     placeholderData: options.placeholderData,
     queryFn: async () => {
       const response = await options.sdkFn(readyArgs.value);
-      return options.map(unwrapSdkQueryData<TDto>(response));
+      return options.map(unwrapSdkData<TDto>(response));
     },
   });
 }
@@ -164,7 +142,7 @@ export function usePaginatedListQuery<TDto, TModel>(options: {
     queryFn: async () => {
       const dtos = await fetchAllPages<TDto>(async (skip) => {
         const response = await options.fetchPage(skip, DEFAULT_PAGE_SIZE);
-        const page = unwrapSdkQueryData<PaginatedDto<TDto>>(response);
+        const page = unwrapSdkData<PaginatedDto<TDto>>(response);
         return { items: page?.data ?? [], total: page?.meta?.total };
       });
       return options.map(dtos);

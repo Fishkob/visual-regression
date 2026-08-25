@@ -55,6 +55,24 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 > For ArgoCD, set secrets via the chart `values.yaml` (or `values.local.yaml`) rather than `--set` — ArgoCD syncs the chart values from the repo.
 
+## Reverse Proxy (TRUST_PROXY)
+
+When deploying behind the nginx/ingress reverse proxy (the default Helm setup), set `TRUST_PROXY=true` so per-IP rate limiting and client IP logging use the real client IP from `X-Forwarded-For` instead of the proxy's:
+
+```bash
+# Helm
+helm upgrade --install vrt deploy/charts/vrt --namespace vrt --create-namespace \
+  --set backend.env.TRUST_PROXY="true"
+```
+
+For Docker Compose, export it before starting:
+
+```bash
+TRUST_PROXY=true ./scripts/dev.sh docker
+```
+
+Keep `TRUST_PROXY` `false` (the default) when the backend is directly reachable — trusting proxy headers from a non-proxy client lets anyone spoof their IP and bypass the rate limits.
+
 ## k3s Quickstart
 
 For a single-node cluster on a fresh VM:

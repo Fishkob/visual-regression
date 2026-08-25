@@ -65,6 +65,7 @@
       "vue-demi"
     ],
     "overrides": {
+      "deepmerge-ts@7.1.5": "8.0.2",
       "js-yaml@4.2.0": "4.3.1",
       "js-yaml@5.2.1": "5.2.2"
     }

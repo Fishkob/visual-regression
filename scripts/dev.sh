@@ -13,6 +13,13 @@ load_env() {
     if [ -f backend/.env ]; then
         set -a && source backend/.env && set +a
     fi
+
+    # Local dev keeps secrets in backend/.env.local. backend/.env may be a
+    # symlink to it on existing checkouts, but a fresh clone only has the
+    # .env.local file, so load it explicitly (e.g. SEED_API_KEY).
+    if [ -f backend/.env.local ]; then
+        set -a && source backend/.env.local && set +a
+    fi
 }
 
 POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
@@ -143,7 +150,9 @@ cmd_local() {
 cmd_seed() {
     load_env
 
-    if ! curl -sf "http://localhost:$BACKEND_PORT/api/v1/projects" >/dev/null 2>&1; then
+    # /api/v1/health/live is public; /api/v1/projects now needs auth (401), so
+    # it is no longer a usable readiness probe.
+    if ! curl -sf "http://localhost:$BACKEND_PORT/api/v1/health/live" >/dev/null 2>&1; then
         warn "Backend not running on port $BACKEND_PORT. Seed scripts use REST API."
         warn "Start the backend first:  pnpm run dev:backend"
         echo ""
@@ -169,14 +178,42 @@ cmd_seed() {
             trap "kill $BACKEND_PID 2>/dev/null" EXIT
             log "Waiting for backend to be ready..."
             for i in {1..30}; do
-                curl -sf "http://localhost:$BACKEND_PORT/api/v1/projects" >/dev/null 2>&1 && break
+                curl -sf "http://localhost:$BACKEND_PORT/api/v1/health/live" >/dev/null 2>&1 && break
                 sleep 2
             done
         fi
     fi
     
+    # Seeds hit the REST API with an api key header, and the backend only
+    # accepts keys that exist in its DB. On a fresh clone no key exists yet, so
+    # provision one via the admin endpoint when ADMIN_API_KEY is configured.
+    if [ -z "$SEED_API_KEY" ]; then
+        if [ -n "$ADMIN_API_KEY" ]; then
+            log "Provisioning a seed API key via the admin endpoint..."
+            ADMIN_RESPONSE=$(curl -sf -X POST "http://localhost:$BACKEND_PORT/api/v1/admin/api-keys" \
+                -H 'Content-Type: application/json' \
+                -H "x-admin-key: $ADMIN_API_KEY" \
+                -d '{"name":"dev-seed"}') || {
+                warn "Could not provision a seed API key (bad ADMIN_API_KEY, or the admin endpoint is disabled)."
+                warn "Fix ADMIN_API_KEY in backend/.env.local, or create a key and set SEED_API_KEY instead."
+                exit 1
+            }
+            SEED_API_KEY=$(printf '%s' "$ADMIN_RESPONSE" | sed -n 's/.*"rawKey":"\([^"]*\)".*/\1/p')
+            if [ -z "$SEED_API_KEY" ]; then
+                warn "Admin endpoint returned an unexpected response — could not extract rawKey."
+                exit 1
+            fi
+        else
+            warn "The seed scripts require an API key (the API is now authenticated)."
+            warn "Either set ADMIN_API_KEY in backend/.env.local so a key can be provisioned"
+            warn "automatically, or create a key via POST /api/v1/admin/api-keys and set SEED_API_KEY."
+            exit 1
+        fi
+    fi
+
     log "Seeding database..."
     cd "$PROJECT_ROOT"
+    SEED_API_KEY="$SEED_API_KEY" \
     POSTGRES_HOST="$POSTGRES_HOST" \
     POSTGRES_PORT="$POSTGRES_PORT" \
     POSTGRES_USER="$POSTGRES_USER" \

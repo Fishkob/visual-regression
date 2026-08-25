@@ -8,10 +8,16 @@ export const FIXTURES_DIR = path.join(__dirname, "../../fixtures");
 
 const API_BASE = "http://localhost:3000/api/v1";
 
+// The product API is authenticated. CI passes the provisioned e2e key via
+// E2E_API_KEY; locally (or against a guard-less backend) requests go without it.
+const AUTH_HEADERS = process.env.E2E_API_KEY
+  ? { "x-api-key": process.env.E2E_API_KEY }
+  : {};
+
 export async function createProject(name: string) {
   await fetch(`${API_BASE}/projects`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...AUTH_HEADERS },
     body: JSON.stringify({ name }),
   }).catch(() => {});
 }
@@ -19,6 +25,7 @@ export async function createProject(name: string) {
 export async function deleteProject(name: string) {
   await fetch(`${API_BASE}/projects/${encodeURIComponent(name)}`, {
     method: "DELETE",
+    headers: AUTH_HEADERS,
   }).catch(() => {});
 }
 
@@ -44,7 +51,7 @@ export async function uploadScreenshot(
   try {
     await fetch(
       `${API_BASE}/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(testName)}/upload?testKind=image`,
-      { method: "POST", body: form },
+      { method: "POST", headers: AUTH_HEADERS, body: form },
     );
   } catch {}
 }
@@ -53,7 +60,7 @@ export async function setupBaselines(project: string, testName: string) {
   await createProject(project);
   await uploadScreenshot(project, testName + "_black", "baseline_black.png");
   await uploadScreenshot(project, testName + "_blue", "baseline_blue.png");
-  await uploadScreenshot(project, testName + "_red", "baseline_red.png");
+  await uploadScreenshot(project, testName + "_red", "baseline_blue.png");
 }
 
 export async function uploadPdf(
@@ -77,7 +84,7 @@ export async function uploadPdf(
   try {
     await fetch(
       `${API_BASE}/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(testName)}/upload?testKind=pdf`,
-      { method: "POST", body: form },
+      { method: "POST", headers: AUTH_HEADERS, body: form },
     );
   } catch {}
 }
@@ -98,6 +105,7 @@ export async function waitForPdfComparison(
     try {
       const res = await fetch(
         `${API_BASE}/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(testName)}/pdf-details?viewport=A4&browser=pdf&environment=staging`,
+        { headers: AUTH_HEADERS },
       );
       if (res.ok) {
         const data = await res.json();
@@ -124,6 +132,7 @@ export async function waitForImageComparison(
     try {
       const res = await fetch(
         `${API_BASE}/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(testName)}?${filters}`,
+        { headers: AUTH_HEADERS },
       );
       if (res.ok) {
         const data = await res.json();
@@ -142,6 +151,6 @@ export async function waitForImageComparison(
 export async function setupReviewableTest(project: string, testName: string) {
   await createProject(project);
   await uploadScreenshot(project, testName, "baseline_black.png");
-  await uploadScreenshot(project, testName, "baseline_red.png");
+  await uploadScreenshot(project, testName, "baseline_blue.png");
   await waitForImageComparison(project, testName);
 }

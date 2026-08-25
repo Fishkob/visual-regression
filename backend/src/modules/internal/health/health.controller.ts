@@ -7,6 +7,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
+import { PublicEndpoint } from '@common/http/public.decorator';
 import {
   type BuildInfo,
   DetailedHealthDto,
@@ -14,6 +15,7 @@ import {
 } from './health.types';
 import { HealthChecker } from './health-checker.service';
 @ApiTags('Health')
+@PublicEndpoint()
 @SkipThrottle()
 @Controller('health')
 export class HealthController {

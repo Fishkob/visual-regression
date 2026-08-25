@@ -15,7 +15,7 @@ function projectUrl(project: string, testName: string) {
 }
 
 test.describe("Image Review Loop", () => {
-  test.beforeEach(() => {
+  test.beforeEach(async () => {
     projectName = `e2e-image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   });
 

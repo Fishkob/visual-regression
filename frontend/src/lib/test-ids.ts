@@ -39,6 +39,7 @@ export const TEST_ID = {
   baselineOnlyNote: "baseline-only-note",
   panelBaseline: "panel-baseline",
   panelCandidate: "panel-candidate",
+  panelDiff: "panel-diff",
   zoomIn: "zoom-in",
   zoomOut: "zoom-out",
   zoomReset: "zoom-reset",
@@ -65,4 +66,10 @@ export const TEST_ID = {
 
   modeSidebyside: "mode-sidebyside",
   modeDiff: "mode-diff",
+
+  loginUsername: "login-username",
+  loginPassword: "login-password",
+  loginSubmit: "login-submit",
+  logout: "logout",
+  currentUser: "current-user",
 } as const;

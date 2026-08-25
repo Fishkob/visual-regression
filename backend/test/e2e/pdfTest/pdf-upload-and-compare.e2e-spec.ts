@@ -5,7 +5,7 @@ import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonOutcome } from '@public/visualTest/core/domain/types/visual-test.types';
 import * as path from 'path';
 import * as fs from 'fs';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('PdfTest upload and compare (e2e)', () => {
   let app: INestApplication;
@@ -28,7 +28,7 @@ describe('PdfTest upload and compare (e2e)', () => {
   it('should create baseline on first PDF upload', async () => {
     const pdfPath = path.join(__dirname, 'fixtures', 'sample-v1.pdf');
 
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .post('/api/v1/projects/pdf-proj/tests/report/upload?testKind=pdf')
       .field('viewport', 'A4')
       .field('browser', 'pdf')
@@ -43,7 +43,7 @@ describe('PdfTest upload and compare (e2e)', () => {
     const pdfPath = path.join(__dirname, 'fixtures', 'sample-v1.pdf');
     const pdfV2Path = path.join(__dirname, 'fixtures', 'sample-v2.pdf');
 
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post('/api/v1/projects/pdf-proj/tests/report/upload?testKind=pdf')
       .field('viewport', 'A4')
       .field('browser', 'pdf')
@@ -51,7 +51,7 @@ describe('PdfTest upload and compare (e2e)', () => {
       .attach('file', fs.createReadStream(pdfPath))
       .expect(201);
 
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .post('/api/v1/projects/pdf-proj/tests/report/upload?testKind=pdf')
       .field('viewport', 'A4')
       .field('browser', 'pdf')
@@ -76,7 +76,7 @@ describe('PdfTest upload and compare (e2e)', () => {
   it('should detect identical PDFs via content hash', async () => {
     const pdfPath = path.join(__dirname, 'fixtures', 'sample-v1.pdf');
 
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post('/api/v1/projects/pdf-proj/tests/report/upload?testKind=pdf')
       .field('viewport', 'A4')
       .field('browser', 'pdf')
@@ -84,7 +84,7 @@ describe('PdfTest upload and compare (e2e)', () => {
       .attach('file', fs.createReadStream(pdfPath))
       .expect(201);
 
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .post('/api/v1/projects/pdf-proj/tests/report/upload?testKind=pdf')
       .field('viewport', 'A4')
       .field('browser', 'pdf')

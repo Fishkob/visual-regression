@@ -14,3 +14,37 @@ export function getData<T>(result: unknown): T | undefined {
   }
   return undefined;
 }
+
+// Single home for reading the message out of an SDK error payload. The
+// generated client resolves non-2xx as `{ error, request, response }`; the
+// error member is a string (often) or an object carrying a `message`.
+export function sdkErrorMessage(
+  error: unknown,
+  fallback = "Request failed",
+): string {
+  if (typeof error === "string") return error;
+  if (typeof error === "object" && error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") return message;
+  }
+  return fallback;
+}
+
+// The shared unwrap used by queries and mutations: mirrors getData but refuses
+// to treat an SDK error response as data. The generated client runs with
+// throwOnError off, so a non-2xx response resolves as `{ error, request,
+// response }` instead of throwing — without this check it would flow through
+// getData as undefined and map to an empty state rather than the error.
+// A 200 empty body resolves as `{ data: {} }` (no `error` member) and keeps
+// unwrapping normally.
+export function unwrapSdkData<T>(
+  response: unknown,
+  fallbackMessage = "Request failed",
+): T | undefined {
+  if (typeof response === "object" && response && "error" in response) {
+    throw new Error(
+      sdkErrorMessage((response as { error: unknown }).error, fallbackMessage),
+    );
+  }
+  return getData<T>(response);
+}

@@ -23,6 +23,10 @@ import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/re
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { AppLoggerService } from '@common/logging/app-logger.service';
+import { AuthRepository } from '@internal/auth/auth.repository';
+import { ApiKeyService } from '@internal/auth/api-key.service';
+import { AuthService } from '@internal/auth/auth.service';
+import { AuthenticationGuard } from '@internal/auth/authentication.guard';
 
 async function main() {
   const moduleRef = await Test.createTestingModule({
@@ -66,11 +70,20 @@ async function main() {
     .useValue({} as PrismaUnitOfWork)
     .overrideProvider(PrismaConnection)
     .useValue({} as PrismaConnection)
+    .overrideProvider(AuthRepository)
+    .useValue({} as AuthRepository)
+    .overrideProvider(ApiKeyService)
+    .useValue({} as ApiKeyService)
+    .overrideProvider(AuthService)
+    .useValue({} as AuthService)
+    .overrideProvider(AuthenticationGuard)
+    .useValue({} as AuthenticationGuard)
     .compile();
 
   const app = moduleRef.createNestApplication();
 
-  const baseUrl = app.get(AppConfigService).swagger.baseUrl;
+  const appConfig = app.get(AppConfigService);
+  const baseUrl = appConfig.swagger.baseUrl;
   const prefix = 'api/v1';
 
   const config = new DocumentBuilder()
@@ -78,6 +91,16 @@ async function main() {
     .setDescription('OpenAPI documentation for upload and comparison endpoints')
     .addServer(`${baseUrl}/${prefix}`)
     .setVersion('1.0')
+    .addApiKey(
+      {
+        type: 'apiKey',
+        in: 'header',
+        name: appConfig.auth.apiKeyHeader ?? 'x-api-key',
+        description: 'API key for CI pipelines',
+      },
+      'apiKeyAuth',
+    )
+    .addSecurityRequirements('apiKeyAuth')
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {

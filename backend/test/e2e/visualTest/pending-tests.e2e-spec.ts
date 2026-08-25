@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonStatus, TestStatus } from '@/prisma/client';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('GET /projects/:projectName/tests/meta/pending (e2e)', () => {
   let app: INestApplication;
@@ -73,7 +73,7 @@ describe('GET /projects/:projectName/tests/meta/pending (e2e)', () => {
   });
 
   it('should return all tests with PENDING_APPROVAL status', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .get('/api/v1/projects/checkout-ui/tests/meta/pending')
       .expect(200);
 

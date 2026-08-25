@@ -7,10 +7,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { PublicEndpoint } from '@common/http/public.decorator';
 import { DlqService } from './dlq.service';
 import { AdminAuthGuard } from './admin-auth.guard';
 
+// Deliberately outside the product API surface (spec: "narrower than the
+// global guard, not part of the product API surface"): only AdminAuthGuard
+// applies.
 @ApiTags('DLQ')
+@PublicEndpoint()
 @Controller('admin/dlq')
 @UseGuards(AdminAuthGuard)
 export class DlqController {

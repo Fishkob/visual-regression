@@ -3,7 +3,7 @@ import { TestApp } from '../_support/utils/test-app';
 import { ConfigService } from '@nestjs/config';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonStatus, TestStatus } from '@/prisma/client';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('ProjectsController (e2e)', () => {
   let app: INestApplication;
@@ -23,7 +23,7 @@ describe('ProjectsController (e2e)', () => {
   }, 30_000);
 
   it('should create a new project successfully', async () => {
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .post('/api/v1/projects')
       .send({ name: 'checkout-ui' })
       .expect(201);
@@ -33,14 +33,11 @@ describe('ProjectsController (e2e)', () => {
   });
 
   it('should fail with 400 if name is missing', async () => {
-    await request(app.getHttpServer())
-      .post('/api/v1/projects')
-      .send({})
-      .expect(422);
+    await authRequest(app).post('/api/v1/projects').send({}).expect(422);
   });
 
   it('should fail with 400 if name is empty', async () => {
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post('/api/v1/projects')
       .send({ name: '' })
       .expect(422);
@@ -49,7 +46,7 @@ describe('ProjectsController (e2e)', () => {
   it('should return 409 if project with same name exists', async () => {
     await prisma.project.create({ data: { name: 'duplicate' } });
 
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post('/api/v1/projects')
       .send({ name: 'duplicate' })
       .expect(409);
@@ -107,7 +104,7 @@ describe('ProjectsController (e2e)', () => {
       },
     });
 
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .get('/api/v1/projects/pending')
       .expect(200);
 
@@ -129,7 +126,7 @@ describe('ProjectsController (e2e)', () => {
       data: { name: 'no-pending' },
     });
 
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .get('/api/v1/projects/pending')
       .expect(200);
 
@@ -207,7 +204,7 @@ describe('ProjectsController (e2e)', () => {
     });
 
     // Act – delete project
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .delete(`/api/v1/projects/${project.name}`)
       .expect(200);
 
@@ -295,7 +292,7 @@ describe('ProjectsController (e2e)', () => {
       },
     });
 
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .delete(`/api/v1/projects/${project.name}/tests/${test.name}`)
       .expect(200);
 
@@ -318,15 +315,13 @@ describe('ProjectsController (e2e)', () => {
   });
 
   it('should return 404 when deleting a non-existing project', async () => {
-    await request(app.getHttpServer())
+    await authRequest(app)
       .delete('/api/v1/projects/does-not-exist')
       .expect(404);
   });
 
   it('should return 404 when fetching a non-existing project', async () => {
-    await request(app.getHttpServer())
-      .get('/api/v1/projects/does-not-exist')
-      .expect(404);
+    await authRequest(app).get('/api/v1/projects/does-not-exist').expect(404);
   });
 
   it('should return project details for existing project', async () => {
@@ -334,7 +329,7 @@ describe('ProjectsController (e2e)', () => {
       data: { name: 'my-project' },
     });
 
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .get(`/api/v1/projects/${project.name}`)
       .expect(200);
 
@@ -346,9 +341,7 @@ describe('ProjectsController (e2e)', () => {
     await prisma.project.create({ data: { name: 'project-a' } });
     await prisma.project.create({ data: { name: 'project-b' } });
 
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/projects')
-      .expect(200);
+    const res = await authRequest(app).get('/api/v1/projects').expect(200);
 
     expect(res.body.data).toBeInstanceOf(Array);
     expect(res.body.data.length).toBeGreaterThanOrEqual(2);

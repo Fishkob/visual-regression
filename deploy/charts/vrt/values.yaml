@@ -73,6 +73,7 @@ backend:
     RUSTFS_BUCKET: vrt
     RUSTFS_USE_SSL: "false"
     CORS_ORIGIN: http://vrt.local
+    TRUST_PROXY: "false"
     LOG_LEVEL: info
     OTEL_EXPORTER_OTLP_ENDPOINT: ""
   resources:

@@ -12,6 +12,9 @@ import { HealthModule } from '@internal/health/health.module';
 import { LogIngestionModule } from '@internal/logging/log-ingestion.module';
 import { DataDeletionModule } from '@internal/data-deletion/data-deletion.module';
 import { DlqModule } from '@internal/dlq/dlq.module';
+import { AuthModule } from '@internal/auth/auth.module';
+import { AdminApiKeysModule } from '@internal/admin/admin-api-keys.module';
+import { AuthenticationGuard } from '@internal/auth/authentication.guard';
 import { AllExceptionsFilter } from '@common/http/all-exceptions.filter';
 import { LoggingInterceptor } from '@common/http/logging.interceptor';
 import { HttpMetricsInterceptor } from '@common/http/http-metrics.interceptor';
@@ -29,12 +32,18 @@ import { HttpMetricsInterceptor } from '@common/http/http-metrics.interceptor';
     LogIngestionModule,
     DlqModule,
     DataDeletionModule,
+    AuthModule,
+    AdminApiKeysModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AuthenticationGuard,
     },
     {
       provide: APP_INTERCEPTOR,

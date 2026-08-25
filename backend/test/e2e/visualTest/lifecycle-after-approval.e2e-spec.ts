@@ -13,7 +13,7 @@ import {
 } from '@public/visualTest/core/domain/types/visual-test.types';
 import * as path from 'path';
 import * as fs from 'fs';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Comparison lifecycle after approval (e2e)', () => {
   let app: INestApplication;
@@ -22,7 +22,7 @@ describe('Comparison lifecycle after approval (e2e)', () => {
   let cleanupService: OrphanCleanupService;
 
   const black = path.join(__dirname, 'fixtures', 'baseline_black.png');
-  const red = path.join(__dirname, 'fixtures', 'baseline_red.png');
+  const blue = path.join(__dirname, 'fixtures', 'baseline_blue.png');
 
   const uploadUrl =
     '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image';
@@ -44,7 +44,7 @@ describe('Comparison lifecycle after approval (e2e)', () => {
   });
 
   function upload(file: string) {
-    return request(app.getHttpServer())
+    return authRequest(app)
       .post(uploadUrl)
       .field('viewport', '1920x1080')
       .field('browser', 'Chrome')
@@ -54,7 +54,7 @@ describe('Comparison lifecycle after approval (e2e)', () => {
 
   async function uploadAndApprove(): Promise<{ baselineUrl: string }> {
     await upload(black).expect(201);
-    const mismatch = await upload(red).expect(201);
+    const mismatch = await upload(blue).expect(201);
     expect(mismatch.body.status).toBe(ComparisonOutcome.COMPARISON_QUEUED);
     const comparison = await waitForComparison(
       app,
@@ -62,7 +62,7 @@ describe('Comparison lifecycle after approval (e2e)', () => {
       'login-form',
     );
 
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post('/api/v1/projects/checkout-ui/tests/login-form/approval')
       .send({ comparisonId: comparison.body.comparison.id })
       .expect(201);

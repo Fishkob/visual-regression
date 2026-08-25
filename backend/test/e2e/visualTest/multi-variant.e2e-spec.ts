@@ -7,6 +7,7 @@ import { ScreenshotType } from '@/prisma/client';
 import * as path from 'path';
 import * as fs from 'fs';
 import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Multi-variant screenshots (e2e)', () => {
   let app: INestApplication;
@@ -22,7 +23,7 @@ describe('Multi-variant screenshots (e2e)', () => {
     fixture: string,
   ) {
     const filePath = path.join(__dirname, 'fixtures', fixture);
-    return request(app.getHttpServer())
+    return authRequest(app)
       .post(uploadUrl(testName))
       .field('viewport', viewport)
       .field('browser', browser)
@@ -57,7 +58,7 @@ describe('Multi-variant screenshots (e2e)', () => {
       'MultiVariantTest',
       '1366x768',
       'Firefox',
-      'baseline_red.png',
+      'baseline_blue.png',
     ).expect(201);
     expect(second.body.status).toBe(ComparisonOutcome.BASELINE_CREATED);
 
@@ -110,7 +111,7 @@ describe('Multi-variant screenshots (e2e)', () => {
       'MultiVariantTest',
       '1366x768',
       'Firefox',
-      'baseline_red.png',
+      'baseline_blue.png',
     ).expect(201);
 
     const chromeVariantAfter = await prisma.unifiedVariant.findFirst({
@@ -139,14 +140,14 @@ describe('Multi-variant screenshots (e2e)', () => {
       'ScopedApproval',
       '1366x768',
       'Firefox',
-      'baseline_red.png',
+      'baseline_blue.png',
     ).expect(201);
 
     const mismatch = await upload(
       'ScopedApproval',
       '1920x1080',
       'Chrome',
-      'baseline_red.png',
+      'baseline_blue.png',
     ).expect(201);
     expect(mismatch.body.status).toBe(ComparisonOutcome.COMPARISON_QUEUED);
 
@@ -159,12 +160,12 @@ describe('Multi-variant screenshots (e2e)', () => {
     );
     expect(chromeDetails.body.comparison.status).toBe('PENDING_APPROVAL');
 
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post('/api/v1/projects/checkout-ui/tests/ScopedApproval/approval')
       .send({ comparisonId: 'no-such-comparison' })
       .expect(404);
 
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post('/api/v1/projects/checkout-ui/tests/ScopedApproval/approval')
       .send({ comparisonId: chromeDetails.body.comparison.id })
       .expect(201);
@@ -185,7 +186,7 @@ describe('Multi-variant screenshots (e2e)', () => {
       'fixtures',
       'sample-v1.pdf',
     );
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/KindConflict/upload?testKind=pdf',
       )
@@ -224,7 +225,7 @@ async function waitForVariantComparison(
         .catch(() => undefined);
     }
 
-    const res = await request(app.getHttpServer())
+    const res = await authRequest(app)
       .get(
         `/api/v1/projects/${projectName}/tests/${testName}?viewport=${viewport}&browser=${browser}&environment=staging`,
       )

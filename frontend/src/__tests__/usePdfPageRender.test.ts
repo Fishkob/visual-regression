@@ -14,13 +14,6 @@ vi.mock("@sdk", () => ({
   pdfControllerRenderPdfPage: mockRenderPdfPage,
 }));
 
-vi.mock("@/lib/sdk", () => ({
-  getData: (result: unknown) =>
-    typeof result === "object" && result && "data" in result
-      ? (result as { data: unknown }).data
-      : undefined,
-}));
-
 describe("usePdfPageRenderQuery", () => {
   beforeEach(() => {
     vi.clearAllMocks();

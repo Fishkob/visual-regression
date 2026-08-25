@@ -10,6 +10,9 @@
             "description": "Prometheus metrics"
           }
         },
+        "security": [
+          {}
+        ],
         "tags": [
           "Metrics"
         ]
@@ -86,8 +89,16 @@
           },
           "404": {
             "description": "Project not found"
+          },
+          "429": {
+            "description": "Per-key upload rate limit exceeded"
           }
         },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
         "summary": "Upload a file (image or PDF) and compare with the baseline",
         "tags": [
           "Upload"
@@ -1065,6 +1076,9 @@
             }
           }
         },
+        "security": [
+          {}
+        ],
         "tags": [
           "Health"
         ]
@@ -1096,6 +1110,9 @@
             }
           }
         },
+        "security": [
+          {}
+        ],
         "tags": [
           "Health"
         ]
@@ -1113,6 +1130,9 @@
             "description": "Database unavailable"
           }
         },
+        "security": [
+          {}
+        ],
         "tags": [
           "Health"
         ]
@@ -1130,8 +1150,127 @@
             "description": "RustFS unavailable"
           }
         },
+        "security": [
+          {}
+        ],
         "tags": [
           "Health"
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid username or password"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Session cleared"
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/admin/api-keys": {
+      "post": {
+        "operationId": "AdminApiKeysController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedApiKeyDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {}
+        ],
+        "tags": [
+          "Admin"
         ]
       }
     }
@@ -1149,6 +1288,14 @@
     }
   ],
   "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "API key for CI pipelines"
+      }
+    },
     "schemas": {
       "ComparisonOutcome": {
         "type": "string",
@@ -1864,7 +2011,69 @@
           "uptime",
           "checks"
         ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "alice"
+          },
+          "password": {
+            "type": "string",
+            "example": "secret"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "MeDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "alice"
+          }
+        },
+        "required": [
+          "username"
+        ]
+      },
+      "CreateApiKeyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "ci-upload"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CreatedApiKeyDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "rawKey": {
+            "type": "string",
+            "description": "Shown exactly once; only the hash is stored"
+          }
+        },
+        "required": [
+          "id",
+          "rawKey"
+        ]
       }
     }
-  }
+  },
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
 }

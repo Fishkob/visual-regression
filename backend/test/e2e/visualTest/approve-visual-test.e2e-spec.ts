@@ -9,7 +9,7 @@ import {
 } from '@public/visualTest/core/domain/types/visual-test.types';
 import * as path from 'path';
 import * as fs from 'fs';
-import request from 'supertest';
+import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Approve Visual Test (e2e)', () => {
   let app: INestApplication;
@@ -31,10 +31,10 @@ describe('Approve Visual Test (e2e)', () => {
 
   it('should create a baseline, trigger a comparison, and keep it pending for approval', async () => {
     const baseline = path.join(__dirname, 'fixtures', 'baseline_black.png');
-    const mismatch = path.join(__dirname, 'fixtures', 'baseline_red.png');
+    const mismatch = path.join(__dirname, 'fixtures', 'baseline_blue.png');
 
     // 1. Upload the baseline image
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
       )
@@ -45,7 +45,7 @@ describe('Approve Visual Test (e2e)', () => {
       .expect(201);
 
     // 2. Upload a mismatched image → returns 201 with DIFFERENT status
-    const mismatchRes = await request(app.getHttpServer())
+    const mismatchRes = await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
       )
@@ -81,10 +81,10 @@ describe('Approve Visual Test (e2e)', () => {
 
   it('should approve the latest comparison and detect the same diff image as a match afterwards', async () => {
     const baseline = path.join(__dirname, 'fixtures', 'baseline_black.png');
-    const mismatch = path.join(__dirname, 'fixtures', 'baseline_red.png');
+    const mismatch = path.join(__dirname, 'fixtures', 'baseline_blue.png');
 
     // 1. Upload baseline
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
       )
@@ -95,7 +95,7 @@ describe('Approve Visual Test (e2e)', () => {
       .expect(201);
 
     // 2. Upload mismatch → returns 201 with DIFFERENT status
-    const mismatchRes = await request(app.getHttpServer())
+    const mismatchRes = await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
       )
@@ -116,7 +116,7 @@ describe('Approve Visual Test (e2e)', () => {
     );
 
     // 4. Approve the pinned comparison
-    const approveRes = await request(app.getHttpServer())
+    const approveRes = await authRequest(app)
       .post('/api/v1/projects/checkout-ui/tests/login-form/approval')
       .send({ comparisonId: comparison.body.comparison.id })
       .expect(201);
@@ -127,7 +127,7 @@ describe('Approve Visual Test (e2e)', () => {
     );
 
     // 4. Upload the same mismatched image again → should now be a match
-    const repeatUpload = await request(app.getHttpServer())
+    const repeatUpload = await authRequest(app)
       .post(
         '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
       )
@@ -150,7 +150,7 @@ describe('Approve Visual Test (e2e)', () => {
       },
     });
 
-    await request(app.getHttpServer())
+    await authRequest(app)
       .post('/api/v1/projects/p-no-comp/tests/NoCompTest/approval')
       .send({ comparisonId: 'no-such-comparison' })
       .expect(404);

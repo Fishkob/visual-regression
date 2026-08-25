@@ -56,6 +56,8 @@ export default defineConfig({
       PDF_SIDECAR_TIMEOUT: '30000',
       METRICS_API_KEY: 'test-metrics-key',
       ADMIN_API_KEY: 'test-admin-key',
+      LOGIN_THROTTLE_LIMIT: '1000',
+      UPLOAD_RATE_LIMIT_PER_MINUTE: '0',
     },
   },
 });

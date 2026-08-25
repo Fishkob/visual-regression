@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import {
   S3Client,
   CreateBucketCommand,
@@ -31,7 +31,9 @@ const RUSTFS_OPERATION_TIMEOUT_MS = 30_000;
 const DELETE_CONCURRENCY = 10;
 
 @Injectable()
-export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
+export class RustFsStorageService
+  implements IStorageProvider, OnModuleInit, OnModuleDestroy
+{
   private readonly client: S3Client;
   private readonly bucket: string;
   private bucketReady: Promise<void> | null = null;
@@ -65,6 +67,15 @@ export class RustFsStorageService implements IStorageProvider, OnModuleDestroy {
       bucket: this.bucket,
       useSSL: isSslEnabled,
     });
+  }
+
+  // Provision the bucket (and the anonymous-read policy) at startup so the
+  // storage health check passes before the first upload. Bucket creation used
+  // to be an init container in compose; without eager provisioning the
+  // /health/storage probe reports the bucket as missing until an upload
+  // happens, which breaks readiness gates in CI.
+  async onModuleInit(): Promise<void> {
+    await this.ensureBucket();
   }
 
   private withTimeout<T>(

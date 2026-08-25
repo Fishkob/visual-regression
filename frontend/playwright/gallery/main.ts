@@ -1,7 +1,10 @@
 import { createApp, h, shallowRef, type App, type Component } from "vue";
 
 import router from "../../src/router/index.ts";
-import { VueQueryPlugin, QueryClient } from "@tanstack/vue-query";
+import { VueQueryPlugin } from "@tanstack/vue-query";
+
+import { queryClient } from "../../src/lib/query-client";
+import { authQueryKeys } from "../../src/domains/auth/query-keys";
 
 import "../../src/style.css";
 import "vue-sonner/style.css";
@@ -37,12 +40,10 @@ const host = {
 };
 let app: App | undefined;
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { refetchOnWindowFocus: false, retry: 1, staleTime: 300_000 },
-    mutations: { retry: 0 },
-  },
-});
+// Component tests exercise views, not auth: the router guard resolves /me
+// through the shared query client on every navigation, so seed a session and
+// the guard lets routed stories through without a backend round-trip.
+queryClient.setQueryData(authQueryKeys.me(), { username: "gallery-user" });
 
 async function mountNext({
   story: storyId,

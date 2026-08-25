@@ -3,6 +3,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { AppModule } from '@app';
 import { IntakeWorkerModule } from '@public/visualTest/intake/intake-worker.module';
+import { hashToken } from '@internal/auth/token-hash';
+import { E2E_API_KEY } from './e2e-api-key';
 
 /**
  * Utility for initializing and cleaning up a test instance of the NestJS app.
@@ -35,6 +37,8 @@ export class TestApp {
 
     this.appInstance = app;
 
+    await this.seedApiKey();
+
     return app;
   }
 
@@ -53,6 +57,28 @@ export class TestApp {
     await db.unifiedTest.deleteMany();
     await db.comparisonJob.deleteMany();
     await db.project.deleteMany();
+    await db.apiKeyRateLimitBucket.deleteMany();
+    await db.session.deleteMany();
+    await db.apiKey.deleteMany();
+    await db.user.deleteMany();
+
+    await this.seedApiKey();
+  }
+
+  /**
+   * Seeds the fixed e2e api key (idempotent) so authenticated product requests
+   * pass the global AuthenticationGuard. Re-seeded after resetDb() clears it.
+   */
+  static async seedApiKey(): Promise<void> {
+    const app = this.appInstance;
+    if (!app) throw new Error('App instance not initialized');
+    const db = app.get(PrismaConnection).client;
+    const keyHash = hashToken(E2E_API_KEY);
+    await db.apiKey.upsert({
+      where: { keyHash },
+      create: { name: 'e2e', keyHash },
+      update: {},
+    });
   }
 
   /**

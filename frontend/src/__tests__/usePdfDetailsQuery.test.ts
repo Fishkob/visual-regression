@@ -14,13 +14,6 @@ vi.mock("@sdk", () => ({
   approvalsControllerApprovePdfTest: vi.fn(),
 }));
 
-vi.mock("@/lib/sdk", () => ({
-  getData: (result: unknown) =>
-    typeof result === "object" && result && "data" in result
-      ? (result as { data: unknown }).data
-      : undefined,
-}));
-
 vi.mock("vue-router", () => ({
   useRouter: vi.fn(() => ({ push: vi.fn() })),
 }));

@@ -113,9 +113,9 @@ describe('AppConfigService', () => {
     expect(config.admin.apiKey).toBe('admin-secret');
   });
 
-  it('exposes the throttle group', () => {
+  it('exposes the throttle group with ttl converted to milliseconds', () => {
     const config = buildAppConfig(baseValues);
-    expect(config.throttle.ttl).toBe(60);
+    expect(config.throttle.ttlMs).toBe(60_000);
     expect(config.throttle.limit).toBe(1000);
   });
 
@@ -145,5 +145,20 @@ describe('AppConfigService', () => {
     const config = buildAppConfig(baseValues);
     expect(config.csp.enabled).toBe(true);
     expect(config.cors.origin).toBe('http://localhost:5173');
+  });
+
+  it('defaults trustProxy to false when unset', () => {
+    const values = { ...baseValues };
+    delete values.TRUST_PROXY;
+    expect(buildAppConfig(values).trustProxy).toBe(false);
+  });
+
+  it('exposes trustProxy only when explicitly true', () => {
+    expect(
+      buildAppConfig({ ...baseValues, TRUST_PROXY: true }).trustProxy,
+    ).toBe(true);
+    expect(
+      buildAppConfig({ ...baseValues, TRUST_PROXY: false }).trustProxy,
+    ).toBe(false);
   });
 });

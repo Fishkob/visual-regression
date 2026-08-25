@@ -9,12 +9,13 @@ describe("InteractiveImageViewer", () => {
     diffUrl: "/images/diff.png",
   };
 
-  it("renders both panels with baseline and candidate images", () => {
+  it("renders baseline, candidate and diff panels", () => {
     const wrapper = mount(InteractiveImageViewer, {
       props: defaultProps,
     });
     expect(wrapper.find('[data-testid="panel-baseline"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="panel-candidate"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="panel-diff"]').exists()).toBe(true);
   });
 
   it("defaults to Side by Side mode", () => {
@@ -26,30 +27,35 @@ describe("InteractiveImageViewer", () => {
       "/images/candidate.png",
     );
     expect(candidatePanel.text()).toContain("Candidate");
+    const diffPanel = wrapper.find('[data-testid="panel-diff"]');
+    expect(diffPanel.find("img").attributes("src")).toBe("/images/diff.png");
+    expect(diffPanel.text()).toContain("Diff");
   });
 
-  it("switches to Diff Only mode", async () => {
+  it("shows only the diff panel in Diff Only mode", async () => {
     const wrapper = mount(InteractiveImageViewer, {
       props: defaultProps,
     });
     await wrapper.find('[data-testid="mode-diff"]').trigger("click");
-    const candidatePanel = wrapper.find('[data-testid="panel-candidate"]');
-    expect(candidatePanel.find("img").attributes("src")).toBe(
-      "/images/diff.png",
+    expect(wrapper.find('[data-testid="panel-baseline"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="panel-candidate"]').exists()).toBe(
+      false,
     );
-    expect(candidatePanel.text()).toContain("Diff");
+    const diffPanel = wrapper.find('[data-testid="panel-diff"]');
+    expect(diffPanel.exists()).toBe(true);
+    expect(diffPanel.find("img").attributes("src")).toBe("/images/diff.png");
+    expect(diffPanel.text()).toContain("Diff");
   });
 
-  it("switches to Side by Side mode", async () => {
+  it("returns to Side by Side mode", async () => {
     const wrapper = mount(InteractiveImageViewer, {
       props: defaultProps,
     });
+    await wrapper.find('[data-testid="mode-diff"]').trigger("click");
     await wrapper.find('[data-testid="mode-sidebyside"]').trigger("click");
-    const candidatePanel = wrapper.find('[data-testid="panel-candidate"]');
-    expect(candidatePanel.find("img").attributes("src")).toBe(
-      "/images/candidate.png",
-    );
-    expect(candidatePanel.text()).toContain("Candidate");
+    expect(wrapper.find('[data-testid="panel-baseline"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="panel-candidate"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="panel-diff"]').exists()).toBe(true);
   });
 
   it("shows zoom controls", () => {
@@ -112,7 +118,7 @@ describe("InteractiveImageViewer", () => {
     );
   });
 
-  it("renders candidate panel when no diffUrl", () => {
+  it("hides the diff panel and Diff Only mode when no diffUrl", () => {
     const wrapper = mount(InteractiveImageViewer, {
       props: {
         baselineUrl: "/images/baseline.png",
@@ -124,5 +130,7 @@ describe("InteractiveImageViewer", () => {
     expect(
       wrapper.find('[data-testid="panel-candidate"] img').attributes("src"),
     ).toBe("/images/candidate.png");
+    expect(wrapper.find('[data-testid="panel-diff"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="mode-diff"]').exists()).toBe(false);
   });
 });

@@ -1,5 +1,9 @@
 import * as Joi from 'joi';
 import { UPLOAD_HARD_LIMIT_MB } from '@config/upload-limits';
+import {
+  LOGIN_THROTTLE_DEFAULTS,
+  LOG_THROTTLE_DEFAULTS,
+} from '@config/throttle-limits';
 
 // Swagger export only reads decorators and doesn't need real infra.
 // process.argv is available before any module code runs, so we can
@@ -76,7 +80,9 @@ export const envValidationSchema = Joi.object({
   THROTTLE_TTL: Joi.number()
     .min(1)
     .default(60)
-    .description('Time window in seconds for rate limiting.'),
+    .description(
+      'Time window in seconds for rate limiting. Converted to milliseconds at the config boundary because @nestjs/throttler v6 expects ttl in ms.',
+    ),
   THROTTLE_LIMIT: Joi.number()
     .min(1)
     .default(1000)
@@ -84,11 +90,43 @@ export const envValidationSchema = Joi.object({
       'Max requests per TTL window. Increased from 100 to 1000 to accommodate CI pipelines uploading multiple screenshots concurrently.',
     ),
 
+  // Per-key upload rate limit: requests per minute per API key. 0 disables.
+  UPLOAD_RATE_LIMIT_PER_MINUTE: Joi.number().min(0).default(60),
+
+  // Login throttle (brute-force guard on /auth/login). Value in seconds,
+  // converted to milliseconds at the config boundary.
+  LOGIN_THROTTLE_TTL: Joi.number().min(1).default(LOGIN_THROTTLE_DEFAULTS.ttl),
+  LOGIN_THROTTLE_LIMIT: Joi.number()
+    .min(1)
+    .default(LOGIN_THROTTLE_DEFAULTS.limit),
+
+  // Log ingestion throttle (independent cap on the frontend log endpoint)
+  LOG_THROTTLE_TTL: Joi.number().min(1).default(LOG_THROTTLE_DEFAULTS.ttl),
+  LOG_THROTTLE_LIMIT: Joi.number().min(1).default(LOG_THROTTLE_DEFAULTS.limit),
+
+  // Reverse proxy trust
+  TRUST_PROXY: Joi.boolean()
+    .default(false)
+    .description(
+      'Trust X-Forwarded-For headers from the reverse proxy (nginx/ingress). Required for correct per-IP rate limiting and logging behind a proxy. Disable when the app is directly reachable.',
+    ),
+
+  // Auth
+  // Note: the session cookie NAME is deliberately NOT configurable — it is the
+  // hardcoded SESSION_COOKIE constant so the controller (write) and guard
+  // (read) can never drift.
+  AUTH_SESSION_TTL_DAYS: Joi.number().min(1).default(30),
+  AUTH_COOKIE_SECURE: Joi.boolean().default(false),
+  AUTH_API_KEY_HEADER: Joi.string().default('x-api-key'),
+  BOOTSTRAP_ADMIN_USERNAME: Joi.string().allow('').default(''),
+  BOOTSTRAP_ADMIN_PASSWORD: Joi.string().allow('').default(''),
+
   // Metrics API key (empty disables the metrics endpoint per metrics-auth.guard)
   METRICS_API_KEY: Joi.string().allow('').default(''),
 
-  // Admin API key (DLQ endpoints)
-  ADMIN_API_KEY: Joi.string().default(''),
+  // Admin API key (DLQ endpoints) — empty disables the admin endpoints
+  // per admin-auth.guard; docker-compose injects it as "" when unset.
+  ADMIN_API_KEY: Joi.string().allow('').default(''),
 
   // Metrics
   METRICS_ENABLED: Joi.boolean().default(true),

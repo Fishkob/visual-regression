@@ -107,6 +107,56 @@ model ComparisonJob {
   @@index([createdAt])
 }
 
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+
+  sessions Session[]
+
+  @@map("User")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("Session")
+}
+
+model ApiKey {
+  id        String    @id @default(cuid())
+  name      String
+  keyHash   String    @unique
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  rateLimitBuckets ApiKeyRateLimitBucket[]
+
+  @@map("ApiKey")
+}
+
+model ApiKeyRateLimitBucket {
+  id          String   @id @default(cuid())
+  apiKeyId    String
+  windowStart DateTime // minute-aligned bucket
+  count       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@unique([apiKeyId, windowStart])
+  @@index([windowStart])
+  @@map("ApiKeyRateLimitBucket")
+}
+
 enum TestKind {
   image
   pdf

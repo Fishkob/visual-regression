@@ -5,6 +5,7 @@ import {
   Post,
   Query,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import {
@@ -16,7 +17,9 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
+  ApiSecurity,
   ApiTags,
+  ApiTooManyRequestsResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
@@ -37,8 +40,10 @@ import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testna
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import type { AnyUploadResult } from '@common/domain/unified-upload-result.type';
 import { ComparisonOutcome } from '@common/domain/upload-outcome';
+import { UploadRateLimitGuard } from '@public/visualTest/intake/presentation/guards/upload-rate-limit.guard';
 
 @ApiTags('Upload')
+@UseGuards(UploadRateLimitGuard)
 @ApiExtraModels(
   BaselineCreatedResultDto,
   IdenticalResultDto,
@@ -50,6 +55,7 @@ export class UploadController {
 
   @Post(':testName/upload')
   @UseInterceptors(FileInterceptor('file'))
+  @ApiSecurity('apiKeyAuth')
   @ApiOperation({
     summary: 'Upload a file (image or PDF) and compare with the baseline',
   })
@@ -73,6 +79,9 @@ export class UploadController {
   })
   @ApiNotFoundResponse({ description: 'Project not found' })
   @ApiBadRequestResponse({ description: 'Invalid file type or upload data' })
+  @ApiTooManyRequestsResponse({
+    description: 'Per-key upload rate limit exceeded',
+  })
   async upload(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
