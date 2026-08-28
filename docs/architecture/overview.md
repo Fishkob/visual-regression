@@ -60,7 +60,7 @@ flowchart TB
     Grafana -->|query| Loki
 ```
 
-**Solid lines** = always active. **Dashed observability area** = optional, only when those components are deployed and configured.
+**Solid lines** = always active. The **Observability box** = optional — only present when those components are deployed and configured.
 
 The BUS node represents the shared data access layer — all backend services read from and write to PostgreSQL and RustFS.
 
@@ -76,7 +76,7 @@ module/
 └── infrastructure/  Prisma repositories, mappers
 ```
 
-- **Cross-cutting ports** (`IStorageProvider`, `IComparisonEngine`) live in `common/domain/` — infrastructure depends on domain, not the other way around. The event bus was a port until 2026-08-05, then the concrete `EventEmitterEventBus` class, and was removed entirely on 2026-08-09: observability emission is now a synchronous switch in `StateChangeWorkflow`'s post-commit path (see [ADR-004](../adr/004-infrastructure-patterns.md)).
+- **Cross-cutting ports** (`IStorageProvider`, `IComparisonEngine`) live in `common/domain/` — infrastructure depends on domain, not the other way around. There is no event bus: observability emission is a synchronous switch in `StateChangeWorkflow`'s post-commit path (see [ADR-004](../adr/004-infrastructure-patterns.md)).
 - **Repositories** are injected by class token (no separate interface) — consistent with every other service
 - **In-memory test doubles** replace repositories by class token for isolated unit testing
 
@@ -264,7 +264,7 @@ sequenceDiagram
 | --------------------- | ----------------------------------- | ------------------------------------------- |
 | **Queue**             | PostgreSQL polling (single worker)  | RabbitMQ, SQS, Kafka (multi-worker, DLQ)    |
 | **API Surface**       | Monolithic NestJS (one process)     | API Gateway + BFF + multiple microservices  |
-| **Auth**              | None (trusted CI + simple frontend) | OAuth2/OIDC, SSO, RBAC, audit logging       |
+| **Auth**              | Session cookie (dashboard) + API key (CI) | OAuth2/OIDC, SSO, RBAC, audit logging  |
 | **Multi-tenancy**     | Single-org deployment               | Tenant isolation, schema-per-tenant         |
 | **Observability**     | Health checks + Prometheus metrics  | Distributed tracing, SLIs/SLOs, alerting    |
 | **Storage Delivery**  | Direct RustFS URLs                  | CDN + signed URLs + caching layer           |
@@ -279,7 +279,7 @@ sequenceDiagram
 - No multi-tenancy — each deployment serves one organization; self-hosted instances are isolated by deployment
 - Single DB instance — read replicas add operational cost with negligible benefit at current scale
 
-The codebase invests complexity where it pays off: **clean layered architecture**, **domain-driven language** (CONTEXT.md), **11 ADRs** documenting key decisions, **ports-and-adapters** for testability, and **event-driven design** for loose coupling between intake/review flows.
+The codebase invests complexity where it pays off: **clean layered architecture**, **domain-driven language** (CONTEXT.md), **12 ADRs** documenting key decisions, **ports-and-adapters** for testability, and **event-driven design** for loose coupling between intake/review flows.
 
 ## Deployment
 

@@ -2,8 +2,8 @@
 
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://github.com/Fishkob/visual-regression/actions/workflows/ci-backend.yml"><img src="https://github.com/Fishkob/visual-regression/actions/workflows/ci-backend.yml/badge.svg" alt="CI (Backend)"></a>
-  <a href="https://github.com/Fishkob/visual-regression/actions/workflows/ci-frontend.yml"><img src="https://github.com/Fishkob/visual-regression/actions/workflows/ci-frontend.yml/badge.svg" alt="CI (Frontend)"></a>
+  <a href="https://github.com/<owner>/visual-regression/actions/workflows/ci-backend.yml"><img src="https://github.com/<owner>/visual-regression/actions/workflows/ci-backend.yml/badge.svg" alt="CI (Backend)"></a>
+  <a href="https://github.com/<owner>/visual-regression/actions/workflows/ci-frontend.yml"><img src="https://github.com/<owner>/visual-regression/actions/workflows/ci-frontend.yml/badge.svg" alt="CI (Frontend)"></a>
 </p>
 
 Catch unintended visual changes before they reach production. Upload screenshots from your CI pipeline, compare them pixel-by-pixel against baselines, and approve changes via the web dashboard.
@@ -18,58 +18,68 @@ A self-hosted platform for **visual regression testing**, consisting of:
 
 ---
 
-## Quick Start
+## Quick Start (self-hosting)
 
-### Requirements
+The fastest way to run the platform is Docker — nothing else is required. You
+need [Docker](https://docs.docker.com/get-docker/) (Desktop on macOS/Windows,
+engine on Linux) with the daemon running.
 
-- **Docker & Docker Compose** — start Docker Desktop (or your daemon) before running any of the commands below
-- **Node.js ≥ 20.19** (required for local development; the Docker path needs no local Node)
-- **pnpm** — only needed for the `pnpm run ...` commands below; `dev.sh` installs it automatically if missing
+```bash
+git clone https://github.com/<owner>/visual-regression.git
+cd visual-regression
+./install.sh            # Docker required — nothing else
+```
 
-The Node version is enforced via `engines` (see `.npmrc` `engine-strict=true`); CI runs Node 24 (see `.node-version`).
+The installer:
 
-Choose the path that fits:
+1. Checks Docker + Compose are installed and running.
+2. Generates secure random secrets into a gitignored `.env` (Postgres, RustFS,
+   admin login, API key) on first run.
+3. Builds and starts the full stack, then waits until it is healthy.
+4. Prints the URLs and your admin login.
 
-| I want to…                                       | Run this                                 |
-| ------------------------------------------------ | ---------------------------------------- |
-| **Run it in Docker** (no local Node/pnpm)        | `docker compose up -d --build`           |
-| **Run it in Docker** (with pnpm installed)       | `pnpm start`                             |
-| **Develop locally** (hot reload, first time)     | `pnpm run dev:reset` then `pnpm run dev` |
-| **Develop locally** (hot reload, already set up) | `pnpm run dev`                           |
+Open the printed **frontend URL** and log in with the printed admin credentials.
+Remove `BOOTSTRAP_ADMIN_*` from `.env` after first login.
 
-`pnpm start` builds and runs the full stack in Docker (same as `docker compose up -d --build`, but also applies migrations and waits for readiness); `pnpm run dev` starts infra (if not running) and then hot-reloads backend + frontend. All other `dev.sh` commands are also mirrored as `pnpm run dev:*` scripts.
+### Optional: seed demo data
 
-> **No pnpm yet?** Every `pnpm run ...` command above needs pnpm installed first. If you don't have it, call the underlying script directly instead — `./scripts/dev.sh reset` (first-time local setup) or `./scripts/dev.sh docker` (full stack) — and `dev.sh` will install pnpm for you.
+`./install.sh --seed` populates the database with demo projects. Seeding runs
+the seed scripts from the repo, so it needs **pnpm** (Node ≥ 20.19) on the host.
+Without pnpm, the installer skips seeding with a hint — you can equally create a
+project through the web UI.
+
+> **First build is slow**: the `pdf-sidecar` (Java) and the backend/frontend
+> images are compiled from source, which takes several minutes the first time.
+> Later builds are fast thanks to Docker layer caching.
+
+### Managing the stack
+
+```bash
+./install.sh up      # start / rebuild
+./install.sh logs    # follow logs (e.g. ./install.sh logs backend)
+./install.sh down    # stop
+./install.sh --seed  # add demo data
+./install.sh --fresh # wipe all data and start clean
+```
+
+> **Lost your `.env`?** Re-running `./install.sh` regenerates it, but an existing
+> database volume still holds the old password, so the stack fails to start
+> (P1000). Recover with `./install.sh --fresh` — it wipes the volumes and starts
+> clean. This erases all data.
+
+### No Docker? Use plain Compose
+
+The same stack runs without the installer wrapper: `docker compose up -d --build`.
+If `.env` is missing, copy `.env.example` to `.env` and fill in the secrets.
 
 ---
 
-### Option A: Run it in Docker
+### For contributors (local development with hot reload)
+
+Not running the product? Contributing to the codebase is different — it needs
+Node ≥ 20.19 and pnpm, and hot-reloads backend + frontend:
 
 ```bash
-git clone https://github.com/Fishkob/visual-regression.git
-cd visual-regression
-
-# Build and start all services in Docker
-pnpm start
-
-# Seed demo data (optional)
-pnpm run dev:seed
-```
-
-> **First build is slow**: the `pdf-sidecar` (Java) and the backend/frontend images are
-> compiled from source, which takes several minutes the first time. Later builds are
-> fast thanks to Docker layer caching.
-
-Then open **http://localhost** to see the frontend.
-
-> Without Node/pnpm, the same works via plain Docker: `docker compose up -d --build`.
-
-### Option B: Local Development
-
-```bash
-git clone https://github.com/Fishkob/visual-regression.git
-cd visual-regression
-
 # First-time setup: clean slate → infra (postgres, rustfs) → install deps → generate SDK
 pnpm run dev:reset
 
@@ -77,7 +87,8 @@ pnpm run dev:reset
 pnpm run dev
 ```
 
-Then open **http://localhost:5173** to see the frontend.
+Then open **http://localhost:5173** to see the frontend. See
+[docs/local-development.md](docs/local-development.md) for the full reference.
 
 ---
 
@@ -89,12 +100,10 @@ After the backend is running, populate the database with demo projects and scree
 pnpm run dev:seed
 ```
 
-The seeds hit the authenticated REST API, so they need an API key:
+The seeds hit the authenticated REST API, so they need an API key — create one as described in [CI Authentication](#ci-authentication) below. The seed scripts read `SEED_API_KEY` (or `E2E_API_KEY` for the e2e seeder) from the environment:
 
-- `./scripts/dev.sh seed` sources `backend/.env.local` — set `SEED_API_KEY` there, or set
-  `ADMIN_API_KEY` and it provisions a key automatically via the admin endpoint.
-- Running `pnpm run seed:*` directly requires `export SEED_API_KEY=<rawKey>` first (the scripts
-  read `process.env` and don't load dotenv files).
+- `./scripts/dev.sh seed` sources `backend/.env.local` — set `SEED_API_KEY` there, or set `ADMIN_API_KEY` and `dev.sh` provisions a key automatically via the admin endpoint.
+- Running `pnpm run seed:*` directly requires `export SEED_API_KEY=<rawKey>` first, since the scripts don't load dotenv files.
 
 **RustFS Console:** http://localhost:9001 (login: `rustfsadmin` / `rustfsadmin` — the RustFS default root credentials; override via `RUSTFS_ROOT_USER` / `RUSTFS_ROOT_PASSWORD` in the root `.env` for Docker deployments)
 
@@ -126,7 +135,7 @@ curl -X POST "http://localhost:3000/api/v1/projects/my-project/tests/my-test/upl
   -F 'file=@screenshot.png'
 ```
 
-The seed scripts authenticate the same way. When running `pnpm run seed:*` directly they read `SEED_API_KEY` (or `E2E_API_KEY` for the e2e seeder) from the process environment — `export SEED_API_KEY=<rawKey>` first, since the scripts don't load dotenv files. `./scripts/dev.sh seed` sources `backend/.env.local`, so setting `SEED_API_KEY` there is enough; if only `ADMIN_API_KEY` is set, `dev.sh` provisions a key automatically via the admin endpoint.
+The seed scripts authenticate the same way — see [Seed Demo Data](#seed-demo-data-optional) for the exact `SEED_API_KEY` / `E2E_API_KEY` setup.
 
 ---
 
@@ -317,51 +326,20 @@ Recommended order: `lint` → `typecheck:all` → `format` → `unitTest`
 
 ## Deployment
 
-Three run modes, depending on your goal:
+| Goal                                 | Path                             | Requires              |
+| ------------------------------------ | -------------------------------- | --------------------- |
+| **Self-hosting** (default)           | `./install.sh`                   | Docker only           |
+| **Local development** (hot reload)   | `pnpm run dev:reset` → `pnpm run dev` | Docker + Node ≥ 20.19 |
+| **Kubernetes** (Helm chart / ArgoCD) | [docs/deployment.md](docs/deployment.md) | kubectl + Helm/ArgoCD |
 
-| Goal                                 | Path                                         | Requires              |
-| ------------------------------------ | -------------------------------------------- | --------------------- |
-| **Local development** (hot reload)   | `pnpm run dev:reset` → `pnpm run dev`        | Docker + Node ≥ 20.19 |
-| **Self-hosted with Docker Compose**  | `pnpm start`                                 | Docker only           |
-| **Kubernetes** (Helm chart / ArgoCD) | see [docs/deployment.md](docs/deployment.md) | kubectl + Helm/ArgoCD |
+Docker Compose is the self-hosting path — `./install.sh` (or plain
+`docker compose up -d --build`) runs the full stack: PostgreSQL, RustFS,
+backend, worker, pdf-sidecar, and frontend. Migrations and the RustFS bucket
+setup run automatically on startup.
 
-### Docker Compose (self-hosted)
-
-`pnpm start` builds and runs the full stack (PostgreSQL, RustFS, backend, worker, pdf-sidecar, frontend) with a single command. Migration and RustFS bucket setup run automatically on startup. This is the recommended production-like deployment for a single host.
-
-```bash
-pnpm start
-pnpm run dev:seed    # optional demo data
-```
-
-To deploy with plain `docker compose` instead (no pnpm/Node needed):
-
-```bash
-docker compose up -d --build
-```
-
-Set production credentials (DB password, RustFS keys) via the root `.env` file — see [Environment Configuration](#environment-configuration).
-
-### Kubernetes (Helm / ArgoCD)
-
-A Helm chart ships in `deploy/charts/vrt/`, with an ArgoCD Application manifest and helper scripts in `deploy/scripts/`. It deploys the same stack plus an ingress, optional HPA/PDB, NetworkPolicy, and a `db-migrate` job that applies the schema before the backend starts.
-
-```bash
-# k3s quickstart (single-node cluster, interactive credentials)
-./deploy/scripts/setup-k3s.sh
-
-# Deploy via Helm
-./deploy/scripts/deploy.sh
-
-# Or via ArgoCD
-./deploy/scripts/install-argocd.sh
-```
-
-**DNS is required**: the chart routes `vrt.local` (frontend) and `rustfs.vrt.local` (RustFS) through the ingress — add a wildcard `*.vrt.local` DNS entry or `/etc/hosts` lines for test machines, otherwise images won't load.
-
-> **Image registry**: the chart pulls images from `ghcr.io/fishkob/*`. On a fresh clone you need pull access to those images, or re-point `repository` in `deploy/charts/vrt/values.yaml` to images you own.
-
-See [docs/deployment.md](docs/deployment.md) for full details, including connecting an external PostgreSQL instance.
+For Kubernetes, a Helm chart ships in `deploy/charts/vrt/` with an ArgoCD
+Application manifest and helper scripts in `deploy/scripts/`. That path is
+documented separately in [docs/deployment.md](docs/deployment.md).
 
 ---
 
