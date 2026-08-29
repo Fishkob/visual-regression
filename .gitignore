@@ -13,12 +13,16 @@
 # Local Helm overrides with credentials
 deploy/charts/vrt/values.local.yaml
 .superpowers/
-/.agents/skills/grill-with-docs/ADR-FORMAT.md
-/.agents/skills/grill-with-docs/CONTEXT-FORMAT.md
-/.agents/skills/grill-with-docs/SKILL.md
 /visual-regression.iml
 /pdf-sidecar/target/
 /pdf-sidecar/dependency-reduced-pom.xml
+
+# Local-only agent tooling and skill lockfile (not shipped with the product)
+/.agents/
+/skills-lock.json
+
+# Generated Prisma client — regenerate via `pnpm run db:prepare`
+/backend/prisma/generated/
 
 # Security scan artifacts (local gate runs)
 *.sarif
