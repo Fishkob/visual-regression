@@ -3,7 +3,9 @@ set -e
 
 # Requires: GHCR_TOKEN (if pulling images from GHCR)
 #   export GHCR_TOKEN=ghp_xxx && ./deploy/scripts/deploy.sh
-#   Optional: GHCR_USER (defaults to the git remote's repository owner)
+#   Optional: GHCR_USER (overrides the owner for one run). Otherwise the owner
+#   is read from deploy/charts/vrt/values.local.yaml, derived from the git
+#   remote, or prompted once and stored there.
 
 echo "=== Deploying Visual Regression ==="
 
@@ -14,11 +16,56 @@ cd "$PROJECT_DIR"
 
 # Build the Helm command
 HELM_OPTS=()
-GHCR_USER="${GHCR_USER:-$(git remote get-url origin 2>/dev/null | sed -nE 's#.*github.com[:/]([^/]+)/.*#\1#p')}"
-if [ -z "$GHCR_USER" ]; then
-  echo "ERROR: Cannot determine GHCR owner. Export GHCR_USER or set a git remote." >&2
+VALUES_LOCAL="charts/vrt/values.local.yaml"
+
+# Persist the GHCR owner into values.local.yaml (idempotent).
+persist_ghcr_owner() {
+  local owner="$1"
+  if [ -f "$VALUES_LOCAL" ] && grep -qE '^imageOwner:' "$VALUES_LOCAL"; then
+    sed -i.bak -E "s|^imageOwner:.*|imageOwner: ${owner}|" "$VALUES_LOCAL"
+    rm -f "$VALUES_LOCAL.bak"
+  else
+    printf '\nimageOwner: %s\n' "$owner" >> "$VALUES_LOCAL"
+  fi
+}
+
+# Resolve the GHCR owner. Priority: GHCR_USER env -> values.local.yaml ->
+# git remote owner -> interactive prompt (persisted). Non-interactive with no
+# source -> hard error.
+resolve_ghcr_owner() {
+  if [ -n "$GHCR_USER" ]; then
+    echo "$GHCR_USER"
+    return
+  fi
+  if [ -f "$VALUES_LOCAL" ]; then
+    local from_file
+    from_file="$(sed -nE 's/^imageOwner:[[:space:]]*(.*)$/\1/p' "$VALUES_LOCAL" | head -n1)"
+    if [ -n "$from_file" ]; then
+      echo "$from_file"
+      return
+    fi
+  fi
+  local from_git
+  from_git="$(git remote get-url origin 2>/dev/null | sed -nE 's#.*github.com[:/]([^/]+)/.*#\1#p')"
+  if [ -n "$from_git" ]; then
+    echo "$from_git"
+    return
+  fi
+  if [ -t 0 ]; then
+    read -r -p "GHCR owner publishing the images (ghcr.io/<owner>/...): " owner
+    if [ -z "$owner" ]; then
+      echo "ERROR: GHCR owner is required." >&2
+      exit 1
+    fi
+    persist_ghcr_owner "$owner"
+    echo "$owner"
+    return
+  fi
+  echo "ERROR: Cannot determine GHCR owner. Export GHCR_USER, set imageOwner in values.local.yaml, or run interactively." >&2
   exit 1
-fi
+}
+
+GHCR_USER="$(resolve_ghcr_owner)"
 # Point the chart at the images published under this owner (ghcr.io/<owner>/<name>).
 HELM_OPTS+=(--set "imageOwner=$GHCR_USER")
 if [ -n "$GHCR_TOKEN" ]; then
