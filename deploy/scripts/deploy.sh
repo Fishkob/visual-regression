@@ -14,7 +14,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
 
-# Build the Helm command
 HELM_OPTS=()
 VALUES_LOCAL="charts/vrt/values.local.yaml"
 
@@ -52,6 +51,7 @@ resolve_ghcr_owner() {
     return
   fi
   if [ -t 0 ]; then
+    local owner
     read -r -p "GHCR owner publishing the images (ghcr.io/<owner>/...): " owner
     if [ -z "$owner" ]; then
       echo "ERROR: GHCR owner is required." >&2
@@ -66,6 +66,8 @@ resolve_ghcr_owner() {
 }
 
 GHCR_USER="$(resolve_ghcr_owner)"
+
+# Build the Helm command
 # Point the chart at the images published under this owner (ghcr.io/<owner>/<name>).
 HELM_OPTS+=(--set "imageOwner=$GHCR_USER")
 if [ -n "$GHCR_TOKEN" ]; then
