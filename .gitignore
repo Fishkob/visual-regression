@@ -23,6 +23,7 @@ deploy/charts/vrt/values.local.yaml
 # Local-only agent tooling and skill lockfile (not shipped with the product)
 /.agents/
 /skills-lock.json
+/.opencode/
 
 # Generated Prisma client — regenerate via `pnpm run db:prepare`
 /backend/prisma/generated/
