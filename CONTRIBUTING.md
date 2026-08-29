@@ -4,7 +4,7 @@ Thanks for contributing to the Visual Regression Platform!
 
 ## Getting Started
 
-Prerequisites: Docker, Docker Compose, and pnpm (Node >= 20.19).
+Prerequisites: Docker, Docker Compose, and pnpm (Node >= 24).
 
 ```bash
 # First-time setup: clean slate → infra (postgres, rustfs) → install deps → generate SDK

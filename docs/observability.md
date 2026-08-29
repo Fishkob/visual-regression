@@ -6,6 +6,13 @@ All observability components are **completely optional** and live in `docker-com
 docker compose -f docker-compose.observability.yml up -d
 ```
 
+> **Local-only by default:** all services bind to `127.0.0.1` (localhost), so the
+> dashboards and endpoints are never reachable from the LAN or the internet. The
+> stack ships with no authentication (Grafana uses its default admin/admin) —
+> keep it on localhost for development. For a shared deployment, run your own
+> monitoring stack and point the app at it (see [Bring Your Own Monitoring
+> Stack](#bring-your-own-monitoring-stack)).
+
 Every component has a clear job and can fail without affecting the application:
 
 | Component      | Role                                             | Failure impact                     |

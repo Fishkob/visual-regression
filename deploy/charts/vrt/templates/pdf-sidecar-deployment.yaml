@@ -28,7 +28,7 @@ spec:
               drop:
                 - ALL
             readOnlyRootFilesystem: true
-          image: "{{ .Values.images.pdfSidecar.repository }}:{{ .Values.images.pdfSidecar.tag }}"
+          image: "ghcr.io/{{ .Values.imageOwner }}/{{ .Values.images.pdfSidecar.name }}:{{ .Values.images.pdfSidecar.tag }}"
           volumeMounts:
             - name: tmp
               mountPath: /tmp

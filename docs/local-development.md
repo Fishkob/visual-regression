@@ -3,8 +3,8 @@
 ## Prerequisites
 
 - Docker & Docker Compose
-- **Node.js ≥ 20.19** (enforced via `engines`; CI runs Node 24, see `.node-version`)
-- pnpm (auto-installed by `dev.sh` if missing)
+- **Node.js ≥ 24** (enforced via `engines`, see `.node-version`)
+- pnpm ≥ 10 (auto-installed by `dev.sh` if missing)
 
 ## First-time Setup
 

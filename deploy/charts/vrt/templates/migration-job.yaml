@@ -21,7 +21,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: db-migrate
-          image: "{{ .Values.images.migrate.repository }}:{{ .Values.images.migrate.tag }}"
+          image: "ghcr.io/{{ .Values.imageOwner }}/{{ .Values.images.migrate.name }}:{{ .Values.images.migrate.tag }}"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

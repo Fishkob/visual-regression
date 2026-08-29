@@ -27,7 +27,7 @@ spec:
               drop:
                 - ALL
             readOnlyRootFilesystem: true
-          image: "{{ .Values.images.backend.repository }}:{{ .Values.images.backend.tag }}"
+          image: "ghcr.io/{{ .Values.imageOwner }}/{{ .Values.images.backend.name }}:{{ .Values.images.backend.tag }}"
           volumeMounts:
             - name: tmp
               mountPath: /tmp

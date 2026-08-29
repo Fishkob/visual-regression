@@ -1,8 +1,8 @@
-FROM node:26-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-RUN npm install -g pnpm@10.33.0
+RUN npm install -g pnpm@10.34.5
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY .npmrc ./

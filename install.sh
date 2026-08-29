@@ -144,7 +144,7 @@ cmd_install() {
 
 cmd_seed() {
     if ! command -v pnpm >/dev/null 2>&1; then
-        warn "Seeding needs pnpm (Node >= 20.19) on the host."
+        warn "Seeding needs pnpm (Node >= 24) on the host."
         warn "The seed scripts are not shipped in the Docker images. Install pnpm, or create a project via the web UI instead."
         return 0
     fi

@@ -19,7 +19,8 @@
   ],
   "type": "module",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=24.0.0",
+    "pnpm": ">=10.0.0"
   },
   "scripts": {
     "bootstrap": "pnpm run db:prepare && pnpm run sdk:generate && pnpm run sdk:build",

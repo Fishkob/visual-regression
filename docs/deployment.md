@@ -172,12 +172,14 @@ On every push to `main` or `develop`, GitHub Actions runs tests (unit + e2e) aut
 
 Docker images are built and pushed to GHCR **manually** via the `Manual Deploy` workflow in GitHub Actions. After a successful build, the workflow updates `deploy/charts/vrt/values.yaml` with the new image SHA, which ArgoCD picks up automatically.
 
-Images are pushed to (resolved from the repository owner):
+Images are pushed to (resolved from the repository owner, e.g. `ghcr.io/<owner>/...`):
 
 - `ghcr.io/Fishkob/visual-regression-backend`
 - `ghcr.io/Fishkob/visual-regression-frontend`
 - `ghcr.io/Fishkob/visual-regression-worker`
 - `ghcr.io/Fishkob/pdf-sidecar`
+
+Forks publish under their own owner: the Helm chart's `imageOwner` value (set automatically by `deploy.sh` from the git remote) controls the image registry path.
 
 The worker and pdf-sidecar images are built whenever the target is `backend` or `both` — they are required for any comparison to run.
 

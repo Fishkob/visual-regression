@@ -16,6 +16,8 @@ cd "$PROJECT_DIR"
 HELM_OPTS=()
 GHCR_USER="${GHCR_USER:-$(git remote get-url origin 2>/dev/null | sed -nE 's#.*github.com[:/]([^/]+)/.*#\1#p')}"
 GHCR_USER="${GHCR_USER:-Fishkob}"
+# Point the chart at the images published under this owner (ghcr.io/<owner>/<name>).
+HELM_OPTS+=(--set "imageOwner=$GHCR_USER")
 if [ -n "$GHCR_TOKEN" ]; then
   DOCKER_AUTH=$(echo -n "${GHCR_USER}:${GHCR_TOKEN}" | base64)
   DOCKER_CONFIG=$(echo "{\"auths\":{\"ghcr.io\":{\"auth\":\"${DOCKER_AUTH}\"}}}" | base64)

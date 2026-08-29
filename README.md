@@ -44,7 +44,7 @@ Remove `BOOTSTRAP_ADMIN_*` from `.env` after first login.
 ### Optional: seed demo data
 
 `./install.sh --seed` populates the database with demo projects. Seeding runs
-the seed scripts from the repo, so it needs **pnpm** (Node ≥ 20.19) on the host.
+the seed scripts from the repo, so it needs **pnpm** (Node ≥ 24) on the host.
 Without pnpm, the installer skips seeding with a hint — you can equally create a
 project through the web UI.
 
@@ -77,7 +77,7 @@ If `.env` is missing, copy `.env.example` to `.env` and fill in the secrets.
 ### For contributors (local development with hot reload)
 
 Not running the product? Contributing to the codebase is different — it needs
-Node ≥ 20.19 and pnpm, and hot-reloads backend + frontend:
+Node ≥ 24 and pnpm ≥ 10, and hot-reloads backend + frontend:
 
 ```bash
 # First-time setup: clean slate → infra (postgres, rustfs) → install deps → generate SDK
@@ -326,10 +326,10 @@ Recommended order: `lint` → `typecheck:all` → `format` → `unitTest`
 
 ## Deployment
 
-| Goal                                 | Path                             | Requires              |
-| ------------------------------------ | -------------------------------- | --------------------- |
-| **Self-hosting** (default)           | `./install.sh`                   | Docker only           |
-| **Local development** (hot reload)   | `pnpm run dev:reset` → `pnpm run dev` | Docker + Node ≥ 20.19 |
+| Goal                                 | Path                                     | Requires              |
+| ------------------------------------ | ---------------------------------------- | --------------------- |
+| **Self-hosting** (default)           | `./install.sh`                           | Docker only           |
+| **Local development** (hot reload)   | `pnpm run dev:reset` → `pnpm run dev`    | Docker + Node ≥ 24    |
 | **Kubernetes** (Helm chart / ArgoCD) | [docs/deployment.md](docs/deployment.md) | kubectl + Helm/ArgoCD |
 
 Docker Compose is the self-hosting path — `./install.sh` (or plain

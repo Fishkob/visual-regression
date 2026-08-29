@@ -1,5 +1,8 @@
 namespace: vrt
 domain: vrt.local
+# GHCR owner/org publishing the pre-built images (ghcr.io/<imageOwner>/<name>).
+# deploy.sh derives this from the git remote; forks override it via --set.
+imageOwner: Fishkob
 # Browser-reachable RustFS host. The backend appends `/bucket/<object>` itself,
 # so this must be the base URL WITHOUT the bucket. Routed to the RustFS service
 # by the ingress (see templates/ingress.yaml). Requires DNS for this host.
@@ -19,19 +22,19 @@ secrets:
 
 images:
   backend:
-    repository: ghcr.io/Fishkob/visual-regression-backend
+    name: visual-regression-backend
     tag: eb3ad4a
   frontend:
-    repository: ghcr.io/Fishkob/visual-regression-frontend
+    name: visual-regression-frontend
     tag: eb3ad4a
   worker:
-    repository: ghcr.io/Fishkob/visual-regression-worker
+    name: visual-regression-worker
     tag: eb3ad4a
   pdfSidecar:
-    repository: ghcr.io/Fishkob/pdf-sidecar
+    name: pdf-sidecar
     tag: eb3ad4a
   migrate:
-    repository: ghcr.io/Fishkob/visual-regression-migrate
+    name: visual-regression-migrate
     tag: eb3ad4a
 
 tls:

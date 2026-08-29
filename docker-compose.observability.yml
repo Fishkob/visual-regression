@@ -4,9 +4,9 @@ services:
     container_name: alloy
     restart: unless-stopped
     ports:
-      - "4317:4317"
-      - "4318:4318"
-      - "12345:12345"
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:12345:12345"
     volumes:
       - ./backend/observability/alloy.river:/etc/alloy/alloy.river
       - /var/run/docker.sock:/var/run/docker.sock
@@ -26,7 +26,7 @@ services:
     restart: unless-stopped
     command: ["-config.file=/etc/tempo-config.yml"]
     ports:
-      - "3200:3200"
+      - "127.0.0.1:3200:3200"
     volumes:
       - ./backend/observability/tempo-config.yml:/etc/tempo-config.yml
       - tempo-data:/var/tempo
@@ -37,7 +37,7 @@ services:
     restart: unless-stopped
     command: ["-config.file=/etc/loki-config.yml"]
     ports:
-      - "3100:3100"
+      - "127.0.0.1:3100:3100"
     volumes:
       - ./backend/observability/loki-config.yml:/etc/loki-config.yml
       - loki-data:/loki
@@ -55,7 +55,7 @@ services:
       - "--web.console.templates=/usr/share/prometheus/consoles"
       - "--enable-feature=remote-write-receiver"
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     volumes:
       - ./backend/observability/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
@@ -65,7 +65,7 @@ services:
     container_name: grafana
     restart: unless-stopped
     ports:
-      - "3030:3000"
+      - "127.0.0.1:3030:3000"
     volumes:
       - ./backend/observability/grafana/datasources:/etc/grafana/provisioning/datasources
       - ./backend/observability/grafana/dashboards:/etc/grafana/provisioning/dashboards
