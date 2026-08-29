@@ -34,6 +34,12 @@ export GHCR_TOKEN=<PAT with read:packages>
 ./deploy/scripts/deploy.sh
 ```
 
+`deploy.sh` resolves the GHCR image owner automatically and stores it in the
+git-ignored `deploy/charts/vrt/values.local.yaml` the first time it has to ask.
+Priority: `GHCR_USER` env override → `imageOwner` in `values.local.yaml` →
+owner from the git remote → an interactive prompt that persists the answer.
+No need to type the owner on later deploys.
+
 ### Option B: ArgoCD (GitOps)
 
 ```bash
@@ -179,7 +185,7 @@ Images are pushed to (resolved from the repository owner, e.g. `ghcr.io/<owner>/
 - `ghcr.io/<owner>/visual-regression-worker`
 - `ghcr.io/<owner>/pdf-sidecar`
 
-Forks publish under their own owner: the Helm chart's `imageOwner` value (set automatically by `deploy.sh` from the git remote) controls the image registry path.
+Forks publish under their own owner: the Helm chart's `imageOwner` value controls the image registry path. `deploy.sh` sets it automatically (from `values.local.yaml`, the git remote, or a one-time prompt — see above); ArgoCD users edit it in the chart values instead.
 
 The worker and pdf-sidecar images are built whenever the target is `backend` or `both` — they are required for any comparison to run.
 
