@@ -72,5 +72,3 @@ spec:
           emptyDir: {}
         - name: nginx-logs
           emptyDir: {}
-      imagePullSecrets:
-        - name: ghcr-secret
