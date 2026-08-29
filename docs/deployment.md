@@ -10,7 +10,7 @@ Deploys the full stack (backend, worker, frontend, pdf-sidecar, PostgreSQL, Rust
 - **Helm 3** (for the direct Helm path) and/or **ArgoCD** (for the GitOps path)
 - An ingress controller (default NetworkPolicy allows `traefik`)
 - **DNS** for the ingress hosts: `vrt.local` (frontend) and `rustfs.vrt.local` (RustFS) must resolve to the cluster — wildcard `*.vrt.local` or `/etc/hosts` entries on test machines. Without DNS, the frontend loads but screenshot images do not.
-- Pull access to the images on GHCR (`ghcr.io/<owner>/*`). For private repositories, set `secrets.ghcr_pull_secret` (a base64 Docker config) or export `GHCR_TOKEN` for `deploy.sh`.
+- The pre-built images on GHCR (`ghcr.io/fishkob/*`) are public — no registry credentials are required.
 - PostgreSQL 16+ (a chart-internal Postgres is included; an existing external instance can be used instead — see below)
 
 ## Two Deployment Paths
@@ -18,27 +18,20 @@ Deploys the full stack (backend, worker, frontend, pdf-sidecar, PostgreSQL, Rust
 ### Option A: Helm directly (no ArgoCD)
 
 ```bash
-# Set image-pull credentials (skip if the GHCR images are public)
-export GHCR_TOKEN=<PAT with read:packages>
-
 # Override default secrets before deploying (values.yaml ships CHANGE_ME placeholders)
 helm upgrade --install vrt deploy/charts/vrt --namespace vrt --create-namespace \
   --set secrets.postgres_password=<strong-password> \
   --set secrets.rustfs_secret_key=<strong-key>
 ```
 
-Or use the wrapper that applies the secrets automatically:
+Or use the wrapper, which installs the chart and waits for the pods:
 
 ```bash
-export GHCR_TOKEN=<PAT with read:packages>
 ./deploy/scripts/deploy.sh
 ```
 
-`deploy.sh` resolves the GHCR image owner automatically and stores it in the
-git-ignored `deploy/charts/vrt/values.local.yaml` the first time it has to ask.
-Priority: `GHCR_USER` env override → `imageOwner` in `values.local.yaml` →
-owner from the git remote → an interactive prompt that persists the answer.
-No need to type the owner on later deploys.
+The chart pulls the pre-built images from `ghcr.io/fishkob/*` — public, so no
+registry credentials are needed.
 
 ### Option B: ArgoCD (GitOps)
 
@@ -100,7 +93,6 @@ Credentials live in the `vrt-secrets` Kubernetes secret, populated from the Helm
 | `postgres_db`       | `vrt`                                    |
 | `rustfs_access_key` | `rustfsadmin`                            |
 | `rustfs_secret_key` | your key (CHANGE_ME in values.yaml)      |
-| `ghcr_pull_secret`  | Docker config JSON for image pulls       |
 
 **Never commit real credentials** — `values.yaml` ships `CHANGE_ME` placeholders, and the root `.gitignore` already excludes `values.local.yaml` for local overrides.
 
@@ -185,7 +177,7 @@ Images are pushed to (resolved from the repository owner, e.g. `ghcr.io/<owner>/
 - `ghcr.io/<owner>/visual-regression-worker`
 - `ghcr.io/<owner>/pdf-sidecar`
 
-Forks publish under their own owner: the Helm chart's `imageOwner` value controls the image registry path. `deploy.sh` sets it automatically (from `values.local.yaml`, the git remote, or a one-time prompt — see above); ArgoCD users edit it in the chart values instead.
+The Helm chart's `imageOwner` value (default `fishkob`) controls the image registry path. Forks that publish their own images override it via `--set imageOwner=<fork-owner>` (or the chart values in ArgoCD).
 
 The worker and pdf-sidecar images are built whenever the target is `backend` or `both` — they are required for any comparison to run.
 
