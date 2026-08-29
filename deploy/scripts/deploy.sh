@@ -3,7 +3,7 @@ set -e
 
 # Requires: GHCR_TOKEN (if pulling images from GHCR)
 #   export GHCR_TOKEN=ghp_xxx && ./deploy/scripts/deploy.sh
-#   Optional: GHCR_USER (defaults to fishkob)
+#   Optional: GHCR_USER (defaults to the git remote's repository owner)
 
 echo "=== Deploying Visual Regression ==="
 
@@ -14,8 +14,10 @@ cd "$PROJECT_DIR"
 
 # Build the Helm command
 HELM_OPTS=()
+GHCR_USER="${GHCR_USER:-$(git remote get-url origin 2>/dev/null | sed -nE 's#.*github.com[:/]([^/]+)/.*#\1#p')}"
+GHCR_USER="${GHCR_USER:-<owner>}"
 if [ -n "$GHCR_TOKEN" ]; then
-  DOCKER_AUTH=$(echo -n "${GHCR_USER:-fishkob}:${GHCR_TOKEN}" | base64)
+  DOCKER_AUTH=$(echo -n "${GHCR_USER}:${GHCR_TOKEN}" | base64)
   DOCKER_CONFIG=$(echo "{\"auths\":{\"ghcr.io\":{\"auth\":\"${DOCKER_AUTH}\"}}}" | base64)
   HELM_OPTS+=(--set "secrets.ghcr_pull_secret=$DOCKER_CONFIG")
 fi

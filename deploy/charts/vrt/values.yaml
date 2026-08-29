@@ -19,19 +19,19 @@ secrets:
 
 images:
   backend:
-    repository: ghcr.io/fishkob/visual-regression-backend
+    repository: ghcr.io/<owner>/visual-regression-backend
     tag: eb3ad4a
   frontend:
-    repository: ghcr.io/fishkob/visual-regression-frontend
+    repository: ghcr.io/<owner>/visual-regression-frontend
     tag: eb3ad4a
   worker:
-    repository: ghcr.io/fishkob/visual-regression-worker
+    repository: ghcr.io/<owner>/visual-regression-worker
     tag: eb3ad4a
   pdfSidecar:
-    repository: ghcr.io/fishkob/pdf-sidecar
+    repository: ghcr.io/<owner>/pdf-sidecar
     tag: eb3ad4a
   migrate:
-    repository: ghcr.io/fishkob/visual-regression-migrate
+    repository: ghcr.io/<owner>/visual-regression-migrate
     tag: eb3ad4a
 
 tls:

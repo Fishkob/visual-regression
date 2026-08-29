@@ -9,7 +9,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/Fishkob/visual-regression.git
+    repoURL: https://github.com/<owner>/visual-regression.git
     targetRevision: main
     path: deploy/charts/vrt
     helm:
