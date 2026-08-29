@@ -45,17 +45,6 @@ kubectl create secret generic vrt-secrets -n vrt \
   --from-literal=rustfs-secret-key="${RUSTFS_SECRET_KEY}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-# Create image pull secret for ghcr.io
-read -p "GitHub username for ghcr.io: " GH_USER
-read -sp "GitHub Personal Access Token (with read:packages scope): " GH_TOKEN
-echo ""
-
-kubectl create secret docker-registry ghcr-secret -n vrt \
-  --docker-server=ghcr.io \
-  --docker-username="${GH_USER}" \
-  --docker-password="${GH_TOKEN}" \
-  --dry-run=client -o yaml | kubectl apply -f -
-
 # Add /etc/hosts entry hint
 echo ""
 echo "=== Setup complete ==="
