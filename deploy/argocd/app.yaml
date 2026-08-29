@@ -10,7 +10,7 @@ spec:
   project: default
   source:
     # Forks: point this at your own fork so ArgoCD syncs from it.
-    repoURL: https://github.com/Fishkob/visual-regression.git
+    repoURL: https://github.com/<owner>/visual-regression.git
     targetRevision: main
     path: deploy/charts/vrt
   destination:

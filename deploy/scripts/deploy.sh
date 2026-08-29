@@ -15,7 +15,10 @@ cd "$PROJECT_DIR"
 # Build the Helm command
 HELM_OPTS=()
 GHCR_USER="${GHCR_USER:-$(git remote get-url origin 2>/dev/null | sed -nE 's#.*github.com[:/]([^/]+)/.*#\1#p')}"
-GHCR_USER="${GHCR_USER:-Fishkob}"
+if [ -z "$GHCR_USER" ]; then
+  echo "ERROR: Cannot determine GHCR owner. Export GHCR_USER or set a git remote." >&2
+  exit 1
+fi
 # Point the chart at the images published under this owner (ghcr.io/<owner>/<name>).
 HELM_OPTS+=(--set "imageOwner=$GHCR_USER")
 if [ -n "$GHCR_TOKEN" ]; then

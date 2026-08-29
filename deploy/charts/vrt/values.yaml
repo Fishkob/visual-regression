@@ -2,7 +2,7 @@ namespace: vrt
 domain: vrt.local
 # GHCR owner/org publishing the pre-built images (ghcr.io/<imageOwner>/<name>).
 # deploy.sh derives this from the git remote; forks override it via --set.
-imageOwner: Fishkob
+imageOwner: <owner>
 # Browser-reachable RustFS host. The backend appends `/bucket/<object>` itself,
 # so this must be the base URL WITHOUT the bucket. Routed to the RustFS service
 # by the ingress (see templates/ingress.yaml). Requires DNS for this host.
