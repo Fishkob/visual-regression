@@ -2,8 +2,8 @@
 
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://github.com/<owner>/visual-regression/actions/workflows/ci-backend.yml"><img src="https://github.com/<owner>/visual-regression/actions/workflows/ci-backend.yml/badge.svg" alt="CI (Backend)"></a>
-  <a href="https://github.com/<owner>/visual-regression/actions/workflows/ci-frontend.yml"><img src="https://github.com/<owner>/visual-regression/actions/workflows/ci-frontend.yml/badge.svg" alt="CI (Frontend)"></a>
+  <a href="https://github.com/Fishkob/visual-regression/actions/workflows/ci-backend.yml"><img src="https://github.com/Fishkob/visual-regression/actions/workflows/ci-backend.yml/badge.svg" alt="CI (Backend)"></a>
+  <a href="https://github.com/Fishkob/visual-regression/actions/workflows/ci-frontend.yml"><img src="https://github.com/Fishkob/visual-regression/actions/workflows/ci-frontend.yml/badge.svg" alt="CI (Frontend)"></a>
 </p>
 
 Catch unintended visual changes before they reach production. Upload screenshots from your CI pipeline, compare them pixel-by-pixel against baselines, and approve changes via the web dashboard.
@@ -25,7 +25,7 @@ need [Docker](https://docs.docker.com/get-docker/) (Desktop on macOS/Windows,
 engine on Linux) with the daemon running.
 
 ```bash
-git clone https://github.com/<owner>/visual-regression.git
+git clone https://github.com/Fishkob/visual-regression.git
 cd visual-regression
 ./install.sh            # Docker required — nothing else
 ```

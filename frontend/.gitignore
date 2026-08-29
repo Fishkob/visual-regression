@@ -23,6 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# TypeScript incremental build cache
+*.tsbuildinfo
+
 # Playwright
 /test-results/
 /playwright-report/

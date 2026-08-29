@@ -229,7 +229,7 @@ Expected response (`DetailedHealthDto`; `worker`/`pdf-sidecar` are `skipped` whe
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/<owner>/visual-regression.git
+git clone https://github.com/Fishkob/visual-regression.git
 cd visual-regression
 
 # 2. Create environment file

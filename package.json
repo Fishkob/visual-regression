@@ -1,8 +1,22 @@
 {
   "name": "visual-regression",
   "version": "1.0.0",
+  "description": "Self-hosted visual regression testing platform — upload screenshots from CI, compare pixel-by-pixel, and approve changes via a web dashboard",
   "license": "MIT",
   "private": true,
+  "author": "Fishkob",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Fishkob/visual-regression.git"
+  },
+  "homepage": "https://github.com/Fishkob/visual-regression",
+  "keywords": [
+    "visual-regression",
+    "visual-testing",
+    "pixelmatch",
+    "screenshot-testing",
+    "self-hosted"
+  ],
   "type": "module",
   "engines": {
     "node": ">=20.19.0"

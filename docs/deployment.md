@@ -10,7 +10,7 @@ Deploys the full stack (backend, worker, frontend, pdf-sidecar, PostgreSQL, Rust
 - **Helm 3** (for the direct Helm path) and/or **ArgoCD** (for the GitOps path)
 - An ingress controller (default NetworkPolicy allows `traefik`)
 - **DNS** for the ingress hosts: `vrt.local` (frontend) and `rustfs.vrt.local` (RustFS) must resolve to the cluster — wildcard `*.vrt.local` or `/etc/hosts` entries on test machines. Without DNS, the frontend loads but screenshot images do not.
-- Pull access to the images on GHCR (`ghcr.io/<owner>/*`). For private repositories, set `secrets.ghcr_pull_secret` (a base64 Docker config) or export `GHCR_TOKEN` for `deploy.sh`.
+- Pull access to the images on GHCR (`ghcr.io/Fishkob/*`). For private repositories, set `secrets.ghcr_pull_secret` (a base64 Docker config) or export `GHCR_TOKEN` for `deploy.sh`.
 - PostgreSQL 16+ (a chart-internal Postgres is included; an existing external instance can be used instead — see below)
 
 ## Two Deployment Paths
@@ -174,10 +174,10 @@ Docker images are built and pushed to GHCR **manually** via the `Manual Deploy` 
 
 Images are pushed to (resolved from the repository owner):
 
-- `ghcr.io/<owner>/visual-regression-backend`
-- `ghcr.io/<owner>/visual-regression-frontend`
-- `ghcr.io/<owner>/visual-regression-worker`
-- `ghcr.io/<owner>/pdf-sidecar`
+- `ghcr.io/Fishkob/visual-regression-backend`
+- `ghcr.io/Fishkob/visual-regression-frontend`
+- `ghcr.io/Fishkob/visual-regression-worker`
+- `ghcr.io/Fishkob/pdf-sidecar`
 
 The worker and pdf-sidecar images are built whenever the target is `backend` or `both` — they are required for any comparison to run.
 
