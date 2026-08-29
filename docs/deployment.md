@@ -177,7 +177,7 @@ Images are pushed to (resolved from the repository owner, e.g. `ghcr.io/<owner>/
 - `ghcr.io/<owner>/visual-regression-worker`
 - `ghcr.io/<owner>/pdf-sidecar`
 
-The Helm chart's `imageOwner` value (default `fishkob`) controls the image registry path. Forks that publish their own images override it via `--set imageOwner=<fork-owner>` (or the chart values in ArgoCD).
+The Helm chart's `registry` value (default `ghcr.io`) and `imageOwner` value (default `fishkob`) build the image path. Forks that publish their own images override `imageOwner` via `--set imageOwner=<fork-owner>`; to pull from a different registry, override `registry` too (or set both in the chart values in ArgoCD).
 
 The worker and pdf-sidecar images are built whenever the target is `backend` or `both` — they are required for any comparison to run.
 

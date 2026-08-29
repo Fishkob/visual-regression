@@ -1,5 +1,8 @@
 namespace: vrt
 domain: vrt.local
+# Container registry hosting the pre-built images (default: GHCR). Override to
+# pull from another registry, e.g. --set registry=docker.io/<owner>.
+registry: ghcr.io
 # GHCR owner/org publishing the pre-built images (ghcr.io/<imageOwner>/<name>).
 # Default = canonical public images (ghcr.io/fishkob/*). Forks publishing their
 # own images override this via --set imageOwner=... (or chart values in ArgoCD).
