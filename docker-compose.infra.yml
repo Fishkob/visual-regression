@@ -6,8 +6,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-vrt}
+    # Local-only: bound to 127.0.0.1 so the DB isn't reachable from the LAN.
+    # The backend/worker connect via the compose network, not this host port.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -24,8 +26,8 @@ services:
       volume-permission-helper:
         condition: service_completed_successfully
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     environment:
       RUSTFS_ACCESS_KEY: ${RUSTFS_ROOT_USER:-rustfsadmin}
       RUSTFS_SECRET_KEY: ${RUSTFS_ROOT_PASSWORD:-rustfsadmin}

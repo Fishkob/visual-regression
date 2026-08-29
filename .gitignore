@@ -7,6 +7,9 @@
 /frontend/dist/
 /frontend/coverage/
 .env
+.env.*
+!.env.example
+!.env*.example
 .DS_Store
 .worktrees/
 
