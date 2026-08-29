@@ -15,7 +15,7 @@ cd "$PROJECT_DIR"
 # Build the Helm command
 HELM_OPTS=()
 GHCR_USER="${GHCR_USER:-$(git remote get-url origin 2>/dev/null | sed -nE 's#.*github.com[:/]([^/]+)/.*#\1#p')}"
-GHCR_USER="${GHCR_USER:-<owner>}"
+GHCR_USER="${GHCR_USER:-Fishkob}"
 if [ -n "$GHCR_TOKEN" ]; then
   DOCKER_AUTH=$(echo -n "${GHCR_USER}:${GHCR_TOKEN}" | base64)
   DOCKER_CONFIG=$(echo "{\"auths\":{\"ghcr.io\":{\"auth\":\"${DOCKER_AUTH}\"}}}" | base64)
