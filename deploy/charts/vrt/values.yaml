@@ -21,21 +21,24 @@ secrets:
   ghcr_pull_secret: ""
 
 images:
+  # The deploy workflow tags every pushed image with `latest` and `sha-<shortsha>`
+  # (see .github/workflows/deploy-manual.yml). `latest` is the safe default here;
+  # the workflow pins exact shas into this file after each deploy.
   backend:
     name: visual-regression-backend
-    tag: eb3ad4a
+    tag: latest
   frontend:
     name: visual-regression-frontend
-    tag: eb3ad4a
+    tag: latest
   worker:
     name: visual-regression-worker
-    tag: eb3ad4a
+    tag: latest
   pdfSidecar:
     name: pdf-sidecar
-    tag: eb3ad4a
+    tag: latest
   migrate:
     name: visual-regression-migrate
-    tag: eb3ad4a
+    tag: latest
 
 tls:
   enabled: false

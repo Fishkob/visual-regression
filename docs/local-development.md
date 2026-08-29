@@ -13,7 +13,7 @@
 npm install -g pnpm
 
 # 2. Full reset: clean everything → start infra → install deps
-pnpm run dev:reset
+./scripts/dev.sh reset
 ```
 
 This runs `delete` (clean slate) → `infra` (postgres + rustfs in Docker) → `local` (pnpm install, prisma generate, migrate dev, SDK generation).
@@ -39,11 +39,11 @@ pnpm run dev:frontend   # Frontend on :5173
 | ------------------------------ | ------------------------------------------------- |
 | Start dev servers (with infra) | `pnpm run dev`                                    |
 | Run full stack in Docker       | `pnpm start`                                      |
-| Start infra only               | `pnpm run dev:infra`                              |
-| Stop all Docker services       | `pnpm run dev:stop`                               |
-| Full clean restart             | `pnpm run dev:reset`                              |
-| Nuke everything                | `pnpm run dev:delete`                             |
-| Seed test data                 | `pnpm run dev:seed`                               |
+| Start infra only               | `./scripts/dev.sh infra`                          |
+| Stop all Docker services       | `./scripts/dev.sh stop`                           |
+| Full clean restart             | `./scripts/dev.sh reset`                          |
+| Nuke everything                | `./scripts/dev.sh delete`                         |
+| Seed test data                 | `./scripts/dev.sh seed`                           |
 | Open database UI               | `pnpm run db:prepare && cd backend && pnpm db:ui` |
 | Generate SDK                   | `pnpm run sdk:generate && pnpm run sdk:build`     |
 

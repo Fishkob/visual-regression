@@ -81,7 +81,7 @@ Node ≥ 24 and pnpm ≥ 10, and hot-reloads backend + frontend:
 
 ```bash
 # First-time setup: clean slate → infra (postgres, rustfs) → install deps → generate SDK
-pnpm run dev:reset
+./scripts/dev.sh reset
 
 # Start backend + frontend with hot reload (starts infra automatically if needed)
 pnpm run dev
@@ -97,7 +97,7 @@ Then open **http://localhost:5173** to see the frontend. See
 After the backend is running, populate the database with demo projects and screenshots:
 
 ```bash
-pnpm run dev:seed
+./scripts/dev.sh seed
 ```
 
 The seeds hit the authenticated REST API, so they need an API key — create one as described in [CI Authentication](#ci-authentication) below. The seed scripts read `SEED_API_KEY` (or `E2E_API_KEY` for the e2e seeder) from the environment:
@@ -294,15 +294,14 @@ back-to-back runs:
 | `pnpm run dev`             | Start infra (if needed) + backend/frontend (hot reload) |
 | `pnpm run dev:backend`     | Backend only                                            |
 | `pnpm run dev:frontend`    | Frontend only                                           |
-| `pnpm run dev:infra`       | Start infra only (postgres, rustfs, pdf-sidecar)        |
-| `pnpm run dev:docker`      | Run the full stack in Docker (alias for `pnpm start`)   |
-| `pnpm run dev:seed`        | Seed database (alias for `./scripts/dev.sh seed`)       |
-| `pnpm run dev:stop`        | Stop Docker services                                    |
-| `pnpm run dev:reset`       | Full reset: delete → infra → local                      |
-| `pnpm run dev:delete`      | Stop and remove all data + builds                       |
+| `./scripts/dev.sh infra`   | Start infra only (postgres, rustfs, pdf-sidecar)        |
+| `./scripts/dev.sh docker`  | Run the full stack in Docker                            |
+| `./scripts/dev.sh seed`    | Seed database with demo + e2e + dev data                |
+| `./scripts/dev.sh stop`    | Stop Docker services                                    |
+| `./scripts/dev.sh reset`   | Full reset: delete → infra → local                      |
+| `./scripts/dev.sh delete`  | Stop and remove all data + builds                       |
 | `pnpm run bootstrap`       | Install deps + generate SDK + build                     |
 | `pnpm run build`           | Build all packages                                      |
-| `./scripts/dev.sh seed`    | Seed database with demo + e2e + dev data                |
 | `pnpm run sdk:generate`    | Generate client SDK from OpenAPI                        |
 | `pnpm run db:prepare`      | Generate Prisma client + apply migrations               |
 | `cd backend && pnpm db:ui` | Open Prisma Studio                                      |
@@ -326,11 +325,11 @@ Recommended order: `lint` → `typecheck:all` → `format` → `unitTest`
 
 ## Deployment
 
-| Goal                                 | Path                                     | Requires              |
-| ------------------------------------ | ---------------------------------------- | --------------------- |
-| **Self-hosting** (default)           | `./install.sh`                           | Docker only           |
-| **Local development** (hot reload)   | `pnpm run dev:reset` → `pnpm run dev`    | Docker + Node ≥ 24    |
-| **Kubernetes** (Helm chart / ArgoCD) | [docs/deployment.md](docs/deployment.md) | kubectl + Helm/ArgoCD |
+| Goal                                 | Path                                      | Requires              |
+| ------------------------------------ | ----------------------------------------- | --------------------- |
+| **Self-hosting** (default)           | `./install.sh`                            | Docker only           |
+| **Local development** (hot reload)   | `./scripts/dev.sh reset` → `pnpm run dev` | Docker + Node ≥ 24    |
+| **Kubernetes** (Helm chart / ArgoCD) | [docs/deployment.md](docs/deployment.md)  | kubectl + Helm/ArgoCD |
 
 Docker Compose is the self-hosting path — `./install.sh` (or plain
 `docker compose up -d --build`) runs the full stack: PostgreSQL, RustFS,

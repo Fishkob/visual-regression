@@ -326,7 +326,14 @@ jobs:
 
   update-manifests:
     name: Update K8s Manifests
-    needs: [build-backend, build-frontend, build-worker, build-pdf-sidecar, build-migrate]
+    needs:
+      [
+        build-backend,
+        build-frontend,
+        build-worker,
+        build-pdf-sidecar,
+        build-migrate,
+      ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -344,15 +351,16 @@ jobs:
           SHORT_SHA="${{ steps.sha.outputs.sha }}"
           TARGET="${{ github.event.inputs.target }}"
 
+          IMAGE_TAG="sha-${SHORT_SHA}"
           if [ "$TARGET" = "backend" ] || [ "$TARGET" = "both" ]; then
-            sed -i '/visual-regression-backend/{n;s|tag:.*|tag: '"${SHORT_SHA}"'|}' deploy/charts/vrt/values.yaml
-            sed -i '/visual-regression-worker/{n;s|tag:.*|tag: '"${SHORT_SHA}"'|}' deploy/charts/vrt/values.yaml
-            sed -i '/\/pdf-sidecar$/{n;s|tag:.*|tag: '"${SHORT_SHA}"'|}' deploy/charts/vrt/values.yaml
-            sed -i '/visual-regression-migrate/{n;s|tag:.*|tag: '"${SHORT_SHA}"'|}' deploy/charts/vrt/values.yaml
+            sed -i '/name: visual-regression-backend$/{n;s|tag:.*|tag: '"${IMAGE_TAG}"'|}' deploy/charts/vrt/values.yaml
+            sed -i '/name: visual-regression-worker$/{n;s|tag:.*|tag: '"${IMAGE_TAG}"'|}' deploy/charts/vrt/values.yaml
+            sed -i '/name: pdf-sidecar$/{n;s|tag:.*|tag: '"${IMAGE_TAG}"'|}' deploy/charts/vrt/values.yaml
+            sed -i '/name: visual-regression-migrate$/{n;s|tag:.*|tag: '"${IMAGE_TAG}"'|}' deploy/charts/vrt/values.yaml
           fi
 
           if [ "$TARGET" = "frontend" ] || [ "$TARGET" = "both" ]; then
-            sed -i '/visual-regression-frontend/{n;s|tag:.*|tag: '"${SHORT_SHA}"'|}' deploy/charts/vrt/values.yaml
+            sed -i '/name: visual-regression-frontend$/{n;s|tag:.*|tag: '"${IMAGE_TAG}"'|}' deploy/charts/vrt/values.yaml
           fi
 
       - name: Commit and push
