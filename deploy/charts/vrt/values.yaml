@@ -1,9 +1,9 @@
 namespace: vrt
 domain: vrt.local
 # GHCR owner/org publishing the pre-built images (ghcr.io/<imageOwner>/<name>).
-# deploy.sh resolves this from values.local.yaml, the git remote, or a one-time
-# prompt (persisted to values.local.yaml); forks override it via --set.
-imageOwner: <owner>
+# Default = canonical public images (ghcr.io/fishkob/*). Forks publishing their
+# own images override this via --set imageOwner=... (or chart values in ArgoCD).
+imageOwner: fishkob
 # Browser-reachable RustFS host. The backend appends `/bucket/<object>` itself,
 # so this must be the base URL WITHOUT the bucket. Routed to the RustFS service
 # by the ingress (see templates/ingress.yaml). Requires DNS for this host.
@@ -17,9 +17,6 @@ secrets:
   postgres_db: vrt
   rustfs_access_key: rustfsadmin
   rustfs_secret_key: CHANGE_ME
-  # Set via env var when running deploy.sh:
-  #   export GHCR_TOKEN=ghp_xxx && ./deploy/scripts/deploy.sh
-  ghcr_pull_secret: ""
 
 images:
   # The deploy workflow tags every pushed image with `latest` and `sha-<shortsha>`
