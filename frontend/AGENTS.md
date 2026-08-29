@@ -17,7 +17,8 @@ src/
   composables/         # useProjects, useReviewSession, useTheme, etc.
   domains/             # Domain-driven modules
     projects/          # model, mapper, query-keys, __tests__/
-    visual-test/       # model, mapper, query-keys, status/
+    visual-test/       # model, mapper, query-keys
+    test-status/       # shared status types, values, display, filters
     pending-tests/     # model, query-keys
     pdf-test/          # model, query-keys
   lib/                 # sdk.ts, cn(), invalidation, format, observability
