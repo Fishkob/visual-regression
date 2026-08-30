@@ -2,8 +2,8 @@
 
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://github.com/<owner>/visual-regression/actions/workflows/ci-backend.yml"><img src="https://github.com/<owner>/visual-regression/actions/workflows/ci-backend.yml/badge.svg" alt="CI (Backend)"></a>
-  <a href="https://github.com/<owner>/visual-regression/actions/workflows/ci-frontend.yml"><img src="https://github.com/<owner>/visual-regression/actions/workflows/ci-frontend.yml/badge.svg" alt="CI (Frontend)"></a>
+  <a href="https://github.com/Fishkob/visual-regression/actions/workflows/ci-backend.yml"><img src="https://github.com/Fishkob/visual-regression/actions/workflows/ci-backend.yml/badge.svg" alt="CI (Backend)"></a>
+  <a href="https://github.com/Fishkob/visual-regression/actions/workflows/ci-frontend.yml"><img src="https://github.com/Fishkob/visual-regression/actions/workflows/ci-frontend.yml/badge.svg" alt="CI (Frontend)"></a>
 </p>
 
 Catch unintended visual changes before they reach production. Upload screenshots from your CI pipeline, compare them pixel-by-pixel against baselines, and approve changes via the web dashboard.
@@ -148,7 +148,7 @@ The seed scripts authenticate the same way — see [Seed Demo Data](#seed-demo-d
 | RustFS API     | [localhost:9000](http://localhost:9000) | [localhost:9000](http://localhost:9000) |
 | RustFS Console | [localhost:9001](http://localhost:9001) | [localhost:9001](http://localhost:9001) |
 | PDF sidecar    | [localhost:3001](http://localhost:3001) | [localhost:3001](http://localhost:3001) |
-| PostgreSQL     | localhost:5432                          | localhost:5432                          |
+| PostgreSQL     | [localhost:5432](http://localhost:5555) | [localhost:5432](http://localhost:5555) |
 
 ---
 
