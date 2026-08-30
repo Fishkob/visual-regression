@@ -260,16 +260,16 @@ sequenceDiagram
 
 ## Architecture Philosophy (startup-pragmatic vs. enterprise)
 
-| Area                  | This Platform                       | Typical Enterprise                          |
-| --------------------- | ----------------------------------- | ------------------------------------------- |
-| **Queue**             | PostgreSQL polling (single worker)  | RabbitMQ, SQS, Kafka (multi-worker, DLQ)    |
-| **API Surface**       | Monolithic NestJS (one process)     | API Gateway + BFF + multiple microservices  |
-| **Auth**              | Session cookie (dashboard) + API key (CI) | OAuth2/OIDC, SSO, RBAC, audit logging  |
-| **Multi-tenancy**     | Single-org deployment               | Tenant isolation, schema-per-tenant         |
-| **Observability**     | Health checks + Prometheus metrics  | Distributed tracing, SLIs/SLOs, alerting    |
-| **Storage Delivery**  | Direct RustFS URLs                  | CDN + signed URLs + caching layer           |
-| **Database Topology** | Single PostgreSQL instance          | Read replicas, connection pooling, sharding |
-| **Service Mesh**      | None (direct Docker Compose)        | Istio/Linkerd for mTLS, traffic management  |
+| Area                  | This Platform                             | Typical Enterprise                          |
+| --------------------- | ----------------------------------------- | ------------------------------------------- |
+| **Queue**             | PostgreSQL polling (single worker)        | RabbitMQ, SQS, Kafka (multi-worker, DLQ)    |
+| **API Surface**       | Monolithic NestJS (one process)           | API Gateway + BFF + multiple microservices  |
+| **Auth**              | Session cookie (dashboard) + API key (CI) | OAuth2/OIDC, SSO, RBAC, audit logging       |
+| **Multi-tenancy**     | Single-org deployment                     | Tenant isolation, schema-per-tenant         |
+| **Observability**     | Health checks + Prometheus metrics        | Distributed tracing, SLIs/SLOs, alerting    |
+| **Storage Delivery**  | Direct RustFS URLs                        | CDN + signed URLs + caching layer           |
+| **Database Topology** | Single PostgreSQL instance                | Read replicas, connection pooling, sharding |
+| **Service Mesh**      | None (direct Docker Compose)              | Istio/Linkerd for mTLS, traffic management  |
 
 **Key tradeoffs made deliberately:**
 
