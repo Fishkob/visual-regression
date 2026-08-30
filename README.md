@@ -1,4 +1,4 @@
-# Visual Regression Testing Platform
+# Visual Regression Testing Platform (WIP)
 
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
