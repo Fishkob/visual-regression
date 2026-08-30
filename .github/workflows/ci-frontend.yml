@@ -123,7 +123,7 @@ jobs:
           done
           if [ "$READY" -ne 1 ]; then
             docker compose -f docker-compose.yml logs postgres
-            echo "❌ Postgres did not become ready in time"
+            echo "Postgres did not become ready in time"
             exit 1
           fi
 
@@ -138,7 +138,7 @@ jobs:
           done
           if [ "$READY" -ne 1 ]; then
             docker compose -f docker-compose.yml logs rustfs
-            echo "❌ RustFS did not become ready in time"
+            echo "RustFS did not become ready in time"
             exit 1
           fi
 

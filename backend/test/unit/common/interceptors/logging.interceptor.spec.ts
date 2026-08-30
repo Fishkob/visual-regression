@@ -74,7 +74,7 @@ describe('LoggingInterceptor (unit)', () => {
 
     await firstValueFrom(interceptor.intercept(ctx, handler));
 
-    // ✅ traceId attached
+    // traceId attached
     expect(typeof req.traceId).toBe('string');
     expect(req.traceId.length).toBeGreaterThan(10);
     expect(res.setHeader).toHaveBeenCalledWith(
@@ -83,7 +83,7 @@ describe('LoggingInterceptor (unit)', () => {
     );
     expect(res.headers['X-Trace-Id']).toBeDefined();
 
-    // ✅ structured logs
+    // structured logs
     expect(logger.debug).toHaveBeenCalledWith(
       expect.objectContaining({
         msg: 'Incoming request',

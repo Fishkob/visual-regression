@@ -67,7 +67,7 @@ describe('FileValidationPipe', () => {
     const file = {
       mimetype: 'image/png',
       size: 500,
-      buffer: Buffer.alloc(4), // 👈 zu klein
+      buffer: Buffer.alloc(4), // zu klein
     } as unknown as Express.Multer.File;
 
     expect(() => pipe.transform(file)).toThrow('Invalid PNG: buffer too small');

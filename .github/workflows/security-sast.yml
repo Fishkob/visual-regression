@@ -3,7 +3,7 @@ name: Security (SAST)
 on:
   workflow_dispatch:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - "backend/src/**"
       - "frontend/src/**"
@@ -12,7 +12,7 @@ on:
       - "scripts/security/**"
       - ".github/workflows/security-sast.yml"
   pull_request:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - "backend/src/**"
       - "frontend/src/**"
