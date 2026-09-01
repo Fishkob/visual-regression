@@ -38,8 +38,20 @@ The installer:
 3. Builds and starts the full stack, then waits until it is healthy.
 4. Prints the URLs and your admin login.
 
-Open the printed **frontend URL** and log in with the printed admin credentials.
-Remove `BOOTSTRAP_ADMIN_*` from `.env` after first login.
+Open the printed **frontend URL** and log in — see [First login](#first-login).
+
+### First login
+
+Where the admin credentials come from depends on how you run the platform:
+
+- **Self-hosting (`./install.sh`)** — `install.sh` generates a random admin
+  password and prints it in the success banner ("Admin login"). The same value
+  is stored in `.env` as `BOOTSTRAP_ADMIN_PASSWORD`; the username is
+  `BOOTSTRAP_ADMIN_USERNAME` (default `admin`). Remove `BOOTSTRAP_ADMIN_*` from
+  `.env` after first login.
+- **Local dev (`pnpm run dev`)** — a fresh setup bootstraps the admin as
+  `admin` / `admin-secret`. Override via `BOOTSTRAP_ADMIN_USERNAME` /
+  `BOOTSTRAP_ADMIN_PASSWORD` in `backend/.env.local`.
 
 ### Optional: seed demo data
 
@@ -356,7 +368,7 @@ This platform is designed to run in a **private/trusted network**:
 
 - **Authentication** — The product API requires a session cookie (browser login) or an API key (`x-api-key`) for CI/scripted callers. See [CI Authentication](#ci-authentication).
 - **Admin endpoints** — `POST /admin/api-keys` and `admin/dlq` are protected solely by the `x-admin-key` header (`ADMIN_API_KEY`); they sit outside the product auth surface so a first API key can be provisioned before any product credential exists.
-- **Bootstrap admin** — The first admin user is created on startup from `BOOTSTRAP_ADMIN_USERNAME` / `BOOTSTRAP_ADMIN_PASSWORD` (only when both are set). Remove them from the environment after first login.
+- **Bootstrap admin** — The first admin user is created on startup from `BOOTSTRAP_ADMIN_USERNAME` / `BOOTSTRAP_ADMIN_PASSWORD` (only when both are set). Local dev defaults these to `admin` / `admin-secret`; there is no production default. Remove them from the environment after first login. See [First login](#first-login).
 - **Login throttling** — `/auth/login` is throttled to 5 attempts per minute (`LOGIN_THROTTLE_LIMIT` / `LOGIN_THROTTLE_TTL`) to slow down brute-force attempts.
 - **Per-key upload rate limit** — Uploads are limited per API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default 60 per minute, fixed window). Exceeding the limit returns `429` with a `Retry-After` header. The counter lives in Postgres, so the limit holds across all backend instances. Browser (session) uploads are not counted per-key; they stay under the global throttle.
 - **Reverse proxy / per-IP throttling** — Set `TRUST_PROXY=true` when the backend is served behind the nginx/ingress reverse proxy (`docker-compose`, Helm). Without it Express sees every client as the proxy IP, so the per-IP login/global throttles collapse into a shared budget across all users. Keep it `false` when the backend is directly reachable.
