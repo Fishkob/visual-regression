@@ -13,11 +13,13 @@
 ### Task 1: Set the local-dev admin default
 
 **Files:**
+
 - Modify: `backend/.env.local.example:51-53`
 
 - [ ] **Step 1: Update the bootstrap admin block**
 
 Current content (lines 51-53):
+
 ```
 # First admin user, bootstrapped on startup. Remove after first login.
 BOOTSTRAP_ADMIN_USERNAME=
@@ -25,6 +27,7 @@ BOOTSTRAP_ADMIN_PASSWORD=
 ```
 
 Replace with:
+
 ```
 # First admin user, bootstrapped on startup. Remove after first login.
 # Local-dev default: admin / admin-secret (override as needed).
@@ -49,6 +52,7 @@ git commit -m "feat(dev): default local-dev admin login to admin/admin-secret"
 ### Task 2: Document the first login in the README
 
 **Files:**
+
 - Modify: `README.md` (insert new section after line 42; update lines 41-42 and the Security bullet around line 359)
 
 - [ ] **Step 1: Add a "First login" subsection**
@@ -73,12 +77,14 @@ Where the admin credentials come from depends on how you run the platform:
 - [ ] **Step 2: Point the Quick Start text at the new section**
 
 Replace:
+
 ```
 Open the printed **frontend URL** and log in with the printed admin credentials.
 Remove `BOOTSTRAP_ADMIN_*` from `.env` after first login.
 ```
 
 With:
+
 ```
 Open the printed **frontend URL** and log in — see [First login](#first-login).
 ```
@@ -86,11 +92,13 @@ Open the printed **frontend URL** and log in — see [First login](#first-login)
 - [ ] **Step 3: Update the Security Considerations bullet**
 
 In the "Security Considerations" section, replace:
+
 ```
 - **Bootstrap admin** — The first admin user is created on startup from `BOOTSTRAP_ADMIN_USERNAME` / `BOOTSTRAP_ADMIN_PASSWORD` (only when both are set). Remove them from the environment after first login.
 ```
 
 With:
+
 ```
 - **Bootstrap admin** — The first admin user is created on startup from `BOOTSTRAP_ADMIN_USERNAME` / `BOOTSTRAP_ADMIN_PASSWORD` (only when both are set). Local dev defaults these to `admin` / `admin-secret`; there is no production default. Remove them from the environment after first login. See [First login](#first-login).
 ```
