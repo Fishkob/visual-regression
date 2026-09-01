@@ -197,6 +197,12 @@ The backend creates the storage bucket on startup and, by default, marks it **pu
 
 ## Architecture
 
+### Runtime Overview
+
+[![Runtime architecture](docs/architecture/runtime-architecture.png)](docs/architecture/runtime-architecture.html)
+
+### Repository Layout
+
 ```
 visual-regression/
 ├── backend/         # NestJS API server + cron jobs
@@ -208,7 +214,9 @@ visual-regression/
 └── scripts/dev.sh               # Development orchestration
 ```
 
-**Data flow:**
+### Data Flow
+
+[![Visual regression pipeline](docs/architecture/visual-regression-pipeline.png)](docs/architecture/visual-regression-pipeline.html)
 
 1. **Upload** — CI pipeline uploads screenshots or PDFs via Client SDK → Backend stores in RustFS
 2. **Comparison** — Backend creates comparison job in PostgreSQL → Worker picks up → pixelmatch diff (or pdf-sidecar for PDFs) → stores result

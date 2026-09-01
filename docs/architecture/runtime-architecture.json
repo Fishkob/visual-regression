@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Visual Regression Platform — Runtime Architecture",
+    "output": "runtime-architecture.html",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "viewBox": [950, 390],
+    "views": [
+      {
+        "id": "primary-path",
+        "label": "Primary path",
+        "focus": ["ci", "sdk", "api", "postgres", "worker", "rustfs", "frontend", "browser"],
+        "note": "The upload → compare → review lifecycle, from CI to approval."
+      },
+      {
+        "id": "engines",
+        "label": "Comparison engines",
+        "focus": ["worker", "pdf-sidecar", "rustfs"],
+        "note": "Image diffs run in-process; PDF diffs delegate to the Java sidecar."
+      },
+      {
+        "id": "trust",
+        "label": "Trust boundaries",
+        "focus": ["ci", "sdk", "browser", "api", "frontend"],
+        "note": "Untrusted clients reach only the auth-gated surface; data stores stay internal."
+      }
+    ]
+  },
+  "layout": {
+    "mode": "grid",
+    "origin": [40, 70],
+    "cols": 5,
+    "gapX": 24,
+    "gapY": 120,
+    "cellW": 150,
+    "cellH": 70
+  },
+  "components": [
+    { "id": "ci", "type": "external", "label": "CI Pipeline", "sublabel": "GitHub Actions / CI", "tag": "runs Client SDK", "row": 0, "col": 0 },
+    { "id": "sdk", "type": "external", "label": "Client SDK", "sublabel": "TypeScript SDK", "tag": "x-api-key auth", "row": 0, "col": 1 },
+    { "id": "api", "type": "backend", "label": "Backend API", "sublabel": "NestJS · :3000", "tag": "REST /api/v1 · Prisma", "row": 0, "col": 2 },
+    { "id": "postgres", "type": "database", "label": "PostgreSQL", "sublabel": "metadata + queue", "brand": "postgresql", "row": 0, "col": 3 },
+    { "id": "worker", "type": "backend", "label": "Comparison Worker", "sublabel": "NestJS · polling", "tag": "pixelmatch in-process", "row": 0, "col": 4 },
+    { "id": "browser", "type": "external", "label": "Reviewer", "sublabel": "Dashboard user", "tag": "session cookie", "row": 1, "col": 0 },
+    { "id": "frontend", "type": "frontend", "label": "Frontend", "sublabel": "Vue 3 · Vite", "tag": "dashboard · :80", "brand": "vue", "row": 1, "col": 2 },
+    { "id": "rustfs", "type": "cloud", "label": "RustFS", "sublabel": "S3-compatible storage", "tag": "public-read · :9000", "row": 1, "col": 3 },
+    { "id": "pdf-sidecar", "type": "backend", "label": "PDF Sidecar", "sublabel": "Java · pdfbox", "tag": "page diff · :3001", "row": 1, "col": 4 }
+  ],
+  "boundaries": [
+    { "kind": "security-group", "label": "Untrusted clients", "wraps": ["ci", "sdk", "browser"], "pad": 8 },
+    { "kind": "region", "label": "Self-hosted stack · private network", "wraps": ["api", "postgres", "worker", "frontend", "rustfs", "pdf-sidecar"], "pad": 8 }
+  ],
+  "connections": [
+    { "id": "ci-sdk", "from": "ci", "to": "sdk", "label": "screenshots / PDFs", "variant": "emphasis", "labelAt": [127, 150] },
+    { "id": "sdk-api", "from": "sdk", "to": "api", "label": "upload · x-api-key", "variant": "emphasis", "labelAt": [376, 150] },
+    { "id": "api-postgres", "from": "api", "to": "postgres", "label": "enqueue ComparisonJob", "variant": "emphasis", "labelAt": [596, 160] },
+    { "id": "postgres-worker", "from": "postgres", "to": "worker", "label": "poll job · save result", "variant": "emphasis", "labelAt": [640, 235] },
+    { "id": "worker-rustfs", "from": "worker", "to": "rustfs", "label": "read images · write diff", "variant": "emphasis" },
+    { "id": "browser-frontend", "from": "browser", "to": "frontend", "label": "review dashboard", "variant": "emphasis", "labelAt": [289, 348] },
+    { "id": "frontend-api", "from": "frontend", "to": "api", "label": "browse · approve", "variant": "emphasis" },
+    { "id": "api-rustfs", "from": "api", "to": "rustfs", "label": "store CURRENT / BASELINE" },
+    { "id": "worker-sidecar", "from": "worker", "to": "pdf-sidecar", "label": "PDF diff · HTTP :3001", "labelAt": [811, 200] }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Intake & auth",
+      "items": [
+        "CI authenticates via the x-api-key header — only its SHA-256 hash is stored",
+        "Reviewers log in with a session cookie; login throttled to 5 attempts/min",
+        "Outcomes: IDENTICAL (hash match) · BASELINE_CREATED (first upload) · COMPARISON_QUEUED"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Comparison pipeline",
+      "items": [
+        "Pixelmatch diffs images in-process; PDF diffs delegate to the Java sidecar",
+        "PostgreSQL polling queue — one ComparisonJob table, no broker",
+        "At most one PENDING_APPROVAL per variant; threshold auto-accept",
+        "Storage-first writes with compensating delete; daily cron sweeps orphans"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Trust & data",
+      "items": [
+        "Designed for private/trusted networks; RustFS bucket is public-read",
+        "The browser loads screenshots directly from RustFS; health, metrics, and log-ingestion endpoints are public",
+        "Optional: API, worker, and pdf-sidecar export OTLP traces + Prometheus metrics when deployed"
+      ]
+    }
+  ]
+}

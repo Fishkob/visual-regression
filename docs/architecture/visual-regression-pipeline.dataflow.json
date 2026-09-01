@@ -1,0 +1,373 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Visual Regression Pipeline Data Flow",
+    "output": "docs/architecture/visual-regression-pipeline.html",
+    "viewBox": [
+      1080,
+      620
+    ],
+    "quality_profile": "showcase"
+  },
+  "stages": [
+    {
+      "label": "Sources"
+    },
+    {
+      "label": "Ingest"
+    },
+    {
+      "label": "Process"
+    },
+    {
+      "label": "Store"
+    },
+    {
+      "label": "Review"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "ci",
+      "type": "external",
+      "label": "CI Pipeline",
+      "sublabel": "API-key client",
+      "stage": 0,
+      "row": 0,
+      "tag": "upload"
+    },
+    {
+      "id": "upload",
+      "type": "backend",
+      "label": "Upload API",
+      "sublabel": "intake + hash decision",
+      "stage": 1,
+      "row": 0,
+      "tag": "REST",
+      "width": 126
+    },
+    {
+      "id": "queue",
+      "type": "messagebus",
+      "label": "Job Queue",
+      "sublabel": "Postgres-backed",
+      "stage": 2,
+      "row": 0,
+      "tag": "async"
+    },
+    {
+      "id": "engine",
+      "type": "backend",
+      "label": "Comparison Engine",
+      "sublabel": "pixelmatch / PDF",
+      "stage": 2,
+      "row": 2,
+      "tag": "worker"
+    },
+    {
+      "id": "sidecar",
+      "type": "backend",
+      "label": "PDF Sidecar",
+      "sublabel": "page count + compare",
+      "stage": 2,
+      "row": 3,
+      "tag": "kind: pdf"
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "screenshot + comparison",
+      "stage": 3,
+      "row": 1,
+      "tag": "source of truth",
+      "brand": "postgresql",
+      "width": 130
+    },
+    {
+      "id": "rustfs",
+      "type": "database",
+      "label": "RustFS",
+      "sublabel": "object store",
+      "stage": 3,
+      "row": 3,
+      "tag": "S3-compatible"
+    },
+    {
+      "id": "read",
+      "type": "backend",
+      "label": "Read API",
+      "sublabel": "pending + status",
+      "stage": 4,
+      "row": 0,
+      "tag": "REST"
+    },
+    {
+      "id": "frontend",
+      "type": "frontend",
+      "label": "Reviewer UI",
+      "sublabel": "review session",
+      "stage": 4,
+      "row": 1,
+      "tag": "TanStack Query"
+    },
+    {
+      "id": "approval",
+      "type": "security",
+      "label": "Approval Gate",
+      "sublabel": "human review",
+      "stage": 4,
+      "row": 2,
+      "tag": "comparisonId"
+    },
+    {
+      "id": "threshold",
+      "type": "security",
+      "label": "Threshold Policy",
+      "sublabel": "auto-accept rule",
+      "stage": 4,
+      "row": 3,
+      "tag": "\u2264 tolerance"
+    }
+  ],
+  "flows": [
+    {
+      "id": "ci-upload",
+      "from": "ci",
+      "to": "upload",
+      "label": "CURRENT screenshot",
+      "classification": "API-key auth",
+      "variant": "security",
+      "labelAt": [
+        200,
+        200
+      ]
+    },
+    {
+      "id": "enqueue",
+      "from": "upload",
+      "to": "queue",
+      "label": "comparison job",
+      "classification": "same transaction",
+      "variant": "emphasis",
+      "labelAt": [
+        425,
+        157
+      ]
+    },
+    {
+      "id": "store-object",
+      "from": "upload",
+      "to": "rustfs",
+      "label": "artifact object",
+      "classification": "compensating delete",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          315,
+          540
+        ],
+        [
+          745,
+          540
+        ]
+      ],
+      "labelAt": [
+        530,
+        540
+      ]
+    },
+    {
+      "id": "poll",
+      "from": "queue",
+      "to": "engine",
+      "label": "next job",
+      "classification": "async poll",
+      "variant": "emphasis",
+      "labelAt": [
+        530,
+        271
+      ]
+    },
+    {
+      "id": "pdf-compare",
+      "from": "engine",
+      "to": "sidecar",
+      "label": "PDF compare",
+      "classification": "page diff",
+      "variant": "default",
+      "labelAt": [
+        530,
+        442
+      ]
+    },
+    {
+      "id": "write-compare",
+      "from": "engine",
+      "to": "postgres",
+      "label": "comparison row",
+      "classification": "PENDING_APPROVAL",
+      "variant": "emphasis",
+      "labelAt": [
+        637,
+        328
+      ]
+    },
+    {
+      "id": "pending-query",
+      "from": "postgres",
+      "to": "read",
+      "label": "pending list",
+      "classification": "read-only",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          852.5,
+          271
+        ],
+        [
+          852.5,
+          157
+        ]
+      ],
+      "labelAt": [
+        852,
+        214
+      ]
+    },
+    {
+      "id": "serve-pending",
+      "from": "read",
+      "to": "frontend",
+      "label": "pending + status",
+      "classification": "read-only",
+      "variant": "emphasis",
+      "labelAt": [
+        960,
+        214
+      ]
+    },
+    {
+      "id": "approve",
+      "from": "frontend",
+      "to": "approval",
+      "label": "approve comparisonId",
+      "classification": "human gate",
+      "variant": "security",
+      "labelAt": [
+        960,
+        328
+      ]
+    },
+    {
+      "id": "approval-write",
+      "from": "approval",
+      "to": "postgres",
+      "label": "APPROVED + retire",
+      "classification": "human-gated write",
+      "variant": "security",
+      "fromSide": "left",
+      "toSide": "right",
+      "via": [
+        [
+          870,
+          385
+        ],
+        [
+          870,
+          271
+        ]
+      ],
+      "labelAt": [
+        840,
+        330
+      ]
+    },
+    {
+      "id": "auto-accept",
+      "from": "threshold",
+      "to": "postgres",
+      "label": "auto-accept \u2264 threshold",
+      "classification": "automated override",
+      "variant": "security",
+      "fromSide": "left",
+      "toSide": "bottom",
+      "via": [
+        [
+          840,
+          499
+        ],
+        [
+          840,
+          360
+        ],
+        [
+          745,
+          360
+        ]
+      ],
+      "labelAt": [
+        840,
+        440
+      ]
+    },
+    {
+      "id": "threshold-update",
+      "from": "frontend",
+      "to": "threshold",
+      "label": "threshold update",
+      "classification": "preview + confirm",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "right",
+      "via": [
+        [
+          1030,
+          271
+        ],
+        [
+          1030,
+          499
+        ]
+      ],
+      "labelAt": [
+        1030,
+        430
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Primary Data Path",
+      "items": [
+        "CI uploads a CURRENT screenshot through the API-key protected intake",
+        "The job queue feeds the comparison engine; results land as PENDING_APPROVAL",
+        "Reviewers read the pending list and approve per comparisonId"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Sensitivity Gates",
+      "items": [
+        "External uploads cross an authenticated, rate-limited boundary",
+        "Approval is human-gated and pinned to the comparison the reviewer saw",
+        "Threshold auto-accept is an automated override of the review gate"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Artifact Lifecycle",
+      "items": [
+        "Screenshots and diff artifacts live in RustFS; rows live in PostgreSQL",
+        "Approval reclaims the candidate and diff files after commit",
+        "Image diffs run pixelmatch; PDF diffs run through the pdf-sidecar"
+      ]
+    }
+  ]
+}
