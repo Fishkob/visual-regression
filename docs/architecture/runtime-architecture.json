@@ -11,7 +11,16 @@
       {
         "id": "primary-path",
         "label": "Primary path",
-        "focus": ["ci", "sdk", "api", "postgres", "worker", "rustfs", "frontend", "browser"],
+        "focus": [
+          "ci",
+          "sdk",
+          "api",
+          "postgres",
+          "worker",
+          "rustfs",
+          "frontend",
+          "browser"
+        ],
         "note": "The upload → compare → review lifecycle, from CI to approval."
       },
       {
@@ -38,30 +47,178 @@
     "cellH": 70
   },
   "components": [
-    { "id": "ci", "type": "external", "label": "CI Pipeline", "sublabel": "GitHub Actions / CI", "tag": "runs Client SDK", "row": 0, "col": 0 },
-    { "id": "sdk", "type": "external", "label": "Client SDK", "sublabel": "TypeScript SDK", "tag": "x-api-key auth", "row": 0, "col": 1 },
-    { "id": "api", "type": "backend", "label": "Backend API", "sublabel": "NestJS · :3000", "tag": "REST /api/v1 · Prisma", "row": 0, "col": 2 },
-    { "id": "postgres", "type": "database", "label": "PostgreSQL", "sublabel": "metadata + queue", "brand": "postgresql", "row": 0, "col": 3 },
-    { "id": "worker", "type": "backend", "label": "Comparison Worker", "sublabel": "NestJS · polling", "tag": "pixelmatch in-process", "row": 0, "col": 4 },
-    { "id": "browser", "type": "external", "label": "Reviewer", "sublabel": "Dashboard user", "tag": "session cookie", "row": 1, "col": 0 },
-    { "id": "frontend", "type": "frontend", "label": "Frontend", "sublabel": "Vue 3 · Vite", "tag": "dashboard · :80", "brand": "vue", "row": 1, "col": 2 },
-    { "id": "rustfs", "type": "cloud", "label": "RustFS", "sublabel": "S3-compatible storage", "tag": "public-read · :9000", "row": 1, "col": 3 },
-    { "id": "pdf-sidecar", "type": "backend", "label": "PDF Sidecar", "sublabel": "Java · pdfbox", "tag": "page diff · :3001", "row": 1, "col": 4 }
+    {
+      "id": "ci",
+      "type": "external",
+      "label": "CI Pipeline",
+      "sublabel": "GitHub Actions / CI",
+      "tag": "runs Client SDK",
+      "row": 0,
+      "col": 0
+    },
+    {
+      "id": "sdk",
+      "type": "external",
+      "label": "Client SDK",
+      "sublabel": "TypeScript SDK",
+      "tag": "x-api-key auth",
+      "row": 0,
+      "col": 1
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "Backend API",
+      "sublabel": "NestJS · :3000",
+      "tag": "REST /api/v1 · Prisma",
+      "row": 0,
+      "col": 2
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "metadata + queue",
+      "brand": "postgresql",
+      "row": 0,
+      "col": 3
+    },
+    {
+      "id": "worker",
+      "type": "backend",
+      "label": "Comparison Worker",
+      "sublabel": "NestJS · polling",
+      "tag": "pixelmatch in-process",
+      "row": 0,
+      "col": 4
+    },
+    {
+      "id": "browser",
+      "type": "external",
+      "label": "Reviewer",
+      "sublabel": "Dashboard user",
+      "tag": "session cookie",
+      "row": 1,
+      "col": 0
+    },
+    {
+      "id": "frontend",
+      "type": "frontend",
+      "label": "Frontend",
+      "sublabel": "Vue 3 · Vite",
+      "tag": "dashboard · :80",
+      "brand": "vue",
+      "row": 1,
+      "col": 2
+    },
+    {
+      "id": "rustfs",
+      "type": "cloud",
+      "label": "RustFS",
+      "sublabel": "S3-compatible storage",
+      "tag": "public-read · :9000",
+      "row": 1,
+      "col": 3
+    },
+    {
+      "id": "pdf-sidecar",
+      "type": "backend",
+      "label": "PDF Sidecar",
+      "sublabel": "Java · pdfbox",
+      "tag": "page diff · :3001",
+      "row": 1,
+      "col": 4
+    }
   ],
   "boundaries": [
-    { "kind": "security-group", "label": "Untrusted clients", "wraps": ["ci", "sdk", "browser"], "pad": 8 },
-    { "kind": "region", "label": "Self-hosted stack · private network", "wraps": ["api", "postgres", "worker", "frontend", "rustfs", "pdf-sidecar"], "pad": 8 }
+    {
+      "kind": "security-group",
+      "label": "Untrusted clients",
+      "wraps": ["ci", "sdk", "browser"],
+      "pad": 8
+    },
+    {
+      "kind": "region",
+      "label": "Self-hosted stack · private network",
+      "wraps": [
+        "api",
+        "postgres",
+        "worker",
+        "frontend",
+        "rustfs",
+        "pdf-sidecar"
+      ],
+      "pad": 8
+    }
   ],
   "connections": [
-    { "id": "ci-sdk", "from": "ci", "to": "sdk", "label": "screenshots / PDFs", "variant": "emphasis", "labelAt": [127, 150] },
-    { "id": "sdk-api", "from": "sdk", "to": "api", "label": "upload · x-api-key", "variant": "emphasis", "labelAt": [376, 150] },
-    { "id": "api-postgres", "from": "api", "to": "postgres", "label": "enqueue ComparisonJob", "variant": "emphasis", "labelAt": [596, 160] },
-    { "id": "postgres-worker", "from": "postgres", "to": "worker", "label": "poll job · save result", "variant": "emphasis", "labelAt": [640, 235] },
-    { "id": "worker-rustfs", "from": "worker", "to": "rustfs", "label": "read images · write diff", "variant": "emphasis" },
-    { "id": "browser-frontend", "from": "browser", "to": "frontend", "label": "review dashboard", "variant": "emphasis", "labelAt": [289, 348] },
-    { "id": "frontend-api", "from": "frontend", "to": "api", "label": "browse · approve", "variant": "emphasis" },
-    { "id": "api-rustfs", "from": "api", "to": "rustfs", "label": "store CURRENT / BASELINE" },
-    { "id": "worker-sidecar", "from": "worker", "to": "pdf-sidecar", "label": "PDF diff · HTTP :3001", "labelAt": [811, 200] }
+    {
+      "id": "ci-sdk",
+      "from": "ci",
+      "to": "sdk",
+      "label": "screenshots / PDFs",
+      "variant": "emphasis",
+      "labelAt": [127, 150]
+    },
+    {
+      "id": "sdk-api",
+      "from": "sdk",
+      "to": "api",
+      "label": "upload · x-api-key",
+      "variant": "emphasis",
+      "labelAt": [376, 150]
+    },
+    {
+      "id": "api-postgres",
+      "from": "api",
+      "to": "postgres",
+      "label": "enqueue ComparisonJob",
+      "variant": "emphasis",
+      "labelAt": [596, 160]
+    },
+    {
+      "id": "postgres-worker",
+      "from": "postgres",
+      "to": "worker",
+      "label": "poll job · save result",
+      "variant": "emphasis",
+      "labelAt": [640, 235]
+    },
+    {
+      "id": "worker-rustfs",
+      "from": "worker",
+      "to": "rustfs",
+      "label": "read images · write diff",
+      "variant": "emphasis"
+    },
+    {
+      "id": "browser-frontend",
+      "from": "browser",
+      "to": "frontend",
+      "label": "review dashboard",
+      "variant": "emphasis",
+      "labelAt": [289, 348]
+    },
+    {
+      "id": "frontend-api",
+      "from": "frontend",
+      "to": "api",
+      "label": "browse · approve",
+      "variant": "emphasis"
+    },
+    {
+      "id": "api-rustfs",
+      "from": "api",
+      "to": "rustfs",
+      "label": "store CURRENT / BASELINE"
+    },
+    {
+      "id": "worker-sidecar",
+      "from": "worker",
+      "to": "pdf-sidecar",
+      "label": "PDF diff · HTTP :3001",
+      "labelAt": [811, 200]
+    }
   ],
   "cards": [
     {
