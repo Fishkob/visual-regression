@@ -9,6 +9,7 @@ import {
 import { ApiExcludeController, ApiExcludeEndpoint } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { PublicEndpoint } from '@common/http/public.decorator';
+import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 import { LogIngestionService } from './log-ingestion.service';
 
 @ApiExcludeController()
@@ -20,6 +21,7 @@ export class LogIngestionController {
   @Post()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiExcludeEndpoint()
+  @RateLimit('log')
   ingest(@Body() body: Record<string, unknown>, @Req() req: Request): void {
     this.logIngestion.ingest(body, req);
   }

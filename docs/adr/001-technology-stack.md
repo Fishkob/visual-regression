@@ -69,7 +69,7 @@ NestJS's `@Module()` decorators and DI container directly realize the module dep
 - **Dependency injection**: Constructor-based DI with injection tokens enables testability without a service locator. Providers can be substituted in tests via `Test.createTestingModule()`.
 - **Decorator-based controllers**: `@Controller()`, `@Post()`, `@Body()`, `@UseGuards()` keep request handling declarative and consistent across all endpoints.
 - **Lifecycle hooks**: `OnApplicationBootstrap`, `OnModuleInit` enable clean startup/teardown for background services (e.g., `ComparisonJobPoller`).
-- **Ecosystem**: `@nestjs/swagger` generates the OpenAPI spec from decorators (our SDK pipeline source), `@nestjs/schedule` for cron jobs, `@nestjs/throttler` for rate limiting, `@nestjs/config` for env validation.
+- **Ecosystem**: `@nestjs/swagger` generates the OpenAPI spec from decorators (our SDK pipeline source), `@nestjs/schedule` for cron jobs, `@nestjs/config` for env validation. Rate limiting needs no NestJS module — it is a first-party Postgres counter guard (see [ADR-026](./026-rate-limit-unification.md)).
 - **Testing utilities**: `@nestjs/testing` provides `Test.createTestingModule()` with the same DI container — services are testable without HTTP overhead.
 
 **Disadvantages:**

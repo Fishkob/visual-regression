@@ -2,9 +2,9 @@ import {
   computeWindowStart,
   retryAfterSeconds,
   RATE_LIMIT_WINDOW_MS,
-} from '@public/visualTest/intake/application/upload-rate-limit-window';
+} from '@internal/rate-limit/rate-limit-window';
 
-describe('upload-rate-limit-window', () => {
+describe('rate-limit-window', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });

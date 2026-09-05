@@ -121,7 +121,7 @@ To add a new `@Global()` module, update this table with rationale. If the count 
 
 ```
 AppModule (API mode — main.ts)
-  imports: [CoreInfrastructureModule, ThrottleConfigModule, ScheduleModule.forRoot(),
+  imports: [CoreInfrastructureModule, RateLimitModule, ScheduleModule.forRoot(),
             VisualTestApplicationModule, IntakeApplicationModule, ReviewModule,
             HealthModule, LogIngestionModule, DlqModule, DataDeletionModule]
 
@@ -161,7 +161,7 @@ ReviewModule
                 PdfController, TestCommandsController]
 ```
 
-Note: the `MulterModule` in `IntakeApplicationModule` is registered with a `useFactory` that reads `screenshotMaxSize` from `AppConfigService`, and the `PdfSidecarModule` is imported by `IntakeApplicationModule` (for PDF page counts) and `ReviewModule` (for PDF render/download). Maintenance crons (see `DataDeletionModule`) run only in the API process — `AppModule` mounts `ScheduleModule.forRoot()` for them; the worker graph contains no cron jobs and does not mount `ScheduleModule`. The API adds `ThrottleConfigModule` for request throttling. `VisualTestInfraModule` and `VisualTestApplicationModule` are imported independently by consumers — there is no composing wrapper module.
+Note: the `MulterModule` in `IntakeApplicationModule` is registered with a `useFactory` that reads `screenshotMaxSize` from `AppConfigService`, and the `PdfSidecarModule` is imported by `IntakeApplicationModule` (for PDF page counts) and `ReviewModule` (for PDF render/download). Maintenance crons (see `DataDeletionModule`) run only in the API process — `AppModule` mounts `ScheduleModule.forRoot()` for them; the worker graph contains no cron jobs and does not mount `ScheduleModule`. The API registers a global `RateLimitGuard` (provided via `RateLimitModule`) for request throttling; see ADR-026. `VisualTestInfraModule` and `VisualTestApplicationModule` are imported independently by consumers — there is no composing wrapper module.
 
 No `forwardRef()` is needed — the import graph is acyclic.
 

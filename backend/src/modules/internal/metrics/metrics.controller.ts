@@ -1,12 +1,10 @@
 import { Controller, Get, Header, UseGuards } from '@nestjs/common';
-import { SkipThrottle } from '@nestjs/throttler';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PublicEndpoint } from '@common/http/public.decorator';
 import { MetricsService } from './metrics.service';
 import { MetricsAuthGuard } from './metrics-auth.guard';
 @ApiTags('Metrics')
 @PublicEndpoint()
-@SkipThrottle()
 @Controller('metrics')
 @UseGuards(MetricsAuthGuard)
 export class MetricsController {

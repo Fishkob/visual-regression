@@ -25,6 +25,7 @@ import {
   sessionCookieOptions,
 } from '@common/http/session-cookie';
 import { AppConfigService } from '@config/app-config.service';
+import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { MeDto } from './dto/me.dto';
@@ -39,6 +40,7 @@ export class AuthController {
 
   @PublicEndpoint()
   @Post('login')
+  @RateLimit('login')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: MeDto })
   @ApiUnauthorizedResponse({ description: 'Invalid username or password' })

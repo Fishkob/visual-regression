@@ -56,7 +56,10 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 ## Reverse Proxy (TRUST_PROXY)
 
-When deploying behind the nginx/ingress reverse proxy (the default Helm setup), set `TRUST_PROXY=true` so per-IP rate limiting and client IP logging use the real client IP from `X-Forwarded-For` instead of the proxy's:
+Only the two anonymous endpoints — `/auth/login` and log ingestion — are keyed
+by client IP. When deploying behind the nginx/ingress reverse proxy (the default
+Helm setup), set `TRUST_PROXY=true` so those per-IP rate limits and client-IP
+logging use the real client IP from `X-Forwarded-For` instead of the proxy's:
 
 ```bash
 # Helm
@@ -70,7 +73,20 @@ For Docker Compose, export it before starting:
 TRUST_PROXY=true ./scripts/dev.sh docker
 ```
 
-Keep `TRUST_PROXY` `false` (the default) when the backend is directly reachable — trusting proxy headers from a non-proxy client lets anyone spoof their IP and bypass the rate limits.
+Keep `TRUST_PROXY` `false` (the default) when the backend is directly reachable —
+trusting proxy headers from a non-proxy client lets anyone spoof their IP and
+bypass the per-IP limits. Authenticated product routes are not IP-limited, so
+the switch does not affect them.
+
+## Rate Limits
+
+Rate limits are counters per fixed one-minute window in Postgres, so they hold
+across all backend instances. Three rules exist, each configured by a
+`*_RATE_LIMIT_PER_MINUTE` env var and disabled by setting it to `0`: uploads per
+API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default 60), login attempts per IP
+(`LOGIN_RATE_LIMIT_PER_MINUTE`, default 5), and log-ingestion requests per IP
+(`LOG_RATE_LIMIT_PER_MINUTE`, default 100). Exceeding a limit returns `429` with
+a `Retry-After` header.
 
 ## k3s Quickstart
 

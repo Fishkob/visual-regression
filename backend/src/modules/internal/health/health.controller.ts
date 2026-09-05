@@ -1,5 +1,4 @@
 import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
-import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiExcludeEndpoint,
   ApiOkResponse,
@@ -16,7 +15,6 @@ import {
 import { HealthChecker } from './health-checker.service';
 @ApiTags('Health')
 @PublicEndpoint()
-@SkipThrottle()
 @Controller('health')
 export class HealthController {
   constructor(private readonly checker: HealthChecker) {}

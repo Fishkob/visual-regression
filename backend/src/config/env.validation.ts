@@ -1,9 +1,5 @@
 import * as Joi from 'joi';
 import { UPLOAD_HARD_LIMIT_MB } from '@config/upload-limits';
-import {
-  LOGIN_THROTTLE_DEFAULTS,
-  LOG_THROTTLE_DEFAULTS,
-} from '@config/throttle-limits';
 
 // Swagger export only reads decorators and doesn't need real infra.
 // process.argv is available before any module code runs, so we can
@@ -76,39 +72,26 @@ export const envValidationSchema = Joi.object({
     .default(10)
     .description('Maximum JSON request body size in megabytes.'),
 
-  // Throttling
-  THROTTLE_TTL: Joi.number()
-    .min(1)
+  // Rate limits — every rule is a fixed one-minute window expressed as
+  // "requests per minute" for its scope; 0 disables the rule.
+  UPLOAD_RATE_LIMIT_PER_MINUTE: Joi.number()
+    .min(0)
     .default(60)
-    .description(
-      'Time window in seconds for rate limiting. Converted to milliseconds at the config boundary because @nestjs/throttler v6 expects ttl in ms.',
-    ),
-  THROTTLE_LIMIT: Joi.number()
-    .min(1)
-    .default(1000)
-    .description(
-      'Max requests per TTL window. Increased from 100 to 1000 to accommodate CI pipelines uploading multiple screenshots concurrently.',
-    ),
-
-  // Per-key upload rate limit: requests per minute per API key. 0 disables.
-  UPLOAD_RATE_LIMIT_PER_MINUTE: Joi.number().min(0).default(60),
-
-  // Login throttle (brute-force guard on /auth/login). Value in seconds,
-  // converted to milliseconds at the config boundary.
-  LOGIN_THROTTLE_TTL: Joi.number().min(1).default(LOGIN_THROTTLE_DEFAULTS.ttl),
-  LOGIN_THROTTLE_LIMIT: Joi.number()
-    .min(1)
-    .default(LOGIN_THROTTLE_DEFAULTS.limit),
-
-  // Log ingestion throttle (independent cap on the frontend log endpoint)
-  LOG_THROTTLE_TTL: Joi.number().min(1).default(LOG_THROTTLE_DEFAULTS.ttl),
-  LOG_THROTTLE_LIMIT: Joi.number().min(1).default(LOG_THROTTLE_DEFAULTS.limit),
+    .description('Max upload requests per minute per API key'),
+  LOGIN_RATE_LIMIT_PER_MINUTE: Joi.number()
+    .min(0)
+    .default(5)
+    .description('Max login attempts per minute per IP'),
+  LOG_RATE_LIMIT_PER_MINUTE: Joi.number()
+    .min(0)
+    .default(100)
+    .description('Max log-ingestion requests per minute per IP'),
 
   // Reverse proxy trust
   TRUST_PROXY: Joi.boolean()
     .default(false)
     .description(
-      'Trust X-Forwarded-For headers from the reverse proxy (nginx/ingress). Required for correct per-IP rate limiting and logging behind a proxy. Disable when the app is directly reachable.',
+      'Trust X-Forwarded-For headers from the reverse proxy (nginx/ingress). Required for correct per-IP rate limiting of the login and log endpoints and client-IP logging behind a proxy. Disable when the app is directly reachable.',
     ),
 
   // Auth

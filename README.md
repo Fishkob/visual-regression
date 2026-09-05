@@ -194,14 +194,16 @@ The **local dev** flow creates `backend/.env.local` and `frontend/.env.local` fr
 
 For Docker deployments, Compose reads the root `.env` automatically. Set the **production credentials** there so both the servers and the app use the same values — the Compose files interpolate these variables (a mismatch between e.g. the PostgreSQL container and the backend's `DATABASE_URL` silently breaks startup):
 
-| Variable                                              | Controls                                                                                                                                                               |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | PostgreSQL container + backend connection                                                                                                                              |
-| `RUSTFS_ROOT_USER` / `RUSTFS_ROOT_PASSWORD`           | RustFS root credentials (server + app)                                                                                                                                 |
-| `RUSTFS_BUCKET`                                       | Storage bucket name                                                                                                                                                    |
-| `CORS_ORIGIN`                                         | Allowed browser origins                                                                                                                                                |
-| `TRUST_PROXY`                                         | Trust `X-Forwarded-For` from the reverse proxy — set `true` behind nginx/ingress so per-IP throttling and logging see the real client IP (see Security Considerations) |
-| `UPLOAD_RATE_LIMIT_PER_MINUTE`                        | Per-API-key upload limit (requests per minute). `0` disables the per-key limit (default: `60`)                                                                         |
+| Variable                                              | Controls                                                                                                                                                                              |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | PostgreSQL container + backend connection                                                                                                                                             |
+| `RUSTFS_ROOT_USER` / `RUSTFS_ROOT_PASSWORD`           | RustFS root credentials (server + app)                                                                                                                                                |
+| `RUSTFS_BUCKET`                                       | Storage bucket name                                                                                                                                                                   |
+| `CORS_ORIGIN`                                         | Allowed browser origins                                                                                                                                                               |
+| `TRUST_PROXY`                                         | Trust `X-Forwarded-For` from the reverse proxy — set `true` behind nginx/ingress so the per-IP login/log rate limits and logging see the real client IP (see Security Considerations) |
+| `UPLOAD_RATE_LIMIT_PER_MINUTE`                        | Max uploads per minute per API key. `0` disables (default: `60`)                                                                                                                      |
+| `LOGIN_RATE_LIMIT_PER_MINUTE`                         | Max login attempts per minute per IP. `0` disables (default: `5`)                                                                                                                     |
+| `LOG_RATE_LIMIT_PER_MINUTE`                           | Max log-ingestion requests per minute per IP. `0` disables (default: `100`)                                                                                                           |
 
 The backend creates the storage bucket on startup and, by default, marks it **public-read** (the browser loads screenshots directly from RustFS). Set `RUSTFS_ENSURE_PUBLIC_BUCKET=false` when using a strict S3 provider (e.g. AWS S3 with a public-access block) and configure the bucket policy out-of-band.
 
@@ -369,9 +371,21 @@ This platform is designed to run in a **private/trusted network**:
 - **Authentication** — The product API requires a session cookie (browser login) or an API key (`x-api-key`) for CI/scripted callers. See [CI Authentication](#ci-authentication).
 - **Admin endpoints** — `POST /admin/api-keys` and `admin/dlq` are protected solely by the `x-admin-key` header (`ADMIN_API_KEY`); they sit outside the product auth surface so a first API key can be provisioned before any product credential exists.
 - **Bootstrap admin** — The first admin user is created on startup from `BOOTSTRAP_ADMIN_USERNAME` / `BOOTSTRAP_ADMIN_PASSWORD` (only when both are set). Local dev defaults these to `admin` / `admin-secret`; there is no production default. Remove them from the environment after first login. See [First login](#first-login).
-- **Login throttling** — `/auth/login` is throttled to 5 attempts per minute (`LOGIN_THROTTLE_LIMIT` / `LOGIN_THROTTLE_TTL`) to slow down brute-force attempts.
-- **Per-key upload rate limit** — Uploads are limited per API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default 60 per minute, fixed window). Exceeding the limit returns `429` with a `Retry-After` header. The counter lives in Postgres, so the limit holds across all backend instances. Browser (session) uploads are not counted per-key; they stay under the global throttle.
-- **Reverse proxy / per-IP throttling** — Set `TRUST_PROXY=true` when the backend is served behind the nginx/ingress reverse proxy (`docker-compose`, Helm). Without it Express sees every client as the proxy IP, so the per-IP login/global throttles collapse into a shared budget across all users. Keep it `false` when the backend is directly reachable.
+- **Rate limits** — every limit is a counter per fixed one-minute window in
+  Postgres, so limits hold across all backend instances. Three rules exist:
+  uploads are capped per API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default 60);
+  `/auth/login` is capped per IP (`LOGIN_RATE_LIMIT_PER_MINUTE`, default 5) to
+  slow brute force; log ingestion is capped per IP
+  (`LOG_RATE_LIMIT_PER_MINUTE`, default 100). Exceeding a limit returns `429`
+  with a `Retry-After` header. Setting a limit to `0` disables that rule. The
+  upload rule counts only API-key callers; browser sessions never upload.
+- **Per-IP rules and proxies** — only the two anonymous endpoints (login, log
+  ingestion) are keyed by client IP. Set `TRUST_PROXY=true` when the backend is
+  served behind the nginx/ingress reverse proxy so those per-IP rules and
+  client-IP logging see the real client IP; keep it `false` when the backend is
+  directly reachable (trusting proxy headers from a non-proxy client lets
+  anyone spoof their IP and bypass the per-IP limits). Authenticated product
+  routes are not IP-limited, so the switch does not affect them.
 - **Public by design** — Health, metrics, and log-ingestion endpoints are public; everything else is protected by the global authentication guard.
 - **CORS defaults to wildcard** — Configure `CORS_ORIGIN` explicitly in production.
 - **Helm chart secrets** — Create `deploy/charts/vrt/values.local.yaml` (gitignored) for local credentials. Use external secrets management (SealedSecrets, External Secrets Operator, SOPS) for production.

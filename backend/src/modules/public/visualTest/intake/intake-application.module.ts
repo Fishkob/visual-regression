@@ -9,8 +9,6 @@ import { JobQueueModule } from '@internal/job-queue/job-queue.module';
 import { VisualTestApplicationModule } from '@public/visualTest/core/visual-test-application.module';
 import { UploadIntake } from '@public/visualTest/intake/application/upload-intake.service';
 import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
-import { UploadRateLimitService } from '@public/visualTest/intake/application/upload-rate-limit.service';
-import { UploadRateLimitGuard } from '@public/visualTest/intake/presentation/guards/upload-rate-limit.guard';
 import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
 import { UploadController } from '@public/visualTest/intake/presentation/controllers/upload.controller';
 
@@ -32,11 +30,6 @@ import { UploadController } from '@public/visualTest/intake/presentation/control
     PdfSidecarModule,
   ],
   controllers: [UploadController],
-  providers: [
-    UploadIntake,
-    UploadDecisionResolver,
-    UploadRateLimitService,
-    UploadRateLimitGuard,
-  ],
+  providers: [UploadIntake, UploadDecisionResolver],
 })
 export class IntakeApplicationModule {}

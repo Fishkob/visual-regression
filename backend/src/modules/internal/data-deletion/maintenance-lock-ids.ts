@@ -8,5 +8,5 @@ export const MAINTENANCE_LOCK_IDS = {
   failedJobCleanup: 1002,
   pdfRenderCacheCleanup: 1003,
   unreferencedObjectCleanup: 1004,
-  uploadRateLimitBucketCleanup: 1005,
+  rateLimitBucketCleanup: 1005,
 } as const;

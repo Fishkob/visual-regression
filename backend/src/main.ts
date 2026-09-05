@@ -39,9 +39,9 @@ async function bootstrapApi(): Promise<INestApplication> {
   app.setGlobalPrefix('api/v1');
   const appConfig = app.get(AppConfigService);
 
-  // Trust X-Forwarded-For from the reverse proxy so @nestjs/throttler and
-  // request logging see the real client IP (per-IP throttles collapse to the
-  // proxy IP otherwise). Opt-in via TRUST_PROXY; `false` keeps the default
+  // Trust X-Forwarded-For from the reverse proxy so the IP-keyed login/log
+  // rate limits and request logging see the real client IP (they collapse to
+  // the proxy IP otherwise). Opt-in via TRUST_PROXY; `false` keeps the default
   // Express behavior for direct exposure.
   app.set('trust proxy', appConfig.trustProxy);
 

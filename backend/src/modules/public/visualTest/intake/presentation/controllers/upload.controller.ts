@@ -5,7 +5,6 @@ import {
   Post,
   Query,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import {
@@ -40,10 +39,10 @@ import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testna
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import type { AnyUploadResult } from '@common/domain/unified-upload-result.type';
 import { ComparisonOutcome } from '@common/domain/upload-outcome';
-import { UploadRateLimitGuard } from '@public/visualTest/intake/presentation/guards/upload-rate-limit.guard';
+import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 
 @ApiTags('Upload')
-@UseGuards(UploadRateLimitGuard)
+@RateLimit('upload')
 @ApiExtraModels(
   BaselineCreatedResultDto,
   IdenticalResultDto,

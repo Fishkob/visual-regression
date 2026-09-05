@@ -126,7 +126,7 @@ describe('Environment Validation', () => {
     expect(value.SWAGGER_BASE_URL).toBe('http://localhost:3000');
   });
 
-  it('defaults the route-scoped throttle env vars', () => {
+  it('defaults the per-minute rate-limit env vars', () => {
     const { value, error } = envValidationSchema.validate(
       {
         DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
@@ -139,10 +139,9 @@ describe('Environment Validation', () => {
       { abortEarly: false },
     );
     expect(error).toBeUndefined();
-    expect(value.LOGIN_THROTTLE_TTL).toBe(60);
-    expect(value.LOGIN_THROTTLE_LIMIT).toBe(5);
-    expect(value.LOG_THROTTLE_TTL).toBe(60);
-    expect(value.LOG_THROTTLE_LIMIT).toBe(100);
+    expect(value.UPLOAD_RATE_LIMIT_PER_MINUTE).toBe(60);
+    expect(value.LOGIN_RATE_LIMIT_PER_MINUTE).toBe(5);
+    expect(value.LOG_RATE_LIMIT_PER_MINUTE).toBe(100);
   });
 
   it('defaults TRUST_PROXY to false', () => {
@@ -178,7 +177,7 @@ describe('Environment Validation', () => {
     expect(value.TRUST_PROXY).toBe(true);
   });
 
-  it('rejects a LOGIN_THROTTLE_LIMIT of 0', () => {
+  it('rejects a negative LOGIN_RATE_LIMIT_PER_MINUTE', () => {
     const { error } = envValidationSchema.validate(
       {
         DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
@@ -187,11 +186,11 @@ describe('Environment Validation', () => {
         RUSTFS_SECRET_KEY: 'test-secret',
         RUSTFS_BUCKET: 'visual-tests',
         RUSTFS_PUBLIC_URL: 'http://localhost:9000',
-        LOGIN_THROTTLE_LIMIT: 0,
+        LOGIN_RATE_LIMIT_PER_MINUTE: -1,
       },
       { abortEarly: false },
     );
     expect(error).toBeDefined();
-    expect(error?.message).toContain('LOGIN_THROTTLE_LIMIT');
+    expect(error?.message).toContain('LOGIN_RATE_LIMIT_PER_MINUTE');
   });
 });

@@ -53,26 +53,28 @@ Passwords are hashed with scrypt (16-byte random salt, 64-byte derived key) via
 `node:crypto` and verified with `timingSafeEqual`. The env vars are intended to be
 removed after first login.
 
-### Route-scoped throttles
+### Route-scoped rate limits
 
-- `default` — the global rate limit (`THROTTLE_TTL` / `THROTTLE_LIMIT`) applies to every route.
-- `login` — caps `POST /auth/login` against brute force (`LOGIN_THROTTLE_LIMIT` / `LOGIN_THROTTLE_TTL`, default 5 / 60s).
-- `log` — caps the public log-ingestion endpoint (`LOG_THROTTLE_LIMIT` / `LOG_THROTTLE_TTL`, default 100 / 60s).
+Rate limits are one-minute-window counters in Postgres, applied by the global
+`RateLimitGuard` only where a `@RateLimit(scope)` decorator is present:
 
-The named throttlers are configured in `ThrottleConfigModule` from
-`AppConfigService` (Joi-validated env) at module init; the `login`/`log`
-throttlers are scoped to their own handlers via `skipIf` while the `default`
-throttler keeps covering all routes. The limits are read from DI rather than
-from `process.env` at import time, so env-file values are honored by the actual
-limiter (decorator metadata would be evaluated before ConfigModule loads the
-env files).
+- `login` — caps `POST /auth/login` per IP against brute force
+  (`LOGIN_RATE_LIMIT_PER_MINUTE`, default 5/min).
+- `log` — caps the public log-ingestion endpoint per IP
+  (`LOG_RATE_LIMIT_PER_MINUTE`, default 100/min).
+- `upload` — caps uploads per API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default
+  60/min).
 
-All throttles are tracked per IP via `req.ip`. Behind the documented reverse
-proxy (nginx in `docker-compose`/Helm ingress), Express must be told to trust
-`X-Forwarded-For` or every client shares the proxy's IP and the per-IP budgets
-(login brute-force guard especially) collapse into a shared limit. Set
-`TRUST_PROXY=true` in the backend env behind a proxy; keep it `false` when the
-backend is directly reachable. The switch is applied in `bootstrapApi()`
+A limit of `0` disables the rule. Because the counters live in Postgres, the
+limits hold across backend replicas. `429` responses carry a `Retry-After`
+header.
+
+Only the two anonymous rules (login, log) are keyed by `req.ip`. Behind the
+documented reverse proxy (nginx in `docker-compose`/Helm ingress), Express must
+be told to trust `X-Forwarded-For` or every client shares the proxy's IP and
+the per-IP budgets collapse into a shared limit. Set `TRUST_PROXY=true` in the
+backend env behind a proxy; keep it `false` when the backend is directly
+reachable. The switch is applied in `bootstrapApi()`
 (`app.set('trust proxy', appConfig.trustProxy)`).
 
 ### Admin endpoints
@@ -119,7 +121,6 @@ impossible to provision (bootstrap dead end).
   deployments must run migrations.
 - Health, metrics, and log endpoints remain public by design; anything else is
   guarded.
-- **@nestjs/throttler v6 expects ttl in milliseconds**, while env vars are written
-  in seconds. The conversion (`* 1000`) happens at the config boundary
-  (`app-config.service.ts` and `throttle-limits.ts`); a value copied verbatim from
-  env into the throttler would silently become a much longer window.
+- `RateLimitGuard` is registered **after** `AuthenticationGuard`, so the `upload`
+  rule can be keyed by the authenticated API key rather than `req.ip`; see
+  ADR-026 for the unified one-minute-window counter design.

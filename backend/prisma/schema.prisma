@@ -138,23 +138,20 @@ model ApiKey {
   createdAt DateTime  @default(now())
   revokedAt DateTime?
 
-  rateLimitBuckets ApiKeyRateLimitBucket[]
-
   @@map("ApiKey")
 }
 
-model ApiKeyRateLimitBucket {
+model RateLimitBucket {
   id          String   @id @default(cuid())
-  apiKeyId    String
-  windowStart DateTime // minute-aligned bucket
+  scope       String   // "login" | "log" | "upload"
+  key         String   // login/log: "ip:<ip>", upload: "apikey:<id>"
+  windowStart DateTime // minute-aligned
   count       Int      @default(0)
   createdAt   DateTime @default(now())
 
-  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
-
-  @@unique([apiKeyId, windowStart])
+  @@unique([scope, key, windowStart])
   @@index([windowStart])
-  @@map("ApiKeyRateLimitBucket")
+  @@map("RateLimitBucket")
 }
 
 enum TestKind {

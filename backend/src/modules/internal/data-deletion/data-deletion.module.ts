@@ -13,7 +13,7 @@ import { MaintenanceCron } from '@internal/data-deletion/cron/maintenance.cron';
 import { FailedJobCleanupTask } from '@internal/data-deletion/tasks/failed-job-cleanup.task';
 import { PdfRenderCacheCleanupTask } from '@internal/data-deletion/tasks/pdf-render-cache-cleanup.task';
 import { UnreferencedObjectCleanupTask } from '@internal/data-deletion/tasks/unreferenced-object-cleanup.task';
-import { UploadRateLimitBucketCleanupTask } from '@internal/data-deletion/tasks/upload-rate-limit-bucket-cleanup.task';
+import { RateLimitBucketCleanupTask } from '@internal/data-deletion/tasks/rate-limit-bucket-cleanup.task';
 import { OrphanCleanupService } from './services/orphan-cleanup.service';
 @Module({
   imports: [
@@ -30,7 +30,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
     FailedJobCleanupTask,
     PdfRenderCacheCleanupTask,
     UnreferencedObjectCleanupTask,
-    UploadRateLimitBucketCleanupTask,
+    RateLimitBucketCleanupTask,
     {
       provide: MAINTENANCE_TASKS,
       useFactory: (
@@ -38,21 +38,21 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         failedJobCleanupTask: FailedJobCleanupTask,
         pdfRenderCacheCleanupTask: PdfRenderCacheCleanupTask,
         unreferencedObjectCleanupTask: UnreferencedObjectCleanupTask,
-        uploadRateLimitBucketCleanupTask: UploadRateLimitBucketCleanupTask,
+        rateLimitBucketCleanupTask: RateLimitBucketCleanupTask,
       ) =>
         [
           orphanCleanupService,
           failedJobCleanupTask,
           pdfRenderCacheCleanupTask,
           unreferencedObjectCleanupTask,
-          uploadRateLimitBucketCleanupTask,
+          rateLimitBucketCleanupTask,
         ] as MaintenanceTask[],
       inject: [
         OrphanCleanupService,
         FailedJobCleanupTask,
         PdfRenderCacheCleanupTask,
         UnreferencedObjectCleanupTask,
-        UploadRateLimitBucketCleanupTask,
+        RateLimitBucketCleanupTask,
       ],
     },
   ],

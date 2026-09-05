@@ -27,8 +27,9 @@ describe('AppConfigService', () => {
     METRICS_ENABLED: true,
     METRICS_API_KEY: 'secret123',
     ADMIN_API_KEY: 'admin-secret',
-    THROTTLE_TTL: 60,
-    THROTTLE_LIMIT: 1000,
+    UPLOAD_RATE_LIMIT_PER_MINUTE: 60,
+    LOGIN_RATE_LIMIT_PER_MINUTE: 5,
+    LOG_RATE_LIMIT_PER_MINUTE: 100,
     LOG_LEVEL: 'info',
     APP_VERSION: '1.2.3',
     GIT_COMMIT: 'abc123',
@@ -113,10 +114,11 @@ describe('AppConfigService', () => {
     expect(config.admin.apiKey).toBe('admin-secret');
   });
 
-  it('exposes the throttle group with ttl converted to milliseconds', () => {
+  it('exposes the per-minute rate limits', () => {
     const config = buildAppConfig(baseValues);
-    expect(config.throttle.ttlMs).toBe(60_000);
-    expect(config.throttle.limit).toBe(1000);
+    expect(config.uploadRateLimitPerMinute).toBe(60);
+    expect(config.loginRateLimitPerMinute).toBe(5);
+    expect(config.logRateLimitPerMinute).toBe(100);
   });
 
   it('exposes the logging level', () => {

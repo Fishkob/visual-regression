@@ -28,6 +28,9 @@ x-app-env: &app-env
   BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   TRUST_PROXY: ${TRUST_PROXY:-false}
+  UPLOAD_RATE_LIMIT_PER_MINUTE: ${UPLOAD_RATE_LIMIT_PER_MINUTE:-60}
+  LOGIN_RATE_LIMIT_PER_MINUTE: ${LOGIN_RATE_LIMIT_PER_MINUTE:-5}
+  LOG_RATE_LIMIT_PER_MINUTE: ${LOG_RATE_LIMIT_PER_MINUTE:-100}
   NODE_ENV: production
   WORKER_HEALTH_URL: http://worker:3003/api/v1/health
   PDF_SIDECAR_HEALTH_URL: http://pdf-sidecar:3001/health
@@ -103,7 +106,8 @@ services:
       OTEL_TRACES_EXPORTER: otlp
       OTEL_LOGS_EXPORTER: none
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3003/api/v1/health || exit 1"]
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:3003/api/v1/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

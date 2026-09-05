@@ -111,21 +111,16 @@ export class AppConfigService {
     };
   }
 
-  get throttle() {
-    // THROTTLE_TTL is configured in seconds; @nestjs/throttler v6 expects ms.
-    return this.readThrottle('THROTTLE_TTL', 'THROTTLE_LIMIT');
-  }
-
-  get loginThrottle() {
-    return this.readThrottle('LOGIN_THROTTLE_TTL', 'LOGIN_THROTTLE_LIMIT');
-  }
-
-  get logThrottle() {
-    return this.readThrottle('LOG_THROTTLE_TTL', 'LOG_THROTTLE_LIMIT');
-  }
-
   get uploadRateLimitPerMinute(): number {
     return Number(this.config.get<string>('UPLOAD_RATE_LIMIT_PER_MINUTE'));
+  }
+
+  get loginRateLimitPerMinute(): number {
+    return Number(this.config.get<string>('LOGIN_RATE_LIMIT_PER_MINUTE'));
+  }
+
+  get logRateLimitPerMinute(): number {
+    return Number(this.config.get<string>('LOG_RATE_LIMIT_PER_MINUTE'));
   }
 
   get logging() {
@@ -165,17 +160,6 @@ export class AppConfigService {
 
   get cors() {
     return { origin: this.config.get<string>('CORS_ORIGIN') };
-  }
-
-  // Throttle env vars are written in seconds; @nestjs/throttler v6 expects ms.
-  private readThrottle(
-    ttlEnv: string,
-    limitEnv: string,
-  ): { ttlMs: number; limit: number } {
-    return {
-      ttlMs: parseInt(this.config.getOrThrow<string>(ttlEnv), 10) * 1000,
-      limit: parseInt(this.config.getOrThrow<string>(limitEnv), 10),
-    };
   }
 
   private rustfsUseSsl(value: boolean | string): boolean {
