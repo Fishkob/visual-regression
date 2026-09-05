@@ -16,25 +16,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [backend, worker, frontend, pdf-sidecar, migrate]
+        include:
+          - service: backend
+            image: visual-regression-backend
+          - service: worker
+            image: visual-regression-worker
+          - service: frontend
+            image: visual-regression-frontend
+          - service: pdf-sidecar
+            image: visual-regression-pdf-sidecar
+          - service: db-migrate
+            image: visual-regression-migrate
     steps:
       - uses: actions/checkout@v6
 
-      - name: Build image
-        run: |
-          case "${{ matrix.service }}" in
-            backend)     docker build -f backend/Dockerfile         -t visual-regression-backend . ;;
-            worker)      docker build -f backend/Dockerfile.worker   -t visual-regression-worker . ;;
-            frontend)    docker build -f frontend/Dockerfile         -t visual-regression-frontend . ;;
-            pdf-sidecar) docker build -f pdf-sidecar/Dockerfile      -t visual-regression-pdf-sidecar ./pdf-sidecar ;;
-            migrate)     docker build -f backend/Dockerfile.migrate  -t visual-regression-migrate . ;;
-          esac
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image (gha-cached)
+        run: docker buildx bake -f docker-compose.yml ${{ matrix.service }}
 
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
-          image-ref: visual-regression-${{ matrix.service }}
+          image-ref: ${{ matrix.image }}
           severity: CRITICAL,HIGH
           format: table
           exit-code: "1"

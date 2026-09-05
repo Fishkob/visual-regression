@@ -103,6 +103,12 @@ jobs:
         with:
           generate-prisma: "false"
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build app images (gha-cached)
+        run: docker buildx bake -f docker-compose.yml --load
+
       - name: Start full stack (infra + backend + frontend)
         run: docker compose -f docker-compose.yml up -d
         env:
