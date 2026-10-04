@@ -1,5 +1,10 @@
-import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ClassSerializerInterceptor, Module } from '@nestjs/common';
+import {
+  APP_FILTER,
+  APP_GUARD,
+  APP_INTERCEPTOR,
+  Reflector,
+} from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CoreInfrastructureModule } from '@/core-infrastructure.module';
 import { VisualTestApplicationModule } from '@public/visualTest/core/visual-test-application.module';
@@ -43,6 +48,21 @@ import { HttpMetricsInterceptor } from '@common/http/http-metrics.interceptor';
     {
       provide: APP_GUARD,
       useClass: RateLimitGuard,
+    },
+    {
+      // Response serialization is a global guard rather than an opt-in call
+      // site: every DTO instance returned has its fields filtered to those
+      // marked @Expose, so a new entity shape cannot leak because a controller
+      // forgot a plainToInstance({ excludeExtraneousValues: true }). Plain
+      // objects pass through untouched (class-transformer only filters class
+      // instances), so wrappers like { data, meta } and inline literals are
+      // unaffected.
+      provide: APP_INTERCEPTOR,
+      useFactory: (reflector: Reflector) =>
+        new ClassSerializerInterceptor(reflector, {
+          excludeExtraneousValues: true,
+        }),
+      inject: [Reflector],
     },
     {
       provide: APP_INTERCEPTOR,

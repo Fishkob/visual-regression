@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { AppConfigService } from '@config/app-config.service';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import {
@@ -18,8 +18,9 @@ import type {
 } from '@common/domain/worker-health.type';
 
 @Injectable()
-export class WorkerHealthServer {
+export class WorkerHealthServer implements OnApplicationShutdown {
   private server: http.Server;
+  private started = false;
   private state: WorkerHealthState = {
     lastJobProcessedAt: null,
     lastPollAt: null,
@@ -108,6 +109,7 @@ export class WorkerHealthServer {
   async start(): Promise<void> {
     return new Promise((resolve) => {
       this.server.listen(this.port, () => {
+        this.started = true;
         this.logger.log(`Worker health server listening on port ${this.port}`);
         resolve();
       });
@@ -115,10 +117,16 @@ export class WorkerHealthServer {
   }
 
   async stop(): Promise<void> {
+    if (!this.started) return;
+    this.started = false;
     return new Promise((resolve) => {
       this.server.close(() => {
         resolve();
       });
     });
+  }
+
+  async onApplicationShutdown(): Promise<void> {
+    await this.stop();
   }
 }

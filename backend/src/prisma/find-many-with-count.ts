@@ -1,18 +1,20 @@
 interface FindManyWithCountModel {
   findMany(args?: object): Promise<unknown[]>;
-  count(args?: { where?: object }): Promise<number>;
+  count(args?: { where?: unknown }): Promise<number>;
+}
+
+interface FindManyWithCountArgs {
+  where?: unknown;
+  select?: unknown;
+  include?: unknown;
+  skip?: number;
+  take?: number;
+  orderBy?: unknown;
 }
 
 export async function findManyWithCount<T>(
   model: FindManyWithCountModel,
-  args: {
-    where?: any;
-    select?: any;
-    include?: any;
-    skip?: number;
-    take?: number;
-    orderBy?: any;
-  },
+  args: FindManyWithCountArgs,
 ): Promise<{ data: T[]; total: number }> {
   const [data, total] = await Promise.all([
     model.findMany(args) as Promise<T[]>,

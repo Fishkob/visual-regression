@@ -4,6 +4,7 @@ import { envValidationSchema } from '@config/env.validation';
 import { LoggerConfigModule } from '@config/logger-config.module';
 import { AppConfigModule } from '@config/app-config.module';
 import { AppLoggerModule } from '@common/logging/app-logger.module';
+import { AppShutdownService } from '@common/logging/app-shutdown.service';
 import { TrackerModule } from '@common/tracker/tracker.module';
 import { StorageModule } from '@internal/storage/storage.module';
 import { PrismaModule } from '@prisma/prisma.module';
@@ -35,6 +36,7 @@ import { MetricsBaseModule } from '@internal/metrics/metrics-base.module';
     PrismaModule,
     MetricsBaseModule,
   ],
+  providers: [AppShutdownService],
   exports: [AppConfigModule, AppLoggerModule, TrackerModule],
 })
 export class CoreInfrastructureModule {}

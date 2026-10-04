@@ -12,7 +12,7 @@ import { WorkerHealthServer } from '@internal/worker/worker-health-server';
 import { bootstrapAdmin } from '@internal/auth/bootstrap-admin';
 import { AuthRepository } from '@internal/auth/auth.repository';
 import { hashPassword } from '@internal/auth/password-hasher';
-import { startTracing, shutdownTracing } from './tracing.setup';
+import { startTracing } from './tracing.setup';
 import helmet from 'helmet';
 import * as bodyParser from 'body-parser';
 
@@ -97,53 +97,6 @@ function configureSwagger(
   SwaggerModule.setup('docs', app, document);
 }
 
-function registerShutdownHooks(app: NestExpressApplication): void {
-  let isShuttingDown = false;
-
-  const shutdownApi = async (signal: string): Promise<void> => {
-    if (isShuttingDown) return;
-    isShuttingDown = true;
-
-    const logger = app.get(AppLoggerService);
-    logger.log(`Shutting down API (${signal})...`);
-
-    try {
-      const server = app.getHttpServer();
-      server.close();
-
-      await new Promise<void>((resolve) => {
-        const timer = setTimeout(() => {
-          logger.warn('Request drain timeout reached, forcing shutdown');
-          resolve();
-        }, 30_000);
-
-        app
-          .close()
-          .then(() => {
-            clearTimeout(timer);
-            resolve();
-          })
-          .catch(() => {
-            clearTimeout(timer);
-            resolve();
-          });
-      });
-
-      await shutdownTracing();
-      process.exit(0);
-    } catch (err) {
-      logger.error(
-        'Error during shutdown',
-        err instanceof Error ? err.stack : String(err),
-      );
-      process.exit(1);
-    }
-  };
-
-  process.on('SIGTERM', () => void shutdownApi('SIGTERM'));
-  process.on('SIGINT', () => void shutdownApi('SIGINT'));
-}
-
 async function bootstrapApi(): Promise<INestApplication> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: false,
@@ -176,7 +129,11 @@ async function bootstrapApi(): Promise<INestApplication> {
   );
 
   await app.listen(port);
-  registerShutdownHooks(app);
+  // Nest turns SIGTERM/SIGINT into app.close(): the Express adapter stops
+  // accepting requests, closes open connections, then every onModuleDestroy /
+  // onApplicationShutdown hook runs (PrismaConnection.$disconnect, storage,
+  // AppShutdownService). useProcessExit makes Pino flush its async buffer.
+  app.enableShutdownHooks([], { useProcessExit: true });
 
   return app;
 }
@@ -193,27 +150,10 @@ async function bootstrapWorker(): Promise<void> {
   const healthServer = app.get(WorkerHealthServer);
   await healthServer.start();
 
-  let isShuttingDown = false;
-
-  const shutdown = async (signal: string): Promise<void> => {
-    if (isShuttingDown) return;
-    isShuttingDown = true;
-    logger.log(`Shutting down worker (${signal})...`);
-    try {
-      await Promise.all([healthServer.stop(), shutdownTracing()]);
-      await app.close();
-      process.exit(0);
-    } catch (err) {
-      logger.error(
-        'Error during shutdown',
-        err instanceof Error ? err.stack : String(err),
-      );
-      process.exit(1);
-    }
-  };
-
-  process.on('SIGINT', () => void shutdown('SIGINT'));
-  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  // Same lifecycle contract as the API: signals call app.close(), which runs
+  // WorkerHealthServer.onApplicationShutdown, AppShutdownService, and the
+  // Prisma/storage/poller onModuleDestroy hooks. useProcessExit flushes Pino.
+  app.enableShutdownHooks([], { useProcessExit: true });
 }
 
 void bootstrap();
