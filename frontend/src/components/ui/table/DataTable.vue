@@ -1,15 +1,15 @@
-<script setup lang="ts" generic="TData, TValue">
+<script setup lang="ts" generic="TData extends RowData">
 import {
-  useVueTable,
-  getCoreRowModel,
-  getSortedRowModel,
   FlexRender,
-  type ColumnDef,
-  type SortingState,
+  useTable,
   type Column,
+  type ColumnDef,
+  type RowData,
+  type SortingState,
+  type Updater,
 } from "@tanstack/vue-table";
 
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 import {
   Table,
@@ -19,11 +19,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  appTableFeatures,
+  type AppTableFeatures,
+} from "@/components/ui/table/table-features";
 import { TEST_ID } from "@/lib/test-ids";
 
 const props = withDefaults(
   defineProps<{
-    columns: ColumnDef<TData, TValue>[];
+    columns: ColumnDef<AppTableFeatures, TData>[];
     data: TData[];
     clickableRows?: boolean;
     loading?: boolean;
@@ -40,30 +44,23 @@ const emit = defineEmits<{
 
 const sorting = ref<SortingState>([]);
 
-const table = useVueTable({
-  get data() {
-    return props.data;
-  },
-  get columns() {
-    return props.columns;
-  },
+const table = useTable<AppTableFeatures, TData>({
+  features: appTableFeatures,
+  data: computed(() => props.data),
+  columns: computed(() => props.columns),
 
-  state: {
-    get sorting() {
-      return sorting.value;
-    },
-  },
+  state: computed(() => ({ sorting: sorting.value })),
 
-  onSortingChange: (updater) => {
+  onSortingChange: (updater: Updater<SortingState>) => {
     sorting.value =
       typeof updater === "function" ? updater(sorting.value) : updater;
   },
-
-  getCoreRowModel: getCoreRowModel(),
-  getSortedRowModel: getSortedRowModel(),
 });
 
-function onSort(column: Column<TData, unknown>, ev: MouseEvent) {
+function onSort(
+  column: Column<AppTableFeatures, TData, unknown>,
+  ev: MouseEvent,
+) {
   if (!column.getCanSort?.()) return;
   const handler = column.getToggleSortingHandler?.();
   if (handler) handler(ev);
@@ -74,12 +71,15 @@ function onRowClick(row: TData) {
   emit("rowClick", row);
 }
 
-function getColumnId(col: ColumnDef<TData, TValue>, index: number): string {
+function getColumnId(
+  col: ColumnDef<AppTableFeatures, TData>,
+  index: number,
+): string {
   const c = col as { id?: string; accessorKey?: string };
   return c.id ?? c.accessorKey ?? `col-${index}`;
 }
 
-function isActionsColumn(col: ColumnDef<TData, TValue>): boolean {
+function isActionsColumn(col: ColumnDef<AppTableFeatures, TData>): boolean {
   return (col as { id?: string }).id === "actions";
 }
 </script>

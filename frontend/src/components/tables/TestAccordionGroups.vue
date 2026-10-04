@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ColumnDef } from "@tanstack/vue-table";
+import type { AppTableFeatures } from "@/components/ui/table/table-features";
 import {
   Accordion,
   AccordionItem,
@@ -14,7 +15,7 @@ import { TEST_ID } from "@/lib/test-ids";
 
 defineProps<{
   groups: TestGroup[];
-  columns: ColumnDef<VisualTestItem>[];
+  columns: ColumnDef<AppTableFeatures, VisualTestItem>[];
   defaultAccordionValues: string[];
 }>();
 

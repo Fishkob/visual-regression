@@ -7,6 +7,7 @@ import RowActionsCell from "@/components/tables/RowActionsCell.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 
 import type { ColumnDef } from "@tanstack/vue-table";
+import type { AppTableFeatures } from "@/components/ui/table/table-features";
 import type { VisualTestItem } from "@/domains/projects/project.model";
 
 import { getStatusBadge } from "@/components/StatusBadge";
@@ -53,7 +54,7 @@ function handleRowClick(t: VisualTestItem) {
 
 /* ------------------------- TABLE COLUMNS -------------------------- */
 
-const columns: ColumnDef<VisualTestItem>[] = [
+const columns: ColumnDef<AppTableFeatures, VisualTestItem>[] = [
   { accessorKey: "viewport", header: "Viewport" },
   { accessorKey: "browser", header: "Browser" },
   { accessorKey: "environment", header: "Env" },

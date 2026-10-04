@@ -12,6 +12,7 @@ import { useProjectDelete } from "@/composables/useProjectDelete";
 import { TEST_ID } from "@/lib/test-ids";
 
 import type { ColumnDef } from "@tanstack/vue-table";
+import type { AppTableFeatures } from "@/components/ui/table/table-features";
 import type { Project } from "@/domains/projects/project.model";
 
 const router = useRouter();
@@ -51,7 +52,7 @@ function handleRowClick(project: Project) {
 }
 
 /* TABLE COLUMNS */
-const columns: ColumnDef<Project>[] = [
+const columns: ColumnDef<AppTableFeatures, Project>[] = [
   {
     accessorKey: "name",
     header: "Project",
