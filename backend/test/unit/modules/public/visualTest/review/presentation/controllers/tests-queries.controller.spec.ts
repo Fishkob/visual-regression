@@ -4,6 +4,7 @@ import { TestsQueriesController } from '@public/visualTest/review/presentation/c
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
 import { DomainError } from '@common/domain/domain-error';
 import { PaginationDto } from '@common/dto/pagination.dto';
+import { TestNamesQueryDto } from '@public/visualTest/review/presentation/dto/project.dto';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import { ComparisonEntity } from '@public/visualTest/core/domain/entities/comparison.entity';
 import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
@@ -53,8 +54,7 @@ describe('TestsQueriesController', () => {
 
       const result = await controller.getTestsForProject(
         'checkout-ui',
-        'pdf',
-        new PaginationDto(),
+        Object.assign(new TestNamesQueryDto(), { kind: 'pdf' }),
       );
 
       expect(result).toMatchObject({
@@ -62,7 +62,7 @@ describe('TestsQueriesController', () => {
       });
       expect(testQuery.getTestNames).toHaveBeenCalledWith(
         'checkout-ui',
-        expect.any(PaginationDto),
+        expect.any(TestNamesQueryDto),
         'pdf',
       );
     });
@@ -82,14 +82,13 @@ describe('TestsQueriesController', () => {
 
       const result = await controller.getTestsForProject(
         'checkout-ui',
-        undefined,
-        new PaginationDto(),
+        new TestNamesQueryDto(),
       );
 
       expect(result).toMatchObject({ data: [{ name: 'login-form' }] });
       expect(testQuery.getTestNames).toHaveBeenCalledWith(
         'checkout-ui',
-        expect.any(PaginationDto),
+        expect.any(TestNamesQueryDto),
         undefined,
       );
     });

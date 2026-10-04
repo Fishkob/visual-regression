@@ -2,7 +2,10 @@ import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestCommandsController } from '@public/visualTest/review/presentation/controllers/test-commands.controller';
 import { TestCommandService } from '@public/visualTest/review/application/test-command.service';
-import { UpdateThresholdDto } from '@public/visualTest/review/presentation/dto/project.dto';
+import {
+  UpdateThresholdDto,
+  UpdateThresholdQueryDto,
+} from '@public/visualTest/review/presentation/dto/project.dto';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import { createMock } from '@test/utils/create-mock';
 describe('TestCommandsController', () => {
@@ -29,10 +32,10 @@ describe('TestCommandsController', () => {
   describe('updateThreshold', () => {
     it('calls testCommandService.updateThreshold with params, body, and filters', async () => {
       const body: UpdateThresholdDto = { threshold: 50 };
-      const filterDto = new VariantFilterDto();
-      filterDto.viewport = '1920x1080';
-      filterDto.browser = 'Chrome';
-      filterDto.environment = 'ci';
+      const query = new UpdateThresholdQueryDto();
+      query.viewport = '1920x1080';
+      query.browser = 'Chrome';
+      query.environment = 'ci';
 
       const expected = {
         status: 'updated',
@@ -45,8 +48,7 @@ describe('TestCommandsController', () => {
         'checkout-ui',
         'login-form',
         body,
-        filterDto,
-        undefined,
+        query,
       );
 
       expect(result).toEqual(expected);
@@ -54,17 +56,18 @@ describe('TestCommandsController', () => {
         'login-form',
         'checkout-ui',
         body.threshold,
-        filterDto,
+        query,
         false,
       );
     });
 
     it('forwards the preview flag to the service', async () => {
       const body = { threshold: 50 };
-      const filterDto = new VariantFilterDto();
-      filterDto.viewport = '1920x1080';
-      filterDto.browser = 'Chrome';
-      filterDto.environment = 'ci';
+      const query = new UpdateThresholdQueryDto();
+      query.viewport = '1920x1080';
+      query.browser = 'Chrome';
+      query.environment = 'ci';
+      query.preview = 'true';
 
       testCommandService.updateThreshold.mockResolvedValue({
         status: 'updated',
@@ -77,15 +80,14 @@ describe('TestCommandsController', () => {
         'checkout-ui',
         'login-form',
         body,
-        filterDto,
-        'true',
+        query,
       );
 
       expect(testCommandService.updateThreshold).toHaveBeenCalledWith(
         'login-form',
         'checkout-ui',
         body.threshold,
-        filterDto,
+        query,
         true,
       );
     });

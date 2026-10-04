@@ -7,7 +7,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
-import { ProjectTestDto } from '@public/visualTest/review/presentation/dto/project.dto';
+import {
+  ProjectTestDto,
+  TestNamesQueryDto,
+} from '@public/visualTest/review/presentation/dto/project.dto';
 import { VisualTestDetailsDto } from '@public/visualTest/review/presentation/dto/visual-test.dto';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
@@ -31,10 +34,9 @@ export class TestsQueriesController {
   })
   async getTestsForProject(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
-    @Query('kind') kind: string | undefined,
-    @Query() pagination: PaginationDto,
+    @Query() query: TestNamesQueryDto,
   ) {
-    return this.testQuery.getTestNames(projectName, pagination, kind);
+    return this.testQuery.getTestNames(projectName, query, query.kind);
   }
 
   @Get(':testName/kind')

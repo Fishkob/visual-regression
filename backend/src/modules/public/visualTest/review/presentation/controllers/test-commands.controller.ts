@@ -10,7 +10,10 @@ import { plainToInstance } from 'class-transformer';
 import { TestCommandService } from '@public/visualTest/review/application/test-command.service';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import { UpdateThresholdResultDto } from '@public/visualTest/review/presentation/dto/review-responses.dto';
-import { UpdateThresholdDto } from '@public/visualTest/review/presentation/dto/project.dto';
+import {
+  UpdateThresholdDto,
+  UpdateThresholdQueryDto,
+} from '@public/visualTest/review/presentation/dto/project.dto';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 
@@ -36,15 +39,14 @@ export class TestCommandsController {
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
     @Body() body: UpdateThresholdDto,
-    @Query() filters: VariantFilterDto,
-    @Query('preview') preview?: string,
+    @Query() query: UpdateThresholdQueryDto,
   ) {
     const result = await this.testCommand.updateThreshold(
       testName,
       projectName,
       body.threshold,
-      filters,
-      preview === 'true',
+      query,
+      query.preview === 'true',
     );
     return plainToInstance(UpdateThresholdResultDto, result, {
       excludeExtraneousValues: true,

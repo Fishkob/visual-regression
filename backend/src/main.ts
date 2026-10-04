@@ -1,13 +1,13 @@
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import type { INestApplication } from '@nestjs/common';
-import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ConfigService } from '@nestjs/config';
 import { AppModule } from '@app';
 import { WorkerModule } from './worker.module';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { AppConfigService } from '@config/app-config.service';
+import { loadEnv, readBootstrapEnv } from '@config/bootstrap-env';
+import { createValidationPipe } from '@common/http/validation-pipe';
 import { WorkerHealthServer } from '@internal/worker/worker-health-server';
 import { bootstrapAdmin } from '@internal/auth/bootstrap-admin';
 import { AuthRepository } from '@internal/auth/auth.repository';
@@ -17,10 +17,9 @@ import helmet from 'helmet';
 import * as bodyParser from 'body-parser';
 
 async function bootstrap(): Promise<void> {
-  const appConfig = new AppConfigService(new ConfigService());
-  startTracing(appConfig.otel.exporterEndpoint);
-
-  const nodeMode = appConfig.nodeMode;
+  loadEnv();
+  const { nodeMode, otelExporterEndpoint } = readBootstrapEnv();
+  startTracing(otelExporterEndpoint);
 
   if (nodeMode === 'worker') {
     await bootstrapWorker();
@@ -30,28 +29,20 @@ async function bootstrap(): Promise<void> {
   await bootstrapApi();
 }
 
-async function bootstrapApi(): Promise<INestApplication> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    bufferLogs: false,
-    logger: false,
-  });
-
-  app.setGlobalPrefix('api/v1');
-  const appConfig = app.get(AppConfigService);
-
-  // Trust X-Forwarded-For from the reverse proxy so the IP-keyed login/log
-  // rate limits and request logging see the real client IP (they collapse to
-  // the proxy IP otherwise). Opt-in via TRUST_PROXY; `false` keeps the default
-  // Express behavior for direct exposure.
-  app.set('trust proxy', appConfig.trustProxy);
-
-  // Global body parser limit
+function configureBodyParsers(
+  app: NestExpressApplication,
+  appConfig: AppConfigService,
+): void {
   app.use(bodyParser.json({ limit: appConfig.maxBodySize }));
   app.use(
     bodyParser.urlencoded({ limit: appConfig.maxBodySize, extended: true }),
   );
+}
 
-  // Helmet
+function configureSecurity(
+  app: NestExpressApplication,
+  appConfig: AppConfigService,
+): void {
   const isCspEnabled = appConfig.csp.enabled;
   const rustfsPublicUrl = appConfig.rustfs.publicUrl;
   app.use(
@@ -73,7 +64,6 @@ async function bootstrapApi(): Promise<INestApplication> {
     }),
   );
 
-  // CORS
   const corsOrigin = appConfig.cors.origin;
   if (corsOrigin === '*') {
     app.enableCors({ origin: '*' });
@@ -81,20 +71,12 @@ async function bootstrapApi(): Promise<INestApplication> {
     const allowedOrigins = corsOrigin.split(',').map((o) => o.trim());
     app.enableCors({ origin: allowedOrigins, credentials: true });
   }
+}
 
-  // Global Middleware
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: false,
-      transform: true,
-      forbidUnknownValues: true,
-    }),
-  );
-
-  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
-
-  // Swagger
+function configureSwagger(
+  app: INestApplication,
+  appConfig: AppConfigService,
+): void {
   const config = new DocumentBuilder()
     .setTitle('Visual Regression API')
     .setDescription('API documentation for screenshot upload and comparison')
@@ -113,18 +95,9 @@ async function bootstrapApi(): Promise<INestApplication> {
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
+}
 
-  const port = app.get(AppConfigService).app.port;
-
-  await bootstrapAdmin(
-    app.get(AuthRepository),
-    { hashPassword },
-    appConfig,
-    app.get(AppLoggerService),
-  );
-
-  await app.listen(port);
-
+function registerShutdownHooks(app: NestExpressApplication): void {
   let isShuttingDown = false;
 
   const shutdownApi = async (signal: string): Promise<void> => {
@@ -169,6 +142,41 @@ async function bootstrapApi(): Promise<INestApplication> {
 
   process.on('SIGTERM', () => void shutdownApi('SIGTERM'));
   process.on('SIGINT', () => void shutdownApi('SIGINT'));
+}
+
+async function bootstrapApi(): Promise<INestApplication> {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: false,
+    logger: false,
+  });
+
+  app.setGlobalPrefix('api/v1');
+  const appConfig = app.get(AppConfigService);
+
+  // Trust X-Forwarded-For from the reverse proxy so the IP-keyed login/log
+  // rate limits and request logging see the real client IP (they collapse to
+  // the proxy IP otherwise). Opt-in via TRUST_PROXY; `false` keeps the default
+  // Express behavior for direct exposure.
+  app.set('trust proxy', appConfig.trustProxy);
+
+  configureBodyParsers(app, appConfig);
+  configureSecurity(app, appConfig);
+
+  app.useGlobalPipes(createValidationPipe());
+
+  configureSwagger(app, appConfig);
+
+  const port = appConfig.app.port;
+
+  await bootstrapAdmin(
+    app.get(AuthRepository),
+    { hashPassword },
+    appConfig,
+    app.get(AppLoggerService),
+  );
+
+  await app.listen(port);
+  registerShutdownHooks(app);
 
   return app;
 }

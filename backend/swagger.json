@@ -540,7 +540,9 @@
             "required": false,
             "in": "query",
             "description": "Filter by test kind (image or pdf)",
-            "schema": {}
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {

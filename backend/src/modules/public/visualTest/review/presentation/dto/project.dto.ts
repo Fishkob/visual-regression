@@ -17,6 +17,8 @@ import {
 } from 'class-validator';
 import { TestStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { VisualTestDto } from '@public/visualTest/review/presentation/dto/visual-test.dto';
+import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
+import { PaginationDto } from '@common/dto/pagination.dto';
 import {
   NAME_REGEXP,
   MAX_NAME_LENGTH,
@@ -106,4 +108,26 @@ export class UpdateThresholdDto {
   @Max(100000)
   @Expose()
   threshold!: number;
+}
+
+// The whole query object is validated as one DTO so whitelist/forbidNonWhitelisted
+// can reject genuinely unknown params without rejecting the endpoint's own
+// extra params (kind) as if they were stray.
+export class TestNamesQueryDto extends PaginationDto {
+  @ApiPropertyOptional({
+    description: 'Filter by test kind (image or pdf)',
+  })
+  @IsOptional()
+  @IsString()
+  kind?: string;
+}
+
+export class UpdateThresholdQueryDto extends VariantFilterDto {
+  @ApiPropertyOptional({
+    description:
+      'When true, returns how many pending comparisons the value would auto-accept without mutating anything',
+  })
+  @IsOptional()
+  @IsString()
+  preview?: string;
 }

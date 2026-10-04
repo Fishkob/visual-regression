@@ -1,5 +1,6 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { createValidationPipe } from '@common/http/validation-pipe';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { AppModule } from '@app';
 import { IntakeWorkerModule } from '@public/visualTest/intake/intake-worker.module';
@@ -24,14 +25,7 @@ export class TestApp {
     const app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
 
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        transform: true,
-        forbidNonWhitelisted: true,
-        forbidUnknownValues: true,
-      }),
-    );
+    app.useGlobalPipes(createValidationPipe());
 
     await app.init();
 

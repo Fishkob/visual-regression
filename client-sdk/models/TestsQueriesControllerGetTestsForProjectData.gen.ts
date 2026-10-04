@@ -25,7 +25,7 @@ export type TestsQueriesControllerGetTestsForProjectData = {
         /**
          * Filter by test kind (image or pdf)
          */
-        kind?: unknown;
+        kind?: string;
     };
     url: '/projects/{projectName}/tests';
 };

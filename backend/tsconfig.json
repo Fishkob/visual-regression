@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "moduleResolution": "bundler",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -26,8 +26,8 @@
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "skipLibCheck": true,
     "strict": true,
-    "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false,
+    "strictBindCallApply": true,
+    "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true
   },
   "include": ["src/**/*", "prisma/generated/**/*"],
