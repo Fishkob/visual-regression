@@ -5,9 +5,5 @@
 # critical+high) while documenting accepted risk.
 
 [[IgnoredVulns]]
-id = "GHSA-355h-qmc2-wpwf"
-reason = "Jetty HTTP request smuggling (chunked extension quoted-string parsing). No fix exists in the Jetty 11.0 line (last_affected 11.0.27; fix only in 12.0.33+). pdf-sidecar runs as an internal sidecar on a trusted network behind our own reverse proxy, never directly exposed. A Jetty 12 upgrade requires a Javalin 6 -> 7 framework migration (tracked as follow-up)."
-
-[[IgnoredVulns]]
-id = "GHSA-2fvj-hgj9-j2gr"
-reason = "Jetty digest-authentication bypass via ISO-8859-1 lossy encoding. The published fixed version 11.0.31 does not exist on Maven Central (latest 11.0.x is 11.0.26). pdf-sidecar configures no authentication at all, so the vulnerable digest-auth code path is never exercised. Re-evaluate when a fixed Jetty 11.0.x (>= 11.0.31) ships."
+id = "GHSA-vfj7-8cjw-p6xm"
+reason = "braces stack-exhaustion DoS via deeply nested brace patterns. No fixed release exists: 3.0.3 is the latest published version and the advisory lists it as last_affected with no fixed version. Pulled in transitively as a build/dev-time dependency (micromatch). It only ever processes developer-authored glob patterns, never untrusted runtime input, so the DoS path is not reachable. Re-evaluate when a patched braces release ships."
