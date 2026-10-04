@@ -15,7 +15,7 @@ export POSTGRES_HOST POSTGRES_PORT POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB
 pnpm --filter ./backend prisma:generate
 
 cd "$PROJECT_ROOT/backend"
-TS_NODE_PROJECT=tsconfig.swagger.json node --no-experimental-require-module -r ts-node/register -r tsconfig-paths/register src/scripts/swagger-export.ts
+TS_NODE_PROJECT=tsconfig.swagger.json node -r ts-node/register -r tsconfig-paths/register src/scripts/swagger-export.ts
 
 cd "$PROJECT_ROOT"
 

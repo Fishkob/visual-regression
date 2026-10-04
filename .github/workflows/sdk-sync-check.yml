@@ -17,7 +17,7 @@ jobs:
         env:
           SWAGGER_OUT_DIR: .
           DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/vrt?schema=public
-        run: TS_NODE_PROJECT=tsconfig.swagger.json node --no-experimental-require-module -r ts-node/register -r tsconfig-paths/register src/scripts/swagger-export.ts
+        run: TS_NODE_PROJECT=tsconfig.swagger.json node -r ts-node/register -r tsconfig-paths/register src/scripts/swagger-export.ts
 
       - name: Generate fresh SDK
         run: pnpm exec openapi-ts --file openapi-ts.config.ts

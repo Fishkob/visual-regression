@@ -21,8 +21,10 @@ import { MetricsBaseModule } from '@internal/metrics/metrics-base.module';
       cache: true,
       validationSchema: envValidationSchema,
       validationOptions: {
-        allowUnknown: true,
-        abortEarly: false,
+        libraryOptions: {
+          allowUnknown: true,
+          abortEarly: false,
+        },
       },
     }),
     LoggerConfigModule,

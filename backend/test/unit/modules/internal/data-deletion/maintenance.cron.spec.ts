@@ -1,6 +1,5 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { SCHEDULE_CRON_OPTIONS } from '@nestjs/schedule/dist/schedule.constants';
 import { MaintenanceCron } from '@internal/data-deletion/cron/maintenance.cron';
 import {
   MAINTENANCE_TASKS,
@@ -13,6 +12,10 @@ import { METRICS_RECORDER } from '@common/domain/metrics-recorder.interface';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';
 import { createMockLogger } from '@test/utils/mocks';
+
+// Reflection key used by @nestjs/schedule's @Cron decorator. Not part of the
+// package's public exports, so it is mirrored here for the metadata assertion.
+const SCHEDULE_CRON_OPTIONS = 'SCHEDULE_CRON_OPTIONS';
 
 describe('MaintenanceCron', () => {
   let cron: MaintenanceCron;

@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Docker & Docker Compose
-- **Node.js ≥ 24** (enforced via `engines`, see `.node-version`)
+- **Node.js ≥ 24.15** (required by the NestJS v12 CLI; enforced via `engines`, see `.node-version`)
 - pnpm ≥ 10 (auto-installed by `dev.sh` if missing)
 
 ## First-time Setup
