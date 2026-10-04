@@ -85,6 +85,7 @@ export class UploadController {
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
     @Query('testKind', TestKindValidationPipe) testKind: TestKind,
+    // eslint-disable-next-line @darraghor/nestjs-typed/uploaded-file-should-be-validated -- size limit set on MulterModule, mime/signature validated in FileValidationPipe
     @UploadedFile(FileValidationPipe)
     file: Express.Multer.File,
     @Body() body: UploadDocumentDto,
