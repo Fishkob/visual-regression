@@ -30,5 +30,6 @@
     "noFallthroughCasesInSwitch": false,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*", "prisma/generated/**/*"]
+  "include": ["src/**/*", "prisma/generated/**/*"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

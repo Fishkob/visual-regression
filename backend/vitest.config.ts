@@ -3,11 +3,9 @@ import { resolve } from 'path';
 
 export default defineConfig({
   oxc: {
-    tsconfig: {
-      compilerOptions: {
-        experimentalDecorators: true,
-        emitDecoratorMetadata: true,
-      },
+    decorator: {
+      legacy: true,
+      emitDecoratorMetadata: true,
     },
   },
   test: {
