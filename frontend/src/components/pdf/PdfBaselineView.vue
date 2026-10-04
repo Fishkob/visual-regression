@@ -3,7 +3,7 @@ import { ref } from "vue";
 import PdfPageViewer from "@/components/pdf/PdfPageViewer.vue";
 import PdfPageNavigation from "@/components/pdf/PdfPageNavigation.vue";
 
-const props = defineProps<{
+defineProps<{
   projectName: string;
   testName: string;
   pdfUrl: string;

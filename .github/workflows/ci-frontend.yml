@@ -63,7 +63,7 @@ jobs:
           generate-prisma: "false"
 
       - name: Run Unit Tests
-        run: pnpm --filter ./frontend test
+        run: pnpm --filter ./frontend test:coverage
         working-directory: frontend
 
       - name: Upload coverage

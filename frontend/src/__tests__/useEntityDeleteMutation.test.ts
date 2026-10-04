@@ -65,7 +65,7 @@ describe("useEntityDeleteMutation", () => {
   });
 
   it("confirms by building args and mutating once", () => {
-    const { requestDelete, confirmDelete, deleting, showConfirm } = create();
+    const { requestDelete, confirmDelete, deleting } = create();
 
     requestDelete({ id: "a" });
     confirmDelete();
