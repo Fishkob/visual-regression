@@ -20,9 +20,26 @@ jobs:
         with:
           release-type: node
 
+  tests:
+    name: Test release
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+
+      - name: Backend lint, typecheck & unit tests
+        working-directory: backend
+        run: pnpm run lint:check && pnpm run typecheck && pnpm run test -- test/unit
+
+      - name: Frontend lint, typecheck & unit tests
+        working-directory: frontend
+        run: pnpm run lint:check && pnpm run typecheck && pnpm run test
+
   build-images:
     name: Build release images
-    needs: release-please
+    needs: [release-please, tests]
     if: needs.release-please.outputs.releases_created == 'true'
     permissions:
       contents: write
