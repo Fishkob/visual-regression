@@ -42,7 +42,7 @@ jobs:
 
           # User- and org-owned packages live under different API paths.
           OWNER="${{ github.repository_owner }}"
-          OWNER_TYPE=$(gh api "/repos/${GITHUB_REPOSITORY}" --jq .owner.type)
+          OWNER_TYPE=$(gh api "/repos/${GITHUB_REPOSITORY}" --jq .owner.type) || OWNER_TYPE="User"
           if [ "$OWNER_TYPE" = "Organization" ]; then
             BASE="/orgs/${OWNER}"
           else
