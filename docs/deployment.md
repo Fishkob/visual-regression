@@ -44,7 +44,7 @@ kubectl wait --for=condition=available deployment/argocd-server -n argocd --time
 kubectl apply -f deploy/argocd/app.yaml
 ```
 
-The ArgoCD `Application` tracks `main` and syncs `deploy/charts/vrt` automatically. ArgoCD applies the chart's `values.yaml` (image tags are updated there by the Manual Deploy workflow). Get the admin password and port-forward the UI:
+The ArgoCD `Application` tracks `main` and syncs `deploy/charts/vrt` automatically. ArgoCD applies the chart's `values.yaml` (image tags are updated there by the release pipeline). Get the admin password and port-forward the UI:
 
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
@@ -184,7 +184,7 @@ Then override the `x-app-env` anchor values at runtime via environment variables
 
 On every push to `main` or `develop`, GitHub Actions runs tests (unit + e2e) automatically.
 
-Docker images are built and pushed to GHCR **manually** via the `Manual Deploy` workflow in GitHub Actions. After a successful build, the workflow updates `deploy/charts/vrt/values.yaml` with the new image SHA, which ArgoCD picks up automatically.
+Releases are cut from [Conventional Commits](https://www.conventionalcommits.org/) by release-please: it maintains a release PR, and merging that PR creates a `vX.Y.Z` tag and a GitHub Release. The same workflow run then builds and pushes every image tagged `X.Y.Z` to GHCR and updates the `tag:` values in `deploy/charts/vrt/values.yaml`, which ArgoCD picks up automatically.
 
 Images are pushed to (resolved from the repository owner, e.g. `ghcr.io/<owner>/...`):
 
@@ -192,10 +192,11 @@ Images are pushed to (resolved from the repository owner, e.g. `ghcr.io/<owner>/
 - `ghcr.io/<owner>/visual-regression-frontend`
 - `ghcr.io/<owner>/visual-regression-worker`
 - `ghcr.io/<owner>/pdf-sidecar`
+- `ghcr.io/<owner>/visual-regression-migrate`
 
 The Helm chart's `registry` value (default `ghcr.io`) and `imageOwner` value (default `fishkob`) build the image path. Forks that publish their own images override `imageOwner` via `--set imageOwner=<fork-owner>`; to pull from a different registry, override `registry` too (or set both in the chart values in ArgoCD).
 
-The worker and pdf-sidecar images are built whenever the target is `backend` or `both` — they are required for any comparison to run.
+> **Release prerequisites (repository settings):** enable *Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests"* so release-please can open its release PR. The chart-bump job pushes directly to `main`, so branch protection must allow the Actions `GITHUB_TOKEN` to push (or list the workflow as a bypass actor).
 
 ## Serving Screenshots (RustFS must be browser-reachable)
 
@@ -208,11 +209,10 @@ The frontend loads screenshots directly from RustFS (`<img :src="imageUrl">`) �
 
 ## Manual Image Tag Update
 
-If you need to manually update the image tag, edit the Helm values file:
+The release pipeline sets the image tags automatically. To pin a different released version (e.g. for a hotfix or rollback), edit the Helm values file:
 
 ```bash
-# Edit the Helm values file
 nano deploy/charts/vrt/values.yaml
-
-# Update the image tag (e.g., to a specific SHA or 'latest')
 ```
+
+Set the `tag:` under each entry in `images:` to a released version such as `1.2.3`, then commit — ArgoCD reconciles it.
