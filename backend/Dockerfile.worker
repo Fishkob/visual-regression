@@ -8,7 +8,7 @@ COPY package.json pnpm-lock.yaml .npmrc ./
 COPY pnpm-workspace.yaml ./
 COPY backend/package.json ./backend/
 COPY backend/prisma ./backend/prisma/
-COPY backend/tsconfig.json ./backend/
+COPY backend/tsconfig.json backend/tsconfig.node.json ./backend/
 COPY backend/src ./backend/src/
 
 RUN pnpm install --frozen-lockfile
