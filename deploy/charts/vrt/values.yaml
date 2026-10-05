@@ -22,9 +22,10 @@ secrets:
   rustfs_secret_key: CHANGE_ME
 
 images:
-  # The deploy workflow tags every pushed image with `latest` and `sha-<shortsha>`
-  # (see .github/workflows/deploy-manual.yml). `latest` is the safe default here;
-  # the workflow pins exact shas into this file after each deploy.
+  # Images are published by the release pipeline: release-please cuts a git tag
+  # `vX.Y.Z` (see .github/workflows/release-please.yml), which builds every image
+  # tagged `X.Y.Z` and rewrites the `tag:` values below. The defaults remain
+  # `latest` only until the first release.
   backend:
     name: visual-regression-backend
     tag: latest
