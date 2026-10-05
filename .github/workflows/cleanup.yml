@@ -6,28 +6,37 @@ on:
   workflow_dispatch:
     inputs:
       keep:
-        description: "Number of images to keep"
+        description: "Number of image versions to keep"
         required: false
         type: string
-        default: "3"
+        default: "5"
+
+permissions:
+  packages: write
 
 jobs:
-  cleanup-backend:
-    name: Cleanup old backend images
+  cleanup:
+    name: Cleanup ${{ matrix.image }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - visual-regression-backend
+          - visual-regression-frontend
+          - visual-regression-worker
+          - pdf-sidecar
+          - visual-regression-migrate
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Delete old versions
         run: |
-          KEEP=${{ github.event.inputs.keep || '3' }}
+          KEEP=${{ github.event.inputs.keep || '5' }}
 
-          echo "Fetching backend versions (newest first)..."
+          echo "Fetching ${{ matrix.image }} versions (newest first)..."
           VERSIONS=$(gh api -XGET \
-            "/users/${{ github.repository_owner }}/packages/container/visual-regression-backend/versions" \
+            "/users/${{ github.repository_owner }}/packages/container/${{ matrix.image }}/versions" \
             --jq 'sort_by(.created_at) | reverse | .[].id')
 
           if [ -z "$VERSIONS" ]; then
@@ -35,51 +44,13 @@ jobs:
             exit 0
           fi
 
-          echo "Found versions: $VERSIONS"
-
           COUNT=0
           for VERSION_ID in $VERSIONS; do
             COUNT=$((COUNT + 1))
             if [ $COUNT -gt $KEEP ]; then
-              echo "Deleting backend version: $VERSION_ID"
-              gh api -XDELETE "/users/${{ github.repository_owner }}/packages/container/visual-regression-backend/versions/$VERSION_ID" || echo "Failed to delete $VERSION_ID, skipping"
+              echo "Deleting ${{ matrix.image }} version: $VERSION_ID"
+              gh api -XDELETE "/users/${{ github.repository_owner }}/packages/container/${{ matrix.image }}/versions/$VERSION_ID" || echo "Failed to delete $VERSION_ID, skipping"
             fi
           done
 
-          echo "Kept $KEEP latest images, deleted older ones"
-
-  cleanup-frontend:
-    name: Cleanup old frontend images
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - name: Delete old versions
-        run: |
-          KEEP=${{ github.event.inputs.keep || '3' }}
-
-          echo "Fetching frontend versions (newest first)..."
-          VERSIONS=$(gh api -XGET \
-            "/users/${{ github.repository_owner }}/packages/container/visual-regression-frontend/versions" \
-            --jq 'sort_by(.created_at) | reverse | .[].id')
-
-          if [ -z "$VERSIONS" ]; then
-            echo "No versions found"
-            exit 0
-          fi
-
-          echo "Found versions: $VERSIONS"
-
-          COUNT=0
-          for VERSION_ID in $VERSIONS; do
-            COUNT=$((COUNT + 1))
-            if [ $COUNT -gt $KEEP ]; then
-              echo "Deleting frontend version: $VERSION_ID"
-              gh api -XDELETE "/users/${{ github.repository_owner }}/packages/container/visual-regression-frontend/versions/$VERSION_ID" || echo "Failed to delete $VERSION_ID, skipping"
-            fi
-          done
-
-          echo "Kept $KEEP latest images, deleted older ones"
+          echo "Kept $KEEP latest versions of ${{ matrix.image }}"
