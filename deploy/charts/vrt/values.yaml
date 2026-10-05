@@ -23,9 +23,10 @@ secrets:
 
 images:
   # Images are published by the release pipeline: release-please cuts a git tag
-  # `vX.Y.Z` (see .github/workflows/release-please.yml), which builds every image
-  # tagged `X.Y.Z` and rewrites the `tag:` values below. The defaults remain
-  # `latest` only until the first release.
+  # `vX.Y.Z`, and .github/workflows/release-images.yml builds every image tagged
+  # `X.Y.Z` and rewrites the `tag:` values below. The pipeline does not publish
+  # `latest`; the `latest` defaults here are placeholders until the first release
+  # overwrites them.
   backend:
     name: visual-regression-backend
     tag: latest
