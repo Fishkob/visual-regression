@@ -16,7 +16,7 @@ RUN pnpm install --frozen-lockfile
 
 RUN pnpm --filter frontend run build
 
-FROM nginx:alpine
+FROM nginx:1.31.6-alpine
 
 RUN apk upgrade --no-cache
 

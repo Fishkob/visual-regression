@@ -47,7 +47,7 @@ services:
       start_period: 40s
 
   volume-permission-helper:
-    image: alpine
+    image: alpine:3.24.2
     volumes:
       - rustfsdata:/data
       - rustfslogs:/logs
