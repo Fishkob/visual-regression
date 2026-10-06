@@ -101,15 +101,17 @@ jobs:
           echo "value=$VALUE" >> "$GITHUB_OUTPUT"
 
       - name: Update image tags in values.yaml
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
         run: |
-          VERSION="${{ steps.version.outputs.value }}"
           for name in visual-regression-backend visual-regression-frontend visual-regression-worker pdf-sidecar visual-regression-migrate; do
             sed -i "/name: ${name}$/{n;s|tag:.*|tag: ${VERSION}|;}" deploy/charts/vrt/values.yaml
           done
 
       - name: Commit and push
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
         run: |
-          VERSION="${{ steps.version.outputs.value }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add deploy/charts/vrt/values.yaml
