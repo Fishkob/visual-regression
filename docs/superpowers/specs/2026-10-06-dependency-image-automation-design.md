@@ -151,7 +151,7 @@ major jump breaks a config file (notably Tempo `2.x`→`3.x`), fall back to the
 latest stable release of the previous major line and note it.
 
 Risk: the observability config files (`tempo-config.yml`, `loki-config.yml`,
-`alloy.river`, `prometheus.yml`) are version-sensitive, so the chosen versions
+`alloy.alloy`, `prometheus.yml`) are version-sensitive, so the chosen versions
 must be smoke-tested locally; pinning to a stable release is otherwise safer
 than `:latest`.
 
