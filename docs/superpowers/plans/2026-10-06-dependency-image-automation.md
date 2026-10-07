@@ -39,6 +39,16 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
 
+  - package-ecosystem: github-actions
+    directory: /.github/actions/setup
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      github-actions-composite:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
   - package-ecosystem: npm
     directory: /
     schedule:
