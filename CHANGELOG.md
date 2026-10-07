@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.1](https://github.com/Fishkob/visual-regression/compare/v1.0.0...v1.0.1) (2026-10-07)
+
+
+### Bug Fixes
+
+* **observability:** add grafana alert rule folder and drop stale alloy.river ref ([0c49647](https://github.com/Fishkob/visual-regression/commit/0c49647a69fbd381459c1e462f339d0a6593b935))
+* **observability:** read metrics key from file, enable remote-write receiver ([8c27923](https://github.com/Fishkob/visual-regression/commit/8c279232c803aa91ddce8d1e875f774af16ddde7))
+* **observability:** valid prometheus headers and alloy-syntax pipeline ([4609fc4](https://github.com/Fishkob/visual-regression/commit/4609fc4b1e3076ef2e872705d83fd79c9b2170a2))
+
 ## 1.0.0 (2026-10-05)
 
 
