@@ -17,6 +17,9 @@ jobs:
 
       - name: Check Dockerfiles
         run: |
+          for f in backend/Dockerfile backend/Dockerfile.worker backend/Dockerfile.migrate frontend/Dockerfile; do
+            [ -f "$f" ] || { echo "::error::expected Dockerfile missing: $f"; exit 1; }
+          done
           if grep -RnE '(pnpm|prisma)@[0-9]' \
             backend/Dockerfile backend/Dockerfile.worker backend/Dockerfile.migrate frontend/Dockerfile; then
             echo "::error::Hardcoded pnpm/prisma version in a Dockerfile; derive it from package.json instead."
