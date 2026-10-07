@@ -58,6 +58,16 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
 
+  - package-ecosystem: github-actions
+    directory: /.github/actions/setup
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      github-actions-composite:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -230,3 +240,6 @@ pinned stack to start and for the metrics/logs data paths to work:
 - Migrating to Renovate (revisit when the repository is made public).
 - Managing the chart's app image tags (owned by the release pipeline).
 - `docker-compose.yml` app services (built locally, no image tags to track).
+- Third-party chart pins in `deploy/charts/vrt/values.yaml` (`postgres:16-alpine`,
+  `rustfs/rustfs:1.0.1`) and Maven deps in `pdf-sidecar/pom.xml` are not tracked by
+  Dependabot; revisit with Renovate or a regex manager.

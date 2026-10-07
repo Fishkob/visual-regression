@@ -3,6 +3,7 @@ node_modules
 .env
 .env.*
 !.env.example
+backend/observability/secrets/
 *.log
 .DS_Store
 coverage

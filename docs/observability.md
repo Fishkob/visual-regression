@@ -6,6 +6,18 @@ All observability components are **completely optional** and live in `docker-com
 docker compose -f docker-compose.observability.yml up -d
 ```
 
+Prometheus scrapes the app's authenticated `/api/v1/metrics`, sending the
+`METRICS_API_KEY` via an `x-metrics-key` header read from a file. Create that
+file (it is gitignored) before starting the stack:
+
+```bash
+cp backend/observability/secrets/x-metrics-key.example backend/observability/secrets/x-metrics-key
+# then put the METRICS_API_KEY value in that file — no trailing newline
+```
+
+Without it, Prometheus still starts but the `visual-regression-api` scrape
+returns 401.
+
 > **Local-only by default:** all services bind to `127.0.0.1` (localhost), so the
 > dashboards and endpoints are never reachable from the LAN or the internet. The
 > stack ships with no authentication (Grafana uses its default admin/admin) —

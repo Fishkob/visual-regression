@@ -25,4 +25,10 @@ jobs:
             echo "::error::Hardcoded pnpm/prisma version in a Dockerfile; derive it from package.json instead."
             exit 1
           fi
+          if grep -nE '^[[:space:]]*version:[[:space:]]*[0-9]' .github/actions/setup/action.yml; then
+            echo "::error::pnpm version hardcoded in the setup action; rely on packageManager instead."
+            exit 1
+          fi
+          grep -qE '"packageManager"[[:space:]]*:' package.json \
+            || { echo "::error::root package.json is missing packageManager"; exit 1; }
           echo "OK: no hardcoded pnpm/prisma versions"
