@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/Fishkob/visual-regression/compare/v1.0.1...v1.0.2) (2026-10-07)
+
+
+### Bug Fixes
+
+* mount Postgres volume at PG18 data root ([174b5ee](https://github.com/Fishkob/visual-regression/commit/174b5ee36b1c4a35b0d84e796b8d4fcadf9d7ce4))
+
 ## [1.0.1](https://github.com/Fishkob/visual-regression/compare/v1.0.0...v1.0.1) (2026-10-07)
 
 
