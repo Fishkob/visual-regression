@@ -178,10 +178,11 @@ than `:latest`.
 
 **prisma**
 
-- `backend/Dockerfile.migrate`: copy `backend/package.json` and derive the
-  prisma version, e.g.
-  `RUN npm install "prisma@$(node -p "require('./package.json').devDependencies.prisma")" dotenv`,
-  so the migrate image tracks `^7.10.0` instead of the stale `7.9.1`.
+- `backend/Dockerfile.migrate`: copy `backend/package.json`, read the prisma
+  range from `devDependencies.prisma`, then remove `package.json` before
+  `npm install "prisma@<range>" dotenv` — otherwise npm installs the whole
+  backend dependency tree (the image grew from ~1.3 GB to ~3.2 GB). The migrate
+  image then tracks `^7.10.0` instead of the stale `7.9.1`.
 
 **CI guard (backstop)**
 
