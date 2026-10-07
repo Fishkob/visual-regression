@@ -1,4 +1,4 @@
-FROM node:24-alpine AS builder
+FROM node:26-alpine AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ WORKDIR /app/backend
 RUN pnpm exec prisma generate
 RUN pnpm run build
 
-FROM node:24-alpine AS production
+FROM node:26-alpine AS production
 
 RUN apk add --no-cache curl
 
