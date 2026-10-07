@@ -180,6 +180,38 @@ Then override the `x-app-env` anchor values at runtime via environment variables
 
 ---
 
+## Upgrading the Bundled PostgreSQL (16 → 18)
+
+The chart and Docker Compose both ship `postgres:18-alpine`. PostgreSQL 18 stores
+data in a per-major-version directory (`/var/lib/postgresql/18/docker`), so the
+chart mounts the PVC at `/var/lib/postgresql` — **not** the old
+`/var/lib/postgresql/data`. A PostgreSQL 18 server cannot open a 16 data
+directory, and the change of mount path means the old volume is not reusable
+as-is.
+
+**Fresh installs need nothing.** For an existing PostgreSQL 16 install, choose one:
+
+- **Keep the old database** — point the stack at it as an external instance (see
+  [Connect to an Existing PostgreSQL Instance](#connect-to-an-existing-postgresql-instance))
+  and set `postgres.enabled=false`. This avoids any data migration.
+- **Dump and restore** (simplest, storage-agnostic):
+
+  ```bash
+  # against the existing 16 instance
+  pg_dump -Fc -h <old-host> -U vrt vrt > vrt.dump
+  # scale the app down, deploy the new 18-backed chart, then restore
+  pg_restore -h <new-host> -U vrt -d vrt vrt.dump
+  ```
+
+- **`pg_upgrade --link`** — the supported in-place path, but it requires both the
+  16 and 18 binaries and the volume layout from the 18+ image
+  (`/var/lib/postgresql/<major>/docker`). See the [postgres image notes](https://github.com/docker-library/postgres/issues/37).
+
+For local Docker Compose, `./scripts/dev.sh delete` removes the `pgdata` volume
+so the stack re-initialises on 18.
+
+---
+
 ## CI/CD Flow
 
 On every push to `main` or `develop`, GitHub Actions runs tests (unit + e2e) automatically.

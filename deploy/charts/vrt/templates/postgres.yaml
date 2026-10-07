@@ -63,7 +63,7 @@ spec:
               value: vrt
           volumeMounts:
             - name: postgres-storage
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
             - name: postgres-run
               mountPath: /var/run/postgresql
             - name: tmp
