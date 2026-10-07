@@ -198,7 +198,7 @@ Images are pushed to (resolved from the repository owner, e.g. `ghcr.io/<owner>/
 
 The Helm chart's `registry` value (default `ghcr.io`) and `imageOwner` value (default `fishkob`) build the image path. Forks that publish their own images override `imageOwner` via `--set imageOwner=<fork-owner>`; to pull from a different registry, override `registry` too (or set both in the chart values in ArgoCD).
 
-> **Release prerequisites (repository settings):** enable *Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests"* so release-please can open its release PR. Workflow runs on that PR start in an approval-required state, so a maintainer must approve them before the PR's CI runs (the release run re-tests before publishing regardless). The `bump-chart` job pushes directly to `main`, so branch protection must allow the Actions `GITHUB_TOKEN` to push (or add the GitHub Actions integration to the ruleset's bypass list).
+> **Release prerequisites (repository settings):** enable _Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests"_ so release-please can open its release PR. Workflow runs on that PR start in an approval-required state, so a maintainer must approve them before the PR's CI runs (the release run re-tests before publishing regardless). The `bump-chart` job pushes directly to `main`, so branch protection must allow the Actions `GITHUB_TOKEN` to push (or add the GitHub Actions integration to the ruleset's bypass list).
 
 ### Re-running a failed release build
 
