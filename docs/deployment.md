@@ -200,7 +200,8 @@ as-is.
   # against the existing 16 instance
   pg_dump -Fc -h <old-host> -U vrt vrt > vrt.dump
   # scale the app down, deploy the new 18-backed chart, then restore
-  pg_restore -h <new-host> -U vrt -d vrt vrt.dump
+  # --no-owner --no-privileges avoids errors when the target role differs
+  pg_restore -h <new-host> -U vrt -d vrt --no-owner --no-privileges vrt.dump
   ```
 
 - **`pg_upgrade --link`** — the supported in-place path, but it requires both the
