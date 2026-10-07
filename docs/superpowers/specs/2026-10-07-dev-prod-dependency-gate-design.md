@@ -12,17 +12,26 @@ classification in its JSON output (a package entry carries only `package`,
 `groups`, and `vulnerabilities`), and it has no `--include-dev`/`--exclude-dev`
 flag.
 
-Today the gate fails on six findings that are all dev/build-time only:
+The local scan currently reports six CRITICAL/HIGH findings. They split into two
+classes:
 
-| Package       | Path                                        | Severity |
-| ------------- | ------------------------------------------- | -------- |
-| shell-quote   | root `concurrently` (dev)                    | CRITICAL |
-| deepmerge-ts  | backend → `prisma` CLI → `@prisma/config`    | HIGH     |
-| js-yaml (×3)  | root `@hey-api/openapi-ts`                   | HIGH     |
-| mysql2        | backend → `prisma` CLI                       | HIGH     |
+| Package       | Path                                        | Severity | Class      |
+| ------------- | ------------------------------------------- | -------- | ---------- |
+| shell-quote   | root `concurrently` (dev)                    | CRITICAL | dev-only   |
+| js-yaml (×3)  | root `@hey-api/openapi-ts`                   | HIGH     | dev-only   |
+| deepmerge-ts  | backend → `prisma` → `@prisma/config`        | HIGH     | production |
+| mysql2        | backend → `prisma`                           | HIGH     | production |
 
-None of these run in production. The gate should not block on them, but it must
-still block on a genuine production dependency.
+`shell-quote` and `js-yaml` are only reachable through root devDependencies and
+never run in production. `deepmerge-ts` and `mysql2`, however, are genuinely in
+the production graph: `@prisma/client` declares `prisma` as an optional
+dependency in the lockfile snapshot (pnpm's `autoInstallPeers` resolves the
+optional peer), so `pnpm install --prod` — which `backend/Dockerfile` runs —
+installs `prisma` → `@prisma/config` → `deepmerge-ts` and `prisma` → `mysql2`.
+
+The gate should not block on the dev-only findings but must still block the
+production ones. (Whether the production findings should also be patched away is
+the subject of the separate dependency-refresh work, not this spec.)
 
 ## Decision
 
@@ -132,8 +141,8 @@ New `scripts/security/test_pnpm_lock.py` using the standard-library `unittest`
 runner, covering two levels:
 
 1. **Real lockfile** (the repository's `pnpm-lock.yaml`): assert that
-   `deepmerge-ts`, `mysql2`, `js-yaml`, and `shell-quote` resolve to dev-only,
-   and that a known runtime package (e.g. `@nestjs/common`) resolves to
+   `shell-quote` and `js-yaml` resolve to dev-only and that `deepmerge-ts`,
+   `mysql2`, and a known runtime package (`@nestjs/common`) resolve to
    production.
 2. **Synthetic mini-lockfile** fixtures: scoped names, peer suffixes, the same
    `name@version` reachable from both a prod and a dev root (production wins),
@@ -146,16 +155,20 @@ The suite is run by adding a step to `.github/workflows/security-dependency.yml`
 ## Verification
 
 - `python3 scripts/security/osv-gate.py osv-results.json` against a freshly
-  generated `osv-results.json` exits 0, with the six dev-only findings listed as
-  non-blocking warnings.
+  generated `osv-results.json` reports `shell-quote` and `js-yaml` as dev-only
+  (non-blocking) and exits 1 on the `deepmerge-ts`/`mysql2` production highs.
+  (The gate only goes green once those two are patched or allowlisted — the
+  subject of the separate dependency-refresh work.)
 - The `pnpm_lock.py` unit tests pass locally.
-- Re-running the CI dependency scan on the change is green.
+- The classification output is cross-checked against `pnpm why --prod` run in
+  `backend/`.
 
 ## Out of scope
 
+- Patching the production findings (`deepmerge-ts`, `mysql2`) or any other
+  dependency bump — see the separate dependency-refresh spec.
 - Maven `test`-scope resolution — all Maven findings remain production.
 - Changes to `osv-scanner.toml`, severity thresholds, or the FAILING severity
   set (CRITICAL/HIGH).
-- Fixing the findings themselves (e.g. `pnpm.overrides`) — separate work.
 - Classifying other ecosystems (Go, Rust, Python) — the repo has none in the
   scanned tree.
