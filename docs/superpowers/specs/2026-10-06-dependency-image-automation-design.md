@@ -188,6 +188,30 @@ than `:latest`.
 A small CI check fails if a hardcoded `pnpm@<version>` or `prisma@<version>`
 reappears in the Dockerfiles, keeping the single source authoritative.
 
+## Part 5 — Fix the pre-existing observability config bugs
+
+The Part 2 smoke test revealed the observability stack was **already broken**
+before pinning (it also crashed on `:latest`). Fixing it is required for the
+pinned stack to start and for the metrics/logs data paths to work:
+
+- `backend/observability/prometheus.yml`: `scrape_configs` used the invalid
+  `headers:` key (Prometheus only accepts `http_headers:`). Further, Prometheus
+  does not expand `${ENV}` inside `http_headers`, so the metrics key is read from
+  a file: `http_headers.x-metrics-key.files: ["/etc/prometheus/secrets/x-metrics-key"]`.
+  The real key file is gitignored; `backend/observability/secrets/x-metrics-key.example`
+  is committed.
+- `backend/observability/alloy.river` → `alloy.alloy`, migrated to Alloy syntax:
+  `otelcol.*` component names, quoted duration literals, `discovery.docker` +
+  `targets` for `loki.source.docker`, and `forward_to` on
+  `otelcol.exporter.prometheus` (which forwards span metrics via
+  `prometheus.remote_write`). The compose mount/command follow the rename.
+- `docker-compose.observability.yml`: Prometheus uses
+  `--web.enable-remote-write-receiver` (the `--enable-feature=remote-write-receiver`
+  form is obsolete in v3), so Alloy's remote write is accepted.
+- `backend/observability/grafana/alerting/alert-rules.yml`: each provisioned
+  rule group declares `folder: VRT` (Grafana ≥ 11 refuses to start otherwise).
+- `docs/observability.md`: metrics snippet and data-path prose corrected.
+
 ## Verification
 
 - `actionlint` on the changed workflows; YAML parse for `dependabot.yml` and the
