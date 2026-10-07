@@ -6,7 +6,9 @@ COPY --chown=node:node backend/package.json ./package.json
 COPY --chown=node:node backend/prisma ./prisma
 COPY --chown=node:node backend/prisma.config.ts ./
 
-RUN PRISMA_VERSION="$(node -p "require('./package.json').devDependencies.prisma")" && npm install "prisma@${PRISMA_VERSION}" dotenv
+RUN PRISMA_VERSION="$(node -p "require('./package.json').devDependencies.prisma")" \
+    && rm -f package.json \
+    && npm install "prisma@${PRISMA_VERSION}" dotenv
 
 RUN rm -rf \
     /usr/local/lib/node_modules/npm \
