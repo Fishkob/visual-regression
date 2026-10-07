@@ -50,8 +50,9 @@ If you already run your own monitoring infrastructure (Prometheus, Loki, Grafana
    scrape_configs:
      - job_name: visual-regression-api
        metrics_path: /api/v1/metrics
-       headers:
-         x-metrics-key: ${METRICS_API_KEY}
+       http_headers:
+         x-metrics-key:
+           values: ["${METRICS_API_KEY}"]
        static_configs:
          - targets: ["<your-app-host>:3000"]
            labels:
@@ -60,6 +61,6 @@ If you already run your own monitoring infrastructure (Prometheus, Loki, Grafana
 
    The `/api/v1/metrics` endpoint is always mounted but returns HTTP 401 until `METRICS_API_KEY` is configured — Prometheus must send it via the `x-metrics-key` header (not Authorization/Bearer). Prometheus substitutes `${METRICS_API_KEY}` from its own environment at startup. See `backend/observability/prometheus.yml` for the bundled reference config.
 
-3. **Logs** — The app writes structured JSON logs to stdout (Pino fields: `time`, `level`, `msg`, `logger`). Your existing log shipper (Promtail, Fluentd, Vector, etc.) will pick them up from the container runtime. Point it at your Loki and parse/relabel the JSON fields there — `backend/observability/alloy.river` (the `loki.process.json_parse` stage) is the reference pipeline.
+3. **Logs** — The app writes structured JSON logs to stdout (Pino fields: `time`, `level`, `msg`, `logger`). Your existing log shipper (Promtail, Fluentd, Vector, etc.) will pick them up from the container runtime. Point it at your Loki and parse/relabel the JSON fields there — `backend/observability/alloy.alloy` (the `loki.process.json_parse` stage) is the reference pipeline.
 
 4. **Dashboards** — Import the 4 pre-built Grafana dashboards from `backend/observability/grafana/dashboards/` into your Grafana instance. They visualize traces (via Tempo), metrics (via Prometheus), and logs (via Loki).

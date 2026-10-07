@@ -8,12 +8,12 @@ services:
       - "127.0.0.1:4318:4318"
       - "127.0.0.1:12345:12345"
     volumes:
-      - ./backend/observability/alloy.river:/etc/alloy/alloy.river
+      - ./backend/observability/alloy.alloy:/etc/alloy/alloy.alloy
       - /var/run/docker.sock:/var/run/docker.sock
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
-      - /etc/alloy/alloy.river
+      - /etc/alloy/alloy.alloy
     depends_on:
       tempo:
         condition: service_started

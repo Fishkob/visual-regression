@@ -1,0 +1,100 @@
+// ===== TRACES PIPELINE =====
+
+otelcol.receiver.otlp "default" {
+	grpc {
+		endpoint = "0.0.0.0:4317"
+	}
+	http {
+		endpoint = "0.0.0.0:4318"
+	}
+
+	output {
+		traces = [
+			otelcol.processor.batch.default.input,
+			otelcol.connector.spanmetrics.default.input,
+		]
+	}
+}
+
+otelcol.connector.spanmetrics "default" {
+	histogram {
+		explicit {
+			buckets = ["5ms", "10ms", "25ms", "50ms", "100ms", "250ms", "500ms", "1s", "2.5s", "5s", "10s"]
+		}
+	}
+
+	output {
+		metrics = [otelcol.exporter.prometheus.default.input]
+	}
+}
+
+otelcol.processor.batch "default" {
+	timeout         = "5s"
+	send_batch_size = 512
+
+	output {
+		traces = [otelcol.exporter.otlp.tempo.input]
+	}
+}
+
+otelcol.exporter.otlp "tempo" {
+	client {
+		endpoint = "tempo:4317"
+		tls {
+			insecure = true
+		}
+	}
+}
+
+otelcol.exporter.prometheus "default" {
+	forward_to = [prometheus.remote_write.default.receiver]
+}
+
+prometheus.remote_write "default" {
+	endpoint {
+		url = "http://prometheus:9090/api/v1/write"
+	}
+}
+
+// ===== LOGS PIPELINE =====
+
+discovery.docker "default" {
+	host = "unix:///var/run/docker.sock"
+}
+
+loki.source.docker "default" {
+	host             = "unix:///var/run/docker.sock"
+	targets          = discovery.docker.default.targets
+	refresh_interval = "15s"
+
+	forward_to = [loki.process.json_parse.receiver]
+}
+
+loki.process "json_parse" {
+	stage.json {
+		expressions = {
+			level  = "level",
+			msg    = "msg",
+			time   = "time",
+			logger = "logger",
+			thread = "thread",
+		}
+	}
+	stage.timestamp {
+		source = "time"
+		format = "RFC3339Nano"
+	}
+	stage.labels {
+		values = {
+			level = null,
+		}
+	}
+
+	forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}

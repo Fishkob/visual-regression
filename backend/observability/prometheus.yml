@@ -7,8 +7,9 @@ scrape_configs:
   # with, sent as the x-metrics-key header (substituted from the environment).
   - job_name: visual-regression-api
     metrics_path: /api/v1/metrics
-    headers:
-      x-metrics-key: ${METRICS_API_KEY}
+    http_headers:
+      x-metrics-key:
+        values: ["${METRICS_API_KEY}"]
     static_configs:
       - targets: ["host.docker.internal:3000"]
         labels:
