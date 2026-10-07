@@ -166,7 +166,7 @@ postgres:
 
 rustfs:
   enabled: true
-  image: rustfs/rustfs:1.0.0-rc.3
+  image: rustfs/rustfs:1.0.1
   storage: 10Gi
   resources:
     requests:
