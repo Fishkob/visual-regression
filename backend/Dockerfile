@@ -2,7 +2,8 @@ FROM node:24-alpine AS builder
 
 WORKDIR /app
 
-RUN npm install -g pnpm@10.34.5
+COPY package.json ./
+RUN PNPM_VERSION="$(node -p "require('./package.json').packageManager.split('@').pop()")" && npm install -g "pnpm@${PNPM_VERSION}"
 
 COPY package.json pnpm-lock.yaml .npmrc ./
 COPY pnpm-workspace.yaml ./
@@ -23,7 +24,8 @@ RUN apk add --no-cache curl
 
 WORKDIR /app
 
-RUN npm install -g pnpm@10.34.5
+COPY package.json ./
+RUN PNPM_VERSION="$(node -p "require('./package.json').packageManager.split('@').pop()")" && npm install -g "pnpm@${PNPM_VERSION}"
 
 COPY package.json pnpm-lock.yaml .npmrc ./
 COPY pnpm-workspace.yaml ./

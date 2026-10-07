@@ -4,6 +4,7 @@
   "description": "Self-hosted visual regression testing platform — upload screenshots from CI, compare pixel-by-pixel, and approve changes via a web dashboard",
   "license": "MIT",
   "private": true,
+  "packageManager": "pnpm@10.34.5",
   "repository": {
     "type": "git",
     "url": "https://github.com/<owner>/visual-regression.git"
