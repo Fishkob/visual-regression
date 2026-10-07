@@ -32,7 +32,7 @@ jobs:
     container:
       image: semgrep/semgrep:1.172.0
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Scan with semgrep
         run: |
