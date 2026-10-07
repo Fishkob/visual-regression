@@ -1,0 +1,25 @@
+name: Dockerfile Version Guard
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: No hardcoded pnpm/prisma versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check Dockerfiles
+        run: |
+          if grep -RnE '(pnpm|prisma)@[0-9]' \
+            backend/Dockerfile backend/Dockerfile.worker backend/Dockerfile.migrate frontend/Dockerfile; then
+            echo "::error::Hardcoded pnpm/prisma version in a Dockerfile; derive it from package.json instead."
+            exit 1
+          fi
+          echo "OK: no hardcoded pnpm/prisma versions"
