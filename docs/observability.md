@@ -28,7 +28,7 @@ Every component has a clear job and can fail without affecting the application:
 
 1. **Traces (OTel):** The application creates one span per HTTP request (method, route, status code, duration). When `OTEL_EXPORTER_OTLP_ENDPOINT` is set, the OTel SDK sends spans via OTLP/HTTP to Alloy. Alloy batches them and exports to Tempo. From Grafana you can search the trace list or drill from the service graph into individual flame graphs.
 
-2. **Metrics (Prometheus):** The app exposes Prometheus-compatible metrics at `/metrics` (request rates, job processing times). Prometheus pulls those on its scrape interval. Additionally, Alloy generates _span metrics_ via its `otel.connector.spanmetrics` — aggregated RED metrics (Rate, Errors, Duration) per service and route — which Prometheus scrapes from `alloy:12345/metrics`. Grafana dashboards visualise everything.
+2. **Metrics (Prometheus):** The app exposes Prometheus-compatible metrics at `/metrics` (request rates, job processing times). Prometheus pulls those on its scrape interval. Additionally, Alloy generates _span metrics_ via its `otelcol.connector.spanmetrics` — aggregated RED metrics (Rate, Errors, Duration) per service and route — and forwards them to Prometheus via remote write (`otelcol.exporter.prometheus` → `prometheus.remote_write`); `alloy:12345/metrics` only serves Alloy's own self-metrics. Grafana dashboards visualise everything.
 
 3. **Logs (Loki):** The app writes structured JSON logs via Pino to stdout. Alloy collects these via the Docker socket, parses JSON fields, attaches container labels, and ships them to Loki. In Grafana you can filter logs by label or jump from a trace directly to its matching log lines.
 
@@ -52,14 +52,14 @@ If you already run your own monitoring infrastructure (Prometheus, Loki, Grafana
        metrics_path: /api/v1/metrics
        http_headers:
          x-metrics-key:
-           values: ["${METRICS_API_KEY}"]
+           files: ["/etc/prometheus/secrets/x-metrics-key"]
        static_configs:
          - targets: ["<your-app-host>:3000"]
            labels:
              service: visual-regression-api
    ```
 
-   The `/api/v1/metrics` endpoint is always mounted but returns HTTP 401 until `METRICS_API_KEY` is configured — Prometheus must send it via the `x-metrics-key` header (not Authorization/Bearer). Prometheus substitutes `${METRICS_API_KEY}` from its own environment at startup. See `backend/observability/prometheus.yml` for the bundled reference config.
+   The `/api/v1/metrics` endpoint is always mounted but returns HTTP 401 until `METRICS_API_KEY` is configured — Prometheus must send it via the `x-metrics-key` header (not Authorization/Bearer). Prometheus does not expand environment variables in `http_headers`; put the raw key (no trailing newline) in the file referenced by `files:`. See `backend/observability/prometheus.yml` for the bundled reference config.
 
 3. **Logs** — The app writes structured JSON logs to stdout (Pino fields: `time`, `level`, `msg`, `logger`). Your existing log shipper (Promtail, Fluentd, Vector, etc.) will pick them up from the container runtime. Point it at your Loki and parse/relabel the JSON fields there — `backend/observability/alloy.alloy` (the `loki.process.json_parse` stage) is the reference pipeline.
 

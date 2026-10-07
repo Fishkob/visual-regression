@@ -15,6 +15,9 @@
 
 # Local Helm overrides with credentials
 deploy/charts/vrt/values.local.yaml
+
+# Local observability metrics key (copy from x-metrics-key.example)
+backend/observability/secrets/x-metrics-key
 .superpowers/
 /visual-regression.iml
 /pdf-sidecar/target/

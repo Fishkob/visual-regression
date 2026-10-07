@@ -4,12 +4,14 @@ global:
 
 scrape_configs:
   # The API metrics endpoint requires the METRICS_API_KEY the app is configured
-  # with, sent as the x-metrics-key header (substituted from the environment).
+  # with, sent as the x-metrics-key header. Prometheus does not expand env vars
+  # in headers, so the value is read from the file at /etc/prometheus/secrets/
+  # x-metrics-key (see backend/observability/secrets/x-metrics-key.example).
   - job_name: visual-regression-api
     metrics_path: /api/v1/metrics
     http_headers:
       x-metrics-key:
-        values: ["${METRICS_API_KEY}"]
+        files: ["/etc/prometheus/secrets/x-metrics-key"]
     static_configs:
       - targets: ["host.docker.internal:3000"]
         labels:
