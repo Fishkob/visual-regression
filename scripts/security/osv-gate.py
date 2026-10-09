@@ -45,11 +45,11 @@ def classify(ecosystem: str, name: str, version: str, analysis) -> str:
 def _summary(counts: dict) -> str:
     parts = []
     for kind in ("production", "dev"):
-        inner = ", ".join(
-            f"{sev.lower()} {counts[kind][sev]}"
-            for sev in ORDER
-            if counts[kind][sev]
-        )
+        severities = [sev for sev in ORDER if counts[kind][sev]]
+        severities += [
+            sev for sev in counts[kind] if sev not in ORDER and counts[kind][sev]
+        ]
+        inner = ", ".join(f"{sev.lower()} {counts[kind][sev]}" for sev in severities)
         if inner:
             parts.append(f"{kind}: {inner}")
     return " | ".join(parts)

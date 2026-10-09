@@ -106,6 +106,33 @@ class OsvGateTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("treating all findings as production", err.getvalue())
 
+    def test_unclassified_npm_high_blocks(self):
+        code, out = self.run_gate(
+            [("not-in-lockfile", "9.9.9", "npm", "HIGH", "GHSA-unknown")]
+        )
+        self.assertEqual(code, 1)
+        self.assertIn("GHSA-unknown", out)
+
+    def test_malformed_lockfile_treats_as_production(self):
+        bad = tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False)
+        bad.write("lockfileVersion: '9.0'\nsnapshots:\n  x@1.0.0: {}\n")
+        bad.close()
+        self.addCleanup(os.remove, bad.name)
+        path = _write_results([("prod-lib", "1.0.0", "npm", "HIGH", "GHSA-bad")])
+        self.addCleanup(os.remove, path)
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            code = osv_gate.main(path, bad.name)
+        self.assertEqual(code, 1)
+        self.assertIn("treating all findings as production", err.getvalue())
+
+    def test_unknown_severity_is_summarized(self):
+        code, out = self.run_gate(
+            [("prod-lib", "1.0.0", "npm", "SUPER-BAD", "GHSA-weird")]
+        )
+        self.assertEqual(code, 0)
+        self.assertIn("super-bad 1", out)
+
 
 if __name__ == "__main__":
     unittest.main()
