@@ -35,12 +35,12 @@ unsupported, so the whole Prisma family stays on `7.10.0`.
 The overrides live in `pnpm-workspace.yaml` (pnpm 10's settings home); the
 `pnpm` field in `package.json` is no longer read and emits a warning.
 
-| Package      | Current | Override to | Advisory               |
-| ------------ | ------- | ----------- | ---------------------- |
-| shell-quote  | 1.9.0   | 1.11.0      | GHSA-pqg4-j6r4-53mv    |
+| Package      | Current | Override to | Advisory                   |
+| ------------ | ------- | ----------- | -------------------------- |
+| shell-quote  | 1.9.0   | 1.11.0      | GHSA-pqg4-j6r4-53mv        |
 | js-yaml      | 4.2.0   | 4.3.2       | GHSA-2883-xcg3-v3hh et al. |
 | mysql2       | 3.15.3  | 3.23.1      | GHSA-3f6p-5ww8-9rcr et al. |
-| deepmerge-ts | 7.1.5   | 8.0.0       | GHSA-ggr8-5vv4-36mx    |
+| deepmerge-ts | 7.1.5   | 8.0.0       | GHSA-ggr8-5vv4-36mx        |
 
 The `js-yaml` override must be **range-scoped** (`"js-yaml@<4.3.2": "4.3.2"`), not a
 global override: the lockfile also resolves `js-yaml@5.4.2` in the production
@@ -61,8 +61,9 @@ allowlisting it in `osv-scanner.toml` with a justification, as already done for
 8.71.1, `dotenv` 18.0.6, `vite` 8.3.3, `@aws-sdk/client-s3` 3.1147.0,
 `@opentelemetry/sdk-trace-base` + `@opentelemetry/sdk-trace-node` 2.12.0,
 `@opentelemetry/exporter-trace-otlp-proto` + `@opentelemetry/instrumentation-express`
-+ `@opentelemetry/instrumentation-http` + `@opentelemetry/sdk-node` 0.223.0,
-`reka-ui` 2.11.0, `vue-router` 5.4.0.
+
+- `@opentelemetry/instrumentation-http` + `@opentelemetry/sdk-node` 0.223.0,
+  `reka-ui` 2.11.0, `vue-router` 5.4.0.
 
 Majors (accepted):
 
@@ -76,17 +77,17 @@ flagged deprecated — do not bump).
 
 ## Maven bumps (`pdf-sidecar/pom.xml`)
 
-| Artifact                        | Current | Target  |
-| ------------------------------- | ------- | ------- |
-| io.opentelemetry:opentelemetry-api / -sdk / -exporter-otlp | 1.51.0 | 1.66.0 |
-| ch.qos.logback:logback-classic  | 1.5.18  | 1.6.5   |
-| net.logstash.logback:logstash-logback-encoder | 8.1 | 9.0  |
-| org.junit.jupiter:junit-jupiter | 5.11.4  | 6.1.3   |
-| org.apache.pdfbox:pdfbox        | 3.0.3   | 3.0.8   |
-| io.javalin:javalin              | 7.2.2   | 7.2.3   |
-| de.redsix:pdfcompare            | 1.2.8   | 1.2.11  |
-| com.fasterxml.jackson.core:jackson-core / -databind / -annotations | 2.18.11 | 2.22.3 |
-| org.eclipse.jetty:jetty-server / -http / -security | 12.1.12 | 12.1.14 |
+| Artifact                                                           | Current | Target  |
+| ------------------------------------------------------------------ | ------- | ------- |
+| io.opentelemetry:opentelemetry-api / -sdk / -exporter-otlp         | 1.51.0  | 1.66.0  |
+| ch.qos.logback:logback-classic                                     | 1.5.18  | 1.6.5   |
+| net.logstash.logback:logstash-logback-encoder                      | 8.1     | 9.0     |
+| org.junit.jupiter:junit-jupiter                                    | 5.11.4  | 6.1.3   |
+| org.apache.pdfbox:pdfbox                                           | 3.0.3   | 3.0.8   |
+| io.javalin:javalin                                                 | 7.2.2   | 7.2.3   |
+| de.redsix:pdfcompare                                               | 1.2.8   | 1.2.11  |
+| com.fasterxml.jackson.core:jackson-core / -databind / -annotations | 2.18.11 | 2.22.3  |
+| org.eclipse.jetty:jetty-server / -http / -security                 | 12.1.12 | 12.1.14 |
 
 `jackson-annotations`' `latest` is `3.0-rc5` (a prerelease); align it to
 `2.22.3` with the rest of Jackson instead. The dependency-management overrides

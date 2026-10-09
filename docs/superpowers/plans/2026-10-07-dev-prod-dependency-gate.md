@@ -25,6 +25,7 @@
 ### Task 1: pnpm lockfile classifier
 
 **Files:**
+
 - Create: `scripts/security/pnpm_lock.py`
 - Test: `scripts/security/test_pnpm_lock.py`
 
@@ -367,6 +368,7 @@ git commit -m "feat(security): add pnpm production-dependency classifier"
 ### Task 2: Classify findings in osv-gate.py
 
 **Files:**
+
 - Modify: `scripts/security/osv-gate.py`
 - Test: `scripts/security/test_osv_gate.py`
 
@@ -628,10 +630,12 @@ Expected: `OK`.
 - [ ] **Step 5: Verify against the real scan**
 
 Run:
+
 ```bash
 osv-scanner scan source --recursive --config osv-scanner.toml --format=json --output-file=osv-results.json . || true
 python3 scripts/security/osv-gate.py osv-results.json; echo "exit=$?"
 ```
+
 Expected: exit 1, `shell-quote`/`js-yaml` listed under `dev-only (non-blocking)`, `deepmerge-ts`/`mysql2` listed as blocking.
 
 - [ ] **Step 6: Commit**
@@ -646,6 +650,7 @@ git commit -m "feat(security): gate osv findings on production deps only"
 ### Task 3: Run the tests in CI
 
 **Files:**
+
 - Modify: `.github/workflows/security-dependency.yml`
 
 - [ ] **Step 1: Add a test step**
@@ -653,10 +658,10 @@ git commit -m "feat(security): gate osv findings on production deps only"
 In the `dependency-scan` job, after the `actions/checkout` step, add:
 
 ```yaml
-      - name: Test lockfile classifier
-        run: |
-          python3 scripts/security/test_pnpm_lock.py
-          python3 scripts/security/test_osv_gate.py
+- name: Test lockfile classifier
+  run: |
+    python3 scripts/security/test_pnpm_lock.py
+    python3 scripts/security/test_osv_gate.py
 ```
 
 - [ ] **Step 2: Lint the workflow**

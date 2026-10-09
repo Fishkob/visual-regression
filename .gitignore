@@ -34,3 +34,5 @@ backend/observability/secrets/x-metrics-key
 # Security scan artifacts (local gate runs)
 *.sarif
 /osv-results.json
+__pycache__/
+*.pyc

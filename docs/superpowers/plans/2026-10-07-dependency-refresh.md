@@ -17,6 +17,7 @@
 ### Task 1: Force patched versions of the vulnerable transitive packages
 
 **Files:**
+
 - Modify: `pnpm-workspace.yaml`
 
 - [ ] **Step 1: Add range-scoped overrides**
@@ -38,10 +39,12 @@ so the production `js-yaml@5.4.2` is not downgraded.
 - [ ] **Step 2: Install and verify the resolved versions**
 
 Run:
+
 ```bash
 pnpm install
 pnpm why shell-quote js-yaml mysql2 deepmerge-ts
 ```
+
 Expected: `shell-quote@1.11.0`, `js-yaml@4.3.2` for the 4.x line (a `js-yaml@5.4.2` may remain), `mysql2@3.23.1`, `deepmerge-ts@8.0.0`.
 
 - [ ] **Step 3: Verify the SDK/project still builds**
@@ -59,6 +62,7 @@ git commit -m "fix(deps): force patched versions of vulnerable transitive packag
 ### Task 2: Bump direct dependencies to latest (TypeScript excepted)
 
 **Files:**
+
 - Modify: `package.json`, `frontend/package.json`, `backend/package.json`, `client-sdk/package.json`, `pnpm-lock.yaml`
 
 - [ ] **Step 1: Record the current TypeScript specifiers**
@@ -77,10 +81,12 @@ Edit the `typescript` entry back to `"^6.0.3"` in `package.json`, `frontend/pack
 - [ ] **Step 4: Verify the pins and the majors**
 
 Run:
+
 ```bash
 grep -rn '"typescript"' package.json frontend/package.json client-sdk/package.json
 pnpm list -r --depth 0 | grep -E "typescript|pixelmatch|prisma"
 ```
+
 Expected: TypeScript still `6.0.3`; `pixelmatch` `8.0.0`; the whole Prisma family `7.10.0`.
 
 - [ ] **Step 5: Commit**
@@ -93,6 +99,7 @@ git commit -m "chore(deps): bump direct dependencies to latest (keep TypeScript 
 ### Task 3: Verify the workspace and fix breakages
 
 **Files:**
+
 - Modify: whichever source files the bumps break.
 
 - [ ] **Step 1: Regenerate the SDK and Prisma client**
@@ -103,6 +110,7 @@ Expected: succeeds. If `prisma generate` rejects `deepmerge-ts@8.0.0`, pin it ba
 - [ ] **Step 2: Run the full check suite**
 
 Run, in order:
+
 ```bash
 pnpm run lint
 pnpm run typecheck:all
@@ -110,6 +118,7 @@ pnpm run format
 pnpm run unitTest
 cd frontend && pnpm test
 ```
+
 Expected: all pass. Fix any breakages introduced by the major bumps (pixelmatch 8 API changes in the comparison engine, framework bumps).
 
 - [ ] **Step 3: Check for SDK drift**
@@ -127,11 +136,13 @@ git commit -m "chore(deps): adapt code to updated dependencies"
 ### Task 4: Bump the Maven dependencies
 
 **Files:**
+
 - Modify: `pdf-sidecar/pom.xml`
 
 - [ ] **Step 1: Apply the version bumps**
 
 In `pdf-sidecar/pom.xml`:
+
 - `opentelemetry-api`, `opentelemetry-sdk`, `opentelemetry-exporter-otlp`: `1.51.0` → `1.66.0`
 - `logback-classic`: `1.5.18` → `1.6.5`
 - `logstash-logback-encoder`: `8.1` → `9.0`
@@ -147,9 +158,11 @@ In `pdf-sidecar/pom.xml`:
 The pom targets `maven.compiler.release=25`; the local JDK is 21, so build in the pinned Maven image:
 
 Run:
+
 ```bash
 docker run --rm -v "$PWD/pdf-sidecar":/app -w /app maven:3-eclipse-temurin-25-alpine mvn -q clean package
 ```
+
 Expected: BUILD SUCCESS; tests pass with JUnit 6.
 
 - [ ] **Step 3: Commit**
@@ -162,15 +175,18 @@ git commit -m "chore(deps): bump Maven dependencies to latest"
 ### Task 5: Final security scan
 
 **Files:**
+
 - Possibly modify: `osv-scanner.toml` (fallback only)
 
 - [ ] **Step 1: Re-scan and gate**
 
 Run:
+
 ```bash
 osv-scanner scan source --recursive --config osv-scanner.toml --format=json --output-file=osv-results.json . || true
 python3 scripts/security/osv-gate.py osv-results.json; echo "exit=$?"
 ```
+
 Expected: exit 0. The four transitive vulnerabilities are patched; any remaining dev-only findings are warnings.
 
 - [ ] **Step 2 (fallback): Allowlist a package that cannot be patched**

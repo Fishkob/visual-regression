@@ -15,12 +15,12 @@ flag.
 The local scan currently reports six CRITICAL/HIGH findings. They split into two
 classes:
 
-| Package       | Path                                        | Severity | Class      |
-| ------------- | ------------------------------------------- | -------- | ---------- |
-| shell-quote   | root `concurrently` (dev)                    | CRITICAL | dev-only   |
-| js-yaml (×3)  | root `@hey-api/openapi-ts`                   | HIGH     | dev-only   |
-| deepmerge-ts  | backend → `prisma` → `@prisma/config`        | HIGH     | production |
-| mysql2        | backend → `prisma`                           | HIGH     | production |
+| Package      | Path                                  | Severity | Class      |
+| ------------ | ------------------------------------- | -------- | ---------- |
+| shell-quote  | root `concurrently` (dev)             | CRITICAL | dev-only   |
+| js-yaml (×3) | root `@hey-api/openapi-ts`            | HIGH     | dev-only   |
+| deepmerge-ts | backend → `prisma` → `@prisma/config` | HIGH     | production |
+| mysql2       | backend → `prisma`                    | HIGH     | production |
 
 `shell-quote` and `js-yaml` are only reachable through root devDependencies and
 never run in production. `deepmerge-ts` and `mysql2`, however, are genuinely in
