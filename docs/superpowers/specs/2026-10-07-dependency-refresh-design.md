@@ -4,7 +4,7 @@ Date: 2026-10-07
 
 ## Problem
 
-The repository's dependencies have drifted behind the latest releases, and four
+The repository's dependencies have drifted behind the latest releases, and five
 transitive npm packages carry known vulnerabilities that the security scan
 reports. The dependency gate (see the dev/prod classification spec) will keep
 failing on the production findings — `mysql2` and `deepmerge-ts` — until they are
@@ -18,15 +18,16 @@ building, linting, type-checking, and passing tests.
 ## Decision
 
 **Update all direct dependencies to their latest releases in both ecosystems,
-except TypeScript (stay on `6.0.3`) and Prisma (stay on `7.10.0`). Force the four
+except TypeScript (stay on `6.0.3`) and Prisma (stay on `7.10.0`). Force the five
 vulnerable transitive npm packages to their patched versions via `overrides`.
 Verify with the full project checks after each stage, falling back to the
 previous version if a breaking bump cannot be resolved within the stage.**
 
 The user explicitly accepted the risky bumps (pixelmatch `8.0.0`, JUnit `6`,
-logback `1.6.5`, logstash-logback-encoder `9`) after being told they are majors.
-TypeScript `7` is deliberately excluded. A coordinated Prisma `8` upgrade turned
-out to be impossible: only the `prisma` CLI publishes an `8.0.0-rc.*`, while the
+logback `1.6.5`, logstash-logback-encoder `9`) after being told they are majors;
+logstash 9 was later reverted to `8.1` (see the Maven section). TypeScript `7` is
+deliberately excluded. A coordinated Prisma `8` upgrade turned out to be
+impossible: only the `prisma` CLI publishes an `8.0.0-rc.*`, while the
 `@prisma/client` family has no 8.x release — a CLI-8/client-7 split is
 unsupported, so the whole Prisma family stays on `7.10.0`.
 
@@ -120,15 +121,17 @@ change.
 - `pnpm run sdk:generate && pnpm run sdk:build` produces no unexpected drift.
 - `docker run --rm -v "$PWD/pdf-sidecar":/app -w /app maven:3-eclipse-temurin-25-alpine mvn -q clean package` builds; tests pass with JUnit 6.
 - `python3 scripts/security/osv-gate.py osv-results.json` reports no production
-  CRITICAL/HIGH findings after the scan (the four transitive vulns are patched;
+  CRITICAL/HIGH findings after the scan (the five transitive vulns are patched;
   the remaining dev-only findings are warnings under the classification spec).
 
 ## Risks / fallbacks
 
 - **Prisma**: stays `7.10.0`; there is no consistent 8.x release to move to.
 - **pixelmatch 8**: major engine bump; fallback: pin back to `7.2.0`.
-- **JUnit 6 / logstash-logback-encoder 9 / logback 1.6**: majors; fallback:
-  pin to the latest release of the previous major line.
+- **JUnit 6 / logback 1.6**: majors; fallback: pin to the latest release of the
+  previous major line.
+- **logstash-logback-encoder 9**: reverted to `8.1` — 9.0 drops the Jackson 2
+  `databind` Javalin's default JSON mapper needs.
 - **deepmerge-ts 8**: fallback: `osv-scanner.toml` allowlist with justification.
 
 ## Out of scope

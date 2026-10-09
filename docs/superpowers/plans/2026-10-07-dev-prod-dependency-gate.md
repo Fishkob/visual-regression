@@ -10,6 +10,13 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-07-dev-prod-dependency-gate-design.md`
 
+> **Note (post-implementation):** parts of the embedded code below predate the
+> final implementation. The authoritative source is the committed
+> `scripts/security/pnpm_lock.py`, `scripts/security/osv-gate.py`, and their
+> tests. Two review-driven deltas were applied on top of the code shown here:
+> `analyze()` raises `LockfileError` when the `importers` section is missing
+> (fail-closed), and `_summary` lists severities outside `ORDER` as well.
+
 ---
 
 ## File Structure

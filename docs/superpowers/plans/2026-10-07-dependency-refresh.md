@@ -30,7 +30,12 @@ overrides:
   "js-yaml@<4.3.2": "4.3.2"
   "mysql2@<3.23.1": "3.23.1"
   "deepmerge-ts@<8.0.0": "8.0.0"
+  "lodash@<4.18.0": "4.18.1"
 ```
+
+`lodash` surfaced only in the final scan (Task 5) as a production HIGH via
+`@prisma/client → prisma → @prisma/studio-core → @visx/shape`; it has a fix, so
+it is patched here rather than allowlisted.
 
 pnpm 10 no longer reads the `pnpm` field in `package.json` (it warns), so the
 overrides belong in `pnpm-workspace.yaml`. The `js-yaml` selector is range-scoped
@@ -42,10 +47,10 @@ Run:
 
 ```bash
 pnpm install
-pnpm why shell-quote js-yaml mysql2 deepmerge-ts
+pnpm why -r shell-quote js-yaml mysql2 deepmerge-ts lodash
 ```
 
-Expected: `shell-quote@1.11.0`, `js-yaml@4.3.2` for the 4.x line (a `js-yaml@5.4.2` may remain), `mysql2@3.23.1`, `deepmerge-ts@8.0.0`.
+Expected: `shell-quote@1.11.0`, `js-yaml@4.3.2` for the 4.x line (a `js-yaml@5.4.2` may remain), `mysql2@3.23.1`, `deepmerge-ts@8.0.0`, `lodash@4.18.1`.
 
 - [ ] **Step 3: Verify the SDK/project still builds**
 
@@ -145,12 +150,12 @@ In `pdf-sidecar/pom.xml`:
 
 - `opentelemetry-api`, `opentelemetry-sdk`, `opentelemetry-exporter-otlp`: `1.51.0` → `1.66.0`
 - `logback-classic`: `1.5.18` → `1.6.5`
-- `logstash-logback-encoder`: `8.1` → `9.0`
+- `logstash-logback-encoder`: **stays `8.1`** — 9.0 switches to Jackson 3 and drops the Jackson 2 `databind` that Javalin's default JSON mapper needs (500s on JSON endpoints). Fall back to the latest of the previous major line.
 - `junit-jupiter`: `5.11.4` → `6.1.3`
 - `pdfbox`: `3.0.3` → `3.0.8`
 - `${javalin.version}`: `7.2.2` → `7.2.3`
 - `${pdfcompare.version}`: `1.2.8` → `1.2.11`
-- Jackson (`jackson-core`, `jackson-databind`, `jackson-annotations`): `2.18.11` → `2.22.3`
+- Jackson `jackson-core`/`jackson-databind`: `2.18.11` → `2.22.3`; `jackson-annotations`: `2.18.11` → **`2.22`** (no `2.22.3` exists — the patch suffix was dropped from 2.20)
 - Jetty (`jetty-server`, `jetty-http`, `jetty-security`): `12.1.12` → `12.1.14`
 
 - [ ] **Step 2: Build and test**
