@@ -137,6 +137,33 @@ class SyntheticLockfileTest(unittest.TestCase):
         )
         self.assertTrue(analysis.classify("real-name", "1.0.0"))
 
+    def test_missing_importers_section_raises(self):
+        with self.assertRaises(LockfileError):
+            self.analyze_text(
+                """
+                lockfileVersion: '9.0'
+                snapshots:
+                  prod-lib@1.0.0: {}
+                  dev-lib@1.0.0: {}
+                """
+            )
+
+    def test_unknown_package_returns_none(self):
+        analysis = self.analyze_text(
+            """
+            lockfileVersion: '9.0'
+            importers:
+              .:
+                dependencies:
+                  app:
+                    specifier: ^1.0.0
+                    version: 1.0.0
+            snapshots:
+              app@1.0.0: {}
+            """
+        )
+        self.assertIsNone(analysis.classify("not-in-lockfile", "1.0.0"))
+
     def test_malformed_snapshot_entry_raises(self):
         with self.assertRaises(LockfileError):
             self.analyze_text(

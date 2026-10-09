@@ -66,6 +66,7 @@ def analyze(lockfile_path: str) -> LockAnalysis:
     roots: Set[Package] = set()
     edges: Dict[Package, Set[Package]] = {}
     all_packages: Set[Package] = set()
+    seen_importers = False
 
     with open(lockfile_path, encoding="utf-8") as handle:
         for line in handle:
@@ -73,6 +74,8 @@ def analyze(lockfile_path: str) -> LockAnalysis:
                 continue
             if not line.startswith(" "):
                 key = line.split(":", 1)[0]
+                if key == "importers":
+                    seen_importers = True
                 section = key if key in ("importers", "packages", "snapshots") else None
                 continue
             indent = len(line) - len(line.lstrip(" "))
@@ -108,6 +111,9 @@ def analyze(lockfile_path: str) -> LockAnalysis:
                         raise LockfileError(f"edge without package: {text!r}")
                     dep, version = text.split(":", 1)
                     edges[snapshot_key].add(_resolve(_unquote(dep), version))
+
+    if not seen_importers:
+        raise LockfileError("missing importers section")
 
     production: Set[Package] = set()
     stack = list(roots)
