@@ -95,7 +95,7 @@
     "lint-staged": "^17.6.0",
     "pino-pretty": "^13.2.0",
     "prettier": "^3.9.9",
-    "prisma": "8.0.0-rc.22",
+    "prisma": "^7.10.0",
     "supertest": "^7.3.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
