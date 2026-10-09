@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.1.0](https://github.com/Fishkob/visual-regression/compare/v1.0.2...v1.1.0) (2026-10-09)
+
+
+### Features
+
+* **security:** add pnpm production-dependency classifier ([e4681b6](https://github.com/Fishkob/visual-regression/commit/e4681b676a0b3dd8fdfd07dbd59dfa6acd894558))
+* **security:** gate osv findings on production deps only ([a4f47f0](https://github.com/Fishkob/visual-regression/commit/a4f47f0172af9399b0617fe5287244b17b17086a))
+
+
+### Bug Fixes
+
+* **ci:** install semgrep via pip to avoid Docker Hub rate limit ([09234f2](https://github.com/Fishkob/visual-regression/commit/09234f21903f63b37fb45a1aafd14d92da877e20))
+* **deps:** force patched lodash to clear production HIGH ([6f2e441](https://github.com/Fishkob/visual-regression/commit/6f2e4413d53d75bc3905ccb49879af7d7cf2272d))
+* **deps:** force patched versions of vulnerable transitive packages ([e68fd4f](https://github.com/Fishkob/visual-regression/commit/e68fd4f4ec272d2ed0c3bc80cc00b8dc0d09a8ae))
+* **deps:** move pnpm overrides to pnpm-workspace.yaml ([f6f8692](https://github.com/Fishkob/visual-regression/commit/f6f869299177d2ac509ca5c972501793f17cbe9a))
+* **security:** fail closed when pnpm lockfile lacks an importers section ([5b1f791](https://github.com/Fishkob/visual-regression/commit/5b1f791bbf71bed197db71f9eee7fca301ae0703))
+* **security:** summarize every counted severity in osv-gate ([15a4300](https://github.com/Fishkob/visual-regression/commit/15a43006019ee25306fac370858f8e33a05c87fc))
+
 ## [1.0.2](https://github.com/Fishkob/visual-regression/compare/v1.0.1...v1.0.2) (2026-10-07)
 
 
