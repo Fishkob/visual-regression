@@ -140,14 +140,15 @@ missing/invalid `osv-results.json` (unchanged).
 New `scripts/security/test_pnpm_lock.py` using the standard-library `unittest`
 runner, covering two levels:
 
-1. **Real lockfile** (the repository's `pnpm-lock.yaml`): assert that
-   `shell-quote` and `js-yaml` resolve to dev-only and that `deepmerge-ts`,
-   `mysql2`, and a known runtime package (`@nestjs/common`) resolve to
-   production.
-2. **Synthetic mini-lockfile** fixtures: scoped names, peer suffixes, the same
-   `name@version` reachable from both a prod and a dev root (production wins),
-   `optionalDependencies` traversal, a dev-only transitive chain, and a malformed
-   line that raises `LockfileError`.
+1. **Real lockfile** (the repository's `pnpm-lock.yaml`), asserted at name level so
+   it stays valid across the dependency refresh: it parses,
+   `production_packages ⊆ all_packages`, `shell-quote` has no production version,
+   and `deepmerge-ts`, `mysql2`, and `@nestjs/common` have a production version.
+2. **Synthetic mini-lockfile** fixtures, asserted at version level: scoped names,
+   peer suffixes, the same `name@version` reachable from both a prod and a dev
+   root (production wins), `optionalDependencies` traversal, a version that is
+   dev-only while another version of the same name is production, alias targets,
+   a dev-only transitive chain, and a malformed line that raises `LockfileError`.
 
 The suite is run by adding a step to `.github/workflows/security-dependency.yml`:
 `python3 scripts/security/test_pnpm_lock.py`.

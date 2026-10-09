@@ -36,6 +36,11 @@ told they are majors / a prerelease. TypeScript `7` is deliberately excluded.
 | mysql2       | 3.15.3  | 3.23.1      | GHSA-3f6p-5ww8-9rcr et al. |
 | deepmerge-ts | 7.1.5   | 8.0.0       | GHSA-ggr8-5vv4-36mx    |
 
+The `js-yaml` override must be **range-scoped** (`"js-yaml@<4.3.2": "4.3.2"`), not a
+global override: the lockfile also resolves `js-yaml@5.4.2` in the production
+graph, and a global override would downgrade it. `shell-quote`, `mysql2`, and
+`deepmerge-ts` each resolve to a single version, so plain overrides are safe.
+
 `deepmerge-ts` is a major bump forced under `@prisma/config` (Prisma CLI,
 build/CLI usage). If Prisma 8 does not tolerate it, fall back to allowlisting it
 in `osv-scanner.toml` with a justification, as already done for `braces`.
