@@ -18,16 +18,22 @@ building, linting, type-checking, and passing tests.
 ## Decision
 
 **Update all direct dependencies to their latest releases in both ecosystems,
-except TypeScript (stay on `6.0.3`). Force the four vulnerable transitive npm
-packages to their patched versions via `pnpm.overrides`. Verify with the full
-project checks after each stage, falling back to the previous version if a
-breaking bump cannot be resolved within the stage.**
+except TypeScript (stay on `6.0.3`) and Prisma (stay on `7.10.0`). Force the four
+vulnerable transitive npm packages to their patched versions via `overrides`.
+Verify with the full project checks after each stage, falling back to the
+previous version if a breaking bump cannot be resolved within the stage.**
 
-The user explicitly accepted the risky bumps (Prisma `8.0.0-rc.21`, pixelmatch
-`8.0.0`, JUnit `6`, logback `1.6.5`, logstash-logback-encoder `9`) after being
-told they are majors / a prerelease. TypeScript `7` is deliberately excluded.
+The user explicitly accepted the risky bumps (pixelmatch `8.0.0`, JUnit `6`,
+logback `1.6.5`, logstash-logback-encoder `9`) after being told they are majors.
+TypeScript `7` is deliberately excluded. A coordinated Prisma `8` upgrade turned
+out to be impossible: only the `prisma` CLI publishes an `8.0.0-rc.*`, while the
+`@prisma/client` family has no 8.x release — a CLI-8/client-7 split is
+unsupported, so the whole Prisma family stays on `7.10.0`.
 
-## Vulnerable transitive packages (pnpm.overrides)
+## Vulnerable transitive packages (overrides)
+
+The overrides live in `pnpm-workspace.yaml` (pnpm 10's settings home); the
+`pnpm` field in `package.json` is no longer read and emits a warning.
 
 | Package      | Current | Override to | Advisory               |
 | ------------ | ------- | ----------- | ---------------------- |
@@ -42,8 +48,9 @@ graph, and a global override would downgrade it. `shell-quote`, `mysql2`, and
 `deepmerge-ts` each resolve to a single version, so plain overrides are safe.
 
 `deepmerge-ts` is a major bump forced under `@prisma/config` (Prisma CLI,
-build/CLI usage). If Prisma 8 does not tolerate it, fall back to allowlisting it
-in `osv-scanner.toml` with a justification, as already done for `braces`.
+build/CLI usage). If the Prisma CLI does not tolerate it, fall back to
+allowlisting it in `osv-scanner.toml` with a justification, as already done for
+`braces`.
 
 ## Direct npm bumps (`pnpm update --latest`, TypeScript excepted)
 
@@ -57,16 +64,14 @@ in `osv-scanner.toml` with a justification, as already done for `braces`.
 + `@opentelemetry/instrumentation-http` + `@opentelemetry/sdk-node` 0.223.0,
 `reka-ui` 2.11.0, `vue-router` 5.4.0.
 
-Majors / prerelease (accepted):
+Majors (accepted):
 
 - `pixelmatch` 7.2.0 → 8.0.0 — the comparison engine (ADR-016); verify image
   diff behaviour and the backend unit tests.
-- `prisma` + `@prisma/adapter-pg`, `@prisma/client`, `@prisma/client-runtime-utils`,
-  `@prisma/instrumentation` `^7.10.0` → `8.0.0-rc.21` — regenerate the Prisma
-  client and run migrations/tests. If the RC cannot be made to build, pin back to
-  `7.10.0` and record the exception.
 
-Excluded: `typescript` (stays `6.0.3`), and `prom-client` (its latest is
+Excluded: `typescript` (stays `6.0.3`), `prisma` + `@prisma/adapter-pg`,
+`@prisma/client`, `@prisma/client-runtime-utils`, `@prisma/instrumentation` (stay
+`7.10.0` — no 8.x client release exists), and `prom-client` (its latest is
 flagged deprecated — do not bump).
 
 ## Maven bumps (`pdf-sidecar/pom.xml`)
@@ -93,19 +98,19 @@ Order matters: `lint` → `typecheck:all` → `format` → `unitTest`, plus the
 frontend suite and the SDK regeneration when `backend/` DTOs or the Prisma schema
 change.
 
-- `pnpm install` succeeds; `pnpm run bootstrap` (generate SDK + build) succeeds.
+- `pnpm install` succeeds; SDK generation and build succeed (the full
+  `pnpm run bootstrap` additionally needs a running Postgres for `migrate deploy`).
 - `pnpm run lint`, `pnpm run typecheck:all`, `pnpm run format:check`,
   `pnpm run unitTest`, and `cd frontend && pnpm test` all pass.
 - `pnpm run sdk:generate && pnpm run sdk:build` produces no unexpected drift.
-- `cd pdf-sidecar && mvn -q package` builds; its tests pass with JUnit 6.
+- `docker run --rm -v "$PWD/pdf-sidecar":/app -w /app maven:3-eclipse-temurin-25-alpine mvn -q clean package` builds; tests pass with JUnit 6.
 - `python3 scripts/security/osv-gate.py osv-results.json` reports no production
   CRITICAL/HIGH findings after the scan (the four transitive vulns are patched;
   the remaining dev-only findings are warnings under the classification spec).
 
 ## Risks / fallbacks
 
-- **Prisma 8 RC**: prerelease; may need code changes. Fallback: pin back to
-  `7.10.0` and note the exception.
+- **Prisma**: stays `7.10.0`; there is no consistent 8.x release to move to.
 - **pixelmatch 8**: major engine bump; fallback: pin back to `7.2.0`.
 - **JUnit 6 / logstash-logback-encoder 9 / logback 1.6**: majors; fallback:
   pin to the latest release of the previous major line.
@@ -113,6 +118,6 @@ change.
 
 ## Out of scope
 
-- TypeScript `7` (explicitly excluded).
+- TypeScript `7` (explicitly excluded) and Prisma `8` (no client release).
 - The dev/prod classification gate itself — separate spec.
 - Reworking the dependency automation (Dependabot) configuration.
