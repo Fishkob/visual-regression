@@ -34,6 +34,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Test lockfile classifier
+        run: |
+          python3 scripts/security/test_pnpm_lock.py
+          python3 scripts/security/test_osv_gate.py
+
       - name: Install osv-scanner
         run: |
           curl -sSL -o /tmp/osv-scanner https://github.com/google/osv-scanner/releases/download/v2.5.0/osv-scanner_linux_amd64
