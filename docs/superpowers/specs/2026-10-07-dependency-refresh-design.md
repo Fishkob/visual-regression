@@ -41,11 +41,17 @@ The overrides live in `pnpm-workspace.yaml` (pnpm 10's settings home); the
 | js-yaml      | 4.2.0   | 4.3.2       | GHSA-2883-xcg3-v3hh et al. |
 | mysql2       | 3.15.3  | 3.23.1      | GHSA-3f6p-5ww8-9rcr et al. |
 | deepmerge-ts | 7.1.5   | 8.0.0       | GHSA-ggr8-5vv4-36mx        |
+| lodash       | 4.17.21 | 4.18.1      | GHSA-r5fr-rjxr-66jc        |
+
+`lodash` surfaced only in the final scan (a production HIGH reachable via
+`@prisma/client → prisma → @prisma/studio-core → @visx/shape`); it has a
+published fix, so it is patched by override rather than allowlisted.
 
 The `js-yaml` override must be **range-scoped** (`"js-yaml@<4.3.2": "4.3.2"`), not a
 global override: the lockfile also resolves `js-yaml@5.4.2` in the production
-graph, and a global override would downgrade it. `shell-quote`, `mysql2`, and
-`deepmerge-ts` each resolve to a single version, so plain overrides are safe.
+graph, and a global override would downgrade it. `shell-quote`, `mysql2`,
+`deepmerge-ts`, and `lodash` each resolve to a single affected version, so plain
+range-scoped overrides are safe.
 
 `deepmerge-ts` is a major bump forced under `@prisma/config` (Prisma CLI,
 build/CLI usage). If the Prisma CLI does not tolerate it, fall back to
@@ -56,19 +62,20 @@ allowlisting it in `osv-scanner.toml` with a justification, as already done for
 
 `backend`, `frontend`, and the root workspace. Patch/minor:
 
-`@darraghor/eslint-plugin-nestjs-typed` 7.5.8, `@tanstack/vue-table` 9.2.7,
+`@darraghor/eslint-plugin-nestjs-typed` 7.5.8, `@tanstack/vue-table` 9.2.8,
 `@typescript-eslint/eslint-plugin` + `@typescript-eslint/parser` + `typescript-eslint`
-8.71.1, `dotenv` 18.0.6, `vite` 8.3.3, `@aws-sdk/client-s3` 3.1147.0,
+8.71.1, `dotenv` 18.0.7, `vite` 8.3.4, `@aws-sdk/client-s3` 3.1148.0,
 `@opentelemetry/sdk-trace-base` + `@opentelemetry/sdk-trace-node` 2.12.0,
-`@opentelemetry/exporter-trace-otlp-proto` + `@opentelemetry/instrumentation-express`
+`@opentelemetry/exporter-trace-otlp-proto` + `@opentelemetry/instrumentation-http`
 
-- `@opentelemetry/instrumentation-http` + `@opentelemetry/sdk-node` 0.223.0,
+- `@opentelemetry/sdk-node` 0.223.0, `@opentelemetry/instrumentation-express` 0.71.0,
   `reka-ui` 2.11.0, `vue-router` 5.4.0.
 
 Majors (accepted):
 
-- `pixelmatch` 7.2.0 → 8.0.0 — the comparison engine (ADR-016); verify image
-  diff behaviour and the backend unit tests.
+- `pixelmatch` 7.2.0 → 8.0.0 — the comparison engine (ADR-016); the v8 API remains
+  a drop-in default export, and `pixelmatch-comparison.service.ts` already
+  dynamic-imports it, so no code change was needed.
 
 Excluded: `typescript` (stays `6.0.3`), `prisma` + `@prisma/adapter-pg`,
 `@prisma/client`, `@prisma/client-runtime-utils`, `@prisma/instrumentation` (stay
@@ -77,21 +84,28 @@ flagged deprecated — do not bump).
 
 ## Maven bumps (`pdf-sidecar/pom.xml`)
 
-| Artifact                                                           | Current | Target  |
-| ------------------------------------------------------------------ | ------- | ------- |
-| io.opentelemetry:opentelemetry-api / -sdk / -exporter-otlp         | 1.51.0  | 1.66.0  |
-| ch.qos.logback:logback-classic                                     | 1.5.18  | 1.6.5   |
-| net.logstash.logback:logstash-logback-encoder                      | 8.1     | 9.0     |
-| org.junit.jupiter:junit-jupiter                                    | 5.11.4  | 6.1.3   |
-| org.apache.pdfbox:pdfbox                                           | 3.0.3   | 3.0.8   |
-| io.javalin:javalin                                                 | 7.2.2   | 7.2.3   |
-| de.redsix:pdfcompare                                               | 1.2.8   | 1.2.11  |
-| com.fasterxml.jackson.core:jackson-core / -databind / -annotations | 2.18.11 | 2.22.3  |
-| org.eclipse.jetty:jetty-server / -http / -security                 | 12.1.12 | 12.1.14 |
+| Artifact                                                   | Current | Target  |
+| ---------------------------------------------------------- | ------- | ------- |
+| io.opentelemetry:opentelemetry-api / -sdk / -exporter-otlp | 1.51.0  | 1.66.0  |
+| ch.qos.logback:logback-classic                             | 1.5.18  | 1.6.5   |
+| net.logstash.logback:logstash-logback-encoder              | 8.1     | 8.1\*   |
+| org.junit.jupiter:junit-jupiter                            | 5.11.4  | 6.1.3   |
+| org.apache.pdfbox:pdfbox                                   | 3.0.3   | 3.0.8   |
+| io.javalin:javalin                                         | 7.2.2   | 7.2.3   |
+| de.redsix:pdfcompare                                       | 1.2.8   | 1.2.11  |
+| com.fasterxml.jackson.core:jackson-core / -databind        | 2.18.11 | 2.22.3  |
+| com.fasterxml.jackson.core:jackson-annotations             | 2.18.11 | 2.22\*  |
+| org.eclipse.jetty:jetty-server / -http / -security         | 12.1.12 | 12.1.14 |
 
-`jackson-annotations`' `latest` is `3.0-rc5` (a prerelease); align it to
-`2.22.3` with the rest of Jackson instead. The dependency-management overrides
-for Jackson and Jetty are bumped in lockstep.
+\* Two artifacts could not reach the planned target:
+
+- `logstash-logback-encoder` stays `8.1`: 9.0 switches to Jackson 3
+  (`tools.jackson.core`), which removes the Jackson 2 `databind` that Javalin's
+  default JSON mapper needs — every JSON endpoint returned 500. Pinned to the
+  latest of the previous major line.
+- `jackson-annotations` is `2.22`, not `2.22.3`: the annotations artifact has no
+  `2.22.3` on Maven Central (the patch suffix was dropped from 2.20 onward).
+  `jackson-core`/`-databind` remain on `2.22.3`.
 
 ## Verification
 
