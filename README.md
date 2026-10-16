@@ -180,17 +180,18 @@ Configuration happens through environment variables, resolved in this order (lat
 
 1. **Defaults in `scripts/dev.sh`** — sensible local values (see the `POSTGRES_*` / `RUSTFS_*` vars at the top of the script).
 2. **`.env`** (repo root, gitignored) — loaded by `dev.sh` and Docker Compose.
-3. **`backend/.env`** — loaded by `dev.sh` after the root `.env`.
+3. **`backend/.env`** — loaded by the backend runtime, the Prisma CLI and `dev.sh`.
+4. **`backend/.env.local`** — loaded before `backend/.env`, so it overrides it; only variables already set in the process environment win over the files.
 
-The **local dev** flow creates `backend/.env.local` and `frontend/.env.local` from the `.example` files on first run (via `dev.sh reset`/`local`). Override them per-machine without touching git-tracked files.
+The **local dev** flow creates `backend/.env.local` and `frontend/.env.local` from the `.example` files on first run (via `dev.sh reset`/`local`). The backend runtime and the Prisma CLI read `backend/.env.local` directly, so `pnpm run dev` works on a fresh checkout without exporting anything or creating a symlink. Override these files per-machine without touching git-tracked files.
 
-| File                  | Used by           | Created by                 |
-| --------------------- | ----------------- | -------------------------- |
-| `.env` (root)         | `dev.sh`, Compose | you (optional)             |
-| `backend/.env`        | `dev.sh`          | you (optional)             |
-| `backend/.env.local`  | backend runtime   | `dev.sh` (from `.example`) |
-| `frontend/.env.local` | frontend runtime  | `dev.sh` (from `.example`) |
-| `.env.local` examples | —                 | git-tracked templates      |
+| File                  | Used by                           | Created by                 |
+| --------------------- | --------------------------------- | -------------------------- |
+| `.env` (root)         | `dev.sh`, Compose                 | you (optional)             |
+| `backend/.env`        | backend runtime, Prisma, `dev.sh` | you (optional)             |
+| `backend/.env.local`  | backend runtime, Prisma, `dev.sh` | `dev.sh` (from `.example`) |
+| `frontend/.env.local` | frontend runtime                  | `dev.sh` (from `.example`) |
+| `.env.local` examples | —                                 | git-tracked templates      |
 
 For Docker deployments, Compose reads the root `.env` automatically. Set the **production credentials** there so both the servers and the app use the same values — the Compose files interpolate these variables (a mismatch between e.g. the PostgreSQL container and the backend's `DATABASE_URL` silently breaks startup):
 

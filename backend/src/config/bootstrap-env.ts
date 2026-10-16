@@ -1,19 +1,26 @@
+import * as fs from 'fs';
 import * as path from 'path';
+import { config as loadEnvFile } from 'dotenv';
+import { ENV_FILES } from './env-files';
 import { envValidationSchema } from './env.validation';
 
-// Load .env exactly once, before the Nest DI container (ConfigModule) exists.
-// dotenv does not override already-set variables, so a real environment wins.
-export function loadEnv(): void {
-  try {
-    const dotenv = require('dotenv') as {
-      config: (opts: { path: string }) => void;
-    };
-    dotenv.config({
-      path: path.resolve(__dirname, '../../.env'),
-    });
-  } catch {
-    // dotenv not available
+// Load the env files exactly once, before the Nest DI container (ConfigModule)
+// exists. They are read from the working directory (backend/ for every pnpm
+// script and for the compiled runtime), matching ConfigModule's envFilePath.
+export function loadEnv(cwd: string = process.cwd()): string[] {
+  const envFiles = ENV_FILES.map((file) => path.resolve(cwd, file)).filter(
+    (file) => fs.existsSync(file),
+  );
+
+  if (envFiles.length > 0) {
+    loadEnvFile({ path: envFiles, quiet: true });
+  } else if (process.env.NODE_ENV !== 'production') {
+    console.warn(
+      `No env file found (looked for ${ENV_FILES.join(', ')} in ${cwd}) — using the process environment. Run ./scripts/dev.sh local to create backend/.env.local.`,
+    );
   }
+
+  return envFiles;
 }
 
 export interface BootstrapEnv {

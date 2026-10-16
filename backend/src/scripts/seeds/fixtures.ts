@@ -1,5 +1,6 @@
 import * as path from 'path';
 import request from 'supertest';
+import { withRateLimitRetry } from './rate-limit-retry';
 
 export const BASE_URL = 'http://localhost:3000';
 
@@ -103,5 +104,75 @@ export async function verifyApiKeyAuth(apiKey: string): Promise<void> {
       'The key must exist in the backend database. Create one via POST /api/v1/admin/api-keys and set SEED_API_KEY (or E2E_API_KEY) to the returned rawKey.',
     );
     process.exit(1);
+  }
+}
+
+export async function createProject(
+  apiKey: string,
+  name: string,
+): Promise<void> {
+  process.stdout.write(`Creating project "${name}"... `);
+
+  const res = await withRateLimitRetry(`creating project "${name}"`, () =>
+    request(BASE_URL)
+      .post('/api/v1/projects')
+      .set('Content-Type', 'application/json')
+      .set(seedAuth(apiKey))
+      .send({ name }),
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const projectName = String(res.body?.name ?? '(no name)');
+  if (res.status !== 201) {
+    console.log(`\n  ${res.status} -> ${projectName}`);
+    throw new Error(`Could not create project "${name}" (HTTP ${res.status}).`);
+  }
+  console.log(`done (${projectName})`);
+}
+
+export interface SeedUpload {
+  apiKey: string;
+  project: string;
+  test: string;
+  viewport: string;
+  browser: string;
+  environment: string;
+  file: string;
+  testKind: 'image' | 'pdf';
+}
+
+export async function uploadVariant({
+  apiKey,
+  project,
+  test,
+  viewport,
+  browser,
+  environment,
+  file,
+  testKind,
+}: SeedUpload): Promise<void> {
+  const label = `${test} (${viewport}/${browser}/${environment}) [${testKind}]`;
+  process.stdout.write(`  Uploading ${label}... `);
+
+  const res = await withRateLimitRetry(`uploading ${label}`, () =>
+    request(BASE_URL)
+      .post(
+        `/api/v1/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(test)}/upload`,
+      )
+      .query({ testKind })
+      .set(seedAuth(apiKey))
+      .field('viewport', viewport)
+      .field('browser', browser)
+      .field('environment', environment)
+      .attach('file', file),
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const info = String(res.body?.status ?? res.body?.error ?? '');
+  console.log(`${res.status} -> ${info}`);
+  if (res.status !== 201) {
+    throw new Error(
+      `Upload of ${label} failed (HTTP ${res.status}${info ? `: ${info}` : ''}).`,
+    );
   }
 }

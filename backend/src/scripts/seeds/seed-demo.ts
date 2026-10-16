@@ -8,8 +8,10 @@ import {
   PDF_CANDIDATE_PATH,
   PROJECT_NAMES,
   VIEWPORTS,
+  createProject,
   resolveSeedApiKey,
   seedAuth,
+  uploadVariant,
   verifyApiKeyAuth,
 } from './fixtures';
 /**
@@ -47,74 +49,6 @@ async function deleteExistingProjects() {
   }
 }
 
-async function createProject(name: string) {
-  process.stdout.write(`Creating project "${name}"... `);
-  try {
-    const res = await request(BASE_URL)
-      .post('/api/v1/projects')
-      .set('Content-Type', 'application/json')
-      .set(AUTH_HEADERS)
-      .send({ name });
-
-    if (res.status !== 201) {
-      console.error('\nProject creation failed!');
-      console.error(`Status: ${res.status}`);
-      console.error('Response body:', JSON.stringify(res.body, null, 2));
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    const projectName = res.body?.name ?? '(no name)';
-    console.log(
-      res.status === 201
-        ? `done (${projectName})`
-        : `${res.status} ${projectName}`,
-    );
-  } catch (err) {
-    console.error('\nRequest failed completely!');
-    console.error('Error:', (err as Error).message);
-  }
-}
-
-async function uploadVariant({
-  project,
-  test,
-  viewport,
-  browser,
-  environment,
-  file,
-  testKind,
-}: {
-  project: string;
-  test: string;
-  viewport: string;
-  browser: string;
-  environment: string;
-  file: string;
-  testKind: string;
-}) {
-  const label = `${test} (${viewport}/${browser}/${environment}) [${testKind}]`;
-  process.stdout.write(`  Uploading ${label}... `);
-
-  try {
-    const res = await request(BASE_URL)
-      .post(
-        `/api/v1/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(test)}/upload`,
-      )
-      .query({ testKind })
-      .set(AUTH_HEADERS)
-      .field('viewport', viewport)
-      .field('browser', browser)
-      .field('environment', environment)
-      .attach('file', file);
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const info = String(res.body?.status ?? res.body?.error ?? '');
-    console.log(`${res.status} -> ${info}`);
-  } catch (err) {
-    console.error(`Failed to upload ${label}: ${(err as Error).message}`);
-  }
-}
-
 async function seed() {
   console.log('Seeding DEMO data via REST...\n');
 
@@ -123,7 +57,7 @@ async function seed() {
   await deleteExistingProjects();
 
   for (const project of PROJECT_NAMES.DEMO) {
-    await createProject(project);
+    await createProject(SEED_API_KEY, project);
 
     const tests = DEMO_TESTS[project];
     if (!tests) continue;
@@ -135,6 +69,7 @@ async function seed() {
       for (const browser of BROWSERS) {
         for (const viewport of VIEWPORTS) {
           await uploadVariant({
+            apiKey: SEED_API_KEY,
             project,
             test,
             viewport,
@@ -147,6 +82,7 @@ async function seed() {
       }
 
       await uploadVariant({
+        apiKey: SEED_API_KEY,
         project,
         test,
         viewport: VIEWPORTS[0],
@@ -159,6 +95,7 @@ async function seed() {
 
     // Seed PDF tests
     await uploadVariant({
+      apiKey: SEED_API_KEY,
       project,
       test: 'pdf-report',
       viewport: VIEWPORTS[0],
@@ -169,6 +106,7 @@ async function seed() {
     });
 
     await uploadVariant({
+      apiKey: SEED_API_KEY,
       project,
       test: 'pdf-report',
       viewport: VIEWPORTS[0],

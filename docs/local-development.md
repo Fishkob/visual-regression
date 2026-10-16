@@ -152,15 +152,16 @@ Configuration is resolved in this order (later wins):
 
 1. Defaults at the top of `scripts/dev.sh`
 2. `.env` (repo root, gitignored) — loaded by `dev.sh` and Docker Compose
-3. `backend/.env` — loaded by `dev.sh` after the root `.env`
+3. `backend/.env` — loaded by the backend runtime, the Prisma CLI and `dev.sh`
+4. `backend/.env.local` — loaded before `backend/.env` by the backend runtime, the Prisma CLI and `dev.sh`, so it overrides it (only variables already present in the process environment beat the files)
 
-`dev.sh reset`/`local` creates `backend/.env.local` and `frontend/.env.local` from the git-tracked `.example` files on first run. Those are per-machine overrides for the backend/frontend runtimes — edit them freely, never commit them.
+`dev.sh reset`/`local` creates `backend/.env.local` and `frontend/.env.local` from the git-tracked `.example` files on first run. The backend runtime and the Prisma CLI read `backend/.env.local` themselves, so `pnpm run dev` works on a fresh checkout without exporting variables or symlinking `backend/.env`. Edit these files freely, never commit them.
 
-| File                          | Used by          | Created by               |
-| ----------------------------- | ---------------- | ------------------------ |
-| `backend/.env.local.example`  | —                | git-tracked template     |
-| `backend/.env.local`          | backend runtime  | `dev.sh` (from template) |
-| `frontend/.env.local.example` | —                | git-tracked template     |
-| `frontend/.env.local`         | frontend runtime | `dev.sh` (from template) |
+| File                          | Used by                 | Created by               |
+| ----------------------------- | ----------------------- | ------------------------ |
+| `backend/.env.local.example`  | —                       | git-tracked template     |
+| `backend/.env.local`          | backend runtime, Prisma | `dev.sh` (from template) |
+| `frontend/.env.local.example` | —                       | git-tracked template     |
+| `frontend/.env.local`         | frontend runtime        | `dev.sh` (from template) |
 
-The backend `.env.local.example` documents every variable (DB, RustFS, CORS, rate limiting, OpenTelemetry); the frontend example only needs `VITE_API_BASE_URL`.
+The backend `.env.local.example` documents every variable (DB, RustFS, CORS, rate limiting, OpenTelemetry); the frontend example only needs `VITE_API_BASE_URL`. The local example ships with `UPLOAD_RATE_LIMIT_PER_MINUTE=0`, because a full `./scripts/dev.sh seed` uploads hundreds of screenshots — the seeds also retry on `429`, so seeding works either way, just slower with the limit enabled.

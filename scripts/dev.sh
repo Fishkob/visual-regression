@@ -14,9 +14,9 @@ load_env() {
         set -a && source backend/.env && set +a
     fi
 
-    # Local dev keeps secrets in backend/.env.local. backend/.env may be a
-    # symlink to it on existing checkouts, but a fresh clone only has the
-    # .env.local file, so load it explicitly (e.g. SEED_API_KEY).
+    # Local dev keeps secrets in backend/.env.local, which the backend runtime
+    # and the Prisma CLI read directly. This script sources it too so its own
+    # commands (seed, migrate, docker) see the same values.
     if [ -f backend/.env.local ]; then
         set -a && source backend/.env.local && set +a
     fi
@@ -46,16 +46,37 @@ log() { echo -e "${CYAN}==>${NC} $1"; }
 warn() { echo -e "${YELLOW}==> Warning:${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
 
+require_docker() {
+    if ! command -v docker &> /dev/null; then
+        warn "Docker is required but was not found. Install it: https://docs.docker.com/get-docker/"
+        exit 1
+    fi
+    if ! docker info &> /dev/null; then
+        warn "Docker is installed but the daemon is not reachable. Start Docker and retry."
+        exit 1
+    fi
+    if ! docker compose version &> /dev/null; then
+        warn "Docker Compose v2 is required (the 'docker compose' plugin)."
+        exit 1
+    fi
+}
+
+require_node() {
+    if ! command -v node &> /dev/null; then
+        warn "Node.js >= 24.15 is required but was not found. Install it: https://nodejs.org/"
+        exit 1
+    fi
+}
+
 cmd_infra() {
+    require_docker
+
     log "Starting infrastructure services..."
-    docker compose -f docker-compose.infra.yml up -d
-    
-    log "Starting pdf-sidecar..."
-    docker compose -f docker-compose.yml up -d pdf-sidecar
-    
+    docker compose -f docker-compose.yml up -d postgres rustfs pdf-sidecar
+
     log "Waiting for postgres..."
     for i in {1..30}; do
-        docker compose -f docker-compose.infra.yml exec -T postgres pg_isready -U postgres >/dev/null 2>&1 && break
+        docker compose -f docker-compose.yml exec -T postgres pg_isready -U postgres >/dev/null 2>&1 && break
         sleep 2
     done
     
@@ -80,6 +101,8 @@ cmd_infra() {
 }
 
 cmd_docker() {
+    require_docker
+
     log "Building and starting all services..."
     docker compose build
     docker compose up -d
@@ -96,17 +119,17 @@ cmd_docker() {
         sleep 2
     done
     
-    cd "$PROJECT_ROOT/backend"
-    npx prisma migrate deploy
-    
     success "Docker services ready!"
     echo ""
     echo "  Backend:  http://localhost:$BACKEND_PORT"
     echo "  Frontend: http://localhost"
+    echo ""
+    echo "  Admin login: ${BOOTSTRAP_ADMIN_USERNAME:-admin} / ${BOOTSTRAP_ADMIN_PASSWORD:-<see .env>}"
 }
 
 cmd_local() {
     load_env
+    require_node
     
     if ! command -v pnpm &> /dev/null; then
         warn "pnpm not found. Installing..."
@@ -129,8 +152,10 @@ cmd_local() {
     cd "$PROJECT_ROOT/backend"
     pnpm exec prisma generate
     
+    # Onboarding applies the committed migrations non-interactively; use
+    # `cd backend && pnpm run db:migrate` when authoring a schema change.
     log "Applying database schema..."
-    pnpm exec prisma migrate dev
+    pnpm exec prisma migrate deploy
     
     if [ ! -f "$PROJECT_ROOT/client-sdk/index.ts" ] || [ "$PROJECT_ROOT/backend/prisma/schema.prisma" -nt "$PROJECT_ROOT/client-sdk/index.ts" ]; then
         log "Generating SDK..."
@@ -139,12 +164,16 @@ cmd_local() {
         pnpm run sdk:build
     fi
     
+    cd "$PROJECT_ROOT"
+    load_env
+
     success "Local environment ready!"
     echo ""
     echo "  Run: pnpm run dev"
     echo ""
     echo "  Backend:  http://localhost:$BACKEND_PORT"
     echo "  Frontend: http://localhost:$FRONTEND_PORT"
+    echo "  Login:    ${BOOTSTRAP_ADMIN_USERNAME:-admin} / ${BOOTSTRAP_ADMIN_PASSWORD:-<see backend/.env.local>}"
 }
 
 cmd_seed() {
@@ -203,12 +232,23 @@ cmd_seed() {
                 warn "Admin endpoint returned an unexpected response — could not extract rawKey."
                 exit 1
             fi
+            PROVISIONED_SEED_KEY=1
         else
             warn "The seed scripts require an API key (the API is now authenticated)."
             warn "Either set ADMIN_API_KEY in backend/.env.local so a key can be provisioned"
             warn "automatically, or create a key via POST /api/v1/admin/api-keys and set SEED_API_KEY."
             exit 1
         fi
+    fi
+
+    # Persist a freshly provisioned key so later runs reuse it instead of
+    # minting another "dev-seed" key each time.
+    if [ "${PROVISIONED_SEED_KEY:-0}" = "1" ] && [ -f backend/.env.local ] && grep -q '^SEED_API_KEY=' backend/.env.local; then
+        ESCAPED_SEED_KEY=$(printf '%s' "$SEED_API_KEY" | sed 's/[&|\\]/\\&/g')
+        SEED_ENV_TMP=$(mktemp)
+        sed "s|^SEED_API_KEY=.*|SEED_API_KEY=${ESCAPED_SEED_KEY}|" backend/.env.local > "$SEED_ENV_TMP"
+        mv "$SEED_ENV_TMP" backend/.env.local
+        log "Saved SEED_API_KEY to backend/.env.local (reused on the next seed run)."
     fi
 
     log "Seeding database..."

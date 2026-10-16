@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ENV_FILES } from '@config/env-files';
 import { envValidationSchema } from '@config/env.validation';
 import { LoggerConfigModule } from '@config/logger-config.module';
 import { AppConfigModule } from '@config/app-config.module';
@@ -20,6 +21,7 @@ import { MetricsBaseModule } from '@internal/metrics/metrics-base.module';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
+      envFilePath: [...ENV_FILES],
       validationSchema: envValidationSchema,
       validationOptions: {
         libraryOptions: {
