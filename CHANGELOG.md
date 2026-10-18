@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.0](https://github.com/Fishkob/visual-regression/compare/v1.1.0...v1.2.0) (2026-10-18)
+
+
+### Features
+
+* **frontend:** add theme quality guardrails ([#105](https://github.com/Fishkob/visual-regression/issues/105)) ([c7a60a1](https://github.com/Fishkob/visual-regression/commit/c7a60a1dda1b56bcdd6e48476441eb7e13fb067f))
+
+
+### Bug Fixes
+
+* **dev:** make a fresh checkout boot, migrate and seed cleanly ([#104](https://github.com/Fishkob/visual-regression/issues/104)) ([d7d7457](https://github.com/Fishkob/visual-regression/commit/d7d7457fdf835dbab475ac89e3dca6aaccf16954))
+* **frontend:** respect dark mode in data table background ([1feaefc](https://github.com/Fishkob/visual-regression/commit/1feaefc867b22acef521d206316e00681023fd59))
+
 ## [1.1.0](https://github.com/Fishkob/visual-regression/compare/v1.0.2...v1.1.0) (2026-10-09)
 
 
