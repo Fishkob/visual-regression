@@ -85,7 +85,7 @@ function isActionsColumn(col: ColumnDef<AppTableFeatures, TData>): boolean {
 </script>
 
 <template>
-  <div class="rounded-xl border bg-white shadow-sm overflow-hidden">
+  <div class="rounded-xl border bg-card shadow-sm overflow-hidden">
     <Table class="w-full border-collapse">
       <TableHeader
         class="sticky top-0 bg-muted/40 backdrop-blur supports-[backdrop-filter]:bg-muted/30 z-20 border-b"

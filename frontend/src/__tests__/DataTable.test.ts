@@ -45,6 +45,18 @@ describe("DataTable", () => {
     expect(wrapper.findAll('[data-testid="skeleton-row"]').length).toBe(0);
   });
 
+  it("uses the theme-aware card background instead of a hard-coded light color", () => {
+    const wrapper = mount(DataTable, {
+      props: {
+        columns,
+        data: [],
+        loading: false,
+      },
+    });
+    expect(wrapper.classes()).toContain("bg-card");
+    expect(wrapper.classes()).not.toContain("bg-white");
+  });
+
   it("renders nothing when not loading and no data", () => {
     const wrapper = mount(DataTable, {
       props: {
