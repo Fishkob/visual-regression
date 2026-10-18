@@ -10,7 +10,7 @@ const API_BASE = "http://localhost:3000/api/v1";
 
 // The product API is authenticated. CI passes the provisioned e2e key via
 // E2E_API_KEY; locally (or against a guard-less backend) requests go without it.
-const AUTH_HEADERS = process.env.E2E_API_KEY
+const AUTH_HEADERS: Record<string, string> = process.env.E2E_API_KEY
   ? { "x-api-key": process.env.E2E_API_KEY }
   : {};
 

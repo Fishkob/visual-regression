@@ -4,7 +4,7 @@ import tsParser from "@typescript-eslint/parser";
 import vueParser from "vue-eslint-parser";
 import prettier from "eslint-config-prettier";
 import type { ESLint, Linter, Rule } from "eslint";
-import { noRawColors } from "./eslint-rules/no-raw-colors.ts";
+import { noRawColors } from "./eslint-rules/no-raw-colors";
 
 const noTextSelectors: Rule.RuleModule = {
   meta: {
