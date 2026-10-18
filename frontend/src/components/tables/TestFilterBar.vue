@@ -45,6 +45,7 @@ const emit = defineEmits<{
         >
           <SelectTrigger
             class="min-w-[130px]"
+            aria-label="Filter by viewport"
             :data-testid="TEST_ID.filterViewport"
           >
             <SelectValue placeholder="Viewport" />
@@ -68,6 +69,7 @@ const emit = defineEmits<{
         >
           <SelectTrigger
             class="min-w-[130px]"
+            aria-label="Filter by browser"
             :data-testid="TEST_ID.filterBrowser"
           >
             <SelectValue placeholder="Browser" />
@@ -94,6 +96,7 @@ const emit = defineEmits<{
         >
           <SelectTrigger
             class="min-w-[130px]"
+            aria-label="Filter by environment"
             :data-testid="TEST_ID.filterEnvironment"
           >
             <SelectValue placeholder="Environment" />
@@ -117,6 +120,7 @@ const emit = defineEmits<{
         >
           <SelectTrigger
             class="min-w-[130px]"
+            aria-label="Filter by status"
             :data-testid="TEST_ID.filterStatus"
           >
             <SelectValue placeholder="Status" />
@@ -145,6 +149,7 @@ const emit = defineEmits<{
         emit('update:filters', { ...filters, search: $event as string })
       "
       placeholder="Search test name…"
+      aria-label="Search tests"
       class="w-64 rounded-xl shadow-sm"
       :data-testid="TEST_ID.testSearch"
     />

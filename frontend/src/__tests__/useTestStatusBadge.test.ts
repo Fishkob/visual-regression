@@ -48,23 +48,23 @@ describe("getStatusBadge", () => {
     it("includes pending styling for PENDING_APPROVAL", () => {
       const badge = getStatusBadge("PENDING_APPROVAL");
 
-      expect(badge.props!.class).toContain("border-amber-500");
-      expect(badge.props!.class).toContain("text-amber-600");
+      expect(badge.props!.class).toContain("border-status-warning");
+      expect(badge.props!.class).toContain("text-status-warning");
     });
 
     it("shows no-baseline styling for PENDING instead of the fallback", () => {
       const badge = getStatusBadge("PENDING");
 
-      expect(badge.props!.class).toContain("border-sky-500");
-      expect(badge.props!.class).toContain("text-sky-600");
-      expect(badge.props!.class).not.toContain("text-slate-500");
+      expect(badge.props!.class).toContain("border-status-info");
+      expect(badge.props!.class).toContain("text-status-info");
+      expect(badge.props!.class).not.toContain("text-status-neutral");
     });
 
     it("includes ok styling for non-pending statuses", () => {
       const badge = getStatusBadge("APPROVED");
 
-      expect(badge.props!.class).toContain("border-emerald-500");
-      expect(badge.props!.class).toContain("text-emerald-600");
+      expect(badge.props!.class).toContain("border-status-success");
+      expect(badge.props!.class).toContain("text-status-success");
     });
 
     it("includes text-xs in class", () => {

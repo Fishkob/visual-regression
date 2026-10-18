@@ -1,0 +1,19 @@
+FROM node:26-bookworm
+
+WORKDIR /app
+
+COPY package.json ./
+RUN PNPM_VERSION="$(node -p "require('./package.json').packageManager.split('@').pop()")" && npm install -g "pnpm@${PNPM_VERSION}"
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY frontend/package.json ./frontend/
+COPY client-sdk/package.json ./client-sdk/
+COPY backend/package.json ./backend/
+
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter ./frontend exec playwright install --with-deps chromium
+
+COPY frontend ./frontend
+COPY client-sdk ./client-sdk
+
+WORKDIR /app/frontend

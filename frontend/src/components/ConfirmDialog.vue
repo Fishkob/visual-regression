@@ -58,7 +58,7 @@ function onConfirm() {
 
 const confirmBtnClass = computed(() => {
   if (props.confirmVariant === "destructive") {
-    return "bg-destructive text-white hover:bg-destructive/90";
+    return "bg-destructive text-destructive-foreground hover:bg-destructive/90";
   }
   return "";
 });

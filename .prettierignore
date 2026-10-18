@@ -43,3 +43,7 @@ CHANGELOG.md
 
 # --- OpenCode ---
 .opencode
+
+# --- Playwright generated output ---
+frontend/playwright-report
+frontend/playwright/.cache

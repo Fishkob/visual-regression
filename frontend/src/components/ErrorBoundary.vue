@@ -26,7 +26,9 @@ function recover() {
     class="min-h-[200px] flex items-center justify-center p-8"
   >
     <div class="text-center space-y-4">
-      <div class="text-red-600 text-lg font-semibold">Something went wrong</div>
+      <div class="text-status-danger text-lg font-semibold">
+        Something went wrong
+      </div>
       <div class="text-muted-foreground text-sm">{{ errorMessage }}</div>
       <button
         class="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"

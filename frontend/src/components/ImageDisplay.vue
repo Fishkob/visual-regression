@@ -16,9 +16,9 @@ const props = withDefaults(
 const dotColor = computed(() => {
   return (
     {
-      green: "bg-emerald-500",
-      blue: "bg-blue-500",
-      red: "bg-red-500",
+      green: "bg-status-success",
+      blue: "bg-status-info",
+      red: "bg-status-danger",
     } as const
   )[props.border];
 });
@@ -26,16 +26,18 @@ const dotColor = computed(() => {
 
 <template>
   <div
-    class="rounded-3xl border border-gray-100 bg-white shadow p-4 flex flex-col gap-4 w-full"
+    class="rounded-3xl border border-border bg-card shadow p-4 flex flex-col gap-4 w-full"
   >
-    <div class="flex items-center gap-2 text-sm font-medium text-gray-700 pt-1">
+    <div
+      class="flex items-center gap-2 text-sm font-medium text-foreground/80 pt-1"
+    >
       <span class="w-3 h-3 rounded-full" :class="dotColor" />
       <span>{{ label }}</span>
     </div>
 
     <div
       v-if="url"
-      class="flex items-center justify-center min-h-[300px] overflow-hidden"
+      class="flex items-center justify-center min-h-[300px] overflow-hidden bg-image-canvas rounded-2xl"
     >
       <img
         :src="url"

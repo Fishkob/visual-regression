@@ -55,7 +55,7 @@ const panels = computed(() => {
         key: "baseline",
         label: "Baseline",
         url: props.baselineUrl,
-        dotClass: "bg-emerald-500",
+        dotClass: "bg-status-success",
         testId: TEST_ID.panelBaseline,
       });
     if (props.candidateUrl)
@@ -63,7 +63,7 @@ const panels = computed(() => {
         key: "candidate",
         label: "Candidate",
         url: props.candidateUrl,
-        dotClass: "bg-blue-500",
+        dotClass: "bg-status-info",
         testId: TEST_ID.panelCandidate,
       });
   }
@@ -74,7 +74,7 @@ const panels = computed(() => {
         key: "diff",
         label: "Diff",
         url: props.diffUrl,
-        dotClass: "bg-red-500",
+        dotClass: "bg-status-danger",
         testId: TEST_ID.panelDiff,
       });
   }
@@ -91,6 +91,7 @@ const panels = computed(() => {
       <div class="flex items-center gap-1">
         <button
           :data-testid="TEST_ID.zoomOut"
+          aria-label="Zoom out"
           class="p-1.5 rounded-md hover:bg-muted text-muted-foreground disabled:opacity-30"
           :disabled="zoomLevel === ZOOM_STEPS[0]"
           @click="zoomOut"
@@ -114,6 +115,7 @@ const panels = computed(() => {
         >
         <button
           :data-testid="TEST_ID.zoomIn"
+          aria-label="Zoom in"
           class="p-1.5 rounded-md hover:bg-muted text-muted-foreground disabled:opacity-30"
           :disabled="zoomLevel === ZOOM_STEPS[ZOOM_STEPS.length - 1]"
           @click="zoomIn"
@@ -133,6 +135,7 @@ const panels = computed(() => {
         </button>
         <button
           :data-testid="TEST_ID.zoomReset"
+          aria-label="Reset zoom"
           class="p-1.5 rounded-md hover:bg-muted text-muted-foreground"
           @click="zoomReset"
         >
@@ -166,16 +169,16 @@ const panels = computed(() => {
         v-for="panel in panels"
         :key="panel.key"
         :data-testid="panel.testId"
-        class="rounded-3xl border border-gray-100 bg-white shadow p-4"
+        class="rounded-3xl border border-border bg-card shadow p-4"
       >
         <div
-          class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3"
+          class="flex items-center gap-2 text-sm font-medium text-foreground/80 mb-3"
         >
           <span class="w-3 h-3 rounded-full" :class="panel.dotClass" />
           <span>{{ panel.label }}</span>
         </div>
         <div
-          class="flex items-center justify-center min-h-[300px] max-h-[70vh] overflow-hidden"
+          class="flex items-center justify-center min-h-[300px] max-h-[70vh] overflow-hidden bg-image-canvas rounded-2xl"
           :style="{
             transform: `scale(${zoomLevel / 100})`,
             transformOrigin: 'top left',

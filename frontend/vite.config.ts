@@ -34,6 +34,7 @@ export default defineConfig({
       "**/node_modules/**",
       "**/tests/ct/**",
       "**/tests/e2e/**",
+      "**/tests/quality/**",
       "**/e2e/**",
     ],
     coverage: {

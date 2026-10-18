@@ -66,6 +66,16 @@ src/
 - Tests in `src/__tests__/` (component/composable) or `src/domains/*/__tests__/` (mapper)
 - Mock SDK via `vi.mock("@sdk", ...)`, router via `vi.mock("vue-router", ...)`
 - Use `data-testid` attributes for element queries
+- Theme quality suites run in Docker so local macOS arm64 and CI use one Linux
+  arm64 baseline set: `./scripts/quality.sh visual`, `./scripts/quality.sh a11y`.
+  Update baselines with `./scripts/quality.sh visual --update`. CI runs on
+  `ubuntu-24.04-arm`; Chromium crashes when the amd64 image is emulated via QEMU
+  on arm64, so do not switch the job or `QUALITY_PLATFORM` to amd64 without
+  regenerating the baselines.
+- `test-visual` / `test-a11y` are the in-container commands used by
+  `scripts/quality.sh`. Run them through the script, not directly on the host.
+- The quality suites cover every gallery story in light and dark mode. Add a
+  case to `tests/quality/cases.ts` when you add a story.
 
 ### Language-independent selectors
 

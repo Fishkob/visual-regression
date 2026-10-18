@@ -1,7 +1,11 @@
 import type { Page } from "@playwright/test";
 import { ONE_PIXEL_PNG_DATA_URL } from "../mocks/projects.mocks";
 
-type FulfillResponse = { status: number; contentType: string; body: string };
+export type FulfillResponse = {
+  status: number;
+  contentType: string;
+  body: string;
+};
 
 export async function mockGet(
   page: Page,

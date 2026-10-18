@@ -88,7 +88,12 @@ const columns: ColumnDef<AppTableFeatures, Project>[] = [
           trigger: () =>
             h(
               Button,
-              { variant: "ghost", size: "icon", class: "h-7 w-7 p-0" },
+              {
+                variant: "ghost",
+                size: "icon",
+                class: "h-7 w-7 p-0",
+                "aria-label": "Project actions",
+              },
               () => h(MoreVertical, { class: "w-4 h-4" }),
             ),
         },

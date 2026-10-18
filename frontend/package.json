@@ -5,8 +5,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "lint": "eslint \"src/**/*.{ts,vue}\" \"playwright/gallery/**/*.ts\" \"tests/ct/**/*.ts\" \"tests/e2e/**/*.ts\" \"playwright-ct.config.ts\" --fix",
-    "lint:check": "eslint \"src/**/*.{ts,vue}\" \"playwright/gallery/**/*.ts\" \"tests/ct/**/*.ts\" \"tests/e2e/**/*.ts\" \"playwright-ct.config.ts\"",
+    "lint": "eslint \"src/**/*.{ts,vue}\" \"eslint-rules/**/*.ts\" \"playwright/gallery/**/*.ts\" \"tests/ct/**/*.ts\" \"tests/e2e/**/*.ts\" \"tests/quality/**/*.ts\" \"playwright-ct.config.ts\" \"playwright-quality.config.ts\" --fix",
+    "lint:check": "eslint \"src/**/*.{ts,vue}\" \"eslint-rules/**/*.ts\" \"playwright/gallery/**/*.ts\" \"tests/ct/**/*.ts\" \"tests/e2e/**/*.ts\" \"tests/quality/**/*.ts\" \"playwright-ct.config.ts\" \"playwright-quality.config.ts\"",
     "typecheck": "vue-tsc --noEmit && vue-tsc --noEmit -p tsconfig.playwright.json",
     "format": "prettier --write \"src/**/*.{ts,vue,js,json,css,md}\"",
     "dev": "vite",
@@ -16,7 +16,9 @@
     "test:coverage": "vitest --coverage",
     "api:generate": "pnpm run -w sdk:generate",
     "test-ct": "playwright test -c playwright-ct.config.ts",
-    "test-e2e": "playwright test -c playwright-e2e.config.ts"
+    "test-e2e": "playwright test -c playwright-e2e.config.ts",
+    "test-visual": "playwright test -c playwright-quality.config.ts visual.spec.ts",
+    "test-a11y": "playwright test -c playwright-quality.config.ts a11y.spec.ts"
   },
   "dependencies": {
     "@lucide/vue": "1.54.0",
@@ -33,6 +35,7 @@
     "vue-sonner": "^2.0.9"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "1.64.0",
     "@types/node": "^26.6.5",

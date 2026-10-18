@@ -44,7 +44,9 @@ const { data, isLoading, isError, refetch } = usePdfPageRenderQuery(
       v-else-if="isError"
       class="flex flex-col items-center justify-center min-h-[300px] gap-2"
     >
-      <span class="text-sm text-red-500">Failed to load page {{ page }}</span>
+      <span class="text-sm text-status-danger"
+        >Failed to load page {{ page }}</span
+      >
       <Button variant="outline" size="sm" @click="refetch()">Retry</Button>
     </div>
   </div>

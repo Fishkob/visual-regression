@@ -31,13 +31,16 @@ Walkthrough: `docs/local-development.md`
 
 ## Testing
 
-```
-pnpm run unitTest          # Backend unit tests (vitest)
-pnpm run unitTest:cov      # Backend unit tests with coverage
-pnpm run e2eTest           # Backend E2E tests (auto-starts Docker)
-cd frontend && pnpm test  # Frontend unit tests (vitest + jsdom)
-cd frontend && pnpm test-e2e  # Frontend E2E (requires frontend running)
-```
+| Command                                | Purpose                                                     |
+| -------------------------------------- | ----------------------------------------------------------- |
+| `pnpm run unitTest`                    | Backend unit tests (vitest)                                 |
+| `pnpm run unitTest:cov`                | Backend unit tests with coverage                            |
+| `pnpm run e2eTest`                     | Backend E2E tests (auto-starts Docker)                      |
+| `cd frontend && pnpm test`             | Frontend unit tests (vitest + jsdom)                        |
+| `cd frontend && pnpm test-e2e`         | Frontend E2E (requires frontend running)                    |
+| `./scripts/quality.sh visual`          | Dark/light screenshot suite (Docker, Linux arm64 baselines) |
+| `./scripts/quality.sh a11y`            | Axe WCAG A/AA scan in both themes                           |
+| `./scripts/quality.sh visual --update` | Regenerate visual baselines                                 |
 
 ## Code Quality
 
@@ -134,6 +137,6 @@ Full conventions in `client-sdk/AGENTS.md`. The facts an agent needs before reac
 
 ## Current State
 
-**lint ✓ | typecheck:all ✓ | format ✓ | backend tests 1183/1183 | frontend tests 338/338** (last verified; re-run `unitTest` + frontend tests for current counts)
+**lint ✓ | typecheck:all ✓ | format ✓ | backend tests 1206/1206 | frontend tests 363/363** (last verified; re-run `unitTest` + frontend tests for current counts)
 
 The upload → compare → review → approve pipeline is complete for both image and PDF kinds, including threshold auto-accept, per-variant status derivation, API-key CI authentication, and the self-hosting installer (`./install.sh`).

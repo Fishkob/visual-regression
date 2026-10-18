@@ -4,6 +4,7 @@ import tsParser from "@typescript-eslint/parser";
 import vueParser from "vue-eslint-parser";
 import prettier from "eslint-config-prettier";
 import type { ESLint, Linter, Rule } from "eslint";
+import { noRawColors } from "./eslint-rules/no-raw-colors.ts";
 
 const noTextSelectors: Rule.RuleModule = {
   meta: {
@@ -117,12 +118,49 @@ const config: Linter.FlatConfig[] = [
     },
   },
   {
+    files: ["src/**/*.ts"],
+    ignores: [
+      "src/api/**",
+      "src/**/__tests__/**",
+      "src/**/*.test.ts",
+      "src/lib/raw-color-utilities.ts",
+    ],
+    plugins: {
+      theme: { rules: { "no-raw-colors": noRawColors } },
+    },
+    rules: {
+      "theme/no-raw-colors": "error",
+    },
+  },
+  {
+    files: ["src/**/*.vue"],
+    ignores: ["src/api/**", "src/**/__tests__/**"],
+    // UI files are excluded from the base Vue block, so this block must
+    // supply the Vue parser itself.
+    languageOptions: {
+      parser: vueParser,
+      parserOptions: {
+        parser: tsParser,
+        ecmaVersion: 2020,
+        sourceType: "module",
+      },
+    },
+    plugins: {
+      theme: { rules: { "no-raw-colors": noRawColors } },
+    },
+    rules: {
+      "theme/no-raw-colors": "error",
+    },
+  },
+  {
     files: [
       "playwright/**/*.ts",
       "tests/pages/**/*.ts",
       "tests/ct/**/*.ts",
       "tests/e2e/**/*.ts",
+      "tests/quality/**/*.ts",
       "playwright-ct.config.ts",
+      "playwright-quality.config.ts",
     ],
     languageOptions: {
       parser: tsParser,

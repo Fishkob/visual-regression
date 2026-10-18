@@ -37,12 +37,14 @@ function handleSelect() {
     <DropdownMenu v-model:open="open">
       <DropdownMenuTrigger as-child>
         <slot name="trigger">
-          <span
-            class="p-2 rounded-md hover:bg-muted cursor-pointer inline-flex items-center justify-center"
+          <button
+            type="button"
+            class="p-2 rounded-md hover:bg-muted cursor-pointer inline-flex items-center justify-center focus-visible:ring-2 focus-visible:ring-ring/50"
+            aria-label="Row actions"
             :data-testid="testId"
           >
             <MoreVertical class="w-4 h-4" />
-          </span>
+          </button>
         </slot>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -52,7 +54,7 @@ function handleSelect() {
         @interact-outside="open = false"
       >
         <DropdownMenuItem
-          class="text-red-600 focus:text-red-600 cursor-pointer"
+          class="text-status-danger focus:text-status-danger cursor-pointer"
           @click="handleSelect"
         >
           <Trash2 class="w-4 h-4 mr-2" />

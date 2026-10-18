@@ -10,13 +10,13 @@ export interface StatusConfig {
 }
 
 export const unknownStatusConfig: StatusConfig = {
-  class: "border-slate-400 text-slate-500",
+  class: "border-status-neutral text-status-neutral",
   icon: "help-circle",
   label: "Baseline only",
 };
 
 const unchangedConfig: StatusConfig = {
-  class: "border-emerald-500 text-emerald-600",
+  class: "border-status-success text-status-success",
   icon: "check",
   label: "Unchanged",
 };
@@ -26,13 +26,13 @@ const unchangedConfig: StatusConfig = {
 // to change, and an unknown status always falls back to the baseline-only look.
 const statusConfig: Record<StatusValue, StatusConfig> = {
   [STATUS.PENDING]: {
-    class: "border-sky-500 text-sky-600",
+    class: "border-status-info text-status-info",
     icon: "clock",
     label: "No baseline",
   },
   [STATUS.UNCHANGED]: unchangedConfig,
   [STATUS.PENDING_APPROVAL]: {
-    class: "border-amber-500 text-amber-600",
+    class: "border-status-warning text-status-warning",
     icon: "clock",
     label: "Pending",
   },

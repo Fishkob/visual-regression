@@ -2,7 +2,7 @@
   <div
     class="flex flex-col items-center justify-center mt-24 text-center space-y-4"
   >
-    <CheckCircle class="w-12 h-12 text-green-500" />
+    <CheckCircle class="w-12 h-12 text-status-success" />
 
     <h1 class="text-xl font-semibold" :data-testid="TEST_ID.doneHeading">
       All comparisons reviewed

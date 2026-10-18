@@ -42,6 +42,7 @@ const filteredProjects = computed<Project[]>(() => {
       <Input
         v-model="searchTerm"
         placeholder="Search project..."
+        aria-label="Search projects"
         class="w-64 rounded-xl shadow-sm"
         :data-testid="TEST_ID.projectSearch"
       />

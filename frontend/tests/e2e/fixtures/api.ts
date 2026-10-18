@@ -38,7 +38,6 @@ export async function uploadScreenshot(
   const imageBuffer = fs.readFileSync(imagePath);
 
   const form = new FormData();
-  form.append("name", testName);
   form.append("viewport", "1920x1080");
   form.append("browser", "Chrome");
   form.append("environment", "staging");

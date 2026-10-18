@@ -40,6 +40,13 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-status-neutral: var(--status-neutral);
+  --color-status-success: var(--status-success);
+  --color-status-info: var(--status-info);
+  --color-status-warning: var(--status-warning);
+  --color-status-danger: var(--status-danger);
+  --color-image-canvas: var(--image-canvas);
+  --color-overlay: var(--overlay);
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
   @keyframes accordion-down {
@@ -73,7 +80,7 @@
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
+  --muted-foreground: oklch(0.37 0.013 285.805);
   --accent: oklch(0.967 0.001 286.375);
   --accent-foreground: oklch(0.21 0.006 285.885);
   --destructive: oklch(0.577 0.245 27.325);
@@ -93,7 +100,14 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --status-neutral: oklch(0.446 0.043 257.281);
+  --status-success: oklch(0.508 0.118 165.612);
+  --status-info: oklch(0.5 0.134 242.749);
+  --status-warning: oklch(0.555 0.163 48.998);
+  --status-danger: oklch(0.505 0.213 27.518);
+  --image-canvas: oklch(1 0 0);
+  --overlay: oklch(0 0 0);
 }
 
 .dark {
@@ -128,7 +142,14 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.274 0.006 286.033);
   --sidebar-ring: oklch(0.442 0.017 285.786);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --destructive-foreground: oklch(0.985 0 0);
+  --status-neutral: oklch(0.869 0.022 252.894);
+  --status-success: oklch(0.845 0.143 164.978);
+  --status-info: oklch(0.827 0.111 230.318);
+  --status-warning: oklch(0.879 0.169 91.605);
+  --status-danger: oklch(0.808 0.114 19.571);
+  --image-canvas: oklch(1 0 0);
+  --overlay: oklch(0 0 0);
 }
 
 @layer base {

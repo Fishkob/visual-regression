@@ -51,6 +51,7 @@ export const TEST_ID = {
   downloadDiff: "download-diff",
   diffRemovedNote: "diff-removed-note",
   pdfPageNavigation: "pdf-page-navigation",
+  pdfPageCountUnknown: "pdf-page-count-unknown",
 
   skip: "skip",
   approveChanges: "approve-changes",

@@ -5,7 +5,10 @@
     "src/**/*.ts",
     "src/**/*.vue",
     "playwright/gallery/**/*.ts",
-    "tests/ct/**/*.ts"
+    "eslint-rules/**/*.ts",
+    "tests/ct/**/*.ts",
+    "tests/quality/**/*.ts",
+    "playwright-quality.config.ts"
   ],
   "exclude": ["node_modules", "dist"],
   "compilerOptions": {

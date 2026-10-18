@@ -47,17 +47,18 @@
       <Tooltip>
         <TooltipTrigger as-child>
           <div
-            class="flex items-center gap-1 bg-gray-50 border border-gray-200 px-2 py-1 rounded-md"
+            class="flex items-center gap-1 bg-muted border border-border px-2 py-1 rounded-md"
           >
             <input
               v-model="inputValue"
               @blur="onBlur"
               @keydown.enter.prevent="onBlur"
               type="number"
+              aria-label="Mismatch threshold in pixels"
               class="w-12 bg-transparent border-none outline-none text-center text-[13px]"
               :data-testid="TEST_ID.thresholdInput"
             />
-            <span class="text-gray-400 text-xs">px</span>
+            <span class="text-muted-foreground text-xs">px</span>
           </div>
         </TooltipTrigger>
 
@@ -82,12 +83,12 @@
         </p>
         <p class="mt-2 text-sm">
           Mismatch:
-          <span class="font-bold text-red-600"
+          <span class="font-bold text-status-danger"
             >{{ comparison?.mismatchPixelCount }} px</span
           >
           <span class="mx-1">→</span>
           New threshold:
-          <span class="font-bold text-red-600"
+          <span class="font-bold text-status-danger"
             >{{ pendingThreshold ?? "-" }} px</span
           >
         </p>

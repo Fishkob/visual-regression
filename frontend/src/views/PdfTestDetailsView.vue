@@ -6,6 +6,7 @@ import PdfBaselineView from "@/components/pdf/PdfBaselineView.vue";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
 import AsyncState from "@/components/AsyncState.vue";
+import { TEST_ID } from "@/lib/test-ids";
 
 const { projectName, testName, filters } = useRouteParams();
 
@@ -69,6 +70,7 @@ const {
       />
       <div
         v-else-if="data?.baseline"
+        :data-testid="TEST_ID.pdfPageCountUnknown"
         class="flex items-center justify-center min-h-[200px] text-muted-foreground"
       >
         Page count unknown — upload a comparison
