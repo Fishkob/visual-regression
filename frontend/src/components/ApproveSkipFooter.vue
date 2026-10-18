@@ -21,8 +21,8 @@ defineEmits<{
 <template>
   <div class="flex gap-4 mt-10 w-full">
     <Button
-      variant="outline"
-      class="flex-1 py-4 text-base rounded-xl border-border hover:bg-muted"
+      variant="secondary"
+      class="flex-1 py-4 text-base rounded-xl"
       :data-testid="approved ? TEST_ID.backToProject : TEST_ID.skip"
       :disabled="isApproving"
       @click="$emit('skip')"
