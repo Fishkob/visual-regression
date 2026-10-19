@@ -20,7 +20,7 @@ services:
       start_period: 10s
 
   rustfs:
-    image: rustfs/rustfs:1.0.1
+    image: rustfs/rustfs:1.0.2
     restart: always
     depends_on:
       volume-permission-helper:
