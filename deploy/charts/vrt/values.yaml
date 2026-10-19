@@ -29,19 +29,19 @@ images:
   # overwrites them.
   backend:
     name: visual-regression-backend
-    tag: 1.2.0
+    tag: 1.2.1
   frontend:
     name: visual-regression-frontend
-    tag: 1.2.0
+    tag: 1.2.1
   worker:
     name: visual-regression-worker
-    tag: 1.2.0
+    tag: 1.2.1
   pdfSidecar:
     name: pdf-sidecar
-    tag: 1.2.0
+    tag: 1.2.1
   migrate:
     name: visual-regression-migrate
-    tag: 1.2.0
+    tag: 1.2.1
 
 tls:
   enabled: false
