@@ -47,6 +47,7 @@ if [ "$NO_BUILD" -eq 0 ]; then
 fi
 
 mkdir -p frontend/test-results frontend/playwright-report
+chmod a+rwX frontend/test-results frontend/playwright-report
 DOCKER_ARGS=(
     --platform "$PLATFORM"
     --rm
@@ -58,6 +59,7 @@ DOCKER_ARGS=(
 
 if [ "$UPDATE" -eq 1 ]; then
     mkdir -p frontend/tests/quality/__screenshots__
+    chmod -R a+rwX frontend/tests/quality/__screenshots__
     DOCKER_ARGS+=(
         -v "$PROJECT_ROOT/frontend/tests/quality/__screenshots__:/app/frontend/tests/quality/__screenshots__"
     )
