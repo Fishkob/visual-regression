@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.1](https://github.com/Fishkob/visual-regression/compare/v1.2.0...v1.2.1) (2026-10-19)
+
+
+### Bug Fixes
+
+* **frontend:** make skip button visible in dark mode ([bbc8627](https://github.com/Fishkob/visual-regression/commit/bbc8627545a0ed722c3faea120087850cc9f29e1))
+* **frontend:** resolve type errors in e2e fixtures and eslint config ([49d9e49](https://github.com/Fishkob/visual-regression/commit/49d9e49213560cc1248819d2fddad8a5c516d031))
+
 ## [1.2.0](https://github.com/Fishkob/visual-regression/compare/v1.1.0...v1.2.0) (2026-10-18)
 
 

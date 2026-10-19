@@ -1,6 +1,6 @@
 {
   "name": "visual-regression",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Self-hosted visual regression testing platform — upload screenshots from CI, compare pixel-by-pixel, and approve changes via a web dashboard",
   "license": "MIT",
   "private": true,
