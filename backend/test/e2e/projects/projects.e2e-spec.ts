@@ -115,6 +115,8 @@ describe('ProjectsController (e2e)', () => {
           id: project.id,
           name: project.name,
           pending: true,
+          pendingCount: 1,
+          testCount: 1,
           createdAt: expect.any(String),
         }),
       ]),

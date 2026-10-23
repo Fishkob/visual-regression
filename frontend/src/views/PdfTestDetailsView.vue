@@ -1,14 +1,27 @@
 <script setup lang="ts">
+import { computed } from "vue";
+import { useRouter } from "vue-router";
 import { useRouteParams } from "@/composables/useRouteParams";
 import { usePdfTestDetailsPage } from "@/composables/useTestDetailsPage";
+import { useReviewShortcuts } from "@/composables/useReviewShortcuts";
+import { useProjectDetailQuery } from "@/composables/useProjects";
+import { isApproved } from "@/domains/test-status";
+import { Badge } from "@/components/ui/badge";
 import PdfComparisonView from "@/components/pdf/PdfComparisonView.vue";
 import PdfBaselineView from "@/components/pdf/PdfBaselineView.vue";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import { TEST_ID } from "@/lib/test-ids";
+import { formatRelativeAge } from "@/lib/format-date";
 
-const { projectName, testName, filters } = useRouteParams();
+defineProps<{ kind?: string }>();
+
+const { projectName, testName, filters, fromInbox } = useRouteParams();
+const router = useRouter();
+
+const { data: project } = useProjectDetailQuery(projectName);
+const groupName = computed(() => project.value?.groupName ?? undefined);
 
 const {
   data,
@@ -19,16 +32,55 @@ const {
   handleApprove,
   handleSkip,
   isApproving,
+  progress,
 } = usePdfTestDetailsPage({
   projectName,
   testName,
   filters,
+  returnToInbox: fromInbox,
+});
+
+useReviewShortcuts({
+  onApprove: handleApprove,
+  onSkip: handleSkip,
+  onBack: () => router.back(),
+  enabled: () =>
+    !!data.value?.comparison &&
+    !isApproving.value &&
+    !isApproved(data.value.comparison.status),
+  canBack: () => !!data.value?.comparison && !isApproving.value,
 });
 </script>
 
 <template>
   <div class="flex justify-between items-start px-6 py-3">
-    <Breadcrumbs class="text-sm text-muted-foreground" />
+    <div class="flex items-center gap-2">
+      <Breadcrumbs
+        class="text-sm text-muted-foreground"
+        :group-name="groupName"
+      />
+      <Badge v-if="kind" variant="outline">
+        {{ kind === "pdf" ? "PDF" : "Image" }}
+      </Badge>
+      <span
+        v-if="data?.comparison?.createdAt"
+        class="text-xs text-muted-foreground"
+        :data-testid="TEST_ID.pdfComparisonAge"
+      >
+        {{ formatRelativeAge(data.comparison.createdAt) }}
+      </span>
+      <span
+        v-if="!fromInbox && progress.total > 0"
+        class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+        role="status"
+        aria-live="polite"
+        :data-testid="TEST_ID.reviewProgress"
+      >
+        {{
+          progress.total > 0 ? `${progress.current} of ${progress.total}` : ""
+        }}
+      </span>
+    </div>
   </div>
 
   <div class="p-6 pt-0">
@@ -76,5 +128,15 @@ const {
         Page count unknown — upload a comparison
       </div>
     </AsyncState>
+
+    <p
+      v-if="
+        data?.comparison && !isApproved(data.comparison.status) && !isApproving
+      "
+      class="mt-2 text-center text-xs text-muted-foreground"
+      :data-testid="TEST_ID.shortcutsHint"
+    >
+      Press A to approve, S to skip, Esc to go back.
+    </p>
   </div>
 </template>

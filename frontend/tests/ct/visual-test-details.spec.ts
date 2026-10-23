@@ -73,6 +73,10 @@ test.describe("VisualTestDetails", () => {
     await expect(component.getByTestId(TEST_ID.badgeMismatch)).toContainText(
       "157",
     );
+    await expect(component.getByTestId(TEST_ID.reviewProgress)).toContainText(
+      "1 of 2",
+    );
+    await expect(component.getByTestId(TEST_ID.shortcutsHint)).toBeVisible();
   });
 
   test("commits a new threshold directly when nothing auto-accepts", async ({

@@ -132,6 +132,7 @@ export function useKindDetailsPage<
   projectName: Ref<string>;
   testName: Ref<string>;
   filters: Ref<VariantParams>;
+  returnToInbox?: Ref<boolean>;
 }) {
   const { adapter, projectName, testName, filters } = args;
 
@@ -151,16 +152,19 @@ export function useKindDetailsPage<
   const pendingQuery = usePendingTestsQuery(projectName, pendingEnabled);
   const pendingTests = computed(() => pendingQuery.data.value ?? []);
 
-  const { handleApprove, handleSkip, isApproving } = useReviewSession({
-    projectName,
-    testName,
-    filters,
-    pendingTests,
-    currentComparisonId,
-    approve: (comparisonId) =>
-      adapter.approve(projectName.value, testName.value, comparisonId),
-    invalidateDetails: adapter.invalidateDetails,
-  });
+  const { handleApprove, handleSkip, isApproving, progress } = useReviewSession(
+    {
+      projectName,
+      testName,
+      filters,
+      pendingTests,
+      currentComparisonId,
+      approve: (comparisonId) =>
+        adapter.approve(projectName.value, testName.value, comparisonId),
+      invalidateDetails: adapter.invalidateDetails,
+      returnToInbox: args.returnToInbox,
+    },
+  );
 
   const viewKey = computed(() =>
     viewKeyOf({
@@ -180,6 +184,7 @@ export function useKindDetailsPage<
     handleApprove,
     handleSkip,
     isApproving,
+    progress,
     viewKey,
   };
 }
@@ -188,6 +193,7 @@ export function useVisualTestDetailsPage(args: {
   projectName: Ref<string>;
   testName: Ref<string>;
   filters: Ref<VariantParams>;
+  returnToInbox?: Ref<boolean>;
 }) {
   return useKindDetailsPage({ ...args, adapter: IMAGE_ADAPTER });
 }
@@ -196,6 +202,7 @@ export function usePdfTestDetailsPage(args: {
   projectName: Ref<string>;
   testName: Ref<string>;
   filters: Ref<VariantParams>;
+  returnToInbox?: Ref<boolean>;
 }) {
   return useKindDetailsPage({ ...args, adapter: PDF_ADAPTER });
 }

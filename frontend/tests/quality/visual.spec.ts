@@ -13,6 +13,11 @@ for (const qualityCase of QUALITY_CASES) {
       await preparePage(page, theme);
       await mount(qualityCase.story, qualityCase.props);
       await waitForReady(page, qualityCase.readyTestId, theme);
+      if (qualityCase.readyAlsoTestId) {
+        await expect(
+          page.getByTestId(qualityCase.readyAlsoTestId).first(),
+        ).toBeVisible();
+      }
 
       await expect(page).toHaveScreenshot(`${qualityCase.name}-${theme}.png`, {
         fullPage: true,

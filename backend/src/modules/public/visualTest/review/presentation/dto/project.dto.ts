@@ -14,6 +14,7 @@ import {
   Max,
   MaxLength,
   Min,
+  MinLength,
 } from 'class-validator';
 import { TestStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { VisualTestDto } from '@public/visualTest/review/presentation/dto/visual-test.dto';
@@ -50,6 +51,30 @@ export class ProjectDto {
   @Expose()
   @Type(() => VisualTestDto)
   visualTests?: VisualTestDto[];
+
+  @ApiPropertyOptional({ example: 'group_123', nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  groupId?: string | null;
+
+  @ApiPropertyOptional({ example: 'Checkout', nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  groupName?: string | null;
+
+  @ApiPropertyOptional({ example: 3, type: Number })
+  @IsOptional()
+  @IsInt()
+  @Expose()
+  pendingCount?: number;
+
+  @ApiPropertyOptional({ example: 12, type: Number })
+  @IsOptional()
+  @IsInt()
+  @Expose()
+  testCount?: number;
 
   @ApiPropertyOptional({
     description: 'Whether the project has pending comparisons',
@@ -95,6 +120,24 @@ export class CreateProjectDto {
     message: 'This project name is reserved and cannot be used',
   })
   name!: string;
+
+  @ApiPropertyOptional({ example: 'group_123', type: String })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  groupId?: string;
+}
+
+export class UpdateProjectDto {
+  @ApiPropertyOptional({
+    description: 'Group id, or null to move the project to Unassigned',
+    nullable: true,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  groupId?: string | null;
 }
 
 export class UpdateThresholdDto {

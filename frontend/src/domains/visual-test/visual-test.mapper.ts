@@ -22,6 +22,7 @@ function mapComparison(dto: ComparisonDto | undefined): Comparison | undefined {
     mismatchPixelCount: dto.mismatchPixelCount,
     status: dto.status,
     thresholdExceeded: dto.thresholdExceeded,
+    createdAt: dto.createdAt,
     baseline: mapScreenshot(dto.baseline),
     candidate: mapScreenshot(dto.candidate),
   };

@@ -2,4 +2,5 @@
 
 export type CreateProjectDto = {
     name: string;
+    groupId?: string;
 };

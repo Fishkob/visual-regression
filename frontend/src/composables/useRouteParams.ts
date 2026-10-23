@@ -12,6 +12,7 @@ export function useRouteParams() {
   const environment = computed(
     () => route.query.environment as string | undefined,
   );
+  const fromInbox = computed(() => route.query.from === "inbox");
 
   const filters = computed<VariantParams>(() => ({
     viewport: viewport.value,
@@ -23,5 +24,6 @@ export function useRouteParams() {
     projectName,
     testName,
     filters,
+    fromInbox,
   };
 }

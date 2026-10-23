@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsDate,
+  IsDefined,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -85,4 +87,61 @@ export class PendingTestDto {
   @ApiPropertyOptional()
   @Expose()
   latestStatus?: string;
+}
+
+export class PendingReviewDto {
+  @ApiProperty()
+  @IsString()
+  @Expose()
+  comparisonId!: string;
+
+  @ApiProperty()
+  @IsString()
+  @Expose()
+  projectName!: string;
+
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  groupId?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  groupName?: string | null;
+
+  @ApiProperty()
+  @IsString()
+  @Expose()
+  testName!: string;
+
+  @ApiProperty({ example: 'image' })
+  @IsString()
+  @Expose()
+  kind!: string;
+
+  @ApiProperty({ type: () => VariantDto })
+  @IsDefined()
+  @Type(() => VariantDto)
+  @Expose()
+  variant!: VariantDto;
+
+  @ApiProperty()
+  @IsNumber()
+  @Expose()
+  mismatchPixelCount!: number;
+
+  @ApiPropertyOptional({ nullable: true, type: Number })
+  @IsOptional()
+  @IsNumber()
+  @Expose()
+  mismatchPageCount?: number | null;
+
+  @ApiProperty()
+  @IsDate()
+  @Type(() => Date)
+  @Expose()
+  createdAt!: Date;
 }

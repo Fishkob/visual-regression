@@ -24,8 +24,8 @@ const { kind, isLoading, error, refetch } = useTestKind(projectName, testName);
     <template #loading>
       <TestComparisonSkeleton />
     </template>
-    <VisualTestDetailsView v-if="isImageKind(kind)" />
-    <PdfTestDetailsView v-else-if="isPdfKind(kind)" />
+    <VisualTestDetailsView v-if="isImageKind(kind)" :kind="kind" />
+    <PdfTestDetailsView v-else-if="isPdfKind(kind)" :kind="kind" />
     <template #empty>
       <ErrorAlert
         variant="error"

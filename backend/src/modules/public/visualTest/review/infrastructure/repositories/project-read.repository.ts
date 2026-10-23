@@ -13,7 +13,12 @@ export interface PendingCount {
   pendingCount: number;
 }
 
-interface ProjectVariantStatus {
+export interface TestCount {
+  projectId: string;
+  testCount: number;
+}
+
+export interface ProjectVariantStatus {
   testName: string;
   kind: string;
   viewport: string;
@@ -22,17 +27,23 @@ interface ProjectVariantStatus {
   status: TestStatus;
 }
 
-interface ProjectWithVariants {
+export interface ProjectWithVariants {
   id: string;
   name: string;
   createdAt: Date;
+  groupId: string | null;
+  groupName: string | null;
   variants: ProjectVariantStatus[];
 }
 
-interface ProjectPendingFlag {
+export interface ProjectPendingFlag {
   id: string;
   name: string;
   createdAt: Date;
+  groupId: string | null;
+  groupName: string | null;
+  pendingCount: number;
+  testCount: number;
   hasPendingComparisons: boolean;
 }
 
@@ -58,6 +69,7 @@ export class ProjectReadRepository {
   ): Promise<ProjectWithVariants | null> {
     const project = await this.client.project.findUnique({
       where: { name: projectName },
+      include: { group: { select: { id: true, name: true } } },
     });
     if (!project) return null;
 
@@ -80,6 +92,8 @@ export class ProjectReadRepository {
       id: project.id,
       name: project.name,
       createdAt: project.createdAt,
+      groupId: project.group?.id ?? null,
+      groupName: project.group?.name ?? null,
       variants: resultVariants,
     };
   }
@@ -96,28 +110,78 @@ export class ProjectReadRepository {
         orderBy: { createdAt: 'desc' },
         skip: pagination?.skip,
         take: pagination?.take,
+        include: { group: { select: { id: true, name: true } } },
       }),
       this.client.project.count(),
     ]);
+    return { data: await this.hydrateProjects(projects), total };
+  }
 
-    if (projects.length === 0) return { data: [], total };
-
-    const pendingCounts = await this.getPendingCounts(
-      projects.map((p) => p.id),
-    );
-    const countsByProject = new Map(
+  private async hydrateProjects(
+    projects: {
+      id: string;
+      name: string;
+      createdAt: Date;
+      group: { id: string; name: string } | null;
+    }[],
+  ): Promise<ProjectPendingFlag[]> {
+    if (projects.length === 0) return [];
+    const projectIds = projects.map((p) => p.id);
+    const [pendingCounts, testCounts] = await Promise.all([
+      this.getPendingCounts(projectIds),
+      this.getTestCounts(projectIds),
+    ]);
+    const pendingByProject = new Map(
       pendingCounts.map((count) => [count.projectId, count.pendingCount]),
     );
+    const testsByProject = new Map(
+      testCounts.map((count) => [count.projectId, count.testCount]),
+    );
 
-    return {
-      data: projects.map((p) => ({
-        id: p.id,
-        name: p.name,
-        createdAt: p.createdAt,
-        hasPendingComparisons: (countsByProject.get(p.id) ?? 0) > 0,
-      })),
-      total,
-    };
+    return projects.map((project) => {
+      const pendingCount = pendingByProject.get(project.id) ?? 0;
+      return {
+        id: project.id,
+        name: project.name,
+        createdAt: project.createdAt,
+        groupId: project.group?.id ?? null,
+        groupName: project.group?.name ?? null,
+        pendingCount,
+        testCount: testsByProject.get(project.id) ?? 0,
+        hasPendingComparisons: pendingCount > 0,
+      };
+    });
+  }
+
+  async getProjectSummary(
+    projectName: string,
+  ): Promise<ProjectPendingFlag | null> {
+    const project = await this.client.project.findUnique({
+      where: { name: projectName },
+      include: { group: { select: { id: true, name: true } } },
+    });
+    if (!project) return null;
+    const [summary] = await this.hydrateProjects([project]);
+    return summary ?? null;
+  }
+
+  async getTestCounts(projectIds?: string[]): Promise<TestCount[]> {
+    const result = await this.client.$queryRaw<
+      { projectId: string; testCount: bigint }[]
+    >`
+      SELECT "projectId", COUNT(*) as "testCount"
+      FROM "UnifiedTest"
+      WHERE ${
+        projectIds && projectIds.length > 0
+          ? Prisma.sql`"projectId" IN (${Prisma.join(projectIds)})`
+          : Prisma.sql`TRUE`
+      }
+      GROUP BY "projectId"
+    `;
+    return result.map(({ projectId, testCount }) => ({
+      projectId,
+      testCount: Number(testCount),
+    }));
   }
 
   async getPendingCounts(projectIds?: string[]): Promise<PendingCount[]> {

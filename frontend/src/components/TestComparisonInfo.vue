@@ -24,6 +24,10 @@
       {{ variant.environment ?? "-" }}
     </Badge>
 
+    <span v-if="comparison?.createdAt" class="text-xs text-muted-foreground">
+      {{ formatRelativeAge(comparison.createdAt) }}
+    </span>
+
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger as-child>
@@ -112,6 +116,7 @@ import type {
   Comparison,
 } from "@/domains/visual-test/visual-test.model";
 import { TEST_ID } from "@/lib/test-ids";
+import { formatRelativeAge } from "@/lib/format-date";
 import { useThresholdEditor } from "@/composables/useThresholdEditor";
 
 const props = defineProps<{

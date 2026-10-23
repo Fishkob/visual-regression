@@ -14,6 +14,7 @@ export interface Comparison {
   mismatchPixelCount?: number;
   status: VisualTestStatus;
   thresholdExceeded: boolean;
+  createdAt?: string;
   baseline?: Screenshot;
   candidate?: Screenshot;
 }

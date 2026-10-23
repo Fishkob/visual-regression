@@ -1,6 +1,10 @@
 import type { QueryClient } from "@tanstack/vue-query";
 import { projectQueryKeys } from "@/domains/projects/query-keys";
-import { pendingTestQueryKeys } from "@/domains/pending-tests/query-keys";
+import { groupQueryKeys } from "@/domains/groups/query-keys";
+import {
+  pendingTestQueryKeys,
+  reviewInboxQueryKeys,
+} from "@/domains/pending-tests/query-keys";
 import { visualTestQueryKeys } from "@/domains/visual-test/query-keys";
 import { pdfTestQueryKeys } from "@/domains/pdf-test/query-keys";
 import type { TestDetailsArgs } from "@/lib/variant-key";
@@ -27,6 +31,8 @@ function invalidateTestDetails(
 ) {
   client.invalidateQueries({ queryKey: keyOf(args) });
   invalidateProjectDetail(client, args.projectName);
+  client.invalidateQueries({ queryKey: projectQueryKeys.withPending() });
+  invalidateReviewInbox(client);
 }
 
 export function invalidateVisualTestDetails(
@@ -44,6 +50,16 @@ export function invalidatePdfTestDetails(
 }
 
 export function invalidateProjectList(client: QueryClient) {
+  // all() prefix-matches withPending() and every project detail key.
   client.invalidateQueries({ queryKey: projectQueryKeys.all() });
-  client.invalidateQueries({ queryKey: projectQueryKeys.withPending() });
+  invalidateReviewInbox(client);
+}
+
+export function invalidateReviewInbox(client: QueryClient) {
+  client.invalidateQueries({ queryKey: reviewInboxQueryKeys.all() });
+}
+
+export function invalidateProjectsForGroupChange(client: QueryClient) {
+  client.invalidateQueries({ queryKey: groupQueryKeys.all() });
+  invalidateProjectList(client);
 }

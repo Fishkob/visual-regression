@@ -6,7 +6,7 @@ import type { Project } from "@/domains/projects/project.model";
 const project: Project = {
   id: "proj-1",
   name: "checkout",
-  hasPendingTests: false,
+  hasPendingTests: true,
   testCount: 3,
   createdAt: "2025-01-01",
   visualTests: [
@@ -30,7 +30,7 @@ const project: Project = {
       viewport: "1920x1080",
       browser: "chrome",
       environment: "prod",
-      latestStatus: "UNCHANGED",
+      latestStatus: "PENDING_APPROVAL",
     },
     {
       name: "invoice",
@@ -38,11 +38,11 @@ const project: Project = {
       viewport: "1280x720",
       browser: "firefox",
       environment: "staging",
-      latestStatus: "PENDING_APPROVAL",
+      latestStatus: "UNCHANGED",
     },
     {
-      name: "receipt",
-      kind: "pdf",
+      name: "cart",
+      kind: "image",
       viewport: "1920x1080",
       browser: "chrome",
       environment: "prod",
@@ -73,49 +73,37 @@ describe("useProjectDetailPage", () => {
     });
   }
 
-  it("splits image and pdf tests by kind", () => {
+  it("returns all image and pdf tests in one list", () => {
     mockProject();
-    const { imageTests, pdfTests } = useProjectDetailPage(ref("checkout"));
+    const { tests } = useProjectDetailPage(ref("checkout"));
 
-    expect(imageTests.value.map((t) => t.name)).toEqual(["login", "cart"]);
-    expect(pdfTests.value.map((t) => t.name)).toEqual(["invoice", "receipt"]);
+    expect(tests.value).toHaveLength(5);
+    expect(tests.value.map((t) => t.name)).toEqual([
+      "login",
+      "cart",
+      "invoice",
+      "invoice",
+      "cart",
+    ]);
+    expect(tests.value.some((t) => t.kind === "pdf")).toBe(true);
+    expect(tests.value.some((t) => t.kind === "image")).toBe(true);
   });
 
-  it("counts pending screenshot tests", () => {
+  it("counts pending rows", () => {
     mockProject();
-    const { screenshotPendingCount } = useProjectDetailPage(ref("checkout"));
+    const { pendingCount } = useProjectDetailPage(ref("checkout"));
 
-    expect(screenshotPendingCount.value).toBe(1);
+    expect(pendingCount.value).toBe(2);
   });
 
-  it("counts pending pdf tests once per test, not per variant", () => {
+  it("counts distinct test names", () => {
     mockProject();
-    const { pdfPendingCount } = useProjectDetailPage(ref("checkout"));
+    const { testCount } = useProjectDetailPage(ref("checkout"));
 
-    expect(pdfPendingCount.value).toBe(1);
+    expect(testCount.value).toBe(3);
   });
 
-  it("aggregates a pdf test's status across its variants", () => {
-    mockProject();
-    const { pdfTests } = useProjectDetailPage(ref("checkout"));
-
-    const invoice = pdfTests.value.find((t) => t.name === "invoice");
-    expect(invoice?.status).toBe("PENDING_APPROVAL");
-  });
-
-  it("keeps a variant on each pdf test so navigation can carry it", () => {
-    mockProject();
-    const { pdfTests } = useProjectDetailPage(ref("checkout"));
-
-    const receipt = pdfTests.value.find((t) => t.name === "receipt");
-    expect(receipt).toMatchObject({
-      viewport: "1920x1080",
-      browser: "chrome",
-      environment: "prod",
-    });
-  });
-
-  it("exposes the single project query state for both tabs, reactively", () => {
+  it("exposes the project query state reactively", () => {
     const refetch = vi.fn();
     const isLoading = ref(true);
     const error = ref<Error | null>(null);
@@ -142,14 +130,19 @@ describe("useProjectDetailPage", () => {
   });
 
   it("handles an empty project", () => {
-    mockProject({ ...project, visualTests: [], testCount: 0 });
+    mockProject({
+      ...project,
+      visualTests: [],
+      testCount: 0,
+      pendingCount: 0,
+    });
 
-    const { imageTests, pdfTests, screenshotPendingCount, pdfPendingCount } =
-      useProjectDetailPage(ref("checkout"));
+    const { tests, pendingCount, testCount } = useProjectDetailPage(
+      ref("checkout"),
+    );
 
-    expect(imageTests.value).toEqual([]);
-    expect(pdfTests.value).toEqual([]);
-    expect(screenshotPendingCount.value).toBe(0);
-    expect(pdfPendingCount.value).toBe(0);
+    expect(tests.value).toEqual([]);
+    expect(pendingCount.value).toBe(0);
+    expect(testCount.value).toBe(0);
   });
 });

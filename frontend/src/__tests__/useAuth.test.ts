@@ -99,7 +99,7 @@ describe("useLogin", () => {
     expect(mockLogin).toHaveBeenCalledWith({
       body: { username: "alice", password: "secret" },
     });
-    expect(push).toHaveBeenCalledWith({ name: "project-list" });
+    expect(push).toHaveBeenCalledWith({ name: "review-inbox" });
   });
 
   it("rejects when the sdk resolves an error", async () => {

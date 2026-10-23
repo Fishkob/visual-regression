@@ -16,7 +16,7 @@ test.afterEach(async () => {
 
 test.describe("Project List", () => {
   test("loads and displays projects", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/projects");
 
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "Projects",
@@ -24,7 +24,7 @@ test.describe("Project List", () => {
   });
 
   test("can navigate to project detail", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/projects");
 
     await page
       .getByTestId(TEST_ID.tableRow)
@@ -43,6 +43,13 @@ test.describe("Project List", () => {
 });
 
 test.describe("Navigation", () => {
+  test("lands on the review inbox", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "Review inbox",
+    );
+  });
+
   test("shows 404 for unknown route", async ({ page }) => {
     await page.goto("/nonexistent-route");
 

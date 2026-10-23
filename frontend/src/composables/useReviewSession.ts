@@ -1,4 +1,4 @@
-import { watch, type Ref } from "vue";
+import { computed, unref, watch, type Ref } from "vue";
 import { useQueryClient, type QueryClient } from "@tanstack/vue-query";
 import type { ApproveResultDto } from "@sdk";
 import {
@@ -12,10 +12,17 @@ import {
   markSeen,
   resetReviewSeen,
   beginPassForProject,
+  beginPassProgress,
+  setPassTotal,
+  advancePassProgress,
+  getPassProgress,
 } from "@/lib/review-pass";
 import { useTestNavigation } from "@/composables/useTestNavigation";
 import type { PendingTest } from "@/domains/pending-tests/pending-test";
 import { withPendingTestRemoved } from "@/composables/usePendingTests";
+import { withReviewInboxItemRemoved } from "@/composables/useReviewInbox";
+import { invalidateReviewInbox } from "@/lib/invalidation";
+import { sdkErrorMessage } from "@/lib/sdk";
 import { useSdkMutation } from "@/composables/useSdkMutation";
 
 // The skip-memory + fresh/continued-pass rule lives in lib/review-pass — see
@@ -23,6 +30,7 @@ import { useSdkMutation } from "@/composables/useSdkMutation";
 
 interface ReviewSessionContext {
   restore: () => void;
+  restoreInbox?: () => void;
   currentVariant: VariantParams;
   currentTestName: string;
 }
@@ -35,6 +43,7 @@ export interface ReviewSessionOptions {
   currentComparisonId: Ref<string | undefined>;
   approve: (comparisonId: string) => Promise<unknown>;
   invalidateDetails: (client: QueryClient, args: TestDetailsArgs) => void;
+  returnToInbox?: boolean | Ref<boolean>;
 }
 
 export function useReviewSession(args: ReviewSessionOptions) {
@@ -46,9 +55,11 @@ export function useReviewSession(args: ReviewSessionOptions) {
     currentComparisonId,
     approve,
     invalidateDetails,
+    returnToInbox = false,
   } = args;
   const queryClient = useQueryClient();
   const navigation = useTestNavigation({ projectName });
+  const shouldReturnToInbox = computed(() => unref(returnToInbox));
   const buildCurrentKey = () =>
     keyOf({ name: testName.value, ...filters.value });
 
@@ -58,7 +69,17 @@ export function useReviewSession(args: ReviewSessionOptions) {
   // the route entry, so a back-navigation to a loop-marked test continues the
   // pass, while a table click or deep link starts fresh.
   beginPassForProject(projectName.value);
-  watch(projectName, (name) => resetReviewSeen(name));
+  beginPassProgress(projectName.value, pendingTests.value.length);
+  watch(projectName, (name) => {
+    resetReviewSeen(name);
+    beginPassProgress(name, pendingTests.value.length);
+  });
+
+  watch(pendingTests, (list) => setPassTotal(projectName.value, list.length), {
+    immediate: true,
+  });
+
+  const progress = computed(() => getPassProgress(projectName.value));
 
   const isSeenKey = (key: string) => isSeen(projectName.value, key);
   const markSeenKey = (key: string) => {
@@ -85,8 +106,16 @@ export function useReviewSession(args: ReviewSessionOptions) {
         projectName.value,
         buildCurrentKey(),
       );
+      const inboxRemoval =
+        shouldReturnToInbox.value && currentComparisonId.value
+          ? await withReviewInboxItemRemoved(
+              queryClient,
+              currentComparisonId.value,
+            )
+          : null;
       return {
         restore,
+        ...(inboxRemoval ? { restoreInbox: inboxRemoval.restore } : {}),
         currentVariant: { ...filters.value },
         currentTestName: testName.value,
       };
@@ -95,8 +124,13 @@ export function useReviewSession(args: ReviewSessionOptions) {
     successMessage: (_data, _variables, context) =>
       `Approved ${formatVariantLabel(context?.currentVariant ?? filters.value) || "entire test"} of "${context?.currentTestName || testName.value}"`,
 
-    errorMessage: (_error, _variables, context) =>
-      `Could not approve ${formatVariantLabel(context?.currentVariant ?? filters.value) || "test"} of "${context?.currentTestName || testName.value}"`,
+    errorMessage: (error, _variables, context) => {
+      const base = `Could not approve ${formatVariantLabel(context?.currentVariant ?? filters.value) || "test"} of "${context?.currentTestName || testName.value}"`;
+      const detail = sdkErrorMessage(error, "");
+      return detail && detail !== "Request failed"
+        ? `${base}: ${detail}`
+        : base;
+    },
 
     invalidate: (client, _data, _variables, context) => {
       if (!context) return;
@@ -114,11 +148,24 @@ export function useReviewSession(args: ReviewSessionOptions) {
     // the loop never re-offers the in-flight test, but moving is a success-only
     // side effect.
     onSuccess: () => {
+      if (shouldReturnToInbox.value) {
+        navigation.navigateToInbox();
+        return;
+      }
+      advancePassProgress(projectName.value);
       navigateToNext();
     },
 
     onError: (_error, _variables, context) => {
       context?.restore?.();
+      context?.restoreInbox?.();
+      if (context) {
+        invalidateDetails(queryClient, {
+          projectName: projectName.value,
+          testName: context.currentTestName,
+          ...context.currentVariant,
+        });
+      }
     },
   });
 
@@ -140,9 +187,14 @@ export function useReviewSession(args: ReviewSessionOptions) {
   };
 
   const handleSkip = () => {
-    const currentKey = buildCurrentKey();
+    if (shouldReturnToInbox.value) {
+      invalidateReviewInbox(queryClient);
+      navigation.navigateToInbox();
+      return;
+    }
 
-    markSeenKey(currentKey);
+    markSeenKey(buildCurrentKey());
+    advancePassProgress(projectName.value);
     navigateToNext();
   };
 
@@ -150,5 +202,6 @@ export function useReviewSession(args: ReviewSessionOptions) {
     handleApprove,
     handleSkip,
     isApproving: approveMutation.isPending,
+    progress,
   };
 }

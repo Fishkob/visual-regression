@@ -3,7 +3,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectsController } from '@public/visualTest/review/presentation/controllers/projects.controller';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
 import { DomainError } from '@common/domain/domain-error';
-import { CreateProjectDto } from '@public/visualTest/review/presentation/dto/project.dto';
+import {
+  CreateProjectDto,
+  UpdateProjectDto,
+} from '@public/visualTest/review/presentation/dto/project.dto';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';
@@ -79,13 +82,46 @@ describe('ProjectsController', () => {
         id: 'proj-3',
         name: 'new-project',
         createdAt: new Date(),
+        groupId: null,
+        groupName: null,
+        pendingCount: 0,
+        testCount: 0,
+        pending: false,
       };
       projectService.create.mockResolvedValue(expected);
 
       const result = await controller.create(dto);
 
       expect(result).toEqual(expected);
-      expect(projectService.create).toHaveBeenCalledWith('new-project');
+      expect(projectService.create).toHaveBeenCalledWith(
+        'new-project',
+        undefined,
+      );
+    });
+  });
+
+  describe('updateProject', () => {
+    it('moves a project to a group and returns group fields', async () => {
+      const dto: UpdateProjectDto = { groupId: 'group-1' };
+      const expected = {
+        id: 'proj-1',
+        name: 'checkout-ui',
+        createdAt: new Date(),
+        groupId: 'group-1',
+        groupName: 'Checkout',
+        pendingCount: 3,
+        testCount: 4,
+        pending: true,
+      };
+      projectService.updateProjectGroup.mockResolvedValue(expected);
+
+      const result = await controller.updateProject('checkout-ui', dto);
+
+      expect(result).toEqual(expected);
+      expect(projectService.updateProjectGroup).toHaveBeenCalledWith(
+        'checkout-ui',
+        'group-1',
+      );
     });
   });
 

@@ -1,7 +1,10 @@
 import { computed } from "vue";
 import { testCommandsControllerDeleteVisualTest } from "@sdk";
 import type { VisualTestItem } from "@/domains/projects/project.model";
-import { invalidateProjectDetail } from "@/lib/invalidation";
+import {
+  invalidateProjectDetail,
+  invalidateProjectList,
+} from "@/lib/invalidation";
 import {
   formatVariantLabel,
   formatVariantLabelWithName,
@@ -52,7 +55,10 @@ export function useVisualTestDelete(options: DeleteOptions) {
 
     errorMessage: "Could not delete test or variant",
 
-    invalidate: (client) => invalidateProjectDetail(client, projectName),
+    invalidate: (client) => {
+      invalidateProjectDetail(client, projectName);
+      invalidateProjectList(client);
+    },
   });
 
   const variantLabel = computed(() => {

@@ -1,18 +1,17 @@
 import { defineComponent, h } from "vue";
-import { RouterView, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 
-import { Toaster } from "@/components/ui/sonner";
+import AppShellComponent from "@/components/AppShell.vue";
 
-// Mirrors the real app shell for navigation-dependent stories. The review loop
-// navigates between test-detail routes and finally to approval-done, so the
-// story must follow the router (RouterView) instead of pinning one view.
+// Mounts the full shell at an optional starting route so quality and component
+// tests can exercise navigation-dependent views.
 export const AppShell = defineComponent(
   (props: { initialRoute?: string }) => {
     const router = useRouter();
     if (props.initialRoute) {
       void router.push(props.initialRoute);
     }
-    return () => h("div", null, [h(RouterView), h(Toaster)]);
+    return () => h(AppShellComponent);
   },
   { props: ["initialRoute"] },
 );

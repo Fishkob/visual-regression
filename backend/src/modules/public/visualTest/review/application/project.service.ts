@@ -1,10 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ProjectReadRepository } from '@public/visualTest/review/infrastructure/repositories/project-read.repository';
+import { ProjectGroupRepository } from '@public/visualTest/review/infrastructure/repositories/project-group.repository';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { DomainError } from '@common/domain/domain-error';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { paginatedQuery } from '@common/utils/paginated-query';
+import {
+  mapProjectDetailToDto,
+  mapProjectSummaryToDto,
+  mapProjectToDto,
+} from '@public/visualTest/review/infrastructure/mappers/project-response.mapper';
+import type { ProjectDto } from '@public/visualTest/review/presentation/dto/project.dto';
 
 @Injectable()
 export class ProjectService {
@@ -12,53 +19,76 @@ export class ProjectService {
     private readonly projects: ProjectRepository,
     private readonly projectRead: ProjectReadRepository,
     private readonly testDeletion: TestDeletionService,
+    private readonly groups: ProjectGroupRepository,
   ) {}
 
   async getAllWithPendingFlag(pagination: PaginationDto) {
     return paginatedQuery(
       (args) => this.projectRead.getAllWithPendingFlag(args),
       pagination,
-      (p) => ({
-        id: p.id,
-        name: p.name,
-        createdAt: p.createdAt,
-        pending: p.hasPendingComparisons,
-      }),
+      mapProjectSummaryToDto,
     );
   }
 
   async findAll(pagination: PaginationDto) {
-    return paginatedQuery((args) => this.projects.findAll(args), pagination);
+    return paginatedQuery(
+      (args) => this.projects.findAll(args),
+      pagination,
+      mapProjectToDto,
+    );
   }
 
-  async getWithLatestVariantStatuses(projectName: string) {
+  async getWithLatestVariantStatuses(projectName: string): Promise<ProjectDto> {
     const project =
       await this.projectRead.getWithLatestVariantStatuses(projectName);
     if (!project) {
       throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
     }
 
-    return {
+    return mapProjectDetailToDto(project);
+  }
+
+  async create(name: string, groupId?: string): Promise<ProjectDto> {
+    const group = groupId ? await this.groups.findById(groupId) : null;
+    if (groupId && !group) {
+      throw new DomainError(`Group "${groupId}" not found`, 'NOT_FOUND');
+    }
+    const project = await this.projects.create(name, groupId ?? null);
+    return mapProjectSummaryToDto({
       id: project.id,
       name: project.name,
       createdAt: project.createdAt,
-      visualTests: project.variants.map((v) => ({
-        name: v.testName,
-        kind: v.kind,
-        variant: {
-          viewport: v.viewport,
-          browser: v.browser,
-          environment: v.environment,
-        },
-        latestStatus: v.status,
-      })),
-    };
+      groupId: group?.id ?? null,
+      groupName: group?.name ?? null,
+      pendingCount: 0,
+      testCount: 0,
+      hasPendingComparisons: false,
+    });
   }
 
-  async create(
-    name: string,
-  ): Promise<{ id: string; name: string; createdAt: Date }> {
-    return this.projects.create(name);
+  async updateProjectGroup(
+    projectName: string,
+    groupId: string | null | undefined,
+  ): Promise<ProjectDto> {
+    if (groupId === undefined) {
+      throw new DomainError('groupId is required', 'BAD_REQUEST');
+    }
+    const project = await this.projects.findByName(projectName);
+    if (!project) {
+      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
+    }
+    if (groupId) {
+      const group = await this.groups.findById(groupId);
+      if (!group) {
+        throw new DomainError(`Group "${groupId}" not found`, 'NOT_FOUND');
+      }
+    }
+    await this.projects.updateGroupByName(projectName, groupId);
+    const summary = await this.projectRead.getProjectSummary(projectName);
+    if (!summary) {
+      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
+    }
+    return mapProjectSummaryToDto(summary);
   }
 
   async deleteProject(projectName: string): Promise<void> {

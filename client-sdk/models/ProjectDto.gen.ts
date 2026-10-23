@@ -7,6 +7,10 @@ export type ProjectDto = {
     name?: string;
     createdAt?: string;
     visualTests?: Array<VisualTestDto>;
+    groupId?: string | null;
+    groupName?: string | null;
+    pendingCount?: number;
+    testCount?: number;
     /**
      * Whether the project has pending comparisons
      */

@@ -1,3 +1,5 @@
+import { reactive } from "vue";
+
 // The review-pass protocol, one owner for both halves of the seam:
 //  - the skip-memory seen-set (keyed by project, module-scoped so it survives
 //    component unmounts without leaking across projects or sessions), and
@@ -8,6 +10,13 @@
 // both compose this module instead of coordinating through each other.
 const reviewSeenByProject = new Map<string, Set<string>>();
 
+interface PassProgress {
+  current: number;
+  total: number;
+}
+
+const passProgressByProject = reactive(new Map<string, PassProgress>());
+
 // History state written by loop navigations so the destination can tell
 // "continued a pass" (keep skip-memory) from "entered directly" (fresh pass).
 export const REVIEW_LOOP_NAV_STATE = { fromReviewLoop: true } as const;
@@ -15,9 +24,43 @@ export const REVIEW_LOOP_NAV_STATE = { fromReviewLoop: true } as const;
 export function resetReviewSeen(projectName?: string): void {
   if (projectName) {
     reviewSeenByProject.delete(projectName);
+    passProgressByProject.delete(projectName);
   } else {
     reviewSeenByProject.clear();
+    passProgressByProject.clear();
   }
+}
+
+export function beginPassProgress(projectName: string, total: number): void {
+  const existing = passProgressByProject.get(projectName);
+  const fresh = !isFromReviewLoopNavigation();
+  if (fresh || !existing) {
+    passProgressByProject.set(projectName, { current: 1, total });
+    return;
+  }
+  if (existing.total === 0 && total > 0) {
+    existing.total = total;
+  }
+}
+
+export function setPassTotal(projectName: string, total: number): void {
+  const existing = passProgressByProject.get(projectName);
+  if (!existing) return;
+  if (existing.total === 0 && total > 0) existing.total = total;
+}
+
+export function advancePassProgress(projectName: string): void {
+  const existing = passProgressByProject.get(projectName);
+  if (existing) existing.current += 1;
+}
+
+export function getPassProgress(projectName: string): PassProgress {
+  const p = passProgressByProject.get(projectName);
+  if (!p) return { current: 1, total: 0 };
+  return {
+    current: p.total > 0 ? Math.min(p.current, p.total) : p.current,
+    total: p.total,
+  };
 }
 
 function seenForProject(projectName: string): Set<string> {

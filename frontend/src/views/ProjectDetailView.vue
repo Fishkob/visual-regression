@@ -1,164 +1,122 @@
 <template>
-  <Breadcrumbs class="px-6 py-3 text-sm text-muted-foreground" />
+  <Breadcrumbs
+    class="px-6 py-3 text-sm text-muted-foreground"
+    :group-name="project?.groupName ?? undefined"
+  />
 
-  <div class="p-6">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-xl font-semibold">
-        Project: {{ project?.name || "..." }}
-      </h2>
-    </div>
-
-    <div class="flex gap-4 mb-4 border-b">
-      <button
-        :class="[
-          'inline-flex items-center gap-1.5 pb-2 px-1 -mb-px border-b-2 transition',
-          activeTab === 'screenshots'
-            ? 'border-primary text-primary'
-            : 'border-transparent text-muted-foreground',
-        ]"
-        @click="activeTab = 'screenshots'"
-        :data-testid="TEST_ID.tabScreenshots"
-      >
-        Screenshots
-        <component
-          v-if="screenshotPendingCount > 0"
-          :is="
-            getStatusCountBadge(
-              STATUS.PENDING_APPROVAL,
-              screenshotPendingCount,
-              {
-                className: 'px-1.5 py-0 rounded-full',
-              },
-            )
-          "
-        />
-      </button>
-      <button
-        :class="[
-          'inline-flex items-center gap-1.5 pb-2 px-1 -mb-px border-b-2 transition',
-          activeTab === 'pdfs'
-            ? 'border-primary text-primary'
-            : 'border-transparent text-muted-foreground',
-        ]"
-        @click="activeTab = 'pdfs'"
-        :data-testid="TEST_ID.tabPdfs"
-      >
-        PDFs
-        <component
-          v-if="pdfPendingCount > 0"
-          :is="
-            getStatusCountBadge(STATUS.PENDING_APPROVAL, pdfPendingCount, {
-              className: 'px-1.5 py-0 rounded-full',
-            })
-          "
-        />
-      </button>
-    </div>
-
-    <template v-if="activeTab === 'screenshots'">
-      <AsyncState
-        :is-loading="activeTabState.isLoading"
-        :error="activeTabState.error"
-        error-title="Failed to load project"
-        :retry="activeTabState.refetch"
-        :empty="imageTests.length === 0"
-        empty-title="No tests found"
-        empty-description="This project has no visual tests yet."
-      >
-        <template #loading>
-          <SkeletonAccordionGroups />
-        </template>
-        <VisualTestsTable
-          :tests="imageTests"
-          :projectName="projectName ?? ''"
-        />
-      </AsyncState>
-    </template>
-
-    <template v-else>
-      <AsyncState
-        :is-loading="activeTabState.isLoading"
-        :error="activeTabState.error"
-        error-title="Failed to load PDF tests"
-        :retry="activeTabState.refetch"
-        :empty="!pdfTests?.length"
-        empty-title="No PDF tests found"
-        empty-description="This project has no PDF tests yet."
-      >
-        <template #loading>
-          <div
-            class="divide-y rounded-xl border bg-card shadow-sm overflow-hidden"
+  <div class="space-y-6 p-6">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <h2 class="text-xl font-semibold">
+          {{ project?.name || projectName }}
+        </h2>
+        <template v-if="project">
+          <Badge variant="secondary" :data-testid="TEST_ID.projectGroupBadge">
+            {{ project.groupName || UNASSIGNED_GROUP_LABEL }}
+          </Badge>
+          <span
+            class="text-sm text-muted-foreground"
+            :data-testid="TEST_ID.projectPendingCount"
           >
-            <div
-              v-for="i in 5"
-              :key="i"
-              class="flex items-center justify-between px-4 py-3"
-            >
-              <div class="h-4 w-48 bg-muted rounded animate-pulse" />
-              <div class="h-4 w-16 bg-muted rounded animate-pulse" />
-            </div>
-          </div>
+            {{ pendingCount }}
+            {{ pendingCount === 1 ? "change" : "changes" }}
+          </span>
+          <span
+            class="text-sm text-muted-foreground"
+            :data-testid="TEST_ID.projectTestCount"
+          >
+            {{ testCount }} {{ testCount === 1 ? "test" : "tests" }}
+          </span>
         </template>
-        <ul class="divide-y">
-          <li v-for="test in pdfTests" :key="test.name">
-            <button
-              type="button"
-              class="flex w-full items-center justify-between px-4 py-3 hover:bg-muted/50 rounded transition text-left"
-              :data-testid="TEST_ID.pdfTestRow"
-              @click="navigateToPdfTest(test)"
-            >
-              <span class="font-medium">{{ test.name }}</span>
-              <component :is="getStatusBadge(test.status)" />
-            </button>
-          </li>
-        </ul>
-      </AsyncState>
-    </template>
+      </div>
+      <Button
+        v-if="project"
+        type="button"
+        variant="outline"
+        :data-testid="TEST_ID.moveProject"
+        @click="openMove"
+      >
+        Move to group
+      </Button>
+    </div>
+
+    <AsyncState
+      :is-loading="activeTabState.isLoading"
+      :error="activeTabState.error"
+      error-title="Failed to load project"
+      :retry="activeTabState.refetch"
+      :empty="tests.length === 0"
+      empty-title="No tests found"
+      empty-description="This project has no tests yet."
+    >
+      <template #loading>
+        <SkeletonAccordionGroups />
+      </template>
+      <VisualTestsTable
+        :tests="tests"
+        :project-name="projectName ?? ''"
+        sync-url
+      />
+    </AsyncState>
   </div>
+
+  <MoveProjectDialog
+    :open="moveOpen"
+    :groups="groups ?? []"
+    :current-group-id="project?.groupId"
+    :pending="movePending"
+    :error="moveError"
+    @update:open="handleMoveOpen"
+    @submit="move"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { computed, ref } from "vue";
 
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
-import VisualTestsTable from "@/components/tables/VisualTestsTable.vue";
-import SkeletonAccordionGroups from "@/components/cards/SkeletonAccordionGroups.vue";
 import AsyncState from "@/components/AsyncState.vue";
+import SkeletonAccordionGroups from "@/components/cards/SkeletonAccordionGroups.vue";
+import MoveProjectDialog from "@/components/projects/MoveProjectDialog.vue";
+import VisualTestsTable from "@/components/tables/VisualTestsTable.vue";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useGroupsQuery } from "@/composables/useGroups";
 import { useProjectDetailPage } from "@/composables/useProjectDetailPage";
-import type { ProjectDetailTab } from "@/composables/useProjectDetailPage";
+import { useProjectGroupAssignment } from "@/composables/useProjectGroupAssignment";
 import { useRouteParams } from "@/composables/useRouteParams";
-import { useTestNavigation } from "@/composables/useTestNavigation";
-import type { PdfProjectTest } from "@/domains/pdf-test/pdf-test.model";
-import { STATUS } from "@/domains/test-status";
-import { getStatusBadge, getStatusCountBadge } from "@/components/StatusBadge";
+import { UNASSIGNED_GROUP_LABEL } from "@/domains/groups/group-section";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { projectName } = useRouteParams();
-const route = useRoute();
-const router = useRouter();
 
-const { navigateToTest } = useTestNavigation({ projectName });
+const { project, tests, pendingCount, testCount, activeTabState } =
+  useProjectDetailPage(projectName);
 
-function navigateToPdfTest(test: PdfProjectTest) {
-  navigateToTest(test);
+const { data: groups } = useGroupsQuery();
+const moveMutation = useProjectGroupAssignment();
+const moveOpen = ref(false);
+const movePending = computed(() => moveMutation.isPending.value);
+const moveError = computed(() => moveMutation.error.value);
+
+function openMove() {
+  moveMutation.reset();
+  moveOpen.value = true;
 }
 
-const activeTab = computed<ProjectDetailTab>({
-  get: () => (route.query.tab === "pdf" ? "pdfs" : "screenshots"),
-  set: (tab: ProjectDetailTab) => {
-    router.push({
-      query: { ...route.query, tab: tab === "pdfs" ? "pdf" : undefined },
-    });
-  },
-});
+function handleMoveOpen(open: boolean) {
+  if (!open) moveMutation.reset();
+  moveOpen.value = open;
+}
 
-const {
-  project,
-  imageTests,
-  screenshotPendingCount,
-  pdfPendingCount,
-  pdfTests,
-  activeTabState,
-} = useProjectDetailPage(projectName);
+function move(groupId: string | null) {
+  moveMutation.mutate(
+    { projectName: projectName.value, groupId },
+    {
+      onSuccess: () => {
+        moveOpen.value = false;
+      },
+    },
+  );
+}
 </script>

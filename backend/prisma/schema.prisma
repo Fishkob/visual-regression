@@ -1,8 +1,21 @@
+model ProjectGroup {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  projects  Project[]
+
+  @@map("ProjectGroup")
+}
+
 model Project {
-  id        String       @id @default(cuid())
-  name      String       @unique
-  createdAt DateTime     @default(now())
+  id           String        @id @default(cuid())
+  name         String        @unique
+  createdAt    DateTime      @default(now())
+  groupId      String?
+  group        ProjectGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
   unifiedTests UnifiedTest[]
+
+  @@index([groupId])
 }
 
 model UnifiedTest {

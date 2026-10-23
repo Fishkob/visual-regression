@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/vue-query";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
-import { getData } from "@/lib/sdk";
+import { unwrapSdkData } from "@/lib/sdk";
 
 interface SdkMutationOptions<TData, TVariables, TContext> {
   /** The raw SDK call — returns the SDK response object, unwrapped inside. */
@@ -45,10 +45,11 @@ interface SdkMutationOptions<TData, TVariables, TContext> {
   ) => void;
 }
 
-// Deep module over the mutation ceremony: unwraps the SDK payload with getData
-// (the query seam already absorbs this — a caller would otherwise re-type
-// getData + empty-check at every payload-reading call site), then adds toast +
-// invalidation. Callers become a declaration: sdkFn + messages + invalidate.
+// Deep module over the mutation ceremony: unwraps the SDK payload with
+// unwrapSdkData (the query seam already absorbs this — a caller would otherwise
+// re-type the unwrap + empty-check at every payload-reading call site), then
+// adds toast + invalidation. Callers become a declaration: sdkFn + messages +
+// invalidate.
 export function useSdkMutation<TData, TVariables, TContext = undefined>(
   config: SdkMutationOptions<TData, TVariables, TContext>,
 ) {
@@ -57,7 +58,7 @@ export function useSdkMutation<TData, TVariables, TContext = undefined>(
   return useMutation<TData, unknown, TVariables, TContext>({
     mutationFn: async (variables) => {
       const response = await config.mutationFn(variables);
-      const data = getData<TData>(response);
+      const data = unwrapSdkData<TData>(response);
       if (data === undefined) {
         throw new Error("Empty response from endpoint");
       }

@@ -28,11 +28,9 @@ test.describe("PDF Comparison Workflow", () => {
   test("shows PDF tests in project detail", async ({ page }) => {
     await page.goto(`/projects/${encodeURIComponent(projectName)}`);
 
-    await page.getByTestId(TEST_ID.tabPdfs).click();
-
     await expect(
       page
-        .getByTestId(TEST_ID.pdfTestRow)
+        .getByTestId(TEST_ID.testResultCard)
         .filter({ hasText: `${TEST_NAME}_report` }),
     ).toBeVisible({ timeout: 10000 });
   });

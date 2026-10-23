@@ -3,7 +3,7 @@ import { ref } from "vue";
 import { useProjectDelete } from "@/composables/useProjectDelete";
 
 const mockDeleteProject = vi.hoisted(() => vi.fn());
-const mockInvalidateProjectList = vi.hoisted(() => vi.fn());
+const mockInvalidateProjectsForGroupChange = vi.hoisted(() => vi.fn());
 const mockInvalidateProjectDetail = vi.hoisted(() => vi.fn());
 
 const { mockUseEntityDeleteMutation, deleteConfig, mockState } = vi.hoisted(
@@ -45,7 +45,7 @@ vi.mock("@sdk", () => ({
 }));
 
 vi.mock("@/lib/invalidation", () => ({
-  invalidateProjectList: mockInvalidateProjectList,
+  invalidateProjectsForGroupChange: mockInvalidateProjectsForGroupChange,
   invalidateProjectDetail: mockInvalidateProjectDetail,
 }));
 
@@ -88,14 +88,14 @@ describe("useProjectDelete", () => {
     expect(deleteConfig.current!.errorMessage).toBe("Could not delete project");
   });
 
-  it("invalidates the project list and the deleted project detail", () => {
+  it("invalidates groups, projects and the deleted project detail", () => {
     const client = { invalidateQueries: vi.fn() };
 
     useProjectDelete();
 
     deleteConfig.current!.invalidate(client as never, "checkout-ui");
 
-    expect(mockInvalidateProjectList).toHaveBeenCalledWith(client);
+    expect(mockInvalidateProjectsForGroupChange).toHaveBeenCalledWith(client);
     expect(mockInvalidateProjectDetail).toHaveBeenCalledWith(
       client,
       "checkout-ui",

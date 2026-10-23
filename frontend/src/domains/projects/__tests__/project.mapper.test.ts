@@ -46,7 +46,7 @@ describe("mapProject", () => {
     expect(result.hasPendingTests).toBe(false);
   });
 
-  it("maps testCount from visualTests length", () => {
+  it("maps testCount from distinct visualTest names", () => {
     const result = mapProject({
       id: "1",
       name: "p",
@@ -55,9 +55,67 @@ describe("mapProject", () => {
     expect(result.testCount).toBe(2);
   });
 
-  it("leaves testCount undefined when visualTests is absent", () => {
+  it("defaults testCount to 0 when visualTests is absent", () => {
     const result = mapProject({ id: "1", name: "p", pending: true });
-    expect(result.testCount).toBeUndefined();
+    expect(result.testCount).toBe(0);
+  });
+
+  it("counts distinct test names rather than visualTest rows", () => {
+    const result = mapProject({
+      id: "1",
+      name: "p",
+      visualTests: [{ name: "t1" }, { name: "t1" }, { name: "t2" }],
+    });
+    expect(result.testCount).toBe(2);
+  });
+
+  it("uses dto.testCount over the visualTests fallback", () => {
+    const result = mapProject({
+      id: "1",
+      name: "p",
+      testCount: 7,
+      visualTests: [{ name: "t1" }, { name: "t2" }],
+    });
+    expect(result.testCount).toBe(7);
+  });
+
+  it("counts actual pending rows when dto.pendingCount is absent", () => {
+    const result = mapProject({
+      id: "1",
+      name: "p",
+      visualTests: [
+        { name: "t1", latestStatus: "PENDING_APPROVAL" },
+        { name: "t2", latestStatus: "PENDING_APPROVAL" },
+        { name: "t3", latestStatus: "UNCHANGED" },
+      ],
+    });
+    expect(result.pendingCount).toBe(2);
+  });
+
+  it("falls back to 1/0 for pendingCount when visualTests is absent", () => {
+    expect(mapProject({ id: "1", name: "p", pending: true }).pendingCount).toBe(
+      1,
+    );
+    expect(
+      mapProject({ id: "1", name: "p", pending: false }).pendingCount,
+    ).toBe(0);
+  });
+
+  it("maps group and counts", () => {
+    const result = mapProject({
+      id: "1",
+      name: "p",
+      groupId: "g1",
+      groupName: "Checkout",
+      pendingCount: 2,
+      testCount: 5,
+    });
+    expect(result).toMatchObject({
+      groupId: "g1",
+      groupName: "Checkout",
+      pendingCount: 2,
+      testCount: 5,
+    });
   });
 });
 

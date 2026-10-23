@@ -7,6 +7,7 @@ import {
   STATUS_FILTER_PENDING,
   STATUS_FILTER_OK,
 } from "@/domains/test-status";
+import { IMAGE_TEST_KIND } from "@/domains/test-kind";
 import type { VisualTestItem } from "@/domains/projects/project.model";
 
 function badgeCount(group: TestGroup | undefined, status: string): number {
@@ -125,6 +126,59 @@ describe("useVisualTestsTable filters", () => {
 
     expect(filteredTests.value).toHaveLength(1);
     expect(filteredTests.value[0].name).toBe("dashboard");
+  });
+
+  it("filters by kind", () => {
+    const testsRef = ref<VisualTestItem[]>([
+      {
+        name: "image-test",
+        kind: "image",
+        viewport: "1920x1080",
+        browser: "chrome",
+        latestStatus: "UNCHANGED",
+      },
+      {
+        name: "pdf-test",
+        kind: "pdf",
+        viewport: "1920x1080",
+        browser: "chrome",
+        latestStatus: "UNCHANGED",
+      },
+    ]);
+    const { filteredTests, filters } = useVisualTestsTable({
+      tests: testsRef,
+    });
+
+    filters.value.kind = "pdf";
+
+    expect(filteredTests.value).toHaveLength(1);
+    expect(filteredTests.value[0].name).toBe("pdf-test");
+  });
+
+  it("treats a missing kind as an image", () => {
+    const testsRef = ref<VisualTestItem[]>([
+      {
+        name: "legacy-test",
+        viewport: "1920x1080",
+        browser: "chrome",
+        latestStatus: "UNCHANGED",
+      },
+      {
+        name: "pdf-test",
+        kind: "pdf",
+        viewport: "1920x1080",
+        browser: "chrome",
+        latestStatus: "UNCHANGED",
+      },
+    ]);
+    const { filteredTests, filters } = useVisualTestsTable({
+      tests: testsRef,
+    });
+
+    filters.value.kind = IMAGE_TEST_KIND;
+
+    expect(filteredTests.value).toHaveLength(1);
+    expect(filteredTests.value[0].name).toBe("legacy-test");
   });
 
   it("filters by status - PENDING shows only pending", () => {

@@ -11,6 +11,7 @@ import type { AppTableFeatures } from "@/components/ui/table/table-features";
 import type { VisualTestItem } from "@/domains/projects/project.model";
 
 import { getStatusBadge } from "@/components/StatusBadge";
+import { IMAGE_TEST_KIND } from "@/domains/test-kind";
 import { useVisualTestsTable } from "@/composables/useVisualTestsTable";
 import { useVisualTestDelete } from "@/composables/useVisualTestDelete";
 import { useTestNavigation } from "@/composables/useTestNavigation";
@@ -19,6 +20,7 @@ import { TEST_ID } from "@/lib/test-ids";
 const props = defineProps<{
   tests: VisualTestItem[];
   projectName: string;
+  syncUrl?: boolean;
 }>();
 
 const testsRef = toRef(props, "tests");
@@ -31,7 +33,7 @@ const {
   groups,
   defaultAccordionValues,
   resetFilters,
-} = useVisualTestsTable({ tests: testsRef });
+} = useVisualTestsTable({ tests: testsRef, syncUrl: props.syncUrl });
 
 const {
   showConfirm,
@@ -58,6 +60,16 @@ const columns: ColumnDef<AppTableFeatures, VisualTestItem>[] = [
   { accessorKey: "viewport", header: "Viewport" },
   { accessorKey: "browser", header: "Browser" },
   { accessorKey: "environment", header: "Env" },
+  {
+    accessorKey: "kind",
+    header: "Kind",
+    cell: ({ row }) =>
+      h(
+        "span",
+        { class: "text-xs uppercase text-muted-foreground" },
+        row.original.kind ?? IMAGE_TEST_KIND,
+      ),
+  },
   {
     accessorKey: "latestStatus",
     header: "Status",

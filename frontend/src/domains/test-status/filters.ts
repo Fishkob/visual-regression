@@ -16,4 +16,5 @@ export interface VisualTestFilters {
   browser: string;
   environment: string;
   status: string;
+  kind: string;
 }

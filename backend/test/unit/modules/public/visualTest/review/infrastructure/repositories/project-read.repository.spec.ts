@@ -43,7 +43,12 @@ describe('ProjectReadRepository', () => {
   });
 
   describe('getWithLatestVariantStatuses', () => {
-    const project = { id: 'proj-1', name: 'my-project', createdAt: new Date() };
+    const project = {
+      id: 'proj-1',
+      name: 'my-project',
+      createdAt: new Date(),
+      group: null,
+    };
 
     it('returns project with variants and latest comparison status', async () => {
       variants.findVariantStatusSignalsFor.mockResolvedValue([
@@ -66,6 +71,8 @@ describe('ProjectReadRepository', () => {
         id: 'proj-1',
         name: 'my-project',
         createdAt: project.createdAt,
+        groupId: null,
+        groupName: null,
         variants: [
           {
             testName: 'test-1',
@@ -134,24 +141,50 @@ describe('ProjectReadRepository', () => {
   });
 
   describe('getAllWithPendingFlag', () => {
-    it('returns projects with hasPendingComparison flag', async () => {
-      const projects = [
-        { id: 'proj-1', name: 'a', createdAt: new Date() },
-        { id: 'proj-2', name: 'b', createdAt: new Date() },
-      ];
-      mockClient.project.findMany.mockResolvedValue(projects);
-      mockClient.project.count.mockResolvedValue(2);
-      mockClient.$queryRaw.mockResolvedValue([
-        { projectId: 'proj-1', pendingCount: BigInt(3) },
+    it('returns projects with group, pending count and test count', async () => {
+      mockClient.project.findMany.mockResolvedValue([
+        {
+          id: 'proj-1',
+          name: 'a',
+          createdAt: new Date(),
+          group: { id: 'g1', name: 'Checkout' },
+        },
+        { id: 'proj-2', name: 'b', createdAt: new Date(), group: null },
       ]);
+      mockClient.project.count.mockResolvedValue(2);
+      mockClient.$queryRaw
+        .mockResolvedValueOnce([
+          { projectId: 'proj-1', pendingCount: BigInt(3) },
+        ])
+        .mockResolvedValueOnce([
+          { projectId: 'proj-1', testCount: BigInt(2) },
+          { projectId: 'proj-2', testCount: BigInt(1) },
+        ]);
 
       const result = await repository.getAllWithPendingFlag();
 
-      expect(result.data).toHaveLength(2);
-      expect(result.data[0].hasPendingComparisons).toBe(true);
-      expect(result.data[1].hasPendingComparisons).toBe(false);
-      expect(result.total).toBe(2);
-      expect(mockClient.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(result.data[0]).toMatchObject({
+        id: 'proj-1',
+        groupId: 'g1',
+        groupName: 'Checkout',
+        pendingCount: 3,
+        testCount: 2,
+        hasPendingComparisons: true,
+      });
+      expect(result.data[1]).toMatchObject({
+        id: 'proj-2',
+        groupId: null,
+        groupName: null,
+        pendingCount: 0,
+        testCount: 1,
+        hasPendingComparisons: false,
+      });
+      expect(mockClient.project.findMany).toHaveBeenCalledWith({
+        orderBy: { createdAt: 'desc' },
+        skip: undefined,
+        take: undefined,
+        include: { group: { select: { id: true, name: true } } },
+      });
     });
 
     it('returns empty when no projects exist', async () => {
@@ -174,7 +207,20 @@ describe('ProjectReadRepository', () => {
         orderBy: { createdAt: 'desc' },
         skip: 5,
         take: 5,
+        include: { group: { select: { id: true, name: true } } },
       });
+    });
+  });
+
+  describe('getTestCounts', () => {
+    it('returns distinct test counts per project', async () => {
+      mockClient.$queryRaw.mockResolvedValue([
+        { projectId: 'proj-1', testCount: BigInt(4) },
+      ]);
+
+      await expect(repository.getTestCounts(['proj-1'])).resolves.toEqual([
+        { projectId: 'proj-1', testCount: 4 },
+      ]);
     });
   });
 

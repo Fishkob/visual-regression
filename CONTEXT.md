@@ -8,6 +8,14 @@ Automated visual regression testing. Projects contain named UnifiedTests (image 
 A named container for visual regression tests, representing a web application or component library.
 _Avoid_: Application, site
 
+**Group**:
+An organizational label that bundles Projects for navigation and inbox grouping. Groups do not affect a Project's tests or review state.
+_Avoid_: Category, folder, tag
+
+**Inbox**:
+The global queue of pending comparisons across all Projects, grouped by Group. It is the review entry point at `/`.
+_Avoid_: Queue, review list
+
 **UnifiedTest**:
 A named test belonging to a Project. Has a `kind` discriminator (`image` or `pdf`). Status values: PENDING (no baseline yet), UNCHANGED (baseline matches current), PENDING_APPROVAL (changes await review).
 _Avoid_: Snapshot, test case
@@ -52,6 +60,7 @@ _Avoid_: Tolerance, limit
 
 > Architecture decisions live in `docs/adr/`. This section captures only non-obvious design choices that can't be inferred from code structure.
 
+- **Inbox, project list and groups**: `/` is the review inbox (cross-project pending comparisons), `/projects` is the Project list, and Groups are organizational only — they do not scope a Project's tests or review state.
 - **Upload transaction boundary**: Storage (RustFS) outside DB transaction with compensating delete on failure. Domain events are emitted after commit as direct observability (logger + metrics) — there is no event bus or outbox table (see ADR-004). Comparison jobs are enqueued inside the same transaction. The upload decision is atomic with the write for the stored paths: `resolveTestAndBaseline` runs transaction-ambient and the store + write re-resolve inside one retried Serializable transaction. The identical fast path re-resolves inside its own retried Serializable transaction and falls through to the stored path if a concurrent baseline replacement lands in between (latest-wins).
 - **Identical-upload vs queued-job race**: The identical path cancels pending jobs and retires the CURRENT candidate row to keep the "at most one reviewable comparison per Variant" invariant. If it interleaves with a different upload that already returned `COMPARISON_QUEUED`, that client's job is silently cancelled and its file reclaimed — the response said queued but the comparison never materializes. This is inherent to latest-wins and accepted: cancelling is the only safe choice (a stale diff could otherwise resurrect a comparison after the identical upload). The window is narrow and the platform stays consistent.
 - **StateChangeWorkflow**: The upload, diff strategies and approval handlers run their transactional writes through `StateChangeWorkflow.executeStateChange()` (in `core/application/services/`). It runs the change inside a retried Serializable transaction, recomputes affected test statuses in the same transaction, and emits observability (logger + metrics) + deletes stale files only after commit (in `onSuccess`), forwarding compensating actions to `onFailure`. Mutations declare their outcome via `PersistedChange.events` — a discriminated union of `ObservabilityEvent` records (`common/domain/observability-event.type.ts`) that the workflow switches on to log/metric synchronously. The flush-after-commit invariant lives in one place rather than being re-derived per handler. The ambient-transaction contract is enforced, not documented: transaction-riding mutations (`ComparisonRetirementService`'s `supersedeForVariant`/`supersedeIdenticalForVariant`/`retireSiblingsAndDeleteCandidate`/`createPendingForVariant`/`retirePendingComparisons`/`retireComparisonsForScreenshots`, and `IJobProducer`'s `enqueue`/`cancel*`) call `TransactionContext.assertInTransaction()` before writing, so a caller that escapes the workflow transaction fails loudly instead of silently riding the bare connection.

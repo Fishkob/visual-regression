@@ -5,6 +5,7 @@ import {
   STATUS_FILTER_PENDING,
   type VisualTestFilters,
 } from "@/domains/test-status";
+import { IMAGE_TEST_KIND, PDF_TEST_KIND } from "@/domains/test-kind";
 import {
   Select,
   SelectTrigger,
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Monitor, Globe, Filter, RefreshCcw } from "@lucide/vue";
+import { Monitor, Globe, Filter, FileText, RefreshCcw } from "@lucide/vue";
 import { TEST_ID } from "@/lib/test-ids";
 
 defineProps<{
@@ -106,6 +107,29 @@ const emit = defineEmits<{
             <SelectItem v-for="e in environments" :key="e" :value="e">{{
               e
             }}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div class="flex items-center gap-2 min-w-[140px]">
+        <FileText class="w-4 h-4 text-muted-foreground" />
+        <Select
+          :model-value="filters.kind"
+          @update:model-value="
+            emit('update:filters', { ...filters, kind: String($event) })
+          "
+        >
+          <SelectTrigger
+            class="min-w-[130px]"
+            aria-label="Filter by kind"
+            :data-testid="TEST_ID.filterKind"
+          >
+            <SelectValue placeholder="Kind" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="FILTER_ALL">All kinds</SelectItem>
+            <SelectItem :value="IMAGE_TEST_KIND">Images</SelectItem>
+            <SelectItem :value="PDF_TEST_KIND">PDFs</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -6,6 +6,9 @@ import {
   isSeen,
   isFromReviewLoopNavigation,
   beginPassForProject,
+  beginPassProgress,
+  advancePassProgress,
+  getPassProgress,
 } from "@/lib/review-pass";
 
 describe("review-pass", () => {
@@ -75,6 +78,39 @@ describe("review-pass", () => {
     markSeen("project-a", "key");
     beginPassForProject("project-a");
     expect(isSeen("project-a", "key")).toBe(false);
+  });
+
+  it("keeps pass progress across a loop-marked remount", () => {
+    historyState.mockReturnValueOnce(null);
+    beginPassProgress("project-a", 2);
+    expect(getPassProgress("project-a")).toEqual({ current: 1, total: 2 });
+
+    advancePassProgress("project-a");
+    historyState.mockReturnValueOnce({ fromReviewLoop: true });
+    beginPassProgress("project-a", 1);
+
+    expect(getPassProgress("project-a")).toEqual({ current: 2, total: 2 });
+  });
+
+  it("resets pass progress for one project", () => {
+    historyState.mockReturnValueOnce(null);
+    beginPassProgress("project-a", 2);
+    advancePassProgress("project-a");
+
+    resetReviewSeen("project-a");
+
+    expect(getPassProgress("project-a")).toEqual({ current: 1, total: 0 });
+  });
+
+  it("resets all pass progress on a full reset", () => {
+    historyState.mockReturnValueOnce(null).mockReturnValueOnce(null);
+    beginPassProgress("project-a", 2);
+    beginPassProgress("project-b", 3);
+
+    resetReviewSeen();
+
+    expect(getPassProgress("project-a")).toEqual({ current: 1, total: 0 });
+    expect(getPassProgress("project-b")).toEqual({ current: 1, total: 0 });
   });
 
   it("resets skip-memory on a non-loop-marked entry", () => {

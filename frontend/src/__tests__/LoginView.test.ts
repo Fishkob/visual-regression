@@ -56,7 +56,7 @@ describe("LoginView", () => {
     expect(mockLogin).toHaveBeenCalledWith({
       body: { username: "alice", password: "secret" },
     });
-    expect(push).toHaveBeenCalledWith({ name: "project-list" });
+    expect(push).toHaveBeenCalledWith({ name: "review-inbox" });
   });
 
   it("surfaces an error message when login fails", async () => {

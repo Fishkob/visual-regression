@@ -14,6 +14,11 @@ for (const qualityCase of QUALITY_CASES) {
       await preparePage(page, theme);
       await mount(qualityCase.story, qualityCase.props);
       await waitForReady(page, qualityCase.readyTestId, theme);
+      if (qualityCase.readyAlsoTestId) {
+        await expect(
+          page.getByTestId(qualityCase.readyAlsoTestId).first(),
+        ).toBeVisible();
+      }
 
       const results = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa"])

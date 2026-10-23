@@ -7,6 +7,7 @@ export interface ProjectData {
   id: string;
   name: string;
   createdAt: Date;
+  groupId?: string | null;
 }
 
 @Injectable()
@@ -36,14 +37,28 @@ export class ProjectRepository extends BaseRepository {
   // Standalone write by design: the project-create endpoint runs outside a
   // StateChangeWorkflow transaction (creating a project mutates no test status),
   // so this primitive deliberately skips assertWritable.
-  async create(name: string): Promise<ProjectData> {
+  async create(name: string, groupId?: string | null): Promise<ProjectData> {
     const existing = await this.client.project.findUnique({
       where: { name },
     });
     if (existing) {
       throw new DomainError('"name" already exists', 'E_UNIQUE_CONSTRAINT');
     }
-    return this.client.project.create({ data: { name } });
+    return this.client.project.create({
+      data: { name, ...(groupId ? { groupId } : {}) },
+    });
+  }
+
+  // Standalone write: moving a project between groups does not mutate test
+  // state, so it deliberately skips assertWritable like create.
+  async updateGroupByName(
+    projectName: string,
+    groupId: string | null,
+  ): Promise<ProjectData> {
+    return this.client.project.update({
+      where: { name: projectName },
+      data: { groupId },
+    });
   }
 
   async getOrCreate(name: string): Promise<ProjectData> {

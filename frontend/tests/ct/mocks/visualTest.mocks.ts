@@ -86,23 +86,26 @@ export const VISUAL_TEST_DETAILS_PENDING = jsonResponse({
   },
 });
 
-export const VISUAL_TEST_PENDING_META = jsonResponse([
-  {
-    name: "login-form",
-    variant: {
-      viewport: "1920x1080",
-      browser: "Chrome",
-      environment: "staging",
+export const VISUAL_TEST_PENDING_META = jsonResponse({
+  data: [
+    {
+      name: "login-form",
+      variant: {
+        viewport: "1920x1080",
+        browser: "Chrome",
+        environment: "staging",
+      },
+      latestStatus: "PENDING_APPROVAL",
     },
-    latestStatus: "PENDING_APPROVAL",
-  },
-  {
-    name: "checkout-flow",
-    variant: {
-      viewport: "1920x1080",
-      browser: "Chrome",
-      environment: "staging",
+    {
+      name: "checkout-flow",
+      variant: {
+        viewport: "1920x1080",
+        browser: "Chrome",
+        environment: "staging",
+      },
+      latestStatus: "PENDING_APPROVAL",
     },
-    latestStatus: "PENDING_APPROVAL",
-  },
-]);
+  ],
+  meta: { total: 2 },
+});

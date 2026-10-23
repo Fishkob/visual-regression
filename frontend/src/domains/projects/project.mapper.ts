@@ -16,12 +16,27 @@ export function mapProject(dto: ProjectDto): Project {
   const visualTests = (dto.visualTests ?? []).map(mapVisualTest);
   const hasPending =
     dto.pending ?? visualTests.some((t) => isPendingApproval(t.latestStatus));
+  const testCount =
+    dto.testCount ??
+    (dto.visualTests
+      ? new Set(dto.visualTests.map((t) => t.name ?? "")).size
+      : 0);
+  const pendingCount =
+    dto.pendingCount ??
+    (dto.visualTests
+      ? visualTests.filter((t) => isPendingApproval(t.latestStatus)).length
+      : hasPending
+        ? 1
+        : 0);
 
   return {
     id: String(dto.id ?? ""),
     name: dto.name ?? "",
     hasPendingTests: hasPending,
-    testCount: dto.visualTests?.length,
+    groupId: dto.groupId ?? null,
+    groupName: dto.groupName ?? null,
+    pendingCount,
+    testCount,
     visualTests,
     createdAt: dto.createdAt,
   };

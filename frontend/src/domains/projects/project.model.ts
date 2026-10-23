@@ -14,6 +14,9 @@ export interface Project {
   id: string;
   name: string;
   hasPendingTests: boolean;
+  groupId?: string | null;
+  groupName?: string | null;
+  pendingCount?: number;
   testCount?: number;
   visualTests?: VisualTestItem[];
   createdAt?: string;

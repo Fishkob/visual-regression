@@ -44,9 +44,14 @@ export function useTestNavigation(options: TestNavigationOptions) {
     navigateToTest(t, { fromLoop: true });
   }
 
+  function navigateToInbox() {
+    router.push({ name: "review-inbox" });
+  }
+
   return {
     navigateToProjectDone,
     navigateToTest,
     navigateToNextTest,
+    navigateToInbox,
   };
 }

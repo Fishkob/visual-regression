@@ -1,0 +1,113 @@
+<script setup lang="ts">
+import { computed } from "vue";
+import { useRouter } from "vue-router";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { formatRelativeAge } from "@/lib/format-date";
+import { formatVariantLabel } from "@/lib/format-variant-label";
+import type { InboxProjectSection } from "@/domains/pending-tests/group-review-inbox";
+import type { ReviewInboxItem } from "@/domains/pending-tests/review-inbox.model";
+import { TEST_ID } from "@/lib/test-ids";
+
+const props = defineProps<{
+  section: InboxProjectSection;
+  reviewCount?: number;
+  reviewStart?: ReviewInboxItem;
+}>();
+const router = useRouter();
+
+const reviewTotal = computed(
+  () => props.reviewCount ?? props.section.items.length,
+);
+const reviewChangeCount = computed(
+  () =>
+    `${reviewTotal.value} ${reviewTotal.value === 1 ? "change" : "changes"}`,
+);
+
+function openItem(item: ReviewInboxItem) {
+  void router.push({
+    name: "test-detail",
+    params: { projectName: item.projectName, testName: item.testName },
+    query: {
+      viewport: item.viewport,
+      browser: item.browser,
+      environment: item.environment,
+      from: "inbox",
+    },
+  });
+}
+
+function startProjectReview() {
+  const first = props.reviewStart ?? props.section.items[0];
+  if (!first) return;
+  void router.push({
+    name: "test-detail",
+    params: { projectName: first.projectName, testName: first.testName },
+    query: {
+      viewport: first.viewport,
+      browser: first.browser,
+      environment: first.environment,
+    },
+  });
+}
+</script>
+
+<template>
+  <section
+    class="space-y-2"
+    :aria-label="section.projectName"
+    :data-testid="TEST_ID.inboxProjectSection"
+  >
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <h3 class="font-semibold">{{ section.projectName }}</h3>
+        <p class="text-xs text-muted-foreground">
+          {{ reviewChangeCount }} to review
+        </p>
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        :aria-label="`Review ${reviewChangeCount} in ${section.projectName}`"
+        :data-testid="TEST_ID.reviewProjectButton"
+        @click="startProjectReview"
+      >
+        Review {{ reviewTotal }}
+      </Button>
+    </div>
+
+    <div class="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <button
+        v-for="item in section.items"
+        :key="item.comparisonId"
+        type="button"
+        class="flex w-full items-center justify-between gap-4 border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted/50"
+        :data-testid="TEST_ID.inboxItem"
+        @click="openItem(item)"
+      >
+        <div class="min-w-0">
+          <p class="truncate font-medium">{{ item.testName }}</p>
+          <p class="text-xs text-muted-foreground">
+            {{ formatVariantLabel(item) || "No variant" }}
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <Badge variant="outline">{{
+            item.kind === "pdf" ? "PDF" : "Image"
+          }}</Badge>
+          <Badge variant="destructive">
+            {{
+              item.kind === "pdf"
+                ? `${item.mismatchPageCount ?? 0} pages`
+                : `${item.mismatchPixelCount} px`
+            }}
+          </Badge>
+          <span class="text-xs text-muted-foreground">{{
+            formatRelativeAge(item.createdAt)
+          }}</span>
+        </div>
+      </button>
+    </div>
+  </section>
+</template>

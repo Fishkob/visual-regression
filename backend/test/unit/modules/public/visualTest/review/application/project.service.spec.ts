@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ProjectReadRepository } from '@public/visualTest/review/infrastructure/repositories/project-read.repository';
+import { ProjectGroupRepository } from '@public/visualTest/review/infrastructure/repositories/project-group.repository';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { DomainError } from '@common/domain/domain-error';
 import { PaginationDto } from '@common/dto/pagination.dto';
@@ -14,11 +15,13 @@ describe('ProjectService', () => {
   let projects: Mocked<ProjectRepository>;
   let projectRead: Mocked<ProjectReadRepository>;
   let testDeletion: Mocked<TestDeletionService>;
+  let groups: Mocked<ProjectGroupRepository>;
 
   beforeEach(async () => {
     projects = createMock<ProjectRepository>();
     projectRead = createMock<ProjectReadRepository>();
     testDeletion = createMock<TestDeletionService>();
+    groups = createMock<ProjectGroupRepository>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -26,6 +29,7 @@ describe('ProjectService', () => {
         { provide: ProjectRepository, useValue: projects },
         { provide: ProjectReadRepository, useValue: projectRead },
         { provide: TestDeletionService, useValue: testDeletion },
+        { provide: ProjectGroupRepository, useValue: groups },
       ],
     }).compile();
 
@@ -67,8 +71,171 @@ describe('ProjectService', () => {
 
       const result = await service.create('my-project');
 
-      expect(projects.create).toHaveBeenCalledWith('my-project');
-      expect(result).toEqual(created);
+      expect(projects.create).toHaveBeenCalledWith('my-project', null);
+      expect(result).toEqual({
+        ...created,
+        groupId: null,
+        groupName: null,
+        pendingCount: 0,
+        testCount: 0,
+        pending: false,
+      });
+    });
+
+    it('creates a project in a known group', async () => {
+      const createdAt = new Date('2024-01-01');
+      groups.findById.mockResolvedValue({
+        id: 'group-1',
+        name: 'Checkout',
+        createdAt,
+      });
+      projects.create.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt,
+        groupId: 'group-1',
+      });
+
+      const result = await service.create('my-project', 'group-1');
+
+      expect(groups.findById).toHaveBeenCalledWith('group-1');
+      expect(projects.create).toHaveBeenCalledWith('my-project', 'group-1');
+      expect(result).toMatchObject({
+        groupId: 'group-1',
+        groupName: 'Checkout',
+        pendingCount: 0,
+        testCount: 0,
+        pending: false,
+      });
+    });
+
+    it('rejects an unknown group without creating the project', async () => {
+      groups.findById.mockResolvedValue(null);
+
+      await expect(
+        service.create('my-project', 'missing'),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      expect(projects.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateProjectGroup', () => {
+    it('validates and sets the group and returns project counts', async () => {
+      const createdAt = new Date('2024-01-01');
+      projects.findByName.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt,
+      });
+      groups.findById.mockResolvedValue({
+        id: 'group-1',
+        name: 'Checkout',
+        createdAt,
+      });
+      projects.updateGroupByName.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt,
+        groupId: 'group-1',
+      });
+      projectRead.getProjectSummary.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt,
+        groupId: 'group-1',
+        groupName: 'Checkout',
+        pendingCount: 3,
+        testCount: 4,
+        hasPendingComparisons: true,
+      });
+
+      const result = await service.updateProjectGroup('my-project', 'group-1');
+
+      expect(groups.findById).toHaveBeenCalledWith('group-1');
+      expect(projects.updateGroupByName).toHaveBeenCalledWith(
+        'my-project',
+        'group-1',
+      );
+      expect(result).toEqual({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt,
+        groupId: 'group-1',
+        groupName: 'Checkout',
+        pendingCount: 3,
+        testCount: 4,
+        pending: true,
+      });
+    });
+
+    it('unassigns a project when groupId is null', async () => {
+      const createdAt = new Date('2024-01-01');
+      projects.findByName.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt,
+        groupId: 'group-1',
+      });
+      projects.updateGroupByName.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt,
+        groupId: null,
+      });
+      projectRead.getProjectSummary.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt,
+        groupId: null,
+        groupName: null,
+        pendingCount: 0,
+        testCount: 0,
+        hasPendingComparisons: false,
+      });
+
+      const result = await service.updateProjectGroup('my-project', null);
+
+      expect(groups.findById).not.toHaveBeenCalled();
+      expect(projects.updateGroupByName).toHaveBeenCalledWith(
+        'my-project',
+        null,
+      );
+      expect(result).toMatchObject({
+        groupId: null,
+        groupName: null,
+        pending: false,
+      });
+    });
+
+    it('rejects an undefined groupId', async () => {
+      await expect(
+        service.updateProjectGroup('my-project', undefined),
+      ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+      expect(projects.findByName).not.toHaveBeenCalled();
+    });
+
+    it('rejects a missing project', async () => {
+      projects.findByName.mockResolvedValue(null);
+
+      await expect(
+        service.updateProjectGroup('missing', 'group-1'),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      expect(projects.updateGroupByName).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unknown group without updating the project', async () => {
+      const createdAt = new Date('2024-01-01');
+      projects.findByName.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt,
+      });
+      groups.findById.mockResolvedValue(null);
+
+      await expect(
+        service.updateProjectGroup('my-project', 'missing'),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      expect(projects.updateGroupByName).not.toHaveBeenCalled();
     });
   });
 
@@ -81,12 +248,20 @@ describe('ProjectService', () => {
             id: 'proj-1',
             name: 'a',
             createdAt: new Date('2024-01-01'),
+            groupId: 'group-1',
+            groupName: 'Checkout',
+            pendingCount: 3,
+            testCount: 2,
             hasPendingComparisons: true,
           },
           {
             id: 'proj-2',
             name: 'b',
             createdAt: new Date('2024-01-02'),
+            groupId: null,
+            groupName: null,
+            pendingCount: 0,
+            testCount: 1,
             hasPendingComparisons: false,
           },
         ],
@@ -104,6 +279,10 @@ describe('ProjectService', () => {
         id: 'proj-1',
         name: 'a',
         createdAt: expect.any(Date),
+        groupId: 'group-1',
+        groupName: 'Checkout',
+        pendingCount: 3,
+        testCount: 2,
         pending: true,
       });
       expect(result.data[1].pending).toBe(false);
@@ -136,6 +315,8 @@ describe('ProjectService', () => {
         id: 'proj-1',
         name: 'my-project',
         createdAt,
+        groupId: null,
+        groupName: null,
         variants: [
           {
             testName: 'test-1',
@@ -162,6 +343,8 @@ describe('ProjectService', () => {
         'my-project',
       );
       expect(result.id).toBe('proj-1');
+      expect(result.groupId).toBeNull();
+      expect(result.groupName).toBeNull();
       expect(result.visualTests!).toHaveLength(2);
       expect(result.visualTests![0]).toEqual({
         name: 'test-1',

@@ -48,10 +48,16 @@ test.describe("Approval loop (image)", () => {
     await expect(component.getByTestId(TEST_ID.badgeMismatch)).toContainText(
       "157",
     );
+    await expect(component.getByTestId(TEST_ID.reviewProgress)).toContainText(
+      "1 of 2",
+    );
 
     await component.getByTestId(TEST_ID.approveChanges).click();
 
     await expect(page).toHaveURL(/tests\/checkout-flow/);
+    await expect(component.getByTestId(TEST_ID.reviewProgress)).toContainText(
+      "2 of 2",
+    );
     await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
     await expect(component.getByTestId(TEST_ID.badgeMismatch)).toContainText(
       "157",

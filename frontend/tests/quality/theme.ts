@@ -9,6 +9,7 @@ export async function preparePage(page: Page, theme: Theme): Promise<void> {
   await page.addInitScript(
     ({ nextTheme, css }) => {
       const apply = () => {
+        localStorage.setItem("theme", nextTheme);
         document.documentElement.classList.toggle("dark", nextTheme === "dark");
         const style = document.createElement("style");
         style.textContent = css;
@@ -26,6 +27,7 @@ export async function preparePage(page: Page, theme: Theme): Promise<void> {
     document.documentElement.classList.toggle("dark", nextTheme === "dark");
   }, theme);
   await page.addStyleTag({ content: DISABLE_ANIMATIONS });
+  await page.clock.setFixedTime(new Date("2026-10-22T12:00:00Z"));
 }
 
 export async function waitForReady(

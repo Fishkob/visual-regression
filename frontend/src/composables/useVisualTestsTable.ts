@@ -1,4 +1,5 @@
-import { ref, computed, type Ref } from "vue";
+import { ref, computed, watch, type Ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import type { VisualTestItem } from "@/domains/projects/project.model";
 import type { TestGroup } from "@/domains/projects/test-group";
 import {
@@ -12,6 +13,7 @@ import {
   type VisualTestFilters,
 } from "@/domains/test-status";
 import { groupRowsByTestName } from "@/domains/projects/group-rows-by-test-name";
+import { IMAGE_TEST_KIND } from "@/domains/test-kind";
 
 // The visual-tests table's derived state has one owner: the filter vocabulary,
 // the filter state, and the grouping all live here, so the derive→filter→group
@@ -21,18 +23,107 @@ import { groupRowsByTestName } from "@/domains/projects/group-rows-by-test-name"
 
 export interface VisualTestsTableOptions {
   tests: Ref<VisualTestItem[]>;
+  syncUrl?: boolean;
 }
 
-export function useVisualTestsTable(options: VisualTestsTableOptions) {
-  const { tests } = options;
-
-  const filters = ref<VisualTestFilters>({
+function emptyFilters(): VisualTestFilters {
+  return {
     search: "",
     browser: FILTER_ALL,
     viewport: FILTER_ALL,
     status: FILTER_ALL,
     environment: FILTER_ALL,
-  });
+    kind: FILTER_ALL,
+  };
+}
+
+const FILTER_KEYS = [
+  "search",
+  "browser",
+  "viewport",
+  "status",
+  "environment",
+  "kind",
+] as const;
+
+const FILTER_QUERY_KEYS = [
+  "q",
+  "browser",
+  "viewport",
+  "status",
+  "environment",
+  "kind",
+] as const;
+
+function sameFilters(a: VisualTestFilters, b: VisualTestFilters): boolean {
+  return FILTER_KEYS.every((key) => a[key] === b[key]);
+}
+
+function queryFromFilters(value: VisualTestFilters): Record<string, string> {
+  const query: Record<string, string> = {};
+  for (const key of FILTER_KEYS) {
+    if (key === "search") {
+      if (value.search.trim()) query.q = value.search;
+      continue;
+    }
+    const next = value[key];
+    if (next !== FILTER_ALL) query[key] = next;
+  }
+  return query;
+}
+
+export function useVisualTestsTable(options: VisualTestsTableOptions) {
+  const { tests, syncUrl = false } = options;
+  const currentRoute = syncUrl ? useRoute() : null;
+  const currentRouter = syncUrl ? useRouter() : null;
+
+  const queryValue = (key: string, fallback = FILTER_ALL) =>
+    String(currentRoute?.query[key] ?? "") || fallback;
+
+  function filtersFromQuery(): VisualTestFilters {
+    return {
+      search: String(currentRoute?.query.q ?? ""),
+      browser: queryValue("browser"),
+      viewport: queryValue("viewport"),
+      status: queryValue("status"),
+      environment: queryValue("environment"),
+      kind: queryValue("kind"),
+    };
+  }
+
+  const filters = ref<VisualTestFilters>(
+    syncUrl ? filtersFromQuery() : emptyFilters(),
+  );
+
+  if (currentRouter && currentRoute) {
+    watch(
+      filters,
+      (value) => {
+        const query = { ...currentRoute.query };
+        for (const key of FILTER_QUERY_KEYS) delete query[key];
+        Object.assign(query, queryFromFilters(value));
+
+        const unchanged = FILTER_QUERY_KEYS.every(
+          (key) =>
+            String(currentRoute.query[key] ?? "") === String(query[key] ?? ""),
+        );
+        if (unchanged) return;
+
+        void currentRouter.replace({ query });
+      },
+      { deep: true },
+    );
+
+    watch(
+      () => currentRoute.query,
+      () => {
+        const next = filtersFromQuery();
+        if (sameFilters(filters.value, next)) return;
+        filters.value = next;
+      },
+      { deep: true },
+    );
+  }
 
   const viewports = computed(() =>
     [...new Set(tests.value.map((t) => t.viewport))].filter((v): v is string =>
@@ -80,6 +171,13 @@ export function useVisualTestsTable(options: VisualTestsTableOptions) {
     )
       return false;
 
+    if (
+      filters.value.kind !== FILTER_ALL &&
+      (t.kind ?? IMAGE_TEST_KIND) !== filters.value.kind
+    ) {
+      return false;
+    }
+
     if (filters.value.status === STATUS_FILTER_PENDING && !isPending)
       return false;
     if (filters.value.status === STATUS_FILTER_OK && isPending) return false;
@@ -121,13 +219,7 @@ export function useVisualTestsTable(options: VisualTestsTableOptions) {
   );
 
   function resetFilters() {
-    filters.value = {
-      search: "",
-      browser: FILTER_ALL,
-      viewport: FILTER_ALL,
-      status: FILTER_ALL,
-      environment: FILTER_ALL,
-    };
+    filters.value = emptyFilters();
   }
 
   return {

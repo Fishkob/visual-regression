@@ -2,7 +2,7 @@ import { computed } from "vue";
 import { projectsControllerDeleteProject } from "@sdk";
 import type { Project } from "@/domains/projects/project.model";
 import {
-  invalidateProjectList,
+  invalidateProjectsForGroupChange,
   invalidateProjectDetail,
 } from "@/lib/invalidation";
 import { useEntityDeleteMutation } from "@/composables/useEntityDeleteMutation";
@@ -28,7 +28,7 @@ export function useProjectDelete() {
     errorMessage: "Could not delete project",
 
     invalidate: (client, projectName) => {
-      invalidateProjectList(client);
+      invalidateProjectsForGroupChange(client);
       invalidateProjectDetail(client, projectName);
     },
   });

@@ -80,4 +80,18 @@ describe("useRouteParams", () => {
       environment: undefined,
     });
   });
+
+  it("exposes fromInbox when the review was opened from the inbox", () => {
+    mockRoute.query = { from: "inbox" };
+
+    const { fromInbox } = useRouteParams();
+
+    expect(fromInbox.value).toBe(true);
+  });
+
+  it("returns false when the review was not opened from the inbox", () => {
+    const { fromInbox } = useRouteParams();
+
+    expect(fromInbox.value).toBe(false);
+  });
 });

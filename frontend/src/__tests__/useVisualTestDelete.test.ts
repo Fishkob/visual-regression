@@ -1,22 +1,49 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   useVisualTestDelete,
   type DeleteOptions,
 } from "@/composables/useVisualTestDelete";
 import type { VisualTestItem } from "@/domains/projects/project.model";
 
-const mockMutate = vi.fn();
+interface MutationOptionsShape {
+  onSuccess?: (data: unknown, variables: unknown, context: unknown) => void;
+}
+
+const { mockMutate, mutationOptions } = vi.hoisted(() => {
+  const mutationOptions: { current?: MutationOptionsShape } = {};
+  const mockMutate = vi.fn();
+  return { mockMutate, mutationOptions };
+});
+
+const mockQueryClient = vi.hoisted(() => ({ invalidateQueries: vi.fn() }));
+const mockInvalidateProjectDetail = vi.hoisted(() => vi.fn());
+const mockInvalidateProjectList = vi.hoisted(() => vi.fn());
 
 vi.mock("@tanstack/vue-query", () => ({
-  useMutation: vi.fn(() => ({
-    mutate: mockMutate,
-  })),
-  useQueryClient: vi.fn(() => ({
-    invalidateQueries: vi.fn(),
-  })),
+  useMutation: vi.fn((opts: MutationOptionsShape) => {
+    mutationOptions.current = opts;
+    return {
+      mutate: mockMutate,
+    };
+  }),
+  useQueryClient: vi.fn(() => mockQueryClient),
+}));
+
+vi.mock("vue-sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
+
+vi.mock("@/lib/invalidation", () => ({
+  invalidateProjectDetail: mockInvalidateProjectDetail,
+  invalidateProjectList: mockInvalidateProjectList,
 }));
 
 describe("useVisualTestDelete", () => {
+  beforeEach(() => {
+    mockInvalidateProjectDetail.mockClear();
+    mockInvalidateProjectList.mockClear();
+  });
+
   const createOptions = (
     overrides: Partial<DeleteOptions> = {},
   ): DeleteOptions => ({
@@ -215,5 +242,21 @@ describe("useVisualTestDelete", () => {
     expect(callArgs.viewport).toBe("1920x1080");
     expect(callArgs.browser).toBe("chrome");
     expect(callArgs.environment).toBe("prod");
+  });
+
+  it("invalidates the project detail and project list after deletion", () => {
+    useVisualTestDelete(createOptions());
+
+    mutationOptions.current!.onSuccess!(
+      undefined,
+      { testName: "login-form" },
+      undefined,
+    );
+
+    expect(mockInvalidateProjectDetail).toHaveBeenCalledWith(
+      mockQueryClient,
+      "test-project",
+    );
+    expect(mockInvalidateProjectList).toHaveBeenCalledWith(mockQueryClient);
   });
 });

@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ref } from "vue";
 import { useReviewSession } from "@/composables/useReviewSession";
-import { resetReviewSeen } from "@/lib/review-pass";
+import { isSeen, resetReviewSeen } from "@/lib/review-pass";
 import { invalidateVisualTestDetails } from "@/lib/invalidation";
+import { keyOf } from "@/lib/variant-key";
 import type { PendingTest } from "@/domains/pending-tests/pending-test";
 import { toast } from "vue-sonner";
 
@@ -92,6 +93,158 @@ describe("useReviewSession", () => {
     handleApprove();
 
     expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  it("starts at step one even when the current test is last in the pending list", () => {
+    const args = createArgs();
+    args.pendingTests.value = [
+      {
+        name: "signup-form",
+        viewport: "1280x720",
+        browser: "firefox",
+        environment: "staging",
+      },
+      {
+        name: "login-form",
+        viewport: "1920x1080",
+        browser: "chrome",
+        environment: "prod",
+      },
+    ];
+
+    const { progress } = useReviewSession(args);
+
+    expect(progress.value).toEqual({ current: 1, total: 2 });
+  });
+
+  it("sets the total when the pending list loads after mount", async () => {
+    const { nextTick } = await import("vue");
+    const args = createArgs();
+    const allPending = [...args.pendingTests.value];
+    args.pendingTests.value = [];
+    const { progress } = useReviewSession(args);
+
+    expect(progress.value).toEqual({ current: 1, total: 0 });
+
+    args.pendingTests.value = allPending;
+    await nextTick();
+
+    expect(progress.value).toEqual({ current: 1, total: 2 });
+  });
+
+  it("keeps progress when the route params resolve after mount", async () => {
+    const { nextTick } = await import("vue");
+    const args = createArgs();
+    args.projectName.value = "";
+    const { progress } = useReviewSession(args);
+
+    args.projectName.value = "test-project";
+    await nextTick();
+
+    expect(progress.value).toEqual({ current: 1, total: 2 });
+  });
+
+  it("falls back to the first step when the current test is not pending", () => {
+    const args = createArgs();
+    args.testName.value = "not-pending";
+    const { progress } = useReviewSession(args);
+
+    expect(progress.value).toEqual({ current: 1, total: 2 });
+  });
+
+  it("advances progress after approving the current test", () => {
+    const args = createArgs();
+    args.pendingTests.value = [
+      {
+        name: "signup-form",
+        viewport: "1280x720",
+        browser: "firefox",
+        environment: "staging",
+      },
+      {
+        name: "login-form",
+        viewport: "1920x1080",
+        browser: "chrome",
+        environment: "prod",
+      },
+    ];
+    const { progress } = useReviewSession(args);
+
+    expect(progress.value).toEqual({ current: 1, total: 2 });
+
+    args.pendingTests.value = args.pendingTests.value.slice(0, 1);
+    mutationOptions.onSuccess(undefined, undefined, {
+      currentVariant: {
+        viewport: "1920x1080",
+        browser: "chrome",
+        environment: "prod",
+      },
+      currentTestName: "login-form",
+    });
+
+    expect(progress.value).toEqual({ current: 2, total: 2 });
+  });
+
+  it("advances progress on skip", () => {
+    const args = createArgs();
+    const { handleSkip, progress } = useReviewSession(args);
+
+    expect(progress.value).toEqual({ current: 1, total: 2 });
+
+    handleSkip();
+
+    expect(progress.value).toEqual({ current: 2, total: 2 });
+  });
+
+  it("does not advance progress when returning to the inbox", () => {
+    const args = { ...createArgs(), returnToInbox: true };
+    const { progress } = useReviewSession(args);
+
+    mutationOptions.onSuccess(undefined, undefined, {
+      currentVariant: {
+        viewport: "1920x1080",
+        browser: "chrome",
+        environment: "prod",
+      },
+      currentTestName: "login-form",
+    });
+
+    expect(progress.value).toEqual({ current: 1, total: 2 });
+  });
+
+  it("reads returnToInbox reactively", () => {
+    const returnToInbox = ref(false);
+    const args = { ...createArgs(), returnToInbox };
+    const { handleSkip } = useReviewSession(args);
+
+    returnToInbox.value = true;
+    handleSkip();
+
+    expect(mockPush).toHaveBeenCalledWith({ name: "review-inbox" });
+  });
+
+  it("handleSkip returns to the inbox without marking the test seen", () => {
+    const args = { ...createArgs(), returnToInbox: true };
+    const { handleSkip } = useReviewSession(args);
+
+    handleSkip();
+
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["review-inbox"],
+    });
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith({ name: "review-inbox" });
+    expect(
+      isSeen(
+        "test-project",
+        keyOf({
+          name: "login-form",
+          viewport: "1920x1080",
+          browser: "chrome",
+          environment: "prod",
+        }),
+      ),
+    ).toBe(false);
   });
 
   it("handleSkip navigates to next unseen test", () => {
@@ -192,6 +345,61 @@ describe("useReviewSession", () => {
   });
 
   describe("mutation callbacks", () => {
+    it("removes the inbox item and returns to the inbox after approval", async () => {
+      const args = { ...createArgs(), returnToInbox: true };
+      const previousPending = [...args.pendingTests.value];
+      const previousInbox = [
+        { comparisonId: "comp-1" },
+        { comparisonId: "comp-2" },
+      ];
+      mockGetQueryData
+        .mockReturnValueOnce(previousPending)
+        .mockReturnValueOnce(previousInbox);
+      useReviewSession(args);
+
+      const context = await mutationOptions.onMutate();
+
+      expect(mockCancelQueries).toHaveBeenCalledWith({
+        queryKey: ["review-inbox", "list"],
+      });
+      expect(context.restoreInbox).toEqual(expect.any(Function));
+      const inboxWrite = mockSetQueryData.mock.calls.find(
+        ([key]) => key[0] === "review-inbox",
+      );
+      expect(inboxWrite?.[1](previousInbox)).toEqual([
+        { comparisonId: "comp-2" },
+      ]);
+
+      mutationOptions.onSuccess(undefined, undefined, context);
+
+      expect(mockPush).toHaveBeenCalledTimes(1);
+      expect(mockPush).toHaveBeenCalledWith({ name: "review-inbox" });
+    });
+
+    it("onError restores both the pending and inbox caches", async () => {
+      const args = { ...createArgs(), returnToInbox: true };
+      const previousPending = [...args.pendingTests.value];
+      const previousInbox = [{ comparisonId: "comp-1" }];
+      mockGetQueryData
+        .mockReturnValueOnce(previousPending)
+        .mockReturnValueOnce(previousInbox);
+      useReviewSession(args);
+
+      const context = await mutationOptions.onMutate();
+      mockSetQueryData.mockClear();
+
+      mutationOptions.onError(new Error("fail"), undefined, context);
+
+      expect(mockSetQueryData).toHaveBeenCalledWith(
+        ["pending-tests", "list", "test-project"],
+        previousPending,
+      );
+      expect(mockSetQueryData).toHaveBeenCalledWith(
+        ["review-inbox", "list"],
+        previousInbox,
+      );
+    });
+
     it("onMutate removes current test from cache and returns a restore closure", async () => {
       const args = createArgs();
       useReviewSession(args);
@@ -307,8 +515,75 @@ describe("useReviewSession", () => {
       expect(restore).toHaveBeenCalledOnce();
       expect(toast.error).toHaveBeenCalledTimes(1);
       expect(toast.error).toHaveBeenCalledWith(
-        'Could not approve 1920x1080 / chrome / prod of "login-form"',
+        'Could not approve 1920x1080 / chrome / prod of "login-form": fail',
       );
+    });
+
+    it("onError invalidates the inbox when returning to the inbox", () => {
+      const args = { ...createArgs(), returnToInbox: true };
+      useReviewSession(args);
+      const restore = vi.fn();
+
+      mutationOptions.onError(new Error("fail"), undefined, {
+        restore,
+        currentVariant: {
+          viewport: "1920x1080",
+          browser: "chrome",
+          environment: "prod",
+        },
+        currentTestName: "login-form",
+      });
+
+      expect(restore).toHaveBeenCalledOnce();
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({
+        queryKey: [
+          "visual-tests",
+          "details",
+          "test-project",
+          "login-form",
+          "1920x1080",
+          "chrome",
+          "prod",
+        ],
+      });
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({
+        queryKey: ["review-inbox"],
+      });
+    });
+
+    it("onError invalidates the details for a project-loop approval", () => {
+      const args = createArgs();
+      useReviewSession(args);
+      const restore = vi.fn();
+
+      mutationOptions.onError(new Error("fail"), undefined, {
+        restore,
+        currentVariant: {
+          viewport: "1920x1080",
+          browser: "chrome",
+          environment: "prod",
+        },
+        currentTestName: "login-form",
+      });
+
+      expect(restore).toHaveBeenCalledOnce();
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({
+        queryKey: [
+          "visual-tests",
+          "details",
+          "test-project",
+          "login-form",
+          "1920x1080",
+          "chrome",
+          "prod",
+        ],
+      });
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({
+        queryKey: ["projects", "pending"],
+      });
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({
+        queryKey: ["review-inbox"],
+      });
     });
 
     it("onSuccess invalidates details + project queries for the approved variant", () => {

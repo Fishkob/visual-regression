@@ -4,7 +4,10 @@ import {
   type RouteRecordRaw,
 } from "vue-router";
 
+import { focusRouteContent } from "@/lib/route-focus";
+import InboxView from "@/views/InboxView.vue";
 import ProjectsView from "@/views/ProjectsView.vue";
+import GroupsView from "@/views/GroupsView.vue";
 import ProjectDetailView from "@/views/ProjectDetailView.vue";
 import ApprovalDoneView from "@/views/ApprovalDoneView.vue";
 import TestDetailDispatcher from "@/components/TestDetailDispatcher.vue";
@@ -20,8 +23,20 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: "/",
+    name: "review-inbox",
+    component: InboxView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/projects",
     name: "project-list",
     component: ProjectsView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/groups",
+    name: "groups",
+    component: GroupsView,
     meta: { requiresAuth: true },
   },
   {
@@ -55,5 +70,10 @@ const router = createRouter({
 });
 
 router.beforeEach(authGuard);
+
+router.afterEach(async (to, from) => {
+  const samePath = from.matched.length > 0 && to.path === from.path;
+  await focusRouteContent(samePath);
+});
 
 export default router;

@@ -240,6 +240,45 @@
           "Projects"
         ]
       },
+      "patch": {
+        "operationId": "ProjectsController_updateProject",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Move a project to another group",
+        "tags": [
+          "Projects"
+        ]
+      },
       "get": {
         "operationId": "ProjectsController_getOneProject",
         "parameters": [
@@ -372,6 +411,124 @@
         "summary": "Get all projects",
         "tags": [
           "Projects"
+        ]
+      }
+    },
+    "/groups": {
+      "get": {
+        "operationId": "ProjectGroupsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectGroupDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List project groups",
+        "tags": [
+          "Groups"
+        ]
+      },
+      "post": {
+        "operationId": "ProjectGroupsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectGroupDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a project group",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/groups/{id}": {
+      "patch": {
+        "operationId": "ProjectGroupsController_rename",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectGroupDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Rename a project group",
+        "tags": [
+          "Groups"
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectGroupsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Projects move to Unassigned"
+          }
+        },
+        "summary": "Delete a project group",
+        "tags": [
+          "Groups"
         ]
       }
     },
@@ -1052,6 +1209,73 @@
         ]
       }
     },
+    "/review/pending": {
+      "get": {
+        "operationId": "ReviewInboxController_getPending",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "description": "Record offset (0-based), alternative to page",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Page size, alternative to limit",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPendingReviewDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List pending reviews across all projects",
+        "tags": [
+          "Review"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -1412,6 +1636,10 @@
           "name": {
             "type": "string",
             "example": "checkout-ui"
+          },
+          "groupId": {
+            "type": "string",
+            "example": "group_123"
           }
         },
         "required": [
@@ -1498,11 +1726,87 @@
               "$ref": "#/components/schemas/VisualTestDto"
             }
           },
+          "groupId": {
+            "type": "string",
+            "example": "group_123",
+            "nullable": true
+          },
+          "groupName": {
+            "type": "string",
+            "example": "Checkout",
+            "nullable": true
+          },
+          "pendingCount": {
+            "type": "number",
+            "example": 3
+          },
+          "testCount": {
+            "type": "number",
+            "example": 12
+          },
           "pending": {
             "type": "boolean",
             "description": "Whether the project has pending comparisons"
           }
         }
+      },
+      "UpdateProjectDto": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "description": "Group id, or null to move the project to Unassigned",
+            "nullable": true
+          }
+        }
+      },
+      "ProjectGroupDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "projectCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "projectCount"
+        ]
+      },
+      "CreateProjectGroupDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Checkout"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateProjectGroupDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Storefront"
+          }
+        },
+        "required": [
+          "name"
+        ]
       },
       "ApproveComparisonBodyDto": {
         "type": "object",
@@ -1959,6 +2263,73 @@
         },
         "required": [
           "test"
+        ]
+      },
+      "PendingReviewDto": {
+        "type": "object",
+        "properties": {
+          "comparisonId": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string",
+            "nullable": true
+          },
+          "groupName": {
+            "type": "string",
+            "nullable": true
+          },
+          "testName": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "example": "image"
+          },
+          "variant": {
+            "$ref": "#/components/schemas/VariantDto"
+          },
+          "mismatchPixelCount": {
+            "type": "number"
+          },
+          "mismatchPageCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "comparisonId",
+          "projectName",
+          "testName",
+          "kind",
+          "variant",
+          "mismatchPixelCount",
+          "createdAt"
+        ]
+      },
+      "PaginatedPendingReviewDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingReviewDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
         ]
       },
       "DetailedHealthDto": {

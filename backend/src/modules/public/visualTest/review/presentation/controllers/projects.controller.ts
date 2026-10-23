@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -19,12 +20,12 @@ import {
   ApiProperty,
   ApiTags,
 } from '@nestjs/swagger';
-import { plainToInstance } from 'class-transformer';
 import { ComparisonStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
 import {
   ProjectDto,
   CreateProjectDto,
+  UpdateProjectDto,
 } from '@public/visualTest/review/presentation/dto/project.dto';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { PaginationDto } from '@common/dto/pagination.dto';
@@ -110,10 +111,17 @@ export class ProjectsController {
   })
   @ApiConflictResponse({ description: 'Project name already in use' })
   async create(@Body() dto: CreateProjectDto): Promise<ProjectDto> {
-    const project = await this.projectService.create(dto.name);
-    return plainToInstance(ProjectDto, project, {
-      excludeExtraneousValues: true,
-    });
+    return this.projectService.create(dto.name, dto.groupId);
+  }
+
+  @Patch(':projectName')
+  @ApiOperation({ summary: 'Move a project to another group' })
+  @ApiOkResponse({ type: ProjectDto })
+  async updateProject(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Body() dto: UpdateProjectDto,
+  ): Promise<ProjectDto> {
+    return this.projectService.updateProjectGroup(projectName, dto.groupId);
   }
 
   @Get()
@@ -122,13 +130,7 @@ export class ProjectsController {
     description: 'Returns all projects',
   })
   async getAllProjects(@Query() pagination: PaginationDto) {
-    const result = await this.projectService.findAll(pagination);
-    return {
-      ...result,
-      data: result.data.map((p) =>
-        plainToInstance(ProjectDto, p, { excludeExtraneousValues: true }),
-      ),
-    };
+    return this.projectService.findAll(pagination);
   }
 
   @Get(':projectName')
@@ -148,10 +150,6 @@ export class ProjectsController {
   async getOneProject(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
   ): Promise<ProjectDto> {
-    const project =
-      await this.projectService.getWithLatestVariantStatuses(projectName);
-    return plainToInstance(ProjectDto, project, {
-      excludeExtraneousValues: true,
-    });
+    return this.projectService.getWithLatestVariantStatuses(projectName);
   }
 }

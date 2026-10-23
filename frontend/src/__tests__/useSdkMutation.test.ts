@@ -41,7 +41,7 @@ describe("useSdkMutation", () => {
     mutationOptions.current = undefined;
   });
 
-  it("unwraps the SDK payload through getData", async () => {
+  it("unwraps the SDK payload through unwrapSdkData", async () => {
     useSdkMutation({
       mutationFn: async () => ({ data: { ok: true } }),
     });
@@ -49,6 +49,18 @@ describe("useSdkMutation", () => {
     const result = await mutationOptions.current!.mutationFn({});
 
     expect(result).toEqual({ ok: true });
+  });
+
+  it("surfaces the SDK error message instead of treating it as empty", async () => {
+    useSdkMutation({
+      mutationFn: async () => ({
+        error: { message: "Group name already exists" },
+      }),
+    });
+
+    await expect(mutationOptions.current!.mutationFn({})).rejects.toThrow(
+      "Group name already exists",
+    );
   });
 
   it("rejects an empty response so callers cannot proceed on undefined data", async () => {

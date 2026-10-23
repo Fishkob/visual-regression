@@ -39,6 +39,14 @@ import type { PdfControllerGetPdfTestDetailsData } from './models/PdfControllerG
 import type { PdfControllerGetPdfTestDetailsResponses } from './models/PdfControllerGetPdfTestDetailsResponses.gen';
 import type { PdfControllerRenderPdfPageData } from './models/PdfControllerRenderPdfPageData.gen';
 import type { PdfControllerRenderPdfPageResponses } from './models/PdfControllerRenderPdfPageResponses.gen';
+import type { ProjectGroupsControllerCreateData } from './models/ProjectGroupsControllerCreateData.gen';
+import type { ProjectGroupsControllerCreateResponses } from './models/ProjectGroupsControllerCreateResponses.gen';
+import type { ProjectGroupsControllerFindAllData } from './models/ProjectGroupsControllerFindAllData.gen';
+import type { ProjectGroupsControllerFindAllResponses } from './models/ProjectGroupsControllerFindAllResponses.gen';
+import type { ProjectGroupsControllerRemoveData } from './models/ProjectGroupsControllerRemoveData.gen';
+import type { ProjectGroupsControllerRemoveResponses } from './models/ProjectGroupsControllerRemoveResponses.gen';
+import type { ProjectGroupsControllerRenameData } from './models/ProjectGroupsControllerRenameData.gen';
+import type { ProjectGroupsControllerRenameResponses } from './models/ProjectGroupsControllerRenameResponses.gen';
 import type { ProjectsControllerCreateData } from './models/ProjectsControllerCreateData.gen';
 import type { ProjectsControllerCreateErrors } from './models/ProjectsControllerCreateErrors.gen';
 import type { ProjectsControllerCreateResponses } from './models/ProjectsControllerCreateResponses.gen';
@@ -52,6 +60,10 @@ import type { ProjectsControllerGetOneProjectErrors } from './models/ProjectsCon
 import type { ProjectsControllerGetOneProjectResponses } from './models/ProjectsControllerGetOneProjectResponses.gen';
 import type { ProjectsControllerGetProjectsWithPendingFlagData } from './models/ProjectsControllerGetProjectsWithPendingFlagData.gen';
 import type { ProjectsControllerGetProjectsWithPendingFlagResponses } from './models/ProjectsControllerGetProjectsWithPendingFlagResponses.gen';
+import type { ProjectsControllerUpdateProjectData } from './models/ProjectsControllerUpdateProjectData.gen';
+import type { ProjectsControllerUpdateProjectResponses } from './models/ProjectsControllerUpdateProjectResponses.gen';
+import type { ReviewInboxControllerGetPendingData } from './models/ReviewInboxControllerGetPendingData.gen';
+import type { ReviewInboxControllerGetPendingResponses } from './models/ReviewInboxControllerGetPendingResponses.gen';
 import type { TestCommandsControllerDeleteVisualTestData } from './models/TestCommandsControllerDeleteVisualTestData.gen';
 import type { TestCommandsControllerDeleteVisualTestResponses } from './models/TestCommandsControllerDeleteVisualTestResponses.gen';
 import type { TestCommandsControllerUpdateThresholdData } from './models/TestCommandsControllerUpdateThresholdData.gen';
@@ -113,6 +125,19 @@ export const projectsControllerGetOneProject = <ThrowOnError extends boolean = f
 });
 
 /**
+ * Move a project to another group
+ */
+export const projectsControllerUpdateProject = <ThrowOnError extends boolean = false>(options: Options<ProjectsControllerUpdateProjectData, ThrowOnError>): RequestResult<ProjectsControllerUpdateProjectResponses, unknown, ThrowOnError> => (options.client ?? client).patch<ProjectsControllerUpdateProjectResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Get all projects
  */
 export const projectsControllerGetAllProjects = <ThrowOnError extends boolean = false>(options?: Options<ProjectsControllerGetAllProjectsData, ThrowOnError>): RequestResult<ProjectsControllerGetAllProjectsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ProjectsControllerGetAllProjectsResponses, unknown, ThrowOnError>({
@@ -127,6 +152,50 @@ export const projectsControllerGetAllProjects = <ThrowOnError extends boolean = 
 export const projectsControllerCreate = <ThrowOnError extends boolean = false>(options: Options<ProjectsControllerCreateData, ThrowOnError>): RequestResult<ProjectsControllerCreateResponses, ProjectsControllerCreateErrors, ThrowOnError> => (options.client ?? client).post<ProjectsControllerCreateResponses, ProjectsControllerCreateErrors, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/projects',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List project groups
+ */
+export const projectGroupsControllerFindAll = <ThrowOnError extends boolean = false>(options?: Options<ProjectGroupsControllerFindAllData, ThrowOnError>): RequestResult<ProjectGroupsControllerFindAllResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ProjectGroupsControllerFindAllResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/groups',
+    ...options
+});
+
+/**
+ * Create a project group
+ */
+export const projectGroupsControllerCreate = <ThrowOnError extends boolean = false>(options: Options<ProjectGroupsControllerCreateData, ThrowOnError>): RequestResult<ProjectGroupsControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<ProjectGroupsControllerCreateResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/groups',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete a project group
+ */
+export const projectGroupsControllerRemove = <ThrowOnError extends boolean = false>(options: Options<ProjectGroupsControllerRemoveData, ThrowOnError>): RequestResult<ProjectGroupsControllerRemoveResponses, unknown, ThrowOnError> => (options.client ?? client).delete<ProjectGroupsControllerRemoveResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/groups/{id}',
+    ...options
+});
+
+/**
+ * Rename a project group
+ */
+export const projectGroupsControllerRename = <ThrowOnError extends boolean = false>(options: Options<ProjectGroupsControllerRenameData, ThrowOnError>): RequestResult<ProjectGroupsControllerRenameResponses, unknown, ThrowOnError> => (options.client ?? client).patch<ProjectGroupsControllerRenameResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/groups/{id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -243,6 +312,15 @@ export const testCommandsControllerUpdateThreshold = <ThrowOnError extends boole
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * List pending reviews across all projects
+ */
+export const reviewInboxControllerGetPending = <ThrowOnError extends boolean = false>(options?: Options<ReviewInboxControllerGetPendingData, ThrowOnError>): RequestResult<ReviewInboxControllerGetPendingResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ReviewInboxControllerGetPendingResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/review/pending',
+    ...options
 });
 
 export const healthControllerCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckData, ThrowOnError>): RequestResult<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError>({ url: '/health', ...options });

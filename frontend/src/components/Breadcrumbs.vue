@@ -10,6 +10,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { TEST_ID } from "@/lib/test-ids";
+
+defineProps<{ groupName?: string }>();
 
 const route = useRoute();
 
@@ -28,9 +31,23 @@ const hasTest = computed(() => !!testName.value);
       <!-- Home / Projects -->
       <BreadcrumbItem>
         <BreadcrumbLink as-child>
-          <RouterLink :to="{ name: 'project-list' }">Project</RouterLink>
+          <RouterLink :to="{ name: 'project-list' }">Projects</RouterLink>
         </BreadcrumbLink>
       </BreadcrumbItem>
+
+      <!-- GroupName -->
+      <template v-if="groupName">
+        <BreadcrumbSeparator />
+
+        <BreadcrumbItem>
+          <span
+            class="text-muted-foreground"
+            :data-testid="TEST_ID.breadcrumbGroup"
+          >
+            {{ groupName }}
+          </span>
+        </BreadcrumbItem>
+      </template>
 
       <!-- ProjectName -->
       <template v-if="hasProject">

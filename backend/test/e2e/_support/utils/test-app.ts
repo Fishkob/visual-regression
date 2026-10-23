@@ -51,6 +51,7 @@ export class TestApp {
     await db.unifiedTest.deleteMany();
     await db.comparisonJob.deleteMany();
     await db.project.deleteMany();
+    await db.projectGroup.deleteMany();
     await db.rateLimitBucket.deleteMany();
     await db.session.deleteMany();
     await db.apiKey.deleteMany();

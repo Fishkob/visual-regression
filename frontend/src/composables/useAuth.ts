@@ -38,7 +38,7 @@ export function useLogin() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: authQueryKeys.me() });
-      router.push({ name: "project-list" });
+      router.push({ name: "review-inbox" });
     },
   });
 }
