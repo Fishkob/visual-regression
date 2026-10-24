@@ -24,6 +24,7 @@ test.describe("App shell sidebar", () => {
     const toggle = component.getByTestId(TEST_ID.sidebarToggle);
     const label = component.getByTestId(TEST_ID.navInboxLabel);
 
+    await expect(component.getByTestId(TEST_ID.appShell)).toBeVisible();
     await expect(component.getByTestId(TEST_ID.appHeader)).toBeVisible();
     await expect(component.getByTestId(TEST_ID.themeToggle)).toBeVisible();
     await expect(component.getByTestId(TEST_ID.logout)).toBeVisible();

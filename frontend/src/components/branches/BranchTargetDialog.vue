@@ -79,7 +79,10 @@ function confirm() {
       </Select>
 
       <AlertDialogFooter>
-        <AlertDialogCancel @click="emit('update:open', false)">
+        <AlertDialogCancel
+          :data-testid="TEST_ID.branchTargetCancel"
+          @click="emit('update:open', false)"
+        >
           Cancel
         </AlertDialogCancel>
         <AlertDialogAction

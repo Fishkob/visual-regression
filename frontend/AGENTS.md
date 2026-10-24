@@ -77,6 +77,22 @@ src/
 - The quality suites cover every gallery story in light and dark mode. Add a
   case to `tests/quality/cases.ts` when you add a story.
 
+### Component coverage
+
+- Component tests are **page-level**, not per component: a spec mounts a gallery
+  story (`views/<View>View/<Export>` or `AppShell/AppShell`), mocks the API
+  (`tests/ct/routes/api.routes.ts`) and drives the real view.
+- `src/components/ui/**` (shadcn/reka-ui wrappers with `cva()` variants) gets
+  **no own spec** — their rendering is the library's contract, and they are
+  covered indirectly by the page flows and the light/dark quality suites. The
+  exception is our own logic inside `ui/`: `DataTable.vue` keeps its Vitest test.
+- Every other component is covered either by a page-level CT spec (the normal
+  case) or, when it carries logic worth isolating, by a dedicated
+  `src/__tests__/<Component>.test.ts`.
+- A new component therefore needs one of the two, plus a `data-testid` on
+  whatever the test must find; a component that only the quality suite reaches
+  is not covered, it is merely rendered.
+
 ### Language-independent selectors
 
 - Find elements via `getByTestId(TEST_ID.*)` only — constants live in `src/lib/test-ids.ts` and are imported by markup and tests alike.

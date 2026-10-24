@@ -169,6 +169,47 @@ export const PROJECT_CHECKOUT_UI_RESPONSE = {
   }),
 };
 
+// The branch-scoped read for `feature/checkout-v2`: one variant the branch owns
+// and one inherited from its target. Only an inherited origin renders the
+// inherited badge and suppresses the row actions, so both rows are needed.
+export const PROJECT_CHECKOUT_UI_BRANCH_RESPONSE = {
+  status: 200,
+  contentType: "application/json",
+  body: JSON.stringify({
+    id: "cmiewt8xi0008q35zr1ugreta",
+    name: "checkout-ui",
+    branchName: "feature/checkout-v2",
+    defaultBranchName: "main",
+    groupId: "g1",
+    groupName: "Checkout",
+    visualTests: [
+      {
+        name: "checkout-flow",
+        kind: "image",
+        origin: "branch",
+        variant: {
+          viewport: "1920x1080",
+          browser: "Chrome",
+          environment: "staging",
+        },
+        latestStatus: "PENDING_APPROVAL",
+      },
+      {
+        name: "login-form",
+        kind: "image",
+        origin: "inherited",
+        inheritedFrom: "main",
+        variant: {
+          viewport: "1366x768",
+          browser: "Firefox",
+          environment: "staging",
+        },
+        latestStatus: "APPROVED",
+      },
+    ],
+  }),
+};
+
 export const PROJECT_EMPTY_RESPONSE = {
   status: 200,
   contentType: "application/json",

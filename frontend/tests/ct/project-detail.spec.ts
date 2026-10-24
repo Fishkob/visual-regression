@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { mockApi } from "./routes/api.routes";
 import {
   BRANCHES_RESPONSE,
+  PROJECT_CHECKOUT_UI_BRANCH_RESPONSE,
   PROJECT_CHECKOUT_UI_RESPONSE,
   PROJECT_EMPTY_RESPONSE,
 } from "./mocks/projects.mocks";
@@ -23,6 +24,9 @@ test.describe("ProjectDetail", () => {
     );
 
     await expect(component).toContainText("checkout-ui");
+    await expect(component.getByTestId(TEST_ID.breadcrumbGroup)).toHaveText(
+      "Checkout",
+    );
     await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(9);
   });
 
@@ -310,5 +314,67 @@ test.describe("ProjectDetail branch switcher", () => {
     );
     await expect(page.getByTestId(TEST_ID.branchSetDefault)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.branchChangeTarget)).toBeVisible();
+  });
+});
+
+test.describe("ProjectDetail row actions", () => {
+  test("offers the overview and the delete confirmation per row", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      ["**/api/v1/projects/checkout-ui", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+
+    const component = await mount<typeof Routed>(
+      "views/ProjectDetailView/Routed",
+      { initialRoute: "/projects/checkout-ui" },
+    );
+
+    await component.getByTestId(TEST_ID.testActionsButton).first().click();
+
+    // The menu renders in a portal and its entries carry no testids of their
+    // own: the read-only overview comes first, the destructive delete second.
+    const items = page.getByRole("menuitem");
+    await expect(items).toHaveText(["Overview", "Delete variant"]);
+
+    await items.nth(1).click();
+    // The confirmation names the variant that was clicked, which proves the
+    // action is bound to its own row rather than to the first one.
+    await expect(page.getByTestId(TEST_ID.dialogTitle)).toHaveText(
+      "Delete test",
+    );
+    await expect(page.getByTestId(TEST_ID.dialogDescription)).toContainText(
+      "checkout-flow",
+    );
+    await expect(page.getByTestId(TEST_ID.dialogConfirm)).toBeVisible();
+  });
+
+  test("marks a variant inherited from the target branch as read-only", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_BRANCH_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+
+    const component = await mount<typeof Routed>(
+      "views/ProjectDetailView/Routed",
+      { initialRoute: "/projects/checkout-ui?branch=feature%2Fcheckout-v2" },
+    );
+
+    await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(2);
+    await expect(component.getByTestId(TEST_ID.inheritedBadge)).toHaveText(
+      "inherited from main",
+    );
+    // Only the branch's own variant is mutable; the inherited row has no actions
+    // because its baselines belong to the branch it inherits from.
+    await expect(component.getByTestId(TEST_ID.testActionsButton)).toHaveCount(
+      1,
+    );
   });
 });

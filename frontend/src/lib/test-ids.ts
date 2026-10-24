@@ -30,6 +30,7 @@ export const TEST_ID = {
   branchChangeTarget: "branch-change-target",
   branchTargetDialog: "branch-target-dialog",
   branchTargetSelect: "branch-target-select",
+  branchTargetCancel: "branch-target-cancel",
   branchTargetConfirm: "branch-target-confirm",
   branchDeleteBlocked: "branch-delete-blocked",
   testActionsButton: "test-actions-button",
