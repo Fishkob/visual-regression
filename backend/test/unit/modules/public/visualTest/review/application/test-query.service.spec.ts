@@ -340,6 +340,121 @@ describe('TestQueryService', () => {
     });
   });
 
+  describe('getTestVariants', () => {
+    function variantRow(overrides: Record<string, unknown> = {}) {
+      return {
+        viewport: '1920x1080',
+        browser: 'chrome',
+        environment: 'staging',
+        baselineUrl: 'http://storage/baseline.png',
+        isInherited: false,
+        latestComparison: null,
+        ...overrides,
+      };
+    }
+
+    it('maps every variant with its derived status and image URLs', async () => {
+      reviewRead.findTestVariantSummaries.mockResolvedValue({
+        name: 'checkout',
+        kind: 'image',
+        variants: [
+          variantRow(),
+          variantRow({
+            viewport: '375x667',
+            latestComparison: {
+              id: 'cmp-1',
+              status: ComparisonStatus.PENDING_APPROVAL,
+              mismatchPixelCount: 42,
+              diffImageUrl: 'http://storage/diff.png',
+              candidate: { imageUrl: 'http://storage/candidate.png' },
+            },
+          }),
+          variantRow({ viewport: '768x1024', baselineUrl: null }),
+        ],
+      });
+
+      const result = await service.getTestVariants(
+        'my-project',
+        'checkout',
+        'main',
+      );
+
+      expect(reviewRead.findTestVariantSummaries).toHaveBeenCalledWith(
+        'my-project',
+        'checkout',
+        'main',
+      );
+      expect(result.variants).toEqual([
+        {
+          viewport: '1920x1080',
+          browser: 'chrome',
+          environment: 'staging',
+          status: 'UNCHANGED',
+          baselineUrl: 'http://storage/baseline.png',
+          candidateUrl: null,
+          mismatchPixelCount: null,
+          baselineInherited: false,
+        },
+        {
+          viewport: '375x667',
+          browser: 'chrome',
+          environment: 'staging',
+          status: 'PENDING_APPROVAL',
+          baselineUrl: 'http://storage/baseline.png',
+          candidateUrl: 'http://storage/candidate.png',
+          mismatchPixelCount: 42,
+          baselineInherited: false,
+        },
+        {
+          viewport: '768x1024',
+          browser: 'chrome',
+          environment: 'staging',
+          status: 'PENDING',
+          baselineUrl: null,
+          candidateUrl: null,
+          mismatchPixelCount: null,
+          baselineInherited: false,
+        },
+      ]);
+    });
+
+    it('rejects an unknown test', async () => {
+      reviewRead.findTestVariantSummaries.mockResolvedValue(null);
+
+      await expect(
+        service.getTestVariants('my-project', 'missing'),
+      ).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+        message: 'Test "missing" not found in project "my-project"',
+      });
+    });
+
+    it('rejects a PDF test', async () => {
+      reviewRead.findTestVariantSummaries.mockResolvedValue({
+        name: 'report',
+        kind: 'pdf',
+        variants: [],
+      });
+      testResolver.assertTestKind.mockImplementation(() => {
+        throw new DomainError(
+          'Test "report" is not an image test',
+          'BAD_REQUEST',
+        );
+      });
+
+      await expect(
+        service.getTestVariants('my-project', 'report'),
+      ).rejects.toMatchObject({
+        code: 'BAD_REQUEST',
+        message: 'Test "report" is not an image test',
+      });
+      expect(testResolver.assertTestKind).toHaveBeenCalledWith(
+        { name: 'report', kind: 'pdf' },
+        'image',
+      );
+    });
+  });
+
   describe('getPdfTestDetails', () => {
     const createdAt = new Date('2024-01-01');
 

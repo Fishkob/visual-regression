@@ -50,3 +50,18 @@ export const LATEST_REVIEWABLE_COMPARISON_QUERY = {
   take: 1,
   select: { status: true },
 } as const satisfies Prisma.UnifiedComparisonFindManyArgs;
+
+// The richer twin of LATEST_REVIEWABLE_COMPARISON_QUERY for read models that
+// need the artifact URLs and mismatch count alongside the status (the variant
+// gallery). It shares the status set and the ordering constant, so "which
+// comparison counts as latest" stays one rule.
+export const LATEST_REVIEWABLE_COMPARISON_SUMMARY_QUERY = {
+  where: REVIEWABLE_COMPARISON_STATUS_FILTER,
+  orderBy: REVIEWABLE_COMPARISON_ORDER,
+  take: 1,
+  select: {
+    status: true,
+    mismatchPixelCount: true,
+    candidate: { select: { imageUrl: true } },
+  },
+} as const satisfies Prisma.UnifiedComparisonFindManyArgs;

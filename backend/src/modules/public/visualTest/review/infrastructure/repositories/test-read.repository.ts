@@ -22,7 +22,10 @@ import {
 } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
 import type { VariantFilter } from '@public/visualTest/core/domain/value-objects/variant.vo';
-import type { ReviewVariantRow } from '@public/visualTest/core/infrastructure/repositories/variant-store';
+import type {
+  ReviewVariantRow,
+  VariantSummaryRow,
+} from '@public/visualTest/core/infrastructure/repositories/variant-store';
 
 export interface PendingApprovalResult {
   name: string;
@@ -56,6 +59,14 @@ export interface TestWithVariantsResult {
   };
   baseline: ScreenshotEntity | null;
   comparison: ComparisonEntity | null;
+}
+
+// The shape the variant-gallery read returns: the effective test's identity
+// plus one row per variant. Named so the service→mapper seam is typed.
+export interface TestVariantSummaryResult {
+  name: string;
+  kind: TestKind;
+  variants: VariantSummaryRow[];
 }
 
 // The test-scoped read seam for the review module: everything a single test's
@@ -387,6 +398,32 @@ export class TestReadRepository {
       inheritTarget: target.inheritTarget,
       baseline: target.baseline,
       comparison: target.comparison,
+    };
+  }
+
+  // The variant gallery read: every variant of the effective test with its
+  // baseline image and latest reviewable comparison. An inherited test is
+  // readable here like any other read model read; its variants are the ancestor
+  // branch's rows, which is exactly what the branch view shows.
+  async findTestVariantSummaries(
+    projectName: string,
+    testName: string,
+    branchName?: string,
+  ): Promise<TestVariantSummaryResult | null> {
+    const branch = await this.branchResolver.resolveRead(
+      projectName,
+      branchName,
+    );
+    const test = await this.branchTests.findEffectiveTest(
+      branch.branchId,
+      testName,
+    );
+    if (!test) return null;
+
+    return {
+      name: test.name,
+      kind: test.kind,
+      variants: await this.variants.findVariantSummariesFor(test.id),
     };
   }
 

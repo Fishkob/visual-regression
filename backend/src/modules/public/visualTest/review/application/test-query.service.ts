@@ -15,6 +15,7 @@ import type { ComparisonDto } from '@public/visualTest/review/presentation/dto/c
 import type { TestKind } from '@common/domain/test-kind';
 import { TEST_KINDS } from '@common/domain/test-kind';
 import { PdfTestDetailsDto } from '@public/visualTest/review/presentation/dto/pdf-test-details.dto';
+import type { TestVariantsDto } from '@public/visualTest/review/presentation/dto/visual-test.dto';
 import { ProjectTestDto } from '@public/visualTest/review/presentation/dto/project.dto';
 import { PendingTestDto } from '@public/visualTest/review/presentation/dto/review-responses.dto';
 import {
@@ -22,6 +23,7 @@ import {
   mapScreenshotToDto,
 } from '@public/visualTest/review/infrastructure/mappers/comparison-dto.mapper';
 import { mapTestWithVariantsToPdfDetails } from '@public/visualTest/review/infrastructure/mappers/pdf-test-details.mapper';
+import { mapTestVariantsToDto } from '@public/visualTest/review/infrastructure/mappers/test-variants.mapper';
 
 const isTestKind = (value: string): value is TestKind =>
   TEST_KINDS.includes(value as TestKind);
@@ -157,6 +159,34 @@ export class TestQueryService {
       baseline: mapScreenshotToDto(baseline),
       comparison: comparison ? mapComparisonToDto(comparison) : undefined,
     };
+  }
+
+  // The gallery read: one row per variant of an image test, each with the triage
+  // facts a reviewer needs to pick the variant worth opening. No variant filter —
+  // the gallery IS the unfiltered view, and the caller drills into one variant
+  // through the existing details endpoint.
+  async getTestVariants(
+    projectName: string,
+    testName: string,
+    branchName?: string,
+  ): Promise<TestVariantsDto> {
+    const result = await this.testRead.findTestVariantSummaries(
+      projectName,
+      testName,
+      branchName,
+    );
+    if (!result) {
+      throw new DomainError(
+        `Test "${testName}" not found in project "${projectName}"`,
+        'NOT_FOUND',
+      );
+    }
+    this.testResolver.assertTestKind(
+      { name: testName, kind: result.kind },
+      'image',
+    );
+
+    return mapTestVariantsToDto(result);
   }
 
   async getPdfTestDetails(

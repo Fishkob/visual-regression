@@ -26,6 +26,29 @@ test.describe("ProjectDetail", () => {
     await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(9);
   });
 
+  test("opens the variant overview from a test row", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      ["**/api/v1/projects/checkout-ui", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+
+    const component = await mount<typeof Routed>(
+      "views/ProjectDetailView/Routed",
+      { initialRoute: "/projects/checkout-ui" },
+    );
+
+    await component.getByTestId(TEST_ID.tableRow).first().click();
+
+    await expect
+      .poll(() => page.url())
+      .toContain("/projects/checkout-ui/tests/");
+    await expect.poll(() => page.url()).toContain("/overview");
+  });
+
   test("shows the group, pending count, and test count", async ({
     mount,
     page,

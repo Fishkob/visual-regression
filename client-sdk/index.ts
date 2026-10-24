@@ -136,10 +136,16 @@ export type { TestsQueriesControllerGetTestsForProjectResponses } from './models
 export type { TestsQueriesControllerGetTestsWithPendingStatusData } from './models/TestsQueriesControllerGetTestsWithPendingStatusData.gen';
 export type { TestsQueriesControllerGetTestsWithPendingStatusResponse } from './models/TestsQueriesControllerGetTestsWithPendingStatusResponse.gen';
 export type { TestsQueriesControllerGetTestsWithPendingStatusResponses } from './models/TestsQueriesControllerGetTestsWithPendingStatusResponses.gen';
+export type { TestsQueriesControllerGetVariantsData } from './models/TestsQueriesControllerGetVariantsData.gen';
+export type { TestsQueriesControllerGetVariantsErrors } from './models/TestsQueriesControllerGetVariantsErrors.gen';
+export type { TestsQueriesControllerGetVariantsResponse } from './models/TestsQueriesControllerGetVariantsResponse.gen';
+export type { TestsQueriesControllerGetVariantsResponses } from './models/TestsQueriesControllerGetVariantsResponses.gen';
 export type { TestsQueriesControllerGetVisualTestDetailsData } from './models/TestsQueriesControllerGetVisualTestDetailsData.gen';
 export type { TestsQueriesControllerGetVisualTestDetailsErrors } from './models/TestsQueriesControllerGetVisualTestDetailsErrors.gen';
 export type { TestsQueriesControllerGetVisualTestDetailsResponse } from './models/TestsQueriesControllerGetVisualTestDetailsResponse.gen';
 export type { TestsQueriesControllerGetVisualTestDetailsResponses } from './models/TestsQueriesControllerGetVisualTestDetailsResponses.gen';
+export type { TestVariantsDto } from './models/TestVariantsDto.gen';
+export type { TestVariantSummaryDto } from './models/TestVariantSummaryDto.gen';
 export type { UpdateBranchDto } from './models/UpdateBranchDto.gen';
 export type { UpdateProjectDto } from './models/UpdateProjectDto.gen';
 export type { UpdateProjectGroupDto } from './models/UpdateProjectGroupDto.gen';
@@ -152,5 +158,5 @@ export type { UploadControllerUploadResponses } from './models/UploadControllerU
 export type { VariantDto } from './models/VariantDto.gen';
 export type { VisualTestDetailsDto } from './models/VisualTestDetailsDto.gen';
 export type { VisualTestDto } from './models/VisualTestDto.gen';
-export { adminApiKeysControllerCreate, approvalsControllerApprovePdfTest, approvalsControllerApproveVisualTest, authControllerLogin, authControllerLogout, authControllerMe, branchesControllerList, branchesControllerRemove, branchesControllerUpdate, healthControllerCheck, healthControllerCheckDatabase, healthControllerCheckStorage, healthControllerReadiness, metricsControllerGetMetrics, pdfControllerDownloadPdf, pdfControllerGetPdfTestDetails, pdfControllerRenderPdfPage, projectGroupsControllerCreate, projectGroupsControllerFindAll, projectGroupsControllerRemove, projectGroupsControllerRename, projectsControllerCreate, projectsControllerDeleteProject, projectsControllerGetAllProjects, projectsControllerGetOneProject, projectsControllerGetProjectsWithPendingFlag, projectsControllerUpdateProject, reviewInboxControllerGetPending, testCommandsControllerDeleteVisualTest, testCommandsControllerUpdateThreshold, testsQueriesControllerGetKind, testsQueriesControllerGetTestsForProject, testsQueriesControllerGetTestsWithPendingStatus, testsQueriesControllerGetVisualTestDetails, uploadControllerUpload } from './sdk.gen';
+export { adminApiKeysControllerCreate, approvalsControllerApprovePdfTest, approvalsControllerApproveVisualTest, authControllerLogin, authControllerLogout, authControllerMe, branchesControllerList, branchesControllerRemove, branchesControllerUpdate, healthControllerCheck, healthControllerCheckDatabase, healthControllerCheckStorage, healthControllerReadiness, metricsControllerGetMetrics, pdfControllerDownloadPdf, pdfControllerGetPdfTestDetails, pdfControllerRenderPdfPage, projectGroupsControllerCreate, projectGroupsControllerFindAll, projectGroupsControllerRemove, projectGroupsControllerRename, projectsControllerCreate, projectsControllerDeleteProject, projectsControllerGetAllProjects, projectsControllerGetOneProject, projectsControllerGetProjectsWithPendingFlag, projectsControllerUpdateProject, reviewInboxControllerGetPending, testCommandsControllerDeleteVisualTest, testCommandsControllerUpdateThreshold, testsQueriesControllerGetKind, testsQueriesControllerGetTestsForProject, testsQueriesControllerGetTestsWithPendingStatus, testsQueriesControllerGetVariants, testsQueriesControllerGetVisualTestDetails, uploadControllerUpload } from './sdk.gen';
 export { ComparisonErrorCode, ComparisonOutcome, ComparisonStatus, ScreenshotType, TestStatus } from './types.gen';

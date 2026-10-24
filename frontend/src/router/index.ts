@@ -11,6 +11,7 @@ import GroupsView from "@/views/GroupsView.vue";
 import ProjectDetailView from "@/views/ProjectDetailView.vue";
 import ApprovalDoneView from "@/views/ApprovalDoneView.vue";
 import TestDetailDispatcher from "@/components/TestDetailDispatcher.vue";
+import TestOverviewView from "@/views/TestOverviewView.vue";
 import LoginView from "@/views/LoginView.vue";
 import { authGuard } from "@/lib/auth-guard";
 
@@ -49,6 +50,12 @@ const routes: RouteRecordRaw[] = [
     path: "/projects/:projectName/tests/:testName",
     name: "test-detail",
     component: TestDetailDispatcher,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/projects/:projectName/tests/:testName/overview",
+    name: "test-overview",
+    component: TestOverviewView,
     meta: { requiresAuth: true },
   },
   {

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   REVIEW_LOOP_NAV_STATE,
+  passMarkState,
   resetReviewSeen,
   markSeen,
   isSeen,
@@ -122,5 +123,17 @@ describe("review-pass", () => {
     markSeen("project-a", "key");
     beginPassForProject("project-a");
     expect(isSeen("project-a", "key")).toBe(false);
+  });
+
+  it("passMarkState carries the pass mark into a same-test navigation", () => {
+    historyState.mockReturnValueOnce({ fromReviewLoop: true });
+
+    expect(passMarkState()).toEqual(REVIEW_LOOP_NAV_STATE);
+  });
+
+  it("passMarkState leaves a navigation outside a pass unmarked", () => {
+    historyState.mockReturnValueOnce(null);
+
+    expect(passMarkState()).toBeUndefined();
   });
 });

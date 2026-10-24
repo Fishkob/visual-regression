@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { VisualTestDetailsDto } from "@sdk";
-import { mapVisualTestDetails } from "../visual-test.mapper";
+import type { TestVariantsDto, VisualTestDetailsDto } from "@sdk";
+import { mapTestVariants, mapVisualTestDetails } from "../visual-test.mapper";
 
 const baseDto: VisualTestDetailsDto = {};
 
@@ -117,5 +117,70 @@ describe("mapVisualTestDetails", () => {
 
     expect(result?.origin).toBe("inherited");
     expect(result?.inheritedFrom).toBe("main");
+  });
+});
+
+describe("mapTestVariants", () => {
+  const dto: TestVariantsDto = {
+    name: "login-form",
+    kind: "image",
+    variants: [
+      {
+        viewport: "1920x1080",
+        browser: "chrome",
+        environment: "staging",
+        status: "UNCHANGED",
+        baselineUrl: "/baseline.png",
+        candidateUrl: null,
+        mismatchPixelCount: null,
+        baselineInherited: false,
+      },
+      {
+        viewport: "375x667",
+        browser: "webkit",
+        environment: "staging",
+        status: "PENDING_APPROVAL",
+        baselineUrl: "/mobile-baseline.png",
+        candidateUrl: "/mobile-candidate.png",
+        mismatchPixelCount: 42,
+        baselineInherited: true,
+      },
+    ],
+  };
+
+  it("returns null for a missing dto", () => {
+    expect(mapTestVariants(undefined)).toBeNull();
+    expect(mapTestVariants(null)).toBeNull();
+  });
+
+  it("maps the test identity and every variant", () => {
+    const result = mapTestVariants(dto);
+
+    expect(result?.name).toBe("login-form");
+    expect(result?.kind).toBe("image");
+    expect(result?.variants).toHaveLength(2);
+    expect(result?.variants[1]).toEqual({
+      viewport: "375x667",
+      browser: "webkit",
+      environment: "staging",
+      status: "PENDING_APPROVAL",
+      baselineUrl: "/mobile-baseline.png",
+      candidateUrl: "/mobile-candidate.png",
+      mismatchPixelCount: 42,
+      baselineInherited: true,
+    });
+  });
+
+  it("omits null URLs and counts instead of mapping them to undefined keys", () => {
+    const result = mapTestVariants(dto);
+
+    expect(result?.variants[0]).toEqual({
+      viewport: "1920x1080",
+      browser: "chrome",
+      environment: "staging",
+      status: "UNCHANGED",
+      baselineUrl: "/baseline.png",
+      baselineInherited: false,
+    });
   });
 });

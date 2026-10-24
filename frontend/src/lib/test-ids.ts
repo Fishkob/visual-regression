@@ -67,6 +67,16 @@ export const TEST_ID = {
   zoomReset: "zoom-reset",
   zoomLevel: "zoom-level",
 
+  variantGallery: "variant-gallery",
+  variantGalleryTile: "variant-gallery-tile",
+  variantGalleryStatus: "variant-gallery-status",
+  variantGalleryMismatch: "variant-gallery-mismatch",
+  variantGalleryPendingCount: "variant-gallery-pending-count",
+  testOverview: "test-overview",
+  testOverviewCard: "test-overview-card",
+  testOverviewBack: "test-overview-back",
+  testOverviewPdfNote: "test-overview-pdf-note",
+
   mismatchInfo: "mismatch-info",
   downloadBaseline: "download-baseline",
   downloadCandidate: "download-candidate",

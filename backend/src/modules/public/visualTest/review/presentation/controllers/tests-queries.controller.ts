@@ -11,7 +11,10 @@ import {
   ProjectTestDto,
   TestNamesQueryDto,
 } from '@public/visualTest/review/presentation/dto/project.dto';
-import { VisualTestDetailsDto } from '@public/visualTest/review/presentation/dto/visual-test.dto';
+import {
+  TestVariantsDto,
+  VisualTestDetailsDto,
+} from '@public/visualTest/review/presentation/dto/visual-test.dto';
 import { BranchPaginationDto } from '@common/dto/branch-pagination.dto';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import { PendingTestDto } from '@public/visualTest/review/presentation/dto/review-responses.dto';
@@ -50,6 +53,20 @@ export class TestsQueriesController {
     @BranchQuery() branch?: string,
   ) {
     return this.testQuery.getKind(projectName, testName, branch);
+  }
+
+  @Get(':testName/variants')
+  @ApiOperation({
+    summary: 'List the variants of an image test with status and thumbnails',
+  })
+  @ApiOkResponse({ type: TestVariantsDto })
+  @ApiNotFoundResponse({ description: 'Test not found' })
+  async getVariants(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('testName', ProjectTestNameValidationPipe) testName: string,
+    @BranchQuery() branch?: string,
+  ) {
+    return this.testQuery.getTestVariants(projectName, testName, branch);
   }
 
   @Get('meta/pending')

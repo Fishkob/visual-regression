@@ -465,6 +465,57 @@ describe('TestReadRepository', () => {
     });
   });
 
+  describe('findTestVariantSummaries', () => {
+    const summary = {
+      viewport: '1280x720',
+      browser: 'chrome',
+      environment: 'production',
+      baselineUrl: 'http://example.com/base.png',
+      isInherited: false,
+      latestComparison: null,
+    };
+
+    it('returns the effective test with its variant summaries', async () => {
+      mockClient.project.findUnique.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        unifiedTests: [
+          { id: 'test-1', name: 'my-test', kind: 'image', createdAt: now },
+        ],
+      });
+      variants.findVariantSummariesFor.mockResolvedValue([summary]);
+
+      const result = await repository.findTestVariantSummaries(
+        'my-project',
+        'my-test',
+        'feature/x',
+      );
+
+      expect(result).toEqual({
+        name: 'my-test',
+        kind: 'image',
+        variants: [summary],
+      });
+      expect(branches.resolveRead).toHaveBeenCalledWith(
+        'my-project',
+        'feature/x',
+      );
+      expect(variants.findVariantSummariesFor).toHaveBeenCalledWith('test-1');
+    });
+
+    it('returns null for an unknown test', async () => {
+      mockClient.project.findUnique.mockResolvedValue(null);
+
+      const result = await repository.findTestVariantSummaries(
+        'my-project',
+        'missing',
+      );
+
+      expect(result).toBeNull();
+      expect(variants.findVariantSummariesFor).not.toHaveBeenCalled();
+    });
+  });
+
   describe('findVisualTestDetails', () => {
     const test = {
       id: 'test-1',

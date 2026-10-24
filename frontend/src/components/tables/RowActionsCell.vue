@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 
-import { MoreVertical, Trash2 } from "@lucide/vue";
+import { LayoutGrid, MoreVertical, Trash2 } from "@lucide/vue";
 
 // Single owner of the row-actions overflow menu: an open-state DropdownMenu with
 // a destructive delete item. Tables pass the delete label, a testid, and their
@@ -21,16 +21,25 @@ defineProps<{
   deleteLabel: string;
   testId: string;
   readOnly?: boolean;
+  // Optional non-destructive entry in the same menu (e.g. the read-only
+  // variant overview for a row). Omitted by callers that only offer delete.
+  overviewLabel?: string;
 }>();
 
 const emit = defineEmits<{
   (e: "requestDelete"): void;
+  (e: "requestOverview"): void;
 }>();
 
 const open = ref(false);
 
 function handleSelect() {
   emit("requestDelete");
+  open.value = false;
+}
+
+function handleOverview() {
+  emit("requestOverview");
   open.value = false;
 }
 </script>
@@ -56,6 +65,14 @@ function handleSelect() {
         @close-auto-focus.prevent
         @interact-outside="open = false"
       >
+        <DropdownMenuItem
+          v-if="overviewLabel"
+          class="cursor-pointer"
+          @click="handleOverview"
+        >
+          <LayoutGrid class="w-4 h-4 mr-2" />
+          {{ overviewLabel }}
+        </DropdownMenuItem>
         <DropdownMenuItem
           class="text-status-danger focus:text-status-danger cursor-pointer"
           @click="handleSelect"

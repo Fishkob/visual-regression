@@ -10,7 +10,10 @@ import { GROUPS_RESPONSE } from "../ct/mocks/groups.mocks";
 import { PDF_TEST_DETAILS_BASELINE_NO_PAGE_COUNT } from "../ct/mocks/pdfTest.mocks";
 import { makeReviewableDetails } from "../ct/mocks/reviewLoop.mocks";
 import { CHROME_1920_1080_STAGING } from "../ct/mocks/variants";
-import { VISUAL_TEST_PENDING_META } from "../ct/mocks/visualTest.mocks";
+import {
+  VISUAL_TEST_PENDING_META,
+  VISUAL_TEST_VARIANTS_SINGLE,
+} from "../ct/mocks/visualTest.mocks";
 import type { FulfillResponse } from "../ct/routes/api.routes";
 
 type MockRoute = [glob: string, response: FulfillResponse];
@@ -34,6 +37,8 @@ const VISUAL_DETAILS_ROUTE = `/projects/checkout-ui/tests/checkout-flow?${CHROME
 const VISUAL_DETAILS_GLOB = `**/api/v1/projects/checkout-ui/tests/checkout-flow?${CHROME_1920_1080_STAGING}`;
 const VISUAL_PENDING_GLOB =
   "**/api/v1/projects/checkout-ui/tests/meta/pending*";
+const VISUAL_VARIANTS_GLOB =
+  "**/api/v1/projects/checkout-ui/tests/checkout-flow/variants*";
 const PDF_DETAILS_ROUTE = `/projects/checkout-ui/tests/invoice?${CHROME_1920_1080_STAGING}`;
 const PDF_DETAILS_GLOB = `**/api/v1/projects/checkout-ui/tests/invoice/pdf-details?${CHROME_1920_1080_STAGING}`;
 
@@ -66,6 +71,7 @@ export const QUALITY_CASES: QualityCase[] = [
       [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
       [VISUAL_DETAILS_GLOB, makeReviewableDetails("checkout-flow")],
       [VISUAL_PENDING_GLOB, VISUAL_TEST_PENDING_META],
+      [VISUAL_VARIANTS_GLOB, VISUAL_TEST_VARIANTS_SINGLE],
     ],
     readyTestId: TEST_ID.comparisonView,
     readyAlsoTestId: TEST_ID.breadcrumbGroup,

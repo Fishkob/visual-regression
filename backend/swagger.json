@@ -832,6 +832,57 @@
         ]
       }
     },
+    "/projects/{projectName}/tests/{testName}/variants": {
+      "get": {
+        "operationId": "TestsQueriesController_getVariants",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestVariantsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Test not found"
+          }
+        },
+        "summary": "List the variants of an image test with status and thumbnails",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
     "/projects/{projectName}/tests/meta/pending": {
       "get": {
         "operationId": "TestsQueriesController_getTestsWithPendingStatus",
@@ -2261,6 +2312,81 @@
         "required": [
           "data",
           "meta"
+        ]
+      },
+      "TestVariantSummaryDto": {
+        "type": "object",
+        "properties": {
+          "viewport": {
+            "type": "string",
+            "example": "1920x1080"
+          },
+          "browser": {
+            "type": "string",
+            "example": "chromium"
+          },
+          "environment": {
+            "type": "string",
+            "example": "staging"
+          },
+          "status": {
+            "description": "Per-variant status, derived like the project overview",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestStatus"
+              }
+            ]
+          },
+          "baselineUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "candidateUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Candidate image of the pending comparison, if the variant has one"
+          },
+          "mismatchPixelCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "baselineInherited": {
+            "type": "boolean",
+            "description": "True while the variant's baseline is an inherited clone that follows the target branch"
+          }
+        },
+        "required": [
+          "viewport",
+          "browser",
+          "environment",
+          "status",
+          "baselineUrl",
+          "candidateUrl",
+          "mismatchPixelCount",
+          "baselineInherited"
+        ]
+      },
+      "TestVariantsDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "example": "image"
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestVariantSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "kind",
+          "variants"
         ]
       },
       "PendingTestDto": {

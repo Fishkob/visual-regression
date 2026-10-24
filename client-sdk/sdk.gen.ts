@@ -82,6 +82,9 @@ import type { TestsQueriesControllerGetTestsForProjectData } from './models/Test
 import type { TestsQueriesControllerGetTestsForProjectResponses } from './models/TestsQueriesControllerGetTestsForProjectResponses.gen';
 import type { TestsQueriesControllerGetTestsWithPendingStatusData } from './models/TestsQueriesControllerGetTestsWithPendingStatusData.gen';
 import type { TestsQueriesControllerGetTestsWithPendingStatusResponses } from './models/TestsQueriesControllerGetTestsWithPendingStatusResponses.gen';
+import type { TestsQueriesControllerGetVariantsData } from './models/TestsQueriesControllerGetVariantsData.gen';
+import type { TestsQueriesControllerGetVariantsErrors } from './models/TestsQueriesControllerGetVariantsErrors.gen';
+import type { TestsQueriesControllerGetVariantsResponses } from './models/TestsQueriesControllerGetVariantsResponses.gen';
 import type { TestsQueriesControllerGetVisualTestDetailsData } from './models/TestsQueriesControllerGetVisualTestDetailsData.gen';
 import type { TestsQueriesControllerGetVisualTestDetailsErrors } from './models/TestsQueriesControllerGetVisualTestDetailsErrors.gen';
 import type { TestsQueriesControllerGetVisualTestDetailsResponses } from './models/TestsQueriesControllerGetVisualTestDetailsResponses.gen';
@@ -252,6 +255,15 @@ export const testsQueriesControllerGetTestsForProject = <ThrowOnError extends bo
 export const testsQueriesControllerGetKind = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetKindData, ThrowOnError>): RequestResult<TestsQueriesControllerGetKindResponses, unknown, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetKindResponses, unknown, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/projects/{projectName}/tests/{testName}/kind',
+    ...options
+});
+
+/**
+ * List the variants of an image test with status and thumbnails
+ */
+export const testsQueriesControllerGetVariants = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetVariantsData, ThrowOnError>): RequestResult<TestsQueriesControllerGetVariantsResponses, TestsQueriesControllerGetVariantsErrors, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetVariantsResponses, TestsQueriesControllerGetVariantsErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/variants',
     ...options
 });
 

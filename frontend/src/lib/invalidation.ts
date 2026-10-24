@@ -43,6 +43,9 @@ export function invalidateVisualTestDetails(
   args: TestDetailsArgs,
 ) {
   invalidateTestDetails(client, args, visualTestQueryKeys.details);
+  // The gallery renders the comparison the detail panel shows, so an approval
+  // changes a tile (status, candidate image) in the same breath.
+  client.invalidateQueries({ queryKey: visualTestQueryKeys.variantsAll() });
 }
 
 export function invalidatePdfTestDetails(

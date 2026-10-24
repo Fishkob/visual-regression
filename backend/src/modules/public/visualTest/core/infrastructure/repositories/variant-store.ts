@@ -11,6 +11,7 @@ import {
 import {
   ComparisonStatus,
   LATEST_REVIEWABLE_COMPARISON_QUERY,
+  LATEST_REVIEWABLE_COMPARISON_SUMMARY_QUERY,
 } from '@public/visualTest/core/domain/types/visual-test.types';
 import { isString } from '@common/utils/is-string';
 import type { Prisma } from '@/prisma/client';
@@ -28,6 +29,24 @@ export interface VariantStatusSignalRow {
   environment: string;
   hasBaseline: boolean;
   latestComparisonStatus: ComparisonStatus | null;
+}
+
+export interface VariantSummaryComparisonRow {
+  status: ComparisonStatus;
+  mismatchPixelCount: number;
+  candidate: { imageUrl: string } | null;
+}
+
+// One tile of the variant gallery: the variant's identity, the image that
+// represents it (its baseline) and the latest reviewable comparison. Typed
+// rather than a Prisma payload for the same reason as ReviewVariantRow.
+export interface VariantSummaryRow {
+  viewport: string;
+  browser: string;
+  environment: string;
+  baselineUrl: string | null;
+  isInherited: boolean;
+  latestComparison: VariantSummaryComparisonRow | null;
 }
 
 export interface VariantBaselineRow {
@@ -287,6 +306,41 @@ export class VariantStore extends BaseRepository {
       environment: v.environment,
       hasBaseline: v.baseline != null,
       latestComparisonStatus: v.baseline?.asBaselineComp[0]?.status ?? null,
+    }));
+  }
+
+  // The variant gallery's read: every variant of one test with the image that
+  // represents it and the latest reviewable comparison's summary. Shares the
+  // status set + ordering with findVariantStatusSignalsFor, so the gallery
+  // cannot surface a different "latest comparison" than the status it shows.
+  async findVariantSummariesFor(testId: string): Promise<VariantSummaryRow[]> {
+    const variants = await this.client.unifiedVariant.findMany({
+      where: { testId },
+      orderBy: [
+        { viewport: 'asc' },
+        { browser: 'asc' },
+        { environment: 'asc' },
+      ],
+      select: {
+        viewport: true,
+        browser: true,
+        environment: true,
+        isInherited: true,
+        baseline: {
+          select: {
+            imageUrl: true,
+            asBaselineComp: LATEST_REVIEWABLE_COMPARISON_SUMMARY_QUERY,
+          },
+        },
+      },
+    });
+    return variants.map((v) => ({
+      viewport: v.viewport,
+      browser: v.browser,
+      environment: v.environment,
+      baselineUrl: v.baseline?.imageUrl ?? null,
+      isInherited: v.isInherited,
+      latestComparison: v.baseline?.asBaselineComp[0] ?? null,
     }));
   }
 }

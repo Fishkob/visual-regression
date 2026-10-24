@@ -1,4 +1,4 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { Allow, IsOptional, IsString } from 'class-validator';
 import { TestStatus } from '@public/visualTest/core/domain/types/visual-test.types';
@@ -107,4 +107,68 @@ export class VisualTestDetailsDto {
   @IsString()
   @Expose()
   inheritTarget?: string | null;
+}
+
+// One tile of the variant gallery: the variant's identity, the image that
+// represents it (the candidate while a change is pending, otherwise the
+// baseline) and how much it differs.
+export class TestVariantSummaryDto {
+  @ApiProperty({ example: '1920x1080' })
+  @Expose()
+  viewport!: string;
+
+  @ApiProperty({ example: 'chromium' })
+  @Expose()
+  browser!: string;
+
+  @ApiProperty({ example: 'staging' })
+  @Expose()
+  environment!: string;
+
+  @ApiProperty({
+    enum: TestStatus,
+    enumName: 'TestStatus',
+    description: 'Per-variant status, derived like the project overview',
+  })
+  @Expose()
+  status!: TestStatus;
+
+  @ApiProperty({ type: String, nullable: true })
+  @Expose()
+  baselineUrl!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'Candidate image of the pending comparison, if the variant has one',
+  })
+  @Expose()
+  candidateUrl!: string | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  @Expose()
+  mismatchPixelCount!: number | null;
+
+  @ApiProperty({
+    description:
+      "True while the variant's baseline is an inherited clone that follows the target branch",
+  })
+  @Expose()
+  baselineInherited!: boolean;
+}
+
+export class TestVariantsDto {
+  @ApiProperty()
+  @Expose()
+  name!: string;
+
+  @ApiProperty({ example: 'image' })
+  @Expose()
+  kind!: string;
+
+  @ApiProperty({ type: () => TestVariantSummaryDto, isArray: true })
+  @Type(() => TestVariantSummaryDto)
+  @Expose()
+  variants!: TestVariantSummaryDto[];
 }

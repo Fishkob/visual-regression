@@ -53,6 +53,17 @@ export function useTestNavigation(options: TestNavigationOptions) {
     navigateToTest(t, { fromLoop: true });
   }
 
+  // The browse entry: the overview shows every variant of the test at once and
+  // is not part of the review pass, so it carries no loop mark.
+  function navigateToTestOverview(t: { name?: string }) {
+    if (!t.name) return;
+    router.push({
+      name: "test-overview",
+      params: { projectName: projectName.value, testName: t.name },
+      ...(branchName?.value ? { query: branchQuery() } : {}),
+    });
+  }
+
   function navigateToInbox() {
     router.push({
       name: "review-inbox",
@@ -67,6 +78,7 @@ export function useTestNavigation(options: TestNavigationOptions) {
     navigateToProjectDone,
     navigateToTest,
     navigateToNextTest,
+    navigateToTestOverview,
     navigateToInbox,
   };
 }

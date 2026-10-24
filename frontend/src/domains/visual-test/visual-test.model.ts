@@ -6,7 +6,7 @@ export interface Screenshot {
   environment?: string;
 }
 
-import type { VisualTestStatus } from "@/domains/test-status";
+import type { TestStatusValue, VisualTestStatus } from "@/domains/test-status";
 import type { BranchOrigin } from "@/domains/branches/branch-origin";
 
 export interface Comparison {
@@ -31,4 +31,24 @@ export interface VisualTestDetails {
   // the test row.
   baselineInherited?: boolean;
   inheritTarget?: string | null;
+}
+
+// One tile of the variant gallery: a single configuration of the same test
+// (viewport/browser/environment) with the image that represents its current
+// state — the candidate while a change is pending, otherwise the baseline.
+export interface VariantSummary {
+  viewport: string;
+  browser: string;
+  environment: string;
+  status: TestStatusValue;
+  baselineUrl?: string;
+  candidateUrl?: string;
+  mismatchPixelCount?: number;
+  baselineInherited: boolean;
+}
+
+export interface TestVariants {
+  name?: string;
+  kind?: string;
+  variants: VariantSummary[];
 }

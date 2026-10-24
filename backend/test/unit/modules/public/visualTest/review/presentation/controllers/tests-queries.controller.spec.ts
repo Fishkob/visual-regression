@@ -111,6 +111,46 @@ describe('TestsQueriesController', () => {
     });
   });
 
+  describe('getVariants', () => {
+    it('delegates to the query service with the branch', async () => {
+      const variants = {
+        name: 'login-form',
+        kind: 'image',
+        variants: [],
+      };
+      testQuery.getTestVariants.mockResolvedValue(variants as never);
+
+      const result = await controller.getVariants(
+        'checkout-ui',
+        'login-form',
+        'feature/x',
+      );
+
+      expect(result).toBe(variants);
+      expect(testQuery.getTestVariants).toHaveBeenCalledWith(
+        'checkout-ui',
+        'login-form',
+        'feature/x',
+      );
+    });
+
+    it('omits the branch when none is given', async () => {
+      testQuery.getTestVariants.mockResolvedValue({
+        name: 'login-form',
+        kind: 'image',
+        variants: [],
+      } as never);
+
+      await controller.getVariants('checkout-ui', 'login-form');
+
+      expect(testQuery.getTestVariants).toHaveBeenCalledWith(
+        'checkout-ui',
+        'login-form',
+        undefined,
+      );
+    });
+  });
+
   const mockVariant = Variant.fromStrings('1920x1080', 'Chrome', 'ci');
   const mockBaseline = new ScreenshotEntity({
     id: 'ss-1',

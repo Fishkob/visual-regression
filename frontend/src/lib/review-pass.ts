@@ -100,3 +100,12 @@ export function beginPassForProject(projectName: string): void {
     resetReviewSeen(projectName);
   }
 }
+
+// The history-state payload for a same-test navigation (a variant switch on the
+// details page). It carries the current entry's pass mark so switching variants
+// keeps that entry inside the pass instead of turning it into a fresh-pass
+// entry; outside a pass it stays undefined and the navigation is unmarked.
+// One owner for the mark, as with the navigator and the pass rule above.
+export function passMarkState(): typeof REVIEW_LOOP_NAV_STATE | undefined {
+  return isFromReviewLoopNavigation() ? REVIEW_LOOP_NAV_STATE : undefined;
+}

@@ -1,7 +1,13 @@
-import type { ScreenshotDto, ComparisonDto, VisualTestDetailsDto } from "@sdk";
+import type {
+  ScreenshotDto,
+  ComparisonDto,
+  TestVariantsDto,
+  VisualTestDetailsDto,
+} from "@sdk";
 import type {
   Screenshot,
   Comparison,
+  TestVariants,
   VisualTestDetails,
 } from "./visual-test.model";
 
@@ -44,5 +50,27 @@ export function mapVisualTestDetails(
     ...(dto.inheritTarget !== undefined
       ? { inheritTarget: dto.inheritTarget }
       : {}),
+  };
+}
+
+export function mapTestVariants(
+  dto: TestVariantsDto | null | undefined,
+): TestVariants | null {
+  if (!dto) return null;
+  return {
+    name: dto.name,
+    kind: dto.kind,
+    variants: dto.variants.map((variant) => ({
+      viewport: variant.viewport,
+      browser: variant.browser,
+      environment: variant.environment,
+      status: variant.status,
+      baselineInherited: variant.baselineInherited,
+      ...(variant.baselineUrl ? { baselineUrl: variant.baselineUrl } : {}),
+      ...(variant.candidateUrl ? { candidateUrl: variant.candidateUrl } : {}),
+      ...(variant.mismatchPixelCount != null
+        ? { mismatchPixelCount: variant.mismatchPixelCount }
+        : {}),
+    })),
   };
 }

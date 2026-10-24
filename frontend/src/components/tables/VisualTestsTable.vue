@@ -50,13 +50,16 @@ const {
   branchName: toRef(props, "branchName"),
 });
 
-const { navigateToTest } = useTestNavigation({
+const { navigateToTestOverview } = useTestNavigation({
   projectName: toRef(props, "projectName"),
   branchName: toRef(props, "branchName"),
 });
 
+// A row is "show me this test": the overview lists every variant, and the
+// comparison (review) is one click further in. The review loop from the inbox
+// still navigates straight to the detail page.
 function handleRowClick(t: VisualTestItem) {
-  navigateToTest(t);
+  navigateToTestOverview(t);
 }
 
 function inheritedBadge(inheritedFrom: string | null | undefined) {
@@ -105,9 +108,11 @@ const columns: ColumnDef<AppTableFeatures, VisualTestItem>[] = [
     cell: ({ row }) =>
       h(RowActionsCell, {
         deleteLabel: "Delete variant",
+        overviewLabel: "Overview",
         testId: TEST_ID.testActionsButton,
         readOnly: isInheritedOrigin(row.original.origin),
         onRequestDelete: () => requestDelete(row.original),
+        onRequestOverview: () => navigateToTestOverview(row.original),
       }),
   },
 ];
