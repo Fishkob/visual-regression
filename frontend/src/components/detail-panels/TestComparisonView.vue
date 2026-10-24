@@ -8,6 +8,9 @@ import type { Comparison } from "@/domains/visual-test/visual-test.model";
 const props = defineProps<{
   comparison: Comparison;
   isApproving?: boolean;
+  // Inherited baselines are read-only on this branch: the approve/skip actions
+  // belong to the branch that owns the baseline.
+  readOnly?: boolean;
 }>();
 
 defineEmits<{
@@ -32,6 +35,7 @@ defineEmits<{
       />
 
       <ApproveSkipFooter
+        v-if="!readOnly"
         :approved="isApproved(props.comparison.status)"
         :is-approving="props.isApproving"
         @skip="$emit('skip')"

@@ -1,5 +1,5 @@
-import { defineComponent, h } from "vue";
+import { createRoutedView } from "@/lib/story";
 
 import InboxView from "./InboxView.vue";
 
-export const Inbox = defineComponent(() => () => h(InboxView));
+export const Inbox = createRoutedView(InboxView);

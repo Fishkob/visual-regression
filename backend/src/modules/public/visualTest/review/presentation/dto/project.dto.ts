@@ -25,6 +25,7 @@ import {
   MAX_NAME_LENGTH,
   PROJECT_RESERVED_NAMES,
 } from '@common/http/pipes/name-validation.util';
+import { MAX_BRANCH_NAME_LENGTH } from '@public/visualTest/core/domain/constants/branch.constants';
 
 export class ProjectDto {
   @ApiPropertyOptional({ example: 'project_123' })
@@ -63,6 +64,18 @@ export class ProjectDto {
   @IsString()
   @Expose()
   groupName?: string | null;
+
+  @ApiPropertyOptional({ example: 'feature/x' })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  branchName?: string;
+
+  @ApiPropertyOptional({ example: 'main' })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  defaultBranchName?: string;
 
   @ApiPropertyOptional({ example: 3, type: Number })
   @IsOptional()
@@ -106,6 +119,18 @@ export class ProjectTestDto {
   @Allow()
   @Expose()
   status?: TestStatus | null;
+
+  @ApiPropertyOptional({ enum: ['branch', 'inherited'] })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  origin?: 'branch' | 'inherited';
+
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  inheritedFrom?: string | null;
 }
 
 export class CreateProjectDto {
@@ -138,6 +163,15 @@ export class UpdateProjectDto {
   @IsString()
   @MinLength(1)
   groupId?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Branch to promote to the project default',
+    example: 'release/1.2',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_BRANCH_NAME_LENGTH)
+  defaultBranchName?: string;
 }
 
 export class UpdateThresholdDto {
@@ -163,6 +197,15 @@ export class TestNamesQueryDto extends PaginationDto {
   @IsOptional()
   @IsString()
   kind?: string;
+
+  // Declared for the whitelist only; BranchNameValidationPipe owns the rule
+  // (so a repeated/malformed branch is a 400 on every route).
+  @ApiPropertyOptional({
+    description: 'Branch to read (defaults to the project default branch)',
+  })
+  @IsOptional()
+  @Allow()
+  branch?: string;
 }
 
 export class UpdateThresholdQueryDto extends VariantFilterDto {

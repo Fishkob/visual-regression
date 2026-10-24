@@ -7,6 +7,8 @@ import {
 } from '@public/visualTest/core/domain/types/visual-test.types';
 import { resolveVariantStatusFromComparison } from '@public/visualTest/core/domain/policies/test-status.policy';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
+import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
+import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
 
 export interface PendingCount {
   projectId: string;
@@ -25,6 +27,8 @@ export interface ProjectVariantStatus {
   browser: string;
   environment: string;
   status: TestStatus;
+  origin: 'branch' | 'inherited';
+  inheritedFrom: string | null;
 }
 
 export interface ProjectWithVariants {
@@ -33,6 +37,8 @@ export interface ProjectWithVariants {
   createdAt: Date;
   groupId: string | null;
   groupName: string | null;
+  branchName: string;
+  defaultBranchName: string;
   variants: ProjectVariantStatus[];
 }
 
@@ -58,6 +64,8 @@ export class ProjectReadRepository {
   constructor(
     private readonly connection: PrismaConnection,
     private readonly variants: VariantStore,
+    private readonly branchResolver: BranchResolver,
+    private readonly branchTests: BranchTestRepository,
   ) {}
 
   private get client() {
@@ -66,6 +74,7 @@ export class ProjectReadRepository {
 
   async getWithLatestVariantStatuses(
     projectName: string,
+    branchName?: string,
   ): Promise<ProjectWithVariants | null> {
     const project = await this.client.project.findUnique({
       where: { name: projectName },
@@ -73,20 +82,44 @@ export class ProjectReadRepository {
     });
     if (!project) return null;
 
-    const signalRows = await this.variants.findVariantStatusSignalsFor({
-      test: { project: { name: projectName } },
+    const branch = await this.branchResolver.resolveRead(
+      projectName,
+      branchName,
+    );
+    const defaultBranchName = await this.branchResolver.resolveDefaultName(
+      project.id,
+    );
+    // No pagination: the overview needs every effective test, and omitting it
+    // must not silently truncate the set.
+    const effective = await this.branchTests.findEffectiveTests(
+      branch.branchId,
+    );
+    const effectiveByName = new Map(
+      effective.data.map((test) => [test.name, test]),
+    );
+    const testIds = effective.data.map((test) => test.id);
+    const signalRows =
+      testIds.length === 0
+        ? []
+        : await this.variants.findVariantStatusSignalsFor({
+            testId: { in: testIds },
+          });
+    const resultVariants: ProjectVariantStatus[] = signalRows.map((row) => {
+      const effectiveTest = effectiveByName.get(row.testName);
+      return {
+        testName: row.testName,
+        kind: row.testKind,
+        viewport: row.viewport,
+        browser: row.browser,
+        environment: row.environment,
+        status: resolveVariantStatusFromComparison(
+          row.latestComparisonStatus ?? undefined,
+          row.hasBaseline,
+        ),
+        origin: effectiveTest?.origin ?? 'branch',
+        inheritedFrom: effectiveTest?.inheritedFrom ?? null,
+      };
     });
-    const resultVariants: ProjectVariantStatus[] = signalRows.map((row) => ({
-      testName: row.testName,
-      kind: row.testKind,
-      viewport: row.viewport,
-      browser: row.browser,
-      environment: row.environment,
-      status: resolveVariantStatusFromComparison(
-        row.latestComparisonStatus ?? undefined,
-        row.hasBaseline,
-      ),
-    }));
 
     return {
       id: project.id,
@@ -94,6 +127,8 @@ export class ProjectReadRepository {
       createdAt: project.createdAt,
       groupId: project.group?.id ?? null,
       groupName: project.group?.name ?? null,
+      branchName: branch.branchName,
+      defaultBranchName,
       variants: resultVariants,
     };
   }
@@ -169,14 +204,16 @@ export class ProjectReadRepository {
     const result = await this.client.$queryRaw<
       { projectId: string; testCount: bigint }[]
     >`
-      SELECT "projectId", COUNT(*) as "testCount"
-      FROM "UnifiedTest"
-      WHERE ${
-        projectIds && projectIds.length > 0
-          ? Prisma.sql`"projectId" IN (${Prisma.join(projectIds)})`
-          : Prisma.sql`TRUE`
-      }
-      GROUP BY "projectId"
+      SELECT b."projectId" as "projectId", COUNT(DISTINCT t."name") as "testCount"
+      FROM "UnifiedTest" t
+      JOIN "Branch" b ON b."id" = t."branchId"
+      WHERE b."isArchived" = false
+        ${
+          projectIds && projectIds.length > 0
+            ? Prisma.sql`AND b."projectId" IN (${Prisma.join(projectIds)})`
+            : Prisma.empty
+        }
+      GROUP BY b."projectId"
     `;
     return result.map(({ projectId, testCount }) => ({
       projectId,
@@ -188,16 +225,18 @@ export class ProjectReadRepository {
     const result = await this.client.$queryRaw<
       { projectId: string; pendingCount: bigint }[]
     >`
-      SELECT ut."projectId" as "projectId", COUNT(uc.id) as "pendingCount"
+      SELECT b."projectId" as "projectId", COUNT(uc.id) as "pendingCount"
       FROM "UnifiedComparison" uc
       JOIN "UnifiedTest" ut ON uc."testId" = ut.id
+      JOIN "Branch" b ON b."id" = ut."branchId"
       WHERE uc.status = ${PENDING_APPROVAL_STATUS_FILTER.status}
+        AND b."isArchived" = false
         ${
           projectIds && projectIds.length > 0
-            ? Prisma.sql`AND ut."projectId" IN (${Prisma.join(projectIds)})`
+            ? Prisma.sql`AND b."projectId" IN (${Prisma.join(projectIds)})`
             : Prisma.empty
         }
-      GROUP BY ut."projectId"
+      GROUP BY b."projectId"
     `;
     return result.map(({ projectId, pendingCount }) => ({
       projectId,

@@ -13,6 +13,8 @@ export interface PendingReviewRow {
   groupName: string | null;
   testName: string;
   kind: string;
+  branchName: string;
+  isDefaultBranch: boolean;
   variant: { viewport: string; browser: string; environment: string };
   mismatchPixelCount: number;
   mismatchPageCount: number | null;
@@ -24,10 +26,17 @@ const INBOX_INCLUDE = {
     select: {
       name: true,
       kind: true,
-      project: {
+      branch: {
         select: {
+          id: true,
           name: true,
-          group: { select: { id: true, name: true } },
+          project: {
+            select: {
+              name: true,
+              defaultBranchId: true,
+              group: { select: { id: true, name: true } },
+            },
+          },
         },
       },
     },
@@ -47,14 +56,28 @@ export class ReviewInboxRepository {
     return this.connection.client;
   }
 
-  async findPending(pagination?: { skip: number; take: number }): Promise<{
+  async findPending(
+    pagination?: { skip: number; take: number },
+    filters?: { branchName?: string; projectName?: string },
+  ): Promise<{
     data: PendingReviewRow[];
     total: number;
   }> {
+    const branchWhere: Prisma.BranchWhereInput = {};
+    if (filters?.branchName) branchWhere.name = filters.branchName;
+    else branchWhere.isArchived = false;
+    if (filters?.projectName)
+      branchWhere.project = { name: filters.projectName };
+    const where: Prisma.UnifiedComparisonWhereInput = {
+      ...PENDING_APPROVAL_STATUS_FILTER,
+      ...(Object.keys(branchWhere).length > 0
+        ? { test: { branch: branchWhere } }
+        : {}),
+    };
     const { data, total } = await findManyWithCount<InboxComparisonRow>(
       this.client.unifiedComparison,
       {
-        where: PENDING_APPROVAL_STATUS_FILTER,
+        where,
         include: INBOX_INCLUDE,
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         skip: pagination?.skip,
@@ -67,11 +90,14 @@ export class ReviewInboxRepository {
         const variant = variantFromRow(row.baseline);
         return {
           comparisonId: row.id,
-          projectName: row.test.project.name,
-          groupId: row.test.project.group?.id ?? null,
-          groupName: row.test.project.group?.name ?? null,
+          projectName: row.test.branch.project.name,
+          groupId: row.test.branch.project.group?.id ?? null,
+          groupName: row.test.branch.project.group?.name ?? null,
           testName: row.test.name,
           kind: row.test.kind,
+          branchName: row.test.branch.name,
+          isDefaultBranch:
+            row.test.branch.id === row.test.branch.project.defaultBranchId,
           variant: {
             viewport: variant.viewport,
             browser: variant.browser,

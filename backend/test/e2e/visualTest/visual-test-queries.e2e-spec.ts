@@ -23,13 +23,11 @@ describe('VisualTest queries (e2e)', () => {
 
   describe('GET /projects/:projectName/tests', () => {
     it('should return tests for a project', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'test-project' },
-      });
+      const { branchId } = await TestApp.createProject('test-project');
       await prisma.unifiedTest.create({
         data: {
           name: 'LoginForm',
-          projectId: project.id,
+          branchId,
           kind: 'image',
           status: TestStatus.PENDING,
         },
@@ -37,7 +35,7 @@ describe('VisualTest queries (e2e)', () => {
       await prisma.unifiedTest.create({
         data: {
           name: 'SignupForm',
-          projectId: project.id,
+          branchId,
           kind: 'image',
           status: TestStatus.UNCHANGED,
         },
@@ -53,7 +51,7 @@ describe('VisualTest queries (e2e)', () => {
     });
 
     it('should return empty list for project with no tests', async () => {
-      await prisma.project.create({ data: { name: 'empty-project' } });
+      await TestApp.createProject('empty-project');
 
       const res = await authRequest(app)
         .get('/api/v1/projects/empty-project/tests')

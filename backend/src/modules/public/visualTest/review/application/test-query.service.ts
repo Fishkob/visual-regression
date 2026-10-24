@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { TestReadRepository } from '@public/visualTest/review/infrastructure/repositories/test-read.repository';
 import { TestResolver } from '@public/visualTest/core/application/services/test-resolver.service';
+import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { DomainError } from '@common/domain/domain-error';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { paginatedQuery } from '@common/utils/paginated-query';
@@ -30,12 +31,14 @@ export class TestQueryService {
   constructor(
     private readonly testRead: TestReadRepository,
     private readonly testResolver: TestResolver,
+    private readonly branches: BranchResolver,
   ) {}
 
   async getTestNames(
     projectName: string,
     pagination: PaginationDto,
     kind?: string,
+    branchName?: string,
   ) {
     if (kind !== undefined && kind !== '' && !isTestKind(kind)) {
       throw new DomainError(`Invalid test kind "${kind}"`, 'BAD_REQUEST');
@@ -43,9 +46,14 @@ export class TestQueryService {
     // The "project exists or 404" rule is single-sourced in the resolver — this
     // endpoint does not re-implement the project lookup, so a missing project
     // stays indistinguishable-by-convention with its sibling list endpoints.
-    const project = await this.testResolver.resolveProject(projectName);
+    const branch = await this.branches.resolveRead(projectName, branchName);
     return paginatedQuery(
-      (args) => this.testRead.getTestNames(project.id, args, kind),
+      (args) =>
+        this.testRead.getTestNames(
+          branch.branchId,
+          args,
+          kind === '' ? undefined : kind,
+        ),
       pagination,
       (row) =>
         plainToInstance(ProjectTestDto, row, {
@@ -54,22 +62,31 @@ export class TestQueryService {
     );
   }
 
+  // Branch-scoped like every other test read: a test that only exists on the
+  // branch resolves through the branch view, so the details dispatcher picks the
+  // right view for it instead of 404ing on the default branch.
   async getKind(
     projectName: string,
     testName: string,
+    branchName?: string,
   ): Promise<{ kind: string }> {
-    const test = await this.testResolver.findTest(projectName, testName);
+    const test = await this.testResolver.findTest(
+      projectName,
+      testName,
+      branchName,
+    );
     return { kind: test.kind };
   }
 
   async getTestsWithPendingStatus(
     projectName: string,
     pagination: PaginationDto,
+    branchName?: string,
   ) {
-    const project = await this.testResolver.resolveProject(projectName);
+    const branch = await this.branches.resolveRead(projectName, branchName);
 
     return paginatedQuery(
-      (args) => this.testRead.getPendingApproval(project.id, args),
+      (args) => this.testRead.getPendingApproval(branch.branchId, args),
       pagination,
       (row) =>
         plainToInstance(PendingTestDto, row, {
@@ -82,8 +99,13 @@ export class TestQueryService {
     projectName: string,
     testName: string,
     filters: VariantFilter,
+    branchName?: string,
   ): Promise<{
     name: string;
+    origin?: 'branch' | 'inherited';
+    inheritedFrom?: string | null;
+    baselineInherited?: boolean;
+    inheritTarget?: string | null;
     baseline?: ScreenshotDto;
     comparison?: ComparisonDto;
   }> {
@@ -92,12 +114,17 @@ export class TestQueryService {
     const {
       exists: hasTest,
       kind,
+      origin,
+      inheritedFrom,
+      baselineInherited: isBaselineInherited,
+      inheritTarget,
       baseline,
       comparison,
     } = await this.testRead.findVisualTestDetails(
       projectName,
       testName,
       filters,
+      branchName,
     );
 
     if (!hasTest) {
@@ -112,11 +139,21 @@ export class TestQueryService {
     if (!baseline) {
       // A missing baseline is a legitimate state for an existing test that
       // has not received its first upload.
-      return { name: testName };
+      return {
+        name: testName,
+        origin,
+        inheritedFrom,
+        baselineInherited: isBaselineInherited,
+        inheritTarget,
+      };
     }
 
     return {
       name: testName,
+      origin,
+      inheritedFrom,
+      baselineInherited: isBaselineInherited,
+      inheritTarget,
       baseline: mapScreenshotToDto(baseline),
       comparison: comparison ? mapComparisonToDto(comparison) : undefined,
     };
@@ -126,6 +163,7 @@ export class TestQueryService {
     projectName: string,
     testName: string,
     filters?: { viewport?: string; browser?: string; environment?: string },
+    branchName?: string,
   ): Promise<PdfTestDetailsDto> {
     Variant.resolveRequiredFilter(filters);
 
@@ -133,6 +171,7 @@ export class TestQueryService {
       projectName,
       testName,
       filters,
+      branchName,
     );
     if (!result) {
       throw new DomainError(

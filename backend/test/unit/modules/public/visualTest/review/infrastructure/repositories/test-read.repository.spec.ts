@@ -4,7 +4,8 @@ import { PrismaConnection } from '@/prisma/prisma-connection';
 import { TestReadRepository } from '@public/visualTest/review/infrastructure/repositories/test-read.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
-import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
+import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
+import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
 import type { TestKind, TestStatus } from '@/prisma/client';
 import { createMock } from '@test/utils/create-mock';
 import { DomainError } from '@common/domain/domain-error';
@@ -22,7 +23,8 @@ describe('TestReadRepository', () => {
   let mockClient: any;
   let variants: Mocked<VariantStore>;
   let comparisons: Mocked<UnifiedComparisonsRepository>;
-  let tests: Mocked<UnifiedTestRepository>;
+  let branches: Mocked<BranchResolver>;
+  let branchTests: Mocked<BranchTestRepository>;
   const now = new Date('2025-01-01T00:00:00Z');
 
   function baselineRow(overrides: Record<string, unknown> = {}): any {
@@ -116,24 +118,47 @@ describe('TestReadRepository', () => {
     });
     variants = createMock<VariantStore>();
     comparisons = createMock<UnifiedComparisonsRepository>();
-    tests = createMock<UnifiedTestRepository>();
-    // Delegate the shared test lookup to the same project.findUnique shape the
-    // tests mock, so existing "project + unifiedTests" setups keep working.
-    tests.findByProjectNameAndTestName.mockImplementation(
-      async (projectName: string, testName: string) => {
+    branches = createMock<BranchResolver>();
+    branches.resolveRead.mockImplementation(async (projectName: string) => ({
+      projectId: `proj-${projectName}`,
+      branchId: `br-${projectName}`,
+      branchName: 'main',
+      isDefault: true,
+      isArchived: false,
+    }));
+    branchTests = createMock<BranchTestRepository>();
+    // Delegate the effective-test lookup to the same project.findUnique shape
+    // the tests mock, so existing "project + unifiedTests" setups keep working.
+    branchTests.findEffectiveTest.mockImplementation(
+      async (branchId: string, testName: string) => {
+        const projectName = branchId.replace(/^br-/, '');
         const project = await mockClient.project.findUnique({
           where: { name: projectName },
           include: {
             unifiedTests: { where: { name: testName }, take: 1 },
           },
         });
-        const test = project?.unifiedTests[0];
+        if (project === null) return null;
+        const defaultTest = {
+          id: 'test-1',
+          name: testName,
+          kind: 'pdf',
+          status: 'PENDING',
+          createdAt: now,
+        };
+        const test =
+          project?.unifiedTests === undefined
+            ? defaultTest
+            : project.unifiedTests[0];
         return test
           ? {
               id: test.id,
               name: test.name,
               kind: test.kind,
+              status: test.status ?? 'PENDING',
               createdAt: test.createdAt,
+              origin: 'branch',
+              inheritedFrom: null,
             }
           : null;
       },
@@ -182,7 +207,8 @@ describe('TestReadRepository', () => {
         { provide: PrismaConnection, useValue: mockConnection },
         { provide: VariantStore, useValue: variants },
         { provide: UnifiedComparisonsRepository, useValue: comparisons },
-        { provide: UnifiedTestRepository, useValue: tests },
+        { provide: BranchResolver, useValue: branches },
+        { provide: BranchTestRepository, useValue: branchTests },
       ],
     }).compile();
 
@@ -194,89 +220,88 @@ describe('TestReadRepository', () => {
   });
 
   describe('getTestNames', () => {
-    it('returns test names with the stored status for the project id', async () => {
-      const tests = [
-        {
-          name: 'test-1',
-          kind: 'image',
-          status: 'PENDING_APPROVAL',
-        },
-      ];
-      mockClient.unifiedTest.findMany.mockResolvedValue(tests);
-      mockClient.unifiedTest.count.mockResolvedValue(1);
+    function effectiveTest(overrides: Record<string, unknown> = {}) {
+      return {
+        id: 'test-1',
+        name: 'test-1',
+        kind: 'image' as TestKind,
+        status: 'PENDING_APPROVAL' as TestStatus,
+        createdAt: now,
+        origin: 'branch' as const,
+        inheritedFrom: null,
+        ...overrides,
+      };
+    }
 
-      const result = await repository.getTestNames('proj-1');
-
-      expect(result).toEqual({
-        data: [{ name: 'test-1', kind: 'image', status: 'PENDING_APPROVAL' }],
+    it('returns effective tests with their origin for the branch id', async () => {
+      branchTests.findEffectiveTests.mockResolvedValue({
+        data: [effectiveTest()],
         total: 1,
       });
-      expect(mockClient.unifiedTest.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { projectId: 'proj-1' } }),
+
+      const result = await repository.getTestNames('br-1');
+
+      expect(result).toEqual({
+        data: [
+          {
+            name: 'test-1',
+            kind: 'image',
+            status: 'PENDING_APPROVAL',
+            origin: 'branch',
+            inheritedFrom: null,
+          },
+        ],
+        total: 1,
+      });
+      expect(branchTests.findEffectiveTests).toHaveBeenCalledWith(
+        'br-1',
+        undefined,
+        undefined,
       );
+    });
+
+    it('tags inherited tests with the ancestor branch name', async () => {
+      branchTests.findEffectiveTests.mockResolvedValue({
+        data: [
+          effectiveTest({
+            id: 'test-main',
+            origin: 'inherited',
+            inheritedFrom: 'main',
+          }),
+        ],
+        total: 1,
+      });
+
+      const result = await repository.getTestNames('br-1');
+
+      expect(result.data[0]).toMatchObject({
+        origin: 'inherited',
+        inheritedFrom: 'main',
+      });
     });
 
     it('filters by kind when provided', async () => {
-      mockClient.unifiedTest.findMany.mockResolvedValue([]);
-      mockClient.unifiedTest.count.mockResolvedValue(0);
+      branchTests.findEffectiveTests.mockResolvedValue({ data: [], total: 0 });
 
-      await repository.getTestNames('proj-1', undefined, 'pdf');
+      await repository.getTestNames('br-1', undefined, 'pdf');
 
-      expect(mockClient.unifiedTest.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { projectId: 'proj-1', kind: 'pdf' },
-        }),
-      );
-      expect(mockClient.unifiedTest.count).toHaveBeenCalledWith({
-        where: { projectId: 'proj-1', kind: 'pdf' },
-      });
-    });
-
-    it('applies pagination with a stable order', async () => {
-      mockClient.unifiedTest.findMany.mockResolvedValue([]);
-      mockClient.unifiedTest.count.mockResolvedValue(20);
-
-      await repository.getTestNames('proj-1', { skip: 5, take: 5 });
-
-      expect(mockClient.unifiedTest.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          skip: 5,
-          take: 5,
-          orderBy: { createdAt: 'desc' },
-        }),
+      expect(branchTests.findEffectiveTests).toHaveBeenCalledWith(
+        'br-1',
+        undefined,
+        'pdf',
       );
     });
 
-    it('returns the stored status column for each test', async () => {
-      const tests = [
-        {
-          name: 'test-1',
-          kind: 'image',
-          status: 'UNCHANGED',
-        },
-      ];
-      mockClient.unifiedTest.findMany.mockResolvedValue(tests);
-      mockClient.unifiedTest.count.mockResolvedValue(1);
+    it('applies pagination', async () => {
+      branchTests.findEffectiveTests.mockResolvedValue({ data: [], total: 20 });
 
-      const result = await repository.getTestNames('proj-1');
+      await repository.getTestNames('br-1', { skip: 5, take: 5 });
 
-      expect(result.data[0].status).toBe('UNCHANGED');
-    });
-
-    it('returns PENDING when the stored status is PENDING', async () => {
-      const tests = [
-        {
-          name: 'test-1',
-          kind: 'image',
-          status: 'PENDING',
-        },
-      ];
-      mockClient.unifiedTest.findMany.mockResolvedValue(tests);
-      mockClient.unifiedTest.count.mockResolvedValue(1);
-
-      const result = await repository.getTestNames('proj-1');
-
-      expect(result.data[0].status).toBe('PENDING');
+      expect(branchTests.findEffectiveTests).toHaveBeenCalledWith(
+        'br-1',
+        { skip: 5, take: 5 },
+        undefined,
+      );
     });
   });
 
@@ -329,6 +354,8 @@ describe('TestReadRepository', () => {
         status: 'PENDING_APPROVAL',
         kind: 'pdf',
         createdAt: now,
+        origin: 'branch',
+        inheritedFrom: null,
       });
       expect(result!.baseline).not.toBeNull();
       expect(result!.baseline!.id).toBe('base-1');
@@ -493,6 +520,10 @@ describe('TestReadRepository', () => {
       );
       expect(result).toEqual({
         exists: true,
+        origin: 'branch',
+        inheritedFrom: null,
+        baselineInherited: false,
+        inheritTarget: null,
         kind: 'image',
         baseline: expect.objectContaining({
           id: 'base-1',
@@ -541,6 +572,10 @@ describe('TestReadRepository', () => {
       expect(mockClient.unifiedComparison.findFirst).not.toHaveBeenCalled();
       expect(result).toEqual({
         exists: true,
+        origin: 'branch',
+        inheritedFrom: null,
+        baselineInherited: false,
+        inheritTarget: null,
         kind: 'image',
         baseline: null,
         comparison: null,
@@ -766,7 +801,7 @@ describe('TestReadRepository', () => {
       mockClient.unifiedComparison.findMany.mockResolvedValue([]);
       mockClient.unifiedComparison.count.mockResolvedValue(10);
 
-      await repository.getPendingApproval('proj-1', { skip: 5, take: 5 });
+      await repository.getPendingApproval('br-1', { skip: 5, take: 5 });
 
       expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -777,7 +812,7 @@ describe('TestReadRepository', () => {
       );
       expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { test: { projectId: 'proj-1' }, status: 'PENDING_APPROVAL' },
+          where: { test: { branchId: 'br-1' }, status: 'PENDING_APPROVAL' },
         }),
       );
     });

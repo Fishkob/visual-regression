@@ -30,7 +30,7 @@ describe('Approve PDF Test (e2e)', () => {
 
   beforeEach(async () => {
     await TestApp.resetDb();
-    await prisma.project.create({ data: { name: 'pdf-approval' } });
+    await TestApp.createProject('pdf-approval');
   });
 
   afterAll(async () => {

@@ -1,9 +1,19 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { PaginationDto } from '@common/dto/pagination.dto';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { ReviewInboxPaginationDto } from '@common/dto/branch-pagination.dto';
 import { PaginatedResponseDto } from '@common/dto/paginated-response.dto';
 import { ReviewInboxService } from '@public/visualTest/review/application/review-inbox.service';
 import { PendingReviewDto } from '@public/visualTest/review/presentation/dto/review-responses.dto';
+import {
+  PROJECT_RESERVED_NAMES,
+  validateName,
+} from '@common/http/pipes/name-validation.util';
+import { BranchQuery } from '@common/http/branch-query.decorator';
 
 @ApiTags('Review')
 @Controller('review')
@@ -13,7 +23,20 @@ export class ReviewInboxController {
   @Get('pending')
   @ApiOperation({ summary: 'List pending reviews across all projects' })
   @ApiOkResponse({ type: PaginatedResponseDto(PendingReviewDto) })
-  async getPending(@Query() pagination: PaginationDto) {
-    return this.inbox.getPending(pagination);
+  @ApiQuery({ name: 'projectName', required: false })
+  async getPending(
+    @Query() pagination: ReviewInboxPaginationDto,
+    @BranchQuery() branch?: string,
+  ) {
+    const trimmedProject = pagination.projectName?.trim();
+    if (trimmedProject) {
+      validateName(trimmedProject, PROJECT_RESERVED_NAMES);
+    }
+    // An explicitly empty filter is "no filter"; the repository treats a falsy
+    // value as absent, so no normalization is needed here.
+    return this.inbox.getPending(pagination, {
+      branchName: branch,
+      projectName: trimmedProject,
+    });
   }
 }

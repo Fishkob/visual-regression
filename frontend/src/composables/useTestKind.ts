@@ -11,15 +11,17 @@ import { useSdkQuery, type MaybeRef } from "@/composables/useDomainQuery";
 export function useTestKind(
   projectName: MaybeRef<string | undefined>,
   testName: MaybeRef<string | undefined>,
+  branchName: MaybeRef<string | undefined> = undefined,
 ) {
   const { data, isLoading, error, refetch } = useSdkQuery({
-    args: { projectName, testName },
+    args: { projectName, testName, branchName },
     required: ["projectName", "testName"],
-    keyOf: ({ projectName, testName }) =>
-      testKindQueryKeys.kind(projectName, testName),
-    sdkFn: ({ projectName, testName }) =>
+    keyOf: ({ projectName, testName, branchName }) =>
+      testKindQueryKeys.kind(projectName, testName, branchName),
+    sdkFn: ({ projectName, testName, branchName }) =>
       testsQueriesControllerGetKind({
         path: { projectName, testName },
+        ...(branchName ? { query: { branch: branchName } } : {}),
       }),
     map: (data: { kind: string } | undefined) => {
       const kind = data?.kind ?? null;

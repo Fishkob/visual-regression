@@ -20,6 +20,14 @@ export type ReviewInboxControllerGetPendingData = {
          * Page size, alternative to limit
          */
         take?: number;
+        /**
+         * Branch to read or act on (defaults to the project default branch)
+         */
+        branch?: string;
+        /**
+         * Project to scope the read to (defaults to every project)
+         */
+        projectName?: string;
     };
     url: '/review/pending';
 };

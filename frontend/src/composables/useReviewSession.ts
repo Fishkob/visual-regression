@@ -33,11 +33,13 @@ interface ReviewSessionContext {
   restoreInbox?: () => void;
   currentVariant: VariantParams;
   currentTestName: string;
+  currentBranch?: string;
 }
 
 export interface ReviewSessionOptions {
   projectName: Ref<string>;
   testName: Ref<string>;
+  branchName: Ref<string | undefined>;
   filters: Ref<VariantParams>;
   pendingTests: Ref<PendingTest[]>;
   currentComparisonId: Ref<string | undefined>;
@@ -50,6 +52,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
   const {
     projectName,
     testName,
+    branchName,
     filters,
     pendingTests,
     currentComparisonId,
@@ -58,7 +61,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
     returnToInbox = false,
   } = args;
   const queryClient = useQueryClient();
-  const navigation = useTestNavigation({ projectName });
+  const navigation = useTestNavigation({ projectName, branchName });
   const shouldReturnToInbox = computed(() => unref(returnToInbox));
   const buildCurrentKey = () =>
     keyOf({ name: testName.value, ...filters.value });
@@ -73,6 +76,12 @@ export function useReviewSession(args: ReviewSessionOptions) {
   watch(projectName, (name) => {
     resetReviewSeen(name);
     beginPassProgress(name, pendingTests.value.length);
+  });
+  // A different branch is a different pending list: the skip-memory collected
+  // on the previous branch must not suppress tests on the new one.
+  watch(branchName, () => {
+    resetReviewSeen(projectName.value);
+    beginPassProgress(projectName.value, pendingTests.value.length);
   });
 
   watch(pendingTests, (list) => setPassTotal(projectName.value, list.length), {
@@ -104,6 +113,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
       const { restore } = await withPendingTestRemoved(
         queryClient,
         projectName.value,
+        branchName.value,
         buildCurrentKey(),
       );
       const inboxRemoval =
@@ -118,6 +128,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
         ...(inboxRemoval ? { restoreInbox: inboxRemoval.restore } : {}),
         currentVariant: { ...filters.value },
         currentTestName: testName.value,
+        ...(branchName.value ? { currentBranch: branchName.value } : {}),
       };
     },
 
@@ -137,6 +148,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
       invalidateDetails(client, {
         projectName: projectName.value,
         testName: context.currentTestName,
+        ...(context.currentBranch ? { branch: context.currentBranch } : {}),
         ...context.currentVariant,
       });
     },
@@ -163,6 +175,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
         invalidateDetails(queryClient, {
           projectName: projectName.value,
           testName: context.currentTestName,
+          ...(context.currentBranch ? { branch: context.currentBranch } : {}),
           ...context.currentVariant,
         });
       }

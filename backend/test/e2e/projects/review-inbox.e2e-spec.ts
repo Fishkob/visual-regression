@@ -14,15 +14,38 @@ async function seedTestWithBaseline(
     testName: string;
     groupId?: string | null;
     testStatus?: TestStatus;
+    /** Seeds the row on a feature branch instead of the default branch. */
+    branchName?: string;
+    archived?: boolean;
   },
 ) {
-  const project = await prisma.project.create({
-    data: { name: options.projectName, groupId: options.groupId ?? null },
+  const { projectId, branchId: defaultBranchId } = await TestApp.createProject(
+    options.projectName,
+  );
+  if (options.groupId) {
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { groupId: options.groupId },
+    });
+  }
+  const project = await prisma.project.findUniqueOrThrow({
+    where: { id: projectId },
   });
+  let branchId = defaultBranchId;
+  if (options.branchName) {
+    const branch = await prisma.branch.create({
+      data: {
+        projectId,
+        name: options.branchName,
+        isArchived: options.archived ?? false,
+      },
+    });
+    branchId = branch.id;
+  }
   const test = await prisma.unifiedTest.create({
     data: {
       name: options.testName,
-      projectId: project.id,
+      branchId,
       status: options.testStatus ?? TestStatus.PENDING_APPROVAL,
     },
   });
@@ -55,12 +78,16 @@ async function seedComparison(
     createdAt: Date;
     groupId?: string | null;
     mismatchPixelCount?: number;
+    branchName?: string;
+    archived?: boolean;
   },
 ) {
   const { project, test, baseline } = await seedTestWithBaseline(prisma, {
     projectName: options.projectName,
     testName: options.testName,
     groupId: options.groupId,
+    branchName: options.branchName,
+    archived: options.archived,
     testStatus:
       options.status === ComparisonStatus.PENDING_APPROVAL
         ? TestStatus.PENDING_APPROVAL
@@ -212,5 +239,85 @@ describe('Review inbox (e2e)', () => {
     });
     expect(res.body.meta.total).toBe(2);
     expect(res.body.data[0].comparisonId).not.toBe(older.comparison.id);
+  });
+
+  // The inbox advertises branch/project filters in its OpenAPI contract; these
+  // cover them at the HTTP level (a controller-level unit test cannot catch a
+  // query field the global whitelist rejects).
+  it('scopes pending reviews to one project', async () => {
+    await seedComparison(prisma, {
+      projectName: 'legacy-ui',
+      testName: 'signup',
+      status: ComparisonStatus.PENDING_APPROVAL,
+      createdAt: OLDER_CREATED_AT,
+    });
+    await seedComparison(prisma, {
+      projectName: 'checkout-ui',
+      testName: 'login',
+      status: ComparisonStatus.PENDING_APPROVAL,
+      createdAt: NEWER_CREATED_AT,
+    });
+
+    const res = await authRequest(app)
+      .get('/api/v1/review/pending')
+      .query({ projectName: 'legacy-ui' })
+      .expect(200);
+
+    expect(res.body.meta.total).toBe(1);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0]).toMatchObject({ projectName: 'legacy-ui' });
+  });
+
+  it('scopes pending reviews to one branch and badges its identity', async () => {
+    await seedComparison(prisma, {
+      projectName: 'legacy-ui',
+      testName: 'signup',
+      status: ComparisonStatus.PENDING_APPROVAL,
+      createdAt: OLDER_CREATED_AT,
+    });
+    await seedComparison(prisma, {
+      projectName: 'checkout-ui',
+      testName: 'login',
+      status: ComparisonStatus.PENDING_APPROVAL,
+      createdAt: NEWER_CREATED_AT,
+      branchName: 'feature/checkout',
+    });
+
+    const res = await authRequest(app)
+      .get('/api/v1/review/pending')
+      .query({ branch: 'feature/checkout' })
+      .expect(200);
+
+    expect(res.body.meta.total).toBe(1);
+    expect(res.body.data[0]).toMatchObject({
+      projectName: 'checkout-ui',
+      branchName: 'feature/checkout',
+      isDefaultBranch: false,
+    });
+  });
+
+  it('hides archived branches by default but lists them when named', async () => {
+    await seedComparison(prisma, {
+      projectName: 'legacy-ui',
+      testName: 'signup',
+      status: ComparisonStatus.PENDING_APPROVAL,
+      createdAt: OLDER_CREATED_AT,
+      branchName: 'experiment/old',
+      archived: true,
+    });
+
+    const hidden = await authRequest(app)
+      .get('/api/v1/review/pending')
+      .expect(200);
+    expect(hidden.body.meta.total).toBe(0);
+
+    const explicit = await authRequest(app)
+      .get('/api/v1/review/pending')
+      .query({ branch: 'experiment/old' })
+      .expect(200);
+    expect(explicit.body.meta.total).toBe(1);
+    expect(explicit.body.data[0]).toMatchObject({
+      branchName: 'experiment/old',
+    });
   });
 });

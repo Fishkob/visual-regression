@@ -45,11 +45,16 @@ describe('PdfController', () => {
         'staging',
       );
 
-      expect(testQuery.getPdfTestDetails).toHaveBeenCalledWith('proj', 'test', {
-        viewport: '1920x1080',
-        browser: 'chrome',
-        environment: 'staging',
-      });
+      expect(testQuery.getPdfTestDetails).toHaveBeenCalledWith(
+        'proj',
+        'test',
+        {
+          viewport: '1920x1080',
+          browser: 'chrome',
+          environment: 'staging',
+        },
+        undefined,
+      );
       expect(result).toEqual(expected);
     });
   });
@@ -73,6 +78,7 @@ describe('PdfController', () => {
         'test',
         'http://storage/file.pdf',
         1,
+        undefined,
       );
       expect(result).toEqual({
         imageUrl: 'http://storage/page-1.png',
@@ -109,6 +115,7 @@ describe('PdfController', () => {
         'test',
         'baseline',
         { viewport: undefined, browser: undefined, environment: undefined },
+        undefined,
       );
       expect(mockResponse.set).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -148,6 +155,7 @@ describe('PdfController', () => {
           browser: 'chrome',
           environment: 'staging',
         },
+        undefined,
       );
     });
   });

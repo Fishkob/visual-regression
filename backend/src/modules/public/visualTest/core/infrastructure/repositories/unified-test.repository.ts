@@ -2,43 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@/prisma/base.repository';
 import { DomainError } from '@common/domain/domain-error';
 import { TestKind, TestStatus } from '@/prisma/client';
-import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
-import { TransactionContext } from '@/prisma/transaction-context';
 
 @Injectable()
 export class UnifiedTestRepository extends BaseRepository {
-  constructor(
-    txCtx: TransactionContext,
-    private readonly projects: ProjectRepository,
-  ) {
-    super(txCtx);
-  }
-  // Single owner of the "project + test by name" lookup: one query resolves
-  // both facts, so read-model lookups (TestReadRepository) and the resolver
-  // paths (TestResolver.findTest/findTestOrNull) cannot drift in what "does
-  // this test exist" means. Returns null when the project or the test is
-  // missing.
-  async findByProjectNameAndTestName(
-    projectName: string,
-    testName: string,
-  ): Promise<{
-    id: string;
-    name: string;
-    kind: TestKind;
-    createdAt: Date;
-  } | null> {
-    return this.client.unifiedTest.findFirst({
-      where: { name: testName, project: { name: projectName } },
-      select: { id: true, name: true, kind: true, createdAt: true },
-    });
-  }
-
+  // A test belongs to exactly one branch; the project is reached through it.
+  // This is the cross-branch seam project deletion uses to collect every test
+  // of a project without materializing branch by branch.
   async findIdsByProjectId(projectId: string): Promise<string[]> {
     const tests = await this.client.unifiedTest.findMany({
-      where: { projectId },
+      where: { branch: { projectId } },
       select: { id: true },
     });
     return tests.map((t) => t.id);
+  }
+
+  async findIdsByBranchId(branchId: string): Promise<string[]> {
+    const tests = await this.client.unifiedTest.findMany({
+      where: { branchId },
+      select: { id: true },
+    });
+    return tests.map((test) => test.id);
   }
 
   async updateStatus(testId: string, status: TestStatus) {
@@ -57,17 +40,30 @@ export class UnifiedTestRepository extends BaseRepository {
     });
   }
 
+  async findByBranchAndTestName(
+    branchId: string,
+    testName: string,
+  ): Promise<{
+    id: string;
+    name: string;
+    kind: TestKind;
+    createdAt: Date;
+  } | null> {
+    return this.client.unifiedTest.findFirst({
+      where: { name: testName, branchId },
+      select: { id: true, name: true, kind: true, createdAt: true },
+    });
+  }
+
   async ensureTest(
-    projectName: string,
+    branchId: string,
     testName: string,
     kind: TestKind,
   ): Promise<{ testId: string }> {
     this.assertWritable();
-    const project = await this.projects.getOrCreate(projectName);
-
     const test = await this.client.unifiedTest.upsert({
-      where: { projectId_name: { projectId: project.id, name: testName } },
-      create: { projectId: project.id, name: testName, kind },
+      where: { branchId_name: { branchId, name: testName } },
+      create: { branchId, name: testName, kind },
       update: {},
     });
 

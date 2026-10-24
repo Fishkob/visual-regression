@@ -12,11 +12,12 @@ import {
   TestNamesQueryDto,
 } from '@public/visualTest/review/presentation/dto/project.dto';
 import { VisualTestDetailsDto } from '@public/visualTest/review/presentation/dto/visual-test.dto';
-import { PaginationDto } from '@common/dto/pagination.dto';
+import { BranchPaginationDto } from '@common/dto/branch-pagination.dto';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import { PendingTestDto } from '@public/visualTest/review/presentation/dto/review-responses.dto';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { BranchQuery } from '@common/http/branch-query.decorator';
 import { PaginatedResponseDto } from '@common/dto/paginated-response.dto';
 
 @ApiTags('Tests')
@@ -35,8 +36,9 @@ export class TestsQueriesController {
   async getTestsForProject(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Query() query: TestNamesQueryDto,
+    @BranchQuery() branch?: string,
   ) {
-    return this.testQuery.getTestNames(projectName, query, query.kind);
+    return this.testQuery.getTestNames(projectName, query, query.kind, branch);
   }
 
   @Get(':testName/kind')
@@ -45,8 +47,9 @@ export class TestsQueriesController {
   async getKind(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
+    @BranchQuery() branch?: string,
   ) {
-    return this.testQuery.getKind(projectName, testName);
+    return this.testQuery.getKind(projectName, testName, branch);
   }
 
   @Get('meta/pending')
@@ -54,9 +57,14 @@ export class TestsQueriesController {
   @ApiOkResponse({ type: PaginatedResponseDto(PendingTestDto) })
   async getTestsWithPendingStatus(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
-    @Query() pagination: PaginationDto,
+    @Query() pagination: BranchPaginationDto,
+    @BranchQuery() branch?: string,
   ) {
-    return this.testQuery.getTestsWithPendingStatus(projectName, pagination);
+    return this.testQuery.getTestsWithPendingStatus(
+      projectName,
+      pagination,
+      branch,
+    );
   }
 
   @Get(':testName')
@@ -82,7 +90,13 @@ export class TestsQueriesController {
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
     @Query() filters: VariantFilterDto,
+    @BranchQuery() branch?: string,
   ) {
-    return this.testQuery.getVisualTestDetails(projectName, testName, filters);
+    return this.testQuery.getVisualTestDetails(
+      projectName,
+      testName,
+      filters,
+      branch,
+    );
   }
 }

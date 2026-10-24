@@ -289,6 +289,34 @@ describe("useThresholdEditor", () => {
     expect(inputValue.value).toBe("10");
   });
 
+  it("scopes the threshold read and write to the selected branch", async () => {
+    const options = createOptions({
+      baseline: baseline(10),
+      branchName: "feature/x",
+    });
+    mockPreview.mockResolvedValue(previewResponse(0));
+
+    const { inputValue, onBlur } = useThresholdEditor(options);
+
+    inputValue.value = "40";
+
+    await onBlur();
+
+    expect(mockPreview).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ branch: "feature/x" }),
+      }),
+    );
+    expect(mockMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectName: "test-project",
+        testName: "test-login-form",
+        threshold: 40,
+        branch: "feature/x",
+      }),
+    );
+  });
+
   it("initializes with provided baseline threshold", () => {
     const options = createOptions({
       baseline: baseline(80),

@@ -1,6 +1,7 @@
 import {
   BASELINE_PATH,
   BROWSERS,
+  DEV_BRANCH_SEEDS,
   DEV_TESTS,
   PDF_BASELINE_PATH,
   PDF_CANDIDATE_PATH,
@@ -8,12 +9,14 @@ import {
   VIEWPORTS,
   createProject,
   resolveSeedApiKey,
+  seedBranches,
   uploadVariant,
   verifyApiKeyAuth,
 } from './fixtures';
 /**
  * Dev Seeder - Seeds minimal data for local development
  * - 1 Project with 1 image test + 1 PDF test
+ * - Two feature branches (one pending review each)
  * - Single browser/viewport
  * - Uses development environment
  * - Does NOT clean existing data
@@ -71,6 +74,9 @@ async function seed() {
       testKind: 'pdf',
     });
   }
+
+  console.log('\nSeeding branch scenarios...');
+  await seedBranches(SEED_API_KEY, DEV_BRANCH_SEEDS);
 
   console.log('\nDev seeding complete!');
 }

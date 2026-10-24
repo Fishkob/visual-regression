@@ -22,7 +22,7 @@ describe('Upload Mismatch (e2e)', () => {
 
   beforeEach(async () => {
     await TestApp.resetDb();
-    await prisma.project.create({ data: { name: 'checkout-ui' } });
+    await TestApp.createProject('checkout-ui');
   });
 
   afterAll(async () => {
@@ -63,6 +63,10 @@ describe('Upload Mismatch (e2e)', () => {
 
     expect(details.body).toEqual({
       name: 'login-form',
+      origin: 'branch',
+      inheritedFrom: null,
+      baselineInherited: false,
+      inheritTarget: null,
       baseline: {
         imageUrl: expect.any(String),
         id: expect.any(String),

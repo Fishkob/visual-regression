@@ -33,6 +33,7 @@ import {
 import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
 import type { JobData } from '@common/domain/job-data.types';
 import type { AnyUploadResult } from '@common/domain/unified-upload-result.type';
+import { DEFAULT_BRANCH_NAME } from '@public/visualTest/core/domain/constants/branch.constants';
 import type { TestKind } from '@common/domain/test-kind';
 import {
   KIND_FILE_EXTENSIONS,
@@ -127,7 +128,8 @@ export class UploadIntake {
             );
             return this.applyStoredChange(
               kind,
-              fresh,
+              fresh.decision,
+              fresh.branchName,
               params,
               fileUrl,
               pageCount,
@@ -146,6 +148,7 @@ export class UploadIntake {
   ): Promise<AnyUploadResult | null> {
     const outcome = await this.workflow.executeStateChange<{
       superseded: boolean;
+      branchName?: string;
     }>(async () => {
       // Read-only re-resolution inside the transaction: the gate must not
       // ensureTest, otherwise a test deleted between the gate and here is
@@ -156,10 +159,13 @@ export class UploadIntake {
         return { change: noop(), result: { superseded: false } };
       }
       const superseded = await this.supersedeIdentical(fresh.testId, params);
-      return { change: superseded, result: { superseded: true } };
+      return {
+        change: superseded,
+        result: { superseded: true, branchName: fresh.branchName },
+      };
     });
     if (!outcome.result.superseded) return null;
-    return identicalResult();
+    return identicalResult(outcome.result.branchName ?? DEFAULT_BRANCH_NAME);
   }
 
   // An identical upload retires the variant's pending comparison + candidate
@@ -186,6 +192,7 @@ export class UploadIntake {
   private async applyStoredChange(
     kind: TestKind,
     fresh: UploadDecision,
+    branchName: string,
     params: UploadParams,
     fileUrl: string,
     pageCount?: number,
@@ -200,7 +207,7 @@ export class UploadIntake {
             // retired diff artifacts.
             staleUrls: [fileUrl, ...(identical.staleUrls ?? [])],
           }),
-          result: identicalResult(),
+          result: identicalResult(branchName),
         };
       }
       case ComparisonOutcome.BASELINE_CREATED: {
@@ -219,6 +226,7 @@ export class UploadIntake {
             status: ComparisonOutcome.BASELINE_CREATED,
             testId: fresh.testId,
             fileUrl,
+            branch: branchName,
           } as const,
         };
       }
@@ -241,7 +249,7 @@ export class UploadIntake {
               },
             ],
           }),
-          result: this.queuedResult(kind),
+          result: this.queuedResult(kind, branchName),
         };
       }
       default:
@@ -262,12 +270,13 @@ export class UploadIntake {
     );
   }
 
-  private queuedResult(kind: TestKind): AnyUploadResult {
+  private queuedResult(kind: TestKind, branch: string): AnyUploadResult {
     const config = UPLOAD_KIND_CONFIG[kind];
     return {
       status: ComparisonOutcome.COMPARISON_QUEUED,
       error: config.queuedErrorCode,
       message: config.queuedMessage,
+      branch,
     };
   }
 
@@ -372,8 +381,12 @@ function assertKindMatchesMime(kind: TestKind, mimetype: string): void {
 // The identical outcome, single-sourced: both the fast path and the stored
 // path (which re-resolves after a concurrent baseline replacement) return the
 // same shape, so the upload result contract edits in one place.
-function identicalResult(): AnyUploadResult {
-  return { status: ComparisonOutcome.IDENTICAL, mismatchPixelCount: 0 };
+function identicalResult(branch: string): AnyUploadResult {
+  return {
+    status: ComparisonOutcome.IDENTICAL,
+    mismatchPixelCount: 0,
+    branch,
+  };
 }
 
 // A per-upload unique object name: a fresh randomUUID guarantees two uploads of

@@ -14,7 +14,7 @@
       </main>
     </div>
   </div>
-  <Toaster />
+  <Toaster position="top-right" />
 </template>
 
 <script setup lang="ts">

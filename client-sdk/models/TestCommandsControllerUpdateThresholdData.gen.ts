@@ -13,6 +13,10 @@ export type TestCommandsControllerUpdateThresholdData = {
         browser?: string;
         environment?: string;
         /**
+         * Branch to read or act on (defaults to the project default branch)
+         */
+        branch?: string;
+        /**
          * When true, returns how many pending comparisons the value would auto-accept without mutating anything
          */
         preview?: string;

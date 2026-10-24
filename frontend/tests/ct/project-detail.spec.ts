@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { mockApi } from "./routes/api.routes";
 import {
+  BRANCHES_RESPONSE,
   PROJECT_CHECKOUT_UI_RESPONSE,
   PROJECT_EMPTY_RESPONSE,
 } from "./mocks/projects.mocks";
@@ -13,6 +14,7 @@ test.describe("ProjectDetail", () => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui", PROJECT_CHECKOUT_UI_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
     const component = await mount<typeof Routed>(
@@ -31,6 +33,7 @@ test.describe("ProjectDetail", () => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui", PROJECT_CHECKOUT_UI_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
     const component = await mount<typeof Routed>(
@@ -140,6 +143,7 @@ test.describe("ProjectDetail", () => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui", PROJECT_CHECKOUT_UI_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
     const component = await mount<typeof Routed>(
@@ -160,6 +164,7 @@ test.describe("ProjectDetail", () => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui", PROJECT_CHECKOUT_UI_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
     const component = await mount<typeof Routed>(
@@ -178,6 +183,7 @@ test.describe("ProjectDetail", () => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui", PROJECT_EMPTY_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
     const component = await mount<typeof Routed>(
@@ -198,6 +204,7 @@ test.describe("ProjectDetail", () => {
         { status: 500, contentType: "application/json", body: "{}" },
       ],
       ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
     const component = await mount<typeof Routed>(
@@ -211,5 +218,74 @@ test.describe("ProjectDetail", () => {
       timeout: 15_000,
     });
     await expect(component).toContainText("Failed to load project");
+  });
+});
+
+test.describe("ProjectDetail branch switcher", () => {
+  test("lists the branches, marks the default and shows the effective target", async ({
+    mount,
+    page,
+  }) => {
+    // The project is read with `?branch=…` after a switch, so the mock must
+    // match the query string too — and we assert the branch-scoped read really
+    // happened, otherwise this test would pass on branch-list data alone.
+    const branchReads: Array<string | null> = [];
+    await mockApi(page, [
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+    await page.route("**/api/v1/projects/checkout-ui*", async (route) => {
+      const requested = new URL(route.request().url());
+      branchReads.push(requested.searchParams.get("branch"));
+      await route.fulfill(PROJECT_CHECKOUT_UI_RESPONSE);
+    });
+
+    const component = await mount<typeof Routed>(
+      "views/ProjectDetailView/Routed",
+      { initialRoute: "/projects/checkout-ui" },
+    );
+
+    const switcher = component.getByTestId(TEST_ID.projectBranchSelect);
+    await expect(switcher).toBeVisible();
+    await expect(switcher).toContainText("main (default)");
+
+    await switcher.click();
+    await page
+      .getByRole("option", { name: "feature/checkout-v2", exact: true })
+      .click();
+
+    // The switch re-keys the project read to the selected branch and its tests
+    // render; the target label proves the branch identity too.
+    await expect.poll(() => branchReads).toContain("feature/checkout-v2");
+    await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(9);
+    await expect(
+      component.getByTestId(TEST_ID.projectBranchTarget),
+    ).toContainText("inherits from main");
+  });
+
+  test("blocks deleting a branch that others inherit from and says why", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      // The deep link carries the branch, so the project read has a query.
+      ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+
+    const component = await mount<typeof Routed>(
+      "views/ProjectDetailView/Routed",
+      { initialRoute: "/projects/checkout-ui?branch=feature%2Fcheckout-v2" },
+    );
+
+    await component.getByTestId(TEST_ID.branchActionsButton).click();
+
+    // The dropdown renders in a portal, so it is queried from the page.
+    await expect(page.getByTestId(TEST_ID.branchDeleteBlocked)).toContainText(
+      "inherits from this branch",
+    );
+    await expect(page.getByTestId(TEST_ID.branchSetDefault)).toBeVisible();
+    await expect(page.getByTestId(TEST_ID.branchChangeTarget)).toBeVisible();
   });
 });

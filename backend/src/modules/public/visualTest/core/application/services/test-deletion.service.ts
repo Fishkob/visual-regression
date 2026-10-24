@@ -154,7 +154,14 @@ export class TestDeletionService {
       await this.projects.deleteByName(projectName);
     }
 
-    return deleted({ staleUrls: [...screenshotUrls, ...diffUrls] });
+    // The rows are gone, but an inherited baseline clone shares its file with
+    // the target branch, so a URL can still be referenced by a surviving row.
+    // Reclaim only what no surviving screenshot/comparison points at.
+    const staleUrls = await this.screenshots.filterReclaimableUrls([
+      ...screenshotUrls,
+      ...diffUrls,
+    ]);
+    return deleted({ staleUrls });
   }
 
   async deleteProject(projectName: string): Promise<void> {

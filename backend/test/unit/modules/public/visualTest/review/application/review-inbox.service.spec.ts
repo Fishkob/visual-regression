@@ -34,6 +34,8 @@ describe('ReviewInboxService', () => {
           groupName: 'Checkout',
           testName: 'login',
           kind: 'image',
+          branchName: 'feature/x',
+          isDefaultBranch: false,
           variant: {
             viewport: '1920x1080',
             browser: 'Chrome',
@@ -54,7 +56,23 @@ describe('ReviewInboxService', () => {
       projectName: 'checkout-ui',
       groupName: 'Checkout',
       testName: 'login',
+      branchName: 'feature/x',
+      isDefaultBranch: false,
       mismatchPixelCount: 12,
+    });
+  });
+
+  it('passes branch and project filters to the repository', async () => {
+    inbox.findPending.mockResolvedValue({ data: [], total: 0 });
+
+    await service.getPending(new PaginationDto(), {
+      branchName: 'feature/x',
+      projectName: 'checkout-ui',
+    });
+
+    expect(inbox.findPending).toHaveBeenCalledWith(expect.anything(), {
+      branchName: 'feature/x',
+      projectName: 'checkout-ui',
     });
   });
 });

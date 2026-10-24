@@ -17,6 +17,7 @@ import {
 import { isString } from '@common/utils/is-string';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { TransactionContext } from '@/prisma/transaction-context';
+import type { TestKind } from '@common/domain/test-kind';
 import type { ComparisonResult } from '@common/domain/comparison-engine.interface';
 import type { Prisma } from '@/prisma/client';
 
@@ -240,6 +241,28 @@ export class UnifiedComparisonsRepository extends BaseRepository {
     comparisonId: string,
   ): Promise<ComparisonEntity | null> {
     return this.findLatestComparison({ id: comparisonId, testId });
+  }
+
+  // Approval's fallback pairing: a comparison identifies its own test and
+  // therefore its branch, so a client that approves by comparisonId alone (the
+  // pre-branch contract) still resolves the right branch. Scoped by project name
+  // so a comparison id from another project can never be approved here.
+  async findTestOfComparison(input: {
+    projectName: string;
+    testName: string;
+    comparisonId: string;
+  }): Promise<{ id: string; name: string; kind: TestKind } | null> {
+    const row = await this.client.unifiedComparison.findFirst({
+      where: {
+        id: input.comparisonId,
+        test: {
+          name: input.testName,
+          branch: { project: { name: input.projectName } },
+        },
+      },
+      select: { test: { select: { id: true, name: true, kind: true } } },
+    });
+    return row?.test ?? null;
   }
 
   // Retires every PENDING_APPROVAL comparison for the variant, returning the

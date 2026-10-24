@@ -51,6 +51,9 @@ export interface ReviewVariantRow {
   browser: string;
   environment: string;
   baseline: VariantBaselineRow | null;
+  // True while the baseline is a clone that still follows the target chain;
+  // false once an approval on this branch pinned it.
+  isInherited: boolean;
 }
 
 @Injectable()
@@ -111,6 +114,7 @@ export class VariantStore extends BaseRepository {
     variant: Variant,
   ): Promise<{
     baselineId: string | null;
+    isInherited: boolean;
     baseline: VariantBaselineRow | null;
   } | null> {
     const { viewport, browser, environment } = variant.toRecord();
@@ -126,7 +130,19 @@ export class VariantStore extends BaseRepository {
       include: { baseline: true },
     });
     if (!v) return null;
-    return { baselineId: v.baselineId, baseline: v.baseline };
+    return {
+      baselineId: v.baselineId,
+      isInherited: v.isInherited,
+      baseline: v.baseline,
+    };
+  }
+
+  async setInherited(variantId: string, isInherited: boolean): Promise<void> {
+    this.assertWritable();
+    await this.client.unifiedVariant.update({
+      where: { id: variantId },
+      data: { isInherited },
+    });
   }
 
   async findVariantBaselineIds(
@@ -196,6 +212,7 @@ export class VariantStore extends BaseRepository {
           viewport: variant.viewport,
           browser: variant.browser,
           environment: variant.environment,
+          isInherited: variant.isInherited,
           baseline: variant.baseline
             ? {
                 id: variant.baseline.id,

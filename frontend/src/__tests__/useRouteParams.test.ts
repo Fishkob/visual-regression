@@ -94,4 +94,20 @@ describe("useRouteParams", () => {
 
     expect(fromInbox.value).toBe(false);
   });
+
+  it("exposes the branch from the query string", () => {
+    mockRoute.query = { branch: "feature/x" };
+
+    const { branch } = useRouteParams();
+
+    expect(branch.value).toBe("feature/x");
+  });
+
+  it("returns undefined when the query carries no branch", () => {
+    mockRoute.query = { branch: ["a", "b"] };
+
+    const { branch } = useRouteParams();
+
+    expect(branch.value).toBeUndefined();
+  });
 });

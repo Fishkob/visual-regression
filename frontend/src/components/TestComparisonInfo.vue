@@ -47,7 +47,7 @@
       </Tooltip>
     </TooltipProvider>
 
-    <TooltipProvider>
+    <TooltipProvider v-if="!readOnly">
       <Tooltip>
         <TooltipTrigger as-child>
           <div
@@ -102,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, toRef } from "vue";
 import { Badge } from "@/components/ui/badge";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import {
@@ -127,6 +127,10 @@ const props = defineProps<{
   viewport?: string;
   browser?: string;
   environment?: string;
+  branchName?: string;
+  // Inherited baselines belong to another branch: the threshold cannot be
+  // edited here (the backend rejects the mutation with 409).
+  readOnly?: boolean;
 }>();
 
 const variant = computed(() => ({
@@ -147,6 +151,7 @@ const {
   baseline: props.baseline,
   projectName: props.projectName,
   testName: props.testName,
+  branchName: toRef(props, "branchName"),
   variant,
 });
 </script>

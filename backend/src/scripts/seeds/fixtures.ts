@@ -2,7 +2,7 @@ import * as path from 'path';
 import request from 'supertest';
 import { withRateLimitRetry } from './rate-limit-retry';
 
-export const BASE_URL = 'http://localhost:3000';
+export const BASE_URL = process.env.SEED_BASE_URL ?? 'http://localhost:3000';
 
 export const FIXTURES_DIR = path.join(
   __dirname,
@@ -139,7 +139,88 @@ export interface SeedUpload {
   environment: string;
   file: string;
   testKind: 'image' | 'pdf';
+  /** Uploads to this branch; omitted means the project's default branch. */
+  branch?: string;
+  /** Target for a *newly created* branch (ignored when it already exists). */
+  targetBranch?: string;
 }
+
+export interface BranchSeed {
+  project: string;
+  branch: string;
+  test: string;
+  environment: string;
+  targetBranch?: string;
+  file?: string;
+  testKind?: 'image' | 'pdf';
+  /** Archive the branch after seeding it, to exercise the archived state. */
+  archive?: boolean;
+}
+
+// One pending review per branch scenario: the branch inherits the target's
+// baseline and its upload produces a comparison on the branch, so the inbox
+// shows a branch badge and the project view offers a branch switcher. Tests
+// that are NOT listed here stay unmaterialized on the branch and read as
+// inherited from the target.
+export const DEMO_BRANCH_SEEDS: readonly BranchSeed[] = [
+  {
+    project: 'checkout-ui',
+    branch: 'feature/checkout-v2',
+    test: 'login-form',
+    environment: 'staging',
+  },
+  {
+    project: 'dashboard-ui',
+    branch: 'feature/dashboard-redesign',
+    test: 'overview',
+    environment: 'staging',
+  },
+  {
+    project: 'dashboard-ui',
+    branch: 'feature/theme-refresh',
+    test: 'settings',
+    environment: 'staging',
+    targetBranch: 'feature/dashboard-redesign',
+  },
+  {
+    project: 'admin-ui',
+    branch: 'release/1.2',
+    test: 'user-list',
+    environment: 'staging',
+  },
+  {
+    project: 'admin-ui',
+    branch: 'experiment/old-header',
+    test: 'roles',
+    environment: 'staging',
+    archive: true,
+  },
+  {
+    project: 'checkout-ui',
+    branch: 'feature/checkout-v2',
+    test: 'pdf-report',
+    environment: 'staging',
+    file: PDF_CANDIDATE_PATH,
+    testKind: 'pdf',
+  },
+] as const;
+
+export const DEV_BRANCH_SEEDS: readonly BranchSeed[] = [
+  {
+    project: 'dev-project',
+    branch: 'feature/smoke',
+    test: 'smoke-test',
+    environment: 'development',
+  },
+  {
+    project: 'dev-project',
+    branch: 'release/dev',
+    test: 'pdf-report',
+    environment: 'development',
+    file: PDF_CANDIDATE_PATH,
+    testKind: 'pdf',
+  },
+] as const;
 
 export async function uploadVariant({
   apiKey,
@@ -150,12 +231,15 @@ export async function uploadVariant({
   environment,
   file,
   testKind,
+  branch,
+  targetBranch,
 }: SeedUpload): Promise<void> {
-  const label = `${test} (${viewport}/${browser}/${environment}) [${testKind}]`;
+  const branchLabel = branch ? ` @${branch}` : '';
+  const label = `${test} (${viewport}/${browser}/${environment}) [${testKind}]${branchLabel}`;
   process.stdout.write(`  Uploading ${label}... `);
 
-  const res = await withRateLimitRetry(`uploading ${label}`, () =>
-    request(BASE_URL)
+  const res = await withRateLimitRetry(`uploading ${label}`, () => {
+    let req = request(BASE_URL)
       .post(
         `/api/v1/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(test)}/upload`,
       )
@@ -163,9 +247,11 @@ export async function uploadVariant({
       .set(seedAuth(apiKey))
       .field('viewport', viewport)
       .field('browser', browser)
-      .field('environment', environment)
-      .attach('file', file),
-  );
+      .field('environment', environment);
+    if (branch) req = req.field('branch', branch);
+    if (targetBranch) req = req.field('targetBranch', targetBranch);
+    return req.attach('file', file);
+  });
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const info = String(res.body?.status ?? res.body?.error ?? '');
@@ -174,5 +260,58 @@ export async function uploadVariant({
     throw new Error(
       `Upload of ${label} failed (HTTP ${res.status}${info ? `: ${info}` : ''}).`,
     );
+  }
+}
+
+export async function archiveBranch(
+  apiKey: string,
+  project: string,
+  branch: string,
+): Promise<void> {
+  process.stdout.write(`  Archiving branch "${branch}"... `);
+
+  const res = await withRateLimitRetry(`archiving branch "${branch}"`, () =>
+    request(BASE_URL)
+      .patch(`/api/v1/projects/${encodeURIComponent(project)}/branches`)
+      .query({ branch })
+      .set(seedAuth(apiKey))
+      .send({ isArchived: true }),
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const info = String(res.body?.message ?? res.body?.error ?? '');
+  console.log(`${res.status}${info ? ` -> ${info}` : ''}`);
+  if (res.status !== 200) {
+    throw new Error(
+      `Archiving branch "${branch}" failed (HTTP ${res.status}${info ? `: ${info}` : ''}).`,
+    );
+  }
+}
+
+/**
+ * Seeds one pending review per branch scenario (each upload on a branch that
+ * has no own baseline clones the target's baseline) and archives the scenarios
+ * that ask for it, so a local checkout has feature-branch data to review.
+ */
+export async function seedBranches(
+  apiKey: string,
+  seeds: readonly BranchSeed[],
+): Promise<void> {
+  for (const seed of seeds) {
+    await uploadVariant({
+      apiKey,
+      project: seed.project,
+      test: seed.test,
+      viewport: VIEWPORTS[0],
+      browser: BROWSERS[0],
+      environment: seed.environment,
+      file: seed.file ?? BLUE_PATH,
+      testKind: seed.testKind ?? 'image',
+      branch: seed.branch,
+      targetBranch: seed.targetBranch,
+    });
+    if (seed.archive) {
+      await archiveBranch(apiKey, seed.project, seed.branch);
+    }
   }
 }

@@ -53,6 +53,7 @@ describe("useKindDetailsPage (shared shell)", () => {
       adapter,
       projectName: ref("proj"),
       testName: ref("test"),
+      branchName: ref<string | undefined>(undefined),
       filters: ref({
         viewport: "1920x1080",
         browser: "chrome",
@@ -78,7 +79,7 @@ describe("useKindDetailsPage (shared shell)", () => {
     );
 
     expect(mockUsePendingTestsQuery).toHaveBeenCalledTimes(1);
-    expect(mockUsePendingTestsQuery.mock.calls[0][1].value).toBe(false);
+    expect(mockUsePendingTestsQuery.mock.calls[0][2].value).toBe(false);
   });
 
   it("enables the pending query when a comparison is present", async () => {
@@ -87,7 +88,7 @@ describe("useKindDetailsPage (shared shell)", () => {
     useKindDetailsPage(createArgs(createAdapter()));
 
     expect(mockUsePendingTestsQuery).toHaveBeenCalledTimes(1);
-    expect(mockUsePendingTestsQuery.mock.calls[0][1].value).toBe(true);
+    expect(mockUsePendingTestsQuery.mock.calls[0][2].value).toBe(true);
   });
 
   it("composes the review session with the adapter's approve + invalidation", async () => {
@@ -101,7 +102,12 @@ describe("useKindDetailsPage (shared shell)", () => {
     expect(options.invalidateDetails).toBe(adapter.invalidateDetails);
 
     await options.approve("comp-1");
-    expect(adapter.approve).toHaveBeenCalledWith("proj", "test", "comp-1");
+    expect(adapter.approve).toHaveBeenCalledWith(
+      "proj",
+      "test",
+      "comp-1",
+      undefined,
+    );
   });
 
   it("builds the viewKey from the identity + comparison + artifact", async () => {

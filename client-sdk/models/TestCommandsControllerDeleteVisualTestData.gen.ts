@@ -10,6 +10,10 @@ export type TestCommandsControllerDeleteVisualTestData = {
         viewport?: string;
         browser?: string;
         environment?: string;
+        /**
+         * Branch to read or act on (defaults to the project default branch)
+         */
+        branch?: string;
     };
     url: '/projects/{projectName}/tests/{testName}';
 };

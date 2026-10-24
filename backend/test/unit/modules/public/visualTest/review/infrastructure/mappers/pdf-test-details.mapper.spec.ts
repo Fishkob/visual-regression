@@ -59,12 +59,16 @@ function createResult(
   overrides: Partial<TestWithVariantsResult> = {},
 ): TestWithVariantsResult {
   return {
+    baselineInherited: false,
+    inheritTarget: null,
     test: {
       id: 'test-1',
       name: 'invoice',
       status: TestStatus.PENDING_APPROVAL,
       kind: TestKind.pdf,
       createdAt: FIXED_DATE,
+      origin: 'branch',
+      inheritedFrom: null,
     },
     baseline: createScreenshot(),
     comparison: createComparison(),
@@ -86,6 +90,10 @@ describe('mapTestWithVariantsToPdfDetails', () => {
       status: TestStatus.PENDING_APPROVAL,
       kind: TestKind.pdf,
       createdAt: FIXED_DATE,
+      origin: 'branch',
+      inheritedFrom: null,
+      baselineInherited: false,
+      inheritTarget: null,
       baseline: {
         id: 'shot-baseline',
         pdfUrl: 'http://storage/baseline.pdf',

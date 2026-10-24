@@ -8,6 +8,10 @@ export type PdfControllerRenderPdfPageData = {
     };
     query: {
         page: number;
+        /**
+         * Branch to read or act on (defaults to the project default branch)
+         */
+        branch?: string;
         pdfUrl: unknown;
     };
     url: '/projects/{projectName}/tests/{testName}/pdf-render';

@@ -20,6 +20,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 024 | [Database Migrations](./024-database-migrations.md)                   | Accepted          |
 | 025 | [Authentication](./025-authentication.md)                             | Accepted          |
 | 026 | [Rate-Limit Unification](./026-rate-limit-unification.md)             | Accepted          |
+| 027 | [Branch-Scoped Baselines](./ADR-027-branch-scoped-baselines.md)       | Accepted          |
 
 ## Numbering
 

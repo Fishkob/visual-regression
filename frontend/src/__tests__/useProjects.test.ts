@@ -114,6 +114,28 @@ describe("useProjectDetailQuery", () => {
     ]);
   });
 
+  it("keys and fetches the requested branch", async () => {
+    mockGetOneProject.mockResolvedValue({
+      data: projectDto({ name: "checkout", branchName: "feature/x" }),
+    });
+
+    useProjectDetailQuery(ref("checkout"), ref("feature/x"));
+
+    expect(queryOptions.current!.queryKey.value).toEqual([
+      "projects",
+      "detail",
+      "checkout",
+      "feature/x",
+    ]);
+
+    await queryOptions.current!.queryFn();
+
+    expect(mockGetOneProject).toHaveBeenCalledWith({
+      path: { projectName: "checkout" },
+      query: { branch: "feature/x" },
+    });
+  });
+
   it("maps the project DTO to the domain model", async () => {
     mockGetOneProject.mockResolvedValue({
       data: projectDto({ name: "checkout" }),

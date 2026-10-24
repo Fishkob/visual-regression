@@ -35,6 +35,18 @@ export class VisualTestDto {
   @Allow()
   @Expose()
   latestStatus?: TestStatus | null;
+
+  @ApiPropertyOptional({ enum: ['branch', 'inherited'] })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  origin?: 'branch' | 'inherited';
+
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  inheritedFrom?: string | null;
 }
 
 export class VisualTestDetailsDto {
@@ -61,4 +73,38 @@ export class VisualTestDetailsDto {
   @Expose()
   @Type(() => ComparisonDto)
   comparison?: ComparisonDto | undefined;
+
+  @ApiPropertyOptional({ enum: ['branch', 'inherited'] })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  origin?: 'branch' | 'inherited';
+
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  inheritedFrom?: string | null;
+
+  // Whether the baseline itself is still an inherited clone (it follows the
+  // target until this branch approves), and which branch it follows. The test
+  // level `origin` above is a different fact: it says whether the TEST row is
+  // materialised here.
+  @ApiPropertyOptional({
+    description:
+      'True while this baseline is an inherited clone that still follows the target branch',
+  })
+  @IsOptional()
+  @Expose()
+  baselineInherited?: boolean;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    type: String,
+    description: 'Branch whose baseline this one follows while inherited',
+  })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  inheritTarget?: string | null;
 }

@@ -6,6 +6,9 @@ import {
   uploadObjectName,
 } from '@public/visualTest/intake/application/upload-intake.service';
 import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
+import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
+import { BranchBaselineResolver } from '@public/visualTest/core/application/services/branch-baseline-resolver.service';
+import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
@@ -39,6 +42,9 @@ import {
 describe('UploadIntake (image kind)', () => {
   let uploadIntake: UploadIntake;
   let tests: Mocked<UnifiedTestRepository>;
+  let branches: Mocked<BranchResolver>;
+  let baselines: Mocked<BranchBaselineResolver>;
+  let branchTests: Mocked<BranchTestRepository>;
   let screenshots: Mocked<UnifiedScreenshotRepository>;
   let workflow: StateChangeWorkflow;
   let storage: Mocked<IStorageProvider>;
@@ -75,8 +81,43 @@ describe('UploadIntake (image kind)', () => {
   beforeEach(async () => {
     vi.spyOn(Date, 'now').mockReturnValue(testDate);
 
+    baselines = createMock<BranchBaselineResolver>();
+    // The identical gate resolves the effective baseline through the resolver;
+    // the stored path's baseline stub is the same source, so one fixture drives
+    // both.
+    baselines.peekEffectiveBaseline.mockImplementation(
+      async ({ testId, variant }) => {
+        const baseline = await screenshots.findBaselineByVariant(
+          testId,
+          variant,
+        );
+        return baseline
+          ? { imageHash: baseline.imageHash, needsRefresh: false }
+          : null;
+      },
+    );
+    branchTests = createMock<BranchTestRepository>();
+    branches = createMock<BranchResolver>();
+    branches.findReadOrNull.mockResolvedValue({
+      projectId: 'proj-1',
+      branchId: 'br-main',
+      branchName: 'main',
+      isDefault: true,
+      isArchived: false,
+    });
+    branches.resolveForUpload.mockResolvedValue({
+      projectId: 'proj-1',
+      branchId: 'br-main',
+      branchName: 'main',
+      isDefault: true,
+      isArchived: false,
+    });
+    baselines.resolveForVariant.mockImplementation(
+      async ({ testId, variant }) =>
+        screenshots.findBaselineByVariant(testId, variant),
+    );
     tests = createMock<UnifiedTestRepository>();
-    tests.findByProjectNameAndTestName.mockResolvedValue({
+    tests.findByBranchAndTestName.mockResolvedValue({
       id: 'test-1',
       name: 'test-name',
       kind: 'image',
@@ -106,6 +147,9 @@ describe('UploadIntake (image kind)', () => {
         UploadIntake,
         UploadDecisionResolver,
         { provide: UnifiedTestRepository, useValue: tests },
+        { provide: BranchResolver, useValue: branches },
+        { provide: BranchBaselineResolver, useValue: baselines },
+        { provide: BranchTestRepository, useValue: branchTests },
         { provide: UnifiedScreenshotRepository, useValue: screenshots },
         { provide: UnifiedComparisonsRepository, useValue: comparisons },
         { provide: ComparisonRetirementService, useValue: retirement },
@@ -164,6 +208,7 @@ describe('UploadIntake (image kind)', () => {
     expect(result).toEqual({
       status: 'identical',
       mismatchPixelCount: 0,
+      branch: 'main',
     });
     expect(workflow.executeStateChange).toHaveBeenCalled();
     expect(emittedEventTypes()).toEqual([]);
@@ -190,6 +235,7 @@ describe('UploadIntake (image kind)', () => {
     expect(result).toEqual({
       status: 'identical',
       mismatchPixelCount: 0,
+      branch: 'main',
     });
     expect(retirement.supersedeIdenticalForVariant).toHaveBeenCalledWith(
       'test-1',
@@ -206,7 +252,7 @@ describe('UploadIntake (image kind)', () => {
   });
 
   it('does not resurrect a deleted test from the identical gate transaction', async () => {
-    tests.findByProjectNameAndTestName
+    tests.findByBranchAndTestName
       .mockResolvedValueOnce({
         id: 'test-1',
         name: 'test-name',
@@ -232,6 +278,7 @@ describe('UploadIntake (image kind)', () => {
     expect(result).toEqual({
       status: 'baseline_created',
       testId: 'test-1',
+      branch: 'main',
       fileUrl: `https://storage/${testHash}-${testDate}.png`,
     });
     // ensureTest must run only in the stored path — the identical gate
@@ -272,6 +319,7 @@ describe('UploadIntake (image kind)', () => {
     expect(result).toEqual({
       status: 'comparison_queued',
       error: ComparisonErrorCode.IMAGE_DIFFERENCE,
+      branch: 'main',
       message: 'Comparison queued — check test results.',
     });
     expect(workflow.executeWithStoredFile).toHaveBeenCalled();
@@ -308,6 +356,7 @@ describe('UploadIntake (image kind)', () => {
     expect(result).toEqual({
       status: 'identical',
       mismatchPixelCount: 0,
+      branch: 'main',
     });
     expect(workflow.executeWithStoredFile).toHaveBeenCalled();
     expect(storage.deleteQuietly).not.toHaveBeenCalled();
@@ -329,6 +378,7 @@ describe('UploadIntake (image kind)', () => {
     expect(result).toEqual({
       status: 'baseline_created',
       testId: 'test-1',
+      branch: 'main',
       fileUrl: `https://storage/${testHash}-${testDate}.png`,
     });
     expect(workflow.executeWithStoredFile).toHaveBeenCalledWith(
@@ -403,6 +453,7 @@ describe('UploadIntake (image kind)', () => {
     expect(result).toEqual({
       status: 'comparison_queued',
       error: ComparisonErrorCode.IMAGE_DIFFERENCE,
+      branch: 'main',
       message: 'Comparison queued — check test results.',
     });
     expect(screenshots.upsertCandidateForVariant).toHaveBeenCalledWith(
@@ -565,6 +616,7 @@ describe('UploadIntake (image kind)', () => {
     expect(result).toEqual({
       status: 'comparison_queued',
       error: ComparisonErrorCode.IMAGE_DIFFERENCE,
+      branch: 'main',
       message: 'Comparison queued — check test results.',
     });
     expect(screenshots.findBaselineByVariant).toHaveBeenCalledTimes(2);
@@ -608,6 +660,7 @@ describe('UploadIntake (image kind)', () => {
     expect(result).toEqual({
       status: 'identical',
       mismatchPixelCount: 0,
+      branch: 'main',
     });
     expect(retirement.supersedeIdenticalForVariant).toHaveBeenCalledTimes(1);
     expect(storage.deleteQuietly).not.toHaveBeenCalled();

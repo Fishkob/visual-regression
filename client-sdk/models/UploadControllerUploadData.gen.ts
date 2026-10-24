@@ -4,7 +4,23 @@ export type UploadControllerUploadData = {
     /**
      * File and upload parameters
      */
-    body: string;
+    body: {
+        /**
+         * File to upload (image or PDF)
+         */
+        file: Blob | File;
+        viewport: string;
+        browser: string;
+        environment: string;
+        /**
+         * Branch that produced the upload (defaults to the project default branch)
+         */
+        branch?: string;
+        /**
+         * Branch the new branch inherits from (defaults to the project default branch)
+         */
+        targetBranch?: string;
+    };
     path: {
         projectName: string;
         testName: string;

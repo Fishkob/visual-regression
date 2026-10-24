@@ -9,4 +9,6 @@ export type ProjectTestDto = {
      * Latest status of the test
      */
     status?: TestStatus;
+    origin?: 'branch' | 'inherited';
+    inheritedFrom?: string | null;
 };

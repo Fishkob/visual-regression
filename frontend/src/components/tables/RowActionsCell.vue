@@ -15,9 +15,12 @@ import { MoreVertical, Trash2 } from "@lucide/vue";
 // own trigger markup via the `trigger` slot; the menu behaviour has one home
 // instead of a near-identical copy per table. The delete target is the caller's
 // concern — it binds its own requestDelete against the row it rendered.
+// `readOnly` suppresses the menu entirely for rows the caller cannot mutate
+// (e.g. a test inherited from another branch).
 defineProps<{
   deleteLabel: string;
   testId: string;
+  readOnly?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -33,7 +36,7 @@ function handleSelect() {
 </script>
 
 <template>
-  <div class="flex justify-end pr-4" @click.stop>
+  <div v-if="!readOnly" class="flex justify-end pr-4" @click.stop>
     <DropdownMenu v-model:open="open">
       <DropdownMenuTrigger as-child>
         <slot name="trigger">

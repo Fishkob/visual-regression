@@ -28,7 +28,7 @@ describe('Project Pending Status (e2e)', () => {
 
   beforeEach(async () => {
     await TestApp.resetDb();
-    await prisma.project.create({ data: { name: projectName } });
+    await TestApp.createProject(projectName);
   });
 
   afterAll(async () => {

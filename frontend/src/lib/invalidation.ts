@@ -1,4 +1,5 @@
 import type { QueryClient } from "@tanstack/vue-query";
+import { branchQueryKeys } from "@/domains/branches/query-keys";
 import { projectQueryKeys } from "@/domains/projects/query-keys";
 import { groupQueryKeys } from "@/domains/groups/query-keys";
 import {
@@ -32,6 +33,8 @@ function invalidateTestDetails(
   client.invalidateQueries({ queryKey: keyOf(args) });
   invalidateProjectDetail(client, args.projectName);
   client.invalidateQueries({ queryKey: projectQueryKeys.withPending() });
+  // An approval pins the variant and can change a branch's pending/test counts.
+  client.invalidateQueries({ queryKey: branchQueryKeys.all() });
   invalidateReviewInbox(client);
 }
 

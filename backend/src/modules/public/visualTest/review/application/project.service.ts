@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ProjectReadRepository } from '@public/visualTest/review/infrastructure/repositories/project-read.repository';
 import { ProjectGroupRepository } from '@public/visualTest/review/infrastructure/repositories/project-group.repository';
+import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { DomainError } from '@common/domain/domain-error';
 import { PaginationDto } from '@common/dto/pagination.dto';
@@ -11,7 +12,10 @@ import {
   mapProjectSummaryToDto,
   mapProjectToDto,
 } from '@public/visualTest/review/infrastructure/mappers/project-response.mapper';
-import type { ProjectDto } from '@public/visualTest/review/presentation/dto/project.dto';
+import type {
+  ProjectDto,
+  UpdateProjectDto,
+} from '@public/visualTest/review/presentation/dto/project.dto';
 
 @Injectable()
 export class ProjectService {
@@ -20,6 +24,7 @@ export class ProjectService {
     private readonly projectRead: ProjectReadRepository,
     private readonly testDeletion: TestDeletionService,
     private readonly groups: ProjectGroupRepository,
+    private readonly branchCommands: BranchCommandService,
   ) {}
 
   async getAllWithPendingFlag(pagination: PaginationDto) {
@@ -38,9 +43,14 @@ export class ProjectService {
     );
   }
 
-  async getWithLatestVariantStatuses(projectName: string): Promise<ProjectDto> {
-    const project =
-      await this.projectRead.getWithLatestVariantStatuses(projectName);
+  async getWithLatestVariantStatuses(
+    projectName: string,
+    branchName?: string,
+  ): Promise<ProjectDto> {
+    const project = await this.projectRead.getWithLatestVariantStatuses(
+      projectName,
+      branchName,
+    );
     if (!project) {
       throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
     }
@@ -68,11 +78,21 @@ export class ProjectService {
 
   async updateProjectGroup(
     projectName: string,
-    groupId: string | null | undefined,
+    dto: UpdateProjectDto,
   ): Promise<ProjectDto> {
-    if (groupId === undefined) {
-      throw new DomainError('groupId is required', 'BAD_REQUEST');
+    if (dto.groupId === undefined && dto.defaultBranchName === undefined) {
+      throw new DomainError(
+        'groupId or defaultBranchName is required',
+        'BAD_REQUEST',
+      );
     }
+    if (dto.defaultBranchName !== undefined) {
+      await this.branchCommands.setDefault(projectName, dto.defaultBranchName);
+    }
+    if (dto.groupId === undefined) {
+      return this.getWithLatestVariantStatuses(projectName);
+    }
+    const groupId = dto.groupId;
     const project = await this.projects.findByName(projectName);
     if (!project) {
       throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');

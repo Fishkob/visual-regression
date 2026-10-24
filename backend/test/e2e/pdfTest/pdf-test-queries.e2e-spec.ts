@@ -23,20 +23,18 @@ describe('PdfTest queries (e2e)', () => {
 
   describe('GET /projects/:projectName/tests', () => {
     it('should return list of tests for a project', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'proj' },
-      });
+      const { branchId } = await TestApp.createProject('proj');
       await prisma.unifiedTest.create({
         data: {
           name: 'InvoiceReport',
-          projectId: project.id,
+          branchId,
           status: TestStatus.PENDING,
         },
       });
       await prisma.unifiedTest.create({
         data: {
           name: 'TaxReport',
-          projectId: project.id,
+          branchId,
           status: TestStatus.UNCHANGED,
         },
       });
@@ -52,7 +50,7 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should return empty array for project with no tests', async () => {
-      await prisma.project.create({ data: { name: 'empty-proj' } });
+      await TestApp.createProject('empty-proj');
 
       const res = await authRequest(app)
         .get('/api/v1/projects/empty-proj/tests')
@@ -72,11 +70,9 @@ describe('PdfTest queries (e2e)', () => {
 
   describe('GET /projects/:projectName/tests/:testName/kind', () => {
     it('should return pdf kind when a PDF test exists', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'kind-proj' },
-      });
+      const { branchId } = await TestApp.createProject('kind-proj');
       await prisma.unifiedTest.create({
-        data: { name: 'MyPDF', projectId: project.id, kind: 'pdf' },
+        data: { name: 'MyPDF', branchId, kind: 'pdf' },
       });
 
       const res = await authRequest(app)
@@ -87,11 +83,9 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should return image kind when only a visual test exists', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'kind-proj2' },
-      });
+      const { branchId } = await TestApp.createProject('kind-proj2');
       await prisma.unifiedTest.create({
-        data: { name: 'MyVisual', projectId: project.id, kind: 'image' },
+        data: { name: 'MyVisual', branchId, kind: 'image' },
       });
 
       const res = await authRequest(app)
@@ -102,7 +96,7 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should return 404 when no test exists for the name', async () => {
-      await prisma.project.create({ data: { name: 'kind-proj3' } });
+      await TestApp.createProject('kind-proj3');
 
       await authRequest(app)
         .get('/api/v1/projects/kind-proj3/tests/Nonexistent/kind')
@@ -118,11 +112,9 @@ describe('PdfTest queries (e2e)', () => {
 
   describe('GET /projects/:projectName/tests/:testName/pdf-details', () => {
     it('should return test details with baseline', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'detail-proj' },
-      });
+      const { branchId } = await TestApp.createProject('detail-proj');
       const test = await prisma.unifiedTest.create({
-        data: { name: 'DetailTest', projectId: project.id, kind: 'pdf' },
+        data: { name: 'DetailTest', branchId, kind: 'pdf' },
       });
       const screenshot = await prisma.unifiedScreenshot.create({
         data: {
@@ -155,11 +147,9 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should return test details with baseline and comparison', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'detail-proj2' },
-      });
+      const { branchId } = await TestApp.createProject('detail-proj2');
       const test = await prisma.unifiedTest.create({
-        data: { name: 'CompareTest', projectId: project.id, kind: 'pdf' },
+        data: { name: 'CompareTest', branchId, kind: 'pdf' },
       });
       const baseline = await prisma.unifiedScreenshot.create({
         data: {
@@ -214,11 +204,9 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should return null baseline when test has no variant', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'detail-proj3' },
-      });
+      const { branchId } = await TestApp.createProject('detail-proj3');
       await prisma.unifiedTest.create({
-        data: { name: 'NoVariant', projectId: project.id, kind: 'pdf' },
+        data: { name: 'NoVariant', branchId, kind: 'pdf' },
       });
 
       const res = await authRequest(app)
@@ -232,11 +220,9 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should return null baseline when variant has no baseline', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'detail-proj4' },
-      });
+      const { branchId } = await TestApp.createProject('detail-proj4');
       const test = await prisma.unifiedTest.create({
-        data: { name: 'EmptyVariant', projectId: project.id, kind: 'pdf' },
+        data: { name: 'EmptyVariant', branchId, kind: 'pdf' },
       });
       await prisma.unifiedVariant.create({
         data: {
@@ -257,11 +243,9 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should filter by viewport', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'filter-proj' },
-      });
+      const { branchId } = await TestApp.createProject('filter-proj');
       const test = await prisma.unifiedTest.create({
-        data: { name: 'FilterTest', projectId: project.id, kind: 'pdf' },
+        data: { name: 'FilterTest', branchId, kind: 'pdf' },
       });
       const baseline = await prisma.unifiedScreenshot.create({
         data: {
@@ -291,9 +275,9 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should return 404 when test does not exist', async () => {
-      await prisma.project.create({
-        data: { name: 'detail-proj5' },
-      });
+      // A real project (with its default branch): the 404 must come from the
+      // missing test, not from a project that has no default branch.
+      await TestApp.createProject('detail-proj5');
 
       await authRequest(app)
         .get('/api/v1/projects/detail-proj5/tests/Nonexistent/pdf-details')
@@ -309,11 +293,9 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should return 400 when no variant filter is provided', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'detail-proj6' },
-      });
+      const { branchId } = await TestApp.createProject('detail-proj6');
       await prisma.unifiedTest.create({
-        data: { name: 'Unfiltered', projectId: project.id, kind: 'pdf' },
+        data: { name: 'Unfiltered', branchId, kind: 'pdf' },
       });
 
       await authRequest(app)
@@ -324,11 +306,9 @@ describe('PdfTest queries (e2e)', () => {
 
   describe('GET /projects/:projectName/tests/:testName/pdf-download', () => {
     it('should reject invalid type with 400', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'dl-proj' },
-      });
+      const { branchId } = await TestApp.createProject('dl-proj');
       await prisma.unifiedTest.create({
-        data: { name: 'any', projectId: project.id, kind: 'pdf' },
+        data: { name: 'any', branchId, kind: 'pdf' },
       });
 
       await authRequest(app)
@@ -338,11 +318,9 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should return 404 when test has no baseline', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'dl-proj2' },
-      });
+      const { branchId } = await TestApp.createProject('dl-proj2');
       await prisma.unifiedTest.create({
-        data: { name: 'NoBaseline', projectId: project.id, kind: 'pdf' },
+        data: { name: 'NoBaseline', branchId, kind: 'pdf' },
       });
 
       await authRequest(app)
@@ -352,7 +330,7 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should return 404 when test does not exist', async () => {
-      await prisma.project.create({ data: { name: 'dl-proj3' } });
+      await TestApp.createProject('dl-proj3');
 
       await authRequest(app)
         .get('/api/v1/projects/dl-proj3/tests/Nonexistent/pdf-download')
@@ -361,11 +339,9 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should reject pdfUrl from a different project with 403', async () => {
-      const projectA = await prisma.project.create({
-        data: { name: 'dl-proj-a' },
-      });
+      const { branchId: branchA } = await TestApp.createProject('dl-proj-a');
       const testA = await prisma.unifiedTest.create({
-        data: { name: 'TestA', projectId: projectA.id, kind: 'pdf' },
+        data: { name: 'TestA', branchId: branchA, kind: 'pdf' },
       });
       const screenshotA = await prisma.unifiedScreenshot.create({
         data: {
@@ -376,11 +352,9 @@ describe('PdfTest queries (e2e)', () => {
           pageCount: 1,
         },
       });
-      const projectB = await prisma.project.create({
-        data: { name: 'dl-proj-b' },
-      });
+      const { branchId: branchB } = await TestApp.createProject('dl-proj-b');
       const testB = await prisma.unifiedTest.create({
-        data: { name: 'TestB', projectId: projectB.id, kind: 'pdf' },
+        data: { name: 'TestB', branchId: branchB, kind: 'pdf' },
       });
       await prisma.unifiedVariant.create({
         data: {
@@ -399,11 +373,9 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should reject pdfUrl from a different test within same project with 403', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'dl-proj-same' },
-      });
+      const { branchId } = await TestApp.createProject('dl-proj-same');
       const testOne = await prisma.unifiedTest.create({
-        data: { name: 'TestOne', projectId: project.id, kind: 'pdf' },
+        data: { name: 'TestOne', branchId, kind: 'pdf' },
       });
       const screenshotOne = await prisma.unifiedScreenshot.create({
         data: {
@@ -415,7 +387,7 @@ describe('PdfTest queries (e2e)', () => {
         },
       });
       const testTwo = await prisma.unifiedTest.create({
-        data: { name: 'TestTwo', projectId: project.id, kind: 'pdf' },
+        data: { name: 'TestTwo', branchId, kind: 'pdf' },
       });
       await prisma.unifiedVariant.create({
         data: {
@@ -434,11 +406,9 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should return 400 when no variant filter is provided', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'dl-proj4' },
-      });
+      const { branchId } = await TestApp.createProject('dl-proj4');
       await prisma.unifiedTest.create({
-        data: { name: 'Unfiltered', projectId: project.id, kind: 'pdf' },
+        data: { name: 'Unfiltered', branchId, kind: 'pdf' },
       });
 
       await authRequest(app)
@@ -463,25 +433,33 @@ describe('PdfTest queries (e2e)', () => {
         .expect(400);
     });
 
-    it('should reject invalid pdfUrl with 403', async () => {
+    it('should reject an unknown test with 404', async () => {
       await authRequest(app)
         .get('/api/v1/projects/any/tests/any/pdf-render')
+        .query({ pdfUrl: 'not-a-valid-url', page: 1 })
+        .expect(404);
+    });
+
+    it('should reject a pdfUrl the existing test does not own with 403', async () => {
+      const { branchId } = await TestApp.createProject('render-proj');
+      await prisma.unifiedTest.create({
+        data: { name: 'Owned', branchId, kind: 'pdf' },
+      });
+
+      await authRequest(app)
+        .get('/api/v1/projects/render-proj/tests/Owned/pdf-render')
         .query({ pdfUrl: 'not-a-valid-url', page: 1 })
         .expect(403);
     });
 
     it('should reject pdfUrl from a different project with 403', async () => {
-      const projectA = await prisma.project.create({
-        data: { name: 'project-a' },
-      });
+      const { branchId: branchA } = await TestApp.createProject('project-a');
       const testA = await prisma.unifiedTest.create({
-        data: { name: 'TestA', projectId: projectA.id, kind: 'pdf' },
+        data: { name: 'TestA', branchId: branchA, kind: 'pdf' },
       });
-      const projectB = await prisma.project.create({
-        data: { name: 'project-b' },
-      });
+      const { branchId: branchB } = await TestApp.createProject('project-b');
       const testB = await prisma.unifiedTest.create({
-        data: { name: 'TestB', projectId: projectB.id, kind: 'pdf' },
+        data: { name: 'TestB', branchId: branchB, kind: 'pdf' },
       });
       await prisma.unifiedScreenshot.create({
         data: {
@@ -503,14 +481,12 @@ describe('PdfTest queries (e2e)', () => {
     });
 
     it('should reject pdfUrl from a different test within the same project with 403', async () => {
-      const project = await prisma.project.create({
-        data: { name: 'same-proj' },
-      });
+      const { branchId } = await TestApp.createProject('same-proj');
       const testOne = await prisma.unifiedTest.create({
-        data: { name: 'TestOne', projectId: project.id, kind: 'pdf' },
+        data: { name: 'TestOne', branchId, kind: 'pdf' },
       });
       const testTwo = await prisma.unifiedTest.create({
-        data: { name: 'TestTwo', projectId: project.id, kind: 'pdf' },
+        data: { name: 'TestTwo', branchId, kind: 'pdf' },
       });
       await prisma.unifiedScreenshot.create({
         data: {

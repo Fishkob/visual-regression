@@ -19,7 +19,7 @@ describe('Upload Baseline (e2e)', () => {
 
   beforeEach(async () => {
     await TestApp.resetDb();
-    await prisma.project.create({ data: { name: 'checkout-ui' } });
+    await TestApp.createProject('checkout-ui');
   });
 
   afterAll(async () => {

@@ -7,11 +7,13 @@ export type VariantParams = {
 export type KeyParams = VariantParams & { name?: string };
 
 // What identifies a reviewable test: the project + test names plus the variant
-// triple. Single owner of the identity tuple — invalidation, the details page
-// adapter, and the review session all import this instead of spelling it.
+// triple, and the branch the review is scoped to. Single owner of the identity
+// tuple — invalidation, the details page adapter, and the review session all
+// import this instead of spelling it.
 export type TestDetailsArgs = {
   projectName: string;
   testName: string;
+  branch?: string;
 } & VariantParams;
 
 export function variantKeyParts(

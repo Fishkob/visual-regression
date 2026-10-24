@@ -122,6 +122,16 @@ export class PendingReviewDto {
   @Expose()
   kind!: string;
 
+  @ApiProperty({ example: 'main' })
+  @IsString()
+  @Expose()
+  branchName!: string;
+
+  @ApiProperty({ example: true })
+  @IsBoolean()
+  @Expose()
+  isDefaultBranch!: boolean;
+
   @ApiProperty({ type: () => VariantDto })
   @IsDefined()
   @Type(() => VariantDto)

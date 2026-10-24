@@ -13,4 +13,14 @@ export type VisualTestDetailsDto = {
      * Latest comparison result, if available
      */
     comparison?: ComparisonDto;
+    origin?: 'branch' | 'inherited';
+    inheritedFrom?: string | null;
+    /**
+     * True while this baseline is an inherited clone that still follows the target branch
+     */
+    baselineInherited?: boolean;
+    /**
+     * Branch whose baseline this one follows while inherited
+     */
+    inheritTarget?: string | null;
 };

@@ -101,6 +101,8 @@ describe('project-response.mapper', () => {
         createdAt,
         groupId: null,
         groupName: null,
+        branchName: 'main',
+        defaultBranchName: 'main',
         variants: [
           {
             testName: 'login-form',
@@ -109,6 +111,8 @@ describe('project-response.mapper', () => {
             browser: 'chrome',
             environment: 'production',
             status: TestStatus.PENDING_APPROVAL,
+            origin: 'branch',
+            inheritedFrom: null,
           },
         ],
       });
@@ -124,6 +128,8 @@ describe('project-response.mapper', () => {
             environment: 'production',
           },
           latestStatus: TestStatus.PENDING_APPROVAL,
+          origin: 'branch',
+          inheritedFrom: null,
         },
       ]);
     });

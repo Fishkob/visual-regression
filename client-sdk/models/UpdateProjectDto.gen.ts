@@ -5,4 +5,8 @@ export type UpdateProjectDto = {
      * Group id, or null to move the project to Unassigned
      */
     groupId?: string | null;
+    /**
+     * Branch to promote to the project default
+     */
+    defaultBranchName?: string;
 };

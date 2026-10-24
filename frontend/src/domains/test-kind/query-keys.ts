@@ -3,6 +3,15 @@
 // test" crosses one module instead of assembling vocabulary + key + fetch.
 export const testKindQueryKeys = {
   all: () => ["test-kind"] as const,
-  kind: (projectName: string, testName: string) =>
-    [...testKindQueryKeys.all(), "kind", projectName, testName] as const,
+  // The branch is appended only when one is selected, so the default-branch
+  // read keeps its key while a branch-scoped read gets its own cache entry (and
+  // the all() prefix still matches both).
+  kind: (projectName: string, testName: string, branchName?: string) =>
+    [
+      ...testKindQueryKeys.all(),
+      "kind",
+      projectName,
+      testName,
+      ...(branchName ? [branchName] : []),
+    ] as const,
 } as const;

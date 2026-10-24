@@ -220,6 +220,7 @@ describe('ApprovalService', () => {
         'comp-1',
       );
       expect(statusService.recomputeStatus).toHaveBeenCalledWith('test-1');
+      expect(screenshots.markBaselineOwned).toHaveBeenCalledWith('baseline-1');
       expect(comparisons.completeImageApproval).toHaveBeenCalledWith(
         'test-1',
         'comp-1',
@@ -435,6 +436,9 @@ describe('ApprovalService', () => {
           pageCount: 5,
         },
       );
+      expect(screenshots.markBaselineOwned).toHaveBeenCalledWith(
+        'pdf-baseline-1',
+      );
       expect(comparisons.completePdfApproval).toHaveBeenCalledWith(
         'pdf-comp-1',
         undefined,
@@ -516,5 +520,43 @@ describe('ApprovalService', () => {
         service.approvePdf('my-project', 'my-test', 'comp-x'),
       ).rejects.toThrow(DomainError);
     });
+  });
+
+  // The pre-branch contract: a client approves by comparisonId only. The
+  // comparison identifies its own test (and therefore its branch), so a
+  // feature-branch approval must work without the caller learning about branches.
+  it('resolves the branch through the comparison when no branch is given', async () => {
+    const baseline = makeBaseline();
+    const candidate = makeCandidate();
+    comparisons.findTestOfComparison.mockResolvedValue({
+      id: 'test-1',
+      name: 'my-test',
+      kind: 'image',
+    } as never);
+    comparisons.findByIdForTest.mockResolvedValue(
+      makeComparison(baseline, candidate),
+    );
+    comparisons.completeImageApproval.mockResolvedValue([]);
+    statusService.recomputeStatus.mockResolvedValue(undefined);
+
+    await service.approveImage('my-project', 'my-test', 'cmp-1');
+
+    expect(comparisons.findTestOfComparison).toHaveBeenCalledWith({
+      projectName: 'my-project',
+      testName: 'my-test',
+      comparisonId: 'cmp-1',
+    });
+    expect(testResolver.findTestOfKind).not.toHaveBeenCalled();
+  });
+
+  it('keeps the pre-branch error when neither the comparison nor the test resolves', async () => {
+    comparisons.findTestOfComparison.mockResolvedValue(null);
+    testResolver.findTestOfKind.mockRejectedValue(
+      new DomainError('Test "my-test" not found', 'NOT_FOUND'),
+    );
+
+    await expect(
+      service.approveImage('my-project', 'my-test', 'cmp-missing'),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });

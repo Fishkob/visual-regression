@@ -157,6 +157,10 @@ describe('TestDeletionService', () => {
       storage.deleteAll.mockClear();
       const result = toOutcome(await txFn());
       expect(storage.deleteAll).not.toHaveBeenCalled();
+      expect(screenshots.filterReclaimableUrls).toHaveBeenCalledWith([
+        'http://storage/screenshot1.png',
+        'http://storage/diff1.png',
+      ]);
       expect(result.change.staleUrls).toEqual([
         'http://storage/screenshot1.png',
         'http://storage/diff1.png',

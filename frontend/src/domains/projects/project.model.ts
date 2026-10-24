@@ -1,6 +1,10 @@
 import type { TestStatusValue } from "@/domains/test-status";
 import type { TestKind } from "@/domains/test-kind";
 
+import type { BranchOrigin } from "@/domains/branches/branch-origin";
+
+export type { BranchOrigin };
+
 export interface VisualTestItem {
   name?: string;
   kind?: TestKind;
@@ -8,6 +12,8 @@ export interface VisualTestItem {
   browser?: string;
   environment?: string;
   latestStatus?: TestStatusValue;
+  origin?: BranchOrigin;
+  inheritedFrom?: string | null;
 }
 
 export interface Project {
@@ -16,6 +22,8 @@ export interface Project {
   hasPendingTests: boolean;
   groupId?: string | null;
   groupName?: string | null;
+  branchName?: string;
+  defaultBranchName?: string;
   pendingCount?: number;
   testCount?: number;
   visualTests?: VisualTestItem[];

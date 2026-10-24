@@ -16,14 +16,12 @@ describe('GET /projects/:projectName/tests/meta/pending (e2e)', () => {
   beforeEach(async () => {
     await TestApp.resetDb();
 
-    const project = await prisma.project.create({
-      data: { name: 'checkout-ui' },
-    });
+    const { branchId } = await TestApp.createProject('checkout-ui');
 
     const test = await prisma.unifiedTest.create({
       data: {
         name: 'LoginForm',
-        projectId: project.id,
+        branchId,
         kind: 'image',
         status: TestStatus.PENDING,
       },

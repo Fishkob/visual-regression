@@ -6,7 +6,10 @@ import {
   type VariantFilter,
 } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { toScreenshotEntity } from '@public/visualTest/core/infrastructure/mappers/screenshot.mapper';
-import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
+import {
+  VariantStore,
+  type VariantBaselineRow,
+} from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { TransactionContext } from '@/prisma/transaction-context';
 
 @Injectable()
@@ -166,6 +169,115 @@ export class UnifiedScreenshotRepository extends BaseRepository {
       update: { imageHash: contentHash, imageUrl: contentUrl, pageCount },
     });
     await this.variants.setBaselineId(variantId, result.id);
+    // A written baseline is branch-owned, whatever the variant was before (a
+    // clone whose row was unlinked, or an inherited variant that now writes its
+    // first baseline). Keeping the invariant in one place stops reads from
+    // labelling an owned baseline as following the target.
+    await this.variants.setInherited(variantId, false);
+  }
+
+  async findBaselineForBranch(
+    branchId: string,
+    testName: string,
+    variant: Variant,
+  ): Promise<{
+    testId: string;
+    imageHash: string;
+    imageUrl: string;
+    pageCount: number | null;
+    pixelDiffThreshold: number;
+  } | null> {
+    // The ancestor test is resolved by NAME, not just by variant: a branch
+    // inherits the baseline of the test with the same name, never a sibling
+    // test's baseline that happens to share the viewport/browser/environment.
+    const row = await this.client.unifiedVariant.findFirst({
+      where: {
+        test: { branchId, name: testName },
+        viewport: variant.viewport,
+        browser: variant.browser,
+        environment: variant.environment,
+        isInherited: false,
+        baselineId: { not: null },
+      },
+      include: { baseline: true },
+    });
+    if (!row?.baseline) return null;
+    return {
+      testId: row.baseline.testId,
+      imageHash: row.baseline.imageHash,
+      imageUrl: row.baseline.imageUrl,
+      pageCount: row.baseline.pageCount,
+      pixelDiffThreshold: row.baseline.pixelDiffThreshold,
+    };
+  }
+
+  async cloneInheritedBaseline(input: {
+    testId: string;
+    source: {
+      testId: string;
+      imageHash: string;
+      imageUrl: string;
+      pageCount: number | null;
+      pixelDiffThreshold: number;
+    };
+    variant: Variant;
+  }): Promise<VariantBaselineRow> {
+    this.assertWritable();
+    const variantId = await this.variants.ensureVariant(
+      input.testId,
+      input.variant,
+    );
+    const row = await this.client.unifiedScreenshot.upsert({
+      where: {
+        testId_variantId_type: {
+          testId: input.testId,
+          variantId,
+          type: 'BASELINE',
+        },
+      },
+      create: {
+        testId: input.testId,
+        variantId,
+        type: 'BASELINE',
+        imageHash: input.source.imageHash,
+        imageUrl: input.source.imageUrl,
+        pageCount: input.source.pageCount,
+        pixelDiffThreshold: input.source.pixelDiffThreshold,
+      },
+      update: {
+        imageHash: input.source.imageHash,
+        imageUrl: input.source.imageUrl,
+        pageCount: input.source.pageCount,
+      },
+    });
+    await this.variants.setBaselineId(variantId, row.id);
+    await this.variants.setInherited(variantId, true);
+    return row;
+  }
+
+  async updateInheritedBaseline(input: {
+    baselineId: string;
+    imageHash: string;
+    imageUrl: string;
+    pageCount: number | null;
+  }): Promise<VariantBaselineRow> {
+    this.assertWritable();
+    return this.client.unifiedScreenshot.update({
+      where: { id: input.baselineId },
+      data: {
+        imageHash: input.imageHash,
+        imageUrl: input.imageUrl,
+        pageCount: input.pageCount,
+      },
+    });
+  }
+
+  async markBaselineOwned(baselineId: string): Promise<void> {
+    this.assertWritable();
+    await this.client.unifiedVariant.updateMany({
+      where: { baselineId },
+      data: { isInherited: false },
+    });
   }
 
   async findCurrentByVariant(

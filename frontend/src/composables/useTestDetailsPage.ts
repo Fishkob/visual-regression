@@ -45,12 +45,14 @@ interface TestDetailsAdapter<
   useDetailsQuery: (
     projectName: Ref<string>,
     testName: Ref<string>,
+    branchName: Ref<string | undefined>,
     filters: Ref<VariantParams>,
   ) => DetailsQuery<D>;
   approve: (
     projectName: string,
     testName: string,
     comparisonId: string,
+    branchName?: string,
   ) => Promise<unknown>;
   invalidateDetails: (client: QueryClient, args: TestDetailsArgs) => void;
   // The kind-specific artifact that forces a fresh comparison panel when it
@@ -62,17 +64,23 @@ interface TestDetailsAdapter<
 export function useVisualDetailsQuery(
   projectName: Ref<string>,
   testName: Ref<string>,
+  branchName: Ref<string | undefined>,
   filters: Ref<VariantParams>,
 ) {
   return useSdkQuery({
-    args: { projectName, testName, filters },
+    args: { projectName, testName, branchName, filters },
     required: ["projectName", "testName"],
-    keyOf: ({ projectName, testName, filters }) =>
-      visualTestQueryKeys.details({ projectName, testName, ...filters }),
-    sdkFn: ({ projectName, testName, filters }) =>
+    keyOf: ({ projectName, testName, branchName, filters }) =>
+      visualTestQueryKeys.details({
+        projectName,
+        testName,
+        branch: branchName,
+        ...filters,
+      }),
+    sdkFn: ({ projectName, testName, branchName, filters }) =>
       testsQueriesControllerGetVisualTestDetails({
         path: { projectName, testName },
-        query: { ...filters },
+        query: { ...filters, ...(branchName ? { branch: branchName } : {}) },
       }),
     map: mapVisualTestDetails,
   });
@@ -81,17 +89,23 @@ export function useVisualDetailsQuery(
 export function usePdfDetailsQuery(
   projectName: Ref<string>,
   testName: Ref<string>,
+  branchName: Ref<string | undefined>,
   filters: Ref<VariantParams>,
 ) {
   return useSdkQuery({
-    args: { projectName, testName, filters },
+    args: { projectName, testName, branchName, filters },
     required: ["projectName", "testName"],
-    keyOf: ({ projectName, testName, filters }) =>
-      pdfTestQueryKeys.details({ projectName, testName, ...filters }),
-    sdkFn: ({ projectName, testName, filters }) =>
+    keyOf: ({ projectName, testName, branchName, filters }) =>
+      pdfTestQueryKeys.details({
+        projectName,
+        testName,
+        branch: branchName,
+        ...filters,
+      }),
+    sdkFn: ({ projectName, testName, branchName, filters }) =>
       pdfControllerGetPdfTestDetails({
         path: { projectName, testName },
-        query: { ...filters },
+        query: { ...filters, ...(branchName ? { branch: branchName } : {}) },
       }),
     map: mapPdfTestDetails,
   });
@@ -99,9 +113,10 @@ export function usePdfDetailsQuery(
 
 const IMAGE_ADAPTER: TestDetailsAdapter<VisualTestDetails> = {
   useDetailsQuery: useVisualDetailsQuery,
-  approve: (projectName, testName, comparisonId) =>
+  approve: (projectName, testName, comparisonId, branchName) =>
     approvalsControllerApproveVisualTest({
       path: { projectName, testName },
+      ...(branchName ? { query: { branch: branchName } } : {}),
       body: { comparisonId },
     }),
   invalidateDetails: invalidateVisualTestDetails,
@@ -110,9 +125,10 @@ const IMAGE_ADAPTER: TestDetailsAdapter<VisualTestDetails> = {
 
 const PDF_ADAPTER: TestDetailsAdapter<PdfTestDetails> = {
   useDetailsQuery: usePdfDetailsQuery,
-  approve: (projectName, testName, comparisonId) =>
+  approve: (projectName, testName, comparisonId, branchName) =>
     approvalsControllerApprovePdfTest({
       path: { projectName, testName },
+      ...(branchName ? { query: { branch: branchName } } : {}),
       body: { comparisonId },
     }),
   invalidateDetails: invalidatePdfTestDetails,
@@ -131,14 +147,16 @@ export function useKindDetailsPage<
   adapter: TestDetailsAdapter<D>;
   projectName: Ref<string>;
   testName: Ref<string>;
+  branchName: Ref<string | undefined>;
   filters: Ref<VariantParams>;
   returnToInbox?: Ref<boolean>;
 }) {
-  const { adapter, projectName, testName, filters } = args;
+  const { adapter, projectName, testName, branchName, filters } = args;
 
   const { data, isLoading, error, refetch } = adapter.useDetailsQuery(
     projectName,
     testName,
+    branchName,
     filters,
   );
 
@@ -149,18 +167,28 @@ export function useKindDetailsPage<
     () => !!projectName.value && hasComparison.value,
   );
 
-  const pendingQuery = usePendingTestsQuery(projectName, pendingEnabled);
+  const pendingQuery = usePendingTestsQuery(
+    projectName,
+    branchName,
+    pendingEnabled,
+  );
   const pendingTests = computed(() => pendingQuery.data.value ?? []);
 
   const { handleApprove, handleSkip, isApproving, progress } = useReviewSession(
     {
       projectName,
       testName,
+      branchName,
       filters,
       pendingTests,
       currentComparisonId,
       approve: (comparisonId) =>
-        adapter.approve(projectName.value, testName.value, comparisonId),
+        adapter.approve(
+          projectName.value,
+          testName.value,
+          comparisonId,
+          branchName.value,
+        ),
       invalidateDetails: adapter.invalidateDetails,
       returnToInbox: args.returnToInbox,
     },
@@ -192,6 +220,7 @@ export function useKindDetailsPage<
 export function useVisualTestDetailsPage(args: {
   projectName: Ref<string>;
   testName: Ref<string>;
+  branchName: Ref<string | undefined>;
   filters: Ref<VariantParams>;
   returnToInbox?: Ref<boolean>;
 }) {
@@ -201,6 +230,7 @@ export function useVisualTestDetailsPage(args: {
 export function usePdfTestDetailsPage(args: {
   projectName: Ref<string>;
   testName: Ref<string>;
+  branchName: Ref<string | undefined>;
   filters: Ref<VariantParams>;
   returnToInbox?: Ref<boolean>;
 }) {

@@ -5,6 +5,7 @@ import { useVisualTestDetailsPage } from "@/composables/useTestDetailsPage";
 import { useRouteParams } from "@/composables/useRouteParams";
 import { useReviewShortcuts } from "@/composables/useReviewShortcuts";
 import { useProjectDetailQuery } from "@/composables/useProjects";
+import { isInheritedOrigin } from "@/domains/branches/branch-origin";
 import { isApproved } from "@/domains/test-status";
 
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +23,10 @@ defineProps<{ kind?: string }>();
 /* ROUTE + PARAMS                                                */
 /* ------------------------------------------------------------- */
 
-const { projectName, testName, filters, fromInbox } = useRouteParams();
+const { projectName, testName, filters, branch, fromInbox } = useRouteParams();
 const router = useRouter();
 
-const { data: project } = useProjectDetailQuery(projectName);
+const { data: project } = useProjectDetailQuery(projectName, branch);
 const groupName = computed(() => project.value?.groupName ?? undefined);
 
 /* ------------------------------------------------------------- */
@@ -45,9 +46,15 @@ const {
 } = useVisualTestDetailsPage({
   projectName,
   testName,
+  branchName: branch,
   filters,
   returnToInbox: fromInbox,
 });
+
+// A test inherited from another branch has no reviewable baseline of its own
+// here: approve/skip belong to the branch that owns it (the backend rejects
+// mutations with 409 regardless).
+const isInherited = computed(() => isInheritedOrigin(data.value?.origin));
 
 useReviewShortcuts({
   onApprove: handleApprove,
@@ -55,6 +62,7 @@ useReviewShortcuts({
   onBack: () => router.back(),
   enabled: () =>
     !!data.value?.comparison &&
+    !isInherited.value &&
     !isApproving.value &&
     !isApproved(data.value.comparison.status),
   canBack: () => !!data.value?.comparison && !isApproving.value,
@@ -71,6 +79,27 @@ useReviewShortcuts({
       />
       <Badge v-if="kind" variant="outline">
         {{ kind === "pdf" ? "PDF" : "Image" }}
+      </Badge>
+      <Badge
+        v-if="isInherited"
+        variant="secondary"
+        class="font-mono text-[10px]"
+        :data-testid="TEST_ID.inheritedBadge"
+      >
+        inherited from {{ data?.inheritedFrom }}
+      </Badge>
+      <!-- The baseline can be inherited even when the test itself is owned:
+           it then tracks the target branch until an approval pins it here.
+           Without this the reviewer sees a diff against a picture that points at
+           another branch with no indication that it does. -->
+      <Badge
+        v-else-if="data?.baselineInherited"
+        variant="outline"
+        class="font-mono text-[10px]"
+        :title="`This baseline follows ${data?.inheritTarget ?? 'the target branch'} until it is approved on this branch`"
+        :data-testid="TEST_ID.baselineInheritedBadge"
+      >
+        baseline follows {{ data?.inheritTarget ?? "target" }}
       </Badge>
       <span
         v-if="!fromInbox && progress.total > 0"
@@ -94,6 +123,8 @@ useReviewShortcuts({
       :viewport="filters.viewport"
       :browser="filters.browser"
       :environment="filters.environment"
+      :branch-name="branch"
+      :read-only="isInherited"
     />
   </div>
 
@@ -116,6 +147,7 @@ useReviewShortcuts({
         :key="viewKey"
         :comparison="data.comparison"
         :is-approving="isApproving"
+        :read-only="isInherited"
         @approve="handleApprove"
         @skip="handleSkip"
       />
@@ -124,7 +156,10 @@ useReviewShortcuts({
 
     <p
       v-if="
-        data?.comparison && !isApproved(data.comparison.status) && !isApproving
+        data?.comparison &&
+        !isInherited &&
+        !isApproved(data.comparison.status) &&
+        !isApproving
       "
       class="mt-2 text-center text-xs text-muted-foreground"
       :data-testid="TEST_ID.shortcutsHint"

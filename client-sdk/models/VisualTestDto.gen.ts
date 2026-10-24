@@ -11,4 +11,6 @@ export type VisualTestDto = {
      * Latest status of the test variant
      */
     latestStatus?: TestStatus;
+    origin?: 'branch' | 'inherited';
+    inheritedFrom?: string | null;
 };

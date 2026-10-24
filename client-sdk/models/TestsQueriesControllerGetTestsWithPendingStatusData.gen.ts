@@ -22,6 +22,10 @@ export type TestsQueriesControllerGetTestsWithPendingStatusData = {
          * Page size, alternative to limit
          */
         take?: number;
+        /**
+         * Branch to read or act on (defaults to the project default branch)
+         */
+        branch?: string;
     };
     url: '/projects/{projectName}/tests/meta/pending';
 };

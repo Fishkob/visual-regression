@@ -43,6 +43,7 @@ describe('ApprovalsController', () => {
         'checkout-ui',
         'login-form',
         'comp-1',
+        undefined,
       );
       expect(result).toEqual({
         approved: true,
@@ -71,6 +72,7 @@ describe('ApprovalsController', () => {
         'checkout-ui',
         'login-form',
         'pdf-comp-1',
+        undefined,
       );
       expect(result).toEqual({
         approved: true,

@@ -8,6 +8,7 @@ defineProps<{
   testName: string;
   pdfUrl: string;
   pageCount: number;
+  branchName?: string;
 }>();
 
 const currentPage = ref(1);
@@ -27,6 +28,7 @@ const currentPage = ref(1);
       :page="currentPage"
       label="Baseline"
       border="green"
+      :branch-name="branchName"
     />
   </div>
 </template>

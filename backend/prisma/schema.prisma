@@ -8,20 +8,40 @@ model ProjectGroup {
 }
 
 model Project {
-  id           String        @id @default(cuid())
-  name         String        @unique
-  createdAt    DateTime      @default(now())
-  groupId      String?
-  group        ProjectGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  unifiedTests UnifiedTest[]
+  id              String        @id @default(cuid())
+  name            String        @unique
+  createdAt       DateTime      @default(now())
+  groupId         String?
+  group           ProjectGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  defaultBranchId String?       @unique
+  defaultBranch   Branch?       @relation("DefaultBranch", fields: [defaultBranchId], references: [id], onDelete: SetNull)
+  branches        Branch[]      @relation("ProjectBranches")
 
   @@index([groupId])
 }
 
+model Branch {
+  id              String       @id @default(cuid())
+  project         Project      @relation("ProjectBranches", fields: [projectId], references: [id], onDelete: Cascade)
+  projectId       String
+  name            String
+  targetBranchId  String?
+  targetBranch    Branch?      @relation("BranchTarget", fields: [targetBranchId], references: [id], onDelete: SetNull)
+  derivedBranches Branch[]     @relation("BranchTarget")
+  defaultFor      Project?     @relation("DefaultBranch")
+  isArchived      Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  tests           UnifiedTest[]
+
+  @@unique([projectId, name])
+  @@index([targetBranchId])
+  @@map("Branch")
+}
+
 model UnifiedTest {
   id        String     @id @default(cuid())
-  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId String
+  branch    Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branchId  String
   name      String
   kind      TestKind   @default(image)
   status    TestStatus @default(PENDING)
@@ -31,7 +51,7 @@ model UnifiedTest {
   screenshots  UnifiedScreenshot[]
   comparisons  UnifiedComparison[]
 
-  @@unique([projectId, name])
+  @@unique([branchId, name])
   @@map("UnifiedTest")
 }
 
@@ -44,6 +64,7 @@ model UnifiedVariant {
   environment String
   baselineId  String?            @unique
   baseline    UnifiedScreenshot? @relation("BaselineVariant", fields: [baselineId], references: [id])
+  isInherited Boolean            @default(false)
   screenshots UnifiedScreenshot[]
 
   @@unique([testId, viewport, browser, environment])

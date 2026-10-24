@@ -63,11 +63,13 @@ describe('PdfAccessService', () => {
       'proj',
       'test',
       { viewport: '1920x1080' },
+      undefined,
     );
     expect(reviewRead.assertPdfBelongsToTest).toHaveBeenCalledWith(
       'proj',
       'test',
       'http://rustfs/baseline.pdf',
+      undefined,
     );
     expect(storage.get).toHaveBeenCalledWith('http://rustfs/baseline.pdf');
   });
@@ -102,6 +104,7 @@ describe('PdfAccessService', () => {
         browser: 'chrome',
         environment: 'staging',
       },
+      undefined,
     );
   });
 
@@ -210,6 +213,7 @@ describe('PdfAccessService', () => {
         'proj',
         'test',
         'http://rustfs/candidate.pdf',
+        undefined,
       );
       expect(pdfRenderCache.renderPage).toHaveBeenCalledWith(
         'http://rustfs/candidate.pdf',

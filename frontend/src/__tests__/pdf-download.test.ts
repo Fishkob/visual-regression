@@ -91,6 +91,31 @@ describe("downloadPdfFile", () => {
     expect(createSpy).toHaveBeenCalled();
   });
 
+  it("scopes the download to the selected branch", async () => {
+    mockPdfControllerDownloadPdf.mockResolvedValue({
+      data: new Blob(["pdf"]),
+    });
+
+    await downloadPdfFile(
+      ref("my-project"),
+      ref("login-form"),
+      "diff",
+      { viewport: "A4", browser: "pdf", environment: "staging" },
+      "feature/x",
+    );
+
+    expect(mockPdfControllerDownloadPdf).toHaveBeenCalledWith({
+      path: { projectName: "my-project", testName: "login-form" },
+      query: {
+        type: "diff",
+        viewport: "A4",
+        browser: "pdf",
+        environment: "staging",
+        branch: "feature/x",
+      },
+    });
+  });
+
   it("does not trigger a download when the SDK returns no data", async () => {
     mockPdfControllerDownloadPdf.mockResolvedValue({});
 

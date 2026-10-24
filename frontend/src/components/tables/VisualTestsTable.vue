@@ -11,15 +11,18 @@ import type { AppTableFeatures } from "@/components/ui/table/table-features";
 import type { VisualTestItem } from "@/domains/projects/project.model";
 
 import { getStatusBadge } from "@/components/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import { IMAGE_TEST_KIND } from "@/domains/test-kind";
 import { useVisualTestsTable } from "@/composables/useVisualTestsTable";
 import { useVisualTestDelete } from "@/composables/useVisualTestDelete";
 import { useTestNavigation } from "@/composables/useTestNavigation";
+import { isInheritedOrigin } from "@/domains/branches/branch-origin";
 import { TEST_ID } from "@/lib/test-ids";
 
 const props = defineProps<{
   tests: VisualTestItem[];
   projectName: string;
+  branchName?: string;
   syncUrl?: boolean;
 }>();
 
@@ -44,14 +47,28 @@ const {
   cancelDelete,
 } = useVisualTestDelete({
   projectName: props.projectName,
+  branchName: toRef(props, "branchName"),
 });
 
 const { navigateToTest } = useTestNavigation({
   projectName: toRef(props, "projectName"),
+  branchName: toRef(props, "branchName"),
 });
 
 function handleRowClick(t: VisualTestItem) {
   navigateToTest(t);
+}
+
+function inheritedBadge(inheritedFrom: string | null | undefined) {
+  return h(
+    Badge,
+    {
+      variant: "secondary",
+      class: "font-mono text-[10px]",
+      "data-testid": TEST_ID.inheritedBadge,
+    },
+    () => `inherited from ${inheritedFrom ?? ""}`,
+  );
 }
 
 /* ------------------------- TABLE COLUMNS -------------------------- */
@@ -73,7 +90,13 @@ const columns: ColumnDef<AppTableFeatures, VisualTestItem>[] = [
   {
     accessorKey: "latestStatus",
     header: "Status",
-    cell: ({ row }) => getStatusBadge(row.original.latestStatus),
+    cell: ({ row }) =>
+      h("div", { class: "flex items-center gap-2" }, [
+        getStatusBadge(row.original.latestStatus),
+        isInheritedOrigin(row.original.origin)
+          ? inheritedBadge(row.original.inheritedFrom)
+          : null,
+      ]),
   },
   {
     id: "actions",
@@ -83,6 +106,7 @@ const columns: ColumnDef<AppTableFeatures, VisualTestItem>[] = [
       h(RowActionsCell, {
         deleteLabel: "Delete variant",
         testId: TEST_ID.testActionsButton,
+        readOnly: isInheritedOrigin(row.original.origin),
         onRequestDelete: () => requestDelete(row.original),
       }),
   },

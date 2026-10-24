@@ -7,6 +7,13 @@ export const reviewInboxQueryKeys = {
 export const pendingTestQueryKeys = {
   all: () => ["pending-tests"] as const,
   lists: () => [...pendingTestQueryKeys.all(), "list"] as const,
-  list: (projectName: string) =>
-    [...pendingTestQueryKeys.lists(), projectName] as const,
+  // The branch part is appended only when one is selected, so the
+  // project-default read keeps its stable key while a branch-scoped read gets
+  // its own cache entry (and lists() prefix-matches both).
+  list: (projectName: string, branchName?: string) =>
+    [
+      ...pendingTestQueryKeys.lists(),
+      projectName,
+      ...(branchName ? [branchName] : []),
+    ] as const,
 } as const;

@@ -10,6 +10,13 @@ export type PdfTestDetailsDto = {
     status: TestStatus;
     kind: string;
     createdAt: string;
+    origin: 'branch' | 'inherited';
+    inheritedFrom: string | null;
+    /**
+     * True while this baseline is an inherited clone that still follows the target branch
+     */
+    baselineInherited: boolean;
+    inheritTarget: string | null;
     baseline: PdfVariantDetailsDto | null;
     comparison: PdfComparisonDetailsDto | null;
 };

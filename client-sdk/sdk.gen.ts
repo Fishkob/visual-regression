@@ -17,6 +17,14 @@ import type { AuthControllerLogoutData } from './models/AuthControllerLogoutData
 import type { AuthControllerLogoutResponses } from './models/AuthControllerLogoutResponses.gen';
 import type { AuthControllerMeData } from './models/AuthControllerMeData.gen';
 import type { AuthControllerMeResponses } from './models/AuthControllerMeResponses.gen';
+import type { BranchesControllerListData } from './models/BranchesControllerListData.gen';
+import type { BranchesControllerListResponses } from './models/BranchesControllerListResponses.gen';
+import type { BranchesControllerRemoveData } from './models/BranchesControllerRemoveData.gen';
+import type { BranchesControllerRemoveErrors } from './models/BranchesControllerRemoveErrors.gen';
+import type { BranchesControllerRemoveResponses } from './models/BranchesControllerRemoveResponses.gen';
+import type { BranchesControllerUpdateData } from './models/BranchesControllerUpdateData.gen';
+import type { BranchesControllerUpdateErrors } from './models/BranchesControllerUpdateErrors.gen';
+import type { BranchesControllerUpdateResponses } from './models/BranchesControllerUpdateResponses.gen';
 import type { HealthControllerCheckData } from './models/HealthControllerCheckData.gen';
 import type { HealthControllerCheckDatabaseData } from './models/HealthControllerCheckDatabaseData.gen';
 import type { HealthControllerCheckDatabaseErrors } from './models/HealthControllerCheckDatabaseErrors.gen';
@@ -321,6 +329,37 @@ export const reviewInboxControllerGetPending = <ThrowOnError extends boolean = f
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/review/pending',
     ...options
+});
+
+/**
+ * Delete a feature branch and reclaim its files
+ */
+export const branchesControllerRemove = <ThrowOnError extends boolean = false>(options: Options<BranchesControllerRemoveData, ThrowOnError>): RequestResult<BranchesControllerRemoveResponses, BranchesControllerRemoveErrors, ThrowOnError> => (options.client ?? client).delete<BranchesControllerRemoveResponses, BranchesControllerRemoveErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/branches',
+    ...options
+});
+
+/**
+ * List the branches of a project
+ */
+export const branchesControllerList = <ThrowOnError extends boolean = false>(options: Options<BranchesControllerListData, ThrowOnError>): RequestResult<BranchesControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<BranchesControllerListResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/branches',
+    ...options
+});
+
+/**
+ * Archive/unarchive a branch or change its target
+ */
+export const branchesControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<BranchesControllerUpdateData, ThrowOnError>): RequestResult<BranchesControllerUpdateResponses, BranchesControllerUpdateErrors, ThrowOnError> => (options.client ?? client).patch<BranchesControllerUpdateResponses, BranchesControllerUpdateErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/branches',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 export const healthControllerCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckData, ThrowOnError>): RequestResult<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError>({ url: '/health', ...options });

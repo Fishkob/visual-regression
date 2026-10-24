@@ -59,7 +59,41 @@ export class UploadController {
     summary: 'Upload a file (image or PDF) and compare with the baseline',
   })
   @ApiConsumes('multipart/form-data')
-  @ApiBody({ description: 'File and upload parameters' })
+  // The body schema is declared here rather than via `type: UploadDocumentDto`:
+  // the DTO is the *validation* owner for the text fields, but `file` is
+  // consumed by @UploadedFile and must not be validated as a body property (a
+  // class-validator rule on an absent `file` would reject every upload). The
+  // explicit schema keeps the contract real — without it the generated SDK
+  // models the body as a plain string and cannot send `branch`/`targetBranch`.
+  @ApiBody({
+    description: 'File and upload parameters',
+    schema: {
+      type: 'object',
+      required: ['file', 'viewport', 'browser', 'environment'],
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'File to upload (image or PDF)',
+        },
+        viewport: { type: 'string', example: '1920x1080' },
+        browser: { type: 'string', example: 'Chrome' },
+        environment: { type: 'string', example: 'staging' },
+        branch: {
+          type: 'string',
+          example: 'feature/checkout-v2',
+          description:
+            'Branch that produced the upload (defaults to the project default branch)',
+        },
+        targetBranch: {
+          type: 'string',
+          example: 'main',
+          description:
+            'Branch the new branch inherits from (defaults to the project default branch)',
+        },
+      },
+    },
+  })
   @ApiQuery({
     name: 'testKind',
     required: true,
@@ -94,6 +128,8 @@ export class UploadController {
       {
         projectName,
         testName,
+        branch: body.branch,
+        targetBranch: body.targetBranch,
         viewport: body.viewport,
         browser: body.browser,
         environment: body.environment,

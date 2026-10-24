@@ -18,7 +18,7 @@ describe('PdfTest upload and compare (e2e)', () => {
 
   beforeEach(async () => {
     await TestApp.resetDb();
-    await prisma.project.create({ data: { name: 'pdf-proj' } });
+    await TestApp.createProject('pdf-proj');
   });
 
   afterAll(async () => {

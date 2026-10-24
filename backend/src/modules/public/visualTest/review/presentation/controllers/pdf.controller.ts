@@ -19,6 +19,7 @@ import { PdfAccessService } from '@public/visualTest/review/application/pdf-acce
 import { PdfTestDetailsDto } from '@public/visualTest/review/presentation/dto/pdf-test-details.dto';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { BranchQuery } from '@common/http/branch-query.decorator';
 import type { Response } from 'express';
 
 @ApiTags('Tests')
@@ -51,12 +52,18 @@ export class PdfController {
     @Query('viewport') viewport?: string,
     @Query('browser') browser?: string,
     @Query('environment') environment?: string,
+    @BranchQuery() branch?: string,
   ) {
-    return this.testQuery.getPdfTestDetails(projectName, testName, {
-      viewport,
-      browser,
-      environment,
-    });
+    return this.testQuery.getPdfTestDetails(
+      projectName,
+      testName,
+      {
+        viewport,
+        browser,
+        environment,
+      },
+      branch,
+    );
   }
 
   @Get(':testName/pdf-render')
@@ -71,11 +78,18 @@ export class PdfController {
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
     @Query('pdfUrl') pdfUrl: string | undefined,
     @Query('page', new ParseIntPipe({ optional: false })) page: number,
+    @BranchQuery() branch?: string,
   ) {
     if (!pdfUrl) {
       throw new BadRequestException('pdfUrl is required');
     }
-    return this.pdfAccess.renderPdfPage(projectName, testName, pdfUrl, page);
+    return this.pdfAccess.renderPdfPage(
+      projectName,
+      testName,
+      pdfUrl,
+      page,
+      branch,
+    );
   }
 
   @Get(':testName/pdf-download')
@@ -107,12 +121,14 @@ export class PdfController {
     @Query('viewport') viewport?: string,
     @Query('browser') browser?: string,
     @Query('environment') environment?: string,
+    @BranchQuery() branch?: string,
   ) {
     const { buffer, filename, contentType } = await this.pdfAccess.download(
       projectName,
       testName,
       type,
       { viewport, browser, environment },
+      branch,
     );
 
     res.set({

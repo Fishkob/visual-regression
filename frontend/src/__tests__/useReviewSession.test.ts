@@ -51,6 +51,7 @@ describe("useReviewSession", () => {
   const createArgs = () => ({
     projectName: ref("test-project"),
     testName: ref("login-form"),
+    branchName: ref<string | undefined>(undefined),
     filters: ref({
       viewport: "1920x1080",
       browser: "chrome",
@@ -540,6 +541,7 @@ describe("useReviewSession", () => {
           "visual-tests",
           "details",
           "test-project",
+          "",
           "login-form",
           "1920x1080",
           "chrome",
@@ -572,6 +574,7 @@ describe("useReviewSession", () => {
           "visual-tests",
           "details",
           "test-project",
+          "",
           "login-form",
           "1920x1080",
           "chrome",
@@ -604,6 +607,7 @@ describe("useReviewSession", () => {
           "visual-tests",
           "details",
           "test-project",
+          "",
           "login-form",
           "1920x1080",
           "chrome",
@@ -634,6 +638,82 @@ describe("useReviewSession", () => {
       expect(toast.success).toHaveBeenCalledWith(
         'Approved 1920x1080 / chrome / prod of "login-form"',
       );
+    });
+  });
+
+  describe("branch propagation", () => {
+    it("targets the branch-scoped pending cache when removing the approved test", async () => {
+      const args = {
+        ...createArgs(),
+        branchName: ref<string | undefined>("feature/x"),
+      };
+      useReviewSession(args);
+
+      await mutationOptions.onMutate();
+
+      expect(mockCancelQueries).toHaveBeenCalledWith({
+        queryKey: ["pending-tests", "list", "test-project", "feature/x"],
+      });
+    });
+
+    it("includes the branch in the invalidation args", () => {
+      const args = {
+        ...createArgs(),
+        branchName: ref<string | undefined>("feature/x"),
+      };
+      const invalidateDetails = vi.fn();
+      useReviewSession({ ...args, invalidateDetails });
+
+      mutationOptions.onSuccess(undefined, undefined, {
+        currentVariant: {
+          viewport: "1920x1080",
+          browser: "chrome",
+          environment: "prod",
+        },
+        currentTestName: "login-form",
+        currentBranch: "feature/x",
+      });
+
+      expect(invalidateDetails).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ branch: "feature/x" }),
+      );
+    });
+
+    it("navigates the next test with the branch in the query", () => {
+      const args = {
+        ...createArgs(),
+        branchName: ref<string | undefined>("feature/x"),
+      };
+      const { handleSkip } = useReviewSession(args);
+
+      handleSkip();
+
+      expect(mockPush).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({ branch: "feature/x" }),
+        }),
+      );
+    });
+
+    it("resets the pass when the branch changes", async () => {
+      const { nextTick } = await import("vue");
+      const branchName = ref<string | undefined>("main");
+      const { handleSkip } = useReviewSession({ ...createArgs(), branchName });
+      const loginKey = keyOf({
+        name: "login-form",
+        viewport: "1920x1080",
+        browser: "chrome",
+        environment: "prod",
+      });
+
+      handleSkip();
+      expect(isSeen("test-project", loginKey)).toBe(true);
+
+      branchName.value = "feature/x";
+      await nextTick();
+
+      expect(isSeen("test-project", loginKey)).toBe(false);
     });
   });
 });

@@ -19,6 +19,7 @@ describe("useTestNavigation", () => {
 
   const createOptions = (overrides = {}) => ({
     projectName: ref("test-project"),
+    branchName: ref<string | undefined>(undefined),
     ...overrides,
   });
 
@@ -100,6 +101,30 @@ describe("useTestNavigation", () => {
 
       expect(mockPush).not.toHaveBeenCalled();
     });
+
+    it("carries the selected branch in the query", () => {
+      const { navigateToTest } = useTestNavigation(
+        createOptions({ branchName: ref<string | undefined>("feature/x") }),
+      );
+
+      navigateToTest({
+        name: "login-form",
+        viewport: "1920x1080",
+        browser: "chrome",
+        environment: "prod",
+      });
+
+      expect(mockPush).toHaveBeenCalledWith({
+        name: "test-detail",
+        params: { projectName: "test-project", testName: "login-form" },
+        query: {
+          viewport: "1920x1080",
+          browser: "chrome",
+          environment: "prod",
+          branch: "feature/x",
+        },
+      });
+    });
   });
 
   describe("navigateToNextTest (loop continuation)", () => {
@@ -131,6 +156,29 @@ describe("useTestNavigation", () => {
       navigateToNextTest({ name: "", viewport: "1280x720" });
 
       expect(mockPush).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("navigateToInbox (return from an inbox-started pass)", () => {
+    it("carries the branch so the inbox does not widen to every branch", () => {
+      const { navigateToInbox } = useTestNavigation(
+        createOptions({ branchName: ref<string | undefined>("feature/x") }),
+      );
+
+      navigateToInbox();
+
+      expect(mockPush).toHaveBeenCalledWith({
+        name: "review-inbox",
+        query: { branch: "feature/x" },
+      });
+    });
+
+    it("omits the query when no branch is selected", () => {
+      const { navigateToInbox } = useTestNavigation(createOptions());
+
+      navigateToInbox();
+
+      expect(mockPush).toHaveBeenCalledWith({ name: "review-inbox" });
     });
   });
 

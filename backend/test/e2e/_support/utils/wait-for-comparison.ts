@@ -27,13 +27,15 @@ export async function waitForComparison(
     browser: 'Chrome',
     environment: 'staging',
   },
+  branch?: string,
 ): Promise<request.Response> {
   const start = Date.now();
+  const query = { ...filters, ...(branch ? { branch } : {}) };
 
   while (Date.now() - start < TIMEOUT_MS) {
     const res = await authRequest(app)
       .get(`/api/v1/projects/${projectName}/tests/${testName}`)
-      .query(filters);
+      .query(query);
 
     if (res.status === 200 && res.body.comparison) {
       return res;
@@ -45,7 +47,7 @@ export async function waitForComparison(
     if (res.status === 400) {
       const pdfRes = await authRequest(app)
         .get(`/api/v1/projects/${projectName}/tests/${testName}/pdf-details`)
-        .query(filters);
+        .query(query);
       if (pdfRes.status === 200 && pdfRes.body.comparison) {
         return pdfRes;
       }

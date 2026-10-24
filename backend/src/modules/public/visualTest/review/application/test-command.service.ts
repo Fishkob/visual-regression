@@ -19,9 +19,14 @@ export class TestCommandService {
   async deleteTest(
     projectName: string,
     testName: string,
+    branchName?: string,
     filters?: VariantFilter,
   ) {
-    const test = await this.testResolver.findTest(projectName, testName);
+    const test = await this.testResolver.findOwnTest(
+      projectName,
+      testName,
+      branchName,
+    );
 
     Variant.assertValidFilter(filters);
 
@@ -65,6 +70,7 @@ export class TestCommandService {
     threshold: number,
     filters?: VariantFilter,
     preview = false,
+    branchName?: string,
   ): Promise<{
     status: 'updated';
     test: string;
@@ -75,6 +81,7 @@ export class TestCommandService {
       projectName,
       testName,
       'image',
+      branchName,
     );
 
     Variant.assertValidFilter(filters);

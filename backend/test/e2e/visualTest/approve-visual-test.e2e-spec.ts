@@ -10,19 +10,25 @@ import {
 import * as path from 'path';
 import * as fs from 'fs';
 import { authRequest } from '../_support/utils/authenticated-request';
+import { AppConfigService } from '@config/app-config.service';
 
 describe('Approve Visual Test (e2e)', () => {
   let app: INestApplication;
   let prisma: any;
+  let storagePrefix: string;
 
   beforeAll(async () => {
     app = await TestApp.init();
     prisma = app.get(PrismaConnection).client;
+    // The bucket is configuration: derive the expected object URL from the app
+    // config instead of hardcoding (or loosening) the bucket name.
+    const config = app.get(AppConfigService);
+    storagePrefix = `${config.rustfs.publicUrl}/${config.rustfs.bucket}/`;
   });
 
   beforeEach(async () => {
     await TestApp.resetDb();
-    await prisma.project.create({ data: { name: 'checkout-ui' } });
+    await TestApp.createProject('checkout-ui');
   });
 
   afterAll(async () => {
@@ -69,14 +75,12 @@ describe('Approve Visual Test (e2e)', () => {
     expect(res.body.comparison.status).toBe('PENDING_APPROVAL');
 
     expect(res.body.comparison.candidate).toBeDefined();
-    expect(res.body.comparison.candidate.imageUrl).toMatch(
-      /^http:\/\/localhost:9000\/vrt\/.*\.png$/,
-    );
+    expect(res.body.comparison.candidate.imageUrl).toContain(storagePrefix);
+    expect(res.body.comparison.candidate.imageUrl).toMatch(/\.png$/);
 
     expect(res.body.baseline).toBeDefined();
-    expect(res.body.baseline.imageUrl).toMatch(
-      /^http:\/\/localhost:9000\/vrt\/.*\.png$/,
-    );
+    expect(res.body.baseline.imageUrl).toContain(storagePrefix);
+    expect(res.body.baseline.imageUrl).toMatch(/\.png$/);
   });
 
   it('should approve the latest comparison and detect the same diff image as a match afterwards', async () => {
@@ -122,9 +126,7 @@ describe('Approve Visual Test (e2e)', () => {
       .expect(201);
 
     expect(approveRes.body.approved).toBe(true);
-    expect(approveRes.body.newBaselineUrl).toContain(
-      'http://localhost:9000/vrt/',
-    );
+    expect(approveRes.body.newBaselineUrl).toContain(storagePrefix);
 
     // 4. Upload the same mismatched image again → should now be a match
     const repeatUpload = await authRequest(app)
@@ -141,12 +143,13 @@ describe('Approve Visual Test (e2e)', () => {
   });
 
   it('should return 404 when approving a test without any comparisons', async () => {
+    const { branchId } = await TestApp.createProject('p-no-comp');
     await prisma.unifiedTest.create({
       data: {
         name: 'NoCompTest',
         kind: 'image',
         status: TestStatus.PENDING,
-        project: { create: { name: 'p-no-comp' } },
+        branchId,
       },
     });
 

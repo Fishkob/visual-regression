@@ -34,6 +34,7 @@ export class PdfAccessService {
     testName: string,
     type: string,
     filters?: VariantFilter,
+    branchName?: string,
   ): Promise<{ buffer: Buffer; filename: string; contentType: string }> {
     Variant.resolveRequiredFilter(filters);
 
@@ -41,6 +42,7 @@ export class PdfAccessService {
       projectName,
       testName,
       filters,
+      branchName,
     );
 
     const url = this.resolveUrl(sources, type);
@@ -53,7 +55,12 @@ export class PdfAccessService {
     // baseline row), so the query scoping alone does not prove ownership. Both
     // download and render go through the single assertPdfBelongsToTest owner —
     // one edit defines what counts as owned.
-    await this.reviewRead.assertPdfBelongsToTest(projectName, testName, url);
+    await this.reviewRead.assertPdfBelongsToTest(
+      projectName,
+      testName,
+      url,
+      branchName,
+    );
 
     const buffer = await this.storage.get(url);
 
@@ -69,8 +76,14 @@ export class PdfAccessService {
     testName: string,
     pdfUrl: string,
     page: number,
+    branchName?: string,
   ): Promise<{ imageUrl: string; pageCount: number }> {
-    await this.reviewRead.assertPdfBelongsToTest(projectName, testName, pdfUrl);
+    await this.reviewRead.assertPdfBelongsToTest(
+      projectName,
+      testName,
+      pdfUrl,
+      branchName,
+    );
     return this.pdfRenderCache.renderPage(pdfUrl, page);
   }
 

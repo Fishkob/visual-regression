@@ -4,5 +4,9 @@ import type { ComparisonOutcome } from './ComparisonOutcome.gen';
 
 export type IdenticalResultDto = {
     status: ComparisonOutcome;
+    /**
+     * Branch the upload landed on (the resolved default when the request omitted it)
+     */
+    branch: string;
     mismatchPixelCount: number;
 };

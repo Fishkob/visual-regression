@@ -26,6 +26,10 @@ export type TestsQueriesControllerGetTestsForProjectData = {
          * Filter by test kind (image or pdf)
          */
         kind?: string;
+        /**
+         * Branch to read or act on (defaults to the project default branch)
+         */
+        branch?: string;
     };
     url: '/projects/{projectName}/tests';
 };

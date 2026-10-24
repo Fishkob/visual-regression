@@ -8,9 +8,15 @@ import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vu
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import AsyncState from "@/components/AsyncState.vue";
 
-const { projectName, testName } = useRouteParams();
+const { projectName, testName, branch } = useRouteParams();
 
-const { kind, isLoading, error, refetch } = useTestKind(projectName, testName);
+// The kind lookup is branch-scoped: a test that only exists on the branch must
+// resolve there, not against the project default.
+const { kind, isLoading, error, refetch } = useTestKind(
+  projectName,
+  testName,
+  branch,
+);
 </script>
 
 <template>

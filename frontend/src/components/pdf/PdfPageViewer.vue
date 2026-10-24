@@ -11,18 +11,21 @@ const props = defineProps<{
   page: number;
   label: string;
   border?: "green" | "blue" | "red";
+  branchName?: string;
 }>();
 
 const projectNameRef = computed(() => props.projectName);
 const testNameRef = computed(() => props.testName);
 const pdfUrlRef = computed(() => props.pdfUrl);
 const pageRef = computed(() => props.page);
+const branchNameRef = computed(() => props.branchName);
 
 const { data, isLoading, isError, refetch } = usePdfPageRenderQuery(
   projectNameRef,
   testNameRef,
   pdfUrlRef,
   pageRef,
+  branchNameRef,
 );
 </script>
 

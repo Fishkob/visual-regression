@@ -7,6 +7,7 @@ import {
 } from '@nestjs/swagger';
 import { ApprovalService } from '@public/visualTest/review/application/approval.service';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import {
   ApproveComparisonBodyDto,
@@ -28,11 +29,13 @@ export class ApprovalsController {
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
     @Body() params: ApproveComparisonBodyDto,
+    @BranchQuery() branch?: string,
   ) {
     return this.approvals.approveImage(
       projectName,
       testName,
       params.comparisonId,
+      branch,
     );
   }
 
@@ -44,11 +47,13 @@ export class ApprovalsController {
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
     @Body() params: ApproveComparisonBodyDto,
+    @BranchQuery() branch?: string,
   ): Promise<ApproveResultDto> {
     return this.approvals.approvePdf(
       projectName,
       testName,
       params.comparisonId,
+      branch,
     );
   }
 }

@@ -16,7 +16,11 @@ import { variantFromRow } from '@public/visualTest/core/infrastructure/mappers/v
 import { COMPARISON_INCLUDE } from '@public/visualTest/core/infrastructure/mappers/comparison.mapper';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
-import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
+import {
+  BranchResolver,
+  type ResolvedBranch,
+} from '@public/visualTest/core/application/services/branch-resolver.service';
+import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
 import type { VariantFilter } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import type { ReviewVariantRow } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 
@@ -31,18 +35,24 @@ export interface TestTarget {
   name: string;
   kind: TestKind;
   createdAt: Date;
+  origin: 'branch' | 'inherited';
+  inheritedFrom: string | null;
 }
 
 // The shape findTestWithVariants returns, named so the PDF-details mapper
 // crosses the repository→mapper seam against the same type instead of
 // re-declaring a structural copy that can silently drift.
 export interface TestWithVariantsResult {
+  baselineInherited: boolean;
+  inheritTarget: string | null;
   test: {
     id: string;
     name: string;
     status: TestStatus;
     kind: TestKind;
     createdAt: Date;
+    origin: 'branch' | 'inherited';
+    inheritedFrom: string | null;
   };
   baseline: ScreenshotEntity | null;
   comparison: ComparisonEntity | null;
@@ -62,7 +72,8 @@ export class TestReadRepository {
     private readonly connection: PrismaConnection,
     private readonly variants: VariantStore,
     private readonly comparisons: UnifiedComparisonsRepository,
-    private readonly tests: UnifiedTestRepository,
+    private readonly branchResolver: BranchResolver,
+    private readonly branchTests: BranchTestRepository,
   ) {}
 
   private get client() {
@@ -79,21 +90,35 @@ export class TestReadRepository {
     projectName: string,
     testName: string,
     filters?: VariantFilter,
+    branchName?: string,
   ): Promise<
     | {
         exists: false;
         kind?: undefined;
+        origin?: undefined;
+        inheritedFrom?: undefined;
+        baselineInherited?: undefined;
+        inheritTarget?: undefined;
         baseline: null;
         comparison: null;
       }
     | {
         exists: true;
         kind: TestKind;
+        origin: 'branch' | 'inherited';
+        inheritedFrom: string | null;
+        baselineInherited: boolean;
+        inheritTarget: string | null;
         baseline: ScreenshotEntity | null;
         comparison: ComparisonEntity | null;
       }
   > {
-    const target = await this.resolveReadTarget(projectName, testName, filters);
+    const target = await this.resolveReadTarget(
+      projectName,
+      testName,
+      filters,
+      branchName,
+    );
     if (!target) {
       return {
         exists: false,
@@ -105,6 +130,10 @@ export class TestReadRepository {
     return {
       exists: true,
       kind: target.test.kind,
+      origin: target.test.origin,
+      inheritedFrom: target.test.inheritedFrom,
+      baselineInherited: target.baselineInherited,
+      inheritTarget: target.inheritTarget,
       baseline: target.baseline,
       comparison: target.comparison,
     };
@@ -122,15 +151,30 @@ export class TestReadRepository {
     projectName: string,
     testName: string,
     filters?: VariantFilter,
+    branchName?: string,
   ): Promise<{
     test: TestTarget;
+    branch: ResolvedBranch;
     variant: ReviewVariantRow | null;
   } | null> {
-    const test = await this.tests.findByProjectNameAndTestName(
+    const branch = await this.branchResolver.resolveRead(
       projectName,
+      branchName,
+    );
+    const effective = await this.branchTests.findEffectiveTest(
+      branch.branchId,
       testName,
     );
-    if (!test) return null;
+    if (!effective) return null;
+
+    const test: TestTarget = {
+      id: effective.id,
+      name: effective.name,
+      kind: effective.kind,
+      createdAt: effective.createdAt,
+      origin: effective.origin,
+      inheritedFrom: effective.inheritedFrom,
+    };
 
     const { variant, hasAnyVariant } = await this.variants.findReviewVariantRow(
       test.id,
@@ -149,7 +193,7 @@ export class TestReadRepository {
       );
     }
 
-    return { test, variant };
+    return { test, branch, variant };
   }
 
   // The variant's baseline entity + its latest reviewable comparison, composed
@@ -159,19 +203,30 @@ export class TestReadRepository {
     projectName: string,
     testName: string,
     filters?: VariantFilter,
+    branchName?: string,
   ): Promise<{
     test: TestTarget;
     baseline: ScreenshotEntity | null;
     comparison: ComparisonEntity | null;
+    baselineInherited: boolean;
+    inheritTarget: string | null;
   } | null> {
     const resolved = await this.resolveVariantWithBaseline(
       projectName,
       testName,
       filters,
+      branchName,
     );
     if (!resolved) return null;
+    const isBaselineInherited = resolved.variant?.isInherited === true;
     if (!resolved.variant?.baseline) {
-      return { test: resolved.test, baseline: null, comparison: null };
+      return {
+        test: resolved.test,
+        baseline: null,
+        comparison: null,
+        baselineInherited: isBaselineInherited,
+        inheritTarget: null,
+      };
     }
     const baseline = toScreenshotEntity(
       resolved.variant.baseline,
@@ -184,7 +239,17 @@ export class TestReadRepository {
     const comparison = await this.comparisons.findLatestReviewableByBaselineId(
       baseline.id,
     );
-    return { test: resolved.test, baseline, comparison };
+    return {
+      test: resolved.test,
+      baseline,
+      comparison,
+      baselineInherited: isBaselineInherited,
+      // Only the inherited case needs the label, and only then do we pay for the
+      // target lookup — a pinned baseline belongs to this branch.
+      inheritTarget: isBaselineInherited
+        ? await this.branchResolver.resolveEffectiveTargetName(resolved.branch)
+        : null,
+    };
   }
 
   // Targeted read for the PDF download endpoint: the URLs it can stream
@@ -198,6 +263,7 @@ export class TestReadRepository {
     projectName: string,
     testName: string,
     filters?: VariantFilter,
+    branchName?: string,
   ): Promise<{
     baselineUrl: string | null;
     candidateUrl: string | null;
@@ -207,6 +273,7 @@ export class TestReadRepository {
       projectName,
       testName,
       filters,
+      branchName,
     );
     if (!resolved) return null;
     if (!resolved.variant?.baseline) {
@@ -230,19 +297,25 @@ export class TestReadRepository {
     projectName: string,
     testName: string,
     imageUrl: string,
+    branchName?: string,
   ): Promise<void> {
+    const branch = await this.branchResolver.resolveRead(
+      projectName,
+      branchName,
+    );
+    const test = await this.branchTests.findEffectiveTest(
+      branch.branchId,
+      testName,
+    );
+    if (!test) {
+      throw new DomainError('Test not found', 'NOT_FOUND');
+    }
     const screenshotCount = await this.client.unifiedScreenshot.count({
-      where: {
-        imageUrl,
-        test: { name: testName, project: { name: projectName } },
-      },
+      where: { imageUrl, testId: test.id },
     });
     if (screenshotCount > 0) return;
     const comparisonCount = await this.client.unifiedComparison.count({
-      where: {
-        diffPdfUrl: imageUrl,
-        test: { name: testName, project: { name: projectName } },
-      },
+      where: { diffPdfUrl: imageUrl, testId: test.id },
     });
     if (comparisonCount === 0) {
       throw new DomainError('PDF does not belong to this test', 'FORBIDDEN');
@@ -250,33 +323,34 @@ export class TestReadRepository {
   }
 
   async getTestNames(
-    projectId: string,
+    branchId: string,
     pagination?: { skip: number; take: number },
-    kind?: string,
+    kind?: TestKind,
   ): Promise<{
-    data: { name: string; kind: string; status: string | null }[];
-    total: number;
-  }> {
-    const where: Prisma.UnifiedTestWhereInput = {
-      projectId,
-      ...(kind ? { kind: kind as TestKind } : {}),
-    };
-    const { data, total } = await findManyWithCount<{
+    data: {
       name: string;
       kind: string;
-      status: string;
-    }>(this.client.unifiedTest, {
-      where,
-      select: {
-        name: true,
-        kind: true,
-        status: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      skip: pagination?.skip,
-      take: pagination?.take,
-    });
-    return { data, total };
+      status: string | null;
+      origin: 'branch' | 'inherited';
+      inheritedFrom: string | null;
+    }[];
+    total: number;
+  }> {
+    const result = await this.branchTests.findEffectiveTests(
+      branchId,
+      pagination,
+      kind,
+    );
+    return {
+      data: result.data.map((test) => ({
+        name: test.name,
+        kind: test.kind,
+        status: test.status,
+        origin: test.origin,
+        inheritedFrom: test.inheritedFrom,
+      })),
+      total: result.total,
+    };
   }
 
   // PDF details read: surfaces the status of the SHOWN variant (derived with
@@ -287,8 +361,14 @@ export class TestReadRepository {
     projectName: string,
     testName: string,
     filters?: VariantFilter,
+    branchName?: string,
   ): Promise<TestWithVariantsResult | null> {
-    const target = await this.resolveReadTarget(projectName, testName, filters);
+    const target = await this.resolveReadTarget(
+      projectName,
+      testName,
+      filters,
+      branchName,
+    );
     if (!target) return null;
 
     return {
@@ -297,17 +377,21 @@ export class TestReadRepository {
         name: target.test.name,
         kind: target.test.kind,
         createdAt: target.test.createdAt,
+        origin: target.test.origin,
+        inheritedFrom: target.test.inheritedFrom,
         status: target.baseline
           ? resolveVariantStatusFromComparison(target.comparison?.status, true)
           : TestStatus.PENDING,
       },
+      baselineInherited: target.baselineInherited,
+      inheritTarget: target.inheritTarget,
       baseline: target.baseline,
       comparison: target.comparison,
     };
   }
 
   async getPendingApproval(
-    projectId: string,
+    branchId: string,
     pagination?: { skip: number; take: number },
   ): Promise<{
     data: PendingApprovalResult[];
@@ -321,7 +405,7 @@ export class TestReadRepository {
         };
       }>
     >(this.client.unifiedComparison, {
-      where: { test: { projectId }, ...PENDING_APPROVAL_STATUS_FILTER },
+      where: { test: { branchId }, ...PENDING_APPROVAL_STATUS_FILTER },
       include: {
         test: { select: { name: true } },
         baseline: COMPARISON_INCLUDE.baseline,

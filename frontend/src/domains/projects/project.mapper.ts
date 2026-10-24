@@ -9,6 +9,10 @@ function mapVisualTest(dto: VisualTestDto): VisualTestItem {
     kind: isTestKind(dto.kind) ? dto.kind : undefined,
     ...(dto.variant ?? {}),
     latestStatus: dto.latestStatus,
+    ...(dto.origin ? { origin: dto.origin } : {}),
+    ...(dto.inheritedFrom !== undefined
+      ? { inheritedFrom: dto.inheritedFrom }
+      : {}),
   };
 }
 
@@ -35,6 +39,10 @@ export function mapProject(dto: ProjectDto): Project {
     hasPendingTests: hasPending,
     groupId: dto.groupId ?? null,
     groupName: dto.groupName ?? null,
+    ...(dto.branchName ? { branchName: dto.branchName } : {}),
+    ...(dto.defaultBranchName
+      ? { defaultBranchName: dto.defaultBranchName }
+      : {}),
     pendingCount,
     testCount,
     visualTests,

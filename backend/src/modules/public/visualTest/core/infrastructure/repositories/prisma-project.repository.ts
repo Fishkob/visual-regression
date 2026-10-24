@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@/prisma/base.repository';
 import { findManyWithCount } from '@/prisma/find-many-with-count';
 import { DomainError } from '@common/domain/domain-error';
+import { PrismaClient } from '@/prisma/client';
+import { DEFAULT_BRANCH_NAME } from '@public/visualTest/core/domain/constants/branch.constants';
 
 export interface ProjectData {
   id: string;
@@ -44,8 +46,19 @@ export class ProjectRepository extends BaseRepository {
     if (existing) {
       throw new DomainError('"name" already exists', 'E_UNIQUE_CONSTRAINT');
     }
-    return this.client.project.create({
-      data: { name, ...(groupId ? { groupId } : {}) },
+    return (this.client as PrismaClient).$transaction(async (tx) => {
+      const project = await tx.project.create({
+        data: {
+          name,
+          ...(groupId ? { groupId } : {}),
+          branches: { create: { name: DEFAULT_BRANCH_NAME } },
+        },
+        include: { branches: { select: { id: true } } },
+      });
+      return tx.project.update({
+        where: { id: project.id },
+        data: { defaultBranchId: project.branches[0].id },
+      });
     });
   }
 

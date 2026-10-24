@@ -9,7 +9,14 @@
     </h1>
 
     <p class="text-muted-foreground">
-      You’ve completed all pending approvals for this project.
+      <template v-if="branch">
+        You’ve completed all pending approvals on
+        <span class="font-mono text-foreground">{{ branch }}</span
+        >.
+      </template>
+      <template v-else>
+        You’ve completed all pending approvals for this project.
+      </template>
     </p>
 
     <Button
@@ -24,12 +31,22 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { CheckCircle } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { TEST_ID } from "@/lib/test-ids";
 
 const router = useRouter();
+const route = useRoute();
+
+// The review pass is branch-scoped, so "done" must not claim project-wide
+// completion when it only finished one branch.
+const branch = computed(() =>
+  typeof route.query.branch === "string" && route.query.branch
+    ? route.query.branch
+    : undefined,
+);
 
 function goHome() {
   router.push({ name: "project-list" });

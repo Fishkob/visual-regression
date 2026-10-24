@@ -117,6 +117,44 @@ describe("mapProject", () => {
       testCount: 5,
     });
   });
+
+  it("maps inherited test metadata", () => {
+    const project = mapProject({
+      name: "app",
+      branchName: "feature/x",
+      defaultBranchName: "main",
+      visualTests: [
+        {
+          name: "login",
+          kind: "image",
+          variant: {
+            viewport: "1920x1080",
+            browser: "chromium",
+            environment: "staging",
+          },
+          latestStatus: "UNCHANGED",
+          origin: "inherited",
+          inheritedFrom: "main",
+        },
+      ],
+    });
+
+    expect(project.branchName).toBe("feature/x");
+    expect(project.defaultBranchName).toBe("main");
+    expect(project.visualTests?.[0].origin).toBe("inherited");
+    expect(project.visualTests?.[0].inheritedFrom).toBe("main");
+  });
+
+  it("leaves origin off a branch-owned test", () => {
+    const project = mapProject({
+      id: "1",
+      name: "p",
+      visualTests: [{ name: "t", origin: "branch" }],
+    });
+
+    expect(project.visualTests?.[0].origin).toBe("branch");
+    expect(project.visualTests?.[0].inheritedFrom).toBeUndefined();
+  });
 });
 
 describe("mapProjects", () => {

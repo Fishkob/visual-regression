@@ -6,6 +6,9 @@ import {
   uploadObjectName,
 } from '@public/visualTest/intake/application/upload-intake.service';
 import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
+import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
+import { BranchBaselineResolver } from '@public/visualTest/core/application/services/branch-baseline-resolver.service';
+import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
@@ -43,6 +46,9 @@ import {
 describe('UploadIntake (pdf kind)', () => {
   let uploadIntake: UploadIntake;
   let tests: Mocked<UnifiedTestRepository>;
+  let branches: Mocked<BranchResolver>;
+  let baselines: Mocked<BranchBaselineResolver>;
+  let branchTests: Mocked<BranchTestRepository>;
   let screenshots: Mocked<UnifiedScreenshotRepository>;
   let workflow: StateChangeWorkflow;
   let storage: Mocked<IStorageProvider>;
@@ -86,8 +92,43 @@ describe('UploadIntake (pdf kind)', () => {
   }
 
   beforeEach(async () => {
+    baselines = createMock<BranchBaselineResolver>();
+    // The identical gate resolves the effective baseline through the resolver;
+    // the stored path's baseline stub is the same source, so one fixture drives
+    // both.
+    baselines.peekEffectiveBaseline.mockImplementation(
+      async ({ testId, variant }) => {
+        const baseline = await screenshots.findBaselineByVariant(
+          testId,
+          variant,
+        );
+        return baseline
+          ? { imageHash: baseline.imageHash, needsRefresh: false }
+          : null;
+      },
+    );
+    branchTests = createMock<BranchTestRepository>();
+    branches = createMock<BranchResolver>();
+    branches.findReadOrNull.mockResolvedValue({
+      projectId: 'proj-1',
+      branchId: 'br-main',
+      branchName: 'main',
+      isDefault: true,
+      isArchived: false,
+    });
+    branches.resolveForUpload.mockResolvedValue({
+      projectId: 'proj-1',
+      branchId: 'br-main',
+      branchName: 'main',
+      isDefault: true,
+      isArchived: false,
+    });
+    baselines.resolveForVariant.mockImplementation(
+      async ({ testId, variant }) =>
+        screenshots.findBaselineByVariant(testId, variant),
+    );
     tests = createMock<UnifiedTestRepository>();
-    tests.findByProjectNameAndTestName.mockResolvedValue({
+    tests.findByBranchAndTestName.mockResolvedValue({
       id: 'pdf-test-1',
       name: 'test-name',
       kind: 'pdf',
@@ -120,6 +161,9 @@ describe('UploadIntake (pdf kind)', () => {
         UploadIntake,
         UploadDecisionResolver,
         { provide: UnifiedTestRepository, useValue: tests },
+        { provide: BranchResolver, useValue: branches },
+        { provide: BranchBaselineResolver, useValue: baselines },
+        { provide: BranchTestRepository, useValue: branchTests },
         { provide: UnifiedScreenshotRepository, useValue: screenshots },
         { provide: UnifiedComparisonsRepository, useValue: comparisons },
         { provide: ComparisonRetirementService, useValue: retirement },
@@ -173,6 +217,7 @@ describe('UploadIntake (pdf kind)', () => {
     expect(result).toEqual({
       status: 'identical',
       mismatchPixelCount: 0,
+      branch: 'main',
     });
     expect(workflow.executeStateChange).toHaveBeenCalled();
     expect(retirement.supersedeIdenticalForVariant).toHaveBeenCalledWith(
@@ -199,6 +244,7 @@ describe('UploadIntake (pdf kind)', () => {
     expect(result).toEqual({
       status: 'baseline_created',
       testId: 'pdf-test-1',
+      branch: 'main',
       fileUrl: `https://storage/${testPdfHash}.pdf`,
     });
     expect(metrics.incrementCounter).toHaveBeenCalledWith(
@@ -256,6 +302,7 @@ describe('UploadIntake (pdf kind)', () => {
     expect(result).toEqual({
       status: 'comparison_queued',
       error: ComparisonErrorCode.PDF_DIFFERENCE,
+      branch: 'main',
       message: 'PDF comparison queued — check test results.',
     });
     expect(metrics.incrementCounter).toHaveBeenCalledWith(
@@ -376,6 +423,7 @@ describe('UploadIntake (pdf kind)', () => {
     expect(result).toEqual({
       status: 'comparison_queued',
       error: ComparisonErrorCode.PDF_DIFFERENCE,
+      branch: 'main',
       message: 'PDF comparison queued — check test results.',
     });
     expect(retirement.supersedeForVariant).toHaveBeenCalledWith(
@@ -570,6 +618,7 @@ describe('UploadIntake (pdf kind)', () => {
     expect(result).toEqual({
       status: 'comparison_queued',
       error: ComparisonErrorCode.PDF_DIFFERENCE,
+      branch: 'main',
       message: 'PDF comparison queued — check test results.',
     });
     expect(screenshots.findBaselineByVariant).toHaveBeenCalledTimes(4);

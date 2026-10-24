@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
-import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
+import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
+import { BranchBaselineResolver } from '@public/visualTest/core/application/services/branch-baseline-resolver.service';
 import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 import {
   decideOutcome,
   type BaselineInfo,
   type UploadDecision,
 } from '@public/visualTest/core/domain/policies/upload-decision-policy';
-import { ComparisonOutcome } from '@common/domain/upload-outcome';
+import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import type { TestKind } from '@common/domain/test-kind';
 import {
   UploadParams,
@@ -16,15 +17,19 @@ import {
 
 // Single owner of "what is this upload's decision": the read-only gate
 // resolution (identical fast path) and the stored-path resolution (after the
-// file is written) both funnel through one baseline-hash comparison. The two
-// shapes differ only in the test lookup — the gate must never ensureTest (a
-// failed upload leaves no rows), the stored path must — so the side-effect-free
-// contract is structural here, not a comment in the orchestrator.
+// file is written) both compare the upload's hash against the *effective*
+// baseline. The two shapes differ in one respect only: the gate peeks (it never
+// clones, refreshes or pins) and therefore declines whenever the branch-local
+// clone still needs the refresh the stored path would perform, so the
+// side-effect-free contract is structural here, not a comment in the
+// orchestrator.
 @Injectable()
 export class UploadDecisionResolver {
   constructor(
     private readonly tests: UnifiedTestRepository,
-    private readonly screenshots: UnifiedScreenshotRepository,
+    private readonly branches: BranchResolver,
+    private readonly baselines: BranchBaselineResolver,
+    private readonly branchTests: BranchTestRepository,
   ) {}
 
   // Read-only gate resolution: finds the test without creating it and reports
@@ -35,48 +40,83 @@ export class UploadDecisionResolver {
   async resolveIdentical(
     params: UploadParams,
     fileHash: string,
-  ): Promise<{ testId: string } | null> {
-    const test = await this.tests.findByProjectNameAndTestName(
+  ): Promise<{ testId: string; branchName: string } | null> {
+    const branch = await this.branches.findReadOrNull(
       params.projectName,
+      params.branch,
+    );
+    if (!branch || branch.isArchived) return null;
+    const test = await this.tests.findByBranchAndTestName(
+      branch.branchId,
       params.testName,
     );
     if (!test) return null;
-    const decision = await this.resolveDecision(test.id, params, fileHash);
-    if (decision.status !== ComparisonOutcome.IDENTICAL) return null;
-    return { testId: test.id };
+    // The gate is read-only: it must never create a branch, test, variant or
+    // clone. But it compares against the *effective* baseline (the clone follows
+    // its target chain), and it declines while the clone still needs a refresh —
+    // the stored path owns that write, so short-circuiting here would skip it.
+    const effective = await this.baselines.peekEffectiveBaseline({
+      testId: test.id,
+      testName: params.testName,
+      branchId: branch.branchId,
+      variant: toVariant(params),
+    });
+    if (
+      !effective ||
+      effective.needsRefresh ||
+      effective.imageHash !== fileHash
+    ) {
+      return null;
+    }
+    return { testId: test.id, branchName: branch.branchName };
   }
 
-  // Stored-path resolution: ensures the project/test row, then decides. Runs
-  // inside the workflow transaction so a concurrent baseline replacement
-  // between gate and transaction resolves to its new state atomically.
+  // Stored-path resolution: ensures the project/test row, resolves the effective
+  // (owned or inherited) baseline and decides. Runs inside the workflow
+  // transaction so a concurrent baseline replacement between gate and
+  // transaction resolves to its new state atomically, and so the inherited-clone
+  // refresh is atomic with the enqueue.
   async resolveStored(
     kind: TestKind,
     params: UploadParams,
     fileHash: string,
-  ): Promise<UploadDecision> {
-    const { testId } = await this.tests.ensureTest(
+  ): Promise<{ decision: UploadDecision; branchName: string }> {
+    const branch = await this.branches.resolveForUpload(
       params.projectName,
+      params.branch,
+      params.targetBranch,
+    );
+    await this.branchTests.assertKindMatchesChain(
+      branch.branchId,
       params.testName,
       kind,
     );
-    return this.resolveDecision(testId, params, fileHash);
+    const { testId } = await this.tests.ensureTest(
+      branch.branchId,
+      params.testName,
+      kind,
+    );
+    const baseline = await this.baselines.resolveForVariant({
+      testId,
+      testName: params.testName,
+      branchId: branch.branchId,
+      variant: toVariant(params),
+    });
+    return {
+      decision: this.decide(testId, baseline, fileHash),
+      branchName: branch.branchName,
+    };
   }
 
-  // The baseline→decision computation both resolution sites share: find the
-  // variant's baseline screenshot and decide the upload outcome from the hash.
-  private async resolveDecision(
+  private decide(
     testId: string,
-    params: UploadParams,
+    baseline: ScreenshotEntity | null,
     fileHash: string,
-  ): Promise<UploadDecision> {
-    const screenshotEntity = await this.screenshots.findBaselineByVariant(
-      testId,
-      toVariant(params),
-    );
+  ): UploadDecision {
     return decideOutcome(
       testId,
       fileHash,
-      screenshotEntity ? this.toBaseline(screenshotEntity) : null,
+      baseline ? this.toBaseline(baseline) : null,
     );
   }
 

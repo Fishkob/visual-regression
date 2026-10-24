@@ -3,6 +3,8 @@ import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo
 export interface UploadParams {
   projectName: string;
   testName: string;
+  branch?: string;
+  targetBranch?: string;
   viewport: string;
   browser: string;
   environment: string;

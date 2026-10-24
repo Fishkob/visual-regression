@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -12,9 +12,9 @@ import {
 import AsyncState from "@/components/AsyncState.vue";
 import InboxProjectSection from "@/components/inbox/InboxProjectSection.vue";
 import { useReviewInboxSections } from "@/composables/useReviewInbox";
-import type { InboxProjectSection as InboxProjectSectionModel } from "@/domains/pending-tests/group-review-inbox";
 import { FILTER_ALL } from "@/domains/test-status";
 import { IMAGE_TEST_KIND, PDF_TEST_KIND } from "@/domains/test-kind";
+import type { InboxProjectSection as InboxProjectSectionModel } from "@/domains/pending-tests/group-review-inbox";
 import { TEST_ID } from "@/lib/test-ids";
 
 const {
@@ -25,9 +25,31 @@ const {
   refetch,
 } = useReviewInboxSections();
 
+const route = useRoute();
+const router = useRouter();
+
 const search = ref("");
 const kind = ref(FILTER_ALL);
 const group = ref(FILTER_ALL);
+
+// The branch filter is part of the review scope, not a local view preference:
+// the review loop hands it back on "return to inbox" and a deep link must
+// restore it. It therefore lives in the URL (the other filters stay local).
+const branch = computed<string>({
+  get: () => {
+    const requested = route.query.branch;
+    return typeof requested === "string" && requested ? requested : FILTER_ALL;
+  },
+  set: (value: string) => {
+    const query = { ...route.query };
+    if (!value || value === FILTER_ALL) {
+      delete query.branch;
+    } else {
+      query.branch = value;
+    }
+    void router.replace({ query });
+  },
+});
 
 const groups = computed(() =>
   sections.value.map((section) => ({
@@ -36,6 +58,8 @@ const groups = computed(() =>
   })),
 );
 
+// The unfiltered project sections: the review pass walks a project's pending
+// list, so its count must not be narrowed by the inbox filters above.
 const fullProjects = computed(() => {
   const projects = new Map<string, InboxProjectSectionModel>();
   for (const section of sections.value) {
@@ -46,10 +70,24 @@ const fullProjects = computed(() => {
   return projects;
 });
 
+const branches = computed(() => {
+  const names = [
+    ...new Set((items.value ?? []).map((item) => item.branchName)),
+  ];
+  // Keep a deep-linked / handed-back branch selectable even when its last
+  // pending item is gone, so the filter does not look broken.
+  const selected = branch.value;
+  if (selected !== FILTER_ALL && !names.includes(selected)) {
+    names.push(selected);
+  }
+  return names;
+});
+
 const filteredSections = computed(() => {
   const term = search.value.toLowerCase();
   const wantedGroup = group.value;
   const wantedKind = kind.value;
+  const wantedBranch = branch.value;
   return sections.value
     .filter(
       (section) => wantedGroup === FILTER_ALL || section.key === wantedGroup,
@@ -62,6 +100,8 @@ const filteredSections = computed(() => {
           items: project.items.filter(
             (item) =>
               (wantedKind === FILTER_ALL || item.kind === wantedKind) &&
+              (wantedBranch === FILTER_ALL ||
+                item.branchName === wantedBranch) &&
               (!term ||
                 item.testName.toLowerCase().includes(term) ||
                 project.projectName.toLowerCase().includes(term)),
@@ -178,6 +218,25 @@ const projectCount = computed(() =>
             <SelectItem :value="PDF_TEST_KIND">PDFs</SelectItem>
           </SelectContent>
         </Select>
+        <Select v-model="branch">
+          <SelectTrigger
+            class="w-44"
+            aria-label="Filter by branch"
+            :data-testid="TEST_ID.inboxFilterBranch"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="FILTER_ALL">All branches</SelectItem>
+            <SelectItem
+              v-for="branchOption in branches"
+              :key="branchOption"
+              :value="branchOption"
+            >
+              {{ branchOption }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
         <Select v-model="group">
           <SelectTrigger
             class="w-48"
@@ -218,8 +277,7 @@ const projectCount = computed(() =>
           v-for="project in section.items"
           :key="project.projectName"
           :section="project"
-          :review-count="fullProjects.get(project.projectName)?.items.length"
-          :review-start="fullProjects.get(project.projectName)?.items[0]"
+          :project-section="fullProjects.get(project.projectName)"
         />
       </div>
     </AsyncState>

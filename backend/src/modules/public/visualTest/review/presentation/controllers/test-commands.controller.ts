@@ -15,6 +15,7 @@ import {
   UpdateThresholdQueryDto,
 } from '@public/visualTest/review/presentation/dto/project.dto';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 
 @ApiTags('Tests')
@@ -40,6 +41,7 @@ export class TestCommandsController {
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
     @Body() body: UpdateThresholdDto,
     @Query() query: UpdateThresholdQueryDto,
+    @BranchQuery() branch?: string,
   ) {
     const result = await this.testCommand.updateThreshold(
       testName,
@@ -47,6 +49,7 @@ export class TestCommandsController {
       body.threshold,
       query,
       query.preview === 'true',
+      branch,
     );
     return plainToInstance(UpdateThresholdResultDto, result, {
       excludeExtraneousValues: true,
@@ -66,7 +69,8 @@ export class TestCommandsController {
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
     @Query() filters: VariantFilterDto,
+    @BranchQuery() branch?: string,
   ) {
-    return this.testCommand.deleteTest(projectName, testName, filters);
+    return this.testCommand.deleteTest(projectName, testName, branch, filters);
   }
 }

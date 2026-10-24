@@ -41,7 +41,7 @@ describe("usePdfDetailsQuery", () => {
       environment: "prod",
     });
 
-    usePdfDetailsQuery(projectName, testName, filters);
+    usePdfDetailsQuery(projectName, testName, ref(undefined), filters);
 
     expect(mockUseQuery).toHaveBeenCalledTimes(1);
     const options = mockUseQuery.mock.calls[0][0];
@@ -49,6 +49,7 @@ describe("usePdfDetailsQuery", () => {
       "pdf-tests",
       "details",
       "my-project",
+      "",
       "my-test",
       "1920x1080",
       "chrome",
@@ -60,7 +61,7 @@ describe("usePdfDetailsQuery", () => {
     const { usePdfDetailsQuery } =
       await import("@/composables/useTestDetailsPage");
 
-    usePdfDetailsQuery(ref(""), ref("test"), ref({}));
+    usePdfDetailsQuery(ref(""), ref("test"), ref(undefined), ref({}));
 
     const options = mockUseQuery.mock.calls[0][0];
     expect(options.queryKey.value).toEqual([]);
@@ -94,7 +95,7 @@ describe("usePdfDetailsQuery", () => {
       browser: "firefox",
       environment: "staging",
     });
-    usePdfDetailsQuery(ref("proj"), ref("test"), filters);
+    usePdfDetailsQuery(ref("proj"), ref("test"), ref(undefined), filters);
 
     const options = mockUseQuery.mock.calls[0][0];
     const result = await options.queryFn();
@@ -128,7 +129,7 @@ describe("usePdfDetailsQuery", () => {
     const { usePdfDetailsQuery } =
       await import("@/composables/useTestDetailsPage");
 
-    usePdfDetailsQuery(ref(""), ref("test"), ref({}));
+    usePdfDetailsQuery(ref(""), ref("test"), ref(undefined), ref({}));
 
     const options = mockUseQuery.mock.calls[0][0];
     expect(options.queryKey.value).toEqual([]);
@@ -139,7 +140,7 @@ describe("usePdfDetailsQuery", () => {
     const { usePdfDetailsQuery } =
       await import("@/composables/useTestDetailsPage");
 
-    usePdfDetailsQuery(ref("proj"), ref("test"), ref({}));
+    usePdfDetailsQuery(ref("proj"), ref("test"), ref(undefined), ref({}));
 
     const options = mockUseQuery.mock.calls[0][0];
     expect(options.enabled.value).toBe(true);
@@ -149,7 +150,7 @@ describe("usePdfDetailsQuery", () => {
     const { usePdfDetailsQuery } =
       await import("@/composables/useTestDetailsPage");
 
-    usePdfDetailsQuery(ref(""), ref("test"), ref({}));
+    usePdfDetailsQuery(ref(""), ref("test"), ref(undefined), ref({}));
 
     const options = mockUseQuery.mock.calls[0][0];
     expect(options.enabled.value).toBe(false);

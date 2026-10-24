@@ -441,6 +441,12 @@ describe('UnifiedScreenshotRepository', () => {
         where: { id: 'variant-1' },
         data: { baselineId: 'base-1' },
       });
+      // A freshly written baseline is branch-owned; a variant that was an
+      // inherited clone must not keep claiming it follows the target.
+      expect(mockClient.unifiedVariant.update).toHaveBeenCalledWith({
+        where: { id: 'variant-1' },
+        data: { isInherited: false },
+      });
     });
 
     it('persists the page count for PDF baselines', async () => {
@@ -943,6 +949,56 @@ describe('UnifiedScreenshotRepository', () => {
 
       expect(result).toEqual([]);
       expect(mockClient.unifiedScreenshot.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findBaselineForBranch', () => {
+    const variant = Variant.fromStrings('1920x1080', 'chromium', 'staging');
+
+    it('resolves the ancestor baseline of the test with the same name', async () => {
+      mockClient.unifiedVariant.findFirst.mockResolvedValue({
+        baseline: {
+          id: 'base-1',
+          testId: 'main-test-1',
+          imageHash: 'hash',
+          imageUrl: 'http://storage/baseline.pdf',
+          pageCount: 2,
+          pixelDiffThreshold: 3,
+        },
+      });
+
+      const result = await repository.findBaselineForBranch(
+        'br-main',
+        'pdf-report',
+        variant,
+      );
+
+      expect(result).toEqual({
+        testId: 'main-test-1',
+        imageHash: 'hash',
+        imageUrl: 'http://storage/baseline.pdf',
+        pageCount: 2,
+        pixelDiffThreshold: 3,
+      });
+      expect(mockClient.unifiedVariant.findFirst).toHaveBeenCalledWith({
+        where: {
+          test: { branchId: 'br-main', name: 'pdf-report' },
+          viewport: '1920x1080',
+          browser: 'chromium',
+          environment: 'staging',
+          isInherited: false,
+          baselineId: { not: null },
+        },
+        include: { baseline: true },
+      });
+    });
+
+    it('returns null when the ancestor has no baseline for that variant', async () => {
+      mockClient.unifiedVariant.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findBaselineForBranch('br-main', 'login', variant),
+      ).resolves.toBeNull();
     });
   });
 });

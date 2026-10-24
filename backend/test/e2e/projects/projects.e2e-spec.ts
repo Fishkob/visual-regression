@@ -9,6 +9,14 @@ describe('ProjectsController (e2e)', () => {
   let app: INestApplication;
   let prisma: any;
 
+  async function createProject(name: string) {
+    const { projectId, branchId } = await TestApp.createProject(name);
+    const project = await prisma.project.findUniqueOrThrow({
+      where: { id: projectId },
+    });
+    return { project, branchId };
+  }
+
   beforeAll(async () => {
     app = await TestApp.init();
     prisma = app.get(PrismaConnection).client;
@@ -44,7 +52,7 @@ describe('ProjectsController (e2e)', () => {
   });
 
   it('should return 409 if project with same name exists', async () => {
-    await prisma.project.create({ data: { name: 'duplicate' } });
+    await TestApp.createProject('duplicate');
 
     await authRequest(app)
       .post('/api/v1/projects')
@@ -53,14 +61,12 @@ describe('ProjectsController (e2e)', () => {
   });
 
   it('should return projects with hasPending = true or false', async () => {
-    const project = await prisma.project.create({
-      data: { name: 'checkout-ui' },
-    });
+    const { project, branchId } = await createProject('checkout-ui');
 
     const test = await prisma.unifiedTest.create({
       data: {
         name: 'LoginForm',
-        projectId: project.id,
+        branchId,
         kind: 'image',
         status: TestStatus.PENDING,
       },
@@ -124,9 +130,7 @@ describe('ProjectsController (e2e)', () => {
   });
 
   it('should return hasPending = false when no comparisons exist', async () => {
-    const project = await prisma.project.create({
-      data: { name: 'no-pending' },
-    });
+    const { project } = await createProject('no-pending');
 
     const res = await authRequest(app)
       .get('/api/v1/projects/pending')
@@ -154,14 +158,12 @@ describe('ProjectsController (e2e)', () => {
     const diffUrl = `${baseUrl}/${bucket}/diff.png`;
 
     // Arrange – project + test + screenshot + comparison
-    const project = await prisma.project.create({
-      data: { name: 'checkout-ui' },
-    });
+    const { project, branchId } = await createProject('checkout-ui');
 
     const test = await prisma.unifiedTest.create({
       data: {
         name: 'LoginForm',
-        projectId: project.id,
+        branchId,
         kind: 'image',
         status: TestStatus.PENDING,
       },
@@ -218,7 +220,7 @@ describe('ProjectsController (e2e)', () => {
     expect(remaining).toBeNull();
 
     const remainingTests = await prisma.unifiedTest.findMany({
-      where: { projectId: project.id },
+      where: { branch: { projectId: project.id } },
     });
     expect(remainingTests).toHaveLength(0);
 
@@ -243,14 +245,12 @@ describe('ProjectsController (e2e)', () => {
     const diffUrl = `${baseUrl}/${bucket}/diff.png`;
 
     // Setup
-    const project = await prisma.project.create({
-      data: { name: 'checkout-ui' },
-    });
+    const { project, branchId } = await createProject('checkout-ui');
 
     const test = await prisma.unifiedTest.create({
       data: {
         name: 'LoginForm',
-        projectId: project.id,
+        branchId,
         kind: 'image',
         status: TestStatus.PENDING,
       },
@@ -327,9 +327,7 @@ describe('ProjectsController (e2e)', () => {
   });
 
   it('should return project details for existing project', async () => {
-    const project = await prisma.project.create({
-      data: { name: 'my-project' },
-    });
+    const { project } = await createProject('my-project');
 
     const res = await authRequest(app)
       .get(`/api/v1/projects/${project.name}`)
@@ -340,8 +338,8 @@ describe('ProjectsController (e2e)', () => {
   });
 
   it('should return paginated project list', async () => {
-    await prisma.project.create({ data: { name: 'project-a' } });
-    await prisma.project.create({ data: { name: 'project-b' } });
+    await TestApp.createProject('project-a');
+    await TestApp.createProject('project-b');
 
     const res = await authRequest(app).get('/api/v1/projects').expect(200);
 

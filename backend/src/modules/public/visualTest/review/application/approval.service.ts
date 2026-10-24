@@ -86,16 +86,30 @@ export class ApprovalService {
     projectName: string,
     testName: string,
     comparisonId: string,
+    branchName?: string,
   ): Promise<{ approved: true; newBaselineUrl: string }> {
-    return this.executeApproval('image', projectName, testName, comparisonId);
+    return this.executeApproval(
+      'image',
+      projectName,
+      testName,
+      comparisonId,
+      branchName,
+    );
   }
 
   async approvePdf(
     projectName: string,
     testName: string,
     comparisonId: string,
+    branchName?: string,
   ): Promise<{ approved: true; newBaselineUrl: string }> {
-    return this.executeApproval('pdf', projectName, testName, comparisonId);
+    return this.executeApproval(
+      'pdf',
+      projectName,
+      testName,
+      comparisonId,
+      branchName,
+    );
   }
 
   private async executeApproval(
@@ -103,12 +117,15 @@ export class ApprovalService {
     projectName: string,
     testName: string,
     comparisonId: string,
+    branchName?: string,
   ): Promise<{ approved: true; newBaselineUrl: string }> {
     return this.tracker.track(TRACKED_OPERATIONS.approval[kind], async () => {
-      const test = await this.testResolver.findTestOfKind(
+      const test = await this.resolveTestOfKind(
         projectName,
         testName,
         kind,
+        comparisonId,
+        branchName,
       );
 
       const config = this.kindConfigs[kind];
@@ -160,6 +177,41 @@ export class ApprovalService {
     });
   }
 
+  // The approval identifies its target by comparisonId. When the caller also
+  // names a branch we resolve that branch's own test (the strict path the UI
+  // uses); a client that follows the pre-branch contract and sends only the
+  // comparison id resolves the test through the comparison instead, so a
+  // feature-branch approval keeps working without learning about branches.
+  // `resolve()` re-checks the pairing inside the transaction either way.
+  private async resolveTestOfKind(
+    projectName: string,
+    testName: string,
+    kind: TestKind,
+    comparisonId: string,
+    branchName?: string,
+  ): Promise<{ id: string; name: string; kind: TestKind }> {
+    if (branchName) {
+      return this.testResolver.findTestOfKind(
+        projectName,
+        testName,
+        kind,
+        branchName,
+      );
+    }
+    const test = await this.comparisons.findTestOfComparison({
+      projectName,
+      testName,
+      comparisonId,
+    });
+    if (test) {
+      this.testResolver.assertTestKind(test, kind);
+      return test;
+    }
+    // No comparison row (stale or foreign id): fall back to the pre-branch
+    // resolution so the error the client sees is the same one it always got.
+    return this.testResolver.findTestOfKind(projectName, testName, kind);
+  }
+
   // The reviewer approved a specific comparison; load exactly that one. A
   // missing row (superseded and deleted) or a non-pending row (already
   // approved) means the review target is stale — fail loud instead of approving
@@ -198,6 +250,7 @@ export class ApprovalService {
       decision.baselineId,
       config.baselineUpdateData(decision),
     );
+    await this.screenshots.markBaselineOwned(decision.baselineId);
 
     const diffArtifactUrls = await config.completeComparison(decision);
 

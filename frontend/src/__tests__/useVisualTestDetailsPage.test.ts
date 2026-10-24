@@ -48,6 +48,7 @@ describe("useVisualTestDetailsPage (image)", () => {
   const createArgs = () => ({
     projectName: ref("test-project"),
     testName: ref("login-form"),
+    branchName: ref<string | undefined>(undefined),
     filters: ref({
       viewport: "1920x1080",
       browser: "chrome",
@@ -137,6 +138,7 @@ describe("useVisualTestDetailsPage (image)", () => {
     const args = {
       projectName: ref("test-project"),
       testName: ref("login-form"),
+      branchName: ref<string | undefined>(undefined),
       filters,
     };
 

@@ -6,6 +6,11 @@ export type TestsQueriesControllerGetKindData = {
         projectName: string;
         testName: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Branch to read or act on (defaults to the project default branch)
+         */
+        branch?: string;
+    };
     url: '/projects/{projectName}/tests/{testName}/kind';
 };

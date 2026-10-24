@@ -8,13 +8,14 @@ import { invalidateVisualTestDetails } from "@/lib/invalidation";
 import { formatVariantLabel } from "@/lib/format-variant-label";
 import type { VariantParams } from "@/lib/variant-key";
 import type { Screenshot } from "@/domains/visual-test/visual-test.model";
-import { previewSdkRead } from "@/composables/useDomainQuery";
+import { previewSdkRead, type MaybeRef } from "@/composables/useDomainQuery";
 import { useSdkMutation } from "@/composables/useSdkMutation";
 
 export interface ThresholdEditorOptions {
   baseline: Screenshot | undefined;
   projectName: string;
   testName: string;
+  branchName?: MaybeRef<string | undefined>;
   variant: Ref<VariantParams>;
 }
 
@@ -22,6 +23,7 @@ export type ThresholdUpdateArgs = {
   projectName: string;
   testName: string;
   threshold: number;
+  branch?: string;
   viewport?: string;
   browser?: string;
   environment?: string;
@@ -41,13 +43,14 @@ function callUpdateThreshold(
       viewport: args.viewport,
       browser: args.browser,
       environment: args.environment,
+      ...(args.branch ? { branch: args.branch } : {}),
       ...(preview ? { preview: "true" } : {}),
     },
   });
 }
 
 export function useThresholdEditor(options: ThresholdEditorOptions) {
-  const { baseline, projectName, testName, variant } = options;
+  const { baseline, projectName, testName, branchName, variant } = options;
 
   const threshold = ref<number>(baseline?.pixelDiffThreshold ?? 0);
   const inputValue = ref<string>(String(threshold.value));
@@ -90,11 +93,19 @@ export function useThresholdEditor(options: ThresholdEditorOptions) {
       invalidate: (
         client,
         _,
-        { projectName: pn, testName: tn, viewport, browser, environment },
+        {
+          projectName: pn,
+          testName: tn,
+          branch,
+          viewport,
+          browser,
+          environment,
+        },
       ) =>
         invalidateVisualTestDetails(client, {
           projectName: pn,
           testName: tn,
+          ...(branch ? { branch } : {}),
           viewport,
           browser,
           environment,
@@ -123,10 +134,12 @@ export function useThresholdEditor(options: ThresholdEditorOptions) {
   // the same tuple, so a field added here is present in both calls.
   function buildArgs(nextValue: number): ThresholdUpdateArgs {
     const v = unref(variant);
+    const branch = unref(branchName);
     return {
       projectName,
       testName,
       threshold: nextValue,
+      ...(branch ? { branch } : {}),
       viewport: v.viewport,
       browser: v.browser,
       environment: v.environment,

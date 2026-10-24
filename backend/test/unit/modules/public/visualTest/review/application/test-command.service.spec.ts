@@ -117,7 +117,7 @@ describe('TestCommandService', () => {
 
   describe('deleteTest', () => {
     it('deletes entire test when no variant filters provided', async () => {
-      testResolver.findTest.mockResolvedValue({
+      testResolver.findOwnTest.mockResolvedValue({
         id: 'test-1',
         name: 'my-test',
         kind: 'image',
@@ -129,16 +129,21 @@ describe('TestCommandService', () => {
     });
 
     it('deletes variant screenshots when filters provided', async () => {
-      testResolver.findTest.mockResolvedValue({
+      testResolver.findOwnTest.mockResolvedValue({
         id: 'test-1',
         name: 'my-test',
         kind: 'image',
       });
       testDeletion.deleteScreenshotsByFilters.mockResolvedValue(['ss-1']);
 
-      const result = await service.deleteTest('my-project', 'my-test', {
-        viewport: '1920x1080',
-      });
+      const result = await service.deleteTest(
+        'my-project',
+        'my-test',
+        undefined,
+        {
+          viewport: '1920x1080',
+        },
+      );
 
       expect(testDeletion.deleteScreenshotsByFilters).toHaveBeenCalledWith(
         'test-1',
@@ -150,7 +155,7 @@ describe('TestCommandService', () => {
     });
 
     it('throws when no screenshots match variant filter', async () => {
-      testResolver.findTest.mockResolvedValue({
+      testResolver.findOwnTest.mockResolvedValue({
         id: 'test-1',
         name: 'my-test',
         kind: 'image',
@@ -158,19 +163,36 @@ describe('TestCommandService', () => {
       testDeletion.deleteScreenshotsByFilters.mockResolvedValue([]);
 
       await expect(
-        service.deleteTest('my-project', 'my-test', { viewport: '800x600' }),
+        service.deleteTest('my-project', 'my-test', undefined, {
+          viewport: '800x600',
+        }),
       ).rejects.toThrow(DomainError);
     });
 
+    it('rejects deleting an inherited test from a feature branch', async () => {
+      testResolver.findOwnTest.mockRejectedValue(
+        new DomainError(
+          'Test "login" is inherited from branch "main" and cannot be modified here',
+          'CONFLICT',
+        ),
+      );
+
+      await expect(
+        service.deleteTest('app', 'login', 'feature/x'),
+      ).rejects.toMatchObject({ code: 'CONFLICT' });
+    });
+
     it('does not delete the whole test when a filter value is an empty string', async () => {
-      testResolver.findTest.mockResolvedValue({
+      testResolver.findOwnTest.mockResolvedValue({
         id: 'test-1',
         name: 'my-test',
         kind: 'image',
       });
 
       await expect(
-        service.deleteTest('my-project', 'my-test', { viewport: '' }),
+        service.deleteTest('my-project', 'my-test', undefined, {
+          viewport: '',
+        }),
       ).rejects.toThrow(DomainError);
 
       expect(testDeletion.deleteTest).not.toHaveBeenCalled();

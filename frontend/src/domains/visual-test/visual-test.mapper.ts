@@ -36,5 +36,13 @@ export function mapVisualTestDetails(
     name: dto.name,
     baseline: mapScreenshot(dto.baseline),
     comparison: mapComparison(dto.comparison),
+    ...(dto.origin ? { origin: dto.origin } : {}),
+    ...(dto.inheritedFrom !== undefined
+      ? { inheritedFrom: dto.inheritedFrom }
+      : {}),
+    ...(dto.baselineInherited ? { baselineInherited: true } : {}),
+    ...(dto.inheritTarget !== undefined
+      ? { inheritTarget: dto.inheritTarget }
+      : {}),
   };
 }

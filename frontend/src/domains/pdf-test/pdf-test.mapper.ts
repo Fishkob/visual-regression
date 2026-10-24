@@ -57,5 +57,13 @@ export function mapPdfTestDetails(
     createdAt: dto.createdAt,
     baseline: mapPdfScreenshot(dto.baseline),
     comparison: mapPdfComparison(dto.comparison),
+    ...(dto.origin ? { origin: dto.origin } : {}),
+    ...(dto.inheritedFrom !== undefined
+      ? { inheritedFrom: dto.inheritedFrom }
+      : {}),
+    ...(dto.baselineInherited ? { baselineInherited: true } : {}),
+    ...(dto.inheritTarget !== undefined
+      ? { inheritTarget: dto.inheritTarget }
+      : {}),
   };
 }

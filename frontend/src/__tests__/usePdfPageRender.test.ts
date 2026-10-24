@@ -80,6 +80,32 @@ describe("usePdfPageRenderQuery", () => {
     expect(result).toEqual({ imageUrl: "/page.png" });
   });
 
+  it("scopes the render request to the selected branch", async () => {
+    const { usePdfPageRenderQuery } =
+      await import("@/composables/usePdfPageRender");
+    mockRenderPdfPage.mockResolvedValue({ data: { imageUrl: "/page.png" } });
+
+    usePdfPageRenderQuery(
+      ref("proj"),
+      ref("test"),
+      ref("http://storage/diff.pdf"),
+      ref(3),
+      ref("feature/x"),
+    );
+
+    const options = mockUseQuery.mock.calls[0][0];
+    await options.queryFn();
+
+    expect(mockRenderPdfPage).toHaveBeenCalledWith({
+      path: { projectName: "proj", testName: "test" },
+      query: {
+        pdfUrl: "http://storage/diff.pdf",
+        page: 3,
+        branch: "feature/x",
+      },
+    });
+  });
+
   it("maps an empty payload to null", async () => {
     const { usePdfPageRenderQuery } =
       await import("@/composables/usePdfPageRender");

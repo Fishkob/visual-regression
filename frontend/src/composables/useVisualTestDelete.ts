@@ -1,4 +1,4 @@
-import { computed } from "vue";
+import { computed, unref } from "vue";
 import { testCommandsControllerDeleteVisualTest } from "@sdk";
 import type { VisualTestItem } from "@/domains/projects/project.model";
 import {
@@ -10,9 +10,11 @@ import {
   formatVariantLabelWithName,
 } from "@/lib/format-variant-label";
 import { useEntityDeleteMutation } from "@/composables/useEntityDeleteMutation";
+import type { MaybeRef } from "@/composables/useDomainQuery";
 
 export interface DeleteOptions {
   projectName: string;
+  branchName?: MaybeRef<string | undefined>;
 }
 
 export type DeleteVisualTestArgs = {
@@ -23,7 +25,7 @@ export type DeleteVisualTestArgs = {
 };
 
 export function useVisualTestDelete(options: DeleteOptions) {
-  const { projectName } = options;
+  const { projectName, branchName } = options;
 
   const {
     pendingEntity: pendingVariant,
@@ -33,15 +35,18 @@ export function useVisualTestDelete(options: DeleteOptions) {
     confirmDelete,
     cancelDelete,
   } = useEntityDeleteMutation<VisualTestItem, DeleteVisualTestArgs>({
-    mutationFn: (args) =>
-      testCommandsControllerDeleteVisualTest({
+    mutationFn: (args) => {
+      const branch = unref(branchName);
+      return testCommandsControllerDeleteVisualTest({
         path: { projectName, testName: args.testName },
         query: {
           viewport: args.viewport,
           browser: args.browser,
           environment: args.environment,
+          ...(branch ? { branch } : {}),
         },
-      }),
+      });
+    },
 
     argsOf: (test) => ({
       testName: test.name ?? "",

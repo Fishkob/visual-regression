@@ -50,6 +50,7 @@ export class TestApp {
     await db.unifiedScreenshot.deleteMany();
     await db.unifiedTest.deleteMany();
     await db.comparisonJob.deleteMany();
+    await db.branch.deleteMany();
     await db.project.deleteMany();
     await db.projectGroup.deleteMany();
     await db.rateLimitBucket.deleteMany();
@@ -58,6 +59,28 @@ export class TestApp {
     await db.user.deleteMany();
 
     await this.seedApiKey();
+  }
+
+  /**
+   * Creates a project with its main branch linked as default. Every project has
+   * a default branch (the service enforces it), so e2e fixtures must not create
+   * a bare project row.
+   */
+  static async createProject(
+    name: string,
+  ): Promise<{ projectId: string; branchId: string }> {
+    const app = this.appInstance;
+    if (!app) throw new Error('App instance not initialized');
+    const db = app.get(PrismaConnection).client;
+    const project = await db.project.create({ data: { name } });
+    const branch = await db.branch.create({
+      data: { projectId: project.id, name: 'main' },
+    });
+    await db.project.update({
+      where: { id: project.id },
+      data: { defaultBranchId: branch.id },
+    });
+    return { projectId: project.id, branchId: branch.id };
   }
 
   /**

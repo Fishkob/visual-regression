@@ -49,6 +49,8 @@ export function mapProjectDetailToDto(
       createdAt: project.createdAt,
       groupId: project.groupId,
       groupName: project.groupName,
+      branchName: project.branchName,
+      defaultBranchName: project.defaultBranchName,
       visualTests: project.variants.map((variant) => ({
         name: variant.testName,
         kind: variant.kind,
@@ -58,6 +60,8 @@ export function mapProjectDetailToDto(
           environment: variant.environment,
         },
         latestStatus: variant.status,
+        origin: variant.origin,
+        inheritedFrom: variant.inheritedFrom,
       })),
     },
     { excludeExtraneousValues: true },

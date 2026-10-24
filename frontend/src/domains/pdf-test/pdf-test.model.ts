@@ -1,4 +1,5 @@
 import type { TestStatusValue, VisualTestStatus } from "@/domains/test-status";
+import type { BranchOrigin } from "@/domains/branches/branch-origin";
 
 export interface PdfScreenshot {
   pdfUrl: string;
@@ -26,6 +27,10 @@ export interface PdfTestDetails {
   createdAt: string;
   baseline?: PdfScreenshot;
   comparison?: PdfComparison;
+  origin?: BranchOrigin;
+  inheritedFrom?: string | null;
+  baselineInherited?: boolean;
+  inheritTarget?: string | null;
 }
 
 export interface PdfRenderResult {

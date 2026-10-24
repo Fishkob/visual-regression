@@ -1,6 +1,7 @@
 import { TEST_ID } from "@/lib/test-ids";
 
 import {
+  BRANCHES_RESPONSE,
   PROJECT_CHECKOUT_UI_RESPONSE,
   PROJECTS_PENDING_RESPONSE,
   REVIEW_INBOX_RESPONSE,
@@ -53,6 +54,7 @@ export const QUALITY_CASES: QualityCase[] = [
     routes: [
       [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ],
     readyTestId: TEST_ID.tableRow,
   },

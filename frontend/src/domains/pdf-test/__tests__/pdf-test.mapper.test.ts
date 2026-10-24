@@ -8,6 +8,10 @@ const baseDto: PdfTestDetailsDto = {
   status: "PENDING_APPROVAL",
   kind: "pdf",
   createdAt: "2024-01-01T00:00:00Z",
+  origin: "branch",
+  inheritedFrom: null,
+  baselineInherited: false,
+  inheritTarget: null,
   baseline: null,
   comparison: null,
 };
@@ -57,6 +61,7 @@ describe("mapPdfTestDetails", () => {
       name: "login-pdf",
       status: "PENDING_APPROVAL",
       createdAt: "2024-01-01T00:00:00Z",
+      inheritTarget: null,
       baseline: {
         pdfUrl: "/baseline.pdf",
         imageHash: "abc",
@@ -80,6 +85,8 @@ describe("mapPdfTestDetails", () => {
           environment: "prod",
         },
       },
+      origin: "branch",
+      inheritedFrom: null,
     });
   });
 
@@ -131,5 +138,16 @@ describe("mapPdfTestDetails", () => {
 
     expect(result?.baseline).toBeUndefined();
     expect(result?.comparison).toBeUndefined();
+  });
+
+  it("maps inherited origin metadata", () => {
+    const result = mapPdfTestDetails({
+      ...baseDto,
+      origin: "inherited",
+      inheritedFrom: "main",
+    });
+
+    expect(result?.origin).toBe("inherited");
+    expect(result?.inheritedFrom).toBe("main");
   });
 });

@@ -19,6 +19,7 @@ export async function downloadPdfFile(
   testName: Ref<string>,
   type: PdfDownloadType,
   variant?: VariantParams,
+  branchName?: string,
 ): Promise<void> {
   const result = await pdfControllerDownloadPdf({
     path: {
@@ -30,6 +31,7 @@ export async function downloadPdfFile(
       viewport: variant?.viewport,
       browser: variant?.browser,
       environment: variant?.environment,
+      ...(branchName ? { branch: branchName } : {}),
     },
   });
   const data = getData<Blob>(result);

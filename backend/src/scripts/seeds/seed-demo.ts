@@ -3,6 +3,7 @@ import {
   BASE_URL,
   BLUE_PATH,
   BROWSERS,
+  DEMO_BRANCH_SEEDS,
   DEMO_TESTS,
   PDF_BASELINE_PATH,
   PDF_CANDIDATE_PATH,
@@ -11,6 +12,7 @@ import {
   createProject,
   resolveSeedApiKey,
   seedAuth,
+  seedBranches,
   uploadVariant,
   verifyApiKeyAuth,
 } from './fixtures';
@@ -18,6 +20,7 @@ import {
  * Demo Seeder - Seeds realistic data for presentation/demos
  * - 3 Projects with 4 tests each
  * - All browsers & viewports
+ * - Feature branches with pending branch reviews (one archived branch)
  * - Cleans existing data first
  */
 import request from 'supertest';
@@ -117,8 +120,14 @@ async function seed() {
     });
   }
 
+  console.log('\nSeeding branch scenarios...');
+  await seedBranches(SEED_API_KEY, DEMO_BRANCH_SEEDS);
+
   console.log('\nDemo seeding complete!');
   console.log('Open http://localhost:5173 to view the seeded demo data.');
+  console.log(
+    'Branches: checkout-ui/feature/checkout-v2, dashboard-ui/feature/dashboard-redesign and feature/theme-refresh, admin-ui/release/1.2 (pending reviews) and admin-ui/experiment/old-header (archived).',
+  );
 }
 
 seed().catch((err: unknown) => {

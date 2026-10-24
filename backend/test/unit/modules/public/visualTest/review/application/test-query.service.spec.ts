@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
 import { TestReadRepository } from '@public/visualTest/review/infrastructure/repositories/test-read.repository';
 import { TestResolver } from '@public/visualTest/core/application/services/test-resolver.service';
+import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { DomainError } from '@common/domain/domain-error';
 import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 import { ComparisonEntity } from '@public/visualTest/core/domain/entities/comparison.entity';
@@ -17,6 +18,7 @@ describe('TestQueryService', () => {
   let service: TestQueryService;
   let reviewRead: Mocked<TestReadRepository>;
   let testResolver: Mocked<TestResolver>;
+  let branches: Mocked<BranchResolver>;
 
   const variant = Variant.fromStrings('1920x1080', 'chrome', 'staging');
 
@@ -51,12 +53,21 @@ describe('TestQueryService', () => {
   beforeEach(async () => {
     reviewRead = createMock<TestReadRepository>();
     testResolver = createMock<TestResolver>();
+    branches = createMock<BranchResolver>();
+    branches.resolveRead.mockResolvedValue({
+      projectId: 'proj-1',
+      branchId: 'br-1',
+      branchName: 'main',
+      isDefault: true,
+      isArchived: false,
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TestQueryService,
         { provide: TestReadRepository, useValue: reviewRead },
         { provide: TestResolver, useValue: testResolver },
+        { provide: BranchResolver, useValue: branches },
       ],
     }).compile();
 
@@ -69,26 +80,49 @@ describe('TestQueryService', () => {
 
   describe('getTestNames', () => {
     it('resolves the project and delegates to the repository by project id', async () => {
-      testResolver.resolveProject.mockResolvedValue({ id: 'proj-1' });
       reviewRead.getTestNames.mockResolvedValue({
         data: [
-          { name: 'a', kind: 'image', status: 'PENDING' },
-          { name: 'b', kind: 'pdf', status: null },
+          {
+            name: 'a',
+            kind: 'image',
+            status: 'PENDING',
+            origin: 'branch',
+            inheritedFrom: null,
+          },
+          {
+            name: 'b',
+            kind: 'pdf',
+            status: null,
+            origin: 'inherited',
+            inheritedFrom: 'main',
+          },
         ],
         total: 2,
       });
 
       const result = await service.getTestNames('proj', {} as any, 'image');
 
-      expect(testResolver.resolveProject).toHaveBeenCalledWith('proj');
+      expect(branches.resolveRead).toHaveBeenCalledWith('proj', undefined);
       expect(reviewRead.getTestNames).toHaveBeenCalledWith(
-        'proj-1',
+        'br-1',
         expect.anything(),
         'image',
       );
       expect(result.data).toEqual([
-        { name: 'a', kind: 'image', status: 'PENDING' },
-        { name: 'b', kind: 'pdf', status: null },
+        {
+          name: 'a',
+          kind: 'image',
+          status: 'PENDING',
+          origin: 'branch',
+          inheritedFrom: null,
+        },
+        {
+          name: 'b',
+          kind: 'pdf',
+          status: null,
+          origin: 'inherited',
+          inheritedFrom: 'main',
+        },
       ]);
     });
 
@@ -116,7 +150,6 @@ describe('TestQueryService', () => {
 
   describe('getTestsWithPendingStatus', () => {
     it('returns paginated pending approvals for project', async () => {
-      testResolver.resolveProject.mockResolvedValue({ id: 'proj-1' });
       reviewRead.getPendingApproval.mockResolvedValue({
         data: [
           {
@@ -135,7 +168,7 @@ describe('TestQueryService', () => {
       const result = await service.getTestsWithPendingStatus('proj', {} as any);
 
       expect(reviewRead.getPendingApproval).toHaveBeenCalledWith(
-        'proj-1',
+        'br-1',
         expect.anything(),
       );
       expect(result.data).toHaveLength(1);
@@ -155,6 +188,10 @@ describe('TestQueryService', () => {
       reviewRead.findVisualTestDetails.mockResolvedValue({
         exists: true,
         kind: 'image',
+        origin: 'branch',
+        inheritedFrom: null,
+        baselineInherited: false,
+        inheritTarget: null,
         baseline,
         comparison,
       });
@@ -169,9 +206,14 @@ describe('TestQueryService', () => {
         'my-project',
         'my-test',
         { viewport: '1920x1080' },
+        undefined,
       );
       expect(result).toEqual({
         name: 'my-test',
+        origin: 'branch',
+        inheritedFrom: null,
+        baselineInherited: false,
+        inheritTarget: null,
         baseline: expect.objectContaining({ id: 'baseline-1' }),
         comparison: expect.objectContaining({
           id: 'cmp-1',
@@ -185,6 +227,10 @@ describe('TestQueryService', () => {
       reviewRead.findVisualTestDetails.mockResolvedValue({
         exists: true,
         kind: 'image',
+        origin: 'branch',
+        inheritedFrom: null,
+        baselineInherited: false,
+        inheritTarget: null,
         baseline: makeScreenshot(),
         comparison: null,
       });
@@ -216,6 +262,10 @@ describe('TestQueryService', () => {
       reviewRead.findVisualTestDetails.mockResolvedValue({
         exists: true,
         kind: 'image',
+        origin: 'branch',
+        inheritedFrom: null,
+        baselineInherited: false,
+        inheritTarget: null,
         baseline: null,
         comparison: null,
       });
@@ -226,7 +276,13 @@ describe('TestQueryService', () => {
         { viewport: '1920x1080' },
       );
 
-      expect(result).toEqual({ name: 'my-test' });
+      expect(result).toEqual({
+        name: 'my-test',
+        origin: 'branch',
+        inheritedFrom: null,
+        baselineInherited: false,
+        inheritTarget: null,
+      });
     });
 
     it('rejects an empty variant filter instead of picking an arbitrary variant', async () => {
@@ -255,6 +311,10 @@ describe('TestQueryService', () => {
       reviewRead.findVisualTestDetails.mockResolvedValue({
         exists: true,
         kind: 'pdf',
+        origin: 'branch',
+        inheritedFrom: null,
+        baselineInherited: false,
+        inheritTarget: null,
         baseline: makeScreenshot(),
         comparison: makeComparison({}),
       });
@@ -309,6 +369,7 @@ describe('TestQueryService', () => {
         'my-project',
         'my-test',
         { viewport: '1920x1080' },
+        undefined,
       );
       expect(result).toEqual({
         id: 'test-1',
@@ -410,6 +471,7 @@ describe('TestQueryService', () => {
         'my-project',
         'my-test',
         { viewport: '1920x1080' },
+        undefined,
       );
     });
 
@@ -465,6 +527,27 @@ describe('TestQueryService', () => {
         message: 'Variant filter "viewport" must be a non-empty string',
       });
       expect(reviewRead.findTestWithVariants).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getKind', () => {
+    it('forwards the branch so a branch-only test resolves', async () => {
+      testResolver.findTest.mockResolvedValue({
+        id: 'test-1',
+        name: 'my-test',
+        kind: 'pdf',
+        origin: 'branch',
+        inheritedFrom: null,
+      });
+
+      const result = await service.getKind('proj', 'my-test', 'feature/x');
+
+      expect(testResolver.findTest).toHaveBeenCalledWith(
+        'proj',
+        'my-test',
+        'feature/x',
+      );
+      expect(result).toEqual({ kind: 'pdf' });
     });
   });
 });

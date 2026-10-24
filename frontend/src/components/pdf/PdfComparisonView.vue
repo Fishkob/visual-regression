@@ -22,6 +22,10 @@ const props = defineProps<{
   baseline: PdfScreenshot;
   comparison: PdfComparison;
   isApproving?: boolean;
+  branchName?: string;
+  // Inherited baselines are read-only on this branch: the approve/skip actions
+  // belong to the branch that owns the baseline.
+  readOnly?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -37,7 +41,13 @@ const testNameRef = computed(() => props.testName);
 const download = (type: PdfDownloadType) => {
   const variant =
     type === "candidate" ? props.comparison.candidate : props.baseline;
-  return downloadPdfFile(projectNameRef, testNameRef, type, variant);
+  return downloadPdfFile(
+    projectNameRef,
+    testNameRef,
+    type,
+    variant,
+    props.branchName,
+  );
 };
 
 const mismatchInfo = computed(() => {
@@ -97,6 +107,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
           :page="currentPage"
           label="Baseline"
           border="green"
+          :branch-name="branchName"
         />
         <div class="text-center mt-1">
           <a
@@ -117,6 +128,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
           :page="currentPage"
           label="Current"
           border="blue"
+          :branch-name="branchName"
         />
         <div class="text-center mt-1">
           <a
@@ -137,6 +149,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
           :page="currentPage"
           label="Diff"
           border="red"
+          :branch-name="branchName"
         />
         <div class="text-center mt-1">
           <a
@@ -159,6 +172,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
     </div>
 
     <ApproveSkipFooter
+      v-if="!readOnly"
       :approved="isApproved(comparison.status)"
       :is-approving="props.isApproving"
       @skip="emit('skip')"

@@ -120,7 +120,7 @@ describe('ProjectsController', () => {
       expect(result).toEqual(expected);
       expect(projectService.updateProjectGroup).toHaveBeenCalledWith(
         'checkout-ui',
-        'group-1',
+        dto,
       );
     });
   });

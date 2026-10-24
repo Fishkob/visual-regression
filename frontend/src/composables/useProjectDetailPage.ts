@@ -6,8 +6,9 @@ import type { MaybeRef } from "@/composables/useDomainQuery";
 
 export function useProjectDetailPage(
   projectName: MaybeRef<string | undefined>,
+  branchName?: MaybeRef<string | undefined>,
 ) {
-  const projectQuery = useProjectDetailQuery(projectName);
+  const projectQuery = useProjectDetailQuery(projectName, branchName);
   const project = projectQuery.data;
   const tests = computed<VisualTestItem[]>(
     () => project.value?.visualTests ?? [],

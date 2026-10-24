@@ -23,6 +23,15 @@ const testName = computed(() => route.params.testName as string | undefined);
 
 const hasProject = computed(() => !!projectName.value);
 const hasTest = computed(() => !!testName.value);
+
+// The crumb is the primary "up" navigation, so it must not silently drop the
+// branch: a `to` object without a query replaces the whole query string, which
+// would land a reviewer on the project default branch mid-review.
+const branch = computed(() =>
+  typeof route.query.branch === "string" && route.query.branch
+    ? route.query.branch
+    : undefined,
+);
 </script>
 
 <template>
@@ -59,6 +68,7 @@ const hasTest = computed(() => !!testName.value);
               :to="{
                 name: 'project-detail',
                 params: { projectName: projectName ?? '' },
+                ...(branch ? { query: { branch } } : {}),
               }"
             >
               {{ projectName }}

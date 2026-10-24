@@ -29,15 +29,72 @@
           </span>
         </template>
       </div>
-      <Button
-        v-if="project"
-        type="button"
-        variant="outline"
-        :data-testid="TEST_ID.moveProject"
-        @click="openMove"
-      >
-        Move to group
-      </Button>
+      <div class="flex flex-wrap items-center gap-2">
+        <template v-if="visibleBranches.length > 0">
+          <Select v-model="selectedBranchModel">
+            <SelectTrigger
+              class="w-56"
+              aria-label="Branch"
+              :data-testid="TEST_ID.projectBranchSelect"
+            >
+              <SelectValue placeholder="Default branch" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem
+                v-for="branchOption in visibleBranches"
+                :key="branchOption.name"
+                :value="branchOption.name"
+              >
+                {{ branchOption.name
+                }}{{ branchOption.isDefault ? " (default)" : ""
+                }}{{ branchOption.isArchived ? " (archived)" : "" }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <span
+            v-if="inheritLabel"
+            class="text-xs text-muted-foreground"
+            :data-testid="TEST_ID.projectBranchTarget"
+          >
+            inherits {{ inheritLabel }}
+          </span>
+          <BranchActionsMenu
+            v-if="selectedBranchInfo"
+            :branch="selectedBranchInfo"
+            :pending="branchMutationsPending"
+            :targets="retargetCandidates"
+            :dependent-names="dependentBranchNames"
+            @archive="handleArchive"
+            @delete="handleDelete"
+            @set-default="handleSetDefault"
+            @retarget="handleRetarget"
+          />
+        </template>
+        <span
+          v-else-if="branchesError"
+          class="flex items-center gap-2 text-xs text-muted-foreground"
+          :data-testid="TEST_ID.branchSwitcherError"
+        >
+          Branches unavailable
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            @click="refetchBranches()"
+          >
+            Retry
+          </Button>
+        </span>
+        <Button
+          v-if="project"
+          type="button"
+          variant="outline"
+          :data-testid="TEST_ID.moveProject"
+          @click="openMove"
+        >
+          Move to group
+        </Button>
+      </div>
     </div>
 
     <AsyncState
@@ -55,6 +112,7 @@
       <VisualTestsTable
         :tests="tests"
         :project-name="projectName ?? ''"
+        :branch-name="selectedBranch"
         sync-url
       />
     </AsyncState>
@@ -72,15 +130,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import SkeletonAccordionGroups from "@/components/cards/SkeletonAccordionGroups.vue";
 import MoveProjectDialog from "@/components/projects/MoveProjectDialog.vue";
 import VisualTestsTable from "@/components/tables/VisualTestsTable.vue";
+import BranchActionsMenu from "@/components/branches/BranchActionsMenu.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useBranchesQuery } from "@/composables/useBranches";
+import type { ProjectBranch } from "@/domains/branches/branch.model";
+import { useBranchMutations } from "@/composables/useBranchMutations";
 import { useGroupsQuery } from "@/composables/useGroups";
 import { useProjectDetailPage } from "@/composables/useProjectDetailPage";
 import { useProjectGroupAssignment } from "@/composables/useProjectGroupAssignment";
@@ -89,9 +159,186 @@ import { UNASSIGNED_GROUP_LABEL } from "@/domains/groups/group-section";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { projectName } = useRouteParams();
+const route = useRoute();
+const router = useRouter();
 
+// Archived branches are fetched too: they stay readable, and hiding them from
+// the switcher made "unarchive" unreachable — once a branch was archived and the
+// page left, there was no way back to it.
+const {
+  data: branches,
+  error: branchesError,
+  refetch: refetchBranches,
+} = useBranchesQuery(projectName, true);
+
+const routeBranch = computed(() =>
+  typeof route.query.branch === "string" ? route.query.branch : undefined,
+);
+
+// The query keys on the *requested* branch rather than the resolved selection:
+// the resolved name comes from the project read itself, so keying on it would
+// refetch the project a second time (and flash the loading state) on first
+// paint. Selecting a branch writes it to the route, which is what re-keys it.
 const { project, tests, pendingCount, testCount, activeTabState } =
-  useProjectDetailPage(projectName);
+  useProjectDetailPage(projectName, routeBranch);
+
+// The selected branch is the explicitly requested one, else the branch the
+// project read resolved, else the project default. The backend resolves an
+// absent branch to the default, so the switcher stays consistent with the data.
+const selectedBranch = computed(
+  () =>
+    routeBranch.value ??
+    project.value?.branchName ??
+    project.value?.defaultBranchName,
+);
+
+const selectedBranchModel = computed({
+  get: () => selectedBranch.value ?? "",
+  set: (name: string) => {
+    if (name) selectBranch(name);
+  },
+});
+
+// Archived branches are listed, not hidden: they are readable (and unarchivable)
+// by design, and hiding them was a one-way door out of the branch.
+const visibleBranches = computed(() => branches.value ?? []);
+
+const selectedBranchInfo = computed(() =>
+  (branches.value ?? []).find((branch) => branch.name === selectedBranch.value),
+);
+
+// The effective target is part of a branch's identity (it decides which baseline
+// an unapproved variant compares against), so it is rendered instead of only
+// being fetched.
+const inheritLabel = computed(() => {
+  const info = selectedBranchInfo.value;
+  if (!info || info.isDefault || !info.targetBranchName) return "";
+  return `from ${info.targetBranchName}`;
+});
+
+// A branch that (transitively) inherits from the branch being retargeted would
+// close a cycle, which the API rejects with a 409. The whole graph is already in
+// memory, so the dialog only offers targets that can actually be set.
+function wouldCreateCycle(
+  candidate: ProjectBranch,
+  branchName: string,
+  byName: Map<string, ProjectBranch>,
+): boolean {
+  let cursor: ProjectBranch | undefined = candidate;
+  const seen = new Set<string>();
+  while (cursor) {
+    if (cursor.name === branchName) return true;
+    if (seen.has(cursor.name)) return false;
+    seen.add(cursor.name);
+    cursor = cursor.targetBranchName
+      ? byName.get(cursor.targetBranchName)
+      : undefined;
+  }
+  return false;
+}
+
+// Retarget candidates: every other branch that is still usable as a target.
+const retargetCandidates = computed(() => {
+  const selected = selectedBranchInfo.value;
+  if (!selected) return [];
+  const byName = new Map(
+    (branches.value ?? []).map((branch) => [branch.name, branch]),
+  );
+  return (branches.value ?? [])
+    .filter(
+      (branch) =>
+        branch.name !== selected.name &&
+        !branch.isArchived &&
+        !wouldCreateCycle(branch, selected.name, byName),
+    )
+    .map((branch) => branch.name);
+});
+
+// Branches that explicitly inherit from the selected one. Deleting it would
+// silently re-parent them to the project default, so the UI blocks it up front
+// (the API rejects it too).
+const dependentBranchNames = computed(() => {
+  const info = selectedBranchInfo.value;
+  if (!info) return [];
+  return (branches.value ?? [])
+    .filter(
+      (branch) =>
+        branch.name !== info.name &&
+        !branch.isDefault &&
+        branch.targetBranchName === info.name,
+    )
+    .map((branch) => branch.name);
+});
+
+const branchMutations = useBranchMutations(projectName);
+const branchMutationsPending = computed(
+  () =>
+    branchMutations.archive.isPending.value ||
+    branchMutations.remove.isPending.value ||
+    branchMutations.setDefault.isPending.value ||
+    branchMutations.setTarget.isPending.value,
+);
+
+// A branch that disappeared elsewhere (deleted in another tab, stale bookmark)
+// must not leave the page on a dead error state: once the branch list is known,
+// drop a `?branch=` that no longer resolves and fall back to the default.
+watch([branches, routeBranch], ([list, requested]) => {
+  if (!requested || !list || list.length === 0) return;
+  if (list.some((branch) => branch.name === requested)) return;
+  const query = { ...route.query };
+  delete query.branch;
+  void router.replace({ query });
+});
+
+function selectBranch(name: string) {
+  const query = { ...route.query };
+  // The default branch needs no parameter — keeping it out means one cache
+  // entry per branch instead of two for the same server state.
+  if (
+    (branches.value ?? []).find((branch) => branch.name === name)?.isDefault
+  ) {
+    delete query.branch;
+  } else {
+    query.branch = name;
+  }
+  void router.replace({ query });
+}
+
+function handleSetDefault() {
+  const branch = selectedBranchInfo.value;
+  if (!branch) return;
+  branchMutations.setDefault.mutate(branch.name);
+}
+
+function handleRetarget(targetBranch: string | null) {
+  const branch = selectedBranchInfo.value;
+  if (!branch) return;
+  branchMutations.setTarget.mutate({ branch: branch.name, targetBranch });
+}
+
+function handleArchive(isArchived: boolean) {
+  const branch = selectedBranchInfo.value;
+  if (!branch) return;
+  branchMutations.archive.mutate({ branch: branch.name, isArchived });
+}
+
+function handleDelete() {
+  const branch = selectedBranchInfo.value;
+  if (!branch) return;
+  branchMutations.remove.mutate(branch.name, {
+    onSuccess: () => {
+      // Deleting the branch being viewed must not leave the page pointed at a
+      // branch that no longer exists — fall back to the project default.
+      if (routeBranch.value !== branch.name) return;
+      // The default branch needs no parameter (same convention as
+      // selectBranch), so deleting the viewed branch always lands on the
+      // parameter-less default read instead of a duplicate cache entry.
+      const query = { ...route.query };
+      delete query.branch;
+      void router.replace({ query });
+    },
+  });
+}
 
 const { data: groups } = useGroupsQuery();
 const moveMutation = useProjectGroupAssignment();

@@ -21,7 +21,7 @@ describe('Upload Replace Pending (e2e)', () => {
 
   beforeEach(async () => {
     await TestApp.resetDb();
-    await prisma.project.create({ data: { name: 'checkout-ui' } });
+    await TestApp.createProject('checkout-ui');
   });
 
   afterAll(async () => {
@@ -77,6 +77,10 @@ describe('Upload Replace Pending (e2e)', () => {
 
     expect(details.body).toEqual({
       name: 'login-form',
+      origin: 'branch',
+      inheritedFrom: null,
+      baselineInherited: false,
+      inheritTarget: null,
       baseline: expect.objectContaining({
         imageUrl: expect.any(String),
         variant: {
@@ -116,6 +120,7 @@ describe('Upload Replace Pending (e2e)', () => {
     expect(res3.body).toEqual({
       status: ComparisonOutcome.IDENTICAL,
       mismatchPixelCount: 0,
+      branch: 'main',
     });
   });
 });

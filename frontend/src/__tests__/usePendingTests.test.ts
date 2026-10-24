@@ -50,7 +50,11 @@ describe("usePendingTestsQuery", () => {
       },
     });
 
-    const query = usePendingTestsQuery(ref("checkout-ui"), ref(true));
+    const query = usePendingTestsQuery(
+      ref("checkout-ui"),
+      ref(undefined),
+      ref(true),
+    );
 
     await vi.waitFor(() => {
       expect(query.data.value).toEqual([
@@ -91,7 +95,11 @@ describe("usePendingTestsQuery", () => {
         },
       });
 
-    const query = usePendingTestsQuery(ref("checkout-ui"), ref(true));
+    const query = usePendingTestsQuery(
+      ref("checkout-ui"),
+      ref(undefined),
+      ref(true),
+    );
 
     await vi.waitFor(() => {
       expect(query.data.value).toEqual([
@@ -110,5 +118,20 @@ describe("usePendingTestsQuery", () => {
       ]);
     });
     expect(mockGetTestsWithPendingStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it("scopes the pending list to the selected branch", async () => {
+    mockGetTestsWithPendingStatus.mockResolvedValue({
+      data: { data: [], meta: { page: 1, limit: 100, total: 0 } },
+    });
+
+    usePendingTestsQuery(ref("checkout-ui"), ref("feature/x"), ref(true));
+
+    await vi.waitFor(() => {
+      expect(mockGetTestsWithPendingStatus).toHaveBeenCalledWith({
+        path: { projectName: "checkout-ui" },
+        query: { skip: 0, take: 100, branch: "feature/x" },
+      });
+    });
   });
 });

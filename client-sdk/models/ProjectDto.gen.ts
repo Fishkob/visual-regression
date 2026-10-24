@@ -9,6 +9,8 @@ export type ProjectDto = {
     visualTests?: Array<VisualTestDto>;
     groupId?: string | null;
     groupName?: string | null;
+    branchName?: string;
+    defaultBranchName?: string;
     pendingCount?: number;
     testCount?: number;
     /**

@@ -117,6 +117,8 @@ The seeds hit the authenticated REST API, so they need an API key — create one
 - `./scripts/dev.sh seed` sources `backend/.env.local` — set `SEED_API_KEY` there, or set `ADMIN_API_KEY` and `dev.sh` provisions a key automatically via the admin endpoint.
 - Running `pnpm run seed:*` directly requires `export SEED_API_KEY=<rawKey>` first, since the scripts don't load dotenv files.
 
+The demo and dev seeds also create **feature branches** to exercise branch-scoped baselines: each branch has one pending review whose first upload inherited the target branch's baseline, unmaterialized tests read as `inherited`, and one branch is archived (`admin-ui/experiment/old-header`). Branch scenarios live in `backend/src/scripts/seeds/fixtures.ts` (`DEMO_BRANCH_SEEDS`, `DEV_BRANCH_SEEDS`).
+
 **RustFS Console:** http://localhost:9001 (login: `rustfsadmin` / `rustfsadmin` — the RustFS default root credentials; override via `RUSTFS_ROOT_USER` / `RUSTFS_ROOT_PASSWORD` in the root `.env` for Docker deployments)
 
 ---

@@ -58,6 +58,7 @@ describe('TestCommandsController', () => {
         body.threshold,
         query,
         false,
+        undefined,
       );
     });
 
@@ -89,6 +90,7 @@ describe('TestCommandsController', () => {
         body.threshold,
         query,
         true,
+        undefined,
       );
     });
   });
@@ -113,6 +115,7 @@ describe('TestCommandsController', () => {
       expect(testCommandService.deleteTest).toHaveBeenCalledWith(
         'checkout-ui',
         'login-form',
+        undefined,
         filterDto,
       );
     });

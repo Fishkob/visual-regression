@@ -9,6 +9,8 @@ const dto = (overrides: Partial<PendingReviewDto> = {}): PendingReviewDto => ({
   groupName: "Shop",
   testName: "cart",
   kind: "image",
+  branchName: "main",
+  isDefaultBranch: true,
   variant: {
     viewport: "1280x720",
     browser: "chromium",
@@ -29,6 +31,8 @@ describe("mapReviewInboxItem", () => {
       groupName: "Shop",
       testName: "cart",
       kind: "image",
+      branchName: "main",
+      isDefaultBranch: true,
       viewport: "1280x720",
       browser: "chromium",
       environment: "staging",
@@ -36,6 +40,15 @@ describe("mapReviewInboxItem", () => {
       mismatchPageCount: 2,
       createdAt: "2026-10-20T10:00:00.000Z",
     });
+  });
+
+  it("maps the branch of a pending review", () => {
+    const item = mapReviewInboxItem(
+      dto({ branchName: "feature/x", isDefaultBranch: false }),
+    );
+
+    expect(item.branchName).toBe("feature/x");
+    expect(item.isDefaultBranch).toBe(false);
   });
 
   it("maps an unknown kind to undefined", () => {

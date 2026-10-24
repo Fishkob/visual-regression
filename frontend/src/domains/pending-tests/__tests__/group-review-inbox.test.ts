@@ -7,6 +7,8 @@ const item = (overrides: Partial<ReviewInboxItem>): ReviewInboxItem => ({
   projectName: "p",
   testName: "t",
   kind: "image",
+  branchName: "main",
+  isDefaultBranch: true,
   mismatchPixelCount: 1,
   createdAt: "2026-10-20T10:00:00.000Z",
   ...overrides,

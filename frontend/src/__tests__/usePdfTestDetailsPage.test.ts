@@ -53,6 +53,7 @@ describe("usePdfTestDetailsPage (pdf)", () => {
   const createArgs = () => ({
     projectName: ref("test-project"),
     testName: ref("my-pdf-test"),
+    branchName: ref<string | undefined>(undefined),
     filters: ref({
       viewport: "1920x1080",
       browser: "chrome",

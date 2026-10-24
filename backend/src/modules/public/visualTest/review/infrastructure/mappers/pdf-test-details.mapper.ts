@@ -10,6 +10,10 @@ export function mapTestWithVariantsToPdfDetails(
     status: result.test.status,
     kind: result.test.kind,
     createdAt: result.test.createdAt,
+    origin: result.test.origin,
+    inheritedFrom: result.test.inheritedFrom,
+    baselineInherited: result.baselineInherited,
+    inheritTarget: result.inheritTarget,
     baseline: result.baseline
       ? {
           id: result.baseline.id,

@@ -7,6 +7,8 @@ export interface ReviewInboxItem {
   groupName?: string | null;
   testName: string;
   kind?: TestKind;
+  branchName: string;
+  isDefaultBranch: boolean;
   viewport?: string;
   browser?: string;
   environment?: string;

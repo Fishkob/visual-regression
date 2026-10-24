@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@prisma/prisma.module';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import { BranchRepository } from '@public/visualTest/core/infrastructure/repositories/branch.repository';
+import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
@@ -14,6 +16,8 @@ import { ORPHAN_SWEEP } from '@common/domain/orphan-sweep.interface';
   imports: [PrismaModule],
   providers: [
     ProjectRepository,
+    BranchRepository,
+    BranchTestRepository,
     UnifiedTestRepository,
     UnifiedScreenshotRepository,
     UnifiedComparisonsRepository,
@@ -31,6 +35,8 @@ import { ORPHAN_SWEEP } from '@common/domain/orphan-sweep.interface';
   ],
   exports: [
     ProjectRepository,
+    BranchRepository,
+    BranchTestRepository,
     UnifiedTestRepository,
     UnifiedScreenshotRepository,
     UnifiedComparisonsRepository,

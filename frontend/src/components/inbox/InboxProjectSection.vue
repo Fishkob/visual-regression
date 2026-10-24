@@ -11,18 +11,49 @@ import { TEST_ID } from "@/lib/test-ids";
 
 const props = defineProps<{
   section: InboxProjectSection;
-  reviewCount?: number;
-  reviewStart?: ReviewInboxItem;
+  /** The same project unfiltered: the pass walks this, not the filtered view. */
+  projectSection?: InboxProjectSection;
 }>();
 const router = useRouter();
 
-const reviewTotal = computed(
-  () => props.reviewCount ?? props.section.items.length,
+// The review pass is branch-scoped (the details page's pending list is), so the
+// count must describe the set it will walk: the project's pending items on the
+// branch the pass starts on. Filtering the inbox down must not shrink "Review N",
+// and branching must not let it span branches the pass never visits.
+const reviewItems = computed(
+  () => props.projectSection?.items ?? props.section.items,
 );
+const reviewStart = computed<ReviewInboxItem | undefined>(
+  () => reviewItems.value[0],
+);
+const reviewScope = computed(() => {
+  const start = reviewStart.value;
+  if (!start) return reviewItems.value;
+  // `start` always comes from `reviewItems`, so the filtered list cannot be
+  // empty; there is no "fall back to every branch" branch to get wrong.
+  return reviewItems.value.filter(
+    (item) => item.branchName === start.branchName,
+  );
+});
+const reviewTotal = computed(() => reviewScope.value.length);
 const reviewChangeCount = computed(
   () =>
     `${reviewTotal.value} ${reviewTotal.value === 1 ? "change" : "changes"}`,
 );
+// Only name the branch when the project spans several — a single-branch project
+// needs no qualifier.
+const reviewScopeLabel = computed(() => {
+  const branches = new Set(reviewItems.value.map((item) => item.branchName));
+  const branchName = reviewStart.value?.branchName;
+  return branches.size > 1 && branchName ? ` on ${branchName}` : "";
+});
+
+// The default branch needs no query parameter (same convention as the project
+// switcher): an item on it returns to the unfiltered inbox, while a branch-scoped
+// item keeps `?branch=` through the whole pass — including the "back" leg.
+function branchQuery(item: ReviewInboxItem) {
+  return item.isDefaultBranch ? {} : { branch: item.branchName };
+}
 
 function openItem(item: ReviewInboxItem) {
   void router.push({
@@ -32,13 +63,14 @@ function openItem(item: ReviewInboxItem) {
       viewport: item.viewport,
       browser: item.browser,
       environment: item.environment,
+      ...branchQuery(item),
       from: "inbox",
     },
   });
 }
 
 function startProjectReview() {
-  const first = props.reviewStart ?? props.section.items[0];
+  const first = reviewStart.value;
   if (!first) return;
   void router.push({
     name: "test-detail",
@@ -47,6 +79,7 @@ function startProjectReview() {
       viewport: first.viewport,
       browser: first.browser,
       environment: first.environment,
+      ...branchQuery(first),
     },
   });
 }
@@ -62,18 +95,19 @@ function startProjectReview() {
       <div>
         <h3 class="font-semibold">{{ section.projectName }}</h3>
         <p class="text-xs text-muted-foreground">
-          {{ reviewChangeCount }} to review
+          {{ reviewChangeCount }} to review{{ reviewScopeLabel }}
         </p>
       </div>
       <Button
         type="button"
         variant="outline"
         size="sm"
-        :aria-label="`Review ${reviewChangeCount} in ${section.projectName}`"
+        :aria-label="`Review ${reviewChangeCount}${reviewScopeLabel} in ${section.projectName}`"
         :data-testid="TEST_ID.reviewProjectButton"
         @click="startProjectReview"
       >
-        Review {{ reviewTotal }}
+        Review {{ reviewTotal
+        }}<span v-if="reviewScopeLabel">{{ reviewScopeLabel }}</span>
       </Button>
     </div>
 
@@ -93,6 +127,14 @@ function startProjectReview() {
           </p>
         </div>
         <div class="flex items-center gap-2">
+          <Badge
+            v-if="!item.isDefaultBranch"
+            variant="secondary"
+            class="font-mono text-[10px]"
+            :data-testid="TEST_ID.inboxBranchBadge"
+          >
+            {{ item.branchName }}
+          </Badge>
           <Badge variant="outline">{{
             item.kind === "pdf" ? "PDF" : "Image"
           }}</Badge>

@@ -1,26 +1,68 @@
 import { Injectable } from '@nestjs/common';
 import { DomainError } from '@common/domain/domain-error';
-import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
-import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
+import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
 import type { TestKind } from '@common/domain/test-kind';
 
 @Injectable()
 export class TestResolver {
   constructor(
-    private readonly tests: UnifiedTestRepository,
-    private readonly projects: ProjectRepository,
+    private readonly branches: BranchResolver,
+    private readonly branchTests: BranchTestRepository,
   ) {}
 
+  // Resolves the effective test of a branch: a materialized branch test, or the
+  // nearest ancestor's test it inherits. The origin tells the caller whether
+  // mutations are allowed (an inherited test is read-only in this branch).
   async findTest(
     projectName: string,
     testName: string,
-  ): Promise<{ id: string; name: string; kind: TestKind }> {
-    const test = await this.tests.findByProjectNameAndTestName(
-      projectName,
+    branchName?: string,
+  ): Promise<{
+    id: string;
+    name: string;
+    kind: TestKind;
+    origin: 'branch' | 'inherited';
+    inheritedFrom: string | null;
+  }> {
+    const branch = await this.branches.resolveRead(projectName, branchName);
+    const test = await this.branchTests.findEffectiveTest(
+      branch.branchId,
       testName,
     );
     if (!test) {
-      await this.resolveProject(projectName);
+      throw new DomainError(`Test "${testName}" not found`, 'NOT_FOUND');
+    }
+    return {
+      id: test.id,
+      name: test.name,
+      kind: test.kind,
+      origin: test.origin,
+      inheritedFrom: test.inheritedFrom,
+    };
+  }
+
+  // Resolves a test the branch owns — the mutation precondition. An inherited
+  // test is a CONFLICT (its review belongs to the ancestor branch), a name that
+  // exists nowhere is NOT_FOUND.
+  async findOwnTest(
+    projectName: string,
+    testName: string,
+    branchName?: string,
+  ): Promise<{ id: string; name: string; kind: TestKind }> {
+    const branch = await this.branches.resolveRead(projectName, branchName);
+    const test = await this.branchTests.findOwnTest(branch.branchId, testName);
+    if (!test) {
+      const inherited = await this.branchTests.findEffectiveTest(
+        branch.branchId,
+        testName,
+      );
+      if (inherited) {
+        throw new DomainError(
+          `Test "${testName}" is inherited from branch "${inherited.inheritedFrom}" and cannot be modified here`,
+          'CONFLICT',
+        );
+      }
       throw new DomainError(`Test "${testName}" not found`, 'NOT_FOUND');
     }
     return { id: test.id, name: test.name, kind: test.kind };
@@ -36,8 +78,9 @@ export class TestResolver {
     projectName: string,
     testName: string,
     kind: TestKind,
+    branchName?: string,
   ): Promise<{ id: string; name: string; kind: TestKind }> {
-    const test = await this.findTest(projectName, testName);
+    const test = await this.findOwnTest(projectName, testName, branchName);
     this.assertTestKind(test, kind);
     return test;
   }
@@ -50,13 +93,5 @@ export class TestResolver {
         : `Test "${test.name}" is not a PDF test`,
       'BAD_REQUEST',
     );
-  }
-
-  async resolveProject(projectName: string): Promise<{ id: string }> {
-    const project = await this.projects.findByName(projectName);
-    if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
-    return project;
   }
 }

@@ -9,9 +9,12 @@ import { PendingReviewDto } from '@public/visualTest/review/presentation/dto/rev
 export class ReviewInboxService {
   constructor(private readonly inbox: ReviewInboxRepository) {}
 
-  async getPending(pagination: PaginationDto) {
+  async getPending(
+    pagination: PaginationDto,
+    filters?: { branchName?: string; projectName?: string },
+  ) {
     return paginatedQuery(
-      (args) => this.inbox.findPending(args),
+      (args) => this.inbox.findPending(args, filters),
       pagination,
       (row) =>
         plainToInstance(PendingReviewDto, row, {

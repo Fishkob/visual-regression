@@ -27,15 +27,13 @@ describe('OrphanCleanupService (integration)', () => {
       .spyOn(RustFsStorageService.prototype, 'delete')
       .mockResolvedValue();
 
-    const project = await prisma.project.create({
-      data: { name: 'cleanup-demo' },
-    });
+    const { branchId } = await TestApp.createProject('cleanup-demo');
 
     // Test with orphan CURRENT (no comparison) — will be deleted
     const orphanTest = await prisma.unifiedTest.create({
       data: {
         name: 'OrphanForm',
-        projectId: project.id,
+        branchId,
         kind: 'image',
         status: 'PENDING',
       },
@@ -54,7 +52,7 @@ describe('OrphanCleanupService (integration)', () => {
     const keptTest = await prisma.unifiedTest.create({
       data: {
         name: 'KeptForm',
-        projectId: project.id,
+        branchId,
         kind: 'image',
         status: 'PENDING',
       },

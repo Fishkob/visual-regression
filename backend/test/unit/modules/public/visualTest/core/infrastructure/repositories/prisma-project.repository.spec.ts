@@ -31,6 +31,7 @@ describe('ProjectRepository', () => {
       },
       $queryRaw: vi.fn(),
     };
+    mockClient.$transaction = vi.fn();
 
     mockTxCtx = createMock<TransactionContext>();
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });
@@ -123,23 +124,40 @@ describe('ProjectRepository', () => {
   });
 
   describe('create', () => {
-    it('creates a project when name does not exist', async () => {
+    it('creates the project with a main branch and links it as default', async () => {
       const project = {
         id: 'proj-1',
-        name: 'new-project',
+        name: 'checkout-ui',
         createdAt: new Date(),
+        branches: [{ id: 'branch-1' }],
       };
       mockClient.project.findUnique.mockResolvedValue(null);
       mockClient.project.create.mockResolvedValue(project);
+      mockClient.project.update = vi.fn().mockResolvedValue({
+        id: 'proj-1',
+        name: 'checkout-ui',
+        createdAt: new Date(),
+        defaultBranchId: 'branch-1',
+      });
+      mockClient.$transaction.mockImplementation(async (fn: any) =>
+        fn(mockClient),
+      );
 
-      const result = await repository.create('new-project');
+      await repository.create('checkout-ui');
 
-      expect(result).toEqual(project);
       expect(mockClient.project.findUnique).toHaveBeenCalledWith({
-        where: { name: 'new-project' },
+        where: { name: 'checkout-ui' },
       });
       expect(mockClient.project.create).toHaveBeenCalledWith({
-        data: { name: 'new-project' },
+        data: {
+          name: 'checkout-ui',
+          branches: { create: { name: 'main' } },
+        },
+        include: { branches: { select: { id: true } } },
+      });
+      expect(mockClient.project.update).toHaveBeenCalledWith({
+        where: { id: 'proj-1' },
+        data: { defaultBranchId: 'branch-1' },
       });
     });
 

@@ -20,14 +20,12 @@ describe('ComparisonJob cleanup on VisualTest delete', () => {
   });
 
   it('should delete ComparisonJobs by testId', async () => {
-    const project = await prisma.project.create({
-      data: { name: 'cascade-test' },
-    });
+    const { branchId } = await TestApp.createProject('cascade-test');
 
     const test = await prisma.unifiedTest.create({
       data: {
         name: 'login-form',
-        projectId: project.id,
+        branchId,
         kind: 'image',
         status: 'PENDING',
       },

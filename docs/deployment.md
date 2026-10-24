@@ -126,6 +126,30 @@ CREATE DATABASE vrt;
 
 The schema is created automatically by the `db-migrate` job via `prisma migrate deploy` before the backend starts — no manual migration step needed.
 
+### Upgrading across a breaking migration
+
+Most migrations are additive, and a plain `helm upgrade` is fine. A migration that
+drops or rewrites a column the previous version still uses is a different matter:
+the `db-migrate` job runs as a `pre-upgrade` hook, i.e. **while the old pods are
+still serving**, so the old version starts failing as soon as it migrates.
+
+Branch support (ADR-027) is such a release: it drops `UnifiedTest.projectId`, and
+that break is accepted on purpose. Stop the old writers first, then upgrade:
+
+```bash
+kubectl -n vrt scale deploy/backend deploy/worker --replicas=0
+helm upgrade --install vrt deploy/charts/vrt --namespace vrt -f values.yaml
+```
+
+The chart restores the configured replica counts, so the new version comes up
+after the migration. If the HPA is enabled, disable it for the upgrade (or set
+its `minReplicas` to 0) so it does not scale the old pods back up. Expect a short
+5xx window while the deployments swap.
+
+The same pattern applies to any future migration that is not backward compatible;
+the alternative (expand/contract over two releases) is described in ADR-027 and
+was rejected for this one.
+
 ### 2. Set environment variables
 
 | Variable            | Example                                                  |

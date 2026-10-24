@@ -5,6 +5,10 @@ import type { ComparisonOutcome } from './ComparisonOutcome.gen';
 
 export type ComparisonQueuedResultDto = {
     status: ComparisonOutcome;
+    /**
+     * Branch the upload landed on (the resolved default when the request omitted it)
+     */
+    branch: string;
     error: ComparisonErrorCode;
     message: string;
 };

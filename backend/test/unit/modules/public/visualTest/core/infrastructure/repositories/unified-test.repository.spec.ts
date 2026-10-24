@@ -55,40 +55,6 @@ describe('UnifiedTestRepository', () => {
     vi.restoreAllMocks();
   });
 
-  describe('findByProjectNameAndTestName', () => {
-    it('returns test with selected fields', async () => {
-      const test = {
-        id: 'test-1',
-        name: 'my-test',
-        kind: 'image' as TestKind,
-        createdAt: new Date(),
-      };
-      mockClient.unifiedTest.findFirst.mockResolvedValue(test);
-
-      const result = await repository.findByProjectNameAndTestName(
-        'my-project',
-        'my-test',
-      );
-
-      expect(result).toEqual(test);
-      expect(mockClient.unifiedTest.findFirst).toHaveBeenCalledWith({
-        where: { name: 'my-test', project: { name: 'my-project' } },
-        select: { id: true, name: true, kind: true, createdAt: true },
-      });
-    });
-
-    it('returns null when not found', async () => {
-      mockClient.unifiedTest.findFirst.mockResolvedValue(null);
-
-      const result = await repository.findByProjectNameAndTestName(
-        'my-project',
-        'non-existent',
-      );
-
-      expect(result).toBeNull();
-    });
-  });
-
   describe('findIdsByProjectId', () => {
     it('returns only the ids of tests for a project', async () => {
       const tests = [
@@ -101,7 +67,7 @@ describe('UnifiedTestRepository', () => {
 
       expect(result).toEqual(['test-1', 'test-2']);
       expect(mockClient.unifiedTest.findMany).toHaveBeenCalledWith({
-        where: { projectId: 'proj-1' },
+        where: { branch: { projectId: 'proj-1' } },
         select: { id: true },
       });
     });
@@ -146,22 +112,52 @@ describe('UnifiedTestRepository', () => {
     });
   });
 
+  describe('findByBranchAndTestName', () => {
+    it('looks a test up by branch and name', async () => {
+      const test = {
+        id: 'test-1',
+        name: 'my-test',
+        kind: 'image' as TestKind,
+        createdAt: new Date(),
+      };
+      mockClient.unifiedTest.findFirst.mockResolvedValue(test);
+
+      const result = await repository.findByBranchAndTestName(
+        'br-1',
+        'my-test',
+      );
+
+      expect(result).toEqual(test);
+      expect(mockClient.unifiedTest.findFirst).toHaveBeenCalledWith({
+        where: { name: 'my-test', branchId: 'br-1' },
+        select: { id: true, name: true, kind: true, createdAt: true },
+      });
+    });
+
+    it('returns null when the branch has no such test', async () => {
+      mockClient.unifiedTest.findFirst.mockResolvedValue(null);
+
+      await expect(
+        repository.findByBranchAndTestName('br-1', 'missing'),
+      ).resolves.toBeNull();
+    });
+  });
+
   describe('ensureTest', () => {
-    it('ensures project and test exist, returns testId', async () => {
+    it('upserts the test on the given branch and returns its id', async () => {
       const test = { id: 'test-1', kind: 'image' as TestKind };
       mockClient.unifiedTest.upsert.mockResolvedValue(test);
 
       const result = await repository.ensureTest(
-        'my-project',
+        'br-1',
         'my-test',
         'image' as TestKind,
       );
 
       expect(result).toEqual({ testId: 'test-1' });
-      expect(mockProjects.getOrCreate).toHaveBeenCalledWith('my-project');
       expect(mockClient.unifiedTest.upsert).toHaveBeenCalledWith({
-        where: { projectId_name: { projectId: 'proj-1', name: 'my-test' } },
-        create: { projectId: 'proj-1', name: 'my-test', kind: 'image' },
+        where: { branchId_name: { branchId: 'br-1', name: 'my-test' } },
+        create: { branchId: 'br-1', name: 'my-test', kind: 'image' },
         update: {},
       });
     });
@@ -171,7 +167,7 @@ describe('UnifiedTestRepository', () => {
       mockClient.unifiedTest.upsert.mockResolvedValue(test);
 
       const result = await repository.ensureTest(
-        'my-project',
+        'br-1',
         'my-test',
         'image' as TestKind,
       );
@@ -184,7 +180,7 @@ describe('UnifiedTestRepository', () => {
       mockClient.unifiedTest.upsert.mockResolvedValue(test);
 
       await expect(
-        repository.ensureTest('my-project', 'my-test', 'pdf' as TestKind),
+        repository.ensureTest('br-1', 'my-test', 'pdf' as TestKind),
       ).rejects.toMatchObject({ code: 'CONFLICT' });
     });
   });

@@ -107,4 +107,15 @@ describe("mapVisualTestDetails", () => {
     expect(result?.baseline).toBeUndefined();
     expect(result?.comparison).toBeUndefined();
   });
+
+  it("maps inherited origin metadata", () => {
+    const result = mapVisualTestDetails({
+      name: "login-form",
+      origin: "inherited",
+      inheritedFrom: "main",
+    });
+
+    expect(result?.origin).toBe("inherited");
+    expect(result?.inheritedFrom).toBe("main");
+  });
 });

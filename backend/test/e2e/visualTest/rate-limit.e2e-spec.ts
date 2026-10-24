@@ -18,7 +18,7 @@ describe('Upload rate limit (e2e)', () => {
     app.get(ConfigService).set('UPLOAD_RATE_LIMIT_PER_MINUTE', '5');
     await TestApp.resetDb();
     const db = app.get(PrismaConnection).client;
-    await db.project.create({ data: { name: 'rate-limit-proj' } });
+    await TestApp.createProject('rate-limit-proj');
   });
 
   afterAll(async () => {

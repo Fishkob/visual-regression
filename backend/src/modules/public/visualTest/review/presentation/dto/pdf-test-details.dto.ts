@@ -89,6 +89,21 @@ export class PdfTestDetailsDto {
   @ApiProperty()
   createdAt!: Date;
 
+  @ApiProperty({ enum: ['branch', 'inherited'] })
+  origin!: 'branch' | 'inherited';
+
+  @ApiProperty({ type: String, nullable: true })
+  inheritedFrom!: string | null;
+
+  @ApiProperty({
+    description:
+      'True while this baseline is an inherited clone that still follows the target branch',
+  })
+  baselineInherited!: boolean;
+
+  @ApiProperty({ type: String, nullable: true })
+  inheritTarget!: string | null;
+
   @ApiProperty({ type: PdfVariantDetailsDto, nullable: true })
   baseline!: PdfVariantDetailsDto | null;
 

@@ -11,23 +11,32 @@ import {
   type MaybeRef,
 } from "@/composables/useDomainQuery";
 
-// Fetches the complete pending list for a project, paging past the first page.
-// The review session walks every pending test, so a truncated page would
-// silently end the pass at the /done page with tests still awaiting review.
+// Fetches the complete pending list for a project (optionally scoped to one
+// branch), paging past the first page. The review session walks every pending
+// test, so a truncated page would silently end the pass at the /done page with
+// tests still awaiting review.
 export function usePendingTestsQuery(
   projectName: MaybeRef<string>,
+  branchName: MaybeRef<string | undefined> = undefined,
   enabled: MaybeRef<boolean> = true,
 ) {
   const nameRef = computed(() => unref(projectName));
+  const branchRef = computed(() => unref(branchName));
   return usePaginatedListQuery<PendingTestDto, PendingTest>({
     queryKey: computed(() =>
-      nameRef.value ? pendingTestQueryKeys.list(nameRef.value) : [],
+      nameRef.value
+        ? pendingTestQueryKeys.list(nameRef.value, branchRef.value)
+        : [],
     ),
     enabled,
     fetchPage: (skip, take) =>
       testsQueriesControllerGetTestsWithPendingStatus({
         path: { projectName: nameRef.value },
-        query: { skip, take },
+        query: {
+          skip,
+          take,
+          ...(branchRef.value ? { branch: branchRef.value } : {}),
+        },
       }),
     map: mapPendingTests,
   });
@@ -37,14 +46,17 @@ export function usePendingTestsQuery(
 // transaction. The review session removes the approved/skipped test from the
 // pending cache optimistically; it does so through this seam instead of
 // hand-rolling the cancel/get/set/rollback pairing on a query it does not own.
-// Returns a `restore` closure that replays the pre-removal snapshot, so the
-// caller never touches the previous/keys artifacts themselves.
+// The branch is part of the targeted key so a branch-scoped pass never mutates
+// the default branch's cache. Returns a `restore` closure that replays the
+// pre-removal snapshot, so the caller never touches the previous/keys artifacts
+// themselves.
 export async function withPendingTestRemoved(
   client: QueryClient,
   projectName: string,
+  branchName: string | undefined,
   currentKey: string,
 ): Promise<{ restore: () => void }> {
-  const keys = pendingTestQueryKeys.list(projectName);
+  const keys = pendingTestQueryKeys.list(projectName, branchName);
   await client.cancelQueries({ queryKey: keys });
   const previous = client.getQueryData<PendingTest[]>(keys);
   client.setQueryData<PendingTest[]>(keys, (old) =>

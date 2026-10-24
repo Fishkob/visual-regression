@@ -28,6 +28,7 @@ import {
   UpdateProjectDto,
 } from '@public/visualTest/review/presentation/dto/project.dto';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { BranchQuery } from '@common/http/branch-query.decorator';
 import { PaginationDto } from '@common/dto/pagination.dto';
 export class ComparisonStatusWrapper {
   @ApiProperty({
@@ -121,7 +122,7 @@ export class ProjectsController {
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Body() dto: UpdateProjectDto,
   ): Promise<ProjectDto> {
-    return this.projectService.updateProjectGroup(projectName, dto.groupId);
+    return this.projectService.updateProjectGroup(projectName, dto);
   }
 
   @Get()
@@ -149,7 +150,11 @@ export class ProjectsController {
   @ApiNotFoundResponse({ description: 'Project not found' })
   async getOneProject(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @BranchQuery() branch?: string,
   ): Promise<ProjectDto> {
-    return this.projectService.getWithLatestVariantStatuses(projectName);
+    return this.projectService.getWithLatestVariantStatuses(
+      projectName,
+      branch,
+    );
   }
 }

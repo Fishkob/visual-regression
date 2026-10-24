@@ -4,6 +4,7 @@ import { ProjectService } from '@public/visualTest/review/application/project.se
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ProjectReadRepository } from '@public/visualTest/review/infrastructure/repositories/project-read.repository';
 import { ProjectGroupRepository } from '@public/visualTest/review/infrastructure/repositories/project-group.repository';
+import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { DomainError } from '@common/domain/domain-error';
 import { PaginationDto } from '@common/dto/pagination.dto';
@@ -16,12 +17,14 @@ describe('ProjectService', () => {
   let projectRead: Mocked<ProjectReadRepository>;
   let testDeletion: Mocked<TestDeletionService>;
   let groups: Mocked<ProjectGroupRepository>;
+  let branchCommands: Mocked<BranchCommandService>;
 
   beforeEach(async () => {
     projects = createMock<ProjectRepository>();
     projectRead = createMock<ProjectReadRepository>();
     testDeletion = createMock<TestDeletionService>();
     groups = createMock<ProjectGroupRepository>();
+    branchCommands = createMock<BranchCommandService>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -30,6 +33,7 @@ describe('ProjectService', () => {
         { provide: ProjectReadRepository, useValue: projectRead },
         { provide: TestDeletionService, useValue: testDeletion },
         { provide: ProjectGroupRepository, useValue: groups },
+        { provide: BranchCommandService, useValue: branchCommands },
       ],
     }).compile();
 
@@ -149,7 +153,9 @@ describe('ProjectService', () => {
         hasPendingComparisons: true,
       });
 
-      const result = await service.updateProjectGroup('my-project', 'group-1');
+      const result = await service.updateProjectGroup('my-project', {
+        groupId: 'group-1',
+      });
 
       expect(groups.findById).toHaveBeenCalledWith('group-1');
       expect(projects.updateGroupByName).toHaveBeenCalledWith(
@@ -193,7 +199,9 @@ describe('ProjectService', () => {
         hasPendingComparisons: false,
       });
 
-      const result = await service.updateProjectGroup('my-project', null);
+      const result = await service.updateProjectGroup('my-project', {
+        groupId: null,
+      });
 
       expect(groups.findById).not.toHaveBeenCalled();
       expect(projects.updateGroupByName).toHaveBeenCalledWith(
@@ -209,7 +217,7 @@ describe('ProjectService', () => {
 
     it('rejects an undefined groupId', async () => {
       await expect(
-        service.updateProjectGroup('my-project', undefined),
+        service.updateProjectGroup('my-project', { groupId: undefined }),
       ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
       expect(projects.findByName).not.toHaveBeenCalled();
     });
@@ -218,7 +226,7 @@ describe('ProjectService', () => {
       projects.findByName.mockResolvedValue(null);
 
       await expect(
-        service.updateProjectGroup('missing', 'group-1'),
+        service.updateProjectGroup('missing', { groupId: 'group-1' }),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
       expect(projects.updateGroupByName).not.toHaveBeenCalled();
     });
@@ -233,7 +241,7 @@ describe('ProjectService', () => {
       groups.findById.mockResolvedValue(null);
 
       await expect(
-        service.updateProjectGroup('my-project', 'missing'),
+        service.updateProjectGroup('my-project', { groupId: 'missing' }),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
       expect(projects.updateGroupByName).not.toHaveBeenCalled();
     });
@@ -317,6 +325,8 @@ describe('ProjectService', () => {
         createdAt,
         groupId: null,
         groupName: null,
+        branchName: 'main',
+        defaultBranchName: 'main',
         variants: [
           {
             testName: 'test-1',
@@ -325,6 +335,8 @@ describe('ProjectService', () => {
             browser: 'chrome',
             environment: 'staging',
             status: TestStatus.PENDING_APPROVAL,
+            origin: 'branch',
+            inheritedFrom: null,
           },
           {
             testName: 'test-2',
@@ -333,6 +345,8 @@ describe('ProjectService', () => {
             browser: '',
             environment: '',
             status: TestStatus.UNCHANGED,
+            origin: 'branch',
+            inheritedFrom: null,
           },
         ],
       });
@@ -341,6 +355,7 @@ describe('ProjectService', () => {
 
       expect(projectRead.getWithLatestVariantStatuses).toHaveBeenCalledWith(
         'my-project',
+        undefined,
       );
       expect(result.id).toBe('proj-1');
       expect(result.groupId).toBeNull();
@@ -355,6 +370,8 @@ describe('ProjectService', () => {
           environment: 'staging',
         },
         latestStatus: TestStatus.PENDING_APPROVAL,
+        origin: 'branch',
+        inheritedFrom: null,
       });
       expect(result.visualTests![1].latestStatus).toBe(TestStatus.UNCHANGED);
     });

@@ -64,6 +64,7 @@ describe('TestsQueriesController', () => {
         'checkout-ui',
         expect.any(TestNamesQueryDto),
         'pdf',
+        undefined,
       );
     });
 
@@ -90,6 +91,7 @@ describe('TestsQueriesController', () => {
         'checkout-ui',
         expect.any(TestNamesQueryDto),
         undefined,
+        undefined,
       );
     });
   });
@@ -104,6 +106,7 @@ describe('TestsQueriesController', () => {
       expect(testQuery.getKind).toHaveBeenCalledWith(
         'checkout-ui',
         'report.pdf',
+        undefined,
       );
     });
   });
@@ -217,6 +220,7 @@ describe('TestsQueriesController', () => {
       expect(testQuery.getTestsWithPendingStatus).toHaveBeenCalledWith(
         'checkout-ui',
         pagination,
+        undefined,
       );
     });
 

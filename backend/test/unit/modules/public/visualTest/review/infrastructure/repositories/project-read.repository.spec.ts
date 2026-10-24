@@ -3,6 +3,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ProjectReadRepository } from '@public/visualTest/review/infrastructure/repositories/project-read.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
+import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
+import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
 import { createMock } from '@test/utils/create-mock';
 
 describe('ProjectReadRepository', () => {
@@ -10,6 +12,8 @@ describe('ProjectReadRepository', () => {
   let mockConnection: Mocked<PrismaConnection>;
   let mockClient: any;
   let variants: Mocked<VariantStore>;
+  let branchResolver: Mocked<BranchResolver>;
+  let branchTests: Mocked<BranchTestRepository>;
 
   beforeEach(async () => {
     mockClient = {
@@ -26,12 +30,38 @@ describe('ProjectReadRepository', () => {
       get: () => mockClient,
     });
     variants = createMock<VariantStore>();
+    branchResolver = createMock<BranchResolver>();
+    branchResolver.resolveRead.mockResolvedValue({
+      projectId: 'proj-1',
+      branchId: 'br-main',
+      branchName: 'main',
+      isDefault: true,
+      isArchived: false,
+    });
+    branchResolver.resolveDefaultName.mockResolvedValue('main');
+    branchTests = createMock<BranchTestRepository>();
+    branchTests.findEffectiveTests.mockResolvedValue({
+      data: [
+        {
+          id: 'test-1',
+          name: 'test-1',
+          kind: 'image',
+          status: 'UNCHANGED',
+          createdAt: new Date(),
+          origin: 'branch',
+          inheritedFrom: null,
+        },
+      ],
+      total: 1,
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProjectReadRepository,
         { provide: PrismaConnection, useValue: mockConnection },
         { provide: VariantStore, useValue: variants },
+        { provide: BranchResolver, useValue: branchResolver },
+        { provide: BranchTestRepository, useValue: branchTests },
       ],
     }).compile();
 
@@ -73,6 +103,8 @@ describe('ProjectReadRepository', () => {
         createdAt: project.createdAt,
         groupId: null,
         groupName: null,
+        branchName: 'main',
+        defaultBranchName: 'main',
         variants: [
           {
             testName: 'test-1',
@@ -81,11 +113,13 @@ describe('ProjectReadRepository', () => {
             browser: 'chrome',
             environment: 'production',
             status: 'PENDING_APPROVAL',
+            origin: 'branch',
+            inheritedFrom: null,
           },
         ],
       });
       expect(variants.findVariantStatusSignalsFor).toHaveBeenCalledWith({
-        test: { project: { name: 'my-project' } },
+        testId: { in: ['test-1'] },
       });
     });
 

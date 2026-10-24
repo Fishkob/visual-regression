@@ -7,6 +7,7 @@ import { TestReadRepository } from '@public/visualTest/review/infrastructure/rep
 import { ProjectReadRepository } from '@public/visualTest/review/infrastructure/repositories/project-read.repository';
 import { ProjectGroupRepository } from '@public/visualTest/review/infrastructure/repositories/project-group.repository';
 import { ReviewInboxRepository } from '@public/visualTest/review/infrastructure/repositories/review-inbox.repository';
+import { BranchReadRepository } from '@public/visualTest/review/infrastructure/repositories/branch-read.repository';
 import { ProjectsController } from '@public/visualTest/review/presentation/controllers/projects.controller';
 import { ProjectGroupsController } from '@public/visualTest/review/presentation/controllers/project-groups.controller';
 import { ApprovalsController } from '@public/visualTest/review/presentation/controllers/approvals.controller';
@@ -14,6 +15,7 @@ import { TestsQueriesController } from '@public/visualTest/review/presentation/c
 import { PdfController } from '@public/visualTest/review/presentation/controllers/pdf.controller';
 import { TestCommandsController } from '@public/visualTest/review/presentation/controllers/test-commands.controller';
 import { ReviewInboxController } from '@public/visualTest/review/presentation/controllers/review-inbox.controller';
+import { BranchesController } from '@public/visualTest/review/presentation/controllers/branches.controller';
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
 import { ProjectGroupService } from '@public/visualTest/review/application/project-group.service';
@@ -21,6 +23,7 @@ import { TestCommandService } from '@public/visualTest/review/application/test-c
 import { ApprovalService } from '@public/visualTest/review/application/approval.service';
 import { PdfAccessService } from '@public/visualTest/review/application/pdf-access.service';
 import { ReviewInboxService } from '@public/visualTest/review/application/review-inbox.service';
+import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
 import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
 
 @Module({
@@ -39,6 +42,7 @@ import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
     PdfController,
     TestCommandsController,
     ReviewInboxController,
+    BranchesController,
   ],
   providers: [
     TestQueryService,
@@ -52,6 +56,8 @@ import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
     ProjectReadRepository,
     ProjectGroupRepository,
     ReviewInboxRepository,
+    BranchReadRepository,
+    BranchCommandService,
   ],
 })
 export class ReviewModule {}
