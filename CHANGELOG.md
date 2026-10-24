@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0](https://github.com/Fishkob/visual-regression/compare/v1.2.1...v1.3.0) (2026-10-24)
+
+
+### Features
+
+* branch-scoped baselines ([#114](https://github.com/Fishkob/visual-regression/issues/114)) ([1b07a02](https://github.com/Fishkob/visual-regression/commit/1b07a0226ddd25ad41f94e5d6892a6422b6a8809))
+* review inbox and project groups ([#113](https://github.com/Fishkob/visual-regression/issues/113)) ([83dcb86](https://github.com/Fishkob/visual-regression/commit/83dcb86ca02592ece7a37b15df0e18b7adb0f493))
+
+
+### Bug Fixes
+
+* **ci:** run quality image as non-root and pin Trivy v0.76.0 ([c0f5961](https://github.com/Fishkob/visual-regression/commit/c0f596175bffc3cfa5b064c6af66a586c216b28d))
+
 ## [1.2.1](https://github.com/Fishkob/visual-regression/compare/v1.2.0...v1.2.1) (2026-10-19)
 
 
