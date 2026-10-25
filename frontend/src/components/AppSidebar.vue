@@ -6,18 +6,23 @@ import {
   KeyRound,
   LayoutGrid,
   ScrollText,
+  UserCog,
   Users,
   PanelLeftClose,
   PanelLeftOpen,
 } from "@lucide/vue";
 import { useSidebar } from "@/composables/useSidebar";
 import { useReviewInboxCountQuery } from "@/composables/useReviewInbox";
+import { useCurrentRole } from "@/composables/useAuth";
 import { Button } from "@/components/ui/button";
 import { TEST_ID } from "@/lib/test-ids";
 
 const route = useRoute();
 const { collapsed, toggle: toggleSidebar } = useSidebar();
 const { data: pendingCount } = useReviewInboxCountQuery();
+// The admin-only pages are hidden, not just guarded: a member/viewer has no use
+// for links that would only land on the 403 page.
+const { isAdmin } = useCurrentRole();
 
 const onInbox = computed(() => route.name === "review-inbox");
 const onProjects = computed(
@@ -28,6 +33,7 @@ const onGroups = computed(
 );
 const onApiKeys = computed(() => route.path === "/api-keys");
 const onAudit = computed(() => route.path === "/audit");
+const onUsers = computed(() => route.path === "/users");
 const pending = computed(() => pendingCount.value ?? 0);
 </script>
 
@@ -138,6 +144,7 @@ const pending = computed(() => pendingCount.value ?? 0);
       </RouterLink>
 
       <RouterLink
+        v-if="isAdmin"
         to="/api-keys"
         class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
         :class="[
@@ -154,6 +161,24 @@ const pending = computed(() => pendingCount.value ?? 0);
       </RouterLink>
 
       <RouterLink
+        v-if="isAdmin"
+        to="/users"
+        class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+        :class="[
+          { 'bg-muted text-foreground': onUsers },
+          collapsed ? 'md:justify-center md:px-0' : '',
+        ]"
+        :aria-current="onUsers ? 'page' : undefined"
+        :aria-label="collapsed ? 'Users' : undefined"
+        :title="collapsed ? 'Users' : undefined"
+        :data-testid="TEST_ID.usersNavLink"
+      >
+        <UserCog class="h-4 w-4 shrink-0" />
+        <span :class="collapsed ? 'md:hidden' : ''">Users</span>
+      </RouterLink>
+
+      <RouterLink
+        v-if="isAdmin"
         to="/audit"
         class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
         :class="[

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
+import { useCurrentRole } from "@/composables/useAuth";
 import { TEST_ID } from "@/lib/test-ids";
 
 defineProps<{
@@ -16,6 +17,10 @@ defineEmits<{
   skip: [];
   approve: [];
 }>();
+
+// A VIEWER can still walk the queue (Skip / Back to project), but approving is
+// a write the backend would reject with 403.
+const { canWrite } = useCurrentRole();
 </script>
 
 <template>
@@ -31,7 +36,7 @@ defineEmits<{
     </Button>
 
     <Button
-      v-if="!approved"
+      v-if="!approved && canWrite"
       class="flex-1 py-4 text-base rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
       :data-testid="TEST_ID.approveChanges"
       :disabled="isApproving"

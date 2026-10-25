@@ -113,7 +113,7 @@
           Trends
         </RouterLink>
         <RouterLink
-          v-if="project"
+          v-if="project && isAdmin"
           :to="{ name: 'project-webhooks', params: { projectName } }"
           :class="buttonVariants({ variant: 'outline', size: 'sm' })"
           :data-testid="TEST_ID.webhooksLink"
@@ -190,6 +190,7 @@ import {
 import { useBranchesQuery } from "@/composables/useBranches";
 import type { ProjectBranch } from "@/domains/branches/branch.model";
 import { useBranchMutations } from "@/composables/useBranchMutations";
+import { useCurrentRole } from "@/composables/useAuth";
 import { useGroupsQuery } from "@/composables/useGroups";
 import {
   useProjectDetailPage,
@@ -202,6 +203,9 @@ import { PROJECT_DETAIL_PAGE_SIZE } from "@/lib/pagination";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { projectName } = useRouteParams();
+// Webhooks are admin-only (route meta enforces it too); Runs and Trends stay
+// available to every role.
+const { isAdmin } = useCurrentRole();
 const route = useRoute();
 const router = useRouter();
 

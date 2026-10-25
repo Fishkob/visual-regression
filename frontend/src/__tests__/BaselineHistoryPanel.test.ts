@@ -5,9 +5,14 @@ import { toast } from "vue-sonner";
 import BaselineHistoryPanel from "@/components/detail-panels/BaselineHistoryPanel.vue";
 import { TEST_ID } from "@/lib/test-ids";
 
-const { mockList, mockRestore } = vi.hoisted(() => ({
+const { mockList, mockRestore, roleRef } = vi.hoisted(() => ({
   mockList: vi.fn(),
   mockRestore: vi.fn(),
+  roleRef: { value: "MEMBER" as "ADMIN" | "MEMBER" | "VIEWER" },
+}));
+
+vi.mock("@/composables/useAuth", () => ({
+  useCurrentRole: () => ({ canWrite: roleRef.value !== "VIEWER" }),
 }));
 
 vi.mock("@sdk", () => ({
@@ -109,6 +114,7 @@ async function waitForHistory(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  roleRef.value = "MEMBER";
   mockRestore.mockResolvedValue({
     data: {
       baselineUrl: "http://localhost:9000/vrt/baseline.png",
@@ -310,6 +316,38 @@ describe("BaselineHistoryPanel", () => {
     expect(
       wrapper.get(`[data-testid="${TEST_ID.baselineHistoryRow}"]`).text(),
     ).toContain("jane.doe");
+  });
+
+  it("never offers a restore to a read-only viewer", async () => {
+    roleRef.value = "VIEWER";
+    mockList.mockResolvedValue({ data: [revisionDto()] });
+
+    const wrapper = mountPanel();
+    await waitForHistory(wrapper, 1);
+
+    expect(
+      wrapper
+        .find(`[data-testid="${TEST_ID.baselineHistoryRestore}"]`)
+        .exists(),
+    ).toBe(false);
+    // The history itself stays readable.
+    expect(
+      wrapper.get(`[data-testid="${TEST_ID.baselineHistoryRow}"]`).text(),
+    ).toContain("jane.doe");
+  });
+
+  it("keeps the restore for a member", async () => {
+    roleRef.value = "MEMBER";
+    mockList.mockResolvedValue({ data: [revisionDto()] });
+
+    const wrapper = mountPanel();
+    await waitForHistory(wrapper, 1);
+
+    expect(
+      wrapper
+        .find(`[data-testid="${TEST_ID.baselineHistoryRestore}"]`)
+        .exists(),
+    ).toBe(true);
   });
 
   it("offers a retry when the history cannot be loaded", async () => {

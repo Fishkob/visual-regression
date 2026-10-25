@@ -2,7 +2,9 @@
 import { Moon, Sun, LogOut } from "@lucide/vue";
 import { useTheme } from "@/composables/useTheme";
 import { useMeQuery, useLogout } from "@/composables/useAuth";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ROLE_BADGE_VARIANT } from "@/domains/auth/auth.model";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { theme, toggle } = useTheme();
@@ -22,6 +24,14 @@ const { mutate: logout } = useLogout();
     >
       {{ user.username }}
     </span>
+    <Badge
+      v-if="user"
+      :variant="ROLE_BADGE_VARIANT[user.role]"
+      class="text-[10px]"
+      :data-testid="TEST_ID.currentUserRole"
+    >
+      {{ user.role }}
+    </Badge>
     <Button
       type="button"
       variant="ghost"

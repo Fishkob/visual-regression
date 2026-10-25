@@ -1,7 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import PdfComparisonView from "@/components/pdf/PdfComparisonView.vue";
 import type { PdfComparison } from "@/domains/pdf-test/pdf-test.model";
+
+// The review footer's role gate reads the session; these tests exercise the
+// writer's chrome.
+vi.mock("@/composables/useAuth", () => ({
+  useCurrentRole: () => ({ canWrite: true }),
+}));
 
 const baseline = {
   pdfUrl: "/baseline.pdf",

@@ -2,6 +2,12 @@ import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import TestComparisonView from "@/components/detail-panels/TestComparisonView.vue";
 
+// The footer's role gate reads the session; these tests are about the view's
+// chrome, so the writer role is assumed.
+vi.mock("@/composables/useAuth", () => ({
+  useCurrentRole: () => ({ canWrite: true }),
+}));
+
 vi.mock("@/components/detail-panels/InteractiveImageViewer.vue", () => ({
   default: {
     template:

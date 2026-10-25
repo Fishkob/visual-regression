@@ -42,8 +42,14 @@ let app: App | undefined;
 
 // Component tests exercise views, not auth: the router guard resolves /me
 // through the shared query client on every navigation, so seed a session and
-// the guard lets routed stories through without a backend round-trip.
-queryClient.setQueryData(authQueryKeys.me(), { username: "gallery-user" });
+// the guard lets routed stories through without a backend round-trip. The role
+// is ADMIN so the gallery renders the admin-only navigation and pages; a role
+// the UI no longer knows would hide those links from every story.
+queryClient.setQueryData(authQueryKeys.me(), {
+  username: "gallery-user",
+  role: "ADMIN",
+  mustChangePassword: false,
+});
 
 async function mountNext({
   story: storyId,

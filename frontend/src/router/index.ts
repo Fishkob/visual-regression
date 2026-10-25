@@ -33,16 +33,34 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/change-password",
+    name: "change-password",
+    component: () => import("@/views/ChangePasswordView.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/users",
+    name: "users",
+    component: () => import("@/views/UsersView.vue"),
+    meta: { requiresAuth: true, requiresRole: "ADMIN" },
+  },
+  {
+    path: "/forbidden",
+    name: "forbidden",
+    component: () => import("@/views/ForbiddenView.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/api-keys",
     name: "api-keys",
     component: () => import("@/views/ApiKeysView.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresRole: "ADMIN" },
   },
   {
     path: "/audit",
     name: "audit",
     component: () => import("@/views/AuditView.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresRole: "ADMIN" },
   },
   {
     path: "/projects/:projectName",
@@ -54,7 +72,7 @@ const routes: RouteRecordRaw[] = [
     path: "/projects/:projectName/webhooks",
     name: "project-webhooks",
     component: () => import("@/views/WebhooksView.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresRole: "ADMIN" },
   },
   {
     path: "/projects/:projectName/runs",

@@ -13,6 +13,7 @@ import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import { useBaselineHistory } from "@/composables/useBaselineHistory";
 import { useRestoreBaseline } from "@/composables/useRestoreBaseline";
+import { useCurrentRole } from "@/composables/useAuth";
 import type {
   BaselineRevision,
   BaselineRevisionReason,
@@ -59,6 +60,10 @@ const { restore, isPending } = useRestoreBaseline({
   branchName: toRef(props, "branch"),
   variant: toRef(props, "variant"),
 });
+
+// Restoring is a baseline write: a VIEWER sees the history but no restore
+// affordance (the backend would answer 403). MEMBER keeps it.
+const { canWrite } = useCurrentRole();
 
 const rows = computed(() => revisions.value ?? []);
 
@@ -205,7 +210,7 @@ const confirmDescription = computed(() => {
               </div>
 
               <Button
-                v-if="!readOnly"
+                v-if="!readOnly && canWrite"
                 type="button"
                 variant="outline"
                 size="sm"
