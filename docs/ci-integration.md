@@ -251,6 +251,39 @@ Manifest outputs: `upload-count` (successful uploads), `upload-failed-count`, `s
 
 **Single file or manifest.** Uploading one file per step is still supported and behaves exactly as described above. Use the manifest for multi-capture runs. A run groups and gates; it does not isolate candidates — two uploads for the same variant still follow latest-wins, so parallel jobs for the same test can supersede each other.
 
+### Playwright reporter (SDK)
+
+The TypeScript SDK ships a Playwright reporter that uploads a test's screenshot attachment when the test ends. It needs no Playwright dependency at runtime and never fails the test run when VRT is unreachable.
+
+```ts
+// playwright.config.ts
+import { defineConfig } from "@playwright/test";
+import { createVrtReporter } from "client-sdk/playwright";
+
+export default defineConfig({
+  reporter: [
+    ["list"],
+    [
+      "client-sdk/playwright",
+      {
+        apiUrl: "https://vrt.example.com/api/v1",
+        apiKey: process.env.VRT_API_KEY!,
+        project: "checkout",
+        runKey: process.env.GITHUB_RUN_ID,
+        branch: process.env.GITHUB_HEAD_REF || "main",
+        environment: "ci",
+        uploadOnFailureOnly: false,
+      },
+    ],
+  ],
+});
+```
+
+- The reporter uploads the first attachment whose content type or name looks like a screenshot (`image/png`) or PDF, as `<project> / <titlePath joined with " / ">`.
+- `uploadOnFailureOnly: true` uploads only failed/timed-out tests; `skipRetries: true` ignores Playwright's retry attempts so only the final result is uploaded.
+- `concurrency`/`maxAttempts` are forwarded to `uploadMany` (default 4 / 3). Upload failures are collected in `reporter.results()` and via `onUpload`; they do not fail the test run.
+- See [client-sdk/README.md](../client-sdk/README.md) for the full `uploadMany` API and how to import the helpers.
+
 ## 4. Notes and limits
 
 - **Branch:** omit `branch` to use the project default; a new branch inherits the target branch's baseline. Pass the branch that produced the capture.

@@ -50,7 +50,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | Shipped     |
 | R5  | Global audit log                         | 2     | M    | —                             | Shipped     |
 | R6  | Run grouping                             | 3     | XL   | ADR-030                       | Shipped     |
-| R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Planned     |
+| R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Shipped     |
 | R8  | Reporting & exports                      | 3     | M–L  | R6                            | Planned     |
 | R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Planned     |
 | R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9                            | Planned     |
@@ -428,33 +428,41 @@ Storybook integration, so onboarding means writing upload loops by hand.
 
 **Scope (v1).**
 
-- Action inputs: `directory` or `manifest` (JSON) uploading N captures into one
-  run; concurrency limit that respects `429` + `Retry-After`.
+- Action input `manifest` (JSON) uploading N captures into one run; bounded
+  concurrency that respects `429` + `Retry-After`. A `directory` input is
+  deferred (manifest only in v1).
 - SDK: `uploadMany` with bounded concurrency and retry/backoff.
 - One first-class integration: Playwright reporter (test end → upload) with
-  naming conventions for project/test/variant. Cypress and Storybook adapters
-  follow the same contract.
-- The reporter is a peer-dependency package (no runtime dependency inside the
-  SDK).
+  naming conventions for project/test/variant. It ships as the
+  `client-sdk/playwright` subpath (no Playwright dependency inside the SDK);
+  Cypress and Storybook adapters follow the same contract.
 
 **Not in scope.** A built-in crawler or browser capture; users bring their own
 capture tooling.
 
 **Design sketch.**
 
-- New workspace package (e.g. `packages/playwright-reporter`) or an integrations
-  folder in `client-sdk`; decide in the item's design note, follow monorepo
-  conventions.
+- Hand-written SDK helpers under `client-sdk/src/`, exposed as subpath exports;
+  `sdk:generate` only rewrites the generated files, so the helpers survive
+  regeneration. A separate workspace package was not needed for a zero-dependency
+  reporter.
 - Batch upload reuses the existing endpoint; the manifest adds metadata only.
 - Rate limits: batch uploads need a documented budget; the action backs off on
   `429` instead of failing.
 
 **Acceptance.**
 
-- [ ] A 100-capture manifest uploads with bounded concurrency and one run
-- [ ] Rate limiting produces backoff, not data loss
-- [ ] Reporter uploads on failure too (`--retries` aware)
-- [ ] Docs show a complete Playwright example
+- [x] A 100-capture manifest uploads with bounded concurrency and one run
+- [x] Rate limiting produces backoff, not data loss
+- [x] Reporter uploads on failure too (`--retries` aware)
+- [x] Docs show a complete Playwright example
+
+**Verification.** `uploadMany` and the reporter are covered by SDK unit tests
+(concurrency bound, 429 retry, non-retryable 400, progress, failure-only and
+retry-skip); the action manifest mode was exercised against a local stub API
+(100 captures at concurrency 4, 429-then-success, permanent 503, invalid/missing
+manifest/file/field, multi-project rejection, budget exhaustion). The reporter
+never fails the test run; upload failures are collected for the caller.
 
 **Size / dependencies.** L · depends on R6.
 
