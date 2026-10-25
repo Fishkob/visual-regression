@@ -24,10 +24,19 @@ for (const qualityCase of QUALITY_CASES) {
         .withTags(["wcag2a", "wcag2aa"])
         .analyze();
 
-      const blocking = results.violations.filter(
-        (violation) =>
-          violation.impact === "serious" || violation.impact === "critical",
+      // axe files low-contrast text over tinted/translucent backgrounds as
+      // `incomplete` (it cannot always resolve the composited colour). Those
+      // are exactly the cases this gate exists for, so they block too.
+      const unverifiedContrast = results.incomplete.filter(
+        (result) => result.id === "color-contrast",
       );
+      const blocking = [
+        ...results.violations.filter(
+          (violation) =>
+            violation.impact === "serious" || violation.impact === "critical",
+        ),
+        ...unverifiedContrast,
+      ];
 
       const messages = blocking.map(
         (violation) =>
