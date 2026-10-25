@@ -18,8 +18,18 @@ describe('AuthRepository', () => {
         delete: vi.fn(),
         update: vi.fn(),
       },
-      apiKey: { create: vi.fn(), findUnique: vi.fn() },
+      apiKey: {
+        create: vi.fn(),
+        findUnique: vi.fn(),
+        findMany: vi.fn(),
+        update: vi.fn(),
+        delete: vi.fn(),
+      },
+      $transaction: vi.fn(),
     };
+    mockClient.$transaction.mockImplementation(
+      (callback: (tx: unknown) => unknown) => callback(mockClient),
+    );
 
     mockConnection = createMock<PrismaConnection>();
     Object.defineProperty(mockConnection, 'client', {
@@ -173,12 +183,17 @@ describe('AuthRepository', () => {
       name: 'ci-upload',
       revokedAt: null,
     });
+    const input = {
+      name: 'ci-upload',
+      keyHash: 'keyhash',
+      keyHint: '7f3a',
+      createdBy: 'alice',
+      expiresAt: null,
+    };
 
-    const result = await repository.createApiKey('ci-upload', 'keyhash');
+    const result = await repository.createApiKey(input);
 
-    expect(mockClient.apiKey.create).toHaveBeenCalledWith({
-      data: { name: 'ci-upload', keyHash: 'keyhash' },
-    });
+    expect(mockClient.apiKey.create).toHaveBeenCalledWith({ data: input });
     expect(result).toEqual({ id: 'k1', name: 'ci-upload', revokedAt: null });
   });
 
@@ -195,6 +210,93 @@ describe('AuthRepository', () => {
       where: { keyHash: 'keyhash' },
     });
     expect(result).toEqual({ id: 'k1', name: 'ci-upload', revokedAt: null });
+  });
+
+  it('finds an api key by id', async () => {
+    mockClient.apiKey.findUnique.mockResolvedValue({ id: 'k1' });
+
+    await repository.findApiKeyById('k1');
+
+    expect(mockClient.apiKey.findUnique).toHaveBeenCalledWith({
+      where: { id: 'k1' },
+    });
+  });
+
+  it('lists api keys newest first', async () => {
+    mockClient.apiKey.findMany.mockResolvedValue([{ id: 'k1' }]);
+
+    const result = await repository.listApiKeys();
+
+    expect(mockClient.apiKey.findMany).toHaveBeenCalledWith({
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(result).toEqual([{ id: 'k1' }]);
+  });
+
+  it('revokes an api key', async () => {
+    const revokedAt = new Date('2026-03-01');
+    mockClient.apiKey.update.mockResolvedValue({ id: 'k1', revokedAt });
+
+    await repository.revokeApiKey('k1', revokedAt, 'leaked');
+
+    expect(mockClient.apiKey.update).toHaveBeenCalledWith({
+      where: { id: 'k1' },
+      data: { revokedAt, revokedReason: 'leaked' },
+    });
+  });
+
+  it('records the last use of a key', async () => {
+    const at = new Date('2026-03-01');
+    mockClient.apiKey.update.mockResolvedValue({ id: 'k1' });
+
+    await repository.touchApiKeyLastUsed('k1', at);
+
+    expect(mockClient.apiKey.update).toHaveBeenCalledWith({
+      where: { id: 'k1' },
+      data: { lastUsedAt: at },
+    });
+  });
+
+  it('deletes an api key', async () => {
+    mockClient.apiKey.delete.mockResolvedValue({ id: 'k1' });
+
+    await repository.deleteApiKey('k1');
+
+    expect(mockClient.apiKey.delete).toHaveBeenCalledWith({
+      where: { id: 'k1' },
+    });
+  });
+
+  it('creates the successor and retires the predecessor in one transaction', async () => {
+    const created = {
+      name: 'ci-upload',
+      keyHash: 'newhash',
+      keyHint: 'ab12',
+      createdBy: 'alice',
+      expiresAt: null,
+    };
+    const revokedAt = new Date('2026-03-01');
+    mockClient.apiKey.create.mockResolvedValue({ id: 'k2' });
+    mockClient.apiKey.update.mockResolvedValue({ id: 'k1' });
+
+    const result = await repository.replaceApiKey(created, 'k1', {
+      revokedAt,
+      expiresAt: null,
+      revokedReason: 'rotated',
+    });
+
+    expect(mockClient.$transaction).toHaveBeenCalled();
+    expect(mockClient.apiKey.create).toHaveBeenCalledWith({ data: created });
+    expect(mockClient.apiKey.update).toHaveBeenCalledWith({
+      where: { id: 'k1' },
+      data: {
+        revokedAt,
+        expiresAt: null,
+        revokedReason: 'rotated',
+        replacedById: 'k2',
+      },
+    });
+    expect(result).toEqual({ id: 'k2' });
   });
 
   it('counts users (for bootstrap check)', async () => {

@@ -127,7 +127,11 @@ The demo and dev seeds also create **feature branches** to exercise branch-scope
 
 The product API is authenticated. Browsers authenticate with a session cookie (login via the dashboard); CI pipelines and scripted callers authenticate with an **API key**.
 
-**Create an API key** (admin endpoint — requires the `x-admin-key` header set to the configured `ADMIN_API_KEY`):
+**Create an API key in the dashboard** — sign in and open **API keys** (`/api-keys`). There you can list every key (with its last four characters, last use, expiry, and revocation reason), create keys with an optional expiry, **rotate** a key (the previous key keeps working for an optional grace window so a pipeline can be updated, and the new key inherits the remaining lifetime unless you pick "never" or an explicit number of days), revoke a key with a reason, and delete keys that were never used. The raw key is shown once, right after creation or rotation.
+
+Key management requires the **browser session** — an API key itself cannot mint, rotate, or revoke keys (`403`), so a leaked CI key cannot escalate into permanent access.
+
+**Create an API key from the CLI** (bootstrap path — requires the `x-admin-key` header set to the configured `ADMIN_API_KEY`):
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/admin/api-keys \
@@ -136,7 +140,7 @@ curl -X POST http://localhost:3000/api/v1/admin/api-keys \
   -d '{"name":"ci-upload"}'
 ```
 
-The response contains `rawKey`, which is shown **exactly once** — store it in your CI secret store (only its SHA-256 hash is persisted). Create one key per pipeline/user for easy revocation.
+The response contains `rawKey`, which is shown **exactly once** — store it in your CI secret store (only its SHA-256 hash is persisted). Create one key per pipeline/user for easy revocation. The same call accepts an optional `expiresInDays`.
 
 **Send the key on every product API request** via the `x-api-key` header (the header name is configurable via `AUTH_API_KEY_HEADER`):
 
@@ -372,7 +376,7 @@ documented separately in [docs/deployment.md](docs/deployment.md).
 This platform is designed to run in a **private/trusted network**:
 
 - **Authentication** — The product API requires a session cookie (browser login) or an API key (`x-api-key`) for CI/scripted callers. See [CI Authentication](#ci-authentication).
-- **Admin endpoints** — `POST /admin/api-keys` and `admin/dlq` are protected solely by the `x-admin-key` header (`ADMIN_API_KEY`); they sit outside the product auth surface so a first API key can be provisioned before any product credential exists.
+- **Admin endpoints** — `POST /admin/api-keys` and `admin/dlq` are protected solely by the `x-admin-key` header (`ADMIN_API_KEY`); they sit outside the product auth surface so a first API key can be provisioned before any product credential exists. Everything else about a key (list, rotate, revoke, delete) lives on `/api-keys` and is **session-only**: an API key authenticates the product API but cannot manage keys.
 - **Bootstrap admin** — The first admin user is created on startup from `BOOTSTRAP_ADMIN_USERNAME` / `BOOTSTRAP_ADMIN_PASSWORD` (only when both are set). Local dev defaults these to `admin` / `admin-secret`; there is no production default. Remove them from the environment after first login. See [First login](#first-login).
 - **Rate limits** — every limit is a counter per fixed one-minute window in
   Postgres, so limits hold across all backend instances. Three rules exist:

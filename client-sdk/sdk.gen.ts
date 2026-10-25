@@ -4,6 +4,21 @@ import { formDataBodySerializer, type RequestResult } from './client';
 import { client } from './client.gen';
 import type { AdminApiKeysControllerCreateData } from './models/AdminApiKeysControllerCreateData.gen';
 import type { AdminApiKeysControllerCreateResponses } from './models/AdminApiKeysControllerCreateResponses.gen';
+import type { ApiKeysControllerCreateData } from './models/ApiKeysControllerCreateData.gen';
+import type { ApiKeysControllerCreateErrors } from './models/ApiKeysControllerCreateErrors.gen';
+import type { ApiKeysControllerCreateResponses } from './models/ApiKeysControllerCreateResponses.gen';
+import type { ApiKeysControllerFindAllData } from './models/ApiKeysControllerFindAllData.gen';
+import type { ApiKeysControllerFindAllErrors } from './models/ApiKeysControllerFindAllErrors.gen';
+import type { ApiKeysControllerFindAllResponses } from './models/ApiKeysControllerFindAllResponses.gen';
+import type { ApiKeysControllerRemoveData } from './models/ApiKeysControllerRemoveData.gen';
+import type { ApiKeysControllerRemoveErrors } from './models/ApiKeysControllerRemoveErrors.gen';
+import type { ApiKeysControllerRemoveResponses } from './models/ApiKeysControllerRemoveResponses.gen';
+import type { ApiKeysControllerRevokeData } from './models/ApiKeysControllerRevokeData.gen';
+import type { ApiKeysControllerRevokeErrors } from './models/ApiKeysControllerRevokeErrors.gen';
+import type { ApiKeysControllerRevokeResponses } from './models/ApiKeysControllerRevokeResponses.gen';
+import type { ApiKeysControllerRotateData } from './models/ApiKeysControllerRotateData.gen';
+import type { ApiKeysControllerRotateErrors } from './models/ApiKeysControllerRotateErrors.gen';
+import type { ApiKeysControllerRotateResponses } from './models/ApiKeysControllerRotateResponses.gen';
 import type { ApprovalsControllerApprovePdfTestData } from './models/ApprovalsControllerApprovePdfTestData.gen';
 import type { ApprovalsControllerApprovePdfTestErrors } from './models/ApprovalsControllerApprovePdfTestErrors.gen';
 import type { ApprovalsControllerApprovePdfTestResponses } from './models/ApprovalsControllerApprovePdfTestResponses.gen';
@@ -421,4 +436,81 @@ export const adminApiKeysControllerCreate = <ThrowOnError extends boolean = fals
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * List API keys (hashes are never returned)
+ */
+export const apiKeysControllerFindAll = <ThrowOnError extends boolean = false>(options?: Options<ApiKeysControllerFindAllData, ThrowOnError>): RequestResult<ApiKeysControllerFindAllResponses, ApiKeysControllerFindAllErrors, ThrowOnError> => (options?.client ?? client).get<ApiKeysControllerFindAllResponses, ApiKeysControllerFindAllErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/api-keys',
+    ...options
+});
+
+/**
+ * Create an API key and reveal it once
+ */
+export const apiKeysControllerCreate = <ThrowOnError extends boolean = false>(options: Options<ApiKeysControllerCreateData, ThrowOnError>): RequestResult<ApiKeysControllerCreateResponses, ApiKeysControllerCreateErrors, ThrowOnError> => (options.client ?? client).post<ApiKeysControllerCreateResponses, ApiKeysControllerCreateErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/api-keys',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Replace a key with a new one, retiring the previous key
+ */
+export const apiKeysControllerRotate = <ThrowOnError extends boolean = false>(options: Options<ApiKeysControllerRotateData, ThrowOnError>): RequestResult<ApiKeysControllerRotateResponses, ApiKeysControllerRotateErrors, ThrowOnError> => (options.client ?? client).post<ApiKeysControllerRotateResponses, ApiKeysControllerRotateErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/api-keys/{id}/rotate',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Revoke a key; the row stays for the audit trail
+ */
+export const apiKeysControllerRevoke = <ThrowOnError extends boolean = false>(options: Options<ApiKeysControllerRevokeData, ThrowOnError>): RequestResult<ApiKeysControllerRevokeResponses, ApiKeysControllerRevokeErrors, ThrowOnError> => (options.client ?? client).post<ApiKeysControllerRevokeResponses, ApiKeysControllerRevokeErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/api-keys/{id}/revoke',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete a key that was never used; used keys must be revoked
+ */
+export const apiKeysControllerRemove = <ThrowOnError extends boolean = false>(options: Options<ApiKeysControllerRemoveData, ThrowOnError>): RequestResult<ApiKeysControllerRemoveResponses, ApiKeysControllerRemoveErrors, ThrowOnError> => (options.client ?? client).delete<ApiKeysControllerRemoveResponses, ApiKeysControllerRemoveErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/api-keys/{id}',
+    ...options
 });

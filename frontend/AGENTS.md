@@ -92,6 +92,11 @@ src/
 - A new component therefore needs one of the two, plus a `data-testid` on
   whatever the test must find; a component that only the quality suite reaches
   is not covered, it is merely rendered.
+- Because views and `.vue` components are CT-covered, the Vitest coverage gate
+  (`vite.config.ts` → `test.coverage`) measures the **logic layer only**:
+  `src/views/**` and `src/components/**/*.vue` are excluded from its denominator.
+  Non-`.vue` modules under `src/components/` stay in scope. Adding a view does
+  therefore not move the coverage number — its coverage comes from the CT spec.
 
 ### Language-independent selectors
 

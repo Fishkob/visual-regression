@@ -2,8 +2,11 @@
 
 export type CreatedApiKeyDto = {
     id: string;
+    name: string;
     /**
      * Shown exactly once; only the hash is stored
      */
     rawKey: string;
+    keyHint: string;
+    expiresAt: string | null;
 };

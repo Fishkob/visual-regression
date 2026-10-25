@@ -69,6 +69,9 @@ describe('Upload Mismatch (e2e)', () => {
       inheritTarget: null,
       baseline: {
         imageUrl: expect.any(String),
+        // Presigned variant of the same object; only its shape is asserted
+        // because the signature is time-bound.
+        signedImageUrl: expect.any(String),
         id: expect.any(String),
         imageHash: expect.any(String),
         variant: {
@@ -85,6 +88,9 @@ describe('Upload Mismatch (e2e)', () => {
         id: expect.any(String),
         createdAt: expect.any(String),
         diffImageUrl: expect.any(String),
+        // Presigned variant of the same object. The signature is time-bound, so
+        // only its shape is asserted.
+        signedDiffImageUrl: expect.any(String),
         mismatchPixelCount: expect.any(Number),
         status: expect.stringMatching(/PENDING_APPROVAL|APPROVED|UNCHANGED/),
         thresholdExceeded: expect.any(Boolean),

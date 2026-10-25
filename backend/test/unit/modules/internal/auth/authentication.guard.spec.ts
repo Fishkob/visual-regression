@@ -1,10 +1,11 @@
 import 'reflect-metadata';
 import { createHash } from 'node:crypto';
-import { UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Mocked } from 'vitest';
 import { IS_PUBLIC_KEY } from '@common/http/public.decorator';
+import { IS_SESSION_ONLY_KEY } from '@common/http/session-only.decorator';
 import { AppConfigService } from '@config/app-config.service';
 import { ApiKeyService } from '@internal/auth/api-key.service';
 import { AuthRepository } from '@internal/auth/auth.repository';
@@ -226,5 +227,74 @@ describe('AuthenticationGuard', () => {
     expect(mockApiKeyService.resolveApiKey).toHaveBeenCalledWith('rawkey');
 
     appConfig.auth.apiKeyHeader = 'x-api-key';
+  });
+
+  describe('session-only endpoints', () => {
+    const sessionOnlyHandler = () => {};
+    Reflect.defineMetadata(IS_SESSION_ONLY_KEY, true, sessionOnlyHandler);
+
+    it('rejects a valid api key with 403', async () => {
+      mockRepository.findSessionByTokenHash.mockResolvedValue(null);
+      mockApiKeyService.resolveApiKey.mockResolvedValue({
+        id: 'k1',
+        name: 'ci',
+      });
+
+      await expect(
+        guard.canActivate(
+          mockContext({ 'x-api-key': 'rawkey' }, sessionOnlyHandler),
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('does not attach an identity for the rejected api key', async () => {
+      mockRepository.findSessionByTokenHash.mockResolvedValue(null);
+      mockApiKeyService.resolveApiKey.mockResolvedValue({
+        id: 'k1',
+        name: 'ci',
+      });
+
+      const request = { headers: { 'x-api-key': 'rawkey' } };
+      const ctx = {
+        getClass: () => TestController,
+        getHandler: () => sessionOnlyHandler,
+        switchToHttp: () => ({ getRequest: () => request }),
+      } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
+
+      await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
+      expect((request as { auth?: unknown }).auth).toBeUndefined();
+    });
+
+    it('accepts a session cookie', async () => {
+      mockRepository.findSessionByTokenHash.mockResolvedValue(
+        mockSession(new Date(Date.now() + 60_000)),
+      );
+      mockRepository.findUserById.mockResolvedValue({
+        id: 'u1',
+        username: 'alice',
+        passwordHash: 'salt:hash',
+      });
+
+      await expect(
+        guard.canActivate(
+          mockContext({ cookie: 'vrt_session=tok' }, sessionOnlyHandler),
+        ),
+      ).resolves.toBe(true);
+    });
+
+    it('honours the metadata when it sits on the controller class', async () => {
+      Reflect.defineMetadata(IS_SESSION_ONLY_KEY, true, TestController);
+      mockRepository.findSessionByTokenHash.mockResolvedValue(null);
+      mockApiKeyService.resolveApiKey.mockResolvedValue({
+        id: 'k1',
+        name: 'ci',
+      });
+
+      await expect(
+        guard.canActivate(mockContext({ 'x-api-key': 'rawkey' })),
+      ).rejects.toThrow(ForbiddenException);
+
+      Reflect.deleteMetadata(IS_SESSION_ONLY_KEY, TestController);
+    });
   });
 });

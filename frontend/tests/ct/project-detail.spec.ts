@@ -84,7 +84,7 @@ async function mockProjectFilters(page: import("@playwright/test").Page) {
 test.describe("ProjectDetail", () => {
   test("shows details", async ({ mount, page }) => {
     await mockApi(page, [
-      ["**/api/v1/projects/checkout-ui", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
@@ -106,7 +106,7 @@ test.describe("ProjectDetail", () => {
     page,
   }) => {
     await mockApi(page, [
-      ["**/api/v1/projects/checkout-ui", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
@@ -129,7 +129,7 @@ test.describe("ProjectDetail", () => {
     page,
   }) => {
     await mockApi(page, [
-      ["**/api/v1/projects/checkout-ui", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
@@ -163,7 +163,7 @@ test.describe("ProjectDetail", () => {
       groupName: null,
     };
 
-    await page.route("**/api/v1/projects/checkout-ui", async (route) => {
+    await page.route("**/api/v1/projects/checkout-ui*", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -205,7 +205,7 @@ test.describe("ProjectDetail", () => {
       groupName: "Checkout",
     };
 
-    await page.route("**/api/v1/projects/checkout-ui", async (route) => {
+    await page.route("**/api/v1/projects/checkout-ui*", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -279,7 +279,7 @@ test.describe("ProjectDetail", () => {
     page,
   }) => {
     await mockApi(page, [
-      ["**/api/v1/projects/checkout-ui", PROJECT_EMPTY_RESPONSE],
+      ["**/api/v1/projects/checkout-ui*", PROJECT_EMPTY_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
@@ -298,7 +298,7 @@ test.describe("ProjectDetail", () => {
   }) => {
     await mockApi(page, [
       [
-        "**/api/v1/projects/checkout-ui",
+        "**/api/v1/projects/checkout-ui*",
         { status: 500, contentType: "application/json", body: "{}" },
       ],
       ["**/api/v1/groups", GROUPS_RESPONSE],
@@ -394,7 +394,7 @@ test.describe("ProjectDetail row actions", () => {
     page,
   }) => {
     await mockApi(page, [
-      ["**/api/v1/projects/checkout-ui", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);

@@ -8,6 +8,7 @@ import { AppLoggerService } from '@common/logging/app-logger.service';
 import { AppConfigService } from '@config/app-config.service';
 import { loadEnv, readBootstrapEnv } from '@config/bootstrap-env';
 import { createValidationPipe } from '@common/http/validation-pipe';
+import { SESSION_COOKIE } from '@common/http/session-cookie';
 import { WorkerHealthServer } from '@internal/worker/worker-health-server';
 import { bootstrapAdmin } from '@internal/auth/bootstrap-admin';
 import { AuthRepository } from '@internal/auth/auth.repository';
@@ -91,6 +92,15 @@ function configureSwagger(
       'apiKeyAuth',
     )
     .addSecurityRequirements('apiKeyAuth')
+    .addCookieAuth(
+      SESSION_COOKIE,
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        description: 'Browser session cookie (POST /auth/login)',
+      },
+      'sessionCookie',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

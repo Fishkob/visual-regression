@@ -32,12 +32,41 @@ describe('AdminApiKeysController', () => {
   it('creates a key and returns the raw key once', async () => {
     apiKeyService.createKey.mockResolvedValue({
       id: 'k1',
+      name: 'ci-upload',
       rawKey: 'raw-secret',
+      keyHint: '7f3a',
+      expiresAt: null,
     });
 
     const result = await controller.create({ name: 'ci-upload' });
 
-    expect(apiKeyService.createKey).toHaveBeenCalledWith('ci-upload');
-    expect(result).toEqual({ id: 'k1', rawKey: 'raw-secret' });
+    expect(apiKeyService.createKey).toHaveBeenCalledWith({
+      name: 'ci-upload',
+      expiresInDays: null,
+    });
+    expect(result).toEqual({
+      id: 'k1',
+      name: 'ci-upload',
+      rawKey: 'raw-secret',
+      keyHint: '7f3a',
+      expiresAt: null,
+    });
+  });
+
+  it('passes an optional expiry through to the service', async () => {
+    apiKeyService.createKey.mockResolvedValue({
+      id: 'k1',
+      name: 'ci-upload',
+      rawKey: 'raw-secret',
+      keyHint: '7f3a',
+      expiresAt: new Date('2027-01-01'),
+    });
+
+    await controller.create({ name: 'ci-upload', expiresInDays: 90 });
+
+    expect(apiKeyService.createKey).toHaveBeenCalledWith({
+      name: 'ci-upload',
+      expiresInDays: 90,
+    });
   });
 });

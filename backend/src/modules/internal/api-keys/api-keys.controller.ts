@@ -1,0 +1,118 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
+import {
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
+import { SessionOnly } from '@common/http/session-only.decorator';
+import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { ApiKeyService, type ApiKeyView } from '@internal/auth/api-key.service';
+import {
+  ApiKeyDto,
+  RevokeApiKeyDto,
+  RotateApiKeyDto,
+} from '@internal/auth/dto/api-key.dto';
+import {
+  CreateApiKeyDto,
+  CreatedApiKeyDto,
+} from '@internal/auth/dto/create-api-key.dto';
+
+// Key management is a human task: it is reachable with the browser session
+// only (@SessionOnly), so a leaked CI key cannot mint, rotate, or revoke keys
+// for the whole platform. Bootstrap provisioning stays on POST /admin/api-keys
+// (x-admin-key) so a first key exists before any session does.
+@ApiTags('API Keys')
+@Controller('api-keys')
+@SessionOnly()
+@ApiForbiddenResponse({
+  description: 'API-key callers cannot manage keys; log in instead',
+})
+export class ApiKeysController {
+  constructor(private readonly apiKeyService: ApiKeyService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List API keys (hashes are never returned)' })
+  @ApiOkResponse({ type: [ApiKeyDto] })
+  async findAll(): Promise<ApiKeyDto[]> {
+    const rows = await this.apiKeyService.listKeys();
+    return rows.map((row) => this.toDto(row));
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Create an API key and reveal it once' })
+  @ApiCreatedResponse({ type: CreatedApiKeyDto })
+  async create(
+    @Body() dto: CreateApiKeyDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<CreatedApiKeyDto> {
+    const issued = await this.apiKeyService.createKey({
+      name: dto.name,
+      expiresInDays: dto.expiresInDays ?? null,
+      createdBy: req.auth?.username ?? null,
+    });
+    return plainToInstance(CreatedApiKeyDto, issued, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Post(':id/rotate')
+  @ApiOperation({
+    summary: 'Replace a key with a new one, retiring the previous key',
+  })
+  @ApiCreatedResponse({ type: CreatedApiKeyDto })
+  async rotate(
+    @Param('id') id: string,
+    @Body() dto: RotateApiKeyDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<CreatedApiKeyDto> {
+    const issued = await this.apiKeyService.rotateKey(id, {
+      graceMinutes: dto.graceMinutes,
+      // Passed through untouched: the rotation's expiry is a three-way choice —
+      // omitted inherits the predecessor's remaining lifetime, null means the
+      // successor never expires, a number sets that lifetime.
+      expiresInDays: dto.expiresInDays,
+      createdBy: req.auth?.username ?? null,
+    });
+    return plainToInstance(CreatedApiKeyDto, issued, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Post(':id/revoke')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Revoke a key; the row stays for the audit trail' })
+  @ApiOkResponse({ type: ApiKeyDto })
+  async revoke(
+    @Param('id') id: string,
+    @Body() dto: RevokeApiKeyDto,
+  ): Promise<ApiKeyDto> {
+    const row = await this.apiKeyService.revokeKey(id, dto.reason ?? null);
+    return this.toDto(row);
+  }
+
+  @Delete(':id')
+  @ApiOperation({
+    summary: 'Delete a key that was never used; used keys must be revoked',
+  })
+  @ApiOkResponse({ description: 'Key deleted' })
+  async remove(@Param('id') id: string): Promise<{ success: true }> {
+    return this.apiKeyService.deleteKey(id);
+  }
+
+  private toDto(row: ApiKeyView): ApiKeyDto {
+    return plainToInstance(ApiKeyDto, row, { excludeExtraneousValues: true });
+  }
+}

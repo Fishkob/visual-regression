@@ -150,7 +150,7 @@ test.describe("Review inbox", () => {
     );
   });
 
-  test("keeps the full project review count and start under filters", async ({
+  test("keeps the full project review count while entering at a visible item", async ({
     mount,
     page,
   }) => {
@@ -168,11 +168,19 @@ test.describe("Review inbox", () => {
     await expect(section).toContainText("checkout-pdf");
 
     const review = section.getByTestId(TEST_ID.reviewProjectButton);
+    // The count describes the branch-wide set the details page walks, so the
+    // kind filter must not shrink it to 1.
     await expect(review).toHaveText("Review 2");
     await review.click();
 
+    // The entry item comes from the filtered list: the pass walks the project's
+    // pending list on the details page, so it still covers both changes, but it
+    // must not land on a test the kind filter just hid. Before filtering moved
+    // to the server this section received the unfiltered project section as a
+    // prop and entered at its first item; that input no longer exists in the
+    // inbox payload, and starting "invisibly" is not worth new API surface.
     await page.waitForURL(
-      (url) => url.pathname === "/projects/checkout-ui/tests/checkout-flow",
+      (url) => url.pathname === "/projects/checkout-ui/tests/checkout-pdf",
     );
     expect(new URL(page.url()).searchParams.get("from")).toBeNull();
   });

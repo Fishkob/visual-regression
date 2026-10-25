@@ -8,6 +8,7 @@ import { focusRouteContent } from "@/lib/route-focus";
 import InboxView from "@/views/InboxView.vue";
 import ProjectsView from "@/views/ProjectsView.vue";
 import GroupsView from "@/views/GroupsView.vue";
+import ApiKeysView from "@/views/ApiKeysView.vue";
 import ProjectDetailView from "@/views/ProjectDetailView.vue";
 import ApprovalDoneView from "@/views/ApprovalDoneView.vue";
 import TestDetailDispatcher from "@/components/TestDetailDispatcher.vue";
@@ -38,6 +39,12 @@ const routes: RouteRecordRaw[] = [
     path: "/groups",
     name: "groups",
     component: GroupsView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/api-keys",
+    name: "api-keys",
+    component: ApiKeysView,
     meta: { requiresAuth: true },
   },
   {

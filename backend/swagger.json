@@ -2025,6 +2025,207 @@
           "Admin"
         ]
       }
+    },
+    "/api-keys": {
+      "get": {
+        "operationId": "ApiKeysController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApiKeyDto"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API-key callers cannot manage keys; log in instead"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "List API keys (hashes are never returned)",
+        "tags": [
+          "API Keys"
+        ]
+      },
+      "post": {
+        "operationId": "ApiKeysController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedApiKeyDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API-key callers cannot manage keys; log in instead"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Create an API key and reveal it once",
+        "tags": [
+          "API Keys"
+        ]
+      }
+    },
+    "/api-keys/{id}/rotate": {
+      "post": {
+        "operationId": "ApiKeysController_rotate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RotateApiKeyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedApiKeyDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API-key callers cannot manage keys; log in instead"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Replace a key with a new one, retiring the previous key",
+        "tags": [
+          "API Keys"
+        ]
+      }
+    },
+    "/api-keys/{id}/revoke": {
+      "post": {
+        "operationId": "ApiKeysController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeApiKeyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "API-key callers cannot manage keys; log in instead"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Revoke a key; the row stays for the audit trail",
+        "tags": [
+          "API Keys"
+        ]
+      }
+    },
+    "/api-keys/{id}": {
+      "delete": {
+        "operationId": "ApiKeysController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Key deleted"
+          },
+          "403": {
+            "description": "API-key callers cannot manage keys; log in instead"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Delete a key that was never used; used keys must be revoked",
+        "tags": [
+          "API Keys"
+        ]
+      }
     }
   },
   "info": {
@@ -2046,6 +2247,12 @@
         "in": "header",
         "name": "x-api-key",
         "description": "API key for CI pipelines"
+      },
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "vrt_session",
+        "description": "Browser session cookie (POST /auth/login)"
       }
     },
     "schemas": {
@@ -3284,6 +3491,12 @@
           "name": {
             "type": "string",
             "example": "ci-upload"
+          },
+          "expiresInDays": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 3650,
+            "description": "Lifetime in days; omit for a key that never expires"
           }
         },
         "required": [
@@ -3296,15 +3509,131 @@
           "id": {
             "type": "string"
           },
+          "name": {
+            "type": "string",
+            "example": "ci-upload"
+          },
           "rawKey": {
             "type": "string",
             "description": "Shown exactly once; only the hash is stored"
+          },
+          "keyHint": {
+            "type": "string",
+            "example": "7f3a"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true
           }
         },
         "required": [
           "id",
-          "rawKey"
+          "name",
+          "rawKey",
+          "keyHint",
+          "expiresAt"
         ]
+      },
+      "ApiKeyDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "example": "ci-upload"
+          },
+          "keyHint": {
+            "type": "string",
+            "nullable": true,
+            "example": "7f3a",
+            "description": "Last characters of the raw key, for recognition only"
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true,
+            "description": "User that created the key"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "Last authenticated request, updated at most hourly"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "Null means the key never expires"
+          },
+          "revokedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "revokedReason": {
+            "type": "string",
+            "nullable": true,
+            "example": "rotated"
+          },
+          "replacedById": {
+            "type": "string",
+            "nullable": true,
+            "description": "Id of the key that replaced this one during a rotation"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "revoked",
+              "expired"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "keyHint",
+          "createdBy",
+          "createdAt",
+          "lastUsedAt",
+          "expiresAt",
+          "revokedAt",
+          "revokedReason",
+          "replacedById",
+          "status"
+        ]
+      },
+      "RotateApiKeyDto": {
+        "type": "object",
+        "properties": {
+          "graceMinutes": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1440,
+            "default": 0,
+            "description": "Minutes the previous key keeps working, so a pipeline can be updated"
+          },
+          "expiresInDays": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 3650,
+            "description": "Lifetime of the new key in days. Omit to inherit the remaining lifetime of the key being replaced; send null for a key that never expires."
+          }
+        }
+      },
+      "RevokeApiKeyDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "example": "pipeline migrated to new key",
+            "maxLength": 200
+          }
+        }
       }
     }
   },

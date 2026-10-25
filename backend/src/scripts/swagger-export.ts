@@ -27,6 +27,7 @@ import { AuthRepository } from '@internal/auth/auth.repository';
 import { ApiKeyService } from '@internal/auth/api-key.service';
 import { AuthService } from '@internal/auth/auth.service';
 import { AuthenticationGuard } from '@internal/auth/authentication.guard';
+import { SESSION_COOKIE } from '@common/http/session-cookie';
 
 async function main() {
   const moduleRef = await Test.createTestingModule({
@@ -101,6 +102,15 @@ async function main() {
       'apiKeyAuth',
     )
     .addSecurityRequirements('apiKeyAuth')
+    .addCookieAuth(
+      SESSION_COOKIE,
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        description: 'Browser session cookie (POST /auth/login)',
+      },
+      'sessionCookie',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {

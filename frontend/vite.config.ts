@@ -49,6 +49,15 @@ export default defineConfig({
         "src/main.ts",
         "src/App.vue",
         "src/components/ui/**",
+        // Views and .vue components are covered by the page-level Playwright CT
+        // suite (tests/ct), not by Vitest — this config has never been able to
+        // reach them. Leaving them in the denominator measured a layer this
+        // runner does not test: 60% was unreachable, so the gate was red for
+        // reasons that had nothing to do with a missing test. Logic files stay
+        // in scope, including non-.vue modules under components/ (StatusBadge,
+        // DataTable's helpers) which do carry Vitest tests.
+        "src/views/**",
+        "src/components/**/*.vue",
         "tests/**",
         "node_modules/**",
       ],

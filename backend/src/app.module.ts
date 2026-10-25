@@ -17,6 +17,7 @@ import { DataDeletionModule } from '@internal/data-deletion/data-deletion.module
 import { DlqModule } from '@internal/dlq/dlq.module';
 import { AuthModule } from '@internal/auth/auth.module';
 import { AdminApiKeysModule } from '@internal/admin/admin-api-keys.module';
+import { ApiKeysModule } from '@internal/api-keys/api-keys.module';
 import { AuthenticationGuard } from '@internal/auth/authentication.guard';
 import { RateLimitModule } from '@internal/rate-limit/rate-limit.module';
 import { RateLimitGuard } from '@internal/rate-limit/rate-limit.guard';
@@ -37,6 +38,7 @@ import { HttpMetricsInterceptor } from '@common/http/http-metrics.interceptor';
     DataDeletionModule,
     AuthModule,
     AdminApiKeysModule,
+    ApiKeysModule,
     RateLimitModule,
   ],
   providers: [

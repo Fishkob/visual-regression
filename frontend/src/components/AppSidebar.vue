@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import {
   Inbox,
+  KeyRound,
   LayoutGrid,
   Users,
   PanelLeftClose,
@@ -24,6 +25,7 @@ const onProjects = computed(
 const onGroups = computed(
   () => route.path === "/groups" || route.path.startsWith("/groups/"),
 );
+const onApiKeys = computed(() => route.path === "/api-keys");
 const pending = computed(() => pendingCount.value ?? 0);
 </script>
 
@@ -131,6 +133,22 @@ const pending = computed(() => pendingCount.value ?? 0);
       >
         <Users class="h-4 w-4 shrink-0" />
         <span :class="collapsed ? 'md:hidden' : ''">Groups</span>
+      </RouterLink>
+
+      <RouterLink
+        to="/api-keys"
+        class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+        :class="[
+          { 'bg-muted text-foreground': onApiKeys },
+          collapsed ? 'md:justify-center md:px-0' : '',
+        ]"
+        :aria-current="onApiKeys ? 'page' : undefined"
+        :aria-label="collapsed ? 'API keys' : undefined"
+        :title="collapsed ? 'API keys' : undefined"
+        :data-testid="TEST_ID.navApiKeys"
+      >
+        <KeyRound class="h-4 w-4 shrink-0" />
+        <span :class="collapsed ? 'md:hidden' : ''">API keys</span>
       </RouterLink>
     </nav>
   </aside>

@@ -2,4 +2,8 @@
 
 export type CreateApiKeyDto = {
     name: string;
+    /**
+     * Lifetime in days; omit for a key that never expires
+     */
+    expiresInDays?: number;
 };

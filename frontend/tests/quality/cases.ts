@@ -7,6 +7,7 @@ import {
   REVIEW_INBOX_RESPONSE,
 } from "../ct/mocks/projects.mocks";
 import { GROUPS_RESPONSE } from "../ct/mocks/groups.mocks";
+import { API_KEYS_RESPONSE } from "../ct/mocks/apiKeys.mocks";
 import { PDF_TEST_DETAILS_BASELINE_NO_PAGE_COUNT } from "../ct/mocks/pdfTest.mocks";
 import { makeReviewableDetails } from "../ct/mocks/reviewLoop.mocks";
 import { CHROME_1920_1080_STAGING } from "../ct/mocks/variants";
@@ -32,15 +33,22 @@ export interface QualityCase {
 }
 
 const PROJECTS_GLOB = "**/api/v1/projects/pending*";
-const PROJECT_DETAILS_GLOB = "**/api/v1/projects/checkout-ui";
+// The detail route is paginated: the request carries ?skip&take, and a glob
+// without a trailing wildcard does not match a query string — the call would
+// escape the mock and hit the Vite proxy instead.
+const PROJECT_DETAILS_GLOB = "**/api/v1/projects/checkout-ui*";
 const VISUAL_DETAILS_ROUTE = `/projects/checkout-ui/tests/checkout-flow?${CHROME_1920_1080_STAGING}`;
-const VISUAL_DETAILS_GLOB = `**/api/v1/projects/checkout-ui/tests/checkout-flow?${CHROME_1920_1080_STAGING}`;
+// Pinned to the path, tolerant of the query: the variant identity comes from the
+// route, and a reordered/unextended query must not silently unmock the call.
+const VISUAL_DETAILS_GLOB =
+  "**/api/v1/projects/checkout-ui/tests/checkout-flow?*";
 const VISUAL_PENDING_GLOB =
   "**/api/v1/projects/checkout-ui/tests/meta/pending*";
 const VISUAL_VARIANTS_GLOB =
   "**/api/v1/projects/checkout-ui/tests/checkout-flow/variants*";
 const PDF_DETAILS_ROUTE = `/projects/checkout-ui/tests/invoice?${CHROME_1920_1080_STAGING}`;
-const PDF_DETAILS_GLOB = `**/api/v1/projects/checkout-ui/tests/invoice/pdf-details?${CHROME_1920_1080_STAGING}`;
+const PDF_DETAILS_GLOB =
+  "**/api/v1/projects/checkout-ui/tests/invoice/pdf-details?*";
 
 export const QUALITY_CASES: QualityCase[] = [
   {
@@ -98,6 +106,12 @@ export const QUALITY_CASES: QualityCase[] = [
     story: "views/GroupsView/Groups",
     routes: [["**/api/v1/groups", GROUPS_RESPONSE]],
     readyTestId: TEST_ID.groupRow,
+  },
+  {
+    name: "api-keys",
+    story: "views/ApiKeysView/ApiKeys",
+    routes: [["**/api/v1/api-keys", API_KEYS_RESPONSE]],
+    readyTestId: TEST_ID.apiKeyRow,
   },
   {
     name: "approval-done",

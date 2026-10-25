@@ -6,6 +6,7 @@ import { ReviewModule } from '@public/visualTest/review/review.module';
 import { HealthModule } from '@internal/health/health.module';
 import { AuthModule } from '@internal/auth/auth.module';
 import { AdminApiKeysModule } from '@internal/admin/admin-api-keys.module';
+import { ApiKeysModule } from '@internal/api-keys/api-keys.module';
 @Module({
   imports: [
     CoreInfrastructureModule,
@@ -15,6 +16,7 @@ import { AdminApiKeysModule } from '@internal/admin/admin-api-keys.module';
     HealthModule,
     AuthModule,
     AdminApiKeysModule,
+    ApiKeysModule,
   ],
 })
 export class SwaggerAppModule {}

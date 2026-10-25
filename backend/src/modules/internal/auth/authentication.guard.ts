@@ -1,11 +1,13 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '@common/http/public.decorator';
+import { IS_SESSION_ONLY_KEY } from '@common/http/session-only.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { readSessionToken } from '@common/http/session-cookie';
 import { AppConfigService } from '@config/app-config.service';
@@ -51,12 +53,28 @@ export class AuthenticationGuard implements CanActivate {
     if (typeof apiKey === 'string') {
       const resolved = await this.apiKeyService.resolveApiKey(apiKey);
       if (resolved) {
+        // A valid api key is authenticated but not privileged: key management
+        // would let a leaked CI key mint or revoke credentials for everyone.
+        if (this.isSessionOnly(context)) {
+          throw new ForbiddenException(
+            'This endpoint requires a browser session',
+          );
+        }
         request.auth = { username: resolved.name, apiKeyId: resolved.id };
         return true;
       }
     }
 
     throw new UnauthorizedException('Authentication required');
+  }
+
+  private isSessionOnly(context: ExecutionContext): boolean {
+    return (
+      this.reflector.getAllAndOverride<boolean>(IS_SESSION_ONLY_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? false
+    );
   }
 
   private isPublic(context: ExecutionContext): boolean {

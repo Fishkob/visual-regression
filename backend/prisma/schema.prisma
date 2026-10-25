@@ -166,11 +166,17 @@ model Session {
 }
 
 model ApiKey {
-  id        String    @id @default(cuid())
-  name      String
-  keyHash   String    @unique
-  createdAt DateTime  @default(now())
-  revokedAt DateTime?
+  id            String    @id @default(cuid())
+  name          String
+  keyHash       String    @unique
+  keyHint       String?
+  createdBy     String?
+  createdAt     DateTime  @default(now())
+  lastUsedAt    DateTime?
+  expiresAt     DateTime?
+  revokedAt     DateTime?
+  revokedReason String?
+  replacedById  String?
 
   @@map("ApiKey")
 }

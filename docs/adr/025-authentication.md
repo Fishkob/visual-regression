@@ -124,3 +124,39 @@ impossible to provision (bootstrap dead end).
 - `RateLimitGuard` is registered **after** `AuthenticationGuard`, so the `upload`
   rule can be keyed by the authenticated API key rather than `req.ip`; see
   ADR-026 for the unified one-minute-window counter design.
+
+## Amendment — key management (2026-10-26)
+
+Creating a key with a permanent `ADMIN_API_KEY` and then never being able to see
+or revoke it turned the key lifecycle into a database chore. Key management is
+now a product-API surface backed by the browser session:
+
+- `GET /api-keys`, `POST /api-keys`, `POST /api-keys/:id/rotate`,
+  `POST /api-keys/:id/revoke`, `DELETE /api-keys/:id` — all marked
+  `@SessionOnly()`.
+- **Session-only, not api-key, is the load-bearing part.** The global guard
+  already knows which credential authenticated a request, so it rejects the api
+  key path on these routes with `403`. A leaked CI key must not be able to mint,
+  rotate, or revoke keys: that would escalate a scoped CI credential into
+  platform-wide, permanent access. `POST /admin/api-keys` stays exactly as it was
+  — it is the bootstrap door for the first key, before any session exists.
+- Rotation creates the successor and retires the predecessor in one transaction.
+  The predecessor can keep working for an optional grace window (bounded to 24
+  hours) so a pipeline can be re-pointed without a window in which nothing
+  authenticates; without a grace window it is revoked immediately.
+- The successor's expiry is a three-way choice, not a default with an override:
+  omitted inherits the predecessor's remaining lifetime (rotation must not turn
+  an expiring key into a permanent one by accident), `null` grants a key that
+  never expires, and a number sets that lifetime. `null` and "omitted" therefore
+  cannot be collapsed into one "no value" — the DTO keeps them apart and the
+  controller passes the field through untouched.
+- Revocation is a soft delete (`revokedAt` + `revokedReason`) so the row survives
+  as the audit trail for which CI job used which credential. An outright delete is
+  allowed only for a key that never authenticated — after first use the row is the
+  only record that exists.
+- `lastUsedAt` is written at most once per hour per key: it is audit metadata, not
+  a security control, and a write on every authenticated request would put a
+  write on the hot path of every CI upload. A failed usage write is swallowed —
+  auditing must never turn a valid key into a `500`.
+- The OpenAPI document gains a `sessionCookie` scheme and these operations declare
+  it instead of the document-wide `apiKeyAuth` requirement.

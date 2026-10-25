@@ -29,6 +29,9 @@ export class AdminApiKeysController {
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({ type: CreatedApiKeyDto })
   async create(@Body() dto: CreateApiKeyDto): Promise<CreatedApiKeyDto> {
-    return this.apiKeyService.createKey(dto.name);
+    return this.apiKeyService.createKey({
+      name: dto.name,
+      expiresInDays: dto.expiresInDays ?? null,
+    });
   }
 }
