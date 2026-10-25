@@ -146,6 +146,7 @@ Set `run-key` to group the uploads of one pipeline into a run and gate the step 
 | `commit-message` | `""`     | Commit message. Sent as `commitMessage`.                                |
 | `ci-url`         | `""`     | Link back to the CI build. Sent as `ciUrl`.                             |
 | `finish-run`     | `"true"` | Finish the run after the upload(s), then gate on the run status.        |
+| `report-path`    | `""`     | Optional path for a JUnit XML report of the run (requires `run-key`).   |
 | `manifest`       | `""`     | JSON manifest of captures to upload into the run (see below).           |
 | `concurrency`    | `"4"`    | Maximum parallel manifest uploads, 1-16.                                |
 
@@ -249,6 +250,8 @@ If any capture fails the step fails with the run link, the number of failures an
 
 Manifest outputs: `upload-count` (successful uploads), `upload-failed-count`, `status` (`batch_completed` or `batch_failed`), `run-key`, and (after a successful batch) `run-state` and `run-pending-count`. The step summary lists the capture count, uploaded/failed counts, the failures and the run state.
 
+**JUnit report.** Set `report-path` to write the run's JUnit XML to disk (for example `reports/vrt-junit.xml`). The action downloads it after the run status is read, so the file exists for both a passing and a failing gate; a download problem is a warning, not a second failure. JUnit is the CI contract; see [Reports and trends](#reports-and-trends) for the other formats.
+
 **Single file or manifest.** Uploading one file per step is still supported and behaves exactly as described above. Use the manifest for multi-capture runs. A run groups and gates; it does not isolate candidates — two uploads for the same variant still follow latest-wins, so parallel jobs for the same test can supersede each other.
 
 ### Playwright reporter (SDK)
@@ -284,7 +287,31 @@ export default defineConfig({
 - `concurrency`/`maxAttempts` are forwarded to `uploadMany` (default 4 / 3). Upload failures are collected in `reporter.results()` and via `onUpload`; they do not fail the test run.
 - See [client-sdk/README.md](../client-sdk/README.md) for the full `uploadMany` API and how to import the helpers.
 
-## 4. Notes and limits
+## 4. Reports and trends
+
+Run reports are read-only, project/branch-scoped and use the same authentication as the rest of the API:
+
+```bash
+curl -H "x-api-key: $VRT_API_KEY" \
+  "https://vrt.example.com/api/v1/projects/checkout/runs/$RUN_KEY/report/junit?branch=main"
+```
+
+| Format  | Content                                                                                                                                                                                                               |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `junit` | One `<testcase>` per test/variant uploaded in the run. A pending review or a failed job is a `<failure>` whose text links to the dashboard test page, so a standard CI viewer shows the gate exactly as the API does. |
+| `html`  | Self-contained report (counts, pending/failed/approved rows, dashboard links). It links to tests rather than embedding thumbnails — presigned screenshot URLs expire.                                                 |
+| `csv`   | Stable rows (project, run, branch, test, kind, variant, outcome, mismatch, detail) for spreadsheets/BI; the endpoint is not paginated, so repeated exports of an unchanged run are identical.                         |
+
+The run detail page has the same three downloads. `GET /api/v1/projects/{project}/trends?days=30` returns:
+
+- `daily[]` — changed / unchanged / within-threshold comparison counts per day.
+- `pendingReview` — count plus average/max age of comparisons awaiting review, in seconds.
+- `approvalLatency` — count plus average time from comparison completion to approval, in seconds (matched through the durable outcome history).
+- `flakeRate` — tests with both changed and clean outcomes in the window vs. all tests.
+
+The dashboard shows these on the project's Trends page. The underlying `ComparisonOutcomeEvent` rows are written after each comparison completes (outside the comparison transaction) and survive test/branch deletion, so trends do not depend on comparisons that approval deletes.
+
+## 5. Notes and limits
 
 - **Branch:** omit `branch` to use the project default; a new branch inherits the target branch's baseline. Pass the branch that produced the capture.
 - **Wait cap:** the API accepts `wait` up to 30 seconds per request. Loop for longer budgets (the action does).

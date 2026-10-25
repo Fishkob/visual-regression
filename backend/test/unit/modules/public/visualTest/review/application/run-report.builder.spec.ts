@@ -45,6 +45,15 @@ function detail(): RunDetail {
         approvedAt: new Date('2026-01-01'),
       },
     ],
+    failedJobs: [
+      {
+        id: 'job-1',
+        testName: 'broken',
+        branchName: 'feature/x',
+        error: 'engine exploded',
+        createdAt: new Date('2026-01-01'),
+      },
+    ],
     uploads: [
       {
         testName: 'a & b',
@@ -76,13 +85,15 @@ describe('run report builders', () => {
   it('builds JUnit with escaping and pending as failure', () => {
     const xml = buildRunJUnit(detail(), 'checkout', 'ci-1', 'https://vrt.test');
 
-    expect(xml).toContain('<testsuites tests="2" failures="1">');
+    expect(xml).toContain('<testsuites tests="3" failures="2">');
     expect(xml).toContain('name="a &amp; b [1920x1080 / chrome / staging]"');
     expect(xml).toContain('<failure message="12 px mismatch');
     expect(xml).toContain(
       'https://vrt.test/projects/checkout/tests/a%20%26%20b?branch=feature%2Fx',
     );
     expect(xml).toContain('<testcase classname="checkout.image" name="ok');
+    expect(xml).toContain('name="broken [run]"');
+    expect(xml).toContain('engine exploded');
   });
 
   it('builds CSV with quoted values and one row per upload', () => {
@@ -92,10 +103,11 @@ describe('run report builders', () => {
     expect(lines[0]).toBe(
       'project,runKey,branch,test,kind,variant,outcome,mismatch,detail',
     );
-    expect(lines).toHaveLength(3);
+    expect(lines).toHaveLength(4);
     expect(lines[1]).toContain('"a & b"');
     expect(lines[1]).toContain('"pending"');
     expect(lines[2]).toContain('"approved"');
+    expect(lines[3]).toContain('"failed"');
   });
 
   it('builds a self-contained HTML report with links and counts', () => {

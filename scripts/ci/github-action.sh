@@ -58,6 +58,7 @@ RUN_KEY="${INPUT_RUN_KEY:-}"
 COMMIT="${INPUT_COMMIT:-}"
 COMMIT_MESSAGE="${INPUT_COMMIT_MESSAGE:-}"
 CI_URL="${INPUT_CI_URL:-}"
+REPORT_PATH="${INPUT_REPORT_PATH:-}"
 BRANCH="${INPUT_BRANCH:-}"
 case "$WAIT_SECONDS" in
   '' | *[!0-9]*) fail "Input 'wait-seconds' must be a non-negative integer." ;;
@@ -193,6 +194,23 @@ fetch_run_status() {
   printf '%s\n' "$response"
 }
 
+write_run_report() {
+  local url
+  [ -n "$REPORT_PATH" ] || return 0
+  url="$API_URL/api/v1/projects/$PROJECT_URI/runs/$RUN_URI/report/junit"
+  if [ -n "$BRANCH_URI" ]; then
+    url="$url?branch=$BRANCH_URI"
+  fi
+  mkdir -p "$(dirname "$REPORT_PATH")"
+  if curl --silent --show-error --fail-with-body --get "$url" \
+    --header "x-api-key: $INPUT_API_KEY" \
+    --output "$REPORT_PATH"; then
+    echo "::notice::JUnit report written to $REPORT_PATH"
+  else
+    echo "::warning::Could not download the JUnit report to $REPORT_PATH"
+  fi
+}
+
 # Run mode: close the run (unless finish-run is false) and gate the step on its
 # derived state instead of on the single comparison that was just uploaded.
 run_gate() {
@@ -237,6 +255,7 @@ run_gate() {
 
   set_output run-state "$run_state"
   set_output run-pending-count "$run_pending"
+  write_run_report
 
   case "$run_state" in
     passed)

@@ -38,6 +38,13 @@ export interface RunDetail {
     outcome: string;
     createdAt: Date;
   }[];
+  failedJobs: {
+    id: string;
+    testName: string;
+    branchName: string;
+    error: string;
+    createdAt: Date;
+  }[];
 }
 
 export interface RunApproveAllResult {
@@ -86,11 +93,13 @@ export class RunService {
   ): Promise<RunDetail> {
     const run = await this.requireRun(projectName, runKey, branchName);
     const status = await this.computeStatus(run);
-    const [pendingRows, approvals, uploadRows] = await Promise.all([
-      this.runs.pendingComparisonsForRun(run.id, 200),
-      this.runs.approvalsForRun(run.id, 100),
-      this.runs.uploadsForRun(run.id, 200),
-    ]);
+    const [pendingRows, approvals, uploadRows, failedJobRows] =
+      await Promise.all([
+        this.runs.pendingComparisonsForRun(run.id, 200),
+        this.runs.approvalsForRun(run.id, 100),
+        this.runs.uploadsForRun(run.id, 200),
+        this.runs.failedJobsForRun(run.id, 100),
+      ]);
     return {
       run,
       status,
@@ -123,6 +132,13 @@ export class RunService {
           environment: row.environment,
         },
         outcome: row.outcome,
+        createdAt: row.createdAt,
+      })),
+      failedJobs: failedJobRows.map((row) => ({
+        id: row.id,
+        testName: row.test.name,
+        branchName: row.test.branch.name,
+        error: row.error ?? 'Comparison failed',
         createdAt: row.createdAt,
       })),
     };

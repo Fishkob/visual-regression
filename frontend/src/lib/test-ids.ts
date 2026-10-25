@@ -225,6 +225,7 @@ export const TEST_ID = {
   runPendingRow: "run-pending-row",
   runPendingCount: "run-pending-count",
   runApprovalRow: "run-approval-row",
+  runFailedJobRow: "run-failed-job-row",
   runCommit: "run-commit",
   inboxRunFilter: "inbox-run-filter",
   inboxRunBadge: "inbox-run-badge",

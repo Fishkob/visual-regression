@@ -96,6 +96,28 @@ export class RunApprovalDto {
   approvedAt!: Date;
 }
 
+export class RunFailedJobDto {
+  @ApiProperty()
+  @Expose()
+  id!: string;
+
+  @ApiProperty()
+  @Expose()
+  testName!: string;
+
+  @ApiProperty()
+  @Expose()
+  branchName!: string;
+
+  @ApiProperty()
+  @Expose()
+  error!: string;
+
+  @ApiProperty()
+  @Expose()
+  createdAt!: Date;
+}
+
 export class RunUploadDto {
   @ApiProperty()
   @Expose()
@@ -169,6 +191,11 @@ export class RunDetailDto {
   @Expose()
   @Type(() => RunUploadDto)
   uploads!: RunUploadDto[];
+
+  @ApiProperty({ type: RunFailedJobDto, isArray: true })
+  @Expose()
+  @Type(() => RunFailedJobDto)
+  failedJobs!: RunFailedJobDto[];
 }
 
 export class RunStatusResultDto {

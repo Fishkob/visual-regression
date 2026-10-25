@@ -112,6 +112,7 @@ function detailDto(overrides: Record<string, unknown> = {}) {
       },
     ],
     uploads: [],
+    failedJobs: [],
     ...overrides,
   };
 }
@@ -178,6 +179,32 @@ afterEach(() => {
 });
 
 describe("RunDetailView", () => {
+  it("shows failed jobs with their error", async () => {
+    mockDetail.mockResolvedValue({
+      data: detailDto({
+        status: statusDto({ state: "failed", failedJobs: 1 }),
+        failedJobs: [
+          {
+            id: "job-1",
+            testName: "cart",
+            branchName: "main",
+            error: "engine exploded",
+            createdAt: minutesAgo(5),
+          },
+        ],
+      }),
+    });
+    const wrapper = mountView();
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper.findAll(`[data-testid="${TEST_ID.runFailedJobRow}"]`),
+      ).toHaveLength(1),
+    );
+    expect(wrapper.text()).toContain("cart");
+    expect(wrapper.text()).toContain("engine exploded");
+  });
+
   it("shows the state, the counts and the commit header", async () => {
     const wrapper = mountView();
 

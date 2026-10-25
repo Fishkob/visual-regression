@@ -2,6 +2,7 @@
 
 import type { RunApprovalDto } from './RunApprovalDto.gen';
 import type { RunDto } from './RunDto.gen';
+import type { RunFailedJobDto } from './RunFailedJobDto.gen';
 import type { RunPendingDto } from './RunPendingDto.gen';
 import type { RunStatusDto } from './RunStatusDto.gen';
 import type { RunUploadDto } from './RunUploadDto.gen';
@@ -12,4 +13,5 @@ export type RunDetailDto = {
     pending: Array<RunPendingDto>;
     approvals: Array<RunApprovalDto>;
     uploads: Array<RunUploadDto>;
+    failedJobs: Array<RunFailedJobDto>;
 };

@@ -91,11 +91,20 @@ export interface RunApproval {
   approvedAt: string;
 }
 
+export interface RunFailedJob {
+  id: string;
+  testName: string;
+  branchName: string;
+  error: string;
+  createdAt: string;
+}
+
 export interface RunDetail {
   run: Run;
   status: RunStatus;
   pending: RunPending[];
   approvals: RunApproval[];
+  failedJobs: RunFailedJob[];
 }
 
 export interface RunApproveAllFailure {

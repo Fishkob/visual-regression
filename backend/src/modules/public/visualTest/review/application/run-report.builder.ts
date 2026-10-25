@@ -5,7 +5,7 @@ interface ReportRow {
   kind: string;
   branchName: string;
   variant: string;
-  outcome: 'pending' | 'approved' | 'unchanged';
+  outcome: 'pending' | 'failed' | 'approved' | 'unchanged';
   mismatch: number;
   detail: string;
 }
@@ -50,6 +50,20 @@ function rows(detail: RunDetail): ReportRow[] {
         : isApproved
           ? 'Approved in this run'
           : 'Unchanged',
+    });
+  }
+
+  // Failed jobs have no comparison; the run gate counts them as failures and
+  // JUnit consumers must see them as failing cases, not silently passing.
+  for (const job of detail.failedJobs) {
+    result.push({
+      testName: job.testName,
+      kind: 'image',
+      branchName: job.branchName,
+      variant: 'run',
+      outcome: 'failed',
+      mismatch: 0,
+      detail: job.error,
     });
   }
 
@@ -105,12 +119,14 @@ export function buildRunJUnit(
   baseUrl: string,
 ): string {
   const reportRows = rows(detail);
-  const failures = reportRows.filter((row) => row.outcome === 'pending').length;
+  const failures = reportRows.filter(
+    (row) => row.outcome === 'pending' || row.outcome === 'failed',
+  ).length;
   const cases = reportRows.map((row) => {
     const name = xmlEscape(`${row.testName} [${row.variant}]`);
     const classname = xmlEscape(`${projectName}.${row.kind}`);
     const body =
-      row.outcome === 'pending'
+      row.outcome === 'pending' || row.outcome === 'failed'
         ? `<failure message="${xmlEscape(row.detail)}">${xmlEscape(testUrl(baseUrl, projectName, row.testName, row.branchName))}</failure>`
         : '';
     return `    <testcase classname="${classname}" name="${name}" time="0">${body}</testcase>`;

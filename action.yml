@@ -69,6 +69,10 @@ inputs:
     description: Finish the run after the upload(s) and gate the step on the run status. Ignored without a run key.
     required: false
     default: "true"
+  report-path:
+    description: Optional path for a JUnit XML report of the run (requires run-key).
+    required: false
+    default: ""
   concurrency:
     description: Maximum number of manifest uploads in flight, 1-16.
     required: false
@@ -134,6 +138,7 @@ runs:
         INPUT_COMMIT_MESSAGE: ${{ inputs.commit-message }}
         INPUT_CI_URL: ${{ inputs.ci-url }}
         INPUT_FINISH_RUN: ${{ inputs.finish-run }}
+        INPUT_REPORT_PATH: ${{ inputs.report-path }}
         INPUT_CONCURRENCY: ${{ inputs.concurrency }}
         INPUT_WAIT_SECONDS: ${{ inputs.wait-seconds }}
         INPUT_FAIL_ON_PENDING: ${{ inputs.fail-on-pending }}

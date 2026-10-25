@@ -55,6 +55,7 @@ model UnifiedTest {
   comparisons  UnifiedComparison[]
   baselineRevisions BaselineRevision[]
   runUploads   RunUpload[]
+  comparisonJobs ComparisonJob[]
 
   @@unique([branchId, name])
   @@map("UnifiedTest")
@@ -329,6 +330,7 @@ model ComparisonOutcomeEvent {
 
 model ComparisonJob {
   id                  String        @id @default(cuid())
+  test                UnifiedTest   @relation(fields: [testId], references: [id], onDelete: Cascade)
   testId              String
   runId               String?
   runKey              String?

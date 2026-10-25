@@ -51,7 +51,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R5  | Global audit log                         | 2     | M    | —                             | Shipped     |
 | R6  | Run grouping                             | 3     | XL   | ADR-030                       | Shipped     |
 | R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Shipped     |
-| R8  | Reporting & exports                      | 3     | M–L  | R6                            | Planned     |
+| R8  | Reporting & exports                      | 3     | M–L  | R6                            | Shipped     |
 | R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Planned     |
 | R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9                            | Planned     |
 | R11 | API key scopes & ownership               | 4     | S–M  | R9                            | Planned     |
@@ -473,9 +473,10 @@ report.
 
 **Scope (v1).**
 
-- JUnit XML per run (tests as cases; pending review as failure with a dashboard
-  link), self-contained HTML report, CSV.
-- Run summary page: counts, duration, review state, links to comparisons.
+- JUnit XML per run (tests as cases; pending review **and failed jobs** as
+  failures with a dashboard link), self-contained HTML report, CSV.
+- Run summary page: counts, review state, links to comparisons. Duration is
+  derivable from the run timestamps but is not surfaced in v1.
 - A bounded `ComparisonOutcome` history (test/variant/run, outcome, mismatch,
   timestamp) written on every completion. Comparisons are deleted on approval, so
   this is the only durable source for trends and flake rates.
@@ -489,16 +490,25 @@ report.
 
 - Build reports from the R6 run read model plus the outcome history; one additive
   table, no changes to the comparison pipeline.
-- HTML report: decide between embedding thumbnails and linking presigned URLs
-  (the latter expires — document the TTL).
-- JUnit is the CI contract; the action gains an optional `report-path` input.
+- HTML report links to tests rather than embedding thumbnails: presigned URLs
+  expire, and the report must stay useful when downloaded later.
+- JUnit is the CI contract; the action's optional `report-path` writes it to
+  disk after the gate is read.
 
 **Acceptance.**
 
-- [ ] JUnit parses in a standard CI viewer
-- [ ] Pending and failed cases carry dashboard links
-- [ ] Summary counts match the run status endpoint
-- [ ] CSV export is stable across pages
+- [x] JUnit parses in a standard CI viewer
+- [x] Pending and failed cases carry dashboard links
+- [x] Summary counts match the run status endpoint
+- [x] CSV export is stable across pages
+
+**Verification.** Report builders are unit-tested (XML escaping, pending/failed
+failures, CSV rows, HTML links); an e2e covers the JUnit/CSV/trends endpoints;
+the action writes `report-path` after the gate; the trends page and report
+downloads are covered by frontend tests. JUnit XML is generated with escaped
+attributes and one `<testcase>` per test/variant; the CSV endpoint is unpaginated.
+The HTML report intentionally links to tests instead of embedding expiring
+presigned screenshots.
 
 **Size / dependencies.** M–L · depends on R6.
 

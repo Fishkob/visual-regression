@@ -2753,7 +2753,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "JUnit XML document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "JUnit XML for a run (pending review is a failure)",
@@ -2794,7 +2801,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "HTML report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "Self-contained HTML report for a run",
@@ -2835,7 +2849,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "CSV report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "summary": "CSV of the tests and outcomes of a run",
@@ -5498,6 +5519,34 @@
           "createdAt"
         ]
       },
+      "RunFailedJobDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "testName": {
+            "type": "string"
+          },
+          "branchName": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "testName",
+          "branchName",
+          "error",
+          "createdAt"
+        ]
+      },
       "RunDetailDto": {
         "type": "object",
         "properties": {
@@ -5524,6 +5573,12 @@
             "items": {
               "$ref": "#/components/schemas/RunUploadDto"
             }
+          },
+          "failedJobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunFailedJobDto"
+            }
           }
         },
         "required": [
@@ -5531,7 +5586,8 @@
           "status",
           "pending",
           "approvals",
-          "uploads"
+          "uploads",
+          "failedJobs"
         ]
       },
       "RunStatusResultDto": {

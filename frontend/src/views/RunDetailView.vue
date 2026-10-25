@@ -369,6 +369,44 @@ function mismatchLabel(item: RunPending): string {
           </div>
         </section>
 
+        <section v-if="detail.failedJobs.length > 0" class="space-y-2">
+          <h2 class="text-sm font-semibold text-muted-foreground">
+            Failed jobs ({{ detail.failedJobs.length }})
+          </h2>
+          <div class="overflow-hidden rounded-xl border bg-card shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Test</TableHead>
+                  <TableHead>Branch</TableHead>
+                  <TableHead>Error</TableHead>
+                  <TableHead>Age</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow
+                  v-for="job in detail.failedJobs"
+                  :key="job.id"
+                  :data-testid="TEST_ID.runFailedJobRow"
+                >
+                  <TableCell class="whitespace-nowrap font-medium">
+                    {{ job.testName }}
+                  </TableCell>
+                  <TableCell>{{ job.branchName }}</TableCell>
+                  <TableCell class="text-sm text-muted-foreground">
+                    {{ job.error }}
+                  </TableCell>
+                  <TableCell class="whitespace-nowrap text-sm">
+                    <span :title="absoluteTime(job.createdAt)">
+                      {{ formatRelativeAge(job.createdAt) }}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </section>
+
         <section class="space-y-2">
           <h2 class="text-sm font-semibold text-muted-foreground">
             Approvals ({{ detail.approvals.length }})

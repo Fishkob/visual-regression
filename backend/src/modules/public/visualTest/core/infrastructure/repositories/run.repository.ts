@@ -195,6 +195,22 @@ export class RunRepository extends BaseRepository {
     });
   }
 
+  async failedJobsForRun(runId: string, take: number) {
+    return this.client.comparisonJob.findMany({
+      where: { runId, status: 'FAILED' },
+      include: {
+        test: {
+          select: {
+            name: true,
+            branch: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take,
+    });
+  }
+
   async uploadsForRun(runId: string, take: number) {
     return this.client.runUpload.findMany({
       where: { runId },

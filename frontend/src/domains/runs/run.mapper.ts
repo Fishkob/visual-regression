@@ -162,6 +162,13 @@ export function mapRunDetail(
     status: mapRunStatus(dto.status),
     pending: mapRunPendingList(dto.pending),
     approvals: mapRunApprovalList(dto.approvals),
+    failedJobs: (dto.failedJobs ?? []).map((job) => ({
+      id: job.id,
+      testName: job.testName,
+      branchName: job.branchName,
+      error: job.error,
+      createdAt: job.createdAt,
+    })),
   };
 }
 

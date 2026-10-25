@@ -75,6 +75,7 @@ const detailDto = (overrides: Partial<RunDetailDto> = {}): RunDetailDto => ({
     },
   ],
   uploads: [],
+  failedJobs: [],
   ...overrides,
 });
 
@@ -246,6 +247,33 @@ describe("mapRunDetail", () => {
     expect(detail?.pending).toHaveLength(1);
     expect(detail?.approvals).toHaveLength(1);
     expect(detail?.approvals[0].approvedBy).toBe("ada");
+    expect(detail?.failedJobs).toEqual([]);
+  });
+
+  it("maps failed jobs", () => {
+    const detail = mapRunDetail(
+      detailDto({
+        failedJobs: [
+          {
+            id: "job-1",
+            testName: "cart",
+            branchName: "main",
+            error: "engine exploded",
+            createdAt: "2026-10-20T10:00:00.000Z",
+          },
+        ],
+      }),
+    );
+
+    expect(detail?.failedJobs).toEqual([
+      {
+        id: "job-1",
+        testName: "cart",
+        branchName: "main",
+        error: "engine exploded",
+        createdAt: "2026-10-20T10:00:00.000Z",
+      },
+    ]);
   });
 
   it("maps a missing payload to undefined", () => {
