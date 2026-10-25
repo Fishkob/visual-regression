@@ -47,7 +47,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R1  | Threshold auto-accept at diff time       | 1     | S    | —                             | Shipped     |
 | R2  | Diff UX v1                               | 1     | M    | —                             | Shipped     |
 | R3  | Baseline history & restore               | 2     | L    | —                             | In progress |
-| R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | In progress |
+| R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | Shipped     |
 | R5  | Global audit log                         | 2     | M    | —                             | In progress |
 | R6  | Run grouping                             | 3     | XL   | ADR-030                       | Planned     |
 | R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Planned     |
@@ -302,12 +302,18 @@ webhooks, per-user notification preferences.
 
 **Acceptance.**
 
-- [ ] A changed comparison produces exactly one `review.requested` delivery
-- [ ] Signature verifies with the endpoint secret; wrong secret fails
-- [ ] Retries stop after 5 attempts and are visible with the last error
-- [ ] Replay resends the same payload idempotently (`X-VRT-Delivery-Id`)
-- [ ] Disabling an endpoint stops new deliveries but keeps the log
-- [ ] Slack preset produces a usable message
+- [x] A changed comparison produces exactly one `review.requested` delivery
+- [x] Signature verifies with the endpoint secret; wrong secret fails
+- [x] Retries stop after 5 attempts and are visible with the last error
+- [x] Replay resends the same payload idempotently (`X-VRT-Delivery-Id`)
+- [x] Disabling an endpoint stops new deliveries but keeps the log
+- [x] Slack preset produces a usable message
+
+**Verification.** Backend unit tests cover URL guard, signing, dispatch/retry,
+sender formats and settings; the frontend view test covers create + one-time
+secret, active toggle, delete, deliveries and replay. `job.failed` is deferred
+per ADR-029 (needs a queue observer seam). The webhooks view is not yet in the
+Playwright quality/axe gallery — follow-up.
 
 **Size / dependencies.** L · independent of R6, but `run.finished` ships with R6.
 
