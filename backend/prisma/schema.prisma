@@ -190,6 +190,8 @@ model Approval {
   pageCount          Int?
   approvedBy         String
   approvedAt         DateTime @default(now())
+  reason             ApprovalReason?
+  note               String?
 
   @@index([projectName, testName, approvedAt])
   @@index([approvedAt])
@@ -393,6 +395,12 @@ model ComparisonJob {
   @@index([runKey])
 }
 
+enum ApprovalReason {
+  INTENDED_CHANGE
+  FLAKE
+  INFRA
+}
+
 enum ShareScope {
   PROJECT
   TEST
@@ -526,6 +534,25 @@ model ShareLink {
   @@index([projectName])
   @@index([expiresAt])
   @@map("ShareLink")
+}
+
+model ReviewComment {
+  id           String    @id @default(cuid())
+  projectName  String
+  branchName   String?
+  testId       String
+  comparisonId String?
+  body         String
+  authorId     String?
+  author       String
+  resolvedAt   DateTime?
+  resolvedBy   String?
+  createdAt    DateTime  @default(now())
+
+  @@index([testId, createdAt])
+  @@index([comparisonId])
+  @@index([projectName, createdAt])
+  @@map("ReviewComment")
 }
 
 model ReviewAssignment {

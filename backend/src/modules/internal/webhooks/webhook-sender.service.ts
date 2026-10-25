@@ -87,7 +87,9 @@ export class WebhookSender {
           ? 'was approved'
           : payload.event === 'review.assigned'
             ? `was assigned to ${String(payload.assignee)}`
-            : 'test delivery';
+            : payload.event === 'review.comment'
+              ? `received a comment from ${String(payload.comment?.author)}`
+              : 'test delivery';
     return `[Visual regression] ${subject} ${action} — ${payload.links.review}`;
   }
 }

@@ -77,6 +77,7 @@ describe('ApprovalsController', () => {
         'comp-1',
         'jane.doe',
         undefined,
+        { reason: undefined, note: undefined },
       );
       expect(result).toEqual({
         approved: true,
@@ -123,6 +124,7 @@ describe('ApprovalsController', () => {
         'pdf-comp-1',
         'jane.doe',
         'feature/x',
+        { reason: undefined, note: undefined },
       );
       expect(result).toEqual({
         approved: true,
@@ -201,6 +203,7 @@ describe('ApprovalsController', () => {
 
       expect(result).toEqual({
         approved: 1,
+        pending: [],
         failed: [{ comparisonId: 'comp-9', error: 'Approval failed' }],
       });
     });
@@ -250,6 +253,8 @@ describe('ApprovalsController', () => {
           mismatchPixelCount: 42,
           mismatchPageCount: null,
           pageCount: null,
+          reason: null,
+          note: null,
         },
       ]);
       expect(result[0]).not.toHaveProperty('projectName');

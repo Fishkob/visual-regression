@@ -66,6 +66,7 @@ export class ApprovalsController {
       params.comparisonId,
       requireApprover(req),
       branch,
+      { reason: params.reason, note: params.note },
     );
   }
 
@@ -88,6 +89,7 @@ export class ApprovalsController {
       params.comparisonId,
       requireApprover(req),
       branch,
+      { reason: params.reason, note: params.note },
     );
   }
 

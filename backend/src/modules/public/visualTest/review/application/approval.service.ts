@@ -48,6 +48,11 @@ export interface ApprovalPendingResult {
 
 export type ApprovalResult = ApprovedResult | ApprovalPendingResult;
 
+export interface ApprovalDecisionOptions {
+  reason?: 'INTENDED_CHANGE' | 'FLAKE' | 'INFRA';
+  note?: string;
+}
+
 type ApprovalChangeResult =
   | {
       approved: true;
@@ -160,6 +165,7 @@ export class ApprovalService {
     comparisonId: string,
     approvedBy: string,
     branchName?: string,
+    options?: ApprovalDecisionOptions,
   ): Promise<ApprovalResult> {
     return this.executeApproval(
       'image',
@@ -168,6 +174,7 @@ export class ApprovalService {
       comparisonId,
       approvedBy,
       branchName,
+      options,
     );
   }
 
@@ -177,6 +184,7 @@ export class ApprovalService {
     comparisonId: string,
     approvedBy: string,
     branchName?: string,
+    options?: ApprovalDecisionOptions,
   ): Promise<ApprovalResult> {
     return this.executeApproval(
       'pdf',
@@ -185,6 +193,7 @@ export class ApprovalService {
       comparisonId,
       approvedBy,
       branchName,
+      options,
     );
   }
 
@@ -195,6 +204,7 @@ export class ApprovalService {
     comparisonId: string,
     approvedBy: string,
     branchName?: string,
+    options?: ApprovalDecisionOptions,
   ): Promise<ApprovalResult> {
     return this.tracker.track(TRACKED_OPERATIONS.approval[kind], async () => {
       const test = await this.resolveTestOfKind(
@@ -276,6 +286,8 @@ export class ApprovalService {
               pageCount:
                 comparison.pageCount ?? decision.newBaseline.pageCount ?? null,
               approvedBy,
+              reason: options?.reason ?? null,
+              note: options?.note ?? null,
             });
             await this.audit.record({
               actor: approvedBy,

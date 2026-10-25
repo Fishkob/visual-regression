@@ -94,6 +94,38 @@ export class WebhookDispatchService {
     });
   }
 
+  async enqueueReviewComment(input: {
+    projectName: string;
+    testName: string;
+    branchName: string | null;
+    kind: string;
+    author: string;
+    body: string;
+    comparisonId: string | null;
+  }): Promise<number> {
+    const project = await this.context.findProjectByName(input.projectName);
+    if (!project) return 0;
+    return this.enqueueForProject(project.id, 'review.comment', {
+      event: 'review.comment',
+      occurredAt: new Date().toISOString(),
+      project: { name: project.name },
+      test: { name: input.testName, kind: input.kind },
+      branch: input.branchName,
+      comment: {
+        author: input.author,
+        body: input.body,
+        comparisonId: input.comparisonId,
+      },
+      links: {
+        review: this.reviewLink(
+          project.name,
+          input.testName,
+          input.branchName ?? undefined,
+        ),
+      },
+    });
+  }
+
   async enqueueComparisonApproved(input: {
     projectName: string;
     testName: string;

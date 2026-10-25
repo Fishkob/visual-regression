@@ -135,6 +135,12 @@ import type { ProjectsControllerUpdateProjectData } from './models/ProjectsContr
 import type { ProjectsControllerUpdateProjectResponses } from './models/ProjectsControllerUpdateProjectResponses.gen';
 import type { PublicShareControllerResolveData } from './models/PublicShareControllerResolveData.gen';
 import type { PublicShareControllerResolveResponses } from './models/PublicShareControllerResolveResponses.gen';
+import type { ReviewCommentControllerCreateData } from './models/ReviewCommentControllerCreateData.gen';
+import type { ReviewCommentControllerCreateResponses } from './models/ReviewCommentControllerCreateResponses.gen';
+import type { ReviewCommentControllerListData } from './models/ReviewCommentControllerListData.gen';
+import type { ReviewCommentControllerListResponses } from './models/ReviewCommentControllerListResponses.gen';
+import type { ReviewCommentControllerResolveData } from './models/ReviewCommentControllerResolveData.gen';
+import type { ReviewCommentControllerResolveResponses } from './models/ReviewCommentControllerResolveResponses.gen';
 import type { ReviewInboxControllerGetBranchesData } from './models/ReviewInboxControllerGetBranchesData.gen';
 import type { ReviewInboxControllerGetBranchesResponses } from './models/ReviewInboxControllerGetBranchesResponses.gen';
 import type { ReviewInboxControllerGetPendingData } from './models/ReviewInboxControllerGetPendingData.gen';
@@ -964,6 +970,49 @@ export const assignmentControllerComplete = <ThrowOnError extends boolean = fals
             type: 'apiKey'
         }],
     url: '/assignments/{id}/complete',
+    ...options
+});
+
+/**
+ * List review comments for a test or comparison
+ */
+export const reviewCommentControllerList = <ThrowOnError extends boolean = false>(options: Options<ReviewCommentControllerListData, ThrowOnError>): RequestResult<ReviewCommentControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<ReviewCommentControllerListResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/tests/{testName}/comments',
+    ...options
+});
+
+/**
+ * Add a review comment
+ */
+export const reviewCommentControllerCreate = <ThrowOnError extends boolean = false>(options: Options<ReviewCommentControllerCreateData, ThrowOnError>): RequestResult<ReviewCommentControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<ReviewCommentControllerCreateResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/tests/{testName}/comments',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Resolve a review comment
+ */
+export const reviewCommentControllerResolve = <ThrowOnError extends boolean = false>(options: Options<ReviewCommentControllerResolveData, ThrowOnError>): RequestResult<ReviewCommentControllerResolveResponses, unknown, ThrowOnError> => (options.client ?? client).patch<ReviewCommentControllerResolveResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/tests/{testName}/comments/{id}/resolve',
     ...options
 });
 

@@ -15,6 +15,8 @@ export function mapApprovalToDto(record: ApprovalAuditRecord): ApprovalDto {
       comparisonId: record.comparisonId,
       testKind: record.testKind,
       branchName: record.branchName,
+      reason: record.reason ?? null,
+      note: record.note ?? null,
       variant: {
         viewport: record.variantViewport,
         browser: record.variantBrowser,

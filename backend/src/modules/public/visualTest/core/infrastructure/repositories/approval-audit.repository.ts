@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@/prisma/base.repository';
 import type { TestKind } from '@common/domain/test-kind';
+import type { ApprovalReason } from '@/prisma/client';
 
 // Everything an approval records about the decision, denormalized at write
 // time. The row has no foreign keys on purpose: image approval deletes the
@@ -26,6 +27,8 @@ export interface ApprovalAuditEntry {
   mismatchPageCount: number | null;
   pageCount: number | null;
   approvedBy: string;
+  reason?: ApprovalReason | null;
+  note?: string | null;
 }
 
 export interface ApprovalAuditRecord extends ApprovalAuditEntry {

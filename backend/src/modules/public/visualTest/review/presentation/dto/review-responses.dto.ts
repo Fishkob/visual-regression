@@ -5,10 +5,12 @@ import {
   IsBoolean,
   IsDate,
   IsDefined,
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  MaxLength,
 } from 'class-validator';
 import { VariantDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 
@@ -66,6 +68,17 @@ export class ApproveComparisonBodyDto {
   @IsString()
   @IsNotEmpty()
   comparisonId!: string;
+
+  @ApiPropertyOptional({ enum: ['INTENDED_CHANGE', 'FLAKE', 'INFRA'] })
+  @IsOptional()
+  @IsIn(['INTENDED_CHANGE', 'FLAKE', 'INFRA'])
+  reason?: 'INTENDED_CHANGE' | 'FLAKE' | 'INFRA';
+
+  @ApiPropertyOptional({ maxLength: 2000 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
 }
 
 // One comparison a bulk approval could not approve. Partial failure is a normal

@@ -53,6 +53,21 @@ export class ApprovalDto {
   testKind!: TestKind;
 
   @ApiPropertyOptional({
+    enum: ['INTENDED_CHANGE', 'FLAKE', 'INFRA'],
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  reason?: string | null;
+
+  @ApiPropertyOptional({ type: String, nullable: true })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  note?: string | null;
+
+  @ApiPropertyOptional({
     nullable: true,
     type: String,
     description:

@@ -103,7 +103,9 @@
                 "share.revoke",
                 "share.access",
                 "review.assign",
-                "review.complete"
+                "review.complete",
+                "review.comment",
+                "review.comment-resolve"
               ]
             }
           },
@@ -194,7 +196,9 @@
                 "share.revoke",
                 "share.access",
                 "review.assign",
-                "review.complete"
+                "review.complete",
+                "review.comment",
+                "review.comment-resolve"
               ]
             }
           },
@@ -3824,6 +3828,173 @@
         ]
       }
     },
+    "/projects/{projectName}/tests/{testName}/comments": {
+      "get": {
+        "operationId": "ReviewCommentController_list",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "comparisonId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "List review comments for a test or comparison",
+        "tags": [
+          "Review comments"
+        ]
+      },
+      "post": {
+        "operationId": "ReviewCommentController_create",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Add a review comment",
+        "tags": [
+          "Review comments"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/comments/{id}/resolve": {
+      "patch": {
+        "operationId": "ReviewCommentController_resolve",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Resolve a review comment",
+        "tags": [
+          "Review comments"
+        ]
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "AuthController_login",
@@ -5289,6 +5460,18 @@
             "type": "string",
             "example": "cm0xyz123",
             "description": "Id of the comparison the reviewer approved"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "INTENDED_CHANGE",
+              "FLAKE",
+              "INFRA"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
           }
         },
         "required": [
@@ -5415,6 +5598,19 @@
               "image",
               "pdf"
             ]
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "INTENDED_CHANGE",
+              "FLAKE",
+              "INFRA"
+            ],
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
           },
           "branchName": {
             "type": "string",
@@ -6317,7 +6513,8 @@
               "enum": [
                 "review.requested",
                 "comparison.approved",
-                "review.assigned"
+                "review.assigned",
+                "review.comment"
               ]
             }
           },
@@ -6406,7 +6603,8 @@
               "enum": [
                 "review.requested",
                 "comparison.approved",
-                "review.assigned"
+                "review.assigned",
+                "review.comment"
               ]
             }
           },
@@ -7723,6 +7921,81 @@
           "completedAt",
           "createdAt",
           "isOverdue"
+        ]
+      },
+      "CommentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "branchName": {
+            "type": "string",
+            "nullable": true
+          },
+          "testId": {
+            "type": "string"
+          },
+          "comparisonId": {
+            "type": "string",
+            "nullable": true
+          },
+          "body": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "author": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "resolvedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolvedBy": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "projectName",
+          "branchName",
+          "testId",
+          "comparisonId",
+          "body",
+          "authorId",
+          "author",
+          "createdAt",
+          "resolvedAt",
+          "resolvedBy"
+        ]
+      },
+      "CreateCommentDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "comparisonId": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
         ]
       },
       "LoginDto": {

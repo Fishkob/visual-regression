@@ -2,6 +2,7 @@ export const WEBHOOK_SUBSCRIPTION_EVENTS = [
   'review.requested',
   'comparison.approved',
   'review.assigned',
+  'review.comment',
 ] as const;
 
 export type WebhookSubscriptionEvent =
@@ -32,6 +33,7 @@ export interface WebhookPayload {
   approvedBy?: string;
   assignee?: string;
   dueAt?: string | null;
+  comment?: { author: string; body: string; comparisonId: string | null };
   links: { review: string };
 }
 

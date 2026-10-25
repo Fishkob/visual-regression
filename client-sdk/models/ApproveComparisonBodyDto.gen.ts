@@ -5,4 +5,6 @@ export type ApproveComparisonBodyDto = {
      * Id of the comparison the reviewer approved
      */
     comparisonId: string;
+    reason?: 'INTENDED_CHANGE' | 'FLAKE' | 'INFRA';
+    note?: string;
 };

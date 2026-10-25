@@ -356,6 +356,8 @@ describe('ApprovalService', () => {
         mismatchPageCount: null,
         pageCount: null,
         approvedBy: 'jane.doe',
+        reason: null,
+        note: null,
       });
     });
 

@@ -45,6 +45,9 @@ import { SearchService } from '@public/visualTest/review/application/search.serv
 import { SearchRepository } from '@public/visualTest/review/infrastructure/repositories/search.repository';
 import { StorageController } from '@public/visualTest/review/presentation/controllers/storage.controller';
 import { RetentionPreviewService } from '@public/visualTest/review/application/retention-preview.service';
+import { ReviewCommentService } from '@public/visualTest/review/application/review-comment.service';
+import { ReviewCommentRepository } from '@public/visualTest/review/infrastructure/repositories/review-comment.repository';
+import { ReviewCommentController } from '@public/visualTest/review/presentation/controllers/comment.controller';
 import { ReviewAssignmentService } from '@public/visualTest/review/application/review-assignment.service';
 import { ReviewAssignmentRepository } from '@public/visualTest/review/infrastructure/repositories/review-assignment.repository';
 import { AssignmentController } from '@public/visualTest/review/presentation/controllers/assignment.controller';
@@ -94,6 +97,7 @@ import {
     ShareLinkRevokeController,
     PublicShareController,
     AssignmentController,
+    ReviewCommentController,
   ],
   providers: [
     TestQueryService,
@@ -122,6 +126,8 @@ import {
     ShareLinkRepository,
     ReviewAssignmentService,
     ReviewAssignmentRepository,
+    ReviewCommentService,
+    ReviewCommentRepository,
   ],
 })
 export class ReviewModule {}

@@ -2,7 +2,7 @@
 
 export type CreateWebhookDto = {
     url: string;
-    events: Array<'review.requested' | 'comparison.approved' | 'review.assigned'>;
+    events: Array<'review.requested' | 'comparison.approved' | 'review.assigned' | 'review.comment'>;
     format?: 'json' | 'slack';
     /**
      * Custom signing secret (min 16 chars). Generated and returned once when omitted.

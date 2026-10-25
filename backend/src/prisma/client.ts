@@ -6,6 +6,7 @@ export {
   TestKind,
   UserRole,
   ShareScope,
+  ApprovalReason,
   TestStatus,
   JobStatus,
   type User,

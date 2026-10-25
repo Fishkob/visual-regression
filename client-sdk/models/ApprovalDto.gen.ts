@@ -20,6 +20,8 @@ export type ApprovalDto = {
      */
     comparisonId: string;
     testKind: 'image' | 'pdf';
+    reason?: 'INTENDED_CHANGE' | 'FLAKE' | 'INFRA';
+    note?: string | null;
     /**
      * Branch the approval was made on, or null when the caller did not name one
      */
