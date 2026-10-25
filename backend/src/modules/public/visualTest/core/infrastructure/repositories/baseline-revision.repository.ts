@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@/prisma/client';
 import { BaseRepository } from '@/prisma/base.repository';
 import type { VariantFilter } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import type { BaselineRevisionReason } from '@public/visualTest/core/domain/types/visual-test.types';
@@ -75,6 +76,25 @@ export class BaselineRevisionRepository extends BaseRepository {
   // variant and return the deleted URLs. The caller funnels them through the
   // reclaim filter before touching storage — a URL another branch's revision
   // still references must survive.
+  async countBeyondLimit(projectName: string, limit: number): Promise<number> {
+    const rows = await this.client.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+      SELECT COUNT(*)::bigint AS count
+      FROM (
+        SELECT ROW_NUMBER() OVER (
+          PARTITION BY r."variantId"
+          ORDER BY r."createdAt" DESC, r."id" DESC
+        ) AS rn
+        FROM "BaselineRevision" r
+        JOIN "UnifiedTest" t ON t.id = r."testId"
+        JOIN "Branch" b ON b.id = t."branchId"
+        JOIN "Project" p ON p.id = b."projectId"
+        WHERE p.name = ${projectName}
+      ) ranked
+      WHERE ranked.rn > ${limit}
+    `);
+    return Number(rows[0]?.count ?? 0);
+  }
+
   async pruneBeyond(
     testId: string,
     variantId: string,

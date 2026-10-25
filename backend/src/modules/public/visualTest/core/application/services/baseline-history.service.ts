@@ -13,6 +13,7 @@ import {
   BaselineRevisionRepository,
   type BaselineRevisionRow,
 } from '@public/visualTest/core/infrastructure/repositories/baseline-revision.repository';
+import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import {
@@ -58,6 +59,7 @@ export class BaselineHistoryService {
     private readonly workflow: StateChangeWorkflow,
     private readonly testResolver: TestResolver,
     private readonly config: AppConfigService,
+    private readonly projects: ProjectRepository,
     private readonly audit: AuditService,
     @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
   ) {}
@@ -73,11 +75,8 @@ export class BaselineHistoryService {
       testName,
       branchName,
     );
-    const rows = await this.revisions.findForTest(
-      test.id,
-      filters,
-      this.config.baselineHistory.limit,
-    );
+    const limit = await this.effectiveLimit(test.id);
+    const rows = await this.revisions.findForTest(test.id, filters, limit);
     return rows.map((row) => ({
       ...row,
       signedImageUrl: this.storage.signUrl(row.imageUrl),
@@ -123,9 +122,14 @@ export class BaselineHistoryService {
     const pruned = await this.revisions.pruneBeyond(
       input.testId,
       variantId,
-      this.config.baselineHistory.limit,
+      await this.effectiveLimit(input.testId),
     );
     return this.screenshots.filterReclaimableUrls(pruned);
+  }
+
+  private async effectiveLimit(testId: string): Promise<number> {
+    const project = await this.projects.findByTestId(testId);
+    return project?.baselineRevisionLimit ?? this.config.baselineHistory.limit;
   }
 
   async restore(input: RestoreBaselineInput): Promise<RestoreBaselineResult> {

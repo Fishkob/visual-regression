@@ -19,6 +19,12 @@ export interface ProjectData {
 
 @Injectable()
 export class ProjectRepository extends BaseRepository {
+  async findByTestId(testId: string): Promise<ProjectData | null> {
+    return this.client.project.findFirst({
+      where: { branches: { some: { tests: { some: { id: testId } } } } },
+    });
+  }
+
   async findByName(projectName: string): Promise<ProjectData | null> {
     const result = await this.client.project.findUnique({
       where: { name: projectName },

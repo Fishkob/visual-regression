@@ -58,6 +58,17 @@ describe('Storage visibility and quota (e2e)', () => {
         softPercent: 70,
       }),
     );
+
+    const preview = await authRequest(app)
+      .get('/api/v1/projects/shop/storage/preview')
+      .expect(200);
+    expect(preview.body).toEqual(
+      expect.objectContaining({
+        baselineRevisions: { limit: 3, overflow: 0 },
+        runs: { days: 14, eligible: 0 },
+        orphanGraceHours: 12,
+      }),
+    );
   });
 
   it('rejects an upload above the hard quota with 413', async () => {

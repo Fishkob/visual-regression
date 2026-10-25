@@ -3450,6 +3450,37 @@
         ]
       }
     },
+    "/projects/{projectName}/storage/preview": {
+      "get": {
+        "operationId": "StorageController_previewRetention",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetentionPreviewDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Dry-run: what retention would reclaim without deleting anything",
+        "tags": [
+          "Storage"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -6871,11 +6902,91 @@
         },
         "required": [
           "usageBytes",
+          "quotaBytes",
           "percent",
           "softPercent",
           "warning",
           "fileCount",
-          "diffCount"
+          "diffCount",
+          "baselineRevisionLimit",
+          "runHistoryDays",
+          "orphanGraceHours"
+        ]
+      },
+      "BaselineRevisionPreviewDto": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "number"
+          },
+          "overflow": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "limit",
+          "overflow"
+        ]
+      },
+      "RunRetentionPreviewDto": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "number"
+          },
+          "eligible": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "days",
+          "eligible"
+        ]
+      },
+      "RetentionStoragePreviewDto": {
+        "type": "object",
+        "properties": {
+          "usageBytes": {
+            "type": "string"
+          },
+          "quotaBytes": {
+            "type": "string",
+            "nullable": true
+          },
+          "percent": {
+            "type": "number"
+          },
+          "warning": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "usageBytes",
+          "percent",
+          "warning"
+        ]
+      },
+      "RetentionPreviewDto": {
+        "type": "object",
+        "properties": {
+          "baselineRevisions": {
+            "$ref": "#/components/schemas/BaselineRevisionPreviewDto"
+          },
+          "runs": {
+            "$ref": "#/components/schemas/RunRetentionPreviewDto"
+          },
+          "orphanGraceHours": {
+            "type": "number"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/RetentionStoragePreviewDto"
+          }
+        },
+        "required": [
+          "baselineRevisions",
+          "runs",
+          "orphanGraceHours",
+          "storage"
         ]
       },
       "UpdateRetentionDto": {

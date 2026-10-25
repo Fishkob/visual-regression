@@ -3,6 +3,8 @@ import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
+import { RetentionPreviewService } from '@public/visualTest/review/application/retention-preview.service';
+import { RetentionPreviewDto } from '@public/visualTest/review/presentation/dto/retention-preview.dto';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
 import {
   StorageUsageDto,
@@ -15,6 +17,7 @@ export class StorageController {
   constructor(
     private readonly storage: StorageUsageService,
     private readonly projects: ProjectService,
+    private readonly preview: RetentionPreviewService,
   ) {}
 
   @Get()
@@ -27,6 +30,20 @@ export class StorageController {
   ): Promise<StorageUsageDto> {
     const usage = await this.storage.get(projectName);
     return plainToInstance(StorageUsageDto, usage, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Get('preview')
+  @ApiOperation({
+    summary: 'Dry-run: what retention would reclaim without deleting anything',
+  })
+  @ApiOkResponse({ type: RetentionPreviewDto })
+  async previewRetention(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+  ): Promise<RetentionPreviewDto> {
+    const preview = await this.preview.get(projectName);
+    return plainToInstance(RetentionPreviewDto, preview, {
       excludeExtraneousValues: true,
     });
   }

@@ -5,7 +5,7 @@ export type StorageUsageDto = {
      * Current stored bytes (screenshots + diffs)
      */
     usageBytes: string;
-    quotaBytes?: string | null;
+    quotaBytes: string | null;
     /**
      * Usage as a percentage of the hard quota
      */
@@ -17,7 +17,7 @@ export type StorageUsageDto = {
     warning: boolean;
     fileCount: number;
     diffCount: number;
-    baselineRevisionLimit?: number | null;
-    runHistoryDays?: number | null;
-    orphanGraceHours?: number | null;
+    baselineRevisionLimit: number | null;
+    runHistoryDays: number | null;
+    orphanGraceHours: number | null;
 };

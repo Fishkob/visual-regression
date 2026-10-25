@@ -11,4 +11,5 @@ export const MAINTENANCE_LOCK_IDS = {
   rateLimitBucketCleanup: 1005,
   sessionCleanup: 1006,
   runAutoFinish: 1007,
+  runHistoryCleanup: 1008,
 } as const;

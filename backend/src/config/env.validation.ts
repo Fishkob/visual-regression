@@ -60,6 +60,13 @@ export const envValidationSchema = Joi.object({
   NODE_MODE: Joi.string().valid('api', 'worker').default('api'),
 
   // Job queue
+  RUN_HISTORY_RETENTION_DAYS: Joi.number()
+    .integer()
+    .min(1)
+    .default(365)
+    .description(
+      'Default days to keep finished runs (per-project overrides win)',
+    ),
   JOB_RETENTION_DAYS: Joi.number()
     .default(7)
     .description(

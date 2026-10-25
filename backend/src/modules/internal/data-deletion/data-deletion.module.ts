@@ -16,6 +16,7 @@ import { UnreferencedObjectCleanupTask } from '@internal/data-deletion/tasks/unr
 import { RateLimitBucketCleanupTask } from '@internal/data-deletion/tasks/rate-limit-bucket-cleanup.task';
 import { SessionCleanupTask } from '@internal/data-deletion/tasks/session-cleanup.task';
 import { RunAutoFinishTask } from '@internal/data-deletion/tasks/run-auto-finish.task';
+import { RunHistoryCleanupTask } from '@internal/data-deletion/tasks/run-history-cleanup.task';
 import { OrphanCleanupService } from './services/orphan-cleanup.service';
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
     RateLimitBucketCleanupTask,
     SessionCleanupTask,
     RunAutoFinishTask,
+    RunHistoryCleanupTask,
     {
       provide: MAINTENANCE_TASKS,
       useFactory: (
@@ -45,6 +47,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         rateLimitBucketCleanupTask: RateLimitBucketCleanupTask,
         sessionCleanupTask: SessionCleanupTask,
         runAutoFinishTask: RunAutoFinishTask,
+        runHistoryCleanupTask: RunHistoryCleanupTask,
       ) =>
         [
           orphanCleanupService,
@@ -54,6 +57,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
           rateLimitBucketCleanupTask,
           sessionCleanupTask,
           runAutoFinishTask,
+          runHistoryCleanupTask,
         ] as MaintenanceTask[],
       inject: [
         OrphanCleanupService,
@@ -63,6 +67,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         RateLimitBucketCleanupTask,
         SessionCleanupTask,
         RunAutoFinishTask,
+        RunHistoryCleanupTask,
       ],
     },
   ],

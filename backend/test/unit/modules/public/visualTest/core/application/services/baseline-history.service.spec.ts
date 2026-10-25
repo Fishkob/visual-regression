@@ -27,6 +27,7 @@ import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastruct
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { AppConfigService } from '@config/app-config.service';
 import { AuditService } from '@internal/audit/audit.service';
+import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { createMock } from '@test/utils/create-mock';
 import {
   createMockLogger,
@@ -112,6 +113,10 @@ describe('BaselineHistoryService', () => {
         { provide: VariantStore, useValue: variants },
         { provide: ComparisonRetirementService, useValue: retirement },
         { provide: TestResolver, useValue: testResolver },
+        {
+          provide: ProjectRepository,
+          useValue: { findByTestId: vi.fn().mockResolvedValue(null) },
+        },
         {
           provide: AppConfigService,
           useValue: { baselineHistory: { limit: 10 } },

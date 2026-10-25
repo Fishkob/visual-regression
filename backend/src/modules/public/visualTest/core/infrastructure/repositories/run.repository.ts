@@ -103,6 +103,27 @@ export class RunRepository extends BaseRepository {
     return result.count > 0;
   }
 
+  async listRetentionProjects(): Promise<
+    { id: string; runHistoryDays: number | null }[]
+  > {
+    return this.client.project.findMany({
+      select: { id: true, runHistoryDays: true },
+    });
+  }
+
+  async deleteFinishedBefore(projectId: string, cutoff: Date): Promise<number> {
+    const result = await this.client.run.deleteMany({
+      where: { projectId, finishedAt: { lt: cutoff } },
+    });
+    return result.count;
+  }
+
+  async countFinishedBefore(projectId: string, cutoff: Date): Promise<number> {
+    return this.client.run.count({
+      where: { projectId, finishedAt: { lt: cutoff } },
+    });
+  }
+
   async finishIdleBefore(cutoff: Date): Promise<number> {
     const result = await this.client.run.updateMany({
       where: { finishedAt: null, lastActivityAt: { lt: cutoff } },

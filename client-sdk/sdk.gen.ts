@@ -149,6 +149,8 @@ import type { SearchControllerQueryData } from './models/SearchControllerQueryDa
 import type { SearchControllerQueryResponses } from './models/SearchControllerQueryResponses.gen';
 import type { StorageControllerGetData } from './models/StorageControllerGetData.gen';
 import type { StorageControllerGetResponses } from './models/StorageControllerGetResponses.gen';
+import type { StorageControllerPreviewRetentionData } from './models/StorageControllerPreviewRetentionData.gen';
+import type { StorageControllerPreviewRetentionResponses } from './models/StorageControllerPreviewRetentionResponses.gen';
 import type { StorageControllerUpdateData } from './models/StorageControllerUpdateData.gen';
 import type { StorageControllerUpdateResponses } from './models/StorageControllerUpdateResponses.gen';
 import type { TestCommandsControllerDeleteVisualTestData } from './models/TestCommandsControllerDeleteVisualTestData.gen';
@@ -827,6 +829,15 @@ export const storageControllerUpdate = <ThrowOnError extends boolean = false>(op
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * Dry-run: what retention would reclaim without deleting anything
+ */
+export const storageControllerPreviewRetention = <ThrowOnError extends boolean = false>(options: Options<StorageControllerPreviewRetentionData, ThrowOnError>): RequestResult<StorageControllerPreviewRetentionResponses, unknown, ThrowOnError> => (options.client ?? client).get<StorageControllerPreviewRetentionResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/storage/preview',
+    ...options
 });
 
 export const healthControllerCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckData, ThrowOnError>): RequestResult<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError>({ url: '/health', ...options });

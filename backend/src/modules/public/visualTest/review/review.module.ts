@@ -42,6 +42,7 @@ import { SearchController } from '@public/visualTest/review/presentation/control
 import { SearchService } from '@public/visualTest/review/application/search.service';
 import { SearchRepository } from '@public/visualTest/review/infrastructure/repositories/search.repository';
 import { StorageController } from '@public/visualTest/review/presentation/controllers/storage.controller';
+import { RetentionPreviewService } from '@public/visualTest/review/application/retention-preview.service';
 import {
   BulkActionsController,
   ProjectsBulkController,
@@ -98,6 +99,7 @@ import {
     TestLifecycleService,
     SearchService,
     SearchRepository,
+    RetentionPreviewService,
   ],
 })
 export class ReviewModule {}
