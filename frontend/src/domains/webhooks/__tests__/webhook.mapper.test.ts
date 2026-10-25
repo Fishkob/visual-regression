@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { WebhookDeliveryDto, WebhookEndpointDto } from "@sdk";
+import type { WebhookEndpointDto } from "@sdk";
 import {
   mapWebhookDeliveries,
   mapWebhookDelivery,
   mapWebhookEndpoint,
   mapWebhookEndpoints,
   webhookSecretOf,
+  type WebhookDeliverySource,
 } from "../webhook.mapper";
 import { webhookEventLabel } from "../webhook.model";
 
@@ -24,8 +25,8 @@ const endpointDto = (
 });
 
 const deliveryDto = (
-  overrides: Partial<WebhookDeliveryDto> = {},
-): WebhookDeliveryDto => ({
+  overrides: Partial<WebhookDeliverySource> = {},
+): WebhookDeliverySource => ({
   id: "d-1",
   event: "review.requested",
   status: "PENDING",

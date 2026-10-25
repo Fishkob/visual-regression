@@ -45,6 +45,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/projects/:projectName/webhooks",
+    name: "project-webhooks",
+    component: () => import("@/views/WebhooksView.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/projects/:projectName/tests/:testName",
     name: "test-detail",
     component: () => import("@/components/TestDetailDispatcher.vue"),

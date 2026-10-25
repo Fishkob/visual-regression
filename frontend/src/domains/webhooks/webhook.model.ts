@@ -38,10 +38,7 @@ export interface WebhookEndpoint {
 }
 
 export type WebhookDeliveryStatus =
-  | "PENDING"
-  | "PROCESSING"
-  | "DELIVERED"
-  | "FAILED";
+  "PENDING" | "PROCESSING" | "DELIVERED" | "FAILED";
 
 export const WEBHOOK_DELIVERY_STATUS_LABEL: Record<
   WebhookDeliveryStatus,

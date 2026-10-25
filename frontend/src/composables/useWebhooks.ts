@@ -13,7 +13,10 @@ import {
   type WebhookReplayResultDto,
   type WebhookTestResultDto,
 } from "@sdk";
-import { mapWebhookDeliveries, mapWebhookEndpoints } from "@/domains/webhooks/webhook.mapper";
+import {
+  mapWebhookDeliveries,
+  mapWebhookEndpoints,
+} from "@/domains/webhooks/webhook.mapper";
 import { webhookQueryKeys } from "@/domains/webhooks/query-keys";
 import type {
   CreateWebhookInput,
@@ -44,10 +47,7 @@ export function useWebhookMutations(projectName: MaybeRef<string>) {
   const invalidate = (client: QueryClient) =>
     invalidateWebhooks(client, unref(projectName));
 
-  const create = useSdkMutation<
-    CreatedWebhookEndpointDto,
-    CreateWebhookInput
-  >({
+  const create = useSdkMutation<CreatedWebhookEndpointDto, CreateWebhookInput>({
     mutationFn: ({ url, events, format, secret }) =>
       webhooksControllerCreate({
         path: { projectName: unref(projectName) },
@@ -109,18 +109,15 @@ export function useWebhookMutations(projectName: MaybeRef<string>) {
 // The delivery log of one endpoint. Gated on `enabled` because a collapsed
 // panel must not fetch; the key stays per endpoint so opening a second one
 // reuses its cached log instead of refetching the first.
-export function useWebhookDeliveries(options: {
-  projectName: MaybeRef<string>;
-  endpointId: MaybeRef<string>;
-  enabled: MaybeRef<boolean>;
-}) {
+export function useWebhookDeliveries(
+  projectName: MaybeRef<string>,
+  endpointId: MaybeRef<string>,
+  enabled: MaybeRef<boolean>,
+) {
   const query = useSdkQuery({
-    args: {
-      projectName: options.projectName,
-      endpointId: options.endpointId,
-    },
+    args: { projectName, endpointId },
     required: ["projectName", "endpointId"],
-    enabled: options.enabled,
+    enabled,
     keyOf: ({ projectName, endpointId }) =>
       webhookQueryKeys.deliveries(projectName, endpointId),
     sdkFn: ({ projectName, endpointId }) =>
@@ -134,8 +131,8 @@ export function useWebhookDeliveries(options: {
     mutationFn: (deliveryId) =>
       webhooksControllerReplay({
         path: {
-          projectName: unref(options.projectName),
-          id: unref(options.endpointId),
+          projectName: unref(projectName),
+          id: unref(endpointId),
           deliveryId,
         },
       }),
@@ -144,8 +141,8 @@ export function useWebhookDeliveries(options: {
     invalidate: (client) =>
       invalidateWebhookDeliveries(
         client,
-        unref(options.projectName),
-        unref(options.endpointId),
+        unref(projectName),
+        unref(endpointId),
       ),
   });
 

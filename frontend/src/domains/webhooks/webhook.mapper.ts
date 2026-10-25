@@ -1,7 +1,4 @@
-import type {
-  WebhookDeliveryDto,
-  WebhookEndpointDto,
-} from "@sdk";
+import type { WebhookDeliveryDto, WebhookEndpointDto } from "@sdk";
 import type {
   WebhookDelivery,
   WebhookDeliveryStatus,
@@ -32,6 +29,16 @@ function presentNumber(value: unknown): number | null {
 
 function presentString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+// The wire carries ISO strings; a `Date` is accepted too because the backend
+// DTO declares these columns as dates and a direct (non-JSON) call would hand
+// one over.
+function presentIso(value: unknown): string | null {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  }
+  return presentString(value);
 }
 
 function presentStatus(value: string | undefined): WebhookDeliveryStatus {
@@ -85,9 +92,9 @@ export function mapWebhookDelivery(
     attempts: dto.attempts ?? 0,
     responseStatus: presentNumber(dto.responseStatus),
     lastError: presentString(dto.lastError),
-    nextAttemptAt: presentString(dto.nextAttemptAt),
+    nextAttemptAt: presentIso(dto.nextAttemptAt),
     createdAt: dto.createdAt ?? "",
-    deliveredAt: presentString(dto.deliveredAt),
+    deliveredAt: presentIso(dto.deliveredAt),
   };
 }
 

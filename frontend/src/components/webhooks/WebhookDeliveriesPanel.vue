@@ -21,11 +21,11 @@ const props = defineProps<{
 }>();
 
 const { data, isLoading, error, refetch, replay, isReplaying } =
-  useWebhookDeliveries({
-    projectName: toRef(props, "projectName"),
-    endpointId: toRef(props, "endpointId"),
-    enabled: toRef(props, "expanded"),
-  });
+  useWebhookDeliveries(
+    toRef(props, "projectName"),
+    toRef(props, "endpointId"),
+    toRef(props, "expanded"),
+  );
 
 const deliveries = computed(() => data.value ?? []);
 

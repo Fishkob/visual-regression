@@ -94,6 +94,15 @@
         >
           Move to group
         </Button>
+        <RouterLink
+          v-if="project"
+          :to="{ name: 'project-webhooks', params: { projectName } }"
+          :class="buttonVariants({ variant: 'outline', size: 'sm' })"
+          :data-testid="TEST_ID.webhooksLink"
+        >
+          <Webhook class="h-4 w-4" />
+          Webhooks
+        </RouterLink>
       </div>
     </div>
 
@@ -141,7 +150,8 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { RouterLink, useRoute, useRouter } from "vue-router";
+import { Webhook } from "@lucide/vue";
 
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import AsyncState from "@/components/AsyncState.vue";
@@ -151,7 +161,7 @@ import VisualTestsTable from "@/components/tables/VisualTestsTable.vue";
 import PaginationBar from "@/components/PaginationBar.vue";
 import BranchActionsMenu from "@/components/branches/BranchActionsMenu.vue";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
