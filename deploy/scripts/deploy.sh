@@ -11,6 +11,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
 
+if grep -q "CHANGE_ME" charts/vrt/values.yaml; then
+  echo ""
+  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+  echo "WARNING: charts/vrt/values.yaml still contains CHANGE_ME placeholders."
+  echo "Override secrets.postgres_password and secrets.rustfs_secret_key (via"
+  echo "values.local.yaml or --set) before exposing this deployment."
+  echo "Continuing with the tracked defaults..."
+  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+  echo ""
+fi
+
 # Deploy using Helm
 echo "Deploying Helm chart..."
 helm upgrade --install vrt charts/vrt --namespace vrt --create-namespace

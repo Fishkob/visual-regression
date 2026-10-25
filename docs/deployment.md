@@ -102,15 +102,33 @@ This installs k3s, creates the `vrt` namespace and secrets (interactive), and pr
 
 Credentials live in the `vrt-secrets` Kubernetes secret, populated from the Helm chart's `secrets.*` values:
 
-| Secret key          | Value                                    |
-| ------------------- | ---------------------------------------- |
-| `postgres_user`     | `vrt`                                    |
-| `postgres_password` | your password (CHANGE_ME in values.yaml) |
-| `postgres_db`       | `vrt`                                    |
-| `rustfs_access_key` | `rustfsadmin`                            |
-| `rustfs_secret_key` | your key (CHANGE_ME in values.yaml)      |
+| Secret key                 | Value                                      |
+| -------------------------- | ------------------------------------------ |
+| `postgres_user`            | `vrt`                                      |
+| `postgres_password`        | your password (CHANGE_ME in values.yaml)   |
+| `postgres_db`              | `vrt`                                      |
+| `rustfs_access_key`        | `rustfsadmin`                              |
+| `rustfs_secret_key`        | your key (CHANGE_ME in values.yaml)        |
+| `bootstrap_admin_username` | optional — first admin username            |
+| `bootstrap_admin_password` | optional — first admin password            |
+| `admin_api_key`            | optional — enables the DLQ admin endpoints |
+| `metrics_api_key`          | optional — enables the metrics endpoint    |
 
 **Never commit real credentials** — `values.yaml` ships `CHANGE_ME` placeholders, and the root `.gitignore` already excludes `values.local.yaml` for local overrides.
+
+### First login
+
+A fresh install has no user accounts. Set both bootstrap values (in `values.local.yaml` or via `--set` before installing) to create the first admin:
+
+```bash
+helm upgrade --install vrt deploy/charts/vrt --namespace vrt --create-namespace \
+  --set secrets.bootstrap_admin_username=admin \
+  --set secrets.bootstrap_admin_password='<strong-password>'
+```
+
+The bootstrap runs only when **both** `secrets.bootstrap_admin_username` and `secrets.bootstrap_admin_password` are non-empty. Log in, then remove both values and roll the backend so the credentials no longer live in the release.
+
+`admin_api_key` and `metrics_api_key` are optional: set them to enable the DLQ admin and metrics endpoints, leave them empty to keep those endpoints disabled.
 
 ---
 

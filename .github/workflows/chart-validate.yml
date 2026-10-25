@@ -1,0 +1,30 @@
+name: Chart Validate
+
+on:
+  push:
+    paths:
+      - deploy/charts/**
+      - .github/workflows/chart-validate.yml
+  pull_request:
+    paths:
+      - deploy/charts/**
+      - .github/workflows/chart-validate.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Helm lint + template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Helm lint
+        run: docker run --rm -v "$PWD/deploy/charts/vrt:/chart:ro" alpine/helm:3.16.4 lint /chart
+
+      - name: Helm template (default values)
+        run: docker run --rm -v "$PWD/deploy/charts/vrt:/chart:ro" alpine/helm:3.16.4 template vrt /chart > /dev/null
+
+      - name: Helm template (secret overrides)
+        run: docker run --rm -v "$PWD/deploy/charts/vrt:/chart:ro" alpine/helm:3.16.4 template vrt /chart --set secrets.postgres_password=test > /dev/null

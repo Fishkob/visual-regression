@@ -20,6 +20,13 @@ secrets:
   postgres_db: vrt
   rustfs_access_key: rustfsadmin
   rustfs_secret_key: CHANGE_ME
+  # Bootstrap the first admin on a fresh install — only used when both are
+  # non-empty. Remove them again after the first login.
+  bootstrap_admin_username: ""
+  bootstrap_admin_password: ""
+  # Optional API keys (empty disables the DLQ admin / metrics endpoints).
+  admin_api_key: ""
+  metrics_api_key: ""
 
 images:
   # Images are published by the release pipeline: release-please cuts a git tag
@@ -87,6 +94,7 @@ backend:
     TRUST_PROXY: "false"
     LOG_LEVEL: info
     OTEL_EXPORTER_OTLP_ENDPOINT: ""
+  extraEnv: []
   resources:
     requests:
       cpu: 100m
