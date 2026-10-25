@@ -374,6 +374,15 @@ documented separately in [docs/deployment.md](docs/deployment.md).
 
 ---
 
+## Roadmap
+
+The gap analysis and the ordered backlog live in
+[docs/roadmap.md](docs/roadmap.md): review-noise reduction, diff UX, baseline
+history, notifications, run grouping, team roles and the long-tail items. Every
+entry carries scope, acceptance criteria, size and dependencies.
+
+---
+
 ## Security Considerations
 
 This platform is designed to run in a **private/trusted network**:
