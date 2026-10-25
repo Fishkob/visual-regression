@@ -1,4 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { Allow, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { UNASSIGNED_GROUP_FILTER } from '@common/domain/group-filter';
@@ -12,6 +13,11 @@ import { MAX_NAME_LENGTH } from '@common/http/pipes/name-validation.util';
 // so an array (`?branch=a&branch=b`) or a malformed name is a 400 on every
 // route, not a 422 on the DTO routes and a 400 on the pipe-only ones.
 export class BranchPaginationDto extends PaginationDto {
+  @ApiPropertyOptional({ description: 'Only reviews assigned to me' })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  assignedToMe?: boolean;
+
   @ApiPropertyOptional({
     description: 'Branch to read (defaults to the project default branch)',
   })

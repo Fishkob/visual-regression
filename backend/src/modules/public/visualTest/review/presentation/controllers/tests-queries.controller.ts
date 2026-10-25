@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import {
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -19,6 +19,7 @@ import { BranchPaginationDto } from '@common/dto/branch-pagination.dto';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import { PendingTestDto } from '@public/visualTest/review/presentation/dto/review-responses.dto';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
+import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { PaginatedResponseDto } from '@common/dto/paginated-response.dto';
@@ -76,11 +77,13 @@ export class TestsQueriesController {
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Query() pagination: BranchPaginationDto,
     @BranchQuery() branch?: string,
+    @Req() req?: AuthenticatedRequest,
   ) {
     return this.testQuery.getTestsWithPendingStatus(
       projectName,
       pagination,
       branch,
+      pagination.assignedToMe ? req?.auth?.userId : undefined,
     );
   }
 

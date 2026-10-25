@@ -101,7 +101,9 @@
                 "user.reset-password",
                 "share.create",
                 "share.revoke",
-                "share.access"
+                "share.access",
+                "review.assign",
+                "review.complete"
               ]
             }
           },
@@ -190,7 +192,9 @@
                 "user.reset-password",
                 "share.create",
                 "share.revoke",
-                "share.access"
+                "share.access",
+                "review.assign",
+                "review.complete"
               ]
             }
           },
@@ -1481,6 +1485,15 @@
             }
           },
           {
+            "name": "assignedToMe",
+            "required": false,
+            "in": "query",
+            "description": "Only reviews assigned to me",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "branch",
             "required": false,
             "in": "query",
@@ -1990,6 +2003,15 @@
               "minimum": 1,
               "maximum": 100,
               "type": "number"
+            }
+          },
+          {
+            "name": "assignedToMe",
+            "required": false,
+            "in": "query",
+            "description": "Only reviews assigned to me",
+            "schema": {
+              "type": "boolean"
             }
           },
           {
@@ -3647,6 +3669,158 @@
         "summary": "Resolve a share token (optional passphrase) to a read-only view",
         "tags": [
           "Share links"
+        ]
+      }
+    },
+    "/projects/{projectName}/assignments": {
+      "post": {
+        "operationId": "AssignmentController_create",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAssignmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Assign a test or run to a reviewer",
+        "tags": [
+          "Assignments"
+        ]
+      }
+    },
+    "/assignments/mine": {
+      "get": {
+        "operationId": "AssignmentController_mine",
+        "parameters": [
+          {
+            "name": "includeCompleted",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssignmentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "List my open review assignments",
+        "tags": [
+          "Assignments"
+        ]
+      }
+    },
+    "/assignments/mine/overdue": {
+      "get": {
+        "operationId": "AssignmentController_overdue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssignmentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "List my overdue review assignments",
+        "tags": [
+          "Assignments"
+        ]
+      }
+    },
+    "/assignments/{id}/complete": {
+      "post": {
+        "operationId": "AssignmentController_complete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Mark my assignment complete",
+        "tags": [
+          "Assignments"
         ]
       }
     },
@@ -6106,7 +6280,8 @@
               "type": "string",
               "enum": [
                 "review.requested",
-                "comparison.approved"
+                "comparison.approved",
+                "review.assigned"
               ]
             }
           },
@@ -6194,7 +6369,8 @@
               "type": "string",
               "enum": [
                 "review.requested",
-                "comparison.approved"
+                "comparison.approved",
+                "review.assigned"
               ]
             }
           },
@@ -7391,6 +7567,93 @@
           "runKey",
           "expiresAt",
           "project"
+        ]
+      },
+      "CreateAssignmentDto": {
+        "type": "object",
+        "properties": {
+          "testName": {
+            "type": "string"
+          },
+          "runKey": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string",
+            "example": "alice"
+          },
+          "dueAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "assignee"
+        ]
+      },
+      "AssignmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "branchName": {
+            "type": "string",
+            "nullable": true
+          },
+          "testName": {
+            "type": "string",
+            "nullable": true
+          },
+          "testKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "runKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "assigneeUsername": {
+            "type": "string"
+          },
+          "assignedBy": {
+            "type": "string"
+          },
+          "dueAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "isOverdue": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "projectName",
+          "branchName",
+          "testName",
+          "testKind",
+          "runKey",
+          "assigneeUsername",
+          "assignedBy",
+          "dueAt",
+          "completedAt",
+          "createdAt",
+          "isOverdue"
         ]
       },
       "LoginDto": {

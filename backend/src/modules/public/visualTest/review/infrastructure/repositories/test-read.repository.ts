@@ -430,6 +430,7 @@ export class TestReadRepository {
   async getPendingApproval(
     branchId: string,
     pagination?: { skip: number; take: number },
+    assigneeId?: string,
   ): Promise<{
     data: PendingApprovalResult[];
     total: number;
@@ -446,6 +447,13 @@ export class TestReadRepository {
         test: {
           branchId,
           OR: [{ mutedUntil: null }, { mutedUntil: { lte: new Date() } }],
+          ...(assigneeId
+            ? {
+                assignments: {
+                  some: { assigneeId, completedAt: null },
+                },
+              }
+            : {}),
         },
         ...PENDING_APPROVAL_STATUS_FILTER,
       },

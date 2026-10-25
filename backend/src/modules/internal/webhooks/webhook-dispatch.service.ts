@@ -70,6 +70,30 @@ export class WebhookDispatchService {
     });
   }
 
+  async enqueueReviewAssigned(input: {
+    projectName: string;
+    testName: string;
+    branchName: string;
+    kind: string;
+    assignee: string;
+    dueAt: string | null;
+  }): Promise<number> {
+    const project = await this.context.findProjectByName(input.projectName);
+    if (!project) return 0;
+    return this.enqueueForProject(project.id, 'review.assigned', {
+      event: 'review.assigned',
+      occurredAt: new Date().toISOString(),
+      project: { name: project.name },
+      test: { name: input.testName, kind: input.kind },
+      branch: input.branchName,
+      assignee: input.assignee,
+      dueAt: input.dueAt,
+      links: {
+        review: this.reviewLink(project.name, input.testName, input.branchName),
+      },
+    });
+  }
+
   async enqueueComparisonApproved(input: {
     projectName: string;
     testName: string;

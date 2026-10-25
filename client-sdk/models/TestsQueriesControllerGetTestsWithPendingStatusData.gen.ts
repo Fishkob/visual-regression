@@ -23,6 +23,10 @@ export type TestsQueriesControllerGetTestsWithPendingStatusData = {
          */
         take?: number;
         /**
+         * Only reviews assigned to me
+         */
+        assignedToMe?: boolean;
+        /**
          * Branch to read or act on (defaults to the project default branch)
          */
         branch?: string;

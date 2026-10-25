@@ -25,6 +25,8 @@ export const AUDIT_ACTIONS = {
   shareCreate: 'share.create',
   shareRevoke: 'share.revoke',
   shareAccess: 'share.access',
+  reviewAssign: 'review.assign',
+  reviewComplete: 'review.complete',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

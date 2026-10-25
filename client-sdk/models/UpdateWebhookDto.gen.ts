@@ -2,7 +2,7 @@
 
 export type UpdateWebhookDto = {
     url?: string;
-    events?: Array<'review.requested' | 'comparison.approved'>;
+    events?: Array<'review.requested' | 'comparison.approved' | 'review.assigned'>;
     format?: 'json' | 'slack';
     active?: boolean;
     /**

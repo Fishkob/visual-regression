@@ -19,6 +19,7 @@ export class ReviewInboxService {
       q?: string;
       runKey?: string;
       tag?: string;
+      assigneeId?: string;
     },
   ) {
     return paginatedQuery(

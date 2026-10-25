@@ -1,4 +1,5 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, Req } from '@nestjs/common';
+import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import {
   ApiOkResponse,
   ApiOperation,
@@ -27,6 +28,7 @@ export class ReviewInboxController {
   async getPending(
     @Query() pagination: ReviewInboxPaginationDto,
     @BranchQuery() branch?: string,
+    @Req() req?: AuthenticatedRequest,
   ) {
     const trimmedProject = pagination.projectName?.trim();
     if (trimmedProject) {
@@ -42,6 +44,9 @@ export class ReviewInboxController {
       q: pagination.q?.trim(),
       runKey: pagination.runKey?.trim(),
       tag: pagination.tag?.trim().toLowerCase(),
+      ...(pagination.assignedToMe && req?.auth?.userId
+        ? { assigneeId: req.auth.userId }
+        : {}),
     });
   }
 

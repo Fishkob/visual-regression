@@ -261,6 +261,7 @@ describe('TestsQueriesController', () => {
         'checkout-ui',
         pagination,
         undefined,
+        undefined,
       );
     });
 

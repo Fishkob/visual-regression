@@ -74,6 +74,7 @@ export class ReviewInboxRepository {
       q?: string;
       runKey?: string;
       tag?: string;
+      assigneeId?: string;
     },
   ): Promise<{
     data: PendingReviewRow[];
@@ -95,6 +96,11 @@ export class ReviewInboxRepository {
     const testWhere: Prisma.UnifiedTestWhereInput = { branch: branchWhere };
     if (filters?.kind) testWhere.kind = filters.kind as TestKind;
     if (filters?.tag) testWhere.tags = { has: filters.tag };
+    if (filters?.assigneeId) {
+      testWhere.assignments = {
+        some: { assigneeId: filters.assigneeId, completedAt: null },
+      };
+    }
     // Muted tests stay out of the review queue until their mute expires; the
     // comparison is still created, so unmuting makes it visible again.
     testWhere.AND = [

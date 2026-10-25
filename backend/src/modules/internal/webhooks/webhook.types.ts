@@ -1,6 +1,7 @@
 export const WEBHOOK_SUBSCRIPTION_EVENTS = [
   'review.requested',
   'comparison.approved',
+  'review.assigned',
 ] as const;
 
 export type WebhookSubscriptionEvent =
@@ -29,6 +30,8 @@ export interface WebhookPayload {
     kind: string;
   };
   approvedBy?: string;
+  assignee?: string;
+  dueAt?: string | null;
   links: { review: string };
 }
 

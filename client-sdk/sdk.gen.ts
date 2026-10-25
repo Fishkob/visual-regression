@@ -30,6 +30,14 @@ import type { ApprovalsControllerApproveVisualTestErrors } from './models/Approv
 import type { ApprovalsControllerApproveVisualTestResponses } from './models/ApprovalsControllerApproveVisualTestResponses.gen';
 import type { ApprovalsControllerListApprovalsData } from './models/ApprovalsControllerListApprovalsData.gen';
 import type { ApprovalsControllerListApprovalsResponses } from './models/ApprovalsControllerListApprovalsResponses.gen';
+import type { AssignmentControllerCompleteData } from './models/AssignmentControllerCompleteData.gen';
+import type { AssignmentControllerCompleteResponses } from './models/AssignmentControllerCompleteResponses.gen';
+import type { AssignmentControllerCreateData } from './models/AssignmentControllerCreateData.gen';
+import type { AssignmentControllerCreateResponses } from './models/AssignmentControllerCreateResponses.gen';
+import type { AssignmentControllerMineData } from './models/AssignmentControllerMineData.gen';
+import type { AssignmentControllerMineResponses } from './models/AssignmentControllerMineResponses.gen';
+import type { AssignmentControllerOverdueData } from './models/AssignmentControllerOverdueData.gen';
+import type { AssignmentControllerOverdueResponses } from './models/AssignmentControllerOverdueResponses.gen';
 import type { AuditControllerExportData } from './models/AuditControllerExportData.gen';
 import type { AuditControllerExportResponses } from './models/AuditControllerExportResponses.gen';
 import type { AuditControllerListData } from './models/AuditControllerListData.gen';
@@ -901,6 +909,62 @@ export const publicShareControllerResolve = <ThrowOnError extends boolean = fals
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * Assign a test or run to a reviewer
+ */
+export const assignmentControllerCreate = <ThrowOnError extends boolean = false>(options: Options<AssignmentControllerCreateData, ThrowOnError>): RequestResult<AssignmentControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<AssignmentControllerCreateResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/assignments',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List my open review assignments
+ */
+export const assignmentControllerMine = <ThrowOnError extends boolean = false>(options?: Options<AssignmentControllerMineData, ThrowOnError>): RequestResult<AssignmentControllerMineResponses, unknown, ThrowOnError> => (options?.client ?? client).get<AssignmentControllerMineResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/assignments/mine',
+    ...options
+});
+
+/**
+ * List my overdue review assignments
+ */
+export const assignmentControllerOverdue = <ThrowOnError extends boolean = false>(options?: Options<AssignmentControllerOverdueData, ThrowOnError>): RequestResult<AssignmentControllerOverdueResponses, unknown, ThrowOnError> => (options?.client ?? client).get<AssignmentControllerOverdueResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/assignments/mine/overdue',
+    ...options
+});
+
+/**
+ * Mark my assignment complete
+ */
+export const assignmentControllerComplete = <ThrowOnError extends boolean = false>(options: Options<AssignmentControllerCompleteData, ThrowOnError>): RequestResult<AssignmentControllerCompleteResponses, unknown, ThrowOnError> => (options.client ?? client).post<AssignmentControllerCompleteResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/assignments/{id}/complete',
+    ...options
 });
 
 export const authControllerLogin = <ThrowOnError extends boolean = false>(options: Options<AuthControllerLoginData, ThrowOnError>): RequestResult<AuthControllerLoginResponses, AuthControllerLoginErrors, ThrowOnError> => (options.client ?? client).post<AuthControllerLoginResponses, AuthControllerLoginErrors, ThrowOnError>({

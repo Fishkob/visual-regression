@@ -178,6 +178,7 @@ describe('TestQueryService', () => {
       expect(reviewRead.getPendingApproval).toHaveBeenCalledWith(
         'br-1',
         expect.anything(),
+        undefined,
       );
       expect(result.data).toHaveLength(1);
     });

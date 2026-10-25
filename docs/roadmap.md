@@ -845,17 +845,19 @@ multi-approval.
 due dates and aging report; per-project required approvals (1..N) with per-user
 approval rows finalized on threshold.
 
-**Delivered so far.** `Project.requiredApprovals` (default 1) and
-`ApprovalVote` (unique comparison+reviewer, scrypt-free username identity). With
-N > 1 the first approvals record a vote and return
-`{approved:false, requiresMoreApprovals:true, votes, required}`; the final
-approval applies the baseline and writes the existing `Approval`/audit/webhook
-trail. A reviewer can vote once per comparison (409 on repeat). N=1 keeps the
-existing behavior exactly. Unit tests cover the partial-vote path.
+**Delivered.** `Project.requiredApprovals` (default 1) and `ApprovalVote`
+(unique comparison+reviewer); partial votes return
+`{approved:false, requiresMoreApprovals:true, votes, required}`, the threshold
+runs the unchanged finalization, and a repeat vote is 409. `ReviewAssignment`
+(test/run → active user, dueAt, completedAt), `GET /assignments/mine`,
+`/mine/overdue`, `POST /:id/complete`, the server-side `assignedToMe` inbox
+filter, `review.assigned` webhook and `review.assign`/`review.complete` audit
+rows. E2E covers two distinct approvers finalizing and the assignment lifecycle
+(including inbox filtering).
 
-**Remaining.** Assignment model/endpoints ("my reviews", due dates, aging),
-webhook notification on assignment, the review UI for vote progress/required
-approvals, and e2e coverage of a two-approver finalization.
+**Remaining.** Dashboard UI for required-approvals settings, vote progress,
+assignment creation/"my reviews" and overdue aging; run-assignment expansion
+into the inbox is deferred.
 
 **Size.** L · depends on R9 + R4.
 

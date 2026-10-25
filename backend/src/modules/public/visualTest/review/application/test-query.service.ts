@@ -93,11 +93,13 @@ export class TestQueryService {
     projectName: string,
     pagination: PaginationDto,
     branchName?: string,
+    assigneeId?: string,
   ) {
     const branch = await this.branches.resolveRead(projectName, branchName);
 
     return paginatedQuery(
-      (args) => this.testRead.getPendingApproval(branch.branchId, args),
+      (args) =>
+        this.testRead.getPendingApproval(branch.branchId, args, assigneeId),
       pagination,
       (row) =>
         plainToInstance(PendingTestDto, row, {
