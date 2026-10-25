@@ -5,22 +5,30 @@ import { i18n } from "@/i18n";
 import InboxView from "@/views/InboxView.vue";
 import { TEST_ID } from "@/lib/test-ids";
 
-const { mockPending, mockBranches, mockGroups, mockReplace, routeState } =
-  vi.hoisted(() => ({
-    mockPending: vi.fn(),
-    mockBranches: vi.fn(),
-    mockGroups: vi.fn(),
-    mockReplace: vi.fn(),
-    routeState: {} as {
-      route?: { params: Record<string, string>; query: Record<string, string> };
-    },
-  }));
+const {
+  mockPending,
+  mockBranches,
+  mockGroups,
+  mockOverdue,
+  mockReplace,
+  routeState,
+} = vi.hoisted(() => ({
+  mockPending: vi.fn(),
+  mockBranches: vi.fn(),
+  mockGroups: vi.fn(),
+  mockOverdue: vi.fn(),
+  mockReplace: vi.fn(),
+  routeState: {} as {
+    route?: { params: Record<string, string>; query: Record<string, string> };
+  },
+}));
 
 vi.mock("@sdk", () => ({
   reviewInboxControllerGetPending: (...args: unknown[]) => mockPending(...args),
   reviewInboxControllerGetBranches: (...args: unknown[]) =>
     mockBranches(...args),
   projectGroupsControllerFindAll: (...args: unknown[]) => mockGroups(...args),
+  assignmentControllerOverdue: (...args: unknown[]) => mockOverdue(...args),
 }));
 
 // The route is real enough to react to router.replace: the page reads `page`
@@ -104,7 +112,12 @@ async function waitForItems(
 function lastPendingQuery() {
   const calls = mockPending.mock.calls;
   return calls[calls.length - 1]![0] as {
-    query: { skip: number; take: number; runKey?: string };
+    query: {
+      skip: number;
+      take: number;
+      runKey?: string;
+      assignedToMe?: boolean;
+    };
   };
 }
 
@@ -119,6 +132,7 @@ beforeEach(() => {
   mockPending.mockResolvedValue(pageOf([pendingDto()]));
   mockBranches.mockResolvedValue({ data: [] });
   mockGroups.mockResolvedValue({ data: [] });
+  mockOverdue.mockResolvedValue({ data: [] });
 });
 
 afterEach(() => {
@@ -242,5 +256,60 @@ describe("InboxView locale", () => {
         .get(`[data-testid="${TEST_ID.inboxFilterKind}"]`)
         .attributes("aria-label"),
     ).toBe("Nach Typ filtern");
+  });
+});
+
+describe("InboxView assignments", () => {
+  it("filters to my reviews server-side and returns to page 1", async () => {
+    routeState.route!.query = { page: "2" };
+
+    const wrapper = mountView();
+    await waitForItems(wrapper, 1);
+    expect(lastPendingQuery().query).toEqual({ skip: 50, take: 50 });
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.inboxAssignedToMe}"]`)
+      .setValue(true);
+
+    await vi.waitFor(() =>
+      expect(lastPendingQuery().query).toEqual({
+        skip: 0,
+        take: 50,
+        assignedToMe: true,
+      }),
+    );
+  });
+
+  it("shows the overdue assignment count", async () => {
+    mockOverdue.mockResolvedValue({
+      data: [
+        {
+          id: "a-1",
+          projectName: "checkout",
+          branchName: "main",
+          testName: "login",
+          testKind: "image",
+          runKey: null,
+          assigneeUsername: "alice",
+          assignedBy: "bob",
+          dueAt: "2026-01-01T00:00:00.000Z",
+          completedAt: null,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          isOverdue: true,
+        },
+      ],
+    });
+
+    const wrapper = mountView();
+    await waitForItems(wrapper, 1);
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper.find(`[data-testid="${TEST_ID.inboxOverdue}"]`).exists(),
+      ).toBe(true),
+    );
+    expect(
+      wrapper.get(`[data-testid="${TEST_ID.inboxOverdue}"]`).text(),
+    ).toContain("1 overdue review");
   });
 });

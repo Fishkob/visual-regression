@@ -130,12 +130,23 @@ export function useRunMutations(
     // The batch answers partial results, so the success toast must say so: a
     // silent "approved" on a half-failed batch would be a lie.
     successMessage: (result) => {
+      const approved = result.approved ?? 0;
+      const pending = result.pending?.length ?? 0;
       const failed = result.failed?.length ?? 0;
-      if (result.approved === 0 && failed === 0)
+      if (approved === 0 && pending === 0 && failed === 0) {
         return tm("toast.noPendingComparisons");
-      const partial =
-        failed > 0 ? tm("toast.failedSuffix", { count: failed }) : "";
-      return `${tm("toast.approvedComparisons", { count: result.approved })}${partial}`;
+      }
+      const parts: string[] = [];
+      if (approved > 0) {
+        parts.push(tm("toast.approvedComparisons", { count: approved }));
+      }
+      if (pending > 0) {
+        parts.push(tm("approval.awaitingCount", { count: pending }));
+      }
+      if (failed > 0) {
+        parts.push(tm("toast.failedCount", { count: failed }));
+      }
+      return parts.join(", ");
     },
     errorMessage: tm("toast.approveRunError"),
     invalidate: (client) =>

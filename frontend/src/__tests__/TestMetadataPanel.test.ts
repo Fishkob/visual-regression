@@ -15,10 +15,15 @@ const { mockGet, mockUpdate, mockReplace, canWriteRef } = vi.hoisted(() => ({
 vi.mock("@sdk", () => ({
   testLifecycleControllerGet: (...args: unknown[]) => mockGet(...args),
   testLifecycleControllerUpdate: (...args: unknown[]) => mockUpdate(...args),
+  assignmentControllerMine: () => Promise.resolve({ data: [] }),
+  assignmentControllerComplete: vi.fn(),
 }));
 
 vi.mock("@/composables/useAuth", () => ({
   useCurrentRole: () => ({ canWrite: canWriteRef.value }),
+  useMeQuery: () => ({
+    data: { value: { username: "alice", role: "MEMBER" } },
+  }),
 }));
 
 vi.mock("vue-sonner", () => ({

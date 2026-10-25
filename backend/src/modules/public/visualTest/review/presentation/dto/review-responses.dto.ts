@@ -91,6 +91,23 @@ export class BulkApproveFailureDto {
 }
 
 // The batch result: how many comparisons were approved and which ones were not.
+export class BulkApprovePendingDto {
+  @ApiProperty()
+  @IsString()
+  @Expose()
+  comparisonId!: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @Expose()
+  votes!: number;
+
+  @ApiProperty()
+  @IsNumber()
+  @Expose()
+  required!: number;
+}
+
 export class BulkApproveResultDto {
   @ApiProperty({
     example: 3,
@@ -99,6 +116,12 @@ export class BulkApproveResultDto {
   @IsNumber()
   @Expose()
   approved!: number;
+
+  @ApiProperty({ type: () => BulkApprovePendingDto, isArray: true })
+  @IsArray()
+  @Expose()
+  @Type(() => BulkApprovePendingDto)
+  pending!: BulkApprovePendingDto[];
 
   @ApiProperty({
     type: () => BulkApproveFailureDto,

@@ -5319,6 +5319,25 @@
           "signedNewBaselineUrl"
         ]
       },
+      "BulkApprovePendingDto": {
+        "type": "object",
+        "properties": {
+          "comparisonId": {
+            "type": "string"
+          },
+          "votes": {
+            "type": "number"
+          },
+          "required": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "comparisonId",
+          "votes",
+          "required"
+        ]
+      },
       "BulkApproveFailureDto": {
         "type": "object",
         "properties": {
@@ -5346,6 +5365,12 @@
             "example": 3,
             "description": "Number of comparisons approved by this batch"
           },
+          "pending": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkApprovePendingDto"
+            }
+          },
           "failed": {
             "description": "Comparisons that could not be approved; the batch continues past them",
             "type": "array",
@@ -5356,6 +5381,7 @@
         },
         "required": [
           "approved",
+          "pending",
           "failed"
         ]
       },

@@ -104,6 +104,15 @@
           v-if="project && canWrite"
           type="button"
           variant="outline"
+          :data-testid="TEST_ID.reviewSettingsAction"
+          @click="reviewSettingsOpen = true"
+        >
+          {{ t("reviewSettings.action") }}
+        </Button>
+        <Button
+          v-if="project && canWrite"
+          type="button"
+          variant="outline"
           :data-testid="TEST_ID.shareAction"
           @click="shareOpen = true"
         >
@@ -173,6 +182,14 @@
     </AsyncState>
   </div>
 
+  <ReviewSettingsDialog
+    v-if="reviewSettingsOpen && project"
+    :open="reviewSettingsOpen"
+    :project-name="projectName"
+    :required-approvals="project.requiredApprovals ?? 1"
+    @update:open="reviewSettingsOpen = $event"
+  />
+
   <ShareLinksDialog
     v-if="shareOpen"
     :open="shareOpen"
@@ -202,6 +219,7 @@ import AsyncState from "@/components/AsyncState.vue";
 import SkeletonAccordionGroups from "@/components/cards/SkeletonAccordionGroups.vue";
 import ProjectStoragePanel from "@/components/storage/ProjectStoragePanel.vue";
 import ShareLinksDialog from "@/components/share/ShareLinksDialog.vue";
+import ReviewSettingsDialog from "@/components/projects/ReviewSettingsDialog.vue";
 import MoveProjectDialog from "@/components/projects/MoveProjectDialog.vue";
 import VisualTestsTable from "@/components/tables/VisualTestsTable.vue";
 import PaginationBar from "@/components/PaginationBar.vue";
@@ -497,6 +515,7 @@ function handleDelete() {
 
 const { data: groups } = useGroupsQuery();
 const moveMutation = useProjectGroupAssignment();
+const reviewSettingsOpen = ref(false);
 const shareOpen = ref(false);
 const moveOpen = ref(false);
 const movePending = computed(() => moveMutation.isPending.value);

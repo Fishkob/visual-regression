@@ -845,7 +845,7 @@ describe('ApprovalService', () => {
       expect(comparisons.findPendingComparisonIdsForTest).toHaveBeenCalledWith(
         'test-1',
       );
-      expect(result).toEqual({ approved: 0, failed: [] });
+      expect(result).toEqual({ approved: 0, pending: [], failed: [] });
       expect(approvalAudit.record).not.toHaveBeenCalled();
     });
 
@@ -859,7 +859,7 @@ describe('ApprovalService', () => {
         'feature/x',
       );
 
-      expect(result).toEqual({ approved: 3, failed: [] });
+      expect(result).toEqual({ approved: 3, pending: [], failed: [] });
       expect(
         comparisons.completeImageApproval.mock.calls.map(([, id]) => id),
       ).toEqual(['comp-1', 'comp-2', 'comp-3']);
@@ -902,6 +902,7 @@ describe('ApprovalService', () => {
 
       expect(result).toEqual({
         approved: 2,
+        pending: [],
         failed: [
           {
             comparisonId: 'comp-2',
@@ -931,6 +932,7 @@ describe('ApprovalService', () => {
 
       expect(result).toEqual({
         approved: 1,
+        pending: [],
         failed: [{ comparisonId: 'comp-1', error: 'Approval failed' }],
       });
       expect(JSON.stringify(result)).not.toContain('s3://secret');
@@ -952,7 +954,7 @@ describe('ApprovalService', () => {
         approvedBy,
       );
 
-      expect(result).toEqual({ approved: 1, failed: [] });
+      expect(result).toEqual({ approved: 1, pending: [], failed: [] });
       expect(comparisons.completePdfApproval).toHaveBeenCalledWith(
         'pdf-comp-1',
         undefined,

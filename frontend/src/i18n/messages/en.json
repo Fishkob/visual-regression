@@ -144,7 +144,10 @@
     "image": "Image",
     "pdf": "PDF",
     "ariaSelect": "Select {test} in {project}",
-    "unassigned": "Unassigned"
+    "unassigned": "Unassigned",
+    "myReviews": "My reviews",
+    "assignedToMeLabel": "Show only reviews assigned to me",
+    "overdue": "{count} overdue review | {count} overdue reviews"
   },
   "projects": {
     "title": "Projects",
@@ -938,7 +941,12 @@
     "noBaseline": "No baseline yet"
   },
   "approval": {
-    "approvedBy": "Approved by {user} · {age}"
+    "approvedBy": "Approved by {user} · {age}",
+    "pendingToast": "Approval recorded — waiting for {votes} of {required} reviewers",
+    "alreadyVoted": "You have already approved this comparison",
+    "awaitingCount": "{count} awaiting additional approval",
+    "voteDetail": "{votes} of {required} votes",
+    "pendingTitle": "Waiting for additional approval"
   },
   "toast": {
     "operationFailed": "Operation failed",
@@ -1034,7 +1042,8 @@
     "approvedForTest": "Approved {variant} of \"{test}\"",
     "approveForTestError": "Could not approve {variant} of \"{test}\"",
     "refreshDetailsError": "Could not refresh the details",
-    "importEmpty": "The import came back empty"
+    "importEmpty": "The import came back empty",
+    "bulkApprovePending": "Approved {approved}, {count} awaiting additional approval, {failed} failed"
   },
   "confirm": {
     "deleteProject": "Are you sure you want to delete \"{name}\"? This action cannot be undone."
@@ -1105,5 +1114,45 @@
     "revoked": "Share link revoked",
     "createError": "Could not create the share link",
     "revokeError": "Could not revoke the share link"
+  },
+  "reviewSettings": {
+    "action": "Review settings",
+    "title": "Review settings",
+    "description": "Control how many independent approvals a change needs before it becomes the baseline.",
+    "requiredLabel": "Approvals required (1–10)",
+    "help": "With more than one approval, a comparison stays pending until that many different reviewers have approved it.",
+    "invalid": "Approvals required must be a whole number between 1 and 10.",
+    "saved": "Review settings saved",
+    "saveError": "Could not save the review settings"
+  },
+  "assign": {
+    "action": "Assign",
+    "title": "Assign review",
+    "description": "Hand this review to a teammate with an optional due date.",
+    "assignee": "Assignee",
+    "dueAt": "Due date (optional)",
+    "save": "Assign",
+    "required": "Assignee is required.",
+    "invalidDue": "Enter a valid due date.",
+    "badge": "Assigned to {user}",
+    "due": "Due {date}",
+    "overdue": "Overdue",
+    "complete": "Mark complete",
+    "created": "Assignment created",
+    "createError": "Could not create the assignment",
+    "completed": "Assignment completed",
+    "completeError": "Could not complete the assignment"
+  },
+  "assignments": {
+    "created": "Assignment created",
+    "createError": "Could not create the assignment",
+    "completed": "Assignment completed",
+    "completeError": "Could not complete the assignment"
+  },
+  "bulk": {
+    "pendingTitle": "Waiting for additional approval",
+    "pendingBody": "These changes stay pending until enough reviewers approve them.",
+    "pendingSection": "Waiting for additional approval",
+    "pendingRow": "{votes} of {required} reviewers approved"
   }
 }

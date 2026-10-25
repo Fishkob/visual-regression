@@ -144,7 +144,10 @@
     "image": "Bild",
     "pdf": "PDF",
     "ariaSelect": "{test} in {project} auswählen",
-    "unassigned": "Nicht zugewiesen"
+    "unassigned": "Nicht zugewiesen",
+    "myReviews": "Meine Prüfungen",
+    "assignedToMeLabel": "Nur mir zugewiesene Prüfungen anzeigen",
+    "overdue": "{count} überfällige Prüfung | {count} überfällige Prüfungen"
   },
   "projects": {
     "title": "Projekte",
@@ -938,7 +941,12 @@
     "noBaseline": "Noch keine Baseline"
   },
   "approval": {
-    "approvedBy": "Genehmigt von {user} · {age}"
+    "approvedBy": "Genehmigt von {user} · {age}",
+    "pendingToast": "Genehmigung erfasst — warten auf {votes} von {required} Prüfenden",
+    "alreadyVoted": "Du hast diesen Vergleich bereits genehmigt",
+    "awaitingCount": "{count} warten auf weitere Genehmigung",
+    "voteDetail": "{votes} von {required} Stimmen",
+    "pendingTitle": "Warten auf weitere Genehmigung"
   },
   "toast": {
     "operationFailed": "Vorgang fehlgeschlagen",
@@ -1034,7 +1042,8 @@
     "approvedForTest": "{variant} von „{test}“ genehmigt",
     "approveForTestError": "{variant} von „{test}“ konnte nicht genehmigt werden",
     "refreshDetailsError": "Details konnten nicht aktualisiert werden",
-    "importEmpty": "Der Import kam leer zurück"
+    "importEmpty": "Der Import kam leer zurück",
+    "bulkApprovePending": "{approved} genehmigt, {count} warten auf weitere Genehmigung, {failed} fehlgeschlagen"
   },
   "confirm": {
     "deleteProject": "Möchtest du „{name}\" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
@@ -1105,5 +1114,45 @@
     "revoked": "Freigabelink widerrufen",
     "createError": "Freigabelink konnte nicht erstellt werden",
     "revokeError": "Freigabelink konnte nicht widerrufen werden"
+  },
+  "reviewSettings": {
+    "action": "Prüfeinstellungen",
+    "title": "Prüfeinstellungen",
+    "description": "Steuere, wie viele unabhängige Genehmigungen eine Änderung braucht, bevor sie zur Baseline wird.",
+    "requiredLabel": "Erforderliche Genehmigungen (1–10)",
+    "help": "Bei mehr als einer Genehmigung bleibt ein Vergleich ausstehend, bis so viele verschiedene Prüfende zugestimmt haben.",
+    "invalid": "Die erforderlichen Genehmigungen müssen eine ganze Zahl zwischen 1 und 10 sein.",
+    "saved": "Prüfeinstellungen gespeichert",
+    "saveError": "Prüfeinstellungen konnten nicht gespeichert werden"
+  },
+  "assign": {
+    "action": "Zuweisen",
+    "title": "Prüfung zuweisen",
+    "description": "Übergib diese Prüfung an eine Kollegin oder einen Kollegen mit optionalem Fälligkeitsdatum.",
+    "assignee": "Zugewiesen an",
+    "dueAt": "Fälligkeitsdatum (optional)",
+    "save": "Zuweisen",
+    "required": "Zugewiesen an ist erforderlich.",
+    "invalidDue": "Gültiges Fälligkeitsdatum eingeben.",
+    "badge": "Zugewiesen an {user}",
+    "due": "Fällig am {date}",
+    "overdue": "Überfällig",
+    "complete": "Als erledigt markieren",
+    "created": "Zuweisung erstellt",
+    "createError": "Zuweisung konnte nicht erstellt werden",
+    "completed": "Zuweisung abgeschlossen",
+    "completeError": "Zuweisung konnte nicht abgeschlossen werden"
+  },
+  "assignments": {
+    "created": "Zuweisung erstellt",
+    "createError": "Zuweisung konnte nicht erstellt werden",
+    "completed": "Zuweisung abgeschlossen",
+    "completeError": "Zuweisung konnte nicht abgeschlossen werden"
+  },
+  "bulk": {
+    "pendingTitle": "Warten auf weitere Genehmigung",
+    "pendingBody": "Diese Änderungen bleiben ausstehend, bis genügend Prüfende zugestimmt haben.",
+    "pendingSection": "Warten auf weitere Genehmigung",
+    "pendingRow": "{votes} von {required} Prüfenden haben zugestimmt"
   }
 }

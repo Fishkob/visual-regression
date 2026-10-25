@@ -11,6 +11,8 @@ export interface InboxListQuery {
   runKey?: string;
   // A test tag, answered server-side; muted tests never reach the inbox.
   tag?: string;
+  // Server-side scope for reviewers who only want their own assignments.
+  assignedToMe?: boolean;
 }
 
 export const reviewInboxQueryKeys = {

@@ -127,6 +127,7 @@ export type { BulkActionsControllerDeleteTestsResponses } from './models/BulkAct
 export type { BulkApprovalDto } from './models/BulkApprovalDto.gen';
 export type { BulkApprovalResultDto } from './models/BulkApprovalResultDto.gen';
 export type { BulkApproveFailureDto } from './models/BulkApproveFailureDto.gen';
+export type { BulkApprovePendingDto } from './models/BulkApprovePendingDto.gen';
 export type { BulkApproveResultDto } from './models/BulkApproveResultDto.gen';
 export type { BulkDeleteResultDto } from './models/BulkDeleteResultDto.gen';
 export type { BulkDeleteTestsDto } from './models/BulkDeleteTestsDto.gen';

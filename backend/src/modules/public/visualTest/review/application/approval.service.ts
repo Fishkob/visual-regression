@@ -381,10 +381,14 @@ export class ApprovalService {
     const comparisonIds =
       await this.comparisons.findPendingComparisonIdsForTest(test.id);
 
-    const result: BulkApprovalResult = { approved: 0, failed: [] };
+    const result: BulkApprovalResult = {
+      approved: 0,
+      pending: [],
+      failed: [],
+    };
     for (const comparisonId of comparisonIds) {
       try {
-        await this.executeApproval(
+        const outcome = await this.executeApproval(
           test.kind,
           projectName,
           testName,
@@ -392,7 +396,15 @@ export class ApprovalService {
           approvedBy,
           branchName,
         );
-        result.approved += 1;
+        if (!outcome.approved) {
+          result.pending.push({
+            comparisonId,
+            votes: outcome.votes,
+            required: outcome.required,
+          });
+        } else {
+          result.approved += 1;
+        }
       } catch (error) {
         result.failed.push({
           comparisonId,
@@ -546,6 +558,7 @@ interface ApprovalKindConfig {
 // per comparison that failed (the batch continues past failures).
 export interface BulkApprovalResult {
   approved: number;
+  pending: { comparisonId: string; votes: number; required: number }[];
   failed: { comparisonId: string; error: string }[];
 }
 

@@ -13,12 +13,16 @@ import { Button } from "@/components/ui/button";
 import type { BulkFailureRow } from "@/domains/bulk-actions/bulk-action.model";
 import { TEST_ID } from "@/lib/test-ids";
 
-const props = defineProps<{
-  open: boolean;
-  rows: BulkFailureRow[];
-  title?: string;
-  description?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    rows: BulkFailureRow[];
+    pendingRows?: BulkFailureRow[];
+    title?: string;
+    description?: string;
+  }>(),
+  { pendingRows: () => [] },
+);
 
 const { t } = useI18n();
 
@@ -43,6 +47,24 @@ const emit = defineEmits<{
             {{ props.description ?? t("bulkFailure.description") }}
           </DialogDescription>
         </div>
+
+        <section v-if="props.pendingRows.length > 0" class="space-y-2">
+          <h3 class="text-sm font-medium">{{ t("bulk.pendingSection") }}</h3>
+          <ul class="max-h-40 space-y-2 overflow-y-auto">
+            <li
+              v-for="row in props.pendingRows"
+              :key="row.id"
+              class="rounded-md border p-2 text-sm"
+              :data-testid="TEST_ID.bulkPendingRow"
+            >
+              <p class="font-medium">{{ row.label ?? row.id }}</p>
+              <p class="font-mono text-xs text-muted-foreground">
+                {{ row.id }}
+              </p>
+              <p class="text-xs text-muted-foreground">{{ row.error }}</p>
+            </li>
+          </ul>
+        </section>
 
         <ul class="max-h-64 space-y-2 overflow-y-auto">
           <li

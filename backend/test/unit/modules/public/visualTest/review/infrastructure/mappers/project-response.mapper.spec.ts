@@ -103,7 +103,8 @@ describe('project-response.mapper', () => {
           groupId: null,
           groupName: null,
           branchName: 'main',
-          defaultBranchName: 'main',
+          requiredApprovals: 1,
+      defaultBranchName: 'main',
           variants: [
             {
               testName: 'login-form',

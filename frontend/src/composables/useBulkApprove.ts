@@ -13,8 +13,23 @@ import {
 import { projectQueryKeys } from "@/domains/projects/query-keys";
 import { visualTestQueryKeys } from "@/domains/visual-test/query-keys";
 import { branchQueryKeys } from "@/domains/branches/query-keys";
+import { pendingVotesOf } from "@/domains/approvals/approve-result";
 
 function successMessage(result: BulkApproveResultDto): string {
+  const pending = pendingVotesOf(result);
+  if (pending) {
+    return tm("approval.pendingToast", {
+      votes: pending.votes,
+      required: pending.required,
+    });
+  }
+  if (result.pending.length > 0) {
+    return tm("toast.bulkApprovePending", {
+      approved: result.approved,
+      count: result.pending.length,
+      failed: result.failed.length,
+    });
+  }
   const failed = result.failed.length
     ? tm("toast.failedParenthetical", { count: result.failed.length })
     : "";

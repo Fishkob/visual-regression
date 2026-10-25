@@ -1,7 +1,8 @@
 import { translateMessage as tm } from "@/lib/i18n-messages";
 import { computed, unref, watch, type Ref } from "vue";
 import { useQueryClient, type QueryClient } from "@tanstack/vue-query";
-import type { ApproveResultDto } from "@sdk";
+import { runsQueryKeys } from "@/domains/runs/query-keys";
+import { pendingVotesOf } from "@/domains/approvals/approve-result";
 import {
   keyOf,
   type TestDetailsArgs,
@@ -98,100 +99,129 @@ export function useReviewSession(args: ReviewSessionOptions) {
   const findNextUnseen = (pendingTests: PendingTest[]) =>
     pendingTests.find((t) => !isSeenKey(keyOf(t)));
 
-  const approveMutation = useSdkMutation<
-    ApproveResultDto,
-    string,
-    ReviewSessionContext
-  >({
-    // The mutation variable pins the exact comparison the reviewer saw. A
-    // newer upload must never redirect the approval to content the reviewer
-    // never reviewed.
-    mutationFn: approve,
+  const approveMutation = useSdkMutation<unknown, string, ReviewSessionContext>(
+    {
+      // The mutation variable pins the exact comparison the reviewer saw. A
+      // newer upload must never redirect the approval to content the reviewer
+      // never reviewed.
+      mutationFn: approve,
 
-    onMutate: async () => {
-      // The pending-list cache transaction is owned by the pending-tests seam:
-      // this only declares the removal and keeps the restore closure for rollback.
-      const { restore } = await withPendingTestRemoved(
-        queryClient,
-        projectName.value,
-        branchName.value,
-        buildCurrentKey(),
-      );
-      const inboxRemoval =
-        shouldReturnToInbox.value && currentComparisonId.value
-          ? await withReviewInboxItemRemoved(
-              queryClient,
-              currentComparisonId.value,
-            )
-          : null;
-      return {
-        restore,
-        ...(inboxRemoval ? { restoreInbox: inboxRemoval.restore } : {}),
-        currentVariant: { ...filters.value },
-        currentTestName: testName.value,
-        ...(branchName.value ? { currentBranch: branchName.value } : {}),
-      };
-    },
+      onMutate: async () => {
+        // The pending-list cache transaction is owned by the pending-tests seam:
+        // this only declares the removal and keeps the restore closure for rollback.
+        const { restore } = await withPendingTestRemoved(
+          queryClient,
+          projectName.value,
+          branchName.value,
+          buildCurrentKey(),
+        );
+        const inboxRemoval =
+          shouldReturnToInbox.value && currentComparisonId.value
+            ? await withReviewInboxItemRemoved(
+                queryClient,
+                currentComparisonId.value,
+              )
+            : null;
+        return {
+          restore,
+          ...(inboxRemoval ? { restoreInbox: inboxRemoval.restore } : {}),
+          currentVariant: { ...filters.value },
+          currentTestName: testName.value,
+          ...(branchName.value ? { currentBranch: branchName.value } : {}),
+        };
+      },
 
-    successMessage: (_data, _variables, context) =>
-      tm("toast.approvedForTest", {
-        variant:
-          formatVariantLabel(context?.currentVariant ?? filters.value) ||
-          tm("toast.entireTest"),
-        test: context?.currentTestName || testName.value,
-      }),
+      successMessage: (data, _variables, context) => {
+        const pending = pendingVotesOf(data);
+        if (pending) {
+          return tm("approval.pendingToast", {
+            votes: pending.votes,
+            required: pending.required,
+          });
+        }
+        return tm("toast.approvedForTest", {
+          variant:
+            formatVariantLabel(context?.currentVariant ?? filters.value) ||
+            tm("toast.entireTest"),
+          test: context?.currentTestName || testName.value,
+        });
+      },
 
-    errorMessage: (error, _variables, context) => {
-      const base = tm("toast.approveForTestError", {
-        variant:
-          formatVariantLabel(context?.currentVariant ?? filters.value) ||
-          tm("toast.entireTest"),
-        test: context?.currentTestName || testName.value,
-      });
-      const detail = sdkErrorMessage(error, "");
-      return detail && detail !== tm("common.requestFailed")
-        ? `${base}: ${detail}`
-        : base;
-    },
+      errorMessage: (error, _variables, context) => {
+        const base = tm("toast.approveForTestError", {
+          variant:
+            formatVariantLabel(context?.currentVariant ?? filters.value) ||
+            tm("toast.entireTest"),
+          test: context?.currentTestName || testName.value,
+        });
+        const detail = sdkErrorMessage(error, "");
+        if (/already approved/i.test(detail)) {
+          return tm("approval.alreadyVoted");
+        }
+        return detail && detail !== tm("common.requestFailed")
+          ? `${base}: ${detail}`
+          : base;
+      },
 
-    invalidate: (client, _data, _variables, context) => {
-      if (!context) return;
-      invalidateDetails(client, {
-        projectName: projectName.value,
-        testName: context.currentTestName,
-        ...(context.currentBranch ? { branch: context.currentBranch } : {}),
-        ...context.currentVariant,
-      });
-    },
-
-    // Navigation happens only AFTER the server confirms the approval, not in
-    // onMutate: a failure (e.g. the CONFLICT on a stale comparison CONTEXT.md:48
-    // documents) must leave the reviewer on the failed test, not strand them on
-    // the next one. The optimistic cache removal still applies in onMutate so
-    // the loop never re-offers the in-flight test, but moving is a success-only
-    // side effect.
-    onSuccess: () => {
-      if (shouldReturnToInbox.value) {
-        navigation.navigateToInbox();
-        return;
-      }
-      advancePassProgress(projectName.value);
-      navigateToNext();
-    },
-
-    onError: (_error, _variables, context) => {
-      context?.restore?.();
-      context?.restoreInbox?.();
-      if (context) {
-        invalidateDetails(queryClient, {
+      invalidate: (client, _data, _variables, context) => {
+        if (!context) return;
+        invalidateDetails(client, {
           projectName: projectName.value,
           testName: context.currentTestName,
           ...(context.currentBranch ? { branch: context.currentBranch } : {}),
           ...context.currentVariant,
         });
-      }
+      },
+
+      // Navigation happens only AFTER the server confirms the approval, not in
+      // onMutate: a failure (e.g. the CONFLICT on a stale comparison CONTEXT.md:48
+      // documents) must leave the reviewer on the failed test, not strand them on
+      // the next one. The optimistic cache removal still applies in onMutate so
+      // the loop never re-offers the in-flight test, but moving is a success-only
+      // side effect.
+      onSuccess: (data, _variables, context) => {
+        // A recorded vote is not a completed approval: the comparison stays
+        // pending for the remaining reviewers, so undo the optimistic removal and
+        // stay on the page instead of advancing the review pass.
+        if (pendingVotesOf(data)) {
+          context?.restore?.();
+          context?.restoreInbox?.();
+          if (context) {
+            invalidateDetails(queryClient, {
+              projectName: projectName.value,
+              testName: context.currentTestName,
+              ...(context.currentBranch
+                ? { branch: context.currentBranch }
+                : {}),
+              ...context.currentVariant,
+            });
+          }
+          invalidateReviewInbox(queryClient);
+          queryClient.invalidateQueries({ queryKey: runsQueryKeys.all() });
+          return;
+        }
+        if (shouldReturnToInbox.value) {
+          navigation.navigateToInbox();
+          return;
+        }
+        advancePassProgress(projectName.value);
+        navigateToNext();
+      },
+
+      onError: (_error, _variables, context) => {
+        context?.restore?.();
+        context?.restoreInbox?.();
+        if (context) {
+          invalidateDetails(queryClient, {
+            projectName: projectName.value,
+            testName: context.currentTestName,
+            ...(context.currentBranch ? { branch: context.currentBranch } : {}),
+            ...context.currentVariant,
+          });
+        }
+      },
     },
-  });
+  );
 
   const navigateToNext = () => {
     const next = findNextUnseen(pendingTests.value);

@@ -113,8 +113,15 @@ export interface RunApproveAllFailure {
   error: string;
 }
 
+export interface RunApproveAllPending {
+  comparisonId: string;
+  votes: number;
+  required: number;
+}
+
 export interface RunApproveAllResult {
   approved: number;
+  pending: RunApproveAllPending[];
   failed: RunApproveAllFailure[];
 }
 

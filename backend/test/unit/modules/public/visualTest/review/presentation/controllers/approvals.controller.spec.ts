@@ -148,6 +148,7 @@ describe('ApprovalsController', () => {
     it('approves every pending comparison of the test on the branch as the caller', async () => {
       approvals.approveAllPending.mockResolvedValue({
         approved: 2,
+        pending: [],
         failed: [],
       });
 
@@ -164,12 +165,13 @@ describe('ApprovalsController', () => {
         'jane.doe',
         'feature/x',
       );
-      expect(result).toEqual({ approved: 2, failed: [] });
+      expect(result).toEqual({ approved: 2, pending: [], failed: [] });
     });
 
     it('passes an undefined branch when the request names none', async () => {
       approvals.approveAllPending.mockResolvedValue({
         approved: 0,
+        pending: [],
         failed: [],
       });
 
@@ -186,6 +188,7 @@ describe('ApprovalsController', () => {
     it('returns the partial failures alongside the approved count', async () => {
       approvals.approveAllPending.mockResolvedValue({
         approved: 1,
+        pending: [],
         failed: [{ comparisonId: 'comp-9', error: 'Approval failed' }],
       });
 

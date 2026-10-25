@@ -46,6 +46,20 @@ export const TEST_ID = {
   moveProjectSelect: "move-project-select",
   moveProjectSubmit: "move-project-submit",
 
+  reviewSettingsAction: "review-settings-action",
+  reviewSettingsDialog: "review-settings-dialog",
+  reviewRequiredApprovals: "review-required-approvals",
+  reviewSettingsSave: "review-settings-save",
+  assignAction: "assign-action",
+  assignDialog: "assign-dialog",
+  assignAssignee: "assign-assignee",
+  assignDueAt: "assign-due-at",
+  assignSave: "assign-save",
+  assignBadge: "assign-badge",
+  assignComplete: "assign-complete",
+  inboxAssignedToMe: "inbox-assigned-to-me",
+  inboxOverdue: "inbox-overdue",
+
   shareView: "share-view",
   sharePassphrase: "share-passphrase",
   sharePassphraseSubmit: "share-passphrase-submit",
@@ -365,6 +379,7 @@ export const TEST_ID = {
 
   bulkFailureDialog: "bulk-failure-dialog",
   bulkFailureRow: "bulk-failure-row",
+  bulkPendingRow: "bulk-pending-row",
   bulkFailureDone: "bulk-failure-done",
 
   inboxRunFilter: "inbox-run-filter",

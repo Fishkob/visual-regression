@@ -39,6 +39,7 @@ export interface Project {
   groupName?: string | null;
   branchName?: string;
   defaultBranchName?: string;
+  requiredApprovals?: number;
   pendingCount?: number;
   testCount?: number;
   visualTests?: VisualTestItem[];

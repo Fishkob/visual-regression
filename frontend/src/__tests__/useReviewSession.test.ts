@@ -731,3 +731,103 @@ describe("useReviewSession", () => {
     });
   });
 });
+
+describe("useReviewSession 4-eyes voting", () => {
+  const createArgs = () => ({
+    projectName: ref("test-project"),
+    testName: ref("login-form"),
+    branchName: ref<string | undefined>(undefined),
+    filters: ref({
+      viewport: "1920x1080",
+      browser: "chrome",
+      environment: "prod",
+    }),
+    currentComparisonId: ref<string | undefined>("comp-1"),
+    approve: vi.fn(),
+    invalidateDetails: invalidateVisualTestDetails,
+    pendingTests: ref<PendingTest[]>([
+      {
+        name: "login-form",
+        viewport: "1920x1080",
+        browser: "chrome",
+        environment: "prod",
+      },
+      {
+        name: "signup-form",
+        viewport: "1280x720",
+        browser: "firefox",
+        environment: "staging",
+      },
+    ]),
+  });
+
+  const context = () => ({
+    restore: vi.fn(),
+    restoreInbox: vi.fn(),
+    currentVariant: {
+      viewport: "1920x1080",
+      browser: "chrome",
+      environment: "prod",
+    },
+    currentTestName: "login-form",
+  });
+
+  it("treats a recorded vote as success, not an error, and stays put", () => {
+    const args = createArgs();
+    useReviewSession(args);
+
+    const ctx = context();
+    mutationOptions.onSuccess(
+      {
+        approved: false,
+        requiresMoreApprovals: true,
+        votes: 1,
+        required: 2,
+      },
+      "comp-1",
+      ctx,
+    );
+
+    expect(toast.success).toHaveBeenCalledWith(
+      "Approval recorded — waiting for 1 of 2 reviewers",
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(ctx.restore).toHaveBeenCalled();
+  });
+
+  it("keeps the normal success path for the final vote", () => {
+    const args = createArgs();
+    useReviewSession(args);
+
+    mutationOptions.onSuccess(
+      {
+        approved: true,
+        newBaselineUrl: "https://example.test/new.png",
+        signedNewBaselineUrl: "https://example.test/signed.png",
+      },
+      "comp-1",
+      context(),
+    );
+
+    expect(toast.success).toHaveBeenCalledWith(
+      'Approved 1920x1080 / chrome / prod of "login-form"',
+    );
+    expect(mockPush).toHaveBeenCalled();
+  });
+
+  it("shows a clear toast when the reviewer already voted", () => {
+    const args = createArgs();
+    useReviewSession(args);
+
+    mutationOptions.onError(
+      new Error("You have already approved this comparison"),
+      "comp-1",
+      context(),
+    );
+
+    expect(toast.error).toHaveBeenCalledWith(
+      "You have already approved this comparison",
+    );
+  });
+});

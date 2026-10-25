@@ -461,3 +461,41 @@ describe("RunDetailView", () => {
     expect(wrapper.text()).toContain("No pending comparisons in this run.");
   });
 });
+
+describe("RunDetailView 4-eyes approve-all", () => {
+  it("summarizes pending votes and never reports them as approved", async () => {
+    mockApproveAll.mockResolvedValue({
+      data: {
+        approved: 0,
+        pending: [{ comparisonId: "c-1", votes: 1, required: 2 }],
+        failed: [],
+      },
+    });
+
+    const wrapper = mountView();
+    await waitForPendingRows(wrapper, 2);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.runApproveAll}"]`)
+      .trigger("click");
+    await vi.waitFor(() =>
+      expect(
+        wrapper.find(`[data-testid="${TEST_ID.dialogConfirm}"]`).exists(),
+      ).toBe(true),
+    );
+    await wrapper
+      .get(`[data-testid="${TEST_ID.dialogConfirm}"]`)
+      .trigger("click");
+
+    await vi.waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        "1 awaiting additional approval",
+      ),
+    );
+    await vi.waitFor(() =>
+      expect(wrapper.text()).toContain("Waiting for additional approval"),
+    );
+    expect(wrapper.text()).toContain("c-1: 1 of 2 votes");
+    expect(wrapper.text()).not.toContain("Approved 0 comparisons");
+  });
+});

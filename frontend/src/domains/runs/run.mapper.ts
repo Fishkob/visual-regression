@@ -14,6 +14,7 @@ import {
   type Run,
   type RunApproval,
   type RunApproveAllFailure,
+  type RunApproveAllPending,
   type RunApproveAllResult,
   type RunDetail,
   type RunPage,
@@ -193,13 +194,24 @@ export function mapRunApproveAllFailure(dto: {
   };
 }
 
-// The batch answers partial results: a stale comparison fails alone while the
-// rest still get approved, so the UI reports both counts.
+export function mapRunApproveAllPending(dto: {
+  [key: string]: unknown;
+}): RunApproveAllPending {
+  return {
+    comparisonId: presentString(dto.comparisonId) ?? "",
+    votes: typeof dto.votes === "number" ? dto.votes : 0,
+    required: typeof dto.required === "number" ? dto.required : 0,
+  };
+}
+
+// The batch answers partial results: a stale comparison fails alone, a 4-eyes
+// vote stays pending, and only the remaining entries become baselines.
 export function mapRunApproveAllResult(
   dto: RunApproveAllResultDto | undefined,
 ): RunApproveAllResult {
   return {
     approved: dto?.approved ?? 0,
+    pending: (dto?.pending ?? []).map(mapRunApproveAllPending),
     failed: (dto?.failed ?? []).map(mapRunApproveAllFailure),
   };
 }

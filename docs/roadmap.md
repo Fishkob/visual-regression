@@ -62,7 +62,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Shipped     |
 | R17 | Internationalization                     | 5     | M    | ADR-037                       | Shipped     |
 | R18 | Share links                              | 5     | M    | R9 · ADR-038                  | Shipped     |
-| R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4                        | In progress |
+| R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4 · ADR-039              | Shipped     |
 | R20 | Review comments & decision notes         | 5     | M    | R9                            | Planned     |
 
 Status is `Planned`, `In progress` or `Shipped`; a shipped item keeps its
@@ -848,16 +848,19 @@ approval rows finalized on threshold.
 **Delivered.** `Project.requiredApprovals` (default 1) and `ApprovalVote`
 (unique comparison+reviewer); partial votes return
 `{approved:false, requiresMoreApprovals:true, votes, required}`, the threshold
-runs the unchanged finalization, and a repeat vote is 409. `ReviewAssignment`
-(test/run → active user, dueAt, completedAt), `GET /assignments/mine`,
-`/mine/overdue`, `POST /:id/complete`, the server-side `assignedToMe` inbox
-filter, `review.assigned` webhook and `review.assign`/`review.complete` audit
-rows. E2E covers two distinct approvers finalizing and the assignment lifecycle
-(including inbox filtering).
+runs the unchanged finalization, and a repeat vote is 409. Bulk, run and
+test-level "approve all" responses now separate `pending` votes from `approved`.
+`ReviewAssignment` (test/run → active user, dueAt, completedAt),
+`GET /assignments/mine`, `/mine/overdue`, `POST /:id/complete`, the server-side
+`assignedToMe` inbox filter, `review.assigned` webhook and
+`review.assign`/`review.complete` audit rows. UI: project review-settings dialog
+(1–10), vote-aware toasts/dialogs/alerts (never reports a vote as approved),
+test assignment badge + assign/complete dialog, inbox "My reviews" toggle and
+overdue banner. E2E: two distinct approvers finalize (repeat vote 409), the
+assignment lifecycle and assigned inbox filtering.
 
-**Remaining.** Dashboard UI for required-approvals settings, vote progress,
-assignment creation/"my reviews" and overdue aging; run-assignment expansion
-into the inbox is deferred.
+**Known limitation.** Run assignments do not expand into their tests in the
+inbox; there is no background SLA notifier (overdue is computed at read time).
 
 **Size.** L · depends on R9 + R4.
 

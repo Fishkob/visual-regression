@@ -43,6 +43,9 @@ export function mapProject(dto: ProjectDto): Project {
     ...(dto.defaultBranchName
       ? { defaultBranchName: dto.defaultBranchName }
       : {}),
+    ...(typeof dto.requiredApprovals === "number"
+      ? { requiredApprovals: dto.requiredApprovals }
+      : {}),
     pendingCount,
     testCount,
     visualTests,

@@ -1,3 +1,5 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
+
 // One row of a bulk result. `success` mirrors the per-item verdict; a failure
 // also carries the reason the single operation could not complete.
 export interface BulkItemResult {
@@ -6,8 +8,15 @@ export interface BulkItemResult {
   error: string | null;
 }
 
+export interface BulkPendingVote {
+  id: string;
+  votes: number;
+  required: number;
+}
+
 export interface BulkApproveResult {
   approved: BulkItemResult[];
+  pending: BulkPendingVote[];
   failed: BulkItemResult[];
 }
 
@@ -41,9 +50,35 @@ function plural(count: number, singular: string, pluralForm: string): string {
 }
 
 export function bulkApproveSummary(result: BulkApproveResult): string {
-  const approved = plural(result.approved.length, "change", "changes");
-  if (result.failed.length === 0) return `Approved ${approved}`;
-  return `Approved ${approved}, ${result.failed.length} failed`;
+  const parts = [
+    `Approved ${plural(result.approved.length, "change", "changes")}`,
+  ];
+  if (result.pending.length > 0) {
+    parts.push(`${result.pending.length} awaiting additional approval`);
+  }
+  if (result.failed.length > 0) {
+    parts.push(`${result.failed.length} failed`);
+  }
+  return parts.join(", ");
+}
+
+// Pending votes use the same row shape as failures so the partial dialog can
+// render them in a dedicated "waiting" section without a second component.
+export function bulkPendingRows(
+  pending: readonly BulkPendingVote[],
+  labels: ReadonlyMap<string, string>,
+): BulkFailureRow[] {
+  return pending.map((vote) => {
+    const label = labels.get(vote.id);
+    return {
+      id: vote.id,
+      ...(label ? { label } : {}),
+      error: tm("bulk.pendingRow", {
+        votes: vote.votes,
+        required: vote.required,
+      }),
+    };
+  });
 }
 
 export function bulkMoveSummary(result: BulkMoveResult): string {

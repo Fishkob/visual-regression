@@ -52,13 +52,18 @@ export function useBulkApproveSelection() {
     },
     onSuccess: (result) => {
       invalidateAfterBulkApprove(queryClient);
-      toast.success(
-        `${tm("toast.bulkApproved", { count: result.approved.length })}${
-          result.failed.length > 0
-            ? tm("toast.failedSuffix", { count: result.failed.length })
-            : ""
-        }`,
-      );
+      const parts = [
+        tm("toast.bulkApproved", { count: result.approved.length }),
+      ];
+      if (result.pending.length > 0) {
+        parts.push(
+          tm("approval.awaitingCount", { count: result.pending.length }),
+        );
+      }
+      if (result.failed.length > 0) {
+        parts.push(tm("toast.failedCount", { count: result.failed.length }));
+      }
+      toast.success(parts.join(", "));
     },
     onError: () => {
       toast.error(tm("toast.bulkApproveError"));

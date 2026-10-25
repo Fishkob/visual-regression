@@ -23,9 +23,11 @@ import {
   useInboxBranchesQuery,
   useReviewInboxSections,
 } from "@/composables/useReviewInbox";
+import { useOverdueAssignmentsQuery } from "@/composables/useAssignments";
 import { useGroupsQuery } from "@/composables/useGroups";
 import {
   bulkFailureRows,
+  bulkPendingRows,
   type BulkApproveSelection,
   type BulkFailureRow,
 } from "@/domains/bulk-actions/bulk-action.model";
@@ -139,6 +141,15 @@ watch(runInput, (value) => {
 
 // The tag filter is answered server-side like the other text filters, so it
 // debounces and resets the page when a new tag is applied.
+const assignedToMe = ref(false);
+const { data: overdueAssignments } = useOverdueAssignmentsQuery();
+const overdueCount = computed(() => overdueAssignments.value?.length ?? 0);
+
+function toggleAssignedToMe(event: Event): void {
+  assignedToMe.value = (event.target as HTMLInputElement).checked;
+  if (page.value !== 1) page.value = 1;
+}
+
 const tagInput = ref("");
 const tagFilter = ref("");
 let tagTimer: ReturnType<typeof setTimeout> | undefined;
@@ -165,6 +176,7 @@ const queryParams = computed<InboxListQuery>(() => ({
   ...(branch.value !== FILTER_ALL ? { branch: branch.value } : {}),
   ...(runFilter.value ? { runKey: runFilter.value } : {}),
   ...(tagFilter.value ? { tag: tagFilter.value } : {}),
+  ...(assignedToMe.value ? { assignedToMe: true } : {}),
 }));
 
 const { items, sections, total, isLoading, error, refetch } =
@@ -205,7 +217,8 @@ const hasActiveFilters = computed(
     group.value !== FILTER_ALL ||
     branch.value !== FILTER_ALL ||
     runFilter.value.length > 0 ||
-    tagFilter.value.length > 0,
+    tagFilter.value.length > 0 ||
+    assignedToMe.value,
 );
 
 // Bulk selection is a writer tool: a VIEWER sees the queue and can walk it, but
@@ -268,6 +281,7 @@ const approveScopeLabel = computed(
 const approveOpen = ref(false);
 const failureOpen = ref(false);
 const failureRows = ref<BulkFailureRow[]>([]);
+const pendingFailureRows = ref<BulkFailureRow[]>([]);
 
 function confirmBulkApprove() {
   // Capture the labels before the mutation: the refreshed inbox may no longer
@@ -281,8 +295,9 @@ function confirmBulkApprove() {
   bulkApprove.mutate(approveSelections.value, {
     onSuccess: (result) => {
       clearSelection();
-      if (result.failed.length > 0) {
+      if (result.failed.length > 0 || result.pending.length > 0) {
         failureRows.value = bulkFailureRows(result.failed, labels);
+        pendingFailureRows.value = bulkPendingRows(result.pending, labels);
         failureOpen.value = true;
       }
     },
@@ -378,6 +393,17 @@ function confirmBulkApprove() {
           class="w-44 rounded-xl shadow-sm"
           :data-testid="TEST_ID.inboxTagFilter"
         />
+        <label class="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            class="h-4 w-4"
+            :checked="assignedToMe"
+            :aria-label="t('inbox.assignedToMeLabel')"
+            :data-testid="TEST_ID.inboxAssignedToMe"
+            @change="toggleAssignedToMe"
+          />
+          <span>{{ t("inbox.myReviews") }}</span>
+        </label>
         <Select v-model="kind">
           <SelectTrigger
             class="w-40"
@@ -481,6 +507,14 @@ function confirmBulkApprove() {
         {{ t("inbox.noMatch") }}
       </div>
 
+      <div
+        v-if="overdueCount > 0"
+        class="rounded-xl border border-status-warning/40 bg-status-warning/10 px-4 py-2 text-sm text-status-warning"
+        :data-testid="TEST_ID.inboxOverdue"
+      >
+        {{ t("inbox.overdue", overdueCount) }}
+      </div>
+
       <div v-for="section in sections" :key="section.key" class="space-y-4">
         <h2 class="text-sm font-semibold text-muted-foreground">
           {{ section.name }}
@@ -522,8 +556,15 @@ function confirmBulkApprove() {
     <BulkFailureDialog
       :open="failureOpen"
       :rows="failureRows"
-      :title="t('inbox.failureTitle')"
-      :description="t('inbox.failureBody')"
+      :pending-rows="pendingFailureRows"
+      :title="
+        failureRows.length > 0
+          ? t('inbox.failureTitle')
+          : t('bulk.pendingTitle')
+      "
+      :description="
+        failureRows.length > 0 ? t('inbox.failureBody') : t('bulk.pendingBody')
+      "
       @update:open="failureOpen = $event"
     />
   </div>

@@ -47,10 +47,12 @@ describe("mapBulkApproveResult", () => {
     expect(
       mapBulkApproveResult({
         approved: [item()],
+        pending: [{ id: "c-3", votes: 1, required: 2 }],
         failed: [item({ id: "c-2", success: false, error: "boom" })],
       }),
     ).toEqual({
       approved: [{ id: "c-1", success: true, error: null }],
+      pending: [{ id: "c-3", votes: 1, required: 2 }],
       failed: [{ id: "c-2", success: false, error: "boom" }],
     });
   });
@@ -58,6 +60,7 @@ describe("mapBulkApproveResult", () => {
   it("defaults a missing payload to empty buckets", () => {
     expect(mapBulkApproveResult(undefined)).toEqual({
       approved: [],
+      pending: [],
       failed: [],
     });
   });
@@ -102,21 +105,25 @@ describe("mergeBulkApproveResults", () => {
     const merged = mergeBulkApproveResults([
       {
         approved: [{ id: "a", success: true, error: null }],
+        pending: [{ id: "p-1", votes: 1, required: 2 }],
         failed: [{ id: "b", success: false, error: "boom" }],
       },
       {
         approved: [{ id: "c", success: true, error: null }],
+        pending: [{ id: "p-2", votes: 2, required: 3 }],
         failed: [],
       },
     ]);
 
     expect(merged.approved.map((row) => row.id)).toEqual(["a", "c"]);
+    expect(merged.pending.map((row) => row.id)).toEqual(["p-1", "p-2"]);
     expect(merged.failed.map((row) => row.id)).toEqual(["b"]);
   });
 
   it("returns empty buckets for no results", () => {
     expect(mergeBulkApproveResults([])).toEqual({
       approved: [],
+      pending: [],
       failed: [],
     });
   });
@@ -127,6 +134,7 @@ describe("bulk summaries", () => {
     expect(
       bulkApproveSummary({
         approved: [{ id: "a", success: true, error: null }],
+        pending: [],
         failed: [],
       }),
     ).toBe("Approved 1 change");
@@ -136,6 +144,7 @@ describe("bulk summaries", () => {
           { id: "a", success: true, error: null },
           { id: "b", success: true, error: null },
         ],
+        pending: [],
         failed: [],
       }),
     ).toBe("Approved 2 changes");
@@ -145,9 +154,20 @@ describe("bulk summaries", () => {
     expect(
       bulkApproveSummary({
         approved: [{ id: "a", success: true, error: null }],
+        pending: [],
         failed: [{ id: "b", success: false, error: "boom" }],
       }),
     ).toBe("Approved 1 change, 1 failed");
+  });
+
+  it("counts pending votes separately from approved and failed", () => {
+    expect(
+      bulkApproveSummary({
+        approved: [{ id: "a", success: true, error: null }],
+        pending: [{ id: "b", votes: 1, required: 2 }],
+        failed: [{ id: "c", success: false, error: "boom" }],
+      }),
+    ).toBe("Approved 1 change, 1 awaiting additional approval, 1 failed");
   });
 
   it("counts moved projects", () => {

@@ -354,7 +354,8 @@ describe('ProjectService', () => {
         groupId: null,
         groupName: null,
         branchName: 'main',
-        defaultBranchName: 'main',
+        requiredApprovals: 1,
+      defaultBranchName: 'main',
         variants: [
           {
             testName: 'test-1',
