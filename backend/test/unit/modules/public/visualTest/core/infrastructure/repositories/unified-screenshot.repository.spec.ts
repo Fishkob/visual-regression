@@ -43,6 +43,9 @@ describe('UnifiedScreenshotRepository', () => {
         count: vi.fn(),
         findMany: vi.fn(),
       },
+      baselineRevision: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
     };
 
     mockTxCtx = createMock<TransactionContext>();
@@ -944,11 +947,37 @@ describe('UnifiedScreenshotRepository', () => {
       });
     });
 
+    it('keeps only urls not referenced by a baseline revision', async () => {
+      mockClient.unifiedScreenshot.findMany.mockResolvedValue([]);
+      mockClient.baselineRevision.findMany.mockResolvedValueOnce([
+        { imageUrl: 'http://example.com/history.png' },
+      ]);
+
+      const result = await repository.filterReclaimableUrls([
+        'http://example.com/history.png',
+        'http://example.com/free.png',
+      ]);
+
+      expect(result).toEqual(['http://example.com/free.png']);
+      expect(mockClient.baselineRevision.findMany).toHaveBeenCalledWith({
+        where: {
+          imageUrl: {
+            in: [
+              'http://example.com/history.png',
+              'http://example.com/free.png',
+            ],
+          },
+        },
+        select: { imageUrl: true },
+      });
+    });
+
     it('returns empty array when input is empty', async () => {
       const result = await repository.filterReclaimableUrls([]);
 
       expect(result).toEqual([]);
       expect(mockClient.unifiedScreenshot.findMany).not.toHaveBeenCalled();
+      expect(mockClient.baselineRevision.findMany).not.toHaveBeenCalled();
     });
   });
 

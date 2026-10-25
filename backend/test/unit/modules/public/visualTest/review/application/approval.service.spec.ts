@@ -26,6 +26,7 @@ import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastruct
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { ApprovalAuditRepository } from '@public/visualTest/core/infrastructure/repositories/approval-audit.repository';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
+import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
 import {
   PDF_RENDER_CACHE,
   IPdfRenderCache,
@@ -48,6 +49,7 @@ describe('ApprovalService', () => {
   let screenshots: Mocked<UnifiedScreenshotRepository>;
   let comparisons: Mocked<UnifiedComparisonsRepository>;
   let retirement: Mocked<ComparisonRetirementService>;
+  let baselineHistory: Mocked<BaselineHistoryService>;
   let pdfRenderCache: Mocked<IPdfRenderCache>;
   let approvalAudit: Mocked<ApprovalAuditRepository>;
 
@@ -154,6 +156,8 @@ describe('ApprovalService', () => {
     comparisons.completePdfApproval.mockResolvedValue([]);
     retirement = createMock<ComparisonRetirementService>();
     retirement.retireSiblingsAndDeleteCandidate.mockResolvedValue([]);
+    baselineHistory = createMock<BaselineHistoryService>();
+    baselineHistory.recordOutgoingBaseline.mockResolvedValue([]);
     pdfRenderCache = createMock<IPdfRenderCache>();
     approvalAudit = createMock<ApprovalAuditRepository>();
     approvalAudit.record.mockResolvedValue(undefined);
@@ -178,6 +182,7 @@ describe('ApprovalService', () => {
         { provide: UnifiedScreenshotRepository, useValue: screenshots },
         { provide: UnifiedComparisonsRepository, useValue: comparisons },
         { provide: ComparisonRetirementService, useValue: retirement },
+        { provide: BaselineHistoryService, useValue: baselineHistory },
         { provide: PDF_RENDER_CACHE, useValue: pdfRenderCache },
         { provide: ApprovalAuditRepository, useValue: approvalAudit },
         { provide: AppLoggerService, useValue: createMockLogger() },
@@ -250,6 +255,29 @@ describe('ApprovalService', () => {
         newBaselineUrl: 'http://storage/candidate.png',
         signedNewBaselineUrl: 'http://storage/candidate.png',
       });
+    });
+
+    it('records the replaced baseline before overwriting it', async () => {
+      const baseline = makeBaseline();
+      const comparison = makeComparison(baseline, makeCandidate());
+      testResolver.findTestOfKind.mockResolvedValue(imageTest);
+      comparisons.findByIdForTest.mockResolvedValue(comparison);
+      statusService.recomputeStatus.mockResolvedValue(undefined);
+
+      await service.approveImage('my-project', 'my-test', 'comp-1', approvedBy);
+
+      expect(baselineHistory.recordOutgoingBaseline).toHaveBeenCalledWith({
+        testId: 'test-1',
+        variant,
+        baseline,
+        reason: 'approval',
+        createdBy: approvedBy,
+      });
+      expect(
+        baselineHistory.recordOutgoingBaseline.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        screenshots.updateBaselineScreenshot.mock.invocationCallOrder[0],
+      );
     });
 
     it('records the approval audit entry with the decision it folded into the baseline', async () => {

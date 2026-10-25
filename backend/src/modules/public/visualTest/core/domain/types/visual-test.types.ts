@@ -8,6 +8,11 @@ export {
   ComparisonErrorCode,
 } from '@common/domain/upload-outcome';
 
+// Why a baseline revision exists: the ordinary approval overwrite, an explicit
+// restore of an older revision, or a future import. Stored as the Prisma enum
+// of the same name.
+export type BaselineRevisionReason = 'approval' | 'restore' | 'import';
+
 export const REVIEWABLE_COMPARISON_STATUSES = [
   ComparisonStatus.PENDING_APPROVAL,
   ComparisonStatus.APPROVED,

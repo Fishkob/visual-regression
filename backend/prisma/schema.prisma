@@ -50,6 +50,7 @@ model UnifiedTest {
   variants     UnifiedVariant[]
   screenshots  UnifiedScreenshot[]
   comparisons  UnifiedComparison[]
+  baselineRevisions BaselineRevision[]
 
   @@unique([branchId, name])
   @@map("UnifiedTest")
@@ -66,6 +67,7 @@ model UnifiedVariant {
   baseline    UnifiedScreenshot? @relation("BaselineVariant", fields: [baselineId], references: [id])
   isInherited Boolean            @default(false)
   screenshots UnifiedScreenshot[]
+  baselineRevisions BaselineRevision[]
 
   @@unique([testId, viewport, browser, environment])
   @@map("UnifiedVariant")
@@ -148,6 +150,33 @@ model Approval {
   @@index([projectName, testName, approvedAt])
   @@index([approvedAt])
   @@map("Approval")
+}
+
+// Durable history of replaced baselines. Unlike Approval ("who approved
+// what"), a revision keeps the file URL so an approval can be undone. The
+// variant/test foreign keys make a deletion clean up its own history; files are
+// reclaimed by the revision-prune path once no live row references them.
+model BaselineRevision {
+  id                 String                 @id @default(cuid())
+  test               UnifiedTest            @relation(fields: [testId], references: [id], onDelete: Cascade)
+  testId             String
+  variant            UnifiedVariant         @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variantId          String
+  viewport           String
+  browser            String
+  environment        String
+  imageUrl           String
+  imageHash          String
+  pageCount          Int?
+  pixelDiffThreshold Int                    @default(0)
+  reason             BaselineRevisionReason
+  createdBy          String?
+  createdAt          DateTime               @default(now())
+
+  @@index([testId, createdAt])
+  @@index([variantId, createdAt])
+  @@index([imageUrl])
+  @@map("BaselineRevision")
 }
 
 model ComparisonJob {
@@ -256,6 +285,12 @@ enum JobStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+enum BaselineRevisionReason {
+  approval
+  restore
+  import
 }
 
 datasource db {

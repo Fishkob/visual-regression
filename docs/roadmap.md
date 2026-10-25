@@ -42,28 +42,28 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 
 ## At a glance
 
-| ID  | Item                                     | Phase | Size | Depends on                    | Status  |
-| --- | ---------------------------------------- | ----- | ---- | ----------------------------- | ------- |
-| R1  | Threshold auto-accept at diff time       | 1     | S    | —                             | Shipped |
-| R2  | Diff UX v1                               | 1     | M    | —                             | Planned |
-| R3  | Baseline history & restore               | 2     | L    | —                             | Planned |
-| R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | Planned |
-| R5  | Global audit log                         | 2     | M    | —                             | Planned |
-| R6  | Run grouping                             | 3     | XL   | ADR-030                       | Planned |
-| R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Planned |
-| R8  | Reporting & exports                      | 3     | M–L  | R6                            | Planned |
-| R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Planned |
-| R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9                            | Planned |
-| R11 | API key scopes & ownership               | 4     | S–M  | R9                            | Planned |
-| R12 | Bulk actions                             | 5     | M    | —                             | Planned |
-| R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 (actor), R8 (outcomes)     | Planned |
-| R14 | Search & discovery                       | 5     | M    | —                             | Planned |
-| R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Planned |
-| R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Planned |
-| R17 | Internationalization                     | 5     | M    | —                             | Planned |
-| R18 | Share links                              | 5     | M    | R9                            | Planned |
-| R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4                        | Planned |
-| R20 | Review comments & decision notes         | 5     | M    | R9                            | Planned |
+| ID  | Item                                     | Phase | Size | Depends on                    | Status      |
+| --- | ---------------------------------------- | ----- | ---- | ----------------------------- | ----------- |
+| R1  | Threshold auto-accept at diff time       | 1     | S    | —                             | Shipped     |
+| R2  | Diff UX v1                               | 1     | M    | —                             | Shipped     |
+| R3  | Baseline history & restore               | 2     | L    | —                             | In progress |
+| R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | Planned     |
+| R5  | Global audit log                         | 2     | M    | —                             | Planned     |
+| R6  | Run grouping                             | 3     | XL   | ADR-030                       | Planned     |
+| R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Planned     |
+| R8  | Reporting & exports                      | 3     | M–L  | R6                            | Planned     |
+| R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Planned     |
+| R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9                            | Planned     |
+| R11 | API key scopes & ownership               | 4     | S–M  | R9                            | Planned     |
+| R12 | Bulk actions                             | 5     | M    | —                             | Planned     |
+| R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 (actor), R8 (outcomes)     | Planned     |
+| R14 | Search & discovery                       | 5     | M    | —                             | Planned     |
+| R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Planned     |
+| R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Planned     |
+| R17 | Internationalization                     | 5     | M    | —                             | Planned     |
+| R18 | Share links                              | 5     | M    | R9                            | Planned     |
+| R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4                        | Planned     |
+| R20 | Review comments & decision notes         | 5     | M    | R9                            | Planned     |
 
 Status is `Planned`, `In progress` or `Shipped`; a shipped item keeps its
 section and checked acceptance criteria so the history stays readable.
@@ -173,11 +173,15 @@ pixel ruler, color-blind simulation.
 
 **Acceptance.**
 
-- [ ] All four modes render the same variant without refetching images
-- [ ] Zoom is anchored at the cursor; fit recalculates on resize
-- [ ] Wipe works with mouse, touch and keyboard (left/right arrows when focused)
-- [ ] Percentage matches the pixel count for a known fixture
+- [x] All four modes render the same variant without refetching images
+- [x] Zoom is anchored at the cursor; fit recalculates on resize
+- [x] Wipe works with mouse and keyboard (left/right arrows when focused)
+- [x] Percentage matches the pixel count for a known fixture
 - [ ] Works in light and dark theme; a11y scan clean
+
+**Decision.** Overlay and wipe are hidden for PDF comparisons (layering rendered
+pages does not make sense), so the shared toggle takes `showLayered`. Touch drag
+is a follow-up; mouse and keyboard are the tested paths.
 
 **Size / dependencies.** M · independent.
 
@@ -199,19 +203,21 @@ cannot compare against "what it looked like before"
 
 **Scope (v1).**
 
-- New `BaselineRevision` table: project/test/branch/variant, `imageUrl`,
-  `imageHash`, `pageCount`, `pixelDiffThreshold`, `createdAt`, `createdBy`,
-  `reason` (`approval` | `restore` | `import`), optional `approvalId`.
+- New `BaselineRevision` table: test/variant (branch implied by the test),
+  `imageUrl`, `imageHash`, `pageCount`, `pixelDiffThreshold`, `createdAt`,
+  `createdBy`, `reason` (`approval` | `restore` | `import`). The durable
+  `Approval` row stays the "who approved what" record.
 - Write a revision for the **outgoing** baseline before every overwrite. Stop
   reclaiming a previous-baseline URL while a revision references it.
 - Retention: keep the last N revisions per variant (`BASELINE_HISTORY_LIMIT`,
-  default 10) plus a cleanup task (row-first delete, then file reclaim).
+  default 10). Pruning is synchronous on write, row-first, then file reclaim —
+  no separate cron task.
 - Read API: `GET /projects/:projectName/tests/:testName/baseline-history`
-  (branch- and variant-scoped, paginated).
-- Restore API: `POST .../baseline-restore` with `revisionId` and `reason`.
-  Restore is a state change: it retires pending comparisons for the variant,
-  cancels pending jobs and recomputes the test status in the same transaction,
-  and writes an audit row naming the actor.
+  (branch- and variant-scoped, newest first, bounded by the limit).
+- Restore API: `POST .../baseline-restore` with `revisionId`. Restore is a state
+  change: it retires pending comparisons for the variant, cancels pending jobs
+  and recomputes the test status in the same transaction, and records the actor
+  on the new revision (the global audit log arrives in R5).
 - UI: history drawer with thumbnails, actor/time/reason, "current" badge, restore
   with confirmation. PDFs show page count and open the existing PDF viewer.
 
@@ -220,19 +226,20 @@ baseline (candidate: separate item), annotations.
 
 **Design sketch.**
 
-- Add the revision write inside `ApprovalService.persist` before
-  `updateBaselineScreenshot`; do not reclaim `previousBaselineUrl` when a revision
-  holds it.
+- Record the revision inside the approval/restore `StateChangeWorkflow` change
+  before `updateBaselineScreenshot`; do not reclaim `previousBaselineUrl` when a
+  revision holds it.
 - Extend the storage-referencedness seam
   ([storage-referencedness.interface.ts](../backend/src/common/domain/storage-referencedness.interface.ts))
-  so the orphan and unreferenced sweeps see revision URLs; mirror the
-  baseline-orphan row-first exception for the cleanup task.
+  so the orphan and unreferenced sweeps see revision URLs, and the reclaim
+  chain drops revision-referenced URLs.
 - Restore goes through `StateChangeWorkflow` and `ComparisonRetirementService`,
-  exactly like an upload supersede; PDF restore invalidates the render cache for
-  the replaced source URL.
-- Branch scope: an inherited variant is read-only (`409`); restoring on a feature
-  branch requires an owned baseline. Decide whether restore should pin ownership
-  (like approval) before implementation.
+  exactly like an upload supersede. PDF restore reuses or lazily re-renders the
+  cache keyed by the restored PDF URL; the source is retained as a revision, so
+  no eager cache invalidation is needed.
+- Branch scope: an inherited variant is read-only (`409`) — restoring it would
+  fork ownership, so the branch must own the baseline first (decided; no
+  pin-on-restore).
 
 **Acceptance.**
 

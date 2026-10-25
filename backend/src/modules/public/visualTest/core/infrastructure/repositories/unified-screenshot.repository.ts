@@ -130,7 +130,12 @@ export class UnifiedScreenshotRepository extends BaseRepository {
 
   async updateBaselineScreenshot(
     baselineId: string,
-    data: { imageHash: string; imageUrl: string; pageCount?: number | null },
+    data: {
+      imageHash: string;
+      imageUrl: string;
+      pageCount?: number | null;
+      pixelDiffThreshold?: number;
+    },
   ): Promise<void> {
     this.assertWritable();
     const cleanData: Record<string, string | number | null> = {
@@ -138,6 +143,9 @@ export class UnifiedScreenshotRepository extends BaseRepository {
       imageUrl: data.imageUrl,
     };
     if (data.pageCount !== undefined) cleanData.pageCount = data.pageCount;
+    if (data.pixelDiffThreshold !== undefined) {
+      cleanData.pixelDiffThreshold = data.pixelDiffThreshold;
+    }
     await this.client.unifiedScreenshot.update({
       where: { id: baselineId },
       data: cleanData,
@@ -356,14 +364,33 @@ export class UnifiedScreenshotRepository extends BaseRepository {
   }
 
   // SINGLE OWNER of the "safe to reclaim" chain: a URL still referenced by a
-  // baseline or by a live comparison must never be deleted. Every reclaim path
-  // funnels its URL collection through here; the comparison-referenced filter is
-  // a no-op for callers that have already removed their comparison references,
-  // but keeping the full chain in one place means the safety rule has one home.
+  // baseline, by a live comparison or by a baseline revision must never be
+  // deleted. Every reclaim path funnels its URL collection through here; the
+  // downstream filters are no-ops for callers that already removed their own
+  // references, but keeping the full chain in one place means the safety rule
+  // has one home.
   async filterReclaimableUrls(imageUrls: string[]): Promise<string[]> {
-    return this.filterOutComparisonReferencedUrls(
-      await this.filterOutBaselineSharedUrls(imageUrls),
+    return this.filterOutRevisionSharedUrls(
+      await this.filterOutComparisonReferencedUrls(
+        await this.filterOutBaselineSharedUrls(imageUrls),
+      ),
     );
+  }
+
+  // A revision keeps an overwritten baseline readable from the history view, so
+  // its file must survive the reclaim that the approval/restore triggered. This
+  // also protects a URL two branches share (inherited clones point at the same
+  // object): pruning one branch's revision must not delete the other's file.
+  private async filterOutRevisionSharedUrls(
+    imageUrls: string[],
+  ): Promise<string[]> {
+    if (imageUrls.length === 0) return [];
+    const rows = await this.client.baselineRevision.findMany({
+      where: { imageUrl: { in: imageUrls } },
+      select: { imageUrl: true },
+    });
+    const referenced = new Set(rows.map((row) => row.imageUrl));
+    return imageUrls.filter((url) => !referenced.has(url));
   }
 
   // Storage objects still referenced by a baseline must not be deleted. The

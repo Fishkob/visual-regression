@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@prisma/prisma.module';
+import { AppConfigModule } from '@config/app-config.module';
 import { StorageModule } from '@internal/storage/storage.module';
 import { JobQueueModule } from '@internal/job-queue/job-queue.module';
 import { VisualTestInfraModule } from '@public/visualTest/core/visual-test-infra.module';
@@ -13,9 +14,16 @@ import { ComparisonRetirementService } from '@public/visualTest/core/application
 import { CandidateReclamationService } from '@public/visualTest/core/application/services/candidate-reclamation.service';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { ThresholdUpdateService } from '@public/visualTest/core/application/services/threshold-update.service';
+import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
 
 @Module({
-  imports: [VisualTestInfraModule, PrismaModule, StorageModule, JobQueueModule],
+  imports: [
+    VisualTestInfraModule,
+    PrismaModule,
+    StorageModule,
+    JobQueueModule,
+    AppConfigModule,
+  ],
   providers: [
     BranchBaselineResolver,
     BranchDeletionService,
@@ -27,6 +35,7 @@ import { ThresholdUpdateService } from '@public/visualTest/core/application/serv
     CandidateReclamationService,
     StateChangeWorkflow,
     ThresholdUpdateService,
+    BaselineHistoryService,
   ],
   exports: [
     BranchBaselineResolver,
@@ -38,6 +47,7 @@ import { ThresholdUpdateService } from '@public/visualTest/core/application/serv
     CandidateReclamationService,
     StateChangeWorkflow,
     ThresholdUpdateService,
+    BaselineHistoryService,
   ],
 })
 export class VisualTestApplicationModule {}

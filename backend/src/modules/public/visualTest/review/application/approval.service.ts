@@ -16,6 +16,7 @@ import {
 } from '@public/visualTest/core/infrastructure/repositories/approval-audit.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
+import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
 import {
   PDF_RENDER_CACHE,
   IPdfRenderCache,
@@ -86,6 +87,7 @@ export class ApprovalService {
     private readonly screenshots: UnifiedScreenshotRepository,
     private readonly comparisons: UnifiedComparisonsRepository,
     private readonly retirement: ComparisonRetirementService,
+    private readonly baselineHistory: BaselineHistoryService,
     @Inject(PDF_RENDER_CACHE)
     private readonly pdfRenderCache: IPdfRenderCache,
     @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
@@ -170,6 +172,18 @@ export class ApprovalService {
             comparison.baseline,
             comparison.candidate,
           );
+          // Keep the baseline that is about to be replaced, so the approval can
+          // be undone from the history view. This writes the history row in the
+          // same transaction as the baseline overwrite; the previous baseline's
+          // file is no longer reclaimed because the revision now references it.
+          const revisionUrls =
+            await this.baselineHistory.recordOutgoingBaseline({
+              testId: test.id,
+              variant: decision.newBaseline.variant,
+              baseline: comparison.baseline,
+              reason: 'approval',
+              createdBy: approvedBy,
+            });
           const staleDiffUrls = await this.persist(config, decision);
           // The trail is written in the SAME change: an approval never commits
           // without its audit row, and an audit failure rolls the approval back.
@@ -197,7 +211,7 @@ export class ApprovalService {
           });
           return {
             change: change([test.id], {
-              staleUrls: staleDiffUrls,
+              staleUrls: [...staleDiffUrls, ...revisionUrls],
               events: [
                 {
                   kind: 'comparison_approved',

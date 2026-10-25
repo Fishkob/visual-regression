@@ -23,6 +23,7 @@ describe('AppConfigService', () => {
     PDF_SIDECAR_URL: 'http://pdf-sidecar:3001',
     PDF_SIDECAR_TIMEOUT: 30_000,
     JOB_RETENTION_DAYS: 7,
+    BASELINE_HISTORY_LIMIT: 10,
     WORKER_HEALTH_URL: 'http://worker:3002',
     WORKER_HEALTH_PORT: 3003,
     METRICS_ENABLED: true,
@@ -90,6 +91,14 @@ describe('AppConfigService', () => {
   it('exposes the retention groups', () => {
     const config = buildAppConfig(baseValues);
     expect(config.jobRetention.days).toBe(7);
+    expect(config.baselineHistory.limit).toBe(10);
+  });
+
+  it('defaults the baseline history limit when the pre-Joi path omits it', () => {
+    const values = { ...baseValues };
+    delete values.BASELINE_HISTORY_LIMIT;
+    const config = buildAppConfig(values);
+    expect(config.baselineHistory.limit).toBe(10);
   });
 
   it('exposes the worker health group', () => {

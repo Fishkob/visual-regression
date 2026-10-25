@@ -7,6 +7,7 @@ import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/re
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { ApprovalAuditRepository } from '@public/visualTest/core/infrastructure/repositories/approval-audit.repository';
+import { BaselineRevisionRepository } from '@public/visualTest/core/infrastructure/repositories/baseline-revision.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { OrphanedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/orphaned-screenshot.repository';
 import { StorageObjectReferencednessService } from '@public/visualTest/core/infrastructure/repositories/storage-object-referencedness.service';
@@ -23,6 +24,7 @@ import { ORPHAN_SWEEP } from '@common/domain/orphan-sweep.interface';
     UnifiedScreenshotRepository,
     UnifiedComparisonsRepository,
     ApprovalAuditRepository,
+    BaselineRevisionRepository,
     VariantStore,
     OrphanedScreenshotRepository,
     StorageObjectReferencednessService,
@@ -43,6 +45,7 @@ import { ORPHAN_SWEEP } from '@common/domain/orphan-sweep.interface';
     UnifiedScreenshotRepository,
     UnifiedComparisonsRepository,
     ApprovalAuditRepository,
+    BaselineRevisionRepository,
     VariantStore,
     OrphanedScreenshotRepository,
     STORAGE_OBJECT_REFERENCEDNESS,

@@ -16,6 +16,7 @@ import { PdfController } from '@public/visualTest/review/presentation/controller
 import { TestCommandsController } from '@public/visualTest/review/presentation/controllers/test-commands.controller';
 import { ReviewInboxController } from '@public/visualTest/review/presentation/controllers/review-inbox.controller';
 import { BranchesController } from '@public/visualTest/review/presentation/controllers/branches.controller';
+import { BaselineHistoryController } from '@public/visualTest/review/presentation/controllers/baseline-history.controller';
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
 import { ProjectGroupService } from '@public/visualTest/review/application/project-group.service';
@@ -43,6 +44,7 @@ import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
     TestCommandsController,
     ReviewInboxController,
     BranchesController,
+    BaselineHistoryController,
   ],
   providers: [
     TestQueryService,

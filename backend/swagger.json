@@ -1988,6 +1988,139 @@
         ]
       }
     },
+    "/projects/{projectName}/tests/{testName}/baseline-history": {
+      "get": {
+        "operationId": "BaselineHistoryController_list",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BaselineRevisionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List replaced baselines for a test (newest first)",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/baseline-restore": {
+      "post": {
+        "operationId": "BaselineHistoryController_restore",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreBaselineDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreBaselineResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Restore a previously replaced baseline",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -3796,6 +3929,96 @@
         },
         "required": [
           "success"
+        ]
+      },
+      "BaselineRevisionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "viewport": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "Canonical storage URL of the baseline file (identity)"
+          },
+          "signedImageUrl": {
+            "type": "string",
+            "description": "Time-limited presigned URL for rendering the baseline"
+          },
+          "imageHash": {
+            "type": "string"
+          },
+          "pageCount": {
+            "type": "object",
+            "nullable": true
+          },
+          "pixelDiffThreshold": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "approval",
+              "restore",
+              "import"
+            ]
+          },
+          "createdBy": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "viewport",
+          "browser",
+          "environment",
+          "imageUrl",
+          "signedImageUrl",
+          "imageHash",
+          "pixelDiffThreshold",
+          "reason",
+          "createdAt"
+        ]
+      },
+      "RestoreBaselineDto": {
+        "type": "object",
+        "properties": {
+          "revisionId": {
+            "type": "string",
+            "description": "The baseline revision to restore"
+          }
+        },
+        "required": [
+          "revisionId"
+        ]
+      },
+      "RestoreBaselineResultDto": {
+        "type": "object",
+        "properties": {
+          "baselineUrl": {
+            "type": "string"
+          },
+          "signedBaselineUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "baselineUrl",
+          "signedBaselineUrl"
         ]
       },
       "DetailedHealthDto": {

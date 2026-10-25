@@ -66,6 +66,16 @@ export const envValidationSchema = Joi.object({
       'How many days to retain failed comparison jobs before cleanup.',
     ),
 
+  // Baseline history
+  BASELINE_HISTORY_LIMIT: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .default(10)
+    .description(
+      'How many replaced baselines to keep per test variant (newest first).',
+    ),
+
   // App
   PORT: Joi.number().default(3000),
 

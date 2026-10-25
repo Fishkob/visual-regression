@@ -23,6 +23,7 @@ interface AppConfigSnapshot {
   };
   pdfSidecar: { url: string; timeout: number; healthUrl: string | undefined };
   jobRetention: { days: number };
+  baselineHistory: { limit: number };
   workerHealth: { url: string | undefined; port: number };
   metrics: { enabled: boolean; apiKey: string };
   admin: { apiKey: string };
@@ -91,6 +92,10 @@ export class AppConfigService {
 
   get jobRetention() {
     return this.s.jobRetention;
+  }
+
+  get baselineHistory() {
+    return this.s.baselineHistory;
   }
 
   get workerHealth() {
@@ -199,6 +204,11 @@ export class AppConfigService {
       },
       jobRetention: {
         days: this.config.getOrThrow<number>('JOB_RETENTION_DAYS'),
+      },
+      baselineHistory: {
+        // Falls back to the Joi default on the pre-Joi bootstrap path, like the
+        // other non-critical settings.
+        limit: this.config.get<number>('BASELINE_HISTORY_LIMIT') ?? 10,
       },
       workerHealth: {
         url: this.config.get<string>('WORKER_HEALTH_URL'),

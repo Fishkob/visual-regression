@@ -37,6 +37,10 @@ import type { AuthControllerLogoutData } from './models/AuthControllerLogoutData
 import type { AuthControllerLogoutResponses } from './models/AuthControllerLogoutResponses.gen';
 import type { AuthControllerMeData } from './models/AuthControllerMeData.gen';
 import type { AuthControllerMeResponses } from './models/AuthControllerMeResponses.gen';
+import type { BaselineHistoryControllerListData } from './models/BaselineHistoryControllerListData.gen';
+import type { BaselineHistoryControllerListResponses } from './models/BaselineHistoryControllerListResponses.gen';
+import type { BaselineHistoryControllerRestoreData } from './models/BaselineHistoryControllerRestoreData.gen';
+import type { BaselineHistoryControllerRestoreResponses } from './models/BaselineHistoryControllerRestoreResponses.gen';
 import type { BranchesControllerListData } from './models/BranchesControllerListData.gen';
 import type { BranchesControllerListResponses } from './models/BranchesControllerListResponses.gen';
 import type { BranchesControllerRemoveData } from './models/BranchesControllerRemoveData.gen';
@@ -428,6 +432,28 @@ export const branchesControllerList = <ThrowOnError extends boolean = false>(opt
 export const branchesControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<BranchesControllerUpdateData, ThrowOnError>): RequestResult<BranchesControllerUpdateResponses, BranchesControllerUpdateErrors, ThrowOnError> => (options.client ?? client).patch<BranchesControllerUpdateResponses, BranchesControllerUpdateErrors, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/projects/{projectName}/branches',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List replaced baselines for a test (newest first)
+ */
+export const baselineHistoryControllerList = <ThrowOnError extends boolean = false>(options: Options<BaselineHistoryControllerListData, ThrowOnError>): RequestResult<BaselineHistoryControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<BaselineHistoryControllerListResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/baseline-history',
+    ...options
+});
+
+/**
+ * Restore a previously replaced baseline
+ */
+export const baselineHistoryControllerRestore = <ThrowOnError extends boolean = false>(options: Options<BaselineHistoryControllerRestoreData, ThrowOnError>): RequestResult<BaselineHistoryControllerRestoreResponses, unknown, ThrowOnError> => (options.client ?? client).post<BaselineHistoryControllerRestoreResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/baseline-restore',
     ...options,
     headers: {
         'Content-Type': 'application/json',

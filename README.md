@@ -214,6 +214,7 @@ For Docker deployments, Compose reads the root `.env` automatically. Set the **p
 | `UPLOAD_RATE_LIMIT_PER_MINUTE`                        | Max uploads per minute per API key. `0` disables (default: `60`)                                                                                                                      |
 | `LOGIN_RATE_LIMIT_PER_MINUTE`                         | Max login attempts per minute per IP. `0` disables (default: `5`)                                                                                                                     |
 | `LOG_RATE_LIMIT_PER_MINUTE`                           | Max log-ingestion requests per minute per IP. `0` disables (default: `100`)                                                                                                           |
+| `BASELINE_HISTORY_LIMIT`                              | Replaced baselines kept per test variant for restore (default: `10`, max: `100`)                                                                                                      |
 
 The backend creates the storage bucket on startup. Screenshots and rendered PDF pages are delivered as **time-limited presigned URLs** (`RUSTFS_SIGNED_URL_TTL_SECONDS`, default `3600`), so the bucket is private by default — no anonymous-read policy is applied. `RUSTFS_PUBLIC_URL` must be the base the **browser** can reach, because it is the host of every presigned URL. Set `RUSTFS_ENSURE_PUBLIC_BUCKET=true` only if an external consumer (e.g. a report exporter) fetches objects without credentials.
 
