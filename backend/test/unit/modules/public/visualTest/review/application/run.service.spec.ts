@@ -32,6 +32,7 @@ describe('RunService', () => {
 
   const baseCounts = {
     pendingComparisons: 0,
+    mutedPending: 0,
     pendingJobs: 0,
     failedJobs: 0,
     approved: 0,

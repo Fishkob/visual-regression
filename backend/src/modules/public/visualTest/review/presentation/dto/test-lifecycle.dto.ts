@@ -25,7 +25,7 @@ export class UpdateTestMetadataDto {
   description?: string | null;
 
   @ApiPropertyOptional({
-    type: [String],
+    type: String,
     isArray: true,
     maxItems: 20,
     description: 'Normalized to lowercase; empty clears the tags',
@@ -81,7 +81,7 @@ export class TestMetadataDto {
   @Expose()
   description!: string | null;
 
-  @ApiProperty({ type: [String], isArray: true })
+  @ApiProperty({ type: String, isArray: true })
   @Expose()
   tags!: string[];
 

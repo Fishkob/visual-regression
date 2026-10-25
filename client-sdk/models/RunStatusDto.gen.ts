@@ -3,6 +3,7 @@
 export type RunStatusDto = {
     state: 'open' | 'pending' | 'failed' | 'passed';
     pendingComparisons: number;
+    mutedPending: number;
     pendingJobs: number;
     failedJobs: number;
     approved: number;

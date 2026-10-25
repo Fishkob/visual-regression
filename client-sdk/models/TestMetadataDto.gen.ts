@@ -6,7 +6,7 @@ export type TestMetadataDto = {
     id: string;
     name: string;
     description: string | null;
-    tags: Array<Array<string>>;
+    tags: Array<string>;
     mutedUntil: string | null;
     muteReason: string | null;
     isMuted: boolean;

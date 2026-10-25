@@ -6,7 +6,7 @@ export type UpdateTestMetadataDto = {
     /**
      * Normalized to lowercase; empty clears the tags
      */
-    tags?: Array<Array<string>>;
+    tags?: Array<string>;
     /**
      * ISO timestamp until which the test is muted; null clears the mute. A past timestamp also clears it.
      */

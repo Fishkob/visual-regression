@@ -151,6 +151,10 @@ export class RunStatusDto {
 
   @ApiProperty()
   @Expose()
+  mutedPending!: number;
+
+  @ApiProperty()
+  @Expose()
   pendingJobs!: number;
 
   @ApiProperty()

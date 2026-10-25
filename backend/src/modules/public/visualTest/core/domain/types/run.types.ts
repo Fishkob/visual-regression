@@ -2,6 +2,7 @@ export type RunState = 'open' | 'pending' | 'failed' | 'passed';
 
 export interface RunStatusCounts {
   pendingComparisons: number;
+  mutedPending: number;
   pendingJobs: number;
   failedJobs: number;
   approved: number;

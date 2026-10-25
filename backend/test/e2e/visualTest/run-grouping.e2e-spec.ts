@@ -77,6 +77,7 @@ describe('Run grouping (e2e)', () => {
       expect.objectContaining({
         state: 'open',
         pendingComparisons: 0,
+        mutedPending: 0,
         pendingJobs: 0,
         failedJobs: 0,
         testCount: 2,

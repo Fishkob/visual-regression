@@ -126,19 +126,31 @@ export class RunRepository extends BaseRepository {
   }
 
   async statusCounts(runId: string): Promise<RunStatusCounts> {
-    const [pendingComparisons, pendingJobs, failedJobs, approved] =
-      await Promise.all([
-        this.client.unifiedComparison.count({
-          where: { runId, status: 'PENDING_APPROVAL' },
-        }),
-        this.client.comparisonJob.count({
-          where: { runId, status: { in: ['PENDING', 'PROCESSING'] } },
-        }),
-        this.client.comparisonJob.count({
-          where: { runId, status: 'FAILED' },
-        }),
-        this.client.approval.count({ where: { runId } }),
-      ]);
+    const [
+      pendingComparisons,
+      mutedPending,
+      pendingJobs,
+      failedJobs,
+      approved,
+    ] = await Promise.all([
+      this.client.unifiedComparison.count({
+        where: { runId, status: 'PENDING_APPROVAL' },
+      }),
+      this.client.unifiedComparison.count({
+        where: {
+          runId,
+          status: 'PENDING_APPROVAL',
+          test: { mutedUntil: { gt: new Date() } },
+        },
+      }),
+      this.client.comparisonJob.count({
+        where: { runId, status: { in: ['PENDING', 'PROCESSING'] } },
+      }),
+      this.client.comparisonJob.count({
+        where: { runId, status: 'FAILED' },
+      }),
+      this.client.approval.count({ where: { runId } }),
+    ]);
 
     // RunUpload is the durable "this run touched that test" record: baseline
     // uploads have no job/comparison, and approvals delete comparisons.
@@ -150,6 +162,7 @@ export class RunRepository extends BaseRepository {
 
     return {
       pendingComparisons,
+      mutedPending,
       pendingJobs,
       failedJobs,
       approved,

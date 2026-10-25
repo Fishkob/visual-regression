@@ -6054,6 +6054,9 @@
           "pendingComparisons": {
             "type": "number"
           },
+          "mutedPending": {
+            "type": "number"
+          },
           "pendingJobs": {
             "type": "number"
           },
@@ -6070,6 +6073,7 @@
         "required": [
           "state",
           "pendingComparisons",
+          "mutedPending",
           "pendingJobs",
           "failedJobs",
           "approved",
@@ -6553,13 +6557,10 @@
             "nullable": true
           },
           "tags": {
+            "type": "array",
             "items": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "type": "array"
+              "type": "string"
+            }
           },
           "mutedUntil": {
             "type": "string",
@@ -6603,13 +6604,10 @@
           "tags": {
             "maxItems": 20,
             "description": "Normalized to lowercase; empty clears the tags",
+            "type": "array",
             "items": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "type": "array"
+              "type": "string"
+            }
           },
           "mutedUntil": {
             "type": "string",
