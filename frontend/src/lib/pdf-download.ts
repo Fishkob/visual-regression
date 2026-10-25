@@ -1,21 +1,11 @@
 import type { Ref } from "vue";
 import { pdfControllerDownloadPdf } from "@sdk";
 import { toast } from "vue-sonner";
+import { triggerDownload } from "@/lib/download";
 import { unwrapSdkData } from "@/lib/sdk";
 import type { VariantParams } from "@/lib/variant-key";
 
 export type PdfDownloadType = "baseline" | "candidate" | "diff";
-
-function triggerDownload(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
 
 export async function downloadPdfFile(
   projectName: Ref<string>,

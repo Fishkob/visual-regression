@@ -5,6 +5,7 @@ import {
   Inbox,
   KeyRound,
   LayoutGrid,
+  ScrollText,
   Users,
   PanelLeftClose,
   PanelLeftOpen,
@@ -26,6 +27,7 @@ const onGroups = computed(
   () => route.path === "/groups" || route.path.startsWith("/groups/"),
 );
 const onApiKeys = computed(() => route.path === "/api-keys");
+const onAudit = computed(() => route.path === "/audit");
 const pending = computed(() => pendingCount.value ?? 0);
 </script>
 
@@ -149,6 +151,22 @@ const pending = computed(() => pendingCount.value ?? 0);
       >
         <KeyRound class="h-4 w-4 shrink-0" />
         <span :class="collapsed ? 'md:hidden' : ''">API keys</span>
+      </RouterLink>
+
+      <RouterLink
+        to="/audit"
+        class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+        :class="[
+          { 'bg-muted text-foreground': onAudit },
+          collapsed ? 'md:justify-center md:px-0' : '',
+        ]"
+        :aria-current="onAudit ? 'page' : undefined"
+        :aria-label="collapsed ? 'Audit' : undefined"
+        :title="collapsed ? 'Audit' : undefined"
+        :data-testid="TEST_ID.auditNavLink"
+      >
+        <ScrollText class="h-4 w-4 shrink-0" />
+        <span :class="collapsed ? 'md:hidden' : ''">Audit</span>
       </RouterLink>
     </nav>
   </aside>

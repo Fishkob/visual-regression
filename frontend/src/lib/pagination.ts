@@ -9,6 +9,9 @@ export const INBOX_PAGE_SIZE = 50;
 // The project detail pages variant rows: a viewport/browser/environment matrix
 // multiplies rows, so this is larger than the project list's page.
 export const PROJECT_DETAIL_PAGE_SIZE = 50;
+// The audit trail is a long-running, cross-project log: 50 rows fills a screen
+// without turning every page change into a scroll.
+export const AUDIT_PAGE_SIZE = 50;
 
 export interface PageFetch<T> {
   items: T[];

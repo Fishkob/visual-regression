@@ -48,7 +48,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R2  | Diff UX v1                               | 1     | M    | —                             | Shipped     |
 | R3  | Baseline history & restore               | 2     | L    | —                             | In progress |
 | R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | Shipped     |
-| R5  | Global audit log                         | 2     | M    | —                             | In progress |
+| R5  | Global audit log                         | 2     | M    | —                             | Shipped     |
 | R6  | Run grouping                             | 3     | XL   | ADR-030                       | Planned     |
 | R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Planned     |
 | R8  | Reporting & exports                      | 3     | M–L  | R6                            | Planned     |
@@ -331,8 +331,10 @@ restores and settings changes are not; there is no cross-project view or export
 - `GET /audit` with filters (project, actor, action, date range), server
   pagination; CSV export.
 - UI page `/audit` (admin/member once R9 lands; admin key or all users before).
-- Keep `Approval` as the durable approval record and project it into the audit
-  view; do not duplicate fields in two writable tables.
+- Keep `Approval` as the detailed approval record and write an `AuditEvent` as
+  the cross-project view. The small duplication is deliberate: the audit read
+  must paginate and filter over one table, not a union of action-specific
+  tables. API keys keep their own `createdBy`/`revoked*` fields.
 
 **Design sketch.**
 
@@ -343,10 +345,16 @@ restores and settings changes are not; there is no cross-project view or export
 
 **Acceptance.**
 
-- [ ] Deleting a test writes an audit row naming actor, project and test
-- [ ] Filters and pagination agree with `meta.total`
-- [ ] CSV export contains the filtered set
-- [ ] Audit writes roll back with the mutation
+- [x] Deleting a test writes an audit row naming actor, project and test
+- [x] Filters and pagination agree with `meta.total`
+- [x] CSV export contains the filtered set
+- [x] Audit writes roll back with the mutation
+
+**Verification.** Unit tests cover the audit service, approval/restore/webhook
+writes and test/variant deletion records; the frontend view test covers rows,
+filters, pagination, empty state and CSV export. No DB-backed e2e for the audit
+read yet. The `/audit` page is not in the Playwright quality/axe gallery —
+follow-up (same as R4).
 
 **Size / dependencies.** M · independent; actor roles enrich it after R9.
 
@@ -744,7 +752,7 @@ deferred; record the distinction in ADR-030.
 | -------------------------------------------- | ------------------------------------------------ | -------- |
 | [ADR-028](adr/ADR-028-baseline-revisions.md) | Baseline revisions, retention, restore semantics | Accepted |
 | [ADR-029](adr/ADR-029-webhook-delivery.md)   | Webhook outbox & delivery (complements ADR-004)  | Accepted |
-| ADR-030                                      | Run model, finish semantics, commit metadata     | Planned  |
+| [ADR-030](adr/ADR-030-run-grouping.md)       | Run model, finish semantics, commit metadata     | Accepted |
 | ADR-031                                      | Roles & permission matrix                        | Planned  |
 | ADR-032                                      | Image decoding & size/resize policy              | Planned  |
 | ADR-033                                      | Share-link security (tokens, expiry, audit)      | Planned  |
