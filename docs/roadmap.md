@@ -51,7 +51,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R5  | Global audit log                         | 2     | M    | —                             | Shipped     |
 | R6  | Run grouping                             | 3     | XL   | ADR-030                       | Shipped     |
 | R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Shipped     |
-| R8  | Reporting & exports                      | 3     | M–L  | R6                            | Shipped     |
+| R8  | Reporting & exports                      | 3     | M–L  | R6 · ADR-033                  | Shipped     |
 | R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Planned     |
 | R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9                            | Planned     |
 | R11 | API key scopes & ownership               | 4     | S–M  | R9                            | Planned     |
