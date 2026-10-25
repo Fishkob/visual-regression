@@ -13,6 +13,7 @@
         </ErrorBoundary>
       </main>
     </div>
+    <GlobalSearchPalette v-if="!isBare && routeReady" />
   </div>
   <Toaster position="top-right" />
 </template>
@@ -23,6 +24,7 @@ import { RouterView, useRoute } from "vue-router";
 import AppHeader from "@/components/AppHeader.vue";
 import AppSidebar from "@/components/AppSidebar.vue";
 import ErrorBoundary from "@/components/ErrorBoundary.vue";
+import GlobalSearchPalette from "@/components/search/GlobalSearchPalette.vue";
 import { Toaster } from "@/components/ui/sonner";
 import { TEST_ID } from "@/lib/test-ids";
 

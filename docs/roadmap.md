@@ -57,7 +57,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R11 | API key scopes & ownership               | 4     | S–M  | R9 · ADR-035                  | Shipped     |
 | R12 | Bulk actions                             | 5     | M    | R9 (role gate)                | Shipped     |
 | R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 · R8 · ADR-036             | Shipped     |
-| R14 | Search & discovery                       | 5     | M    | —                             | Planned     |
+| R14 | Search & discovery                       | 5     | M    | —                             | Shipped     |
 | R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Planned     |
 | R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Planned     |
 | R17 | Internationalization                     | 5     | M    | —                             | Planned     |
@@ -711,6 +711,19 @@ action and shown in the run detail.
 **Scope.** Global search endpoint (projects/tests/branches, Postgres `ILIKE`/
 trigram), `Ctrl/Cmd+K` palette with recent items, favorites persisted locally,
 combine with existing filters; server-paginated.
+
+**Delivered.** `GET /search?q=&limit=` returns grouped project/test/branch hits
+(ILIKE `contains`, case-insensitive, per-group limit) — no trigram index yet;
+the self-hosted dataset is small and the endpoint is bounded. A shell-level
+palette opens with Ctrl/Cmd+K or the header button, supports arrow/Enter/Escape,
+shows grouped results, and persists the last five selected items plus favorites
+in validated localStorage. Scoped API keys cannot use global search (project
+boundary).
+
+**Verification.** `search.e2e-spec.ts` covers test/project/branch hits, the
+per-group limit and the empty-query rejection; frontend tests cover the mapper,
+storage validation, debounce/no-empty-request, shortcut/open/close, grouped
+rendering, keyboard navigation and recents/favorites navigation.
 
 **Size.** M · independent.
 

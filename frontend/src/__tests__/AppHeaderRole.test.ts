@@ -61,6 +61,14 @@ describe("AppHeader role badge", () => {
     ).toBe(role);
   });
 
+  it("renders the global search trigger", () => {
+    const wrapper = mountHeader();
+
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.searchTrigger}"]`).exists(),
+    ).toBe(true);
+  });
+
   it("renders no user or role badge without a session", () => {
     const wrapper = mountHeader();
 

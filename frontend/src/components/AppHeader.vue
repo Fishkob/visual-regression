@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Moon, Sun, LogOut } from "@lucide/vue";
+import { Moon, Search, Sun, LogOut } from "@lucide/vue";
 import { useTheme } from "@/composables/useTheme";
 import { useMeQuery, useLogout } from "@/composables/useAuth";
+import { useGlobalSearchPalette } from "@/composables/useGlobalSearchPalette";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ROLE_BADGE_VARIANT } from "@/domains/auth/auth.model";
@@ -10,6 +11,7 @@ import { TEST_ID } from "@/lib/test-ids";
 const { theme, toggle } = useTheme();
 const { data: user } = useMeQuery();
 const { mutate: logout } = useLogout();
+const { openPalette } = useGlobalSearchPalette();
 </script>
 
 <template>
@@ -17,6 +19,22 @@ const { mutate: logout } = useLogout();
     class="flex items-center justify-end gap-2 border-b bg-card/40 px-4 py-2"
     :data-testid="TEST_ID.appHeader"
   >
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      aria-label="Search projects, tests and branches (Ctrl+K)"
+      :data-testid="TEST_ID.searchTrigger"
+      @click="openPalette"
+    >
+      <Search class="h-4 w-4" />
+      <span class="hidden sm:inline">Search</span>
+      <kbd
+        class="hidden rounded border px-1 text-[10px] text-muted-foreground md:inline"
+      >
+        Ctrl K
+      </kbd>
+    </Button>
     <span
       v-if="user"
       class="truncate text-sm text-muted-foreground"
