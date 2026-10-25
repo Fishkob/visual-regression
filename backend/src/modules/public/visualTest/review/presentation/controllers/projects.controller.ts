@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -20,6 +21,7 @@ import {
   ApiProperty,
   ApiTags,
 } from '@nestjs/swagger';
+import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { ComparisonStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
 import {
@@ -97,8 +99,9 @@ export class ProjectsController {
   @ApiNotFoundResponse({ description: 'Project not found' })
   async deleteProject(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Req() req: AuthenticatedRequest,
   ) {
-    await this.projectService.deleteProject(projectName);
+    await this.projectService.deleteProject(projectName, req.auth?.username);
     return { success: true };
   }
 

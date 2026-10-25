@@ -140,9 +140,9 @@ export class ProjectService {
     return mapProjectSummaryToDto(summary);
   }
 
-  async deleteProject(projectName: string): Promise<void> {
+  async deleteProject(projectName: string, actor?: string): Promise<void> {
     // Existence is resolved (and NOT_FOUND thrown) inside the deletion's
     // transaction — TestDeletionService owns the single read of the project.
-    await this.testDeletion.deleteProject(projectName);
+    await this.testDeletion.deleteProject(projectName, actor);
   }
 }

@@ -109,6 +109,7 @@ describe('TestCommandsController', () => {
         'checkout-ui',
         'login-form',
         filterDto,
+        { auth: { username: 'jane' } } as never,
       );
 
       expect(result).toEqual({ success: true, scope: 'test' });
@@ -117,6 +118,7 @@ describe('TestCommandsController', () => {
         'login-form',
         undefined,
         filterDto,
+        'jane',
       );
     });
   });

@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Query,
+  Req,
 } from '@nestjs/common';
 import {
   ApiConflictResponse,
@@ -17,6 +18,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { BranchReadRepository } from '@public/visualTest/review/infrastructure/repositories/branch-read.repository';
 import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
@@ -68,8 +70,9 @@ export class BranchesController {
   async remove(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @BranchQuery({ required: true }) branch: string,
+    @Req() req: AuthenticatedRequest,
   ): Promise<{ success: boolean }> {
-    await this.commands.delete(projectName, branch);
+    await this.commands.delete(projectName, branch, req.auth?.username);
     return { success: true };
   }
 }

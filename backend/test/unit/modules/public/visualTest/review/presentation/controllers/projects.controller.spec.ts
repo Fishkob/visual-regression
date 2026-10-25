@@ -69,10 +69,15 @@ describe('ProjectsController', () => {
     it('deletes project and returns success', async () => {
       projectService.deleteProject.mockResolvedValue(undefined);
 
-      const result = await controller.deleteProject('checkout-ui');
+      const result = await controller.deleteProject('checkout-ui', {
+        auth: { username: 'jane' },
+      } as never);
 
       expect(result).toEqual({ success: true });
-      expect(projectService.deleteProject).toHaveBeenCalledWith('checkout-ui');
+      expect(projectService.deleteProject).toHaveBeenCalledWith(
+        'checkout-ui',
+        'jane',
+      );
     });
   });
 

@@ -7,6 +7,7 @@ export const AUDIT_ACTIONS = {
   approval: 'approval',
   baselineRestore: 'baseline.restore',
   testDelete: 'test.delete',
+  variantDelete: 'variant.delete',
   projectDelete: 'project.delete',
   branchDelete: 'branch.delete',
   webhookCreate: 'webhook.create',

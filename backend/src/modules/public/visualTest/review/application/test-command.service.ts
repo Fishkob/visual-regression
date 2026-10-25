@@ -21,6 +21,7 @@ export class TestCommandService {
     testName: string,
     branchName?: string,
     filters?: VariantFilter,
+    actor?: string,
   ) {
     const test = await this.testResolver.findOwnTest(
       projectName,
@@ -43,6 +44,7 @@ export class TestCommandService {
       const deletedIds = await this.testDeletion.deleteScreenshotsByFilters(
         test.id,
         filters,
+        { actor, projectName, testName, branchName },
       );
 
       if (deletedIds.length === 0) {
@@ -59,7 +61,12 @@ export class TestCommandService {
       return { success: true, scope: 'variant' as const };
     }
 
-    await this.testDeletion.deleteTest(test.id);
+    await this.testDeletion.deleteTest(test.id, {
+      actor,
+      projectName,
+      testName,
+      branchName,
+    });
     this.logger.log(`Deleted test ${testName} in project ${projectName}`);
     return { success: true, scope: 'test' as const };
   }

@@ -10,6 +10,8 @@ import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastruc
 import { BranchRepository } from '@public/visualTest/core/infrastructure/repositories/branch.repository';
 import { JOB_PRODUCER, IJobProducer } from '@common/domain/job-queue.interface';
 import { DomainError } from '@common/domain/domain-error';
+import { AuditService } from '@internal/audit/audit.service';
+import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 
 // Branch deletion is branch-scoped: it cancels the branch's pending jobs,
 // collects the files its tests own, deletes the branch (cascading into its
@@ -26,9 +28,14 @@ export class BranchDeletionService {
     private readonly comparisons: UnifiedComparisonsRepository,
     @Inject(JOB_PRODUCER) private readonly jobQueue: IJobProducer,
     private readonly workflow: StateChangeWorkflow,
+    private readonly audit: AuditService,
   ) {}
 
-  async delete(projectId: string, branchId: string): Promise<void> {
+  async delete(
+    projectId: string,
+    branchId: string,
+    actor?: string,
+  ): Promise<void> {
     await this.workflow.executeStateChange(
       async () => {
         const branch = await this.branches.findById(branchId);
@@ -69,6 +76,14 @@ export class BranchDeletionService {
             ? await this.comparisons.findDiffImageUrlsByTestIds(testIds)
             : [];
         await this.branches.deleteById(branchId);
+        await this.audit.record({
+          actor: actor ?? null,
+          action: AUDIT_ACTIONS.branchDelete,
+          branchName: branch.name,
+          targetType: 'branch',
+          targetId: branchId,
+          metadata: { testCount: testIds.length },
+        });
         // Inherited baseline clones share their file with the target branch.
         // Reclaim only URLs that no surviving screenshot/comparison references.
         const staleUrls = await this.screenshots.filterReclaimableUrls([

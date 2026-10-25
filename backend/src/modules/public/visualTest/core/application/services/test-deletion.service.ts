@@ -17,6 +17,15 @@ import {
   type PersistedChange,
 } from '@public/visualTest/core/application/services/state-change-options';
 import { DomainError } from '@common/domain/domain-error';
+import { AuditService } from '@internal/audit/audit.service';
+import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
+
+export interface AuditContext {
+  actor?: string;
+  projectName?: string;
+  testName?: string;
+  branchName?: string;
+}
 
 @Injectable()
 export class TestDeletionService {
@@ -29,11 +38,13 @@ export class TestDeletionService {
     @Inject(JOB_PRODUCER) private readonly jobQueue: IJobProducer,
     private readonly workflow: StateChangeWorkflow,
     private readonly retirement: ComparisonRetirementService,
+    private readonly audit: AuditService,
   ) {}
 
   async deleteScreenshotsByFilters(
     testId: string,
     filters?: VariantFilter,
+    auditContext?: AuditContext,
   ): Promise<string[]> {
     // This seam deletes screenshots for a specific variant. An empty filter
     // must not silently mean "every screenshot, keep the test" — the caller
@@ -91,6 +102,17 @@ export class TestDeletionService {
             ? await this.screenshots.filterReclaimableUrls(remainingUrls)
             : [];
 
+        await this.audit.record({
+          actor: auditContext?.actor ?? null,
+          action: AUDIT_ACTIONS.variantDelete,
+          projectName: auditContext?.projectName ?? null,
+          testName: auditContext?.testName ?? null,
+          branchName: auditContext?.branchName ?? null,
+          targetType: 'test',
+          targetId: testId,
+          metadata: { filters: filters ?? null, screenshotCount: ids.length },
+        });
+
         return {
           change: change([testId], {
             staleUrls: [...staleUrls, ...reclaimableRemainingUrls],
@@ -106,8 +128,8 @@ export class TestDeletionService {
     return outcome.result.screenshotIds;
   }
 
-  async deleteTest(testId: string): Promise<void> {
-    await this.deleteTests([testId]);
+  async deleteTest(testId: string, auditContext?: AuditContext): Promise<void> {
+    await this.deleteTests([testId], auditContext);
   }
 
   // Whole-test and whole-project deletion share one state change: cancel the
@@ -120,10 +142,10 @@ export class TestDeletionService {
   // doesn't surface as a 500.
   private async deleteTests(
     testIds: string[],
-    projectName?: string,
+    auditContext?: AuditContext,
   ): Promise<void> {
     await this.workflow.executeStateChange(
-      async () => this.deleteTestsInTx(testIds, projectName),
+      async () => this.deleteTestsInTx(testIds, auditContext),
       {
         retry: DELETION_STATE_CHANGE_RETRY,
       },
@@ -132,7 +154,8 @@ export class TestDeletionService {
 
   private async deleteTestsInTx(
     testIds: string[],
-    projectName?: string,
+    auditContext?: AuditContext,
+    deleteProjectName?: string,
   ): Promise<Extract<PersistedChange, { kind: 'deleted' }>> {
     if (testIds.length > 0) {
       await this.jobQueue.cancelByTestIds(testIds);
@@ -149,9 +172,20 @@ export class TestDeletionService {
 
     if (testIds.length > 0) {
       await this.tests.deleteByIds(testIds);
+      for (const testId of testIds) {
+        await this.audit.record({
+          actor: auditContext?.actor ?? null,
+          action: AUDIT_ACTIONS.testDelete,
+          projectName: auditContext?.projectName ?? null,
+          testName: auditContext?.testName ?? null,
+          branchName: auditContext?.branchName ?? null,
+          targetType: 'test',
+          targetId: testId,
+        });
+      }
     }
-    if (projectName) {
-      await this.projects.deleteByName(projectName);
+    if (deleteProjectName) {
+      await this.projects.deleteByName(deleteProjectName);
     }
 
     // The rows are gone, but an inherited baseline clone shares its file with
@@ -164,7 +198,7 @@ export class TestDeletionService {
     return deleted({ staleUrls });
   }
 
-  async deleteProject(projectName: string): Promise<void> {
+  async deleteProject(projectName: string, actor?: string): Promise<void> {
     await this.workflow.executeStateChange(
       async () => {
         const project = await this.projects.findByName(projectName);
@@ -175,7 +209,19 @@ export class TestDeletionService {
           );
         }
         const testIds = await this.tests.findIdsByProjectId(project.id);
-        return this.deleteTestsInTx(testIds, projectName);
+        await this.audit.record({
+          actor: actor ?? null,
+          action: AUDIT_ACTIONS.projectDelete,
+          projectName,
+          targetType: 'project',
+          targetId: project.id,
+          metadata: { testCount: testIds.length },
+        });
+        return this.deleteTestsInTx(
+          testIds,
+          { actor, projectName },
+          projectName,
+        );
       },
       {
         retry: DELETION_STATE_CHANGE_RETRY,

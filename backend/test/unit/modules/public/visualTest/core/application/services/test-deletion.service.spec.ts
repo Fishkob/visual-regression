@@ -9,6 +9,7 @@ import { IJobProducer } from '@common/domain/job-queue.interface';
 import { IStorageProvider } from '@common/domain/storage-provider.interface';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { toOutcome } from '@public/visualTest/core/application/services/state-change-options';
+import { AuditService } from '@internal/audit/audit.service';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { TestStatusService } from '@public/visualTest/core/application/services/test-status.service';
 import { createMock } from '@test/utils/create-mock';
@@ -25,6 +26,7 @@ describe('TestDeletionService', () => {
   let statusService: Mocked<TestStatusService>;
   let retirement: Mocked<ComparisonRetirementService>;
   let service: TestDeletionService;
+  let audit: Mocked<AuditService>;
 
   beforeEach(() => {
     tests = createMock<UnifiedTestRepository>();
@@ -59,6 +61,8 @@ describe('TestDeletionService', () => {
         return outcome;
       },
     );
+    audit = createMock<AuditService>();
+    audit.record.mockResolvedValue(undefined);
     service = new TestDeletionService(
       tests,
       screenshots,
@@ -68,6 +72,7 @@ describe('TestDeletionService', () => {
       jobQueue,
       workflow,
       retirement,
+      audit,
     );
   });
 
@@ -119,6 +124,9 @@ describe('TestDeletionService', () => {
       ]);
       expect(storage.deleteAll).toHaveBeenCalled();
       expect(tests.deleteByIds).toHaveBeenCalledWith(['vt-1']);
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'test.delete', targetId: 'vt-1' }),
+      );
     });
 
     it('does not call deletion when no images exist', async () => {
@@ -200,6 +208,12 @@ describe('TestDeletionService', () => {
       );
       expect(screenshots.findImageUrlsByIds).toHaveBeenCalledWith(['ss-1']);
       expect(screenshots.deleteMany).toHaveBeenCalledWith(['ss-1']);
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'variant.delete',
+          targetId: 'vt-1',
+        }),
+      );
       expect(variants.findIdsByFilters).toHaveBeenCalledWith('vt-1', {
         viewport: '1920x1080',
       });

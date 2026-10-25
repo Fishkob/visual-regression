@@ -1,5 +1,6 @@
 import type { Mocked } from 'vitest';
 import { BranchDeletionService } from '@public/visualTest/core/application/services/branch-deletion.service';
+import { AuditService } from '@internal/audit/audit.service';
 import { BranchRepository } from '@public/visualTest/core/infrastructure/repositories/branch.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
@@ -11,6 +12,7 @@ import { createMock } from '@test/utils/create-mock';
 
 describe('BranchDeletionService', () => {
   let service: BranchDeletionService;
+  let audit: Mocked<AuditService>;
   let branches: Mocked<BranchRepository>;
   let tests: Mocked<UnifiedTestRepository>;
   let screenshots: Mocked<UnifiedScreenshotRepository>;
@@ -43,6 +45,8 @@ describe('BranchDeletionService', () => {
     workflow.executeStateChange.mockImplementation(
       async (fn: () => Promise<any>) => toOutcome(await fn()),
     );
+    audit = createMock<AuditService>();
+    audit.record.mockResolvedValue(undefined);
     service = new BranchDeletionService(
       branches,
       tests,
@@ -50,6 +54,7 @@ describe('BranchDeletionService', () => {
       comparisons,
       jobQueue,
       workflow,
+      audit,
     );
   });
 

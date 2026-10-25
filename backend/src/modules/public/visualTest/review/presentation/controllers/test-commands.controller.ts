@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Param, Patch, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Param,
+  Patch,
+  Query,
+  Req,
+} from '@nestjs/common';
 import {
   ApiBody,
   ApiOkResponse,
@@ -16,6 +24,7 @@ import {
 } from '@public/visualTest/review/presentation/dto/project.dto';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { BranchQuery } from '@common/http/branch-query.decorator';
+import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 
 @ApiTags('Tests')
@@ -69,8 +78,15 @@ export class TestCommandsController {
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
     @Query() filters: VariantFilterDto,
+    @Req() req: AuthenticatedRequest,
     @BranchQuery() branch?: string,
   ) {
-    return this.testCommand.deleteTest(projectName, testName, branch, filters);
+    return this.testCommand.deleteTest(
+      projectName,
+      testName,
+      branch,
+      filters,
+      req.auth?.username,
+    );
   }
 }

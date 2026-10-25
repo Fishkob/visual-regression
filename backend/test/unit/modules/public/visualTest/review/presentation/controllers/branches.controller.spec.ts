@@ -78,9 +78,13 @@ describe('BranchesController', () => {
   it('deletes a branch', async () => {
     commands.delete.mockResolvedValue(undefined);
 
-    await expect(controller.remove('app', 'feature/x')).resolves.toEqual({
+    await expect(
+      controller.remove('app', 'feature/x', {
+        auth: { username: 'jane' },
+      } as never),
+    ).resolves.toEqual({
       success: true,
     });
-    expect(commands.delete).toHaveBeenCalledWith('app', 'feature/x');
+    expect(commands.delete).toHaveBeenCalledWith('app', 'feature/x', 'jane');
   });
 });

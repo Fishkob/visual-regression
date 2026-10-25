@@ -125,7 +125,13 @@ describe('TestCommandService', () => {
 
       await service.deleteTest('my-project', 'my-test');
 
-      expect(testDeletion.deleteTest).toHaveBeenCalledWith('test-1');
+      expect(testDeletion.deleteTest).toHaveBeenCalledWith(
+        'test-1',
+        expect.objectContaining({
+          projectName: 'my-project',
+          testName: 'my-test',
+        }),
+      );
     });
 
     it('deletes variant screenshots when filters provided', async () => {
@@ -150,6 +156,10 @@ describe('TestCommandService', () => {
         {
           viewport: '1920x1080',
         },
+        expect.objectContaining({
+          projectName: 'my-project',
+          testName: 'my-test',
+        }),
       );
       expect(result).toEqual({ success: true, scope: 'variant' });
     });

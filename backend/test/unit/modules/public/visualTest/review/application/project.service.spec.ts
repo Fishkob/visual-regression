@@ -50,7 +50,10 @@ describe('ProjectService', () => {
 
       await service.deleteProject('my-project');
 
-      expect(testDeletion.deleteProject).toHaveBeenCalledWith('my-project');
+      expect(testDeletion.deleteProject).toHaveBeenCalledWith(
+        'my-project',
+        undefined,
+      );
     });
 
     it('propagates the not-found error from the deletion service', async () => {

@@ -133,9 +133,13 @@ export class BranchCommandService {
     });
   }
 
-  async delete(projectName: string, branchName: string): Promise<void> {
+  async delete(
+    projectName: string,
+    branchName: string,
+    actor?: string,
+  ): Promise<void> {
     const branch = await this.resolveFeatureBranch(projectName, branchName);
-    await this.deletion.delete(branch.projectId, branch.id);
+    await this.deletion.delete(branch.projectId, branch.id, actor);
   }
 
   // Resolve + validate + write a target, all inside the caller's transaction, so
