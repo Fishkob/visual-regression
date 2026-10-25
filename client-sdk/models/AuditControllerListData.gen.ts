@@ -21,7 +21,7 @@ export type AuditControllerListData = {
          */
         take?: number;
         actor?: string;
-        action?: 'approval' | 'baseline.restore' | 'test.delete' | 'variant.delete' | 'project.delete' | 'branch.delete' | 'webhook.create' | 'webhook.update' | 'webhook.delete' | 'api-key.create' | 'api-key.revoke' | 'api-key.rotate' | 'api-key.delete' | 'user.create' | 'user.update' | 'user.reset-password';
+        action?: 'approval' | 'baseline.restore' | 'test.delete' | 'variant.delete' | 'project.delete' | 'test.update' | 'branch.delete' | 'webhook.create' | 'webhook.update' | 'webhook.delete' | 'api-key.create' | 'api-key.revoke' | 'api-key.rotate' | 'api-key.delete' | 'user.create' | 'user.update' | 'user.reset-password';
         projectName?: string;
         from?: string;
         to?: string;

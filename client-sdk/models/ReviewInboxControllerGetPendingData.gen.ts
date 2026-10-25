@@ -41,6 +41,10 @@ export type ReviewInboxControllerGetPendingData = {
          */
         q?: string;
         /**
+         * Filter pending reviews by test tag
+         */
+        tag?: string;
+        /**
          * Filter pending reviews by CI run key
          */
         runKey?: string;

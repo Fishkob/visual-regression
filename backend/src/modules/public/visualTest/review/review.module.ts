@@ -36,6 +36,8 @@ import { WebhookSettingsService } from '@public/visualTest/review/application/we
 import { TrendsController } from '@public/visualTest/review/presentation/controllers/trends.controller';
 import { TrendsService } from '@public/visualTest/review/application/trends.service';
 import { BulkActionService } from '@public/visualTest/review/application/bulk-action.service';
+import { TestLifecycleService } from '@public/visualTest/review/application/test-lifecycle.service';
+import { TestLifecycleController } from '@public/visualTest/review/presentation/controllers/test-lifecycle.controller';
 import {
   BulkActionsController,
   ProjectsBulkController,
@@ -67,6 +69,7 @@ import {
     TrendsController,
     BulkActionsController,
     ProjectsBulkController,
+    TestLifecycleController,
   ],
   providers: [
     TestQueryService,
@@ -86,6 +89,7 @@ import {
     RunService,
     TrendsService,
     BulkActionService,
+    TestLifecycleService,
   ],
 })
 export class ReviewModule {}

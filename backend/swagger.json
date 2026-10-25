@@ -86,6 +86,7 @@
                 "test.delete",
                 "variant.delete",
                 "project.delete",
+                "test.update",
                 "branch.delete",
                 "webhook.create",
                 "webhook.update",
@@ -170,6 +171,7 @@
                 "test.delete",
                 "variant.delete",
                 "project.delete",
+                "test.update",
                 "branch.delete",
                 "webhook.create",
                 "webhook.update",
@@ -2032,6 +2034,15 @@
             }
           },
           {
+            "name": "tag",
+            "required": false,
+            "in": "query",
+            "description": "Filter pending reviews by test tag",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "runKey",
             "required": false,
             "in": "query",
@@ -3216,6 +3227,110 @@
         "summary": "Move up to 100 projects into a group (null clears the group)",
         "tags": [
           "Bulk actions"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/metadata": {
+      "get": {
+        "operationId": "TestLifecycleController_get",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestMetadataDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read rename/tags/mute metadata and the 30-day flake signal",
+        "tags": [
+          "Tests"
+        ]
+      },
+      "patch": {
+        "operationId": "TestLifecycleController_update",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTestMetadataDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestMetadataDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Rename a test, edit description/tags or mute it until a date",
+        "tags": [
+          "Tests"
         ]
       }
     },
@@ -6396,6 +6511,106 @@
           "moved",
           "failed"
         ]
+      },
+      "TestFlakeDto": {
+        "type": "object",
+        "properties": {
+          "transitions": {
+            "type": "number"
+          },
+          "changed": {
+            "type": "number"
+          },
+          "clean": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "transitions",
+          "changed",
+          "clean"
+        ]
+      },
+      "TestMetadataDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "type": "array"
+          },
+          "mutedUntil": {
+            "type": "string",
+            "nullable": true
+          },
+          "muteReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "isMuted": {
+            "type": "boolean"
+          },
+          "flake": {
+            "$ref": "#/components/schemas/TestFlakeDto"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "tags",
+          "isMuted",
+          "flake"
+        ]
+      },
+      "UpdateTestMetadataDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "tags": {
+            "maxItems": 20,
+            "description": "Normalized to lowercase; empty clears the tags",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "type": "array"
+          },
+          "mutedUntil": {
+            "type": "string",
+            "nullable": true,
+            "description": "ISO timestamp until which the test is muted; null clears the mute. A past timestamp also clears it."
+          },
+          "muteReason": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          }
+        }
       },
       "DetailedHealthDto": {
         "type": "object",

@@ -41,6 +41,7 @@ export class ReviewInboxController {
       groupId: pagination.groupId,
       q: pagination.q?.trim(),
       runKey: pagination.runKey?.trim(),
+      tag: pagination.tag?.trim().toLowerCase(),
     });
   }
 

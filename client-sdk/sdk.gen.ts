@@ -149,6 +149,10 @@ import type { TestCommandsControllerDeleteVisualTestData } from './models/TestCo
 import type { TestCommandsControllerDeleteVisualTestResponses } from './models/TestCommandsControllerDeleteVisualTestResponses.gen';
 import type { TestCommandsControllerUpdateThresholdData } from './models/TestCommandsControllerUpdateThresholdData.gen';
 import type { TestCommandsControllerUpdateThresholdResponses } from './models/TestCommandsControllerUpdateThresholdResponses.gen';
+import type { TestLifecycleControllerGetData } from './models/TestLifecycleControllerGetData.gen';
+import type { TestLifecycleControllerGetResponses } from './models/TestLifecycleControllerGetResponses.gen';
+import type { TestLifecycleControllerUpdateData } from './models/TestLifecycleControllerUpdateData.gen';
+import type { TestLifecycleControllerUpdateResponses } from './models/TestLifecycleControllerUpdateResponses.gen';
 import type { TestsQueriesControllerGetKindData } from './models/TestsQueriesControllerGetKindData.gen';
 import type { TestsQueriesControllerGetKindResponses } from './models/TestsQueriesControllerGetKindResponses.gen';
 import type { TestsQueriesControllerGetTestsForProjectData } from './models/TestsQueriesControllerGetTestsForProjectData.gen';
@@ -759,6 +763,28 @@ export const bulkActionsControllerDeleteTests = <ThrowOnError extends boolean = 
 export const projectsBulkControllerMove = <ThrowOnError extends boolean = false>(options: Options<ProjectsBulkControllerMoveData, ThrowOnError>): RequestResult<ProjectsBulkControllerMoveResponses, unknown, ThrowOnError> => (options.client ?? client).patch<ProjectsBulkControllerMoveResponses, unknown, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/projects/bulk/group',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Read rename/tags/mute metadata and the 30-day flake signal
+ */
+export const testLifecycleControllerGet = <ThrowOnError extends boolean = false>(options: Options<TestLifecycleControllerGetData, ThrowOnError>): RequestResult<TestLifecycleControllerGetResponses, unknown, ThrowOnError> => (options.client ?? client).get<TestLifecycleControllerGetResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/metadata',
+    ...options
+});
+
+/**
+ * Rename a test, edit description/tags or mute it until a date
+ */
+export const testLifecycleControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<TestLifecycleControllerUpdateData, ThrowOnError>): RequestResult<TestLifecycleControllerUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<TestLifecycleControllerUpdateResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/metadata',
     ...options,
     headers: {
         'Content-Type': 'application/json',

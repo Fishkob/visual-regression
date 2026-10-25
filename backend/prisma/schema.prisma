@@ -47,8 +47,12 @@ model UnifiedTest {
   branchId  String
   name      String
   kind      TestKind   @default(image)
-  status    TestStatus @default(PENDING)
-  createdAt DateTime   @default(now())
+  status      TestStatus @default(PENDING)
+  description String?
+  tags        String[]   @default([])
+  mutedUntil  DateTime?
+  muteReason  String?
+  createdAt   DateTime   @default(now())
 
   variants     UnifiedVariant[]
   screenshots  UnifiedScreenshot[]

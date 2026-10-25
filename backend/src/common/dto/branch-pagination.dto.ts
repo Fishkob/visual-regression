@@ -56,6 +56,12 @@ export class ReviewInboxPaginationDto extends BranchPaginationDto {
   @MaxLength(MAX_NAME_LENGTH)
   q?: string;
 
+  @ApiPropertyOptional({ description: 'Filter pending reviews by test tag' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  tag?: string;
+
   @ApiPropertyOptional({ description: 'Filter pending reviews by CI run key' })
   @IsOptional()
   @IsString()

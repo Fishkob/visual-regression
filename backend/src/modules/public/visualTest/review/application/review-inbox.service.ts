@@ -18,6 +18,7 @@ export class ReviewInboxService {
       groupId?: string;
       q?: string;
       runKey?: string;
+      tag?: string;
     },
   ) {
     return paginatedQuery(

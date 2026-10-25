@@ -863,7 +863,10 @@ describe('TestReadRepository', () => {
       );
       expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { test: { branchId: 'br-1' }, status: 'PENDING_APPROVAL' },
+          where: {
+            test: expect.objectContaining({ branchId: 'br-1' }),
+            status: 'PENDING_APPROVAL',
+          },
         }),
       );
     });

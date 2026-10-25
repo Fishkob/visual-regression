@@ -442,7 +442,13 @@ export class TestReadRepository {
         };
       }>
     >(this.client.unifiedComparison, {
-      where: { test: { branchId }, ...PENDING_APPROVAL_STATUS_FILTER },
+      where: {
+        test: {
+          branchId,
+          OR: [{ mutedUntil: null }, { mutedUntil: { lte: new Date() } }],
+        },
+        ...PENDING_APPROVAL_STATUS_FILTER,
+      },
       include: {
         test: { select: { name: true } },
         baseline: COMPARISON_INCLUDE.baseline,

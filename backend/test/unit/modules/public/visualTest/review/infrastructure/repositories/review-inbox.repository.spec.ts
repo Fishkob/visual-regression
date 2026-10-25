@@ -137,9 +137,9 @@ describe('ReviewInboxRepository', () => {
       expect.objectContaining({
         where: {
           status: 'PENDING_APPROVAL',
-          test: {
+          test: expect.objectContaining({
             branch: { isArchived: false, project: { name: 'checkout-ui' } },
-          },
+          }),
         },
       }),
     );
@@ -155,7 +155,9 @@ describe('ReviewInboxRepository', () => {
       expect.objectContaining({
         where: {
           status: 'PENDING_APPROVAL',
-          test: { branch: { name: 'feature/old' } },
+          test: expect.objectContaining({
+            branch: { name: 'feature/old' },
+          }),
         },
       }),
     );
@@ -175,7 +177,7 @@ describe('ReviewInboxRepository', () => {
       expect.objectContaining({
         where: {
           status: 'PENDING_APPROVAL',
-          test: {
+          test: expect.objectContaining({
             branch: { isArchived: false, project: { groupId: null } },
             kind: 'pdf',
             OR: [
@@ -188,7 +190,7 @@ describe('ReviewInboxRepository', () => {
                 },
               },
             ],
-          },
+          }),
         },
       }),
     );

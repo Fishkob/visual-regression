@@ -32,6 +32,46 @@ export class UnifiedTestRepository extends BaseRepository {
     });
   }
 
+  async findMetadata(testId: string) {
+    return this.client.unifiedTest.findUnique({
+      where: { id: testId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        tags: true,
+        mutedUntil: true,
+        muteReason: true,
+      },
+    });
+  }
+
+  async updateMetadata(
+    testId: string,
+    data: {
+      name?: string;
+      description?: string | null;
+      tags?: string[];
+      mutedUntil?: Date | null;
+      muteReason?: string | null;
+    },
+  ) {
+    // Metadata does not change test status, so it is a standalone write (the
+    // same carve-out ProjectRepository uses) and never needs a workflow.
+    return this.client.unifiedTest.update({
+      where: { id: testId },
+      data,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        tags: true,
+        mutedUntil: true,
+        muteReason: true,
+      },
+    });
+  }
+
   async deleteByIds(testIds: string[]) {
     this.assertWritable();
     if (testIds.length === 0) return;

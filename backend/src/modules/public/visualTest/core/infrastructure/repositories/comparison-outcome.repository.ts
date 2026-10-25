@@ -40,6 +40,14 @@ export class ComparisonOutcomeRepository extends BaseRepository {
     await this.client.comparisonOutcomeEvent.create({ data: entry });
   }
 
+  async eventsForTest(testId: string, since: Date) {
+    return this.client.comparisonOutcomeEvent.findMany({
+      where: { testId, createdAt: { gte: since } },
+      orderBy: { createdAt: 'asc' },
+      select: { outcome: true, createdAt: true },
+    });
+  }
+
   async trends(projectName: string, since: Date): Promise<TrendWindow> {
     const daily = await this.client.$queryRaw<
       {
