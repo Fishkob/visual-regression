@@ -76,6 +76,40 @@ describe('StorageObjectReferencednessService', () => {
       expect(screenshots.findReferencedImageUrls).not.toHaveBeenCalled();
       expect(comparisons.findReferencedDiffUrls).not.toHaveBeenCalled();
     });
+
+    it('queries each repository in 2_000-URL batches and merges the results uniquely', async () => {
+      const urls = makeUrls(5_001);
+      screenshots.findReferencedImageUrls.mockImplementation(async (batch) => [
+        batch[0],
+        'http://storage/shared.png',
+      ]);
+      comparisons.findReferencedDiffUrls.mockImplementation(async (batch) => [
+        batch[batch.length - 1],
+        'http://storage/shared.png',
+      ]);
+      const expectedBatches = [
+        urls.slice(0, 2_000),
+        urls.slice(2_000, 4_000),
+        urls.slice(4_000),
+      ];
+
+      const result = await service.findReferencedUrls(urls);
+
+      expect(batchedCallSizes(screenshots.findReferencedImageUrls)).toEqual([
+        2_000, 2_000, 1_001,
+      ]);
+      expect(batchedCallSizes(comparisons.findReferencedDiffUrls)).toEqual([
+        2_000, 2_000, 1_001,
+      ]);
+      expect(
+        screenshots.findReferencedImageUrls.mock.calls.map(([batch]) => batch),
+      ).toEqual(expectedBatches);
+      expect(
+        comparisons.findReferencedDiffUrls.mock.calls.map(([batch]) => batch),
+      ).toEqual(expectedBatches);
+      expect(result).toHaveLength(7);
+      expect(new Set(result).size).toBe(result.length);
+    });
   });
 
   describe('filterReclaimableUrls', () => {
@@ -95,5 +129,32 @@ describe('StorageObjectReferencednessService', () => {
         'http://storage/protected.png',
       ]);
     });
+
+    it('filters in 2_000-URL batches and deduplicates the merged result', async () => {
+      const urls = makeUrls(5_001);
+      screenshots.filterReclaimableUrls.mockImplementation(async (batch) => [
+        batch[0],
+        'http://storage/shared.png',
+      ]);
+
+      const result = await service.filterReclaimableUrls(urls);
+
+      expect(batchedCallSizes(screenshots.filterReclaimableUrls)).toEqual([
+        2_000, 2_000, 1_001,
+      ]);
+      expect(new Set(result).size).toBe(result.length);
+      expect(result).toHaveLength(4);
+    });
   });
 });
+
+function makeUrls(count: number): string[] {
+  return Array.from(
+    { length: count },
+    (_, index) => `http://storage/${index}.png`,
+  );
+}
+
+function batchedCallSizes(mock: { mock: { calls: unknown[][] } }): number[] {
+  return mock.mock.calls.map(([batch]) => (batch as string[]).length);
+}

@@ -9,4 +9,5 @@ export const MAINTENANCE_LOCK_IDS = {
   pdfRenderCacheCleanup: 1003,
   unreferencedObjectCleanup: 1004,
   rateLimitBucketCleanup: 1005,
+  sessionCleanup: 1006,
 } as const;

@@ -45,6 +45,8 @@ export const METRICS = {
   cleanupUnreferencedObjectsLastRun: 'cleanup_unreferenced_objects_last_run',
   rateLimitedTotal: 'rate_limited_total',
   cleanupRateLimitBucketsDeleted: 'cleanup_rate_limit_buckets_deleted',
+  cleanupSessionsDeleted: 'cleanup_sessions_deleted',
+  cleanupSessionsLastRun: 'cleanup_sessions_last_run',
 } as const;
 
 // The domain histograms' bucket config, keyed by catalog name so the buckets

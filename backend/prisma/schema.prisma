@@ -90,6 +90,7 @@ model UnifiedScreenshot {
 
   @@unique([testId, variantId, type])
   @@index([testId, type])
+  @@index([imageUrl])
   @@map("UnifiedScreenshot")
 }
 
@@ -111,9 +112,11 @@ model UnifiedComparison {
   candidate UnifiedScreenshot?            @relation("CandidateComparison", fields: [candidateId], references: [id])
 
   @@index([testId])
-  @@index([status])
+  @@index([status, createdAt])
   @@index([baselineId])
   @@index([candidateId])
+  @@index([diffImageUrl])
+  @@index([diffPdfUrl])
   @@map("UnifiedComparison")
 }
 
@@ -138,6 +141,8 @@ model ComparisonJob {
   @@index([status, nextAttemptAt])
   @@index([status, heartbeatAt])
   @@index([status, candidateId])
+  @@index([status, completedAt])
+  @@index([testId])
   @@index([createdAt])
 }
 
@@ -162,6 +167,7 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([expiresAt])
   @@map("Session")
 }
 
