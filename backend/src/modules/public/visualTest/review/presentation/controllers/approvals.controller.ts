@@ -8,6 +8,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import {
+  ApiConflictResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -22,6 +23,7 @@ import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import {
   ApproveComparisonBodyDto,
   ApproveResultDto,
+  BulkApproveResultDto,
 } from '@public/visualTest/review/presentation/dto/review-responses.dto';
 import { ApprovalDto } from '@public/visualTest/review/presentation/dto/approval.dto';
 import { mapApprovalToDto } from '@public/visualTest/review/infrastructure/mappers/approval.mapper';
@@ -81,6 +83,30 @@ export class ApprovalsController {
       projectName,
       testName,
       params.comparisonId,
+      requireApprover(req),
+      branch,
+    );
+  }
+
+  @Post('approvals/all')
+  @ApiOperation({
+    summary: 'Approve every pending comparison of a test on a branch',
+  })
+  @ApiOkResponse({ type: BulkApproveResultDto })
+  @ApiNotFoundResponse({ description: 'Test not found' })
+  @ApiConflictResponse({
+    description: 'Test is inherited from an ancestor branch',
+  })
+  @ApiUnauthorizedResponse({ description: 'Authentication required' })
+  async approveAllPending(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('testName', ProjectTestNameValidationPipe) testName: string,
+    @Req() req: AuthenticatedRequest,
+    @BranchQuery() branch?: string,
+  ): Promise<BulkApproveResultDto> {
+    return this.approvals.approveAllPending(
+      projectName,
+      testName,
       requireApprover(req),
       branch,
     );

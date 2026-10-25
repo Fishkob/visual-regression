@@ -144,6 +144,76 @@ describe('ApprovalsController', () => {
     });
   });
 
+  describe('approveAllPending', () => {
+    it('approves every pending comparison of the test on the branch as the caller', async () => {
+      approvals.approveAllPending.mockResolvedValue({
+        approved: 2,
+        failed: [],
+      });
+
+      const result = await controller.approveAllPending(
+        'checkout-ui',
+        'login-form',
+        req,
+        'feature/x',
+      );
+
+      expect(approvals.approveAllPending).toHaveBeenCalledWith(
+        'checkout-ui',
+        'login-form',
+        'jane.doe',
+        'feature/x',
+      );
+      expect(result).toEqual({ approved: 2, failed: [] });
+    });
+
+    it('passes an undefined branch when the request names none', async () => {
+      approvals.approveAllPending.mockResolvedValue({
+        approved: 0,
+        failed: [],
+      });
+
+      await controller.approveAllPending('checkout-ui', 'login-form', req);
+
+      expect(approvals.approveAllPending).toHaveBeenCalledWith(
+        'checkout-ui',
+        'login-form',
+        'jane.doe',
+        undefined,
+      );
+    });
+
+    it('returns the partial failures alongside the approved count', async () => {
+      approvals.approveAllPending.mockResolvedValue({
+        approved: 1,
+        failed: [{ comparisonId: 'comp-9', error: 'Approval failed' }],
+      });
+
+      const result = await controller.approveAllPending(
+        'checkout-ui',
+        'login-form',
+        req,
+        'main',
+      );
+
+      expect(result).toEqual({
+        approved: 1,
+        failed: [{ comparisonId: 'comp-9', error: 'Approval failed' }],
+      });
+    });
+
+    it('rejects the batch when the request carries no authenticated principal', async () => {
+      await expect(
+        controller.approveAllPending(
+          'checkout-ui',
+          'login-form',
+          {} as AuthenticatedRequest,
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(approvals.approveAllPending).not.toHaveBeenCalled();
+    });
+  });
+
   describe('listApprovals', () => {
     it('maps the audit rows to the approval DTO shape without leaking columns', async () => {
       approvals.listApprovals.mockResolvedValue([auditRecord()]);

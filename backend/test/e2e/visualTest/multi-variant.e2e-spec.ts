@@ -171,6 +171,138 @@ describe('Multi-variant screenshots (e2e)', () => {
       .expect(201);
   });
 
+  it('approves every pending variant of a test in one batch', async () => {
+    const variants = [
+      {
+        viewport: '1920x1080',
+        browser: 'Chrome',
+        baseline: 'baseline_black.png',
+        candidate: 'baseline_blue.png',
+      },
+      {
+        viewport: '1366x768',
+        browser: 'Firefox',
+        baseline: 'baseline_blue.png',
+        candidate: 'baseline_black.png',
+      },
+      {
+        viewport: '800x600',
+        browser: 'WebKit',
+        baseline: 'baseline_black.png',
+        candidate: 'baseline_blue.png',
+      },
+    ];
+
+    for (const variant of variants) {
+      const baseline = await upload(
+        'BulkApproval',
+        variant.viewport,
+        variant.browser,
+        variant.baseline,
+      ).expect(201);
+      expect(baseline.body.status).toBe(ComparisonOutcome.BASELINE_CREATED);
+
+      const queued = await upload(
+        'BulkApproval',
+        variant.viewport,
+        variant.browser,
+        variant.candidate,
+      ).expect(201);
+      expect(queued.body.status).toBe(ComparisonOutcome.COMPARISON_QUEUED);
+    }
+
+    const pending: { comparisonId: string; candidateUrl: string }[] = [];
+    for (const variant of variants) {
+      const details = await waitForVariantComparison(
+        app,
+        'checkout-ui',
+        'BulkApproval',
+        variant.viewport,
+        variant.browser,
+      );
+      expect(details.body.comparison.status).toBe('PENDING_APPROVAL');
+      pending.push({
+        comparisonId: details.body.comparison.id,
+        candidateUrl: details.body.comparison.candidate.imageUrl,
+      });
+    }
+
+    const approved = await authRequest(app)
+      .post(
+        '/api/v1/projects/checkout-ui/tests/BulkApproval/approvals/all?branch=main',
+      )
+      .expect(201);
+    expect(approved.body).toEqual({ approved: 3, failed: [] });
+
+    // Every approved variant promoted its candidate to the baseline and the
+    // image kind completes an approval by deleting the comparison row.
+    const variantsAfter = await prisma.unifiedVariant.findMany({
+      where: { test: { name: 'BulkApproval' } },
+      include: { baseline: true },
+    });
+    expect(variantsAfter).toHaveLength(3);
+    expect(
+      variantsAfter
+        .map(
+          (variant: { baseline: { imageUrl: string } }) =>
+            variant.baseline.imageUrl,
+        )
+        .sort(),
+    ).toEqual(pending.map((entry) => entry.candidateUrl).sort());
+    for (const entry of pending) {
+      expect(
+        await prisma.unifiedComparison.findUnique({
+          where: { id: entry.comparisonId },
+        }),
+      ).toBeNull();
+    }
+    expect(
+      await prisma.unifiedComparison.findMany({
+        where: {
+          test: { name: 'BulkApproval' },
+          status: 'PENDING_APPROVAL',
+        },
+      }),
+    ).toHaveLength(0);
+
+    // One durable audit row per approved comparison, attributed to the caller.
+    const history = await authRequest(app)
+      .get(
+        '/api/v1/projects/checkout-ui/tests/BulkApproval/approvals?branch=main',
+      )
+      .expect(200);
+    expect(history.body).toHaveLength(3);
+    expect(
+      history.body.map((row: { approvedBy: string }) => row.approvedBy),
+    ).toEqual(['e2e', 'e2e', 'e2e']);
+    expect(
+      history.body.map((row: { branchName: string }) => row.branchName),
+    ).toEqual(['main', 'main', 'main']);
+    expect(
+      history.body
+        .map((row: { comparisonId: string }) => row.comparisonId)
+        .sort(),
+    ).toEqual(pending.map((entry) => entry.comparisonId).sort());
+  });
+
+  it('reports an empty batch when nothing is pending and rejects an unknown test', async () => {
+    await upload(
+      'NothingPending',
+      '1920x1080',
+      'Chrome',
+      'baseline_black.png',
+    ).expect(201);
+
+    const empty = await authRequest(app)
+      .post('/api/v1/projects/checkout-ui/tests/NothingPending/approvals/all')
+      .expect(201);
+    expect(empty.body).toEqual({ approved: 0, failed: [] });
+
+    await authRequest(app)
+      .post('/api/v1/projects/checkout-ui/tests/NoSuchTest/approvals/all')
+      .expect(404);
+  });
+
   it('rejects an upload whose kind conflicts with the persisted test kind', async () => {
     await upload(
       'KindConflict',

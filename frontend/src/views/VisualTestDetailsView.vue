@@ -16,6 +16,7 @@ import TestComparisonView from "@/components/detail-panels/TestComparisonView.vu
 import TestBaselineView from "@/components/detail-panels/TestBaselineView.vue";
 import TestVariantGallery from "@/components/detail-panels/TestVariantGallery.vue";
 import TestComparisonInfo from "@/components/TestComparisonInfo.vue";
+import BulkApproveButton from "@/components/BulkApproveButton.vue";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
 import AsyncState from "@/components/AsyncState.vue";
@@ -71,6 +72,11 @@ const { data: variantsData } = useTestVariantsQuery(
   branch,
 );
 const variantSummaries = computed(() => variantsData.value?.variants ?? []);
+const hasPendingVariants = computed(() =>
+  variantSummaries.value.some(
+    (variant) => variant.status === "PENDING_APPROVAL",
+  ),
+);
 
 // The active tile is the variant the detail panel resolved, not the raw query
 // params: a partial filter (only viewport) still resolves to exactly one
@@ -152,6 +158,13 @@ useReviewShortcuts({
           progress.total > 0 ? `${progress.current} of ${progress.total}` : ""
         }}
       </span>
+      <BulkApproveButton
+        v-if="hasPendingVariants && !isInherited"
+        :project-name="projectName"
+        :test-name="testName"
+        :branch="branch"
+        :disabled="isApproving"
+      />
     </div>
 
     <TestComparisonInfo

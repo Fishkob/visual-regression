@@ -825,6 +825,63 @@
         ]
       }
     },
+    "/projects/{projectName}/tests/{testName}/approvals/all": {
+      "post": {
+        "operationId": "ApprovalsController_approveAllPending",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkApproveResultDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Test not found"
+          },
+          "409": {
+            "description": "Test is inherited from an ancestor branch"
+          }
+        },
+        "summary": "Approve every pending comparison of a test on a branch",
+        "tags": [
+          "Approvals"
+        ]
+      }
+    },
     "/projects/{projectName}/tests/{testName}/approvals": {
       "get": {
         "operationId": "ApprovalsController_listApprovals",
@@ -2755,6 +2812,46 @@
           "approved",
           "newBaselineUrl",
           "signedNewBaselineUrl"
+        ]
+      },
+      "BulkApproveFailureDto": {
+        "type": "object",
+        "properties": {
+          "comparisonId": {
+            "type": "string",
+            "example": "cm0xyz123",
+            "description": "Id of the comparison that could not be approved"
+          },
+          "error": {
+            "type": "string",
+            "example": "Comparison not found for approval",
+            "description": "Reason the single approval failed; internal failures report a generic message"
+          }
+        },
+        "required": [
+          "comparisonId",
+          "error"
+        ]
+      },
+      "BulkApproveResultDto": {
+        "type": "object",
+        "properties": {
+          "approved": {
+            "type": "number",
+            "example": 3,
+            "description": "Number of comparisons approved by this batch"
+          },
+          "failed": {
+            "description": "Comparisons that could not be approved; the batch continues past them",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkApproveFailureDto"
+            }
+          }
+        },
+        "required": [
+          "approved",
+          "failed"
         ]
       },
       "ApprovalDto": {

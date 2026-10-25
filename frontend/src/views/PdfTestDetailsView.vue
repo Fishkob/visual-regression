@@ -14,6 +14,7 @@ import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import ApprovalBadge from "@/components/ApprovalBadge.vue";
+import BulkApproveButton from "@/components/BulkApproveButton.vue";
 import { TEST_ID } from "@/lib/test-ids";
 import { formatRelativeAge } from "@/lib/format-date";
 
@@ -47,6 +48,9 @@ const {
 // here: approve/skip belong to the branch that owns it (the backend rejects
 // mutations with 409 regardless).
 const isInherited = computed(() => isInheritedOrigin(data.value?.origin));
+const hasPendingComparison = computed(
+  () => data.value?.comparison?.status === "PENDING_APPROVAL",
+);
 
 // The badge is per variant: resolve the variant the details actually show, with
 // the route filter as the fallback when the payload has not landed yet.
@@ -115,6 +119,13 @@ useReviewShortcuts({
         :test-name="testName"
         :branch="branch"
         :variant="approvalVariant"
+      />
+      <BulkApproveButton
+        v-if="hasPendingComparison && !isInherited"
+        :project-name="projectName"
+        :test-name="testName"
+        :branch="branch"
+        :disabled="isApproving"
       />
       <span
         v-if="!fromInbox && progress.total > 0"

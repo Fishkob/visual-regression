@@ -19,6 +19,9 @@ import type { ApiKeysControllerRevokeResponses } from './models/ApiKeysControlle
 import type { ApiKeysControllerRotateData } from './models/ApiKeysControllerRotateData.gen';
 import type { ApiKeysControllerRotateErrors } from './models/ApiKeysControllerRotateErrors.gen';
 import type { ApiKeysControllerRotateResponses } from './models/ApiKeysControllerRotateResponses.gen';
+import type { ApprovalsControllerApproveAllPendingData } from './models/ApprovalsControllerApproveAllPendingData.gen';
+import type { ApprovalsControllerApproveAllPendingErrors } from './models/ApprovalsControllerApproveAllPendingErrors.gen';
+import type { ApprovalsControllerApproveAllPendingResponses } from './models/ApprovalsControllerApproveAllPendingResponses.gen';
 import type { ApprovalsControllerApprovePdfTestData } from './models/ApprovalsControllerApprovePdfTestData.gen';
 import type { ApprovalsControllerApprovePdfTestErrors } from './models/ApprovalsControllerApprovePdfTestErrors.gen';
 import type { ApprovalsControllerApprovePdfTestResponses } from './models/ApprovalsControllerApprovePdfTestResponses.gen';
@@ -257,6 +260,15 @@ export const approvalsControllerApprovePdfTest = <ThrowOnError extends boolean =
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * Approve every pending comparison of a test on a branch
+ */
+export const approvalsControllerApproveAllPending = <ThrowOnError extends boolean = false>(options: Options<ApprovalsControllerApproveAllPendingData, ThrowOnError>): RequestResult<ApprovalsControllerApproveAllPendingResponses, ApprovalsControllerApproveAllPendingErrors, ThrowOnError> => (options.client ?? client).post<ApprovalsControllerApproveAllPendingResponses, ApprovalsControllerApproveAllPendingErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/approvals/all',
+    ...options
 });
 
 /**

@@ -234,6 +234,53 @@ export class ApprovalService {
     });
   }
 
+  // Bulk approval of every comparison still pending for the test on the branch.
+  // The owner test is resolved up front (an inherited test is a CONFLICT, an
+  // unknown one NOT_FOUND), so the kind is known and the batch can only ever
+  // mutate this branch's own rows.
+  //
+  // The batch deliberately does NOT share one transaction: each comparison goes
+  // through the single approval recipe (executeApproval), which keeps its own
+  // StateChangeWorkflow transaction and audit row. A comparison superseded
+  // mid-loop therefore fails alone and is reported, while the remaining ids
+  // still get their chance — the reviewer's "approve all" never silently loses
+  // approvals to one stale row.
+  async approveAllPending(
+    projectName: string,
+    testName: string,
+    approvedBy: string,
+    branchName?: string,
+  ): Promise<BulkApprovalResult> {
+    const test = await this.testResolver.findOwnTest(
+      projectName,
+      testName,
+      branchName,
+    );
+    const comparisonIds =
+      await this.comparisons.findPendingComparisonIdsForTest(test.id);
+
+    const result: BulkApprovalResult = { approved: 0, failed: [] };
+    for (const comparisonId of comparisonIds) {
+      try {
+        await this.executeApproval(
+          test.kind,
+          projectName,
+          testName,
+          comparisonId,
+          approvedBy,
+          branchName,
+        );
+        result.approved += 1;
+      } catch (error) {
+        result.failed.push({
+          comparisonId,
+          error: bulkFailureMessage(error),
+        });
+      }
+    }
+    return result;
+  }
+
   // The audit trail read for the UI: the most recent approvals of a test,
   // newest first. A read-only projection, so it needs no transaction.
   async listApprovals(
@@ -371,4 +418,18 @@ interface ApprovalKindConfig {
   };
   completeComparison(decision: ApprovalDecision): Promise<string[]>;
   cleanupAfterCommit?(decision: ApprovalDecision): Promise<void>;
+}
+
+// A bulk approval's outcome: how many comparisons were approved, plus one entry
+// per comparison that failed (the batch continues past failures).
+export interface BulkApprovalResult {
+  approved: number;
+  failed: { comparisonId: string; error: string }[];
+}
+
+// A DomainError's message is written for the client and safe to return; any
+// other error is an internal failure whose text could leak implementation
+// detail, so the batch reports a generic message for it.
+function bulkFailureMessage(error: unknown): string {
+  return error instanceof DomainError ? error.message : 'Approval failed';
 }

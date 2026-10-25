@@ -130,6 +130,37 @@ describe('Approve PDF Test (e2e)', () => {
     expect(typeof history.body[0].pageCount).toBe('number');
   });
 
+  it('should approve the pending pdf comparison through the bulk endpoint', async () => {
+    const { comparisonId } = await uploadAndWaitForPending();
+
+    const batch = await authRequest(app)
+      .post(
+        '/api/v1/projects/pdf-approval/tests/invoice/approvals/all?branch=main',
+      )
+      .expect(201);
+    expect(batch.body).toEqual({ approved: 1, failed: [] });
+
+    // The PDF kind keeps the comparison row as history (APPROVED) and promotes
+    // the candidate PDF to the baseline.
+    const approved = await prisma.unifiedComparison.findUnique({
+      where: { id: comparisonId },
+    });
+    expect(approved).not.toBeNull();
+    expect(approved.status).toBe('APPROVED');
+    expect(approved.diffPdfUrl).toBeNull();
+
+    const history = await authRequest(app)
+      .get('/api/v1/projects/pdf-approval/tests/invoice/approvals?branch=main')
+      .expect(200);
+    expect(history.body).toHaveLength(1);
+    expect(history.body[0]).toMatchObject({
+      approvedBy: 'e2e',
+      comparisonId,
+      testKind: 'pdf',
+      branchName: 'main',
+    });
+  });
+
   it('should treat the approved pdf as identical on a repeat upload', async () => {
     await upload(samplePdf).expect(201);
 

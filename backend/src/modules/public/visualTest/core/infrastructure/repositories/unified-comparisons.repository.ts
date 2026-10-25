@@ -144,6 +144,20 @@ export class UnifiedComparisonsRepository extends BaseRepository {
     return results;
   }
 
+  // Ids-only read of every approval target of a test, oldest first. The bulk
+  // approval walks this list one comparison at a time; the ordering makes the
+  // batch deterministic (the oldest pending review is approved first) so a
+  // partial failure leaves a predictable remainder. A read-only projection: it
+  // takes no write lock and asserts nothing about writability.
+  async findPendingComparisonIdsForTest(testId: string): Promise<string[]> {
+    const rows = await this.client.unifiedComparison.findMany({
+      where: { testId, ...PENDING_APPROVAL_STATUS_FILTER },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map((row) => row.id);
+  }
+
   async findDiffImageUrlsByTestIds(testIds: string[]): Promise<string[]> {
     if (testIds.length === 0) return [];
     const results = await this.client.unifiedComparison.findMany({

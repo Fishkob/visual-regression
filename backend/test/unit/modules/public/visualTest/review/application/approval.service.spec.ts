@@ -700,6 +700,200 @@ describe('ApprovalService', () => {
     expect(testResolver.findTestOfKind).not.toHaveBeenCalled();
   });
 
+  describe('approveAllPending', () => {
+    function mockPendingImageTargets(ids: string[]) {
+      testResolver.findOwnTest.mockResolvedValue(imageTest);
+      testResolver.findTestOfKind.mockResolvedValue(imageTest);
+      comparisons.findPendingComparisonIdsForTest.mockResolvedValue(ids);
+      comparisons.findByIdForTest.mockImplementation(
+        (_testId: string, id: string) =>
+          Promise.resolve(
+            makeComparison(
+              makeBaseline({ id: `baseline-${id}` }),
+              makeCandidate({ id: `candidate-${id}` }),
+              { id },
+            ),
+          ),
+      );
+      statusService.recomputeStatus.mockResolvedValue(undefined);
+    }
+
+    it('returns a zero result when the test has no pending comparison', async () => {
+      testResolver.findOwnTest.mockResolvedValue(imageTest);
+      comparisons.findPendingComparisonIdsForTest.mockResolvedValue([]);
+
+      const result = await service.approveAllPending(
+        'my-project',
+        'my-test',
+        approvedBy,
+        'feature/x',
+      );
+
+      expect(testResolver.findOwnTest).toHaveBeenCalledWith(
+        'my-project',
+        'my-test',
+        'feature/x',
+      );
+      expect(comparisons.findPendingComparisonIdsForTest).toHaveBeenCalledWith(
+        'test-1',
+      );
+      expect(result).toEqual({ approved: 0, failed: [] });
+      expect(approvalAudit.record).not.toHaveBeenCalled();
+    });
+
+    it('approves every pending comparison of the own test and records one audit row each', async () => {
+      mockPendingImageTargets(['comp-1', 'comp-2', 'comp-3']);
+
+      const result = await service.approveAllPending(
+        'my-project',
+        'my-test',
+        'jane.doe',
+        'feature/x',
+      );
+
+      expect(result).toEqual({ approved: 3, failed: [] });
+      expect(
+        comparisons.completeImageApproval.mock.calls.map(([, id]) => id),
+      ).toEqual(['comp-1', 'comp-2', 'comp-3']);
+      expect(approvalAudit.record).toHaveBeenCalledTimes(3);
+      expect(
+        approvalAudit.record.mock.calls.map(([row]) => [
+          row.comparisonId,
+          row.approvedBy,
+          row.branchName,
+        ]),
+      ).toEqual([
+        ['comp-1', 'jane.doe', 'feature/x'],
+        ['comp-2', 'jane.doe', 'feature/x'],
+        ['comp-3', 'jane.doe', 'feature/x'],
+      ]);
+    });
+
+    it('reports a superseded comparison as failed and keeps approving the rest', async () => {
+      mockPendingImageTargets(['comp-1', 'comp-2', 'comp-3']);
+      // The middle comparison lost the race between the id read and its own
+      // approval, so the per-comparison approval fails with a DomainError.
+      comparisons.findByIdForTest.mockImplementation(
+        (_testId: string, id: string) =>
+          Promise.resolve(
+            id === 'comp-2'
+              ? null
+              : makeComparison(
+                  makeBaseline({ id: `baseline-${id}` }),
+                  makeCandidate({ id: `candidate-${id}` }),
+                  { id },
+                ),
+          ),
+      );
+
+      const result = await service.approveAllPending(
+        'my-project',
+        'my-test',
+        approvedBy,
+      );
+
+      expect(result).toEqual({
+        approved: 2,
+        failed: [
+          {
+            comparisonId: 'comp-2',
+            error: 'Comparison not found for approval',
+          },
+        ],
+      });
+      expect(
+        comparisons.completeImageApproval.mock.calls.map(([, id]) => id),
+      ).toEqual(['comp-1', 'comp-3']);
+      expect(approvalAudit.record).toHaveBeenCalledTimes(2);
+    });
+
+    it('reports a non-domain failure as a generic message without leaking internals', async () => {
+      mockPendingImageTargets(['comp-1', 'comp-2']);
+      approvalAudit.record.mockImplementation((row) =>
+        row.comparisonId === 'comp-1'
+          ? Promise.reject(new Error('storage object missing: s3://secret'))
+          : Promise.resolve(),
+      );
+
+      const result = await service.approveAllPending(
+        'my-project',
+        'my-test',
+        approvedBy,
+      );
+
+      expect(result).toEqual({
+        approved: 1,
+        failed: [{ comparisonId: 'comp-1', error: 'Approval failed' }],
+      });
+      expect(JSON.stringify(result)).not.toContain('s3://secret');
+      expect(comparisons.completeImageApproval).toHaveBeenCalledTimes(2);
+    });
+
+    it('approves pending PDF comparisons through the kind of the own test', async () => {
+      testResolver.findOwnTest.mockResolvedValue(pdfTest);
+      testResolver.findTestOfKind.mockResolvedValue(pdfTest);
+      comparisons.findPendingComparisonIdsForTest.mockResolvedValue([
+        'pdf-comp-1',
+      ]);
+      comparisons.findByIdForTest.mockResolvedValue(makePdfComparison());
+      statusService.recomputeStatus.mockResolvedValue(undefined);
+
+      const result = await service.approveAllPending(
+        'my-project',
+        'my-test',
+        approvedBy,
+      );
+
+      expect(result).toEqual({ approved: 1, failed: [] });
+      expect(comparisons.completePdfApproval).toHaveBeenCalledWith(
+        'pdf-comp-1',
+        undefined,
+      );
+      expect(approvalAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          testKind: 'pdf',
+          comparisonId: 'pdf-comp-1',
+        }),
+      );
+    });
+
+    it('propagates the inherited-test conflict without starting the batch', async () => {
+      testResolver.findOwnTest.mockRejectedValue(
+        new DomainError(
+          'Test "my-test" is inherited from branch "main" and cannot be modified here',
+          'CONFLICT',
+        ),
+      );
+
+      await expect(
+        service.approveAllPending(
+          'my-project',
+          'my-test',
+          approvedBy,
+          'feature/x',
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' });
+      expect(
+        comparisons.findPendingComparisonIdsForTest,
+      ).not.toHaveBeenCalled();
+      expect(comparisons.findByIdForTest).not.toHaveBeenCalled();
+      expect(approvalAudit.record).not.toHaveBeenCalled();
+    });
+
+    it('propagates an unknown test as not found', async () => {
+      testResolver.findOwnTest.mockRejectedValue(
+        new DomainError('Test "my-test" not found', 'NOT_FOUND'),
+      );
+
+      await expect(
+        service.approveAllPending('my-project', 'my-test', approvedBy),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      expect(
+        comparisons.findPendingComparisonIdsForTest,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
   describe('listApprovals', () => {
     it('delegates to the audit repository scoped to project, test and branch', async () => {
       const rows = [

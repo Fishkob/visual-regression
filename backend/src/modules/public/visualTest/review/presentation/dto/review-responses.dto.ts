@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsDate,
   IsDefined,
@@ -47,6 +48,51 @@ export class ApproveComparisonBodyDto {
   @IsString()
   @IsNotEmpty()
   comparisonId!: string;
+}
+
+// One comparison a bulk approval could not approve. Partial failure is a normal
+// outcome — the reviewer's "approve all" must report the ones that lost a race
+// (superseded, already approved) instead of failing the whole batch.
+export class BulkApproveFailureDto {
+  @ApiProperty({
+    example: 'cm0xyz123',
+    description: 'Id of the comparison that could not be approved',
+  })
+  @IsString()
+  @Expose()
+  comparisonId!: string;
+
+  @ApiProperty({
+    example: 'Comparison not found for approval',
+    description:
+      'Reason the single approval failed; internal failures report a generic message',
+  })
+  @IsString()
+  @Expose()
+  error!: string;
+}
+
+// The batch result: how many comparisons were approved and which ones were not.
+export class BulkApproveResultDto {
+  @ApiProperty({
+    example: 3,
+    description: 'Number of comparisons approved by this batch',
+  })
+  @IsNumber()
+  @Expose()
+  approved!: number;
+
+  @ApiProperty({
+    type: () => BulkApproveFailureDto,
+    isArray: true,
+    description:
+      'Comparisons that could not be approved; the batch continues past them',
+  })
+  @IsDefined()
+  @IsArray()
+  @Type(() => BulkApproveFailureDto)
+  @Expose()
+  failed!: BulkApproveFailureDto[];
 }
 
 export class UpdateThresholdResultDto {

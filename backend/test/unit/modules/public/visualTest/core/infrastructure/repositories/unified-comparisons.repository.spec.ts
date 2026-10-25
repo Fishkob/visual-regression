@@ -167,6 +167,32 @@ describe('UnifiedComparisonsRepository', () => {
     });
   });
 
+  describe('findPendingComparisonIdsForTest', () => {
+    it('returns the pending comparison ids of the test oldest first', async () => {
+      mockClient.unifiedComparison.findMany.mockResolvedValue([
+        { id: 'comp-1' },
+        { id: 'comp-2' },
+      ]);
+
+      const result = await repository.findPendingComparisonIdsForTest('test-1');
+
+      expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith({
+        where: { testId: 'test-1', status: 'PENDING_APPROVAL' },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      expect(result).toEqual(['comp-1', 'comp-2']);
+    });
+
+    it('returns an empty list when the test has no pending comparison', async () => {
+      mockClient.unifiedComparison.findMany.mockResolvedValue([]);
+
+      const result = await repository.findPendingComparisonIdsForTest('test-1');
+
+      expect(result).toEqual([]);
+    });
+  });
+
   describe('findDiffImageUrlsByTestIds', () => {
     it('returns the diff urls of comparisons for the given tests', async () => {
       mockClient.unifiedComparison.findMany.mockResolvedValue([
