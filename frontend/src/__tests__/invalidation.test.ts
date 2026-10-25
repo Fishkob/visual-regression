@@ -55,11 +55,15 @@ describe("invalidation", () => {
     expect(countRoot(client, "visual-tests")).toBe(2);
     expect(countRoot(client, "projects")).toBe(2);
     expect(countRoot(client, "pending-tests")).toBe(1);
+    expect(countRoot(client, "approvals")).toBe(1);
     expect(client.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["projects", "pending"],
     });
     expect(client.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["visual-tests", "variants"],
+    });
+    expect(client.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["approvals"],
     });
   });
 
@@ -76,6 +80,7 @@ describe("invalidation", () => {
 
     expect(countRoot(client, "visual-tests")).toBe(0);
     expect(countRoot(client, "pdf-tests")).toBe(1);
+    expect(countRoot(client, "approvals")).toBe(1);
   });
 
   it("invalidateProjectsForGroupChange invalidates groups and the inbox exactly once", () => {

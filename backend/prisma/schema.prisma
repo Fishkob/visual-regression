@@ -120,6 +120,36 @@ model UnifiedComparison {
   @@map("UnifiedComparison")
 }
 
+// Durable approval audit history. Deliberately has NO foreign key to the test:
+// image approval deletes the comparison row and a test (or branch, or project)
+// can be deleted, but the record of who approved what must survive all of it.
+// The identifiers are therefore plain strings, denormalized at approval time.
+model Approval {
+  id                 String   @id @default(cuid())
+  projectName        String
+  testName           String
+  branchName         String?
+  testId             String
+  testKind           TestKind
+  variantViewport    String
+  variantBrowser     String
+  variantEnvironment String
+  comparisonId       String
+  baselineId         String
+  candidateId        String
+  candidateHash      String
+  baselineHash       String?
+  mismatchPixelCount Int?
+  mismatchPageCount  Int?
+  pageCount          Int?
+  approvedBy         String
+  approvedAt         DateTime @default(now())
+
+  @@index([projectName, testName, approvedAt])
+  @@index([approvedAt])
+  @@map("Approval")
+}
+
 model ComparisonJob {
   id                  String        @id @default(cuid())
   testId              String

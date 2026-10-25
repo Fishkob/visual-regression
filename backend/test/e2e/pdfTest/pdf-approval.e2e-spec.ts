@@ -104,6 +104,32 @@ describe('Approve PDF Test (e2e)', () => {
     expect(await storage.exists(diffUrl)).toBe(false);
   });
 
+  it('should record the pdf approval in the audit trail for the caller', async () => {
+    const { comparisonId } = await uploadAndWaitForPending();
+
+    await authRequest(app)
+      .post('/api/v1/projects/pdf-approval/tests/invoice/pdf-approval')
+      .send({ comparisonId })
+      .expect(201);
+
+    const history = await authRequest(app)
+      .get('/api/v1/projects/pdf-approval/tests/invoice/approvals')
+      .expect(200);
+
+    expect(history.body).toHaveLength(1);
+    expect(history.body[0]).toMatchObject({
+      approvedBy: 'e2e',
+      comparisonId,
+      testKind: 'pdf',
+      branchName: null,
+      variant: { viewport: 'A4', browser: 'pdf', environment: 'production' },
+      approvedAt: expect.any(String),
+    });
+    expect(history.body[0].candidateHash).toEqual(expect.any(String));
+    expect(history.body[0].baselineHash).toEqual(expect.any(String));
+    expect(typeof history.body[0].pageCount).toBe('number');
+  });
+
   it('should treat the approved pdf as identical on a repeat upload', async () => {
     await upload(samplePdf).expect(201);
 

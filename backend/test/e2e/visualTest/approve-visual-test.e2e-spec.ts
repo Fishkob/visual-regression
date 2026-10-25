@@ -35,6 +35,37 @@ describe('Approve Visual Test (e2e)', () => {
     await TestApp.close();
   });
 
+  const fixture = (name: string) =>
+    fs.createReadStream(path.join(__dirname, 'fixtures', name));
+
+  function upload(branch: string | undefined, filename: string) {
+    const req = authRequest(app).post(
+      '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
+    );
+    if (branch) req.field('branch', branch);
+    return req
+      .field('viewport', '1920x1080')
+      .field('browser', 'Chrome')
+      .field('environment', 'staging')
+      .attach('file', fixture(filename));
+  }
+
+  function approve(comparisonId: string, branch?: string) {
+    const req = authRequest(app).post(
+      '/api/v1/projects/checkout-ui/tests/login-form/approval',
+    );
+    if (branch) req.query({ branch });
+    return req.send({ comparisonId });
+  }
+
+  function approvals(branch?: string) {
+    const req = authRequest(app).get(
+      '/api/v1/projects/checkout-ui/tests/login-form/approvals',
+    );
+    if (branch) req.query({ branch });
+    return req;
+  }
+
   it('should create a baseline, trigger a comparison, and keep it pending for approval', async () => {
     const baseline = path.join(__dirname, 'fixtures', 'baseline_black.png');
     const mismatch = path.join(__dirname, 'fixtures', 'baseline_blue.png');
@@ -140,6 +171,101 @@ describe('Approve Visual Test (e2e)', () => {
       .expect(201);
 
     expect(repeatUpload.body.mismatchPixelCount).toBe(0);
+  });
+
+  it('should expose the approval in the audit trail with the authenticated caller', async () => {
+    await upload(undefined, 'baseline_black.png').expect(201);
+    const mismatch = await upload(undefined, 'baseline_blue.png').expect(201);
+    expect(mismatch.body.status).toBe(ComparisonOutcome.COMPARISON_QUEUED);
+
+    const pending = await waitForComparison(app, 'checkout-ui', 'login-form');
+    const comparisonId = pending.body.comparison.id;
+    const candidateHash = pending.body.comparison.candidate.imageHash;
+    const baselineHash = pending.body.baseline.imageHash;
+
+    await approve(comparisonId).expect(201);
+
+    const history = await approvals().expect(200);
+
+    expect(history.body).toHaveLength(1);
+    expect(history.body[0]).toMatchObject({
+      approvedBy: 'e2e',
+      comparisonId,
+      testKind: 'image',
+      branchName: null,
+      variant: {
+        viewport: '1920x1080',
+        browser: 'Chrome',
+        environment: 'staging',
+      },
+      candidateHash,
+      baselineHash,
+      mismatchPixelCount: pending.body.comparison.mismatchPixelCount,
+    });
+    expect(typeof history.body[0].id).toBe('string');
+    expect(typeof history.body[0].approvedAt).toBe('string');
+  });
+
+  it('should filter the approval trail by branch', async () => {
+    await upload(undefined, 'baseline_black.png').expect(201);
+    const mainPendingUpload = await upload(
+      undefined,
+      'baseline_blue.png',
+    ).expect(201);
+    expect(mainPendingUpload.body.status).toBe(
+      ComparisonOutcome.COMPARISON_QUEUED,
+    );
+    // The feature branch inherits the main baseline, so the same blue upload is
+    // a mismatch there too — and pins its own baseline on approval.
+    const featurePendingUpload = await upload(
+      'feature/x',
+      'baseline_blue.png',
+    ).expect(201);
+    expect(featurePendingUpload.body.status).toBe(
+      ComparisonOutcome.COMPARISON_QUEUED,
+    );
+
+    const filters = {
+      viewport: '1920x1080',
+      browser: 'Chrome',
+      environment: 'staging',
+    };
+    const mainPending = await waitForComparison(
+      app,
+      'checkout-ui',
+      'login-form',
+      filters,
+      'main',
+    );
+    const featurePending = await waitForComparison(
+      app,
+      'checkout-ui',
+      'login-form',
+      filters,
+      'feature/x',
+    );
+
+    await approve(mainPending.body.comparison.id, 'main').expect(201);
+    await approve(featurePending.body.comparison.id, 'feature/x').expect(201);
+
+    const mainHistory = await approvals('main').expect(200);
+    expect(mainHistory.body).toHaveLength(1);
+    expect(mainHistory.body[0]).toMatchObject({
+      branchName: 'main',
+      comparisonId: mainPending.body.comparison.id,
+    });
+
+    const featureHistory = await approvals('feature/x').expect(200);
+    expect(featureHistory.body).toHaveLength(1);
+    expect(featureHistory.body[0]).toMatchObject({
+      branchName: 'feature/x',
+      comparisonId: featurePending.body.comparison.id,
+    });
+
+    const unfiltered = await approvals().expect(200);
+    expect(
+      unfiltered.body.map((row: { branchName: string }) => row.branchName),
+    ).toEqual(['feature/x', 'main']);
   });
 
   it('should return 404 when approving a test without any comparisons', async () => {

@@ -13,6 +13,7 @@ import PdfBaselineView from "@/components/pdf/PdfBaselineView.vue";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
 import AsyncState from "@/components/AsyncState.vue";
+import ApprovalBadge from "@/components/ApprovalBadge.vue";
 import { TEST_ID } from "@/lib/test-ids";
 import { formatRelativeAge } from "@/lib/format-date";
 
@@ -46,6 +47,17 @@ const {
 // here: approve/skip belong to the branch that owns it (the backend rejects
 // mutations with 409 regardless).
 const isInherited = computed(() => isInheritedOrigin(data.value?.origin));
+
+// The badge is per variant: resolve the variant the details actually show, with
+// the route filter as the fallback when the payload has not landed yet.
+const approvalVariant = computed(() => {
+  const source = data.value?.comparison?.candidate ?? data.value?.baseline;
+  return {
+    viewport: source?.viewport ?? filters.value.viewport,
+    browser: source?.browser ?? filters.value.browser,
+    environment: source?.environment ?? filters.value.environment,
+  };
+});
 
 useReviewShortcuts({
   onApprove: handleApprove,
@@ -98,6 +110,12 @@ useReviewShortcuts({
       >
         {{ formatRelativeAge(data.comparison.createdAt) }}
       </span>
+      <ApprovalBadge
+        :project-name="projectName"
+        :test-name="testName"
+        :branch="branch"
+        :variant="approvalVariant"
+      />
       <span
         v-if="!fromInbox && progress.total > 0"
         class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"

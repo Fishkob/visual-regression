@@ -10,6 +10,10 @@ import {
   ComparisonEntity,
 } from '@public/visualTest/core/domain/entities/comparison.entity';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
+import {
+  ApprovalAuditRepository,
+  type ApprovalAuditRecord,
+} from '@public/visualTest/core/infrastructure/repositories/approval-audit.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import {
@@ -85,12 +89,14 @@ export class ApprovalService {
     @Inject(PDF_RENDER_CACHE)
     private readonly pdfRenderCache: IPdfRenderCache,
     @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
+    private readonly approvalAudit: ApprovalAuditRepository,
   ) {}
 
   async approveImage(
     projectName: string,
     testName: string,
     comparisonId: string,
+    approvedBy: string,
     branchName?: string,
   ): Promise<{
     approved: true;
@@ -102,6 +108,7 @@ export class ApprovalService {
       projectName,
       testName,
       comparisonId,
+      approvedBy,
       branchName,
     );
   }
@@ -110,6 +117,7 @@ export class ApprovalService {
     projectName: string,
     testName: string,
     comparisonId: string,
+    approvedBy: string,
     branchName?: string,
   ): Promise<{
     approved: true;
@@ -121,6 +129,7 @@ export class ApprovalService {
       projectName,
       testName,
       comparisonId,
+      approvedBy,
       branchName,
     );
   }
@@ -130,6 +139,7 @@ export class ApprovalService {
     projectName: string,
     testName: string,
     comparisonId: string,
+    approvedBy: string,
     branchName?: string,
   ): Promise<{
     approved: true;
@@ -161,6 +171,30 @@ export class ApprovalService {
             comparison.candidate,
           );
           const staleDiffUrls = await this.persist(config, decision);
+          // The trail is written in the SAME change: an approval never commits
+          // without its audit row, and an audit failure rolls the approval back.
+          // The row is denormalized from the loaded entities because the
+          // comparison is about to be deleted (image) or stripped (PDF).
+          await this.approvalAudit.record({
+            projectName,
+            testName,
+            branchName: branchName ?? null,
+            testId: test.id,
+            testKind: kind,
+            variantViewport: decision.newBaseline.variant.viewport,
+            variantBrowser: decision.newBaseline.variant.browser,
+            variantEnvironment: decision.newBaseline.variant.environment,
+            comparisonId: comparison.id,
+            baselineId: decision.baselineId,
+            candidateId: decision.candidateId,
+            candidateHash: decision.newBaseline.imageHash,
+            baselineHash: comparison.baseline?.imageHash ?? null,
+            mismatchPixelCount: comparison.mismatchPixelCount,
+            mismatchPageCount: comparison.mismatchPageCount ?? null,
+            pageCount:
+              comparison.pageCount ?? decision.newBaseline.pageCount ?? null,
+            approvedBy,
+          });
           return {
             change: change([test.id], {
               staleUrls: staleDiffUrls,
@@ -197,6 +231,20 @@ export class ApprovalService {
           result.result.newBaselineUrl,
         ),
       };
+    });
+  }
+
+  // The audit trail read for the UI: the most recent approvals of a test,
+  // newest first. A read-only projection, so it needs no transaction.
+  async listApprovals(
+    projectName: string,
+    testName: string,
+    branchName?: string,
+  ): Promise<ApprovalAuditRecord[]> {
+    return this.approvalAudit.findForTest({
+      projectName,
+      testName,
+      branchName,
     });
   }
 

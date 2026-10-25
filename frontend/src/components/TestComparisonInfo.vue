@@ -28,6 +28,13 @@
       {{ formatRelativeAge(comparison.createdAt) }}
     </span>
 
+    <ApprovalBadge
+      :project-name="projectName"
+      :test-name="testName"
+      :branch="branchName"
+      :variant="variant"
+    />
+
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger as-child>
@@ -104,6 +111,7 @@
 <script setup lang="ts">
 import { computed, toRef } from "vue";
 import { Badge } from "@/components/ui/badge";
+import ApprovalBadge from "@/components/ApprovalBadge.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import {
   Tooltip,

@@ -25,6 +25,8 @@ import type { ApprovalsControllerApprovePdfTestResponses } from './models/Approv
 import type { ApprovalsControllerApproveVisualTestData } from './models/ApprovalsControllerApproveVisualTestData.gen';
 import type { ApprovalsControllerApproveVisualTestErrors } from './models/ApprovalsControllerApproveVisualTestErrors.gen';
 import type { ApprovalsControllerApproveVisualTestResponses } from './models/ApprovalsControllerApproveVisualTestResponses.gen';
+import type { ApprovalsControllerListApprovalsData } from './models/ApprovalsControllerListApprovalsData.gen';
+import type { ApprovalsControllerListApprovalsResponses } from './models/ApprovalsControllerListApprovalsResponses.gen';
 import type { AuthControllerLoginData } from './models/AuthControllerLoginData.gen';
 import type { AuthControllerLoginErrors } from './models/AuthControllerLoginErrors.gen';
 import type { AuthControllerLoginResponses } from './models/AuthControllerLoginResponses.gen';
@@ -255,6 +257,15 @@ export const approvalsControllerApprovePdfTest = <ThrowOnError extends boolean =
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * List the most recent approvals of a test, newest first
+ */
+export const approvalsControllerListApprovals = <ThrowOnError extends boolean = false>(options: Options<ApprovalsControllerListApprovalsData, ThrowOnError>): RequestResult<ApprovalsControllerListApprovalsResponses, unknown, ThrowOnError> => (options.client ?? client).get<ApprovalsControllerListApprovalsResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/approvals',
+    ...options
 });
 
 /**

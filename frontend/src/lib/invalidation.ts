@@ -8,6 +8,7 @@ import {
 } from "@/domains/pending-tests/query-keys";
 import { visualTestQueryKeys } from "@/domains/visual-test/query-keys";
 import { pdfTestQueryKeys } from "@/domains/pdf-test/query-keys";
+import { approvalQueryKeys } from "@/domains/approvals/query-keys";
 import type { TestDetailsArgs } from "@/lib/variant-key";
 
 export function invalidateProjectDetail(
@@ -35,6 +36,9 @@ function invalidateTestDetails(
   client.invalidateQueries({ queryKey: projectQueryKeys.withPending() });
   // An approval pins the variant and can change a branch's pending/test counts.
   client.invalidateQueries({ queryKey: branchQueryKeys.all() });
+  // The approval trail is the badge next to the header: an approve appends a row
+  // to it, so the reviewable-details read and the trail are refreshed together.
+  client.invalidateQueries({ queryKey: approvalQueryKeys.all() });
   invalidateReviewInbox(client);
 }
 

@@ -2,6 +2,10 @@
 
 export type ApprovalsControllerApproveVisualTestErrors = {
     /**
+     * Authentication required
+     */
+    401: unknown;
+    /**
      * Comparison not found
      */
     404: unknown;

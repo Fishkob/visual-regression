@@ -45,6 +45,9 @@ export class TestApp {
 
     const db = app.get(PrismaConnection).client;
 
+    // The approval audit rows deliberately have no foreign key to the test, so
+    // the cascading deletes below cannot reach them: clear them explicitly.
+    await db.approval.deleteMany();
     await db.unifiedVariant.deleteMany();
     await db.unifiedComparison.deleteMany();
     await db.unifiedScreenshot.deleteMany();

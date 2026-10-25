@@ -748,6 +748,9 @@
               }
             }
           },
+          "401": {
+            "description": "Authentication required"
+          },
           "404": {
             "description": "Comparison not found"
           }
@@ -809,11 +812,65 @@
               }
             }
           },
+          "401": {
+            "description": "Authentication required"
+          },
           "404": {
             "description": "Comparison not found"
           }
         },
         "summary": "Approve a pending PDF comparison",
+        "tags": [
+          "Approvals"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/approvals": {
+      "get": {
+        "operationId": "ApprovalsController_listApprovals",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApprovalDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List the most recent approvals of a test, newest first",
         "tags": [
           "Approvals"
         ]
@@ -2698,6 +2755,78 @@
           "approved",
           "newBaselineUrl",
           "signedNewBaselineUrl"
+        ]
+      },
+      "ApprovalDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "cm0xyz123",
+            "description": "Id of the approval audit record"
+          },
+          "approvedBy": {
+            "type": "string",
+            "example": "jane.doe",
+            "description": "Username of the authenticated principal that approved"
+          },
+          "approvedAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "When the approval was recorded"
+          },
+          "comparisonId": {
+            "type": "string",
+            "example": "cm0cmp123",
+            "description": "Id of the approved comparison (may no longer exist in the database)"
+          },
+          "testKind": {
+            "type": "string",
+            "example": "image",
+            "enum": [
+              "image",
+              "pdf"
+            ]
+          },
+          "branchName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Branch the approval was made on, or null when the caller did not name one"
+          },
+          "variant": {
+            "$ref": "#/components/schemas/VariantDto"
+          },
+          "candidateHash": {
+            "type": "string",
+            "description": "Image hash of the candidate that became the new baseline"
+          },
+          "baselineHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "mismatchPixelCount": {
+            "type": "number",
+            "nullable": true,
+            "description": "Pixel mismatch the reviewer accepted"
+          },
+          "mismatchPageCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "pageCount": {
+            "type": "number",
+            "nullable": true,
+            "description": "Page count of the approved artifact (PDF kind)"
+          }
+        },
+        "required": [
+          "id",
+          "approvedBy",
+          "approvedAt",
+          "comparisonId",
+          "testKind",
+          "variant",
+          "candidateHash"
         ]
       },
       "ProjectTestDto": {

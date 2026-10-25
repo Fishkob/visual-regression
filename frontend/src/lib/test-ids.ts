@@ -87,6 +87,7 @@ export const TEST_ID = {
   pdfPageNavigation: "pdf-page-navigation",
   pdfPageCountUnknown: "pdf-page-count-unknown",
   pdfComparisonAge: "pdf-comparison-age",
+  approvalBadge: "approval-badge",
 
   reviewProgress: "review-progress",
   shortcutsHint: "shortcuts-hint",
