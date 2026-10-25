@@ -6,7 +6,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import { createPaginatedResponse } from '@common/dto/paginated-response.dto';
+import {
+  createPaginatedResponse,
+  PaginatedResponseDto,
+} from '@common/dto/paginated-response.dto';
 import { AuditService } from '@internal/audit/audit.service';
 import {
   AuditEventDto,
@@ -24,7 +27,7 @@ export class AuditController {
 
   @Get()
   @ApiOperation({ summary: 'List audit events (newest first, paginated)' })
-  @ApiOkResponse({ type: AuditEventDto, isArray: true })
+  @ApiOkResponse({ type: PaginatedResponseDto(AuditEventDto) })
   async list(@Query() query: AuditQueryDto) {
     const page = Math.floor(query.skip / query.take) + 1;
     const result = await this.audit.list(

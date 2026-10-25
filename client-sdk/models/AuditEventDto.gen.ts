@@ -2,25 +2,13 @@
 
 export type AuditEventDto = {
     id: string;
-    actor?: {
-        [key: string]: unknown;
-    } | null;
+    actor?: string | null;
     action: string;
-    projectName?: {
-        [key: string]: unknown;
-    } | null;
-    testName?: {
-        [key: string]: unknown;
-    } | null;
-    branchName?: {
-        [key: string]: unknown;
-    } | null;
-    targetType?: {
-        [key: string]: unknown;
-    } | null;
-    targetId?: {
-        [key: string]: unknown;
-    } | null;
+    projectName?: string | null;
+    testName?: string | null;
+    branchName?: string | null;
+    targetType?: string | null;
+    targetId?: string | null;
     metadata?: {
         [key: string]: unknown;
     } | null;

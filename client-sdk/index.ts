@@ -119,6 +119,7 @@ export type { MeDto } from './models/MeDto.gen';
 export type { MetricsControllerGetMetricsData } from './models/MetricsControllerGetMetricsData.gen';
 export type { MetricsControllerGetMetricsResponses } from './models/MetricsControllerGetMetricsResponses.gen';
 export type { Options } from './models/Options.gen';
+export type { PaginatedAuditEventDto } from './models/PaginatedAuditEventDto.gen';
 export type { PaginatedPendingReviewDto } from './models/PaginatedPendingReviewDto.gen';
 export type { PaginatedPendingTestDto } from './models/PaginatedPendingTestDto.gen';
 export type { PaginatedProjectTestDto } from './models/PaginatedProjectTestDto.gen';

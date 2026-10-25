@@ -70,7 +70,7 @@ export class AuditEventDto {
   @Expose()
   id!: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   @IsOptional()
   @Expose()
   actor?: string | null;
@@ -80,27 +80,27 @@ export class AuditEventDto {
   @Expose()
   action!: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   @IsOptional()
   @Expose()
   projectName?: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   @IsOptional()
   @Expose()
   testName?: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   @IsOptional()
   @Expose()
   branchName?: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   @IsOptional()
   @Expose()
   targetType?: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   @IsOptional()
   @Expose()
   targetId?: string | null;
