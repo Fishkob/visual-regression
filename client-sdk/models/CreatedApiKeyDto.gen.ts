@@ -8,7 +8,7 @@ export type CreatedApiKeyDto = {
      */
     rawKey: string;
     scopes: Array<'upload' | 'read' | 'approve' | 'admin'>;
-    projectNames: Array<string>;
+    projectNames: Array<Array<string>>;
     keyHint: string;
     expiresAt: string | null;
 };

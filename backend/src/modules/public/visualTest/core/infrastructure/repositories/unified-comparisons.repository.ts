@@ -259,6 +259,26 @@ export class UnifiedComparisonsRepository extends BaseRepository {
     return this.findLatestComparison({ id: comparisonId, testId });
   }
 
+  async findTestOfComparisonById(projectName: string, comparisonId: string) {
+    const row = await this.client.unifiedComparison.findFirst({
+      where: {
+        id: comparisonId,
+        test: { branch: { project: { name: projectName } } },
+      },
+      select: {
+        test: {
+          select: {
+            id: true,
+            name: true,
+            kind: true,
+            branch: { select: { name: true } },
+          },
+        },
+      },
+    });
+    return row?.test ?? null;
+  }
+
   // Approval's fallback pairing: a comparison identifies its own test and
   // therefore its branch, so a client that approves by comparisonId alone (the
   // pre-branch contract) still resolves the right branch. Scoped by project name

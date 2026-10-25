@@ -71,6 +71,10 @@ import type { BranchesControllerRemoveResponses } from './models/BranchesControl
 import type { BranchesControllerUpdateData } from './models/BranchesControllerUpdateData.gen';
 import type { BranchesControllerUpdateErrors } from './models/BranchesControllerUpdateErrors.gen';
 import type { BranchesControllerUpdateResponses } from './models/BranchesControllerUpdateResponses.gen';
+import type { BulkActionsControllerApproveData } from './models/BulkActionsControllerApproveData.gen';
+import type { BulkActionsControllerApproveResponses } from './models/BulkActionsControllerApproveResponses.gen';
+import type { BulkActionsControllerDeleteTestsData } from './models/BulkActionsControllerDeleteTestsData.gen';
+import type { BulkActionsControllerDeleteTestsResponses } from './models/BulkActionsControllerDeleteTestsResponses.gen';
 import type { HealthControllerCheckData } from './models/HealthControllerCheckData.gen';
 import type { HealthControllerCheckDatabaseData } from './models/HealthControllerCheckDatabaseData.gen';
 import type { HealthControllerCheckDatabaseErrors } from './models/HealthControllerCheckDatabaseErrors.gen';
@@ -104,6 +108,8 @@ import type { ProjectGroupsControllerRemoveData } from './models/ProjectGroupsCo
 import type { ProjectGroupsControllerRemoveResponses } from './models/ProjectGroupsControllerRemoveResponses.gen';
 import type { ProjectGroupsControllerRenameData } from './models/ProjectGroupsControllerRenameData.gen';
 import type { ProjectGroupsControllerRenameResponses } from './models/ProjectGroupsControllerRenameResponses.gen';
+import type { ProjectsBulkControllerMoveData } from './models/ProjectsBulkControllerMoveData.gen';
+import type { ProjectsBulkControllerMoveResponses } from './models/ProjectsBulkControllerMoveResponses.gen';
 import type { ProjectsControllerCreateData } from './models/ProjectsControllerCreateData.gen';
 import type { ProjectsControllerCreateErrors } from './models/ProjectsControllerCreateErrors.gen';
 import type { ProjectsControllerCreateResponses } from './models/ProjectsControllerCreateResponses.gen';
@@ -719,6 +725,45 @@ export const trendsControllerGet = <ThrowOnError extends boolean = false>(option
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/projects/{projectName}/trends',
     ...options
+});
+
+/**
+ * Approve up to 100 comparisons, returning per-item results
+ */
+export const bulkActionsControllerApprove = <ThrowOnError extends boolean = false>(options: Options<BulkActionsControllerApproveData, ThrowOnError>): RequestResult<BulkActionsControllerApproveResponses, unknown, ThrowOnError> => (options.client ?? client).post<BulkActionsControllerApproveResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/bulk/approvals',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete up to 100 tests, returning per-item results
+ */
+export const bulkActionsControllerDeleteTests = <ThrowOnError extends boolean = false>(options: Options<BulkActionsControllerDeleteTestsData, ThrowOnError>): RequestResult<BulkActionsControllerDeleteTestsResponses, unknown, ThrowOnError> => (options.client ?? client).post<BulkActionsControllerDeleteTestsResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/bulk/test-deletions',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Move up to 100 projects into a group (null clears the group)
+ */
+export const projectsBulkControllerMove = <ThrowOnError extends boolean = false>(options: Options<ProjectsBulkControllerMoveData, ThrowOnError>): RequestResult<ProjectsBulkControllerMoveResponses, unknown, ThrowOnError> => (options.client ?? client).patch<ProjectsBulkControllerMoveResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/bulk/group',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 export const healthControllerCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckData, ThrowOnError>): RequestResult<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError>({ url: '/health', ...options });

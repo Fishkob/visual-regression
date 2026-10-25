@@ -35,6 +35,11 @@ import { WebhooksController } from '@public/visualTest/review/presentation/contr
 import { WebhookSettingsService } from '@public/visualTest/review/application/webhook-settings.service';
 import { TrendsController } from '@public/visualTest/review/presentation/controllers/trends.controller';
 import { TrendsService } from '@public/visualTest/review/application/trends.service';
+import { BulkActionService } from '@public/visualTest/review/application/bulk-action.service';
+import {
+  BulkActionsController,
+  ProjectsBulkController,
+} from '@public/visualTest/review/presentation/controllers/bulk-actions.controller';
 
 @Module({
   imports: [
@@ -60,6 +65,8 @@ import { TrendsService } from '@public/visualTest/review/application/trends.serv
     WebhooksController,
     RunsController,
     TrendsController,
+    BulkActionsController,
+    ProjectsBulkController,
   ],
   providers: [
     TestQueryService,
@@ -78,6 +85,7 @@ import { TrendsService } from '@public/visualTest/review/application/trends.serv
     WebhookSettingsService,
     RunService,
     TrendsService,
+    BulkActionService,
   ],
 })
 export class ReviewModule {}

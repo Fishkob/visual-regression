@@ -13,5 +13,5 @@ export type CreateApiKeyDto = {
     /**
      * Project names the key may access. Empty means every project; a non-empty list confines the key to those project routes.
      */
-    projectNames?: Array<string>;
+    projectNames?: Array<Array<string>>;
 };

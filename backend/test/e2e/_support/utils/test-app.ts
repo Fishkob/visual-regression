@@ -97,7 +97,12 @@ export class TestApp {
     const keyHash = hashToken(E2E_API_KEY);
     await db.apiKey.upsert({
       where: { keyHash },
-      create: { name: 'e2e', keyHash },
+      create: {
+        name: 'e2e',
+        keyHash,
+        scopes: ['upload', 'read', 'approve', 'admin'],
+        projectNames: [],
+      },
       update: {},
     });
   }

@@ -16,7 +16,7 @@ export type ApiKeyDto = {
     /**
      * Empty means every project
      */
-    projectNames: Array<string>;
+    projectNames: Array<Array<string>>;
     /**
      * User that created the key
      */

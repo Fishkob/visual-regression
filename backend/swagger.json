@@ -3105,6 +3105,120 @@
         ]
       }
     },
+    "/projects/{projectName}/bulk/approvals": {
+      "post": {
+        "operationId": "BulkActionsController_approve",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkApprovalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkApprovalResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Approve up to 100 comparisons, returning per-item results",
+        "tags": [
+          "Bulk actions"
+        ]
+      }
+    },
+    "/projects/{projectName}/bulk/test-deletions": {
+      "post": {
+        "operationId": "BulkActionsController_deleteTests",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkDeleteTestsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkDeleteResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Delete up to 100 tests, returning per-item results",
+        "tags": [
+          "Bulk actions"
+        ]
+      }
+    },
+    "/projects/bulk/group": {
+      "patch": {
+        "operationId": "ProjectsBulkController_move",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkMoveProjectsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkMoveResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Move up to 100 projects into a group (null clears the group)",
+        "tags": [
+          "Bulk actions"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -6150,6 +6264,139 @@
           "flakeRate"
         ]
       },
+      "BulkApprovalDto": {
+        "type": "object",
+        "properties": {
+          "comparisonIds": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "comparisonIds"
+        ]
+      },
+      "BulkItemResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "success"
+        ]
+      },
+      "BulkApprovalResultDto": {
+        "type": "object",
+        "properties": {
+          "approved": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          }
+        },
+        "required": [
+          "approved",
+          "failed"
+        ]
+      },
+      "BulkDeleteTestsDto": {
+        "type": "object",
+        "properties": {
+          "testNames": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "branch": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "testNames"
+        ]
+      },
+      "BulkDeleteResultDto": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          }
+        },
+        "required": [
+          "deleted",
+          "failed"
+        ]
+      },
+      "BulkMoveProjectsDto": {
+        "type": "object",
+        "properties": {
+          "projectNames": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "groupId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "projectNames"
+        ]
+      },
+      "BulkMoveResultDto": {
+        "type": "object",
+        "properties": {
+          "moved": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          }
+        },
+        "required": [
+          "moved",
+          "failed"
+        ]
+      },
       "DetailedHealthDto": {
         "type": "object",
         "properties": {
@@ -6407,10 +6654,13 @@
           },
           "projectNames": {
             "description": "Project names the key may access. Empty means every project; a non-empty list confines the key to those project routes.",
-            "type": "array",
             "items": {
-              "type": "string"
-            }
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -6444,10 +6694,13 @@
             }
           },
           "projectNames": {
-            "type": "array",
             "items": {
-              "type": "string"
-            }
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "type": "array"
           },
           "keyHint": {
             "type": "string",
@@ -6507,10 +6760,13 @@
           },
           "projectNames": {
             "description": "Empty means every project",
-            "type": "array",
             "items": {
-              "type": "string"
-            }
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "type": "array"
           },
           "createdBy": {
             "type": "string",
