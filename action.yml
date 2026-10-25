@@ -1,0 +1,84 @@
+name: Visual Regression
+description: Upload a screenshot or PDF, wait for the comparison, and fail when the change needs review.
+author: Visual Regression Platform
+
+branding:
+  icon: camera
+  color: purple
+
+inputs:
+  api-url:
+    description: Base URL of the Visual Regression API, e.g. https://vrt.example.com
+    required: true
+  api-key:
+    description: API key sent as the x-api-key header. Store it as a repository secret.
+    required: true
+  project:
+    description: Project name.
+    required: true
+  test:
+    description: Test name.
+    required: true
+  file:
+    description: Path to the screenshot (PNG) or PDF to upload.
+    required: true
+  kind:
+    description: Test kind, image or pdf.
+    required: false
+    default: image
+  viewport:
+    description: Viewport the capture was taken at, e.g. 1920x1080.
+    required: true
+  browser:
+    description: Browser the capture was taken in, e.g. Chromium.
+    required: true
+  environment:
+    description: Environment the capture was taken in, e.g. staging.
+    required: true
+  branch:
+    description: Branch that produced the upload. Defaults to the project default branch.
+    required: false
+    default: ""
+  wait-seconds:
+    description: How long to wait for a queued comparison before failing.
+    required: false
+    default: "30"
+  fail-on-pending:
+    description: Fail the step when the comparison still needs human review.
+    required: false
+    default: "true"
+
+outputs:
+  status:
+    description: Upload status (identical, baseline_created, comparison_queued) or failed.
+    value: ${{ steps.run.outputs.status }}
+  job-id:
+    description: Comparison job id for a queued comparison.
+    value: ${{ steps.run.outputs.job-id }}
+  comparison-id:
+    description: Comparison id once the job completed and a comparison exists.
+    value: ${{ steps.run.outputs.comparison-id }}
+  comparison-status:
+    description: Comparison status (PENDING_APPROVAL or APPROVED), when one exists.
+    value: ${{ steps.run.outputs.comparison-status }}
+
+runs:
+  using: composite
+  steps:
+    - id: run
+      name: Upload and wait for the comparison
+      shell: bash
+      env:
+        INPUT_API_URL: ${{ inputs.api-url }}
+        INPUT_API_KEY: ${{ inputs.api-key }}
+        INPUT_PROJECT: ${{ inputs.project }}
+        INPUT_TEST: ${{ inputs.test }}
+        INPUT_FILE: ${{ inputs.file }}
+        INPUT_KIND: ${{ inputs.kind }}
+        INPUT_VIEWPORT: ${{ inputs.viewport }}
+        INPUT_BROWSER: ${{ inputs.browser }}
+        INPUT_ENVIRONMENT: ${{ inputs.environment }}
+        INPUT_BRANCH: ${{ inputs.branch }}
+        INPUT_WAIT_SECONDS: ${{ inputs.wait-seconds }}
+        INPUT_FAIL_ON_PENDING: ${{ inputs.fail-on-pending }}
+      run: bash "${{ github.action_path }}/scripts/ci/github-action.sh"

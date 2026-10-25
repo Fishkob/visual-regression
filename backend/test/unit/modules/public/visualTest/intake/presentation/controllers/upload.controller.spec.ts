@@ -99,6 +99,7 @@ describe('UploadController', () => {
         status: 'comparison_queued',
         error: 'image_difference',
         message: 'Differences found',
+        jobId: 'job-1',
       });
 
       const result = await controller.upload(
@@ -114,6 +115,7 @@ describe('UploadController', () => {
         status: 'comparison_queued',
         error: 'image_difference',
         message: 'Differences found',
+        jobId: 'job-1',
       });
     });
 
@@ -145,6 +147,7 @@ describe('UploadController', () => {
         status: 'comparison_queued',
         error: 'pdf_difference',
         message: 'PDF pages differ',
+        jobId: 'job-1',
       });
 
       await controller.upload(projectName, testName, 'pdf', mockFile, body);

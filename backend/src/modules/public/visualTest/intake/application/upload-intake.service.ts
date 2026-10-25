@@ -242,7 +242,7 @@ export class UploadIntake {
         };
       }
       case ComparisonOutcome.COMPARISON_QUEUED: {
-        const staleUrls = await this.writeComparisonAndEnqueue(
+        const { staleUrls, jobId } = await this.writeComparisonAndEnqueue(
           kind,
           fresh,
           params,
@@ -260,7 +260,7 @@ export class UploadIntake {
               },
             ],
           }),
-          result: this.queuedResult(kind, branchName),
+          result: this.queuedResult(kind, branchName, jobId),
         };
       }
       default:
@@ -281,13 +281,18 @@ export class UploadIntake {
     );
   }
 
-  private queuedResult(kind: TestKind, branch: string): AnyUploadResult {
+  private queuedResult(
+    kind: TestKind,
+    branch: string,
+    jobId: string,
+  ): AnyUploadResult {
     const config = UPLOAD_KIND_CONFIG[kind];
     return {
       status: ComparisonOutcome.COMPARISON_QUEUED,
       error: config.queuedErrorCode,
       message: config.queuedMessage,
       branch,
+      jobId,
     };
   }
 
@@ -312,7 +317,7 @@ export class UploadIntake {
     params: UploadParams,
     fileUrl: string,
     pageCount?: number,
-  ): Promise<string[]> {
+  ): Promise<{ staleUrls: string[]; jobId: string }> {
     const staleUrls = await this.retirement.supersedeForVariant(
       decision.testId,
       toVariant(params),
@@ -324,8 +329,8 @@ export class UploadIntake {
       fileUrl,
       pageCount,
     );
-    await this.jobQueue.enqueue(prepared.jobData);
-    return [...staleUrls, ...prepared.staleUrls];
+    const jobId = await this.jobQueue.enqueue(prepared.jobData);
+    return { staleUrls: [...staleUrls, ...prepared.staleUrls], jobId };
   }
 
   private async createCandidate(

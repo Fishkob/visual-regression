@@ -7,6 +7,8 @@ import {
   ComparisonErrorCode,
   ComparisonOutcome,
 } from '@public/visualTest/core/domain/types/visual-test.types';
+import { ComparisonJobProcessor } from '@public/visualTest/intake/workers/comparison-job-processor';
+import { JOB_QUEUE, type IJobQueue } from '@common/domain/job-queue.interface';
 import * as path from 'path';
 import * as fs from 'fs';
 import { authRequest } from '../_support/utils/authenticated-request';
@@ -57,9 +59,65 @@ describe('Upload Mismatch (e2e)', () => {
 
     expect(res.body.status).toBe(ComparisonOutcome.COMPARISON_QUEUED);
     expect(res.body.error).toBe(ComparisonErrorCode.IMAGE_DIFFERENCE);
+    expect(res.body.jobId).toEqual(expect.any(String));
 
-    // 3. Wait for comparison to be processed by the poller, then GET details
+    // A second test on the branch, so the 404 below proves the job is scoped to
+    // the resolved test rather than merely that the name does not exist.
+    await authRequest(app)
+      .post(
+        '/api/v1/projects/checkout-ui/tests/signup-form/upload?testKind=image',
+      )
+      .field('viewport', '1920x1080')
+      .field('browser', 'Chrome')
+      .field('environment', 'staging')
+      .attach('file', fs.createReadStream(baseline))
+      .expect(201);
+
+    await authRequest(app)
+      .get(
+        `/api/v1/projects/checkout-ui/tests/signup-form/jobs/${res.body.jobId}`,
+      )
+      .expect(404);
+
+    await authRequest(app)
+      .get(
+        `/api/v1/projects/checkout-ui/tests/login-form/jobs/${res.body.jobId}`,
+      )
+      .query({ wait: 31 })
+      .expect(422);
+
+    // 3. Long-poll the job status while the comparison is processed.
+    const longPoll = authRequest(app)
+      .get(
+        `/api/v1/projects/checkout-ui/tests/login-form/jobs/${res.body.jobId}`,
+      )
+      .query({ wait: 30 })
+      .then((response) => response);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const queue = app.get<IJobQueue>(JOB_QUEUE);
+    const processor = app.get(ComparisonJobProcessor);
+    await queue.processNext((job) => processor.processJob(job));
+
+    const jobRes = await longPoll;
+    expect(jobRes.status).toBe(200);
+    expect(jobRes.body).toMatchObject({
+      id: res.body.jobId,
+      status: 'COMPLETED',
+      testId: expect.any(String),
+      error: null,
+      createdAt: expect.any(String),
+      completedAt: expect.any(String),
+      comparison: {
+        id: expect.any(String),
+        status: 'PENDING_APPROVAL',
+        mismatchPixelCount: expect.any(Number),
+      },
+    });
+
+    // 4. Wait for comparison to be processed by the poller, then GET details
     const details = await waitForComparison(app, 'checkout-ui', 'login-form');
+    expect(details.body.comparison.id).toBe(jobRes.body.comparison.id);
 
     expect(details.body).toEqual({
       name: 'login-form',

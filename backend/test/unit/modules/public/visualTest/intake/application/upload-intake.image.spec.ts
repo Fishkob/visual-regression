@@ -131,6 +131,7 @@ describe('UploadIntake (image kind)', () => {
     storage.deleteQuietly.mockResolvedValue(undefined);
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
     jobQueue = createMock<IJobProducer>();
+    jobQueue.enqueue.mockResolvedValue('job-1');
     tracker = createMock<Tracker>();
     tracker.track.mockImplementation(
       (_name: string, fn: () => Promise<unknown>) => fn(),
@@ -322,6 +323,7 @@ describe('UploadIntake (image kind)', () => {
       error: ComparisonErrorCode.IMAGE_DIFFERENCE,
       branch: 'main',
       message: 'Comparison queued — check test results.',
+      jobId: 'job-1',
     });
     expect(workflow.executeWithStoredFile).toHaveBeenCalled();
     expect(screenshots.upsertCandidateForVariant).toHaveBeenCalledTimes(1);
@@ -457,6 +459,7 @@ describe('UploadIntake (image kind)', () => {
       error: ComparisonErrorCode.IMAGE_DIFFERENCE,
       branch: 'main',
       message: 'Comparison queued — check test results.',
+      jobId: 'job-1',
     });
     expect(screenshots.upsertCandidateForVariant).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -620,6 +623,7 @@ describe('UploadIntake (image kind)', () => {
       error: ComparisonErrorCode.IMAGE_DIFFERENCE,
       branch: 'main',
       message: 'Comparison queued — check test results.',
+      jobId: 'job-1',
     });
     expect(screenshots.findBaselineByVariant).toHaveBeenCalledTimes(2);
     expect(screenshots.upsertBaselineForVariant).not.toHaveBeenCalled();

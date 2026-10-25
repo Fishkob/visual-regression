@@ -11,4 +11,8 @@ export type ComparisonQueuedResultDto = {
     branch: string;
     error: ComparisonErrorCode;
     message: string;
+    /**
+     * Id of the queued ComparisonJob (poll GET /projects/:projectName/tests/:testName/jobs/:jobId)
+     */
+    jobId: string;
 };

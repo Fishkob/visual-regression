@@ -11,6 +11,13 @@ import { UploadIntake } from '@public/visualTest/intake/application/upload-intak
 import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
 import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
 import { UploadController } from '@public/visualTest/intake/presentation/controllers/upload.controller';
+import { JobStatusController } from '@public/visualTest/intake/presentation/controllers/job-status.controller';
+import { JobStatusService } from '@public/visualTest/intake/application/job-status.service';
+import { ComparisonJobStatusRepository } from '@public/visualTest/intake/infrastructure/repositories/comparison-job-status.repository';
+import {
+  DEFAULT_JOB_STATUS_POLLING,
+  JOB_STATUS_POLLING,
+} from '@public/visualTest/intake/application/job-status-polling';
 
 @Module({
   imports: [
@@ -29,7 +36,13 @@ import { UploadController } from '@public/visualTest/intake/presentation/control
     VisualTestApplicationModule,
     PdfSidecarModule,
   ],
-  controllers: [UploadController],
-  providers: [UploadIntake, UploadDecisionResolver],
+  controllers: [UploadController, JobStatusController],
+  providers: [
+    UploadIntake,
+    UploadDecisionResolver,
+    JobStatusService,
+    ComparisonJobStatusRepository,
+    { provide: JOB_STATUS_POLLING, useValue: DEFAULT_JOB_STATUS_POLLING },
+  ],
 })
 export class IntakeApplicationModule {}

@@ -88,4 +88,11 @@ export class ComparisonQueuedResultDto extends UploadResultDto {
   @ApiProperty()
   @Expose()
   message!: string;
+
+  @ApiProperty({
+    description:
+      'Id of the queued ComparisonJob (poll GET /projects/:projectName/tests/:testName/jobs/:jobId)',
+  })
+  @Expose()
+  jobId!: string;
 }

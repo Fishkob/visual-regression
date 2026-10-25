@@ -144,6 +144,7 @@ describe('UploadIntake (pdf kind)', () => {
     storage.deleteQuietly.mockResolvedValue(undefined);
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
     jobQueue = createMock<IJobProducer>();
+    jobQueue.enqueue.mockResolvedValue('job-1');
     tracker = createMock<Tracker>();
     tracker.track.mockImplementation(
       (_name: string, fn: () => Promise<unknown>) => fn(),
@@ -325,6 +326,7 @@ describe('UploadIntake (pdf kind)', () => {
       error: ComparisonErrorCode.PDF_DIFFERENCE,
       branch: 'main',
       message: 'PDF comparison queued — check test results.',
+      jobId: 'job-1',
     });
     expect(metrics.incrementCounter).toHaveBeenCalledWith(
       'domain_events_total',
@@ -446,6 +448,7 @@ describe('UploadIntake (pdf kind)', () => {
       error: ComparisonErrorCode.PDF_DIFFERENCE,
       branch: 'main',
       message: 'PDF comparison queued — check test results.',
+      jobId: 'job-1',
     });
     expect(retirement.supersedeForVariant).toHaveBeenCalledWith(
       'pdf-test-1',
@@ -641,6 +644,7 @@ describe('UploadIntake (pdf kind)', () => {
       error: ComparisonErrorCode.PDF_DIFFERENCE,
       branch: 'main',
       message: 'PDF comparison queued — check test results.',
+      jobId: 'job-1',
     });
     expect(screenshots.findBaselineByVariant).toHaveBeenCalledTimes(4);
     expect(screenshots.upsertCandidateForVariant).toHaveBeenCalledTimes(1);

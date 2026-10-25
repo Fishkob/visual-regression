@@ -57,6 +57,9 @@ import type { HealthControllerCheckStorageResponses } from './models/HealthContr
 import type { HealthControllerReadinessData } from './models/HealthControllerReadinessData.gen';
 import type { HealthControllerReadinessErrors } from './models/HealthControllerReadinessErrors.gen';
 import type { HealthControllerReadinessResponses } from './models/HealthControllerReadinessResponses.gen';
+import type { JobStatusControllerGetJobStatusData } from './models/JobStatusControllerGetJobStatusData.gen';
+import type { JobStatusControllerGetJobStatusErrors } from './models/JobStatusControllerGetJobStatusErrors.gen';
+import type { JobStatusControllerGetJobStatusResponses } from './models/JobStatusControllerGetJobStatusResponses.gen';
 import type { MetricsControllerGetMetricsData } from './models/MetricsControllerGetMetricsData.gen';
 import type { MetricsControllerGetMetricsResponses } from './models/MetricsControllerGetMetricsResponses.gen';
 import type { Options } from './models/Options.gen';
@@ -128,6 +131,15 @@ export const uploadControllerUpload = <ThrowOnError extends boolean = false>(opt
         'Content-Type': null,
         ...options.headers
     }
+});
+
+/**
+ * Read the status of a queued comparison job (optionally wait)
+ */
+export const jobStatusControllerGetJobStatus = <ThrowOnError extends boolean = false>(options: Options<JobStatusControllerGetJobStatusData, ThrowOnError>): RequestResult<JobStatusControllerGetJobStatusResponses, JobStatusControllerGetJobStatusErrors, ThrowOnError> => (options.client ?? client).get<JobStatusControllerGetJobStatusResponses, JobStatusControllerGetJobStatusErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/jobs/{jobId}',
+    ...options
 });
 
 /**

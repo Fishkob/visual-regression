@@ -155,6 +155,8 @@ curl -X POST "http://localhost:3000/api/v1/projects/my-project/tests/my-test/upl
 
 The seed scripts authenticate the same way — see [Seed Demo Data](#seed-demo-data-optional) for the exact `SEED_API_KEY` / `E2E_API_KEY` setup.
 
+**Waiting for a comparison / GitHub Action:** see [docs/ci-integration.md](docs/ci-integration.md) for the queued `jobId`, the `wait`-capable job status endpoint, and the composite action.
+
 ---
 
 ### Ports

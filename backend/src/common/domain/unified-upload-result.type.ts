@@ -25,6 +25,7 @@ export interface ComparisonQueuedResult {
   error: ComparisonErrorCode;
   message: string;
   branch: string;
+  jobId: string;
 }
 
 export type AnyUploadResult =

@@ -140,6 +140,78 @@
         ]
       }
     },
+    "/projects/{projectName}/tests/{testName}/jobs/{jobId}": {
+      "get": {
+        "operationId": "JobStatusController_getJobStatus",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "wait",
+            "required": false,
+            "in": "query",
+            "description": "Seconds to long-poll for a terminal status (0-30, default 0; capped server-side)",
+            "schema": {
+              "minimum": 0,
+              "maximum": 30,
+              "default": 0,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current job status, plus the produced comparison once available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComparisonJobStatusDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project, test, or job (for this test) not found"
+          }
+        },
+        "summary": "Read the status of a queued comparison job (optionally wait)",
+        "tags": [
+          "Upload"
+        ]
+      }
+    },
     "/projects/pending": {
       "get": {
         "operationId": "ProjectsController_getProjectsWithPendingFlag",
@@ -2469,13 +2541,27 @@
           },
           "message": {
             "type": "string"
+          },
+          "jobId": {
+            "type": "string",
+            "description": "Id of the queued ComparisonJob (poll GET /projects/:projectName/tests/:testName/jobs/:jobId)"
           }
         },
         "required": [
           "status",
           "branch",
           "error",
-          "message"
+          "message",
+          "jobId"
+        ]
+      },
+      "JobStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "PROCESSING",
+          "COMPLETED",
+          "FAILED"
         ]
       },
       "ComparisonStatus": {
@@ -2483,6 +2569,89 @@
         "enum": [
           "PENDING_APPROVAL",
           "APPROVED"
+        ]
+      },
+      "JobComparisonDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonStatus"
+              }
+            ]
+          },
+          "mismatchPixelCount": {
+            "type": "number"
+          },
+          "mismatchPageCount": {
+            "type": "number",
+            "description": "Number of differing pages (PDF comparisons)"
+          },
+          "pageCount": {
+            "type": "number",
+            "description": "Number of pages compared (PDF comparisons)"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "mismatchPixelCount"
+        ]
+      },
+      "ComparisonJobStatusDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/JobStatus"
+              }
+            ]
+          },
+          "testId": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Failure message when the job FAILED, otherwise null"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Terminal timestamp, null while the job is pending/processing"
+          },
+          "comparison": {
+            "nullable": true,
+            "description": "Comparison produced by the job, null while queued or when it was retired/approved away",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/JobComparisonDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "testId",
+          "error",
+          "createdAt",
+          "completedAt",
+          "comparison"
         ]
       },
       "ComparisonStatusWrapper": {

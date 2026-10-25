@@ -69,6 +69,7 @@ export type { BulkApproveFailureDto } from './models/BulkApproveFailureDto.gen';
 export type { BulkApproveResultDto } from './models/BulkApproveResultDto.gen';
 export type { ClientOptions } from './models/ClientOptions.gen';
 export type { ComparisonDto } from './models/ComparisonDto.gen';
+export type { ComparisonJobStatusDto } from './models/ComparisonJobStatusDto.gen';
 export type { ComparisonQueuedResultDto } from './models/ComparisonQueuedResultDto.gen';
 export type { ComparisonStatusWrapper } from './models/ComparisonStatusWrapper.gen';
 export type { CreateApiKeyDto } from './models/CreateApiKeyDto.gen';
@@ -93,6 +94,11 @@ export type { HealthControllerReadinessErrors } from './models/HealthControllerR
 export type { HealthControllerReadinessResponse } from './models/HealthControllerReadinessResponse.gen';
 export type { HealthControllerReadinessResponses } from './models/HealthControllerReadinessResponses.gen';
 export type { IdenticalResultDto } from './models/IdenticalResultDto.gen';
+export type { JobComparisonDto } from './models/JobComparisonDto.gen';
+export type { JobStatusControllerGetJobStatusData } from './models/JobStatusControllerGetJobStatusData.gen';
+export type { JobStatusControllerGetJobStatusErrors } from './models/JobStatusControllerGetJobStatusErrors.gen';
+export type { JobStatusControllerGetJobStatusResponse } from './models/JobStatusControllerGetJobStatusResponse.gen';
+export type { JobStatusControllerGetJobStatusResponses } from './models/JobStatusControllerGetJobStatusResponses.gen';
 export type { LoginDto } from './models/LoginDto.gen';
 export type { MeDto } from './models/MeDto.gen';
 export type { MetricsControllerGetMetricsData } from './models/MetricsControllerGetMetricsData.gen';
@@ -194,5 +200,5 @@ export type { UploadControllerUploadResponses } from './models/UploadControllerU
 export type { VariantDto } from './models/VariantDto.gen';
 export type { VisualTestDetailsDto } from './models/VisualTestDetailsDto.gen';
 export type { VisualTestDto } from './models/VisualTestDto.gen';
-export { adminApiKeysControllerCreate, apiKeysControllerCreate, apiKeysControllerFindAll, apiKeysControllerRemove, apiKeysControllerRevoke, apiKeysControllerRotate, approvalsControllerApproveAllPending, approvalsControllerApprovePdfTest, approvalsControllerApproveVisualTest, approvalsControllerListApprovals, authControllerLogin, authControllerLogout, authControllerMe, branchesControllerList, branchesControllerRemove, branchesControllerUpdate, healthControllerCheck, healthControllerCheckDatabase, healthControllerCheckStorage, healthControllerReadiness, metricsControllerGetMetrics, pdfControllerDownloadPdf, pdfControllerGetPdfTestDetails, pdfControllerRenderPdfPage, projectGroupsControllerCreate, projectGroupsControllerFindAll, projectGroupsControllerRemove, projectGroupsControllerRename, projectsControllerCreate, projectsControllerDeleteProject, projectsControllerGetAllProjects, projectsControllerGetOneProject, projectsControllerGetProjectsWithPendingFlag, projectsControllerUpdateProject, reviewInboxControllerGetBranches, reviewInboxControllerGetPending, testCommandsControllerDeleteVisualTest, testCommandsControllerUpdateThreshold, testsQueriesControllerGetKind, testsQueriesControllerGetTestsForProject, testsQueriesControllerGetTestsWithPendingStatus, testsQueriesControllerGetVariants, testsQueriesControllerGetVisualTestDetails, uploadControllerUpload } from './sdk.gen';
-export { ComparisonErrorCode, ComparisonOutcome, ComparisonStatus, ScreenshotType, TestStatus } from './types.gen';
+export { adminApiKeysControllerCreate, apiKeysControllerCreate, apiKeysControllerFindAll, apiKeysControllerRemove, apiKeysControllerRevoke, apiKeysControllerRotate, approvalsControllerApproveAllPending, approvalsControllerApprovePdfTest, approvalsControllerApproveVisualTest, approvalsControllerListApprovals, authControllerLogin, authControllerLogout, authControllerMe, branchesControllerList, branchesControllerRemove, branchesControllerUpdate, healthControllerCheck, healthControllerCheckDatabase, healthControllerCheckStorage, healthControllerReadiness, jobStatusControllerGetJobStatus, metricsControllerGetMetrics, pdfControllerDownloadPdf, pdfControllerGetPdfTestDetails, pdfControllerRenderPdfPage, projectGroupsControllerCreate, projectGroupsControllerFindAll, projectGroupsControllerRemove, projectGroupsControllerRename, projectsControllerCreate, projectsControllerDeleteProject, projectsControllerGetAllProjects, projectsControllerGetOneProject, projectsControllerGetProjectsWithPendingFlag, projectsControllerUpdateProject, reviewInboxControllerGetBranches, reviewInboxControllerGetPending, testCommandsControllerDeleteVisualTest, testCommandsControllerUpdateThreshold, testsQueriesControllerGetKind, testsQueriesControllerGetTestsForProject, testsQueriesControllerGetTestsWithPendingStatus, testsQueriesControllerGetVariants, testsQueriesControllerGetVisualTestDetails, uploadControllerUpload } from './sdk.gen';
+export { ComparisonErrorCode, ComparisonOutcome, ComparisonStatus, JobStatus, ScreenshotType, TestStatus } from './types.gen';
