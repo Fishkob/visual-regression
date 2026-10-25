@@ -147,6 +147,10 @@ import type { RunsControllerStatusData } from './models/RunsControllerStatusData
 import type { RunsControllerStatusResponses } from './models/RunsControllerStatusResponses.gen';
 import type { SearchControllerQueryData } from './models/SearchControllerQueryData.gen';
 import type { SearchControllerQueryResponses } from './models/SearchControllerQueryResponses.gen';
+import type { StorageControllerGetData } from './models/StorageControllerGetData.gen';
+import type { StorageControllerGetResponses } from './models/StorageControllerGetResponses.gen';
+import type { StorageControllerUpdateData } from './models/StorageControllerUpdateData.gen';
+import type { StorageControllerUpdateResponses } from './models/StorageControllerUpdateResponses.gen';
 import type { TestCommandsControllerDeleteVisualTestData } from './models/TestCommandsControllerDeleteVisualTestData.gen';
 import type { TestCommandsControllerDeleteVisualTestResponses } from './models/TestCommandsControllerDeleteVisualTestResponses.gen';
 import type { TestCommandsControllerUpdateThresholdData } from './models/TestCommandsControllerUpdateThresholdData.gen';
@@ -801,6 +805,28 @@ export const searchControllerQuery = <ThrowOnError extends boolean = false>(opti
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/search',
     ...options
+});
+
+/**
+ * Current storage usage, quota and retention settings
+ */
+export const storageControllerGet = <ThrowOnError extends boolean = false>(options: Options<StorageControllerGetData, ThrowOnError>): RequestResult<StorageControllerGetResponses, unknown, ThrowOnError> => (options.client ?? client).get<StorageControllerGetResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/storage',
+    ...options
+});
+
+/**
+ * Update per-project retention and quota settings
+ */
+export const storageControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<StorageControllerUpdateData, ThrowOnError>): RequestResult<StorageControllerUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<StorageControllerUpdateResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/storage',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 export const healthControllerCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckData, ThrowOnError>): RequestResult<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError>({ url: '/health', ...options });

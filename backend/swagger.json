@@ -3380,6 +3380,76 @@
         ]
       }
     },
+    "/projects/{projectName}/storage": {
+      "get": {
+        "operationId": "StorageController_get",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageUsageDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Current storage usage, quota and retention settings",
+        "tags": [
+          "Storage"
+        ]
+      },
+      "patch": {
+        "operationId": "StorageController_update",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRetentionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageUsageDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update per-project retention and quota settings",
+        "tags": [
+          "Storage"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -6757,6 +6827,83 @@
           "tests",
           "branches"
         ]
+      },
+      "StorageUsageDto": {
+        "type": "object",
+        "properties": {
+          "usageBytes": {
+            "type": "string",
+            "description": "Current stored bytes (screenshots + diffs)"
+          },
+          "quotaBytes": {
+            "type": "string",
+            "nullable": true
+          },
+          "percent": {
+            "type": "number",
+            "description": "Usage as a percentage of the hard quota"
+          },
+          "softPercent": {
+            "type": "number"
+          },
+          "warning": {
+            "type": "boolean",
+            "description": "True once usage reaches the soft threshold"
+          },
+          "fileCount": {
+            "type": "number"
+          },
+          "diffCount": {
+            "type": "number"
+          },
+          "baselineRevisionLimit": {
+            "type": "number",
+            "nullable": true
+          },
+          "runHistoryDays": {
+            "type": "number",
+            "nullable": true
+          },
+          "orphanGraceHours": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "usageBytes",
+          "percent",
+          "softPercent",
+          "warning",
+          "fileCount",
+          "diffCount"
+        ]
+      },
+      "UpdateRetentionDto": {
+        "type": "object",
+        "properties": {
+          "baselineRevisionLimit": {
+            "type": "number",
+            "nullable": true,
+            "description": "Baseline revisions kept per variant; null uses the global default"
+          },
+          "runHistoryDays": {
+            "type": "number",
+            "nullable": true
+          },
+          "orphanGraceHours": {
+            "type": "number",
+            "nullable": true
+          },
+          "storageQuotaBytes": {
+            "type": "string",
+            "nullable": true,
+            "description": "Hard storage quota in bytes; null disables the quota"
+          },
+          "quotaSoftPercent": {
+            "type": "number",
+            "nullable": true
+          }
+        }
       },
       "DetailedHealthDto": {
         "type": "object",

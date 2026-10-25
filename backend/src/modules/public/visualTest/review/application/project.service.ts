@@ -108,6 +108,23 @@ export class ProjectService {
     });
   }
 
+  async updateRetention(
+    projectName: string,
+    data: {
+      baselineRevisionLimit?: number | null;
+      runHistoryDays?: number | null;
+      orphanGraceHours?: number | null;
+      storageQuotaBytes?: bigint | null;
+      quotaSoftPercent?: number | null;
+    },
+  ): Promise<void> {
+    const project = await this.projects.findByName(projectName);
+    if (!project) {
+      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
+    }
+    await this.projects.updateRetention(projectName, data);
+  }
+
   async rename(
     projectName: string,
     newName: string,

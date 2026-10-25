@@ -10,6 +10,11 @@ export interface ProjectData {
   name: string;
   createdAt: Date;
   groupId?: string | null;
+  baselineRevisionLimit?: number | null;
+  runHistoryDays?: number | null;
+  orphanGraceHours?: number | null;
+  storageQuotaBytes?: bigint | null;
+  quotaSoftPercent?: number | null;
 }
 
 @Injectable()
@@ -81,6 +86,19 @@ export class ProjectRepository extends BaseRepository {
       where: { name },
       data: { name: newName },
     });
+  }
+
+  async updateRetention(
+    name: string,
+    data: {
+      baselineRevisionLimit?: number | null;
+      runHistoryDays?: number | null;
+      orphanGraceHours?: number | null;
+      storageQuotaBytes?: bigint | null;
+      quotaSoftPercent?: number | null;
+    },
+  ): Promise<void> {
+    await this.client.project.update({ where: { name }, data });
   }
 
   async getOrCreate(name: string): Promise<ProjectData> {

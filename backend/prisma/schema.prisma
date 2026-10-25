@@ -15,6 +15,11 @@ model Project {
   group           ProjectGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
   defaultBranchId String?       @unique
   defaultBranch   Branch?       @relation("DefaultBranch", fields: [defaultBranchId], references: [id], onDelete: SetNull)
+  baselineRevisionLimit Int?
+  runHistoryDays        Int?
+  orphanGraceHours      Int?
+  storageQuotaBytes     BigInt?
+  quotaSoftPercent      Int?          @default(80)
   branches        Branch[]      @relation("ProjectBranches")
   webhooks        WebhookEndpoint[]
   runs            Run[]
@@ -83,6 +88,7 @@ model UnifiedVariant {
 }
 
 model UnifiedScreenshot {
+  sizeBytes BigInt @default(0)
   id                 String            @id @default(cuid())
   test               UnifiedTest       @relation(fields: [testId], references: [id], onDelete: Cascade)
   testId             String
@@ -114,6 +120,7 @@ model UnifiedComparison {
   pageCount          Int?
   mismatchPixelCount Int
   mismatchPageCount  Int?
+  diffSizeBytes      BigInt @default(0)
   diffImageUrl       String?
   diffPdfUrl         String?
   status             ComparisonStatus

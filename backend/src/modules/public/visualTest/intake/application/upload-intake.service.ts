@@ -33,6 +33,7 @@ import {
 import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
 import type { JobData } from '@common/domain/job-data.types';
 import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
+import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import type { ResolvedBranch } from '@public/visualTest/core/application/services/branch-resolver.service';
 import type { Run } from '@/prisma/client';
 import type { AnyUploadResult } from '@common/domain/unified-upload-result.type';
@@ -89,6 +90,7 @@ export class UploadIntake {
     @Inject(JOB_PRODUCER) private readonly jobQueue: IJobProducer,
     @Inject(PDF_PAGE_COUNTER) private readonly pageCounter: IPdfPageCounter,
     private readonly runs: RunResolver,
+    private readonly storageUsage: StorageUsageService,
   ) {}
 
   async upload(params: UploadParams, kind: TestKind): Promise<AnyUploadResult> {
@@ -135,6 +137,11 @@ export class UploadIntake {
             'BAD_REQUEST',
           );
         }
+
+        await this.storageUsage.assertWithinQuota(
+          params.projectName,
+          params.file.size,
+        );
 
         const stored = await this.workflow.executeWithStoredFile({
           store: () => this.storeUpload(kind, fileHash, params),
@@ -387,6 +394,7 @@ export class UploadIntake {
       contentUrl: fileUrl,
       variant: toVariant(params),
       pageCount,
+      sizeBytes: params.file.size,
     });
   }
 
@@ -426,6 +434,7 @@ export class UploadIntake {
       contentUrl: fileUrl,
       variant: toVariant(params),
       pageCount,
+      sizeBytes: params.file.size,
     });
   }
 

@@ -41,6 +41,7 @@ import { TestLifecycleController } from '@public/visualTest/review/presentation/
 import { SearchController } from '@public/visualTest/review/presentation/controllers/search.controller';
 import { SearchService } from '@public/visualTest/review/application/search.service';
 import { SearchRepository } from '@public/visualTest/review/infrastructure/repositories/search.repository';
+import { StorageController } from '@public/visualTest/review/presentation/controllers/storage.controller';
 import {
   BulkActionsController,
   ProjectsBulkController,
@@ -74,6 +75,7 @@ import {
     ProjectsBulkController,
     TestLifecycleController,
     SearchController,
+    StorageController,
   ],
   providers: [
     TestQueryService,

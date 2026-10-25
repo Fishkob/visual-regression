@@ -558,6 +558,7 @@ describe('ComparisonJobProcessor', () => {
         candidateId: 'candidate-1',
         diffUrl: 'http://storage/diff.png',
         result: imageDiff,
+        diffSizeBytes: expect.any(Number),
         runId: 'run-1',
         runKey: 'ci-1',
       });
@@ -683,6 +684,7 @@ describe('ComparisonJobProcessor', () => {
         candidateId: 'candidate-1',
         diffUrl: 'http://storage/diff.pdf',
         result: pdfDiff,
+        diffSizeBytes: expect.any(Number),
       });
       expect(completedEventLabels()).toContainEqual(
         expect.objectContaining({ event: 'comparison_completed' }),

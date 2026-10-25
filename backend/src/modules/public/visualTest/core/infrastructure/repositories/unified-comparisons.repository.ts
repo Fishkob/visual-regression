@@ -48,6 +48,7 @@ interface PendingComparisonBase {
 export type CreatePendingComparisonParams = PendingComparisonBase & {
   diffUrl: string;
   result: ComparisonResult;
+  diffSizeBytes?: number;
 };
 
 @Injectable()
@@ -216,11 +217,26 @@ export class UnifiedComparisonsRepository extends BaseRepository {
     return comparison.diffImageUrl ? [comparison.diffImageUrl] : [];
   }
 
+  async sumDiffSizeForProject(projectName: string): Promise<{
+    bytes: bigint;
+    count: number;
+  }> {
+    const result = await this.client.unifiedComparison.aggregate({
+      where: { test: { branch: { project: { name: projectName } } } },
+      _sum: { diffSizeBytes: true },
+      _count: { _all: true },
+    });
+    return {
+      bytes: result._sum.diffSizeBytes ?? 0n,
+      count: result._count._all,
+    };
+  }
+
   async createPending(
     params: CreatePendingComparisonParams,
   ): Promise<{ id: string }> {
     this.assertWritable();
-    const { result, diffUrl, ...base } = params;
+    const { result, diffUrl, diffSizeBytes, ...base } = params;
     const data =
       result.kind === 'image'
         ? {
@@ -228,6 +244,7 @@ export class UnifiedComparisonsRepository extends BaseRepository {
             ...PENDING_APPROVAL_STATUS_FILTER,
             mismatchPixelCount: result.mismatchPixelCount,
             diffImageUrl: diffUrl,
+            diffSizeBytes: BigInt(diffSizeBytes ?? 0),
             mismatchPageCount: 0,
             diffPdfUrl: null,
             pageCount: null,
@@ -239,6 +256,7 @@ export class UnifiedComparisonsRepository extends BaseRepository {
             diffImageUrl: null,
             mismatchPageCount: result.mismatchPageCount,
             diffPdfUrl: diffUrl,
+            diffSizeBytes: BigInt(diffSizeBytes ?? 0),
             pageCount: result.pageCount ?? 0,
           };
     const comparison = await this.client.unifiedComparison.create({

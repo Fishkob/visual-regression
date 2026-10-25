@@ -33,6 +33,7 @@ import {
 } from '@public/visualTest/core/domain/types/visual-test.types';
 import { PDF_PAGE_COUNTER } from '@common/domain/pdf-sidecar.interface';
 import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
+import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import { createMock } from '@test/utils/create-mock';
 import {
   createMockStorage,
@@ -171,6 +172,10 @@ describe('UploadIntake (image kind)', () => {
         { provide: METRICS_RECORDER, useValue: metrics },
         { provide: PDF_PAGE_COUNTER, useValue: { count: vi.fn() } },
         { provide: RunResolver, useValue: runs },
+        {
+          provide: StorageUsageService,
+          useValue: { assertWithinQuota: vi.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
 

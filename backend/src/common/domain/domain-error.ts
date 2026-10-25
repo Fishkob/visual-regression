@@ -10,6 +10,7 @@ const DOMAIN_ERROR_CODES = [
   'INTERNAL_ERROR',
   'INVALID_STATE',
   'NOT_FOUND',
+  'QUOTA_EXCEEDED',
   'SIDECAR_ERROR',
 ] as const;
 

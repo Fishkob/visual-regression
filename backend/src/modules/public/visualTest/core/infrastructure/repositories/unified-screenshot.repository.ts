@@ -97,9 +97,11 @@ export class UnifiedScreenshotRepository extends BaseRepository {
     contentUrl: string;
     variant: Variant;
     pageCount?: number;
+    sizeBytes?: number;
   }): Promise<{ id: string; replacedUrl: string | null }> {
     this.assertWritable();
-    const { testId, contentHash, contentUrl, variant, pageCount } = input;
+    const { testId, contentHash, contentUrl, variant, pageCount, sizeBytes } =
+      input;
     const variantId = await this.variants.ensureVariant(testId, variant);
     const previous = await this.client.unifiedScreenshot.findUnique({
       where: {
@@ -117,9 +119,15 @@ export class UnifiedScreenshotRepository extends BaseRepository {
         type: 'CURRENT',
         imageHash: contentHash,
         imageUrl: contentUrl,
-        pageCount,
+        ...(pageCount !== undefined ? { pageCount } : {}),
+        ...(sizeBytes !== undefined ? { sizeBytes: BigInt(sizeBytes) } : {}),
       },
-      update: { imageHash: contentHash, imageUrl: contentUrl, pageCount },
+      update: {
+        imageHash: contentHash,
+        imageUrl: contentUrl,
+        ...(pageCount !== undefined ? { pageCount } : {}),
+        ...(sizeBytes !== undefined ? { sizeBytes: BigInt(sizeBytes) } : {}),
+      },
     });
     return {
       id: result.id,
@@ -158,9 +166,11 @@ export class UnifiedScreenshotRepository extends BaseRepository {
     contentUrl: string;
     variant: Variant;
     pageCount?: number;
+    sizeBytes?: number;
   }): Promise<void> {
     this.assertWritable();
-    const { testId, contentHash, contentUrl, variant, pageCount } = input;
+    const { testId, contentHash, contentUrl, variant, pageCount, sizeBytes } =
+      input;
     const variantId = await this.variants.ensureVariant(testId, variant);
     const result = await this.client.unifiedScreenshot.upsert({
       where: {
@@ -172,9 +182,15 @@ export class UnifiedScreenshotRepository extends BaseRepository {
         type: 'BASELINE',
         imageHash: contentHash,
         imageUrl: contentUrl,
-        pageCount,
+        ...(pageCount !== undefined ? { pageCount } : {}),
+        ...(sizeBytes !== undefined ? { sizeBytes: BigInt(sizeBytes) } : {}),
       },
-      update: { imageHash: contentHash, imageUrl: contentUrl, pageCount },
+      update: {
+        imageHash: contentHash,
+        imageUrl: contentUrl,
+        ...(pageCount !== undefined ? { pageCount } : {}),
+        ...(sizeBytes !== undefined ? { sizeBytes: BigInt(sizeBytes) } : {}),
+      },
     });
     await this.variants.setBaselineId(variantId, result.id);
     // A written baseline is branch-owned, whatever the variant was before (a
@@ -182,6 +198,21 @@ export class UnifiedScreenshotRepository extends BaseRepository {
     // first baseline). Keeping the invariant in one place stops reads from
     // labelling an owned baseline as following the target.
     await this.variants.setInherited(variantId, false);
+  }
+
+  async sumSizeForProject(projectName: string): Promise<{
+    bytes: bigint;
+    count: number;
+  }> {
+    const result = await this.client.unifiedScreenshot.aggregate({
+      where: { test: { branch: { project: { name: projectName } } } },
+      _sum: { sizeBytes: true },
+      _count: { _all: true },
+    });
+    return {
+      bytes: result._sum.sizeBytes ?? 0n,
+      count: result._count._all,
+    };
   }
 
   async findBaselineForBranch(

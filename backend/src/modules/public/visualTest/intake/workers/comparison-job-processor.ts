@@ -397,6 +397,7 @@ export class ComparisonJobProcessor {
       candidateId,
       diffUrl,
       result,
+      diffSizeBytes: result.diffOutput.length,
       ...(data.runId ? { runId: data.runId } : {}),
       ...(data.runKey ? { runKey: data.runKey } : {}),
     });

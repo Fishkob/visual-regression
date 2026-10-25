@@ -143,6 +143,8 @@ export function domainCodeToHttpStatus(code?: DomainErrorCode): number {
       return HttpStatus.CONFLICT;
     case 'FORBIDDEN':
       return HttpStatus.FORBIDDEN;
+    case 'QUOTA_EXCEEDED':
+      return HttpStatus.PAYLOAD_TOO_LARGE;
     case 'SIDECAR_ERROR':
       return HttpStatus.BAD_GATEWAY;
     case 'BAD_REQUEST':
