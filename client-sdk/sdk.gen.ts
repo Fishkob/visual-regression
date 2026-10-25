@@ -34,6 +34,9 @@ import type { AuditControllerExportData } from './models/AuditControllerExportDa
 import type { AuditControllerExportResponses } from './models/AuditControllerExportResponses.gen';
 import type { AuditControllerListData } from './models/AuditControllerListData.gen';
 import type { AuditControllerListResponses } from './models/AuditControllerListResponses.gen';
+import type { AuthControllerChangePasswordData } from './models/AuthControllerChangePasswordData.gen';
+import type { AuthControllerChangePasswordErrors } from './models/AuthControllerChangePasswordErrors.gen';
+import type { AuthControllerChangePasswordResponses } from './models/AuthControllerChangePasswordResponses.gen';
 import type { AuthControllerLoginData } from './models/AuthControllerLoginData.gen';
 import type { AuthControllerLoginErrors } from './models/AuthControllerLoginErrors.gen';
 import type { AuthControllerLoginResponses } from './models/AuthControllerLoginResponses.gen';
@@ -142,6 +145,14 @@ import type { TrendsControllerGetResponses } from './models/TrendsControllerGetR
 import type { UploadControllerUploadData } from './models/UploadControllerUploadData.gen';
 import type { UploadControllerUploadErrors } from './models/UploadControllerUploadErrors.gen';
 import type { UploadControllerUploadResponses } from './models/UploadControllerUploadResponses.gen';
+import type { UsersControllerCreateData } from './models/UsersControllerCreateData.gen';
+import type { UsersControllerCreateResponses } from './models/UsersControllerCreateResponses.gen';
+import type { UsersControllerListData } from './models/UsersControllerListData.gen';
+import type { UsersControllerListResponses } from './models/UsersControllerListResponses.gen';
+import type { UsersControllerResetPasswordData } from './models/UsersControllerResetPasswordData.gen';
+import type { UsersControllerResetPasswordResponses } from './models/UsersControllerResetPasswordResponses.gen';
+import type { UsersControllerUpdateData } from './models/UsersControllerUpdateData.gen';
+import type { UsersControllerUpdateResponses } from './models/UsersControllerUpdateResponses.gen';
 import type { WebhooksControllerCreateData } from './models/WebhooksControllerCreateData.gen';
 import type { WebhooksControllerCreateResponses } from './models/WebhooksControllerCreateResponses.gen';
 import type { WebhooksControllerDeliveriesData } from './models/WebhooksControllerDeliveriesData.gen';
@@ -724,6 +735,20 @@ export const authControllerMe = <ThrowOnError extends boolean = false>(options?:
     ...options
 });
 
+export const authControllerChangePassword = <ThrowOnError extends boolean = false>(options: Options<AuthControllerChangePasswordData, ThrowOnError>): RequestResult<AuthControllerChangePasswordResponses, AuthControllerChangePasswordErrors, ThrowOnError> => (options.client ?? client).post<AuthControllerChangePasswordResponses, AuthControllerChangePasswordErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/auth/change-password',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
 export const adminApiKeysControllerCreate = <ThrowOnError extends boolean = false>(options: Options<AdminApiKeysControllerCreateData, ThrowOnError>): RequestResult<AdminApiKeysControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<AdminApiKeysControllerCreateResponses, unknown, ThrowOnError>({
     url: '/admin/api-keys',
     ...options,
@@ -807,5 +832,65 @@ export const apiKeysControllerRemove = <ThrowOnError extends boolean = false>(op
             type: 'apiKey'
         }],
     url: '/api-keys/{id}',
+    ...options
+});
+
+/**
+ * List users (admin only)
+ */
+export const usersControllerList = <ThrowOnError extends boolean = false>(options?: Options<UsersControllerListData, ThrowOnError>): RequestResult<UsersControllerListResponses, unknown, ThrowOnError> => (options?.client ?? client).get<UsersControllerListResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/users',
+    ...options
+});
+
+/**
+ * Create a user with a one-time temporary password
+ */
+export const usersControllerCreate = <ThrowOnError extends boolean = false>(options: Options<UsersControllerCreateData, ThrowOnError>): RequestResult<UsersControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<UsersControllerCreateResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/users',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Change a role or deactivate a user
+ */
+export const usersControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<UsersControllerUpdateData, ThrowOnError>): RequestResult<UsersControllerUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<UsersControllerUpdateResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/users/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Reset a password to a one-time value and revoke all sessions (admin only)
+ */
+export const usersControllerResetPassword = <ThrowOnError extends boolean = false>(options: Options<UsersControllerResetPasswordData, ThrowOnError>): RequestResult<UsersControllerResetPasswordResponses, unknown, ThrowOnError> => (options.client ?? client).post<UsersControllerResetPasswordResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/users/{id}/reset-password',
     ...options
 });

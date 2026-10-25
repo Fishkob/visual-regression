@@ -21,6 +21,7 @@ import { ApiKeysModule } from '@internal/api-keys/api-keys.module';
 import { AuthenticationGuard } from '@internal/auth/authentication.guard';
 import { RateLimitModule } from '@internal/rate-limit/rate-limit.module';
 import { AuditModule } from '@internal/audit/audit.module';
+import { UsersModule } from '@internal/users/users.module';
 import { RateLimitGuard } from '@internal/rate-limit/rate-limit.guard';
 import { AllExceptionsFilter } from '@common/http/all-exceptions.filter';
 import { LoggingInterceptor } from '@common/http/logging.interceptor';
@@ -42,6 +43,7 @@ import { HttpMetricsInterceptor } from '@common/http/http-metrics.interceptor';
     ApiKeysModule,
     RateLimitModule,
     AuditModule,
+    UsersModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

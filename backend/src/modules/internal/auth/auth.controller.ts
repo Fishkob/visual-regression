@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { PublicEndpoint } from '@common/http/public.decorator';
+import { SessionOnly } from '@common/http/session-only.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import {
   readSessionToken,
@@ -29,6 +30,7 @@ import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { MeDto } from './dto/me.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -49,16 +51,18 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<MeDto> {
-    const { token, username } = await this.authService.login(
-      dto.username,
-      dto.password,
-    );
+    const {
+      token,
+      username,
+      role,
+      mustChangePassword: isPasswordChangeRequired,
+    } = await this.authService.login(dto.username, dto.password);
     res.cookie(
       SESSION_COOKIE,
       token,
       sessionCookieOptions(this.appConfig.auth.cookieSecure || req.secure),
     );
-    return { username };
+    return { username, role, mustChangePassword: isPasswordChangeRequired };
   }
 
   @Post('logout')
@@ -88,6 +92,41 @@ export class AuthController {
     if (!auth) {
       throw new UnauthorizedException('Authentication required');
     }
-    return { username: auth.username };
+    return {
+      username: auth.username,
+      role: auth.role,
+      mustChangePassword: auth.mustChangePassword ?? false,
+    };
+  }
+
+  @SessionOnly()
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: MeDto })
+  @ApiUnauthorizedResponse({ description: 'Current password is incorrect' })
+  async changePassword(
+    @Body() dto: ChangePasswordDto,
+    @Req() req: AuthenticatedRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<MeDto> {
+    const auth = req.auth;
+    if (!auth?.userId) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const { token } = await this.authService.changePassword(
+      auth.userId,
+      dto.currentPassword,
+      dto.newPassword,
+    );
+    res.cookie(
+      SESSION_COOKIE,
+      token,
+      sessionCookieOptions(this.appConfig.auth.cookieSecure || req.secure),
+    );
+    return {
+      username: auth.username,
+      role: auth.role,
+      mustChangePassword: false,
+    };
   }
 }

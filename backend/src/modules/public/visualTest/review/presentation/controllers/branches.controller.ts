@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { Roles } from '@common/http/roles.decorator';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { BranchReadRepository } from '@public/visualTest/review/infrastructure/repositories/branch-read.repository';
 import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
@@ -63,6 +64,7 @@ export class BranchesController {
     return this.commands.apply(projectName, branch, body);
   }
 
+  @Roles('ADMIN')
   @Delete()
   @ApiOperation({ summary: 'Delete a feature branch and reclaim its files' })
   @ApiOkResponse({ type: BranchCommandResultDto })

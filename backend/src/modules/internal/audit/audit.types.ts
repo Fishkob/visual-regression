@@ -17,6 +17,9 @@ export const AUDIT_ACTIONS = {
   apiKeyRevoke: 'api-key.revoke',
   apiKeyRotate: 'api-key.rotate',
   apiKeyDelete: 'api-key.delete',
+  userCreate: 'user.create',
+  userUpdate: 'user.update',
+  userResetPassword: 'user.reset-password',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

@@ -6,6 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { Mocked } from 'vitest';
 import { IS_PUBLIC_KEY } from '@common/http/public.decorator';
 import { IS_SESSION_ONLY_KEY } from '@common/http/session-only.decorator';
+import { ROLES_KEY } from '@common/http/roles.decorator';
 import { AppConfigService } from '@config/app-config.service';
 import { ApiKeyService } from '@internal/auth/api-key.service';
 import { AuthRepository } from '@internal/auth/auth.repository';
@@ -94,6 +95,12 @@ describe('AuthenticationGuard', () => {
       id: 'u1',
       username: 'alice',
       passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      createdAt: new Date(),
     });
 
     await expect(
@@ -112,6 +119,12 @@ describe('AuthenticationGuard', () => {
       id: 'u1',
       username: 'alice',
       passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      createdAt: new Date(),
     });
 
     const request = { headers: { cookie: 'vrt_session=tok' } };
@@ -125,6 +138,9 @@ describe('AuthenticationGuard', () => {
     expect(mockRepository.findUserById).toHaveBeenCalledWith('u1');
     expect((request as { auth?: { username: string } }).auth).toEqual({
       username: 'alice',
+      userId: 'u1',
+      role: 'MEMBER',
+      mustChangePassword: false,
     });
   });
 
@@ -157,6 +173,12 @@ describe('AuthenticationGuard', () => {
       id: 'u1',
       username: 'alice',
       passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      createdAt: new Date(),
     });
     mockRepository.extendSessionExpiry.mockResolvedValue(undefined);
 
@@ -174,6 +196,12 @@ describe('AuthenticationGuard', () => {
       id: 'u1',
       username: 'alice',
       passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      createdAt: new Date(),
     });
 
     await guard.canActivate(mockContext({ cookie: 'vrt_session=tok' }));
@@ -200,8 +228,98 @@ describe('AuthenticationGuard', () => {
       (request as { auth?: { username: string; apiKeyId?: string } }).auth,
     ).toEqual({
       username: 'ci',
+      role: 'MEMBER',
       apiKeyId: 'k1',
     });
+  });
+
+  it('rejects a member when the endpoint requires an admin', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue(
+      mockSession(new Date(Date.now() + 60_000)),
+    );
+    mockRepository.findUserById.mockResolvedValue({
+      id: 'u1',
+      username: 'alice',
+      passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      createdAt: new Date(),
+    });
+    const adminHandler = () => {};
+    Reflect.defineMetadata(ROLES_KEY, ['ADMIN'], adminHandler);
+
+    await expect(
+      guard.canActivate(
+        mockContext({ cookie: 'vrt_session=tok' }, adminHandler),
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects every write for a viewer but allows reads', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue(
+      mockSession(new Date(Date.now() + 60_000)),
+    );
+    mockRepository.findUserById.mockResolvedValue({
+      id: 'u1',
+      username: 'alice',
+      passwordHash: 'salt:hash',
+      role: 'VIEWER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      createdAt: new Date(),
+    });
+    const request = {
+      headers: { cookie: 'vrt_session=tok' },
+      method: 'POST',
+      path: '/api/v1/projects/p/tests/t/approval',
+    };
+    const ctx = {
+      getClass: () => TestController,
+      getHandler: () => testHandler,
+      switchToHttp: () => ({ getRequest: () => request }),
+    } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
+
+    await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
+
+    request.method = 'GET';
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
+  });
+
+  it('blocks non-auth routes until a forced password change', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue(
+      mockSession(new Date(Date.now() + 60_000)),
+    );
+    mockRepository.findUserById.mockResolvedValue({
+      id: 'u1',
+      username: 'alice',
+      passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: true,
+      deactivatedAt: null,
+      createdBy: null,
+      createdAt: new Date(),
+    });
+    const request = {
+      headers: { cookie: 'vrt_session=tok' },
+      method: 'GET',
+      path: '/api/v1/projects',
+    };
+    const ctx = {
+      getClass: () => TestController,
+      getHandler: () => testHandler,
+      switchToHttp: () => ({ getRequest: () => request }),
+    } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
+
+    await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
+
+    request.path = '/api/v1/auth/me';
+    await expect(guard.canActivate(ctx)).resolves.toBe(true);
   });
 
   it('rejects an invalid api key', async () => {
@@ -273,6 +391,12 @@ describe('AuthenticationGuard', () => {
         id: 'u1',
         username: 'alice',
         passwordHash: 'salt:hash',
+        role: 'MEMBER',
+        isActive: true,
+        mustChangePassword: false,
+        deactivatedAt: null,
+        createdBy: null,
+        createdAt: new Date(),
       });
 
       await expect(

@@ -19,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { SessionOnly } from '@common/http/session-only.decorator';
+import { Roles } from '@common/http/roles.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { WebhookSettingsService } from '@public/visualTest/review/application/webhook-settings.service';
@@ -32,13 +33,13 @@ import {
   WebhookTestResultDto,
 } from '@public/visualTest/review/presentation/dto/webhook.dto';
 
-// Project-scoped webhook administration. Session-only: an API key (the CI
-// credential) cannot read or edit endpoints, so a leaked pipeline key cannot
-// exfiltrate review notifications. Roles (R9) will narrow this to ADMIN; until
-// then every logged-in operator is effectively an admin.
+// Project-scoped webhook administration. Session-only and ADMIN-only: an API
+// key (the CI credential) cannot read or edit endpoints, and a MEMBER/VIEWER
+// session cannot exfiltrate review notifications.
 @ApiTags('Webhooks')
 @Controller('projects/:projectName/webhooks')
 @SessionOnly()
+@Roles('ADMIN')
 export class WebhooksController {
   constructor(private readonly webhooks: WebhookSettingsService) {}
 

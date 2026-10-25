@@ -25,6 +25,11 @@ import { hashPassword, verifyPassword } from './password-hasher';
       useValue: { hashPassword, verifyPassword } satisfies PasswordHasherPort,
     },
   ],
-  exports: [AuthRepository, ApiKeyService, AuthenticationGuard],
+  exports: [
+    AuthRepository,
+    ApiKeyService,
+    AuthenticationGuard,
+    PASSWORD_HASHER,
+  ],
 })
 export class AuthModule {}

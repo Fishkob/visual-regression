@@ -1,10 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaConnection } from '@/prisma/prisma-connection';
+import type { UserRole } from '@/prisma/client';
 
 export interface AuthUserRow {
   id: string;
   username: string;
   passwordHash: string;
+  role: UserRole;
+  isActive: boolean;
+  mustChangePassword: boolean;
+  deactivatedAt: Date | null;
+  createdBy: string | null;
+  createdAt: Date;
 }
 
 export interface SessionRow {
@@ -68,8 +75,60 @@ export class AuthRepository {
   async createUser(
     username: string,
     passwordHash: string,
+    options: {
+      role?: UserRole;
+      mustChangePassword?: boolean;
+      createdBy?: string | null;
+    } = {},
   ): Promise<AuthUserRow> {
-    return this.client.user.create({ data: { username, passwordHash } });
+    return this.client.user.create({
+      data: {
+        username,
+        passwordHash,
+        role: options.role ?? 'MEMBER',
+        mustChangePassword: options.mustChangePassword ?? false,
+        createdBy: options.createdBy ?? null,
+      },
+    });
+  }
+
+  async listUsers(): Promise<AuthUserRow[]> {
+    return this.client.user.findMany({
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+  }
+
+  async updateUser(
+    id: string,
+    data: {
+      role?: UserRole;
+      isActive?: boolean;
+      deactivatedAt?: Date | null;
+    },
+  ): Promise<AuthUserRow> {
+    return this.client.user.update({ where: { id }, data });
+  }
+
+  async updatePassword(
+    id: string,
+    passwordHash: string,
+    mustChangePassword: boolean,
+  ): Promise<void> {
+    await this.client.user.update({
+      where: { id },
+      data: { passwordHash, mustChangePassword },
+    });
+  }
+
+  async deleteSessionsForUser(userId: string): Promise<number> {
+    const result = await this.client.session.deleteMany({ where: { userId } });
+    return result.count;
+  }
+
+  async countActiveAdmins(): Promise<number> {
+    return this.client.user.count({
+      where: { role: 'ADMIN', isActive: true },
+    });
   }
 
   async createSession(

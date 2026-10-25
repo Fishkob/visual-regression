@@ -15,7 +15,9 @@ export async function bootstrapAdmin(
   if (existing > 0) return;
 
   const passwordHash = await hasher.hashPassword(bootstrapAdminPassword);
-  await repo.createUser(bootstrapAdminUsername, passwordHash);
+  await repo.createUser(bootstrapAdminUsername, passwordHash, {
+    role: 'ADMIN',
+  });
   logger.warn(
     `Bootstrapped admin user "${bootstrapAdminUsername}" from env. Remove BOOTSTRAP_ADMIN_USERNAME/BOOTSTRAP_ADMIN_PASSWORD after first boot.`,
   );

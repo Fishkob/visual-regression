@@ -6,6 +6,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
+import { Roles } from '@common/http/roles.decorator';
 import {
   createPaginatedResponse,
   PaginatedResponseDto,
@@ -22,6 +23,7 @@ import {
 // owning services, never by an HTTP caller.
 @ApiTags('Audit')
 @Controller('audit')
+@Roles('ADMIN')
 export class AuditController {
   constructor(private readonly audit: AuditService) {}
 

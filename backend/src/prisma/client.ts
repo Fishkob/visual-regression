@@ -4,6 +4,7 @@ export {
   ComparisonStatus,
   ScreenshotType,
   TestKind,
+  UserRole,
   TestStatus,
   JobStatus,
   type User,

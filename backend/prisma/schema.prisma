@@ -359,14 +359,26 @@ model ComparisonJob {
   @@index([runKey])
 }
 
+enum UserRole {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
 model User {
-  id           String    @id @default(cuid())
-  username     String    @unique
-  passwordHash String
-  createdAt    DateTime  @default(now())
+  id                 String    @id @default(cuid())
+  username           String    @unique
+  passwordHash       String
+  role               UserRole  @default(MEMBER)
+  isActive           Boolean   @default(true)
+  mustChangePassword Boolean   @default(false)
+  deactivatedAt      DateTime?
+  createdBy          String?
+  createdAt          DateTime  @default(now())
 
   sessions Session[]
 
+  @@index([role, isActive])
   @@map("User")
 }
 

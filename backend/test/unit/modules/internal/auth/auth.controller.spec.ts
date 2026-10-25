@@ -36,6 +36,8 @@ describe('AuthController', () => {
     mockAuthService.login.mockResolvedValue({
       token: 'tok123',
       username: 'alice',
+      role: 'MEMBER',
+      mustChangePassword: false,
     });
     const res = { cookie: vi.fn(), clearCookie: vi.fn() };
 
@@ -55,13 +57,19 @@ describe('AuthController', () => {
         secure: false,
       }),
     );
-    expect(result).toEqual({ username: 'alice' });
+    expect(result).toEqual({
+      username: 'alice',
+      role: 'MEMBER',
+      mustChangePassword: false,
+    });
   });
 
   it('marks the session cookie secure on an https request', async () => {
     mockAuthService.login.mockResolvedValue({
       token: 'tok123',
       username: 'alice',
+      role: 'MEMBER',
+      mustChangePassword: false,
     });
     const res = { cookie: vi.fn(), clearCookie: vi.fn() };
 
@@ -83,6 +91,8 @@ describe('AuthController', () => {
     mockAuthService.login.mockResolvedValue({
       token: 'tok123',
       username: 'alice',
+      role: 'MEMBER',
+      mustChangePassword: false,
     });
     const res = { cookie: vi.fn(), clearCookie: vi.fn() };
 
@@ -110,10 +120,16 @@ describe('AuthController', () => {
   });
 
   it('returns the current user for me', () => {
-    const req = { auth: { username: 'alice' } };
+    const req = {
+      auth: { username: 'alice', role: 'MEMBER', mustChangePassword: false },
+    };
 
     const result = controller.me(req as never);
 
-    expect(result).toEqual({ username: 'alice' });
+    expect(result).toEqual({
+      username: 'alice',
+      role: 'MEMBER',
+      mustChangePassword: false,
+    });
   });
 });

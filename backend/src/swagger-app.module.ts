@@ -7,6 +7,7 @@ import { HealthModule } from '@internal/health/health.module';
 import { AuthModule } from '@internal/auth/auth.module';
 import { AdminApiKeysModule } from '@internal/admin/admin-api-keys.module';
 import { ApiKeysModule } from '@internal/api-keys/api-keys.module';
+import { UsersModule } from '@internal/users/users.module';
 @Module({
   imports: [
     CoreInfrastructureModule,
@@ -17,6 +18,7 @@ import { ApiKeysModule } from '@internal/api-keys/api-keys.module';
     AuthModule,
     AdminApiKeysModule,
     ApiKeysModule,
+    UsersModule,
   ],
 })
 export class SwaggerAppModule {}

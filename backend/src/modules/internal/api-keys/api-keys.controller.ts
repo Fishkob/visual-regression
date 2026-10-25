@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { SessionOnly } from '@common/http/session-only.decorator';
+import { Roles } from '@common/http/roles.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { ApiKeyService, type ApiKeyView } from '@internal/auth/api-key.service';
 import {
@@ -37,6 +38,7 @@ import {
 @ApiTags('API Keys')
 @Controller('api-keys')
 @SessionOnly()
+@Roles('ADMIN')
 @ApiForbiddenResponse({
   description: 'API-key callers cannot manage keys; log in instead',
 })

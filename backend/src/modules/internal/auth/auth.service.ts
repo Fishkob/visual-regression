@@ -11,6 +11,8 @@ import { hashToken } from './token-hash';
 export interface LoginResult {
   token: string;
   username: string;
+  role: 'ADMIN' | 'MEMBER' | 'VIEWER';
+  mustChangePassword: boolean;
 }
 
 const SESSION_TOKEN_BYTES = 32;
@@ -35,7 +37,7 @@ export class AuthService {
       password,
       user?.passwordHash ?? DUMMY_PASSWORD_HASH,
     );
-    if (!user || !isPasswordValid) {
+    if (!user || !isPasswordValid || !user.isActive) {
       throw new UnauthorizedException('Invalid username or password');
     }
 
@@ -43,7 +45,37 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + this.appConfig.auth.sessionTtlMs);
     await this.repo.createSession(user.id, hashToken(token), expiresAt);
 
-    return { token, username: user.username };
+    return {
+      token,
+      username: user.username,
+      role: user.role,
+      mustChangePassword: user.mustChangePassword,
+    };
+  }
+
+  // Changing a password revokes every session (including the current one) and
+  // issues a fresh one: a stolen cookie stops working at the same moment the
+  // password changes.
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ token: string }> {
+    const user = await this.repo.findUserById(userId);
+    if (
+      !user ||
+      !user.isActive ||
+      !(await this.hasher.verifyPassword(currentPassword, user.passwordHash))
+    ) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+    const passwordHash = await this.hasher.hashPassword(newPassword);
+    await this.repo.updatePassword(user.id, passwordHash, false);
+    await this.repo.deleteSessionsForUser(user.id);
+    const token = randomBytes(SESSION_TOKEN_BYTES).toString('base64url');
+    const expiresAt = new Date(Date.now() + this.appConfig.auth.sessionTtlMs);
+    await this.repo.createSession(user.id, hashToken(token), expiresAt);
+    return { token };
   }
 
   async logout(token: string): Promise<void> {

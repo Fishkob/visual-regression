@@ -55,6 +55,9 @@ describe('AuthRepository', () => {
       id: 'u1',
       username: 'alice',
       passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
     });
 
     const result = await repository.findUserByUsername('alice');
@@ -66,6 +69,9 @@ describe('AuthRepository', () => {
       id: 'u1',
       username: 'alice',
       passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
     });
   });
 
@@ -74,6 +80,9 @@ describe('AuthRepository', () => {
       id: 'u1',
       username: 'alice',
       passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
     });
 
     const result = await repository.findUserById('u1');
@@ -85,6 +94,9 @@ describe('AuthRepository', () => {
       id: 'u1',
       username: 'alice',
       passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
     });
   });
 
@@ -93,17 +105,29 @@ describe('AuthRepository', () => {
       id: 'u1',
       username: 'alice',
       passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
     });
 
     const result = await repository.createUser('alice', 'salt:hash');
 
     expect(mockClient.user.create).toHaveBeenCalledWith({
-      data: { username: 'alice', passwordHash: 'salt:hash' },
+      data: {
+        username: 'alice',
+        passwordHash: 'salt:hash',
+        role: 'MEMBER',
+        mustChangePassword: false,
+        createdBy: null,
+      },
     });
     expect(result).toEqual({
       id: 'u1',
       username: 'alice',
       passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
     });
   });
 

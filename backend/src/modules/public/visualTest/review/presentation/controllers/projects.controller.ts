@@ -22,6 +22,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { Roles } from '@common/http/roles.decorator';
 import { ComparisonStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
 import {
@@ -84,6 +85,7 @@ export class ProjectsController {
     });
   }
 
+  @Roles('ADMIN')
   @Delete(':projectName')
   @ApiOperation({ summary: 'Delete a project and its related data' })
   @ApiParam({

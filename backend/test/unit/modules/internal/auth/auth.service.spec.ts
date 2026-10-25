@@ -7,7 +7,10 @@ import {
   type PasswordHasherPort,
 } from '@common/domain/password-hasher.interface';
 import { AppConfigService } from '@config/app-config.service';
-import { AuthRepository } from '@internal/auth/auth.repository';
+import {
+  AuthRepository,
+  type AuthUserRow,
+} from '@internal/auth/auth.repository';
 import { AuthService } from '@internal/auth/auth.service';
 import { createMock } from '@test/utils/create-mock';
 
@@ -15,6 +18,19 @@ describe('AuthService', () => {
   let service: AuthService;
   let mockRepository: Mocked<AuthRepository>;
   let mockHasher: Mocked<PasswordHasherPort>;
+
+  const authUser = (overrides: Partial<AuthUserRow> = {}): AuthUserRow => ({
+    id: 'u1',
+    username: 'alice',
+    passwordHash: 'salt:hash',
+    role: 'MEMBER',
+    isActive: true,
+    mustChangePassword: false,
+    deactivatedAt: null,
+    createdBy: null,
+    createdAt: new Date('2026-01-01'),
+    ...overrides,
+  });
 
   const mockAppConfig = {
     auth: { sessionTtlDays: 7, sessionTtlMs: 7 * 24 * 60 * 60 * 1000 },
@@ -41,11 +57,7 @@ describe('AuthService', () => {
   });
 
   it('returns a session token and username for valid credentials', async () => {
-    mockRepository.findUserByUsername.mockResolvedValue({
-      id: 'u1',
-      username: 'alice',
-      passwordHash: 'salt:hash',
-    });
+    mockRepository.findUserByUsername.mockResolvedValue(authUser());
     mockHasher.verifyPassword.mockResolvedValue(true);
     mockRepository.createSession.mockResolvedValue({
       id: 's1',
@@ -57,6 +69,8 @@ describe('AuthService', () => {
     const result = await service.login('alice', 'secret');
 
     expect(result.username).toBe('alice');
+    expect(result.role).toBe('MEMBER');
+    expect(result.mustChangePassword).toBe(false);
     expect(result.token.length).toBeGreaterThan(0);
     expect(mockRepository.createSession).toHaveBeenCalledTimes(1);
     const [userId, tokenHash, expiresAt] =
@@ -85,17 +99,44 @@ describe('AuthService', () => {
   });
 
   it('throws UnauthorizedException for a wrong password', async () => {
-    mockRepository.findUserByUsername.mockResolvedValue({
-      id: 'u1',
-      username: 'alice',
-      passwordHash: 'salt:hash',
-    });
+    mockRepository.findUserByUsername.mockResolvedValue(authUser());
     mockHasher.verifyPassword.mockResolvedValue(false);
 
     await expect(service.login('alice', 'wrong')).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
     expect(mockRepository.createSession).not.toHaveBeenCalled();
+  });
+
+  it('rejects a password change with the wrong current password', async () => {
+    mockRepository.findUserById.mockResolvedValue(
+      authUser({ mustChangePassword: true }),
+    );
+    mockHasher.verifyPassword.mockResolvedValue(false);
+
+    await expect(
+      service.changePassword('u1', 'wrong', 'new-secret'),
+    ).rejects.toThrow(UnauthorizedException);
+    expect(mockRepository.updatePassword).not.toHaveBeenCalled();
+  });
+
+  it('changes the password, revokes old sessions and issues a new one', async () => {
+    mockRepository.findUserById.mockResolvedValue(
+      authUser({ mustChangePassword: true }),
+    );
+    mockHasher.verifyPassword.mockResolvedValue(true);
+    mockHasher.hashPassword.mockResolvedValue('new-hash');
+
+    const result = await service.changePassword('u1', 'old', 'new-secret');
+
+    expect(mockRepository.updatePassword).toHaveBeenCalledWith(
+      'u1',
+      'new-hash',
+      false,
+    );
+    expect(mockRepository.deleteSessionsForUser).toHaveBeenCalledWith('u1');
+    expect(mockRepository.createSession).toHaveBeenCalledTimes(1);
+    expect(result.token.length).toBeGreaterThan(0);
   });
 
   it('logs out by deleting the session for the hashed token', async () => {

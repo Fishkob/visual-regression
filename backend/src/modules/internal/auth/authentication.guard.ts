@@ -8,6 +8,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '@common/http/public.decorator';
 import { IS_SESSION_ONLY_KEY } from '@common/http/session-only.decorator';
+import { ROLES_KEY, type AppRole } from '@common/http/roles.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { readSessionToken } from '@common/http/session-cookie';
 import { AppConfigService } from '@config/app-config.service';
@@ -38,11 +39,19 @@ export class AuthenticationGuard implements CanActivate {
       const session = await this.repo.findSessionByTokenHash(hashToken(cookie));
       if (session && session.expiresAt.getTime() > Date.now()) {
         const user = await this.repo.findUserById(session.userId);
-        if (!user) {
-          // Session outlived its user (deleted account) — do not let it pass.
+        if (!user?.isActive) {
+          // Session outlived its user (deleted/deactivated account) — do not
+          // let it pass, and revoke it so a later reactivation cannot revive it.
+          await this.repo.deleteSessionsForUser(session.userId);
           throw new UnauthorizedException('Authentication required');
         }
-        request.auth = { username: user.username };
+        request.auth = {
+          username: user.username,
+          userId: user.id,
+          role: user.role,
+          mustChangePassword: user.mustChangePassword,
+        };
+        this.enforceAccess(context, request);
         await this.slideSessionExpiry(session.tokenHash, session.expiresAt);
         return true;
       }
@@ -60,12 +69,45 @@ export class AuthenticationGuard implements CanActivate {
             'This endpoint requires a browser session',
           );
         }
-        request.auth = { username: resolved.name, apiKeyId: resolved.id };
+        request.auth = {
+          username: resolved.name,
+          role: 'MEMBER',
+          apiKeyId: resolved.id,
+        };
+        this.enforceAccess(context, request);
         return true;
       }
     }
 
     throw new UnauthorizedException('Authentication required');
+  }
+
+  // Role policy lives with the authentication gate: every authenticated route
+  // has an auth object, and both credentials (session and API key) pass through
+  // this single enforcement point.
+  private enforceAccess(
+    context: ExecutionContext,
+    request: AuthenticatedRequest,
+  ): void {
+    const auth = request.auth;
+    if (!auth) return;
+    const required =
+      this.reflector.getAllAndOverride<AppRole[]>(ROLES_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? null;
+    if (required && !required.includes(auth.role)) {
+      throw new ForbiddenException('Your role cannot perform this action');
+    }
+    // A VIEWER is read-only: the UI hides write actions, and the API enforces
+    // the same rule so a crafted request cannot mutate anything.
+    const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
+    if (auth.role === 'VIEWER' && isWrite && !request.path.includes('/auth/')) {
+      throw new ForbiddenException('Viewers have read-only access');
+    }
+    if (auth.mustChangePassword && !request.path.includes('/auth/')) {
+      throw new ForbiddenException('Password change required');
+    }
   }
 
   private isSessionOnly(context: ExecutionContext): boolean {
