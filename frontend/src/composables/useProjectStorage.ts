@@ -1,9 +1,17 @@
 import { unref } from "vue";
 import type { StorageUsageDto } from "@sdk";
-import { storageControllerGet, storageControllerUpdate } from "@sdk";
+import {
+  storageControllerGet,
+  storageControllerPreviewRetention,
+  storageControllerUpdate,
+} from "@sdk";
+import type { RetentionPreviewDto } from "@sdk";
 import { useSdkMutation } from "@/composables/useSdkMutation";
 import { useSdkQuery, type MaybeRef } from "@/composables/useDomainQuery";
-import { mapStorage } from "@/domains/storage/storage.mapper";
+import {
+  mapRetentionPreview,
+  mapStorage,
+} from "@/domains/storage/storage.mapper";
 import type { UpdateProjectStorageInput } from "@/domains/storage/storage.model";
 import { storageQueryKeys } from "@/domains/storage/query-keys";
 import { invalidateProjectStorage } from "@/lib/invalidation";
@@ -29,5 +37,22 @@ export function useUpdateProjectStorage(projectName: MaybeRef<string>) {
     errorMessage: "Could not save the storage settings",
     invalidate: (client) =>
       invalidateProjectStorage(client, unref(projectName)),
+  });
+}
+
+// The dry-run is gated on the dialog being open: the panel mounts with the page,
+// but no preview request is made until the operator clicks "Preview cleanup".
+export function useRetentionPreview(
+  projectName: MaybeRef<string>,
+  enabled: MaybeRef<boolean>,
+) {
+  return useSdkQuery({
+    args: { projectName },
+    required: ["projectName"],
+    enabled,
+    keyOf: ({ projectName }) => storageQueryKeys.preview(projectName),
+    sdkFn: ({ projectName }) =>
+      storageControllerPreviewRetention({ path: { projectName } }),
+    map: (dto: RetentionPreviewDto | undefined) => mapRetentionPreview(dto),
   });
 }

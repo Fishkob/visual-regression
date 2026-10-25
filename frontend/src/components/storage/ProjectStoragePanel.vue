@@ -2,11 +2,13 @@
 import { computed, ref } from "vue";
 import AsyncState from "@/components/AsyncState.vue";
 import EditStorageRetentionDialog from "@/components/storage/EditStorageRetentionDialog.vue";
+import RetentionPreviewDialog from "@/components/storage/RetentionPreviewDialog.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCurrentRole } from "@/composables/useAuth";
 import {
   useProjectStorage,
+  useRetentionPreview,
   useUpdateProjectStorage,
 } from "@/composables/useProjectStorage";
 import {
@@ -26,6 +28,18 @@ const {
   refetch,
 } = useProjectStorage(props.projectName);
 const update = useUpdateProjectStorage(props.projectName);
+
+// The dry-run is only fetched once the preview dialog is opened.
+const previewOpen = ref(false);
+const {
+  data: preview,
+  isLoading: previewLoading,
+  error: previewError,
+  refetch: refetchPreview,
+} = useRetentionPreview(
+  props.projectName,
+  computed(() => previewOpen.value),
+);
 // Retention/quota changes are writes; a VIEWER sees the panel read-only.
 const { canWrite } = useCurrentRole();
 
@@ -67,16 +81,27 @@ function submit(payload: UpdateProjectStorageInput) {
           retention limits.
         </p>
       </div>
-      <Button
-        v-if="canWrite && storage"
-        type="button"
-        variant="outline"
-        size="sm"
-        :data-testid="TEST_ID.storageEditAction"
-        @click="openDialog"
-      >
-        Edit retention
-      </Button>
+      <div class="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          :data-testid="TEST_ID.storagePreviewAction"
+          @click="previewOpen = true"
+        >
+          Preview cleanup
+        </Button>
+        <Button
+          v-if="canWrite && storage"
+          type="button"
+          variant="outline"
+          size="sm"
+          :data-testid="TEST_ID.storageEditAction"
+          @click="openDialog"
+        >
+          Edit retention
+        </Button>
+      </div>
     </div>
 
     <AsyncState
@@ -176,6 +201,15 @@ function submit(payload: UpdateProjectStorageInput) {
       :error="update.error.value"
       @update:open="dialogOpen = $event"
       @submit="submit"
+    />
+
+    <RetentionPreviewDialog
+      :open="previewOpen"
+      :is-loading="previewLoading"
+      :error="previewError"
+      :preview="preview ?? null"
+      @update:open="previewOpen = $event"
+      @retry="refetchPreview()"
     />
   </section>
 </template>

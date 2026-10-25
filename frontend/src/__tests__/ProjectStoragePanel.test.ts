@@ -6,15 +6,18 @@ import ProjectStoragePanel from "@/components/storage/ProjectStoragePanel.vue";
 import { storageQueryKeys } from "@/domains/storage/query-keys";
 import { TEST_ID } from "@/lib/test-ids";
 
-const { mockGet, mockUpdate, canWriteRef } = vi.hoisted(() => ({
+const { mockGet, mockUpdate, mockPreview, canWriteRef } = vi.hoisted(() => ({
   mockGet: vi.fn(),
   mockUpdate: vi.fn(),
+  mockPreview: vi.fn(),
   canWriteRef: { value: true },
 }));
 
 vi.mock("@sdk", () => ({
   storageControllerGet: (...args: unknown[]) => mockGet(...args),
   storageControllerUpdate: (...args: unknown[]) => mockUpdate(...args),
+  storageControllerPreviewRetention: (...args: unknown[]) =>
+    mockPreview(...args),
 }));
 
 vi.mock("@/composables/useAuth", () => ({
@@ -24,6 +27,21 @@ vi.mock("@/composables/useAuth", () => ({
 vi.mock("vue-sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
+
+function previewDto(overrides: Record<string, unknown> = {}) {
+  return {
+    baselineRevisions: { limit: 5, overflow: 2 },
+    runs: { days: 30, eligible: 1 },
+    orphanGraceHours: 24,
+    storage: {
+      usageBytes: "1572864",
+      quotaBytes: "10485760",
+      percent: 15,
+      warning: false,
+    },
+    ...overrides,
+  };
+}
 
 function storageDto(overrides: Record<string, unknown> = {}) {
   return {
@@ -90,6 +108,7 @@ beforeEach(() => {
   canWriteRef.value = true;
   mockGet.mockResolvedValue({ data: storageDto() });
   mockUpdate.mockResolvedValue({ data: storageDto() });
+  mockPreview.mockResolvedValue({ data: previewDto() });
 });
 
 afterEach(() => {
@@ -271,9 +290,128 @@ describe("ProjectStoragePanel", () => {
     expect(
       wrapper.find(`[data-testid="${TEST_ID.storageEditAction}"]`).exists(),
     ).toBe(false);
-    // The panel itself stays readable.
+    // The panel itself stays readable, and the dry run deletes nothing so it
+    // stays available.
     expect(
       wrapper.find(`[data-testid="${TEST_ID.storageRetention}"]`).exists(),
     ).toBe(true);
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.storagePreviewAction}"]`).exists(),
+    ).toBe(true);
+  });
+
+  it("requests the dry run only after the button is clicked and renders the counts", async () => {
+    const wrapper = mountPanel();
+    await waitForPanel(wrapper);
+    expect(mockPreview).not.toHaveBeenCalled();
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.storagePreviewAction}"]`)
+      .trigger("click");
+
+    await vi.waitFor(() =>
+      expect(mockPreview).toHaveBeenCalledWith({
+        path: { projectName: "checkout" },
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(
+        wrapper
+          .find(`[data-testid="${TEST_ID.storagePreviewDialog}"]`)
+          .exists(),
+      ).toBe(true),
+    );
+
+    const dialog = wrapper.get(
+      `[data-testid="${TEST_ID.storagePreviewDialog}"]`,
+    );
+    expect(dialog.text()).toContain("Dry run — nothing is deleted");
+    expect(dialog.text()).toContain("2 over the limit of 5");
+    expect(dialog.text()).toContain("1 eligible in the 30-day window");
+    expect(dialog.text()).toContain("24 hours");
+    expect(dialog.text()).toContain("1.5 MB used");
+    expect(dialog.text()).toContain("15.0%");
+    // A dry run must not call the update mutation.
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("shows a loading state while the preview is being computed", async () => {
+    let resolvePreview: (value: unknown) => void = () => {};
+    mockPreview.mockReturnValue(
+      new Promise((resolve) => {
+        resolvePreview = resolve;
+      }),
+    );
+
+    const wrapper = mountPanel();
+    await waitForPanel(wrapper);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.storagePreviewAction}"]`)
+      .trigger("click");
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper
+          .find(`[data-testid="${TEST_ID.storagePreviewLoading}"]`)
+          .exists(),
+      ).toBe(true),
+    );
+
+    resolvePreview({ data: previewDto() });
+    await vi.waitFor(() =>
+      expect(wrapper.text()).toContain("2 over the limit of 5"),
+    );
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.storagePreviewLoading}"]`).exists(),
+    ).toBe(false);
+  });
+
+  it("shows an error state when the preview fails", async () => {
+    mockPreview.mockRejectedValue(new Error("Preview is unavailable"));
+
+    const wrapper = mountPanel();
+    await waitForPanel(wrapper);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.storagePreviewAction}"]`)
+      .trigger("click");
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper.find(`[data-testid="${TEST_ID.storagePreviewError}"]`).exists(),
+      ).toBe(true),
+    );
+    expect(
+      wrapper.get(`[data-testid="${TEST_ID.storagePreviewError}"]`).text(),
+    ).toContain("Preview is unavailable");
+  });
+
+  it("closes the preview dialog", async () => {
+    const wrapper = mountPanel();
+    await waitForPanel(wrapper);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.storagePreviewAction}"]`)
+      .trigger("click");
+    await vi.waitFor(() =>
+      expect(
+        wrapper
+          .find(`[data-testid="${TEST_ID.storagePreviewDialog}"]`)
+          .exists(),
+      ).toBe(true),
+    );
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.storagePreviewClose}"]`)
+      .trigger("click");
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper
+          .find(`[data-testid="${TEST_ID.storagePreviewDialog}"]`)
+          .exists(),
+      ).toBe(false),
+    );
   });
 });

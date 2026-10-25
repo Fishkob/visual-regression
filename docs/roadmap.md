@@ -58,7 +58,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R12 | Bulk actions                             | 5     | M    | R9 (role gate)                | Shipped     |
 | R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 · R8 · ADR-036             | Shipped     |
 | R14 | Search & discovery                       | 5     | M    | —                             | Shipped     |
-| R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | In progress |
+| R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Shipped     |
 | R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Planned     |
 | R17 | Internationalization                     | 5     | M    | —                             | Planned     |
 | R18 | Share links                              | 5     | M    | R9                            | Planned     |
@@ -738,16 +738,20 @@ with global defaults; storage usage per project (maintained counters or cached
 bucket listing); soft/hard quota on upload; cleanup tasks with metrics and a
 dry-run preview.
 
-**Delivered so far.** Size columns on screenshots/diffs, per-project usage and
-quota API, hard-quota rejection on upload (413), soft warning, retention/quota
-settings stored and editable. Per-project retention is **not enforced yet**: the
-baseline-revision prune, run-history cleanup and orphan grace still use the
-global defaults, and there is no cleanup dry-run preview. Objects uploaded
-before this migration have `sizeBytes = 0`, so usage undercounts legacy files
-until they are re-uploaded (no bucket backfill yet).
+**Delivered.** Size columns on screenshots/diffs, per-project usage and quota
+API, hard-quota rejection on upload (413), soft warning, retention/quota
+settings stored and editable. Per-project limits are enforced: baseline-revision
+pruning uses the project limit, a `RunHistoryCleanupTask` deletes finished runs
+past the project/global window, and a `StorageSizeBackfillTask` downloads
+legacy zero-size objects once and records their bytes. `GET
+/projects/:p/storage/preview` is a read-only dry run (baseline overflow, runs
+eligible, orphan grace, usage) and the dashboard shows it in a dialog.
 
-**Remaining.** Wire the stored limits into the baseline/run/orphan tasks, add
-the dry-run preview and metrics, and backfill legacy sizes.
+**Known limitation.** Orphan grace is still global (24 h): storage object names
+are flat and carry no project attribution, so a per-project orphan window cannot
+be applied without an object→project mapping. Retention settings expose the
+value; enforcement remains global. Baseline revisions/runs are project-owned and
+use the overrides.
 
 **Size.** M · depends on R3.
 

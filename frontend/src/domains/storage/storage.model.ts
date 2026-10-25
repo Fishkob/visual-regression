@@ -17,6 +17,26 @@ export interface ProjectStorage {
   orphanGraceHours: number | null;
 }
 
+// The dry-run answer: what retention would delete right now. Read-only — the
+// endpoint never deletes anything, and the dialog says so.
+export interface RetentionPreview {
+  baselineRevisions: {
+    limit: number;
+    overflow: number;
+  };
+  runs: {
+    days: number;
+    eligible: number;
+  };
+  orphanGraceHours: number;
+  storage: {
+    usageBytes: number;
+    quotaBytes: number | null;
+    percent: number;
+    warning: boolean;
+  };
+}
+
 export interface UpdateProjectStorageInput {
   baselineRevisionLimit?: number | null;
   runHistoryDays?: number | null;

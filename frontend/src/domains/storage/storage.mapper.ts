@@ -1,5 +1,5 @@
-import type { StorageUsageDto } from "@sdk";
-import type { ProjectStorage } from "./storage.model";
+import type { RetentionPreviewDto, StorageUsageDto } from "@sdk";
+import type { ProjectStorage, RetentionPreview } from "./storage.model";
 
 // The generated DTO types the byte columns as strings; a hand-built payload can
 // also carry a number, so both are normalized to one number for the UI.
@@ -49,5 +49,39 @@ export function mapStorage(
     baselineRevisionLimit: toLimit(dto.baselineRevisionLimit),
     runHistoryDays: toLimit(dto.runHistoryDays),
     orphanGraceHours: toLimit(dto.orphanGraceHours),
+  };
+}
+
+// The preview nests a byte-string storage summary just like the usage read; the
+// source widens those columns so the mapper accepts both strings and numbers.
+export type RetentionPreviewSource = Omit<RetentionPreviewDto, "storage"> & {
+  storage?: {
+    usageBytes?: unknown;
+    quotaBytes?: unknown;
+    percent?: unknown;
+    warning?: unknown;
+  };
+};
+
+export function mapRetentionPreview(
+  dto: RetentionPreviewSource | undefined,
+): RetentionPreview | undefined {
+  if (!dto) return undefined;
+  return {
+    baselineRevisions: {
+      limit: toCount(dto.baselineRevisions?.limit),
+      overflow: toCount(dto.baselineRevisions?.overflow),
+    },
+    runs: {
+      days: toCount(dto.runs?.days),
+      eligible: toCount(dto.runs?.eligible),
+    },
+    orphanGraceHours: toCount(dto.orphanGraceHours),
+    storage: {
+      usageBytes: toBytes(dto.storage?.usageBytes) ?? 0,
+      quotaBytes: toBytes(dto.storage?.quotaBytes),
+      percent: toCount(dto.storage?.percent),
+      warning: dto.storage?.warning === true,
+    },
   };
 }

@@ -59,6 +59,12 @@ export const TEST_ID = {
   storageOrphanHours: "storage-orphan-hours",
   storageSoftPercent: "storage-soft-percent",
   storageSave: "storage-save",
+  storagePreviewAction: "storage-preview-action",
+  storagePreviewDialog: "storage-preview-dialog",
+  storagePreviewLoading: "storage-preview-loading",
+  storagePreviewError: "storage-preview-error",
+  storagePreviewRetry: "storage-preview-retry",
+  storagePreviewClose: "storage-preview-close",
 
   projectActionsButton: "project-actions-button",
   projectBranchSelect: "project-branch-select",

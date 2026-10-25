@@ -7,7 +7,12 @@ import {
   megabytesToByteString,
   retentionLabel,
 } from "../storage.model";
-import { mapStorage, type StorageSource } from "../storage.mapper";
+import {
+  mapRetentionPreview,
+  mapStorage,
+  type RetentionPreviewSource,
+  type StorageSource,
+} from "../storage.mapper";
 
 const storageDto = (overrides: Partial<StorageSource> = {}): StorageSource => ({
   usageBytes: "1572864",
@@ -133,5 +138,68 @@ describe("mapStorage", () => {
 
   it("keeps 'not loaded' distinct from empty storage", () => {
     expect(mapStorage(undefined)).toBeUndefined();
+  });
+});
+
+const previewDto = (
+  overrides: Partial<RetentionPreviewSource> = {},
+): RetentionPreviewSource => ({
+  baselineRevisions: { limit: 5, overflow: 2 },
+  runs: { days: 30, eligible: 1 },
+  orphanGraceHours: 24,
+  storage: {
+    usageBytes: "1572864",
+    quotaBytes: "10485760",
+    percent: 15,
+    warning: false,
+  },
+  ...overrides,
+});
+
+describe("mapRetentionPreview", () => {
+  it("maps the dry-run counts and the nested storage summary", () => {
+    expect(mapRetentionPreview(previewDto())).toEqual({
+      baselineRevisions: { limit: 5, overflow: 2 },
+      runs: { days: 30, eligible: 1 },
+      orphanGraceHours: 24,
+      storage: {
+        usageBytes: 1_572_864,
+        quotaBytes: 10_485_760,
+        percent: 15,
+        warning: false,
+      },
+    });
+  });
+
+  it("keeps a missing quota and the warning flag", () => {
+    const preview = mapRetentionPreview(
+      previewDto({
+        storage: {
+          usageBytes: "2048",
+          quotaBytes: null,
+          percent: 0,
+          warning: true,
+        },
+      }),
+    );
+
+    expect(preview?.storage.quotaBytes).toBeNull();
+    expect(preview?.storage.warning).toBe(true);
+    expect(preview?.storage.usageBytes).toBe(2048);
+  });
+
+  it("defaults missing nested sections defensively", () => {
+    const dto = {} as unknown as RetentionPreviewSource;
+
+    expect(mapRetentionPreview(dto)).toEqual({
+      baselineRevisions: { limit: 0, overflow: 0 },
+      runs: { days: 0, eligible: 0 },
+      orphanGraceHours: 0,
+      storage: { usageBytes: 0, quotaBytes: null, percent: 0, warning: false },
+    });
+  });
+
+  it("keeps 'not loaded' distinct from an empty preview", () => {
+    expect(mapRetentionPreview(undefined)).toBeUndefined();
   });
 });
