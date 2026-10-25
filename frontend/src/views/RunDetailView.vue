@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { RouterLink } from "vue-router";
-import { ArrowLeft, ExternalLink } from "@lucide/vue";
+import { ArrowLeft, Download, ExternalLink } from "@lucide/vue";
 import AsyncState from "@/components/AsyncState.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
@@ -16,7 +16,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useRouteParams } from "@/composables/useRouteParams";
-import { useRunDetail, useRunMutations } from "@/composables/useRuns";
+import {
+  RUN_REPORT_FORMATS,
+  useRunDetail,
+  useRunMutations,
+  useRunReports,
+  type RunReportFormat,
+} from "@/composables/useRuns";
 import { mapRunApproveAllResult } from "@/domains/runs/run.mapper";
 import {
   RUN_STATE_BADGE_VARIANT,
@@ -38,6 +44,24 @@ const {
   refetch,
 } = useRunDetail(projectName, runKey, branch);
 const { finish, approveAll } = useRunMutations(projectName, runKey, branch);
+const { download: downloadReport, downloading } = useRunReports(
+  projectName,
+  runKey,
+  branch,
+);
+
+// The three report buttons are one loop; the labels and ids stay in one map so a
+// new format is a data change, not a template copy.
+const REPORT_LABEL: Record<RunReportFormat, string> = {
+  junit: "JUnit",
+  html: "HTML",
+  csv: "CSV",
+};
+const REPORT_TEST_ID: Record<RunReportFormat, string> = {
+  junit: TEST_ID.runReportJunit,
+  html: TEST_ID.runReportHtml,
+  csv: TEST_ID.runReportCsv,
+};
 
 const finished = computed(() => Boolean(detail.value?.run.finishedAt));
 const finishedAge = computed(() => {
@@ -134,58 +158,83 @@ function mismatchLabel(item: RunPending): string {
       </template>
 
       <div v-if="detail" class="space-y-6">
-        <div class="space-y-2">
-          <div class="flex flex-wrap items-center gap-3">
-            <h1 class="text-xl font-semibold tracking-tight">
-              {{ detail.run.key }}
-            </h1>
-            <Badge variant="secondary" class="font-mono text-[10px]">
-              {{ detail.run.branchName }}
-            </Badge>
-            <Badge
-              :variant="RUN_STATE_BADGE_VARIANT[detail.status.state]"
-              :data-testid="TEST_ID.runStateBadge"
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div class="space-y-2">
+            <div class="flex flex-wrap items-center gap-3">
+              <h1 class="text-xl font-semibold tracking-tight">
+                {{ detail.run.key }}
+              </h1>
+              <Badge variant="secondary" class="font-mono text-[10px]">
+                {{ detail.run.branchName }}
+              </Badge>
+              <Badge
+                :variant="RUN_STATE_BADGE_VARIANT[detail.status.state]"
+                :data-testid="TEST_ID.runStateBadge"
+              >
+                {{ RUN_STATE_LABEL[detail.status.state] }}
+              </Badge>
+            </div>
+
+            <div
+              class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground"
             >
-              {{ RUN_STATE_LABEL[detail.status.state] }}
-            </Badge>
+              <span
+                v-if="detail.run.commitSha"
+                class="font-mono"
+                :title="detail.run.commitSha"
+              >
+                {{ shortCommitSha(detail.run.commitSha) }}
+              </span>
+              <span
+                v-if="detail.run.commitMessage"
+                class="max-w-md truncate"
+                :title="detail.run.commitMessage"
+              >
+                {{ detail.run.commitMessage }}
+              </span>
+              <a
+                v-if="detail.run.ciUrl"
+                :href="detail.run.ciUrl"
+                target="_blank"
+                rel="noreferrer"
+                class="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
+              >
+                CI run
+                <ExternalLink class="h-3 w-3" />
+              </a>
+              <span :title="absoluteTime(detail.run.createdAt)">
+                Created {{ formatRelativeAge(detail.run.createdAt) }}
+              </span>
+              <span :title="absoluteTime(detail.run.finishedAt)">
+                Finished {{ finishedAge }}
+              </span>
+              <span v-if="detail.run.finishedAt">
+                by {{ runFinishedLabel(detail.run) }}
+              </span>
+            </div>
           </div>
 
-          <div
-            class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground"
-          >
+          <div class="flex flex-wrap items-center gap-2">
             <span
-              v-if="detail.run.commitSha"
-              class="font-mono"
-              :title="detail.run.commitSha"
+              class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
             >
-              {{ shortCommitSha(detail.run.commitSha) }}
+              Reports
             </span>
-            <span
-              v-if="detail.run.commitMessage"
-              class="max-w-md truncate"
-              :title="detail.run.commitMessage"
+            <Button
+              v-for="report in RUN_REPORT_FORMATS"
+              :key="report"
+              type="button"
+              variant="outline"
+              size="sm"
+              :disabled="downloading !== null"
+              :aria-busy="downloading === report"
+              :aria-label="`Download the ${REPORT_LABEL[report]} report of ${detail.run.key}`"
+              :data-testid="REPORT_TEST_ID[report]"
+              @click="downloadReport(report)"
             >
-              {{ detail.run.commitMessage }}
-            </span>
-            <a
-              v-if="detail.run.ciUrl"
-              :href="detail.run.ciUrl"
-              target="_blank"
-              rel="noreferrer"
-              class="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
-            >
-              CI run
-              <ExternalLink class="h-3 w-3" />
-            </a>
-            <span :title="absoluteTime(detail.run.createdAt)">
-              Created {{ formatRelativeAge(detail.run.createdAt) }}
-            </span>
-            <span :title="absoluteTime(detail.run.finishedAt)">
-              Finished {{ finishedAge }}
-            </span>
-            <span v-if="detail.run.finishedAt">
-              by {{ runFinishedLabel(detail.run) }}
-            </span>
+              <Download class="h-4 w-4" />
+              {{ REPORT_LABEL[report] }}
+            </Button>
           </div>
         </div>
 

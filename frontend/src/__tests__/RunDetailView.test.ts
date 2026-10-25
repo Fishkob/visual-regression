@@ -3,12 +3,20 @@ import { mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 import RunDetailView from "@/views/RunDetailView.vue";
+import { triggerDownload } from "@/lib/download";
 import { TEST_ID } from "@/lib/test-ids";
 
-const { mockDetail, mockFinish, mockApproveAll } = vi.hoisted(() => ({
-  mockDetail: vi.fn(),
-  mockFinish: vi.fn(),
-  mockApproveAll: vi.fn(),
+const { mockDetail, mockFinish, mockApproveAll, mockFetch } = vi.hoisted(
+  () => ({
+    mockDetail: vi.fn(),
+    mockFinish: vi.fn(),
+    mockApproveAll: vi.fn(),
+    mockFetch: vi.fn(),
+  }),
+);
+
+vi.mock("@/lib/download", () => ({
+  triggerDownload: vi.fn(),
 }));
 
 vi.mock("@sdk", () => ({
@@ -142,6 +150,13 @@ async function waitForPendingRows(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // The report endpoints are plain same-origin fetches, not SDK calls.
+  vi.stubGlobal("fetch", (...args: unknown[]) => mockFetch(...args));
+  mockFetch.mockResolvedValue({
+    ok: true,
+    status: 200,
+    blob: async () => new Blob(["report-body"]),
+  });
   mockDetail.mockResolvedValue({ data: detailDto() });
   mockFinish.mockResolvedValue({
     data: {
@@ -159,6 +174,7 @@ beforeEach(() => {
 
 afterEach(() => {
   mounted.splice(0).forEach((wrapper) => wrapper.unmount());
+  vi.unstubAllGlobals();
 });
 
 describe("RunDetailView", () => {
@@ -313,6 +329,86 @@ describe("RunDetailView", () => {
         .attributes("disabled"),
     ).toBeDefined();
     expect(wrapper.text()).toContain("auto");
+  });
+
+  it("downloads the JUnit, HTML and CSV reports for the run's branch", async () => {
+    const wrapper = mountView();
+    await waitForPendingRows(wrapper, 2);
+
+    const reports = [
+      { id: TEST_ID.runReportJunit, format: "junit", file: "vrt-ci-42.xml" },
+      { id: TEST_ID.runReportHtml, format: "html", file: "vrt-ci-42.html" },
+      { id: TEST_ID.runReportCsv, format: "csv", file: "vrt-ci-42.csv" },
+    ] as const;
+
+    for (const report of reports) {
+      await wrapper.get(`[data-testid="${report.id}"]`).trigger("click");
+
+      await vi.waitFor(() =>
+        expect(mockFetch).toHaveBeenCalledWith(
+          `/api/v1/projects/checkout/runs/ci-42/report/${report.format}?branch=main`,
+        ),
+      );
+      await vi.waitFor(() =>
+        expect(triggerDownload).toHaveBeenCalledWith(
+          expect.any(Blob),
+          report.file,
+        ),
+      );
+    }
+
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("disables the report buttons while a download is in flight", async () => {
+    let resolveFetch: (value: unknown) => void = () => {};
+    mockFetch.mockReturnValue(
+      new Promise((resolve) => {
+        resolveFetch = resolve;
+      }),
+    );
+
+    const wrapper = mountView();
+    await waitForPendingRows(wrapper, 2);
+
+    const junit = wrapper.get(`[data-testid="${TEST_ID.runReportJunit}"]`);
+    await junit.trigger("click");
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper
+          .get(`[data-testid="${TEST_ID.runReportCsv}"]`)
+          .attributes("disabled"),
+      ).toBeDefined(),
+    );
+
+    resolveFetch({ ok: true, blob: async () => new Blob(["report"]) });
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper
+          .get(`[data-testid="${TEST_ID.runReportCsv}"]`)
+          .attributes("disabled"),
+      ).toBeUndefined(),
+    );
+  });
+
+  it("shows a toast when a report download fails", async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 500 });
+
+    const wrapper = mountView();
+    await waitForPendingRows(wrapper, 2);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.runReportHtml}"]`)
+      .trigger("click");
+
+    await vi.waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        "Could not download the HTML report",
+      ),
+    );
+    expect(triggerDownload).not.toHaveBeenCalled();
   });
 
   it("disables approve-all when nothing is pending", async () => {

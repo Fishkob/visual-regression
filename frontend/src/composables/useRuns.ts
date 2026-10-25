@@ -1,6 +1,7 @@
-import { computed, unref } from "vue";
+import { computed, ref, unref } from "vue";
 import type { QueryClient } from "@tanstack/vue-query";
 import { keepPreviousData } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
 import {
   runsControllerApproveAll,
   runsControllerDetail,
@@ -20,6 +21,7 @@ import {
   type RunListQuery,
 } from "@/domains/runs/run.model";
 import { runsQueryKeys } from "@/domains/runs/query-keys";
+import { triggerDownload } from "@/lib/download";
 import {
   invalidateAfterRunApproveAll,
   invalidateRun,
@@ -139,4 +141,80 @@ export function useRunMutations(
   });
 
   return { finish, approveAll };
+}
+
+// Report downloads are file responses, not JSON: the generated client types them
+// as unknown and would parse a body, so they go through a plain same-origin
+// fetch (the session cookie rides along by default) and become a Blob.
+export const RUN_REPORT_FORMATS = ["junit", "html", "csv"] as const;
+
+export type RunReportFormat = (typeof RUN_REPORT_FORMATS)[number];
+
+const RUN_REPORT_EXTENSION: Record<RunReportFormat, string> = {
+  junit: "xml",
+  html: "html",
+  csv: "csv",
+};
+
+const RUN_REPORT_LABEL: Record<RunReportFormat, string> = {
+  junit: "JUnit",
+  html: "HTML",
+  csv: "CSV",
+};
+
+// Same-origin as the generated client's configured baseUrl (see main.ts): a
+// cross-origin URL would drop the session cookie.
+const API_BASE_URL = "/api/v1";
+
+export function runReportUrl(
+  projectName: string,
+  runKey: string,
+  format: RunReportFormat,
+  branch?: string,
+): string {
+  const path = `${API_BASE_URL}/projects/${encodeURIComponent(projectName)}/runs/${encodeURIComponent(runKey)}/report/${format}`;
+  return branch ? `${path}?branch=${encodeURIComponent(branch)}` : path;
+}
+
+export function runReportFilename(
+  runKey: string,
+  format: RunReportFormat,
+): string {
+  return `vrt-${runKey}.${RUN_REPORT_EXTENSION[format]}`;
+}
+
+// One in-flight download at a time: the three buttons share a run, and a second
+// click while a file streams would race the same filename.
+export function useRunReports(
+  projectName: MaybeRef<string>,
+  runKey: MaybeRef<string>,
+  branch: MaybeRef<string | undefined>,
+) {
+  const downloading = ref<RunReportFormat | null>(null);
+
+  async function download(format: RunReportFormat) {
+    if (downloading.value) return;
+    downloading.value = format;
+    const key = unref(runKey);
+    try {
+      const response = await fetch(
+        runReportUrl(
+          unref(projectName),
+          key,
+          format,
+          unref(branch) || undefined,
+        ),
+      );
+      if (!response.ok) {
+        throw new Error(`Report request failed with ${response.status}`);
+      }
+      triggerDownload(await response.blob(), runReportFilename(key, format));
+    } catch {
+      toast.error(`Could not download the ${RUN_REPORT_LABEL[format]} report`);
+    } finally {
+      downloading.value = null;
+    }
+  }
+
+  return { download, downloading };
 }

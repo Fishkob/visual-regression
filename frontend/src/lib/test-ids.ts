@@ -229,6 +229,21 @@ export const TEST_ID = {
   inboxRunFilter: "inbox-run-filter",
   inboxRunBadge: "inbox-run-badge",
 
+  runReportJunit: "run-report-junit",
+  runReportHtml: "run-report-html",
+  runReportCsv: "run-report-csv",
+
+  trendsLink: "trends-link",
+  trendsView: "trends-view",
+  trendsComparisons: "trends-comparisons",
+  trendsRange30: "trends-range-30",
+  trendsRange90: "trends-range-90",
+  trendsDailyRow: "trends-daily-row",
+  trendsEmpty: "trends-empty",
+  trendsFlakeRate: "trends-flake-rate",
+  trendsPendingReview: "trends-pending-review",
+  trendsApprovalLatency: "trends-approval-latency",
+
   reviewInbox: "review-inbox",
   inboxProjectSection: "inbox-project-section",
   inboxItem: "inbox-item",

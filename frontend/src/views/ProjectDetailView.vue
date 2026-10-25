@@ -105,6 +105,15 @@
         </RouterLink>
         <RouterLink
           v-if="project"
+          :to="{ name: 'project-trends', params: { projectName } }"
+          :class="buttonVariants({ variant: 'outline', size: 'sm' })"
+          :data-testid="TEST_ID.trendsLink"
+        >
+          <TrendingUp class="h-4 w-4" />
+          Trends
+        </RouterLink>
+        <RouterLink
+          v-if="project"
           :to="{ name: 'project-webhooks', params: { projectName } }"
           :class="buttonVariants({ variant: 'outline', size: 'sm' })"
           :data-testid="TEST_ID.webhooksLink"
@@ -160,7 +169,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import { ListChecks, Webhook } from "@lucide/vue";
+import { ListChecks, TrendingUp, Webhook } from "@lucide/vue";
 
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import AsyncState from "@/components/AsyncState.vue";
