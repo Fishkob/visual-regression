@@ -13,6 +13,10 @@ import type { VisualTestItem } from "@/domains/projects/project.model";
 import type { TestGroup } from "@/domains/projects/test-group";
 import { TEST_ID } from "@/lib/test-ids";
 
+// The defaults are uncontrolled — they only apply on mount — so the template
+// keys the accordion on the group set: a group introduced by a filter then
+// mounts expanded instead of inheriting the previous set's open items. The price
+// is that a filter change re-expands everything, which is the intended default.
 defineProps<{
   groups: TestGroup[];
   columns: ColumnDef<AppTableFeatures, VisualTestItem>[];
@@ -25,7 +29,11 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <Accordion type="multiple" :default-value="defaultAccordionValues">
+  <Accordion
+    type="multiple"
+    :key="defaultAccordionValues.join('|')"
+    :default-value="defaultAccordionValues"
+  >
     <AccordionItem
       v-for="group in groups"
       :key="group.name"

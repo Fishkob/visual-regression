@@ -21,6 +21,7 @@ import { FILTER_ALL } from "@/domains/test-status";
 import {
   IMAGE_TEST_KIND,
   PDF_TEST_KIND,
+  isTestKind,
   type TestKind,
 } from "@/domains/test-kind";
 import { UNASSIGNED_GROUP_QUERY } from "@/domains/groups/group-section";
@@ -61,8 +62,38 @@ const branch = computed<string>({
   },
 });
 
-const kind = ref<TestKind | typeof FILTER_ALL>(FILTER_ALL);
-const group = ref(FILTER_ALL);
+// Kind and group are part of the same review scope as the branch: the review
+// loop hands them back on "return to inbox", so they live in the URL too and a
+// deep link or refresh restores the filtered pass.
+const kind = computed<TestKind | typeof FILTER_ALL>({
+  get: () => {
+    const requested = route.query.kind;
+    return typeof requested === "string" && isTestKind(requested)
+      ? requested
+      : FILTER_ALL;
+  },
+  set: (value: TestKind | typeof FILTER_ALL) => {
+    const query = { ...route.query };
+    if (value === FILTER_ALL) delete query.kind;
+    else query.kind = value;
+    delete query.page;
+    void router.replace({ query });
+  },
+});
+
+const group = computed<string>({
+  get: () => {
+    const requested = route.query.group;
+    return typeof requested === "string" && requested ? requested : FILTER_ALL;
+  },
+  set: (value: string) => {
+    const query = { ...route.query };
+    if (!value || value === FILTER_ALL) delete query.group;
+    else query.group = value;
+    delete query.page;
+    void router.replace({ query });
+  },
+});
 
 // Local input, debounced query value: the server does the searching, so an
 // un-debounced input would issue one request per keystroke.
@@ -76,10 +107,6 @@ watch(searchInput, (value) => {
     searchQuery.value = value;
     if (page.value !== 1) page.value = 1;
   }, 300);
-});
-
-watch([kind, group], () => {
-  if (page.value !== 1) page.value = 1;
 });
 
 onBeforeUnmount(() => {

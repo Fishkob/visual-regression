@@ -5,16 +5,19 @@ import { keyOf } from "@/lib/variant-key";
 import { REVIEW_LOOP_NAV_STATE } from "@/lib/review-pass";
 
 const mockPush = vi.fn();
+const mockRoute = { query: {} as Record<string, unknown> };
 
 vi.mock("vue-router", () => ({
   useRouter: () => ({
     push: mockPush,
   }),
+  useRoute: () => mockRoute,
 }));
 
 describe("useTestNavigation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRoute.query = {};
   });
 
   const createOptions = (overrides = {}) => ({
@@ -125,6 +128,56 @@ describe("useTestNavigation", () => {
         },
       });
     });
+
+    it("carries the inbox kind/group scope so the pass keeps its filters", () => {
+      mockRoute.query = { inboxKind: "pdf", inboxGroup: "group-1" };
+      const { navigateToTest } = useTestNavigation(createOptions());
+
+      navigateToTest({
+        name: "login-form",
+        viewport: "1920x1080",
+        browser: "chrome",
+        environment: "prod",
+      });
+
+      expect(mockPush).toHaveBeenCalledWith({
+        name: "test-detail",
+        params: { projectName: "test-project", testName: "login-form" },
+        query: {
+          viewport: "1920x1080",
+          browser: "chrome",
+          environment: "prod",
+          inboxKind: "pdf",
+          inboxGroup: "group-1",
+        },
+      });
+    });
+
+    it("omits the inbox scope when the route carries none", () => {
+      const { navigateToTest } = useTestNavigation(createOptions());
+
+      navigateToTest({
+        name: "login-form",
+        viewport: "1920x1080",
+        browser: "chrome",
+        environment: "prod",
+      });
+
+      const query = mockPush.mock.calls[0][0].query;
+      expect(query).not.toHaveProperty("inboxKind");
+      expect(query).not.toHaveProperty("inboxGroup");
+    });
+
+    it("ignores non-string or empty inbox scope values", () => {
+      mockRoute.query = { inboxKind: ["image", "pdf"], inboxGroup: "" };
+      const { navigateToTest } = useTestNavigation(createOptions());
+
+      navigateToTest({ name: "login-form", viewport: "1920x1080" });
+
+      const query = mockPush.mock.calls[0][0].query;
+      expect(query).not.toHaveProperty("inboxKind");
+      expect(query).not.toHaveProperty("inboxGroup");
+    });
   });
 
   describe("navigateToNextTest (loop continuation)", () => {
@@ -157,6 +210,31 @@ describe("useTestNavigation", () => {
 
       expect(mockPush).not.toHaveBeenCalled();
     });
+
+    it("keeps the inbox kind/group scope for the whole pass", () => {
+      mockRoute.query = { inboxKind: "image", inboxGroup: "group-1" };
+      const { navigateToNextTest } = useTestNavigation(createOptions());
+
+      navigateToNextTest({
+        name: "signup-form",
+        viewport: "1280x720",
+        browser: "firefox",
+        environment: "staging",
+      });
+
+      expect(mockPush).toHaveBeenCalledWith({
+        name: "test-detail",
+        params: { projectName: "test-project", testName: "signup-form" },
+        query: {
+          viewport: "1280x720",
+          browser: "firefox",
+          environment: "staging",
+          inboxKind: "image",
+          inboxGroup: "group-1",
+        },
+        state: REVIEW_LOOP_NAV_STATE,
+      });
+    });
   });
 
   describe("navigateToInbox (return from an inbox-started pass)", () => {
@@ -179,6 +257,24 @@ describe("useTestNavigation", () => {
       navigateToInbox();
 
       expect(mockPush).toHaveBeenCalledWith({ name: "review-inbox" });
+    });
+
+    it("restores the inbox kind/group filters alongside the branch", () => {
+      mockRoute.query = { inboxKind: "pdf", inboxGroup: "group-1" };
+      const { navigateToInbox } = useTestNavigation(
+        createOptions({ branchName: ref<string | undefined>("feature/x") }),
+      );
+
+      navigateToInbox();
+
+      expect(mockPush).toHaveBeenCalledWith({
+        name: "review-inbox",
+        query: {
+          branch: "feature/x",
+          kind: "pdf",
+          group: "group-1",
+        },
+      });
     });
   });
 

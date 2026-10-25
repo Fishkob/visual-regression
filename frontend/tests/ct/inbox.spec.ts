@@ -1,13 +1,19 @@
 import { expect, test, type Page } from "@playwright/test";
-import { mockApi } from "./routes/api.routes";
+import { mockApi, mockReviewBackend } from "./routes/api.routes";
 import {
   REVIEW_INBOX_BRANCHES_RESPONSE,
   REVIEW_INBOX_EMPTY_RESPONSE,
   REVIEW_INBOX_MULTI_RESPONSE,
   REVIEW_INBOX_RESPONSE,
 } from "./mocks/projects.mocks";
+import {
+  makeImageKind,
+  makePendingItem,
+  makeReviewableDetails,
+} from "./mocks/reviewLoop.mocks";
 import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
 import { TEST_ID } from "@/lib/test-ids";
+import type { AppShell } from "../../src/AppShell.story";
 
 const INBOX_ENDPOINT = "**/api/v1/review/pending*";
 
@@ -103,6 +109,9 @@ test.describe("Review inbox", () => {
 
     await expect(component.getByTestId(TEST_ID.inboxItem)).toHaveCount(1);
     await expect(component).toContainText("users");
+    // The kind filter is part of the review scope, so it lives in the URL and
+    // survives a refresh or a "return to inbox".
+    await expect(page).toHaveURL(/[?&]kind=pdf/);
   });
 
   test("filters by group", async ({ mount, page }) => {
@@ -120,6 +129,7 @@ test.describe("Review inbox", () => {
       1,
     );
     await expect(component).not.toContainText("admin-ui");
+    await expect(page).toHaveURL(/[?&]group=g1/);
   });
 
   test("searches by test name or project name", async ({ mount, page }) => {
@@ -148,6 +158,52 @@ test.describe("Review inbox", () => {
         url.pathname === "/projects/checkout-ui/tests/checkout-flow" &&
         url.searchParams.get("from") === "inbox",
     );
+  });
+
+  test("keeps the kind scope through an item review and back to the inbox", async ({
+    mount,
+    page,
+  }) => {
+    await mockInbox(page, REVIEW_INBOX_RESPONSE);
+    // The item's detail page needs a reviewable comparison for the skip button;
+    // skipping in inbox mode is a pure navigation (no server round-trip).
+    await mockReviewBackend(page, {
+      projectName: "checkout-ui",
+      details: new Map([
+        ["checkout-flow", makeReviewableDetails("checkout-flow")],
+      ]),
+      kind: new Map([["checkout-flow", makeImageKind()]]),
+      pending: [makePendingItem("checkout-flow")],
+    });
+
+    const component = await mount<typeof AppShell>("AppShell/AppShell", {
+      initialRoute: "/",
+    });
+
+    await component.getByTestId(TEST_ID.inboxFilterKind).click();
+    await page.getByRole("option", { name: "Images" }).click();
+    await expect(page).toHaveURL(/[?&]kind=image/);
+    await expect(component.getByTestId(TEST_ID.inboxItem)).toHaveCount(1);
+
+    await component.getByTestId(TEST_ID.inboxItem).click();
+    // Opening a filtered item carries the inbox scope into the pass…
+    await page.waitForURL(
+      (url) =>
+        url.pathname === "/projects/checkout-ui/tests/checkout-flow" &&
+        url.searchParams.get("inboxKind") === "image" &&
+        url.searchParams.get("from") === "inbox",
+    );
+
+    await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
+    await component.getByTestId(TEST_ID.skip).click();
+
+    // …and "back to inbox" restores the filter instead of widening the queue.
+    await expect(page).toHaveURL(/[?&]kind=image/);
+    await expect(component.getByTestId(TEST_ID.reviewInbox)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.inboxFilterKind)).toContainText(
+      "Images",
+    );
+    await expect(component.getByTestId(TEST_ID.inboxItem)).toHaveCount(1);
   });
 
   test("keeps the full project review count while entering at a visible item", async ({

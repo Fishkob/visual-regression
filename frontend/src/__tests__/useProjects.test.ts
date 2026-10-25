@@ -10,10 +10,14 @@ import { PROJECT_DETAIL_PAGE_SIZE, PROJECTS_PAGE_SIZE } from "@/lib/pagination";
 interface QueryOptionsShape {
   queryKey: { value: unknown };
   queryFn: () => Promise<unknown>;
+  placeholderData?: unknown;
 }
 
-const { mockUseQuery, queryOptions } = vi.hoisted(() => {
+// placeholderData is passed as a value (the helper itself), not called, so the
+// mock is a comparable identity rather than a behavioural stub.
+const { mockUseQuery, queryOptions, mockKeepPreviousData } = vi.hoisted(() => {
   const queryOptions: { current?: QueryOptionsShape } = {};
+  const mockKeepPreviousData = vi.fn();
   const mockUseQuery = vi.fn((opts: QueryOptionsShape) => {
     queryOptions.current = opts;
     return {
@@ -23,7 +27,7 @@ const { mockUseQuery, queryOptions } = vi.hoisted(() => {
       refetch: vi.fn(),
     };
   });
-  return { mockUseQuery, queryOptions };
+  return { mockUseQuery, queryOptions, mockKeepPreviousData };
 });
 
 const mockGetProjectsWithPending = vi.hoisted(() => vi.fn());
@@ -31,7 +35,7 @@ const mockGetOneProject = vi.hoisted(() => vi.fn());
 
 vi.mock("@tanstack/vue-query", () => ({
   useQuery: mockUseQuery,
-  keepPreviousData: (previous: unknown) => previous,
+  keepPreviousData: mockKeepPreviousData,
 }));
 
 vi.mock("@sdk", () => ({
@@ -98,6 +102,14 @@ describe("useProjectsWithPendingQuery", () => {
     };
 
     expect(result).toMatchObject({ items: [], total: 0, page: 1 });
+  });
+
+  // Paging is a position in the same list, so showing the previous page while
+  // the next one loads is a real win (no layout jump).
+  it("keeps the previous page while the next one loads", () => {
+    useProjectsWithPendingQuery({ page: 2 });
+
+    expect(queryOptions.current!.placeholderData).toBe(mockKeepPreviousData);
   });
 });
 
@@ -171,5 +183,14 @@ describe("useProjectDetailQuery", () => {
     await expect(queryOptions.current!.queryFn()).rejects.toThrow(
       "Project not found",
     );
+  });
+
+  // The rows are review decisions: holding the previous branch's rows on screen
+  // while the next branch loads would show another branch's decisions under the
+  // selected branch's heading. Unlike the projects list, no placeholder here.
+  it("does not hold the previous read's rows across a branch switch", () => {
+    useProjectDetailQuery(ref("checkout"), ref("feature/x"));
+
+    expect(queryOptions.current!.placeholderData).toBeUndefined();
   });
 });

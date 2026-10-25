@@ -258,6 +258,41 @@ test.describe("ProjectDetail", () => {
     await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(9);
   });
 
+  // The accordion's default values are uncontrolled, so a group that a filter
+  // had hidden would come back collapsed. Both groups must read as expanded
+  // once the filter is cleared, or the reset silently hides half the project.
+  test("re-expands a group that the filter had hidden", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+    await mockProjectFilters(page);
+
+    const component = await mount<typeof Routed>(
+      "views/ProjectDetailView/Routed",
+      { initialRoute: "/projects/checkout-ui" },
+    );
+
+    const cards = component.getByTestId(TEST_ID.testResultCard);
+    await expect(cards).toHaveCount(2);
+
+    // Chrome appears in checkout-flow only, so the login-form group disappears.
+    await component.getByTestId(TEST_ID.filterBrowser).click();
+    await page.getByRole("option", { name: "Chrome", exact: true }).click();
+    await expect(cards).toHaveCount(1);
+
+    await component.getByTestId(TEST_ID.resetFilter).click();
+
+    await expect(cards).toHaveCount(2);
+    await expect(cards.filter({ hasText: "login-form" })).toHaveAttribute(
+      "data-state",
+      "open",
+    );
+  });
+
   test("filters by search", async ({ mount, page }) => {
     await mockApi(page, [
       ["**/api/v1/groups", GROUPS_RESPONSE],
@@ -272,6 +307,31 @@ test.describe("ProjectDetail", () => {
 
     await component.getByTestId(TEST_ID.testSearch).fill("checkout");
     await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(6);
+  });
+
+  // A filter that matches nothing is not an empty project: saying "this project
+  // has no tests yet" would tell a reviewer the branch is clean when it is just
+  // too narrow a query.
+  test("says the filters matched nothing instead of claiming the project is empty", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+    await mockProjectFilters(page);
+
+    const component = await mount<typeof Routed>(
+      "views/ProjectDetailView/Routed",
+      { initialRoute: "/projects/checkout-ui" },
+    );
+
+    await component.getByTestId(TEST_ID.testSearch).fill("no-such-test");
+
+    await expect(component).toContainText("No tests match these filters");
+    await expect(component).toContainText("Try a different search or filter.");
+    await expect(component).not.toContainText("This project has no tests yet");
   });
 
   test("shows the empty state for a project without tests", async ({

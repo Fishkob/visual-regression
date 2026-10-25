@@ -49,7 +49,10 @@ export function useProjectsWithPendingQuery(
 // the project's default branch), but it is always part of the cache key so the
 // switcher never shows another branch's tests while a new read is in flight.
 // The page/filter object is part of the key for the same reason: a new page or
-// filter is a distinct server read.
+// filter is a distinct server read. Deliberately no keepPreviousData: these rows
+// are review decisions, so rendering the previous branch's (or filter's) rows
+// under the new heading would misattribute them. The list keeps it — there the
+// page is a position, not an identity.
 export function useProjectDetailQuery(
   projectName: MaybeRef<string | undefined>,
   branchName?: MaybeRef<string | undefined>,
@@ -63,7 +66,6 @@ export function useProjectDetailQuery(
     required: ["projectName"],
     keyOf: ({ projectName, branchName, query }) =>
       projectQueryKeys.detail(projectName, branchName, query),
-    placeholderData: keepPreviousData,
     sdkFn: ({ projectName, branchName, query }) => {
       const { page = 1, ...filters } = query;
       return projectsControllerGetOneProject({

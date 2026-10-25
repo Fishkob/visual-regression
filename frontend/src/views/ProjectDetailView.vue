@@ -103,8 +103,8 @@
       error-title="Failed to load project"
       :retry="activeTabState.refetch"
       :empty="tests.length === 0"
-      empty-title="No tests found"
-      empty-description="This project has no tests yet."
+      :empty-title="emptyTitle"
+      :empty-description="emptyDescription"
     >
       <template #loading>
         <SkeletonAccordionGroups />
@@ -231,6 +231,19 @@ const filters = computed<ProjectDetailFilters>(() => {
     ...(environment ? { environment } : {}),
   };
 });
+
+// "No tests found" is wrong when a search/filter matched nothing: the project
+// is not empty, the current filter is just too narrow. The empty state says
+// which one it is so a reviewer does not conclude the branch has no tests.
+const hasActiveFilters = computed(() => Object.keys(filters.value).length > 0);
+const emptyTitle = computed(() =>
+  hasActiveFilters.value ? "No tests match these filters" : "No tests found",
+);
+const emptyDescription = computed(() =>
+  hasActiveFilters.value
+    ? "Try a different search or filter."
+    : "This project has no tests yet.",
+);
 
 const page = computed({
   get: () => {

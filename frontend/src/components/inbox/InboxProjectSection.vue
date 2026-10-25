@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatRelativeAge } from "@/lib/format-date";
@@ -13,6 +13,7 @@ const props = defineProps<{
   section: InboxProjectSection;
 }>();
 const router = useRouter();
+const route = useRoute();
 
 // The review pass is branch-scoped (the details page's pending list is), so the
 // count must describe the set it will walk: the project's pending items on the
@@ -50,6 +51,17 @@ function branchQuery(item: ReviewInboxItem) {
   return item.isDefaultBranch ? {} : { branch: item.branchName };
 }
 
+// The kind/group filters are the rest of the pass's scope: they ride along as
+// `inboxKind`/`inboxGroup` so the "back to inbox" leg can restore the filtered
+// queue instead of widening it to every pending change.
+function inboxScopeQuery() {
+  const scope: Record<string, string> = {};
+  const { kind, group } = route.query;
+  if (typeof kind === "string" && kind) scope.inboxKind = kind;
+  if (typeof group === "string" && group) scope.inboxGroup = group;
+  return scope;
+}
+
 function openItem(item: ReviewInboxItem) {
   void router.push({
     name: "test-detail",
@@ -59,6 +71,7 @@ function openItem(item: ReviewInboxItem) {
       browser: item.browser,
       environment: item.environment,
       ...branchQuery(item),
+      ...inboxScopeQuery(),
       from: "inbox",
     },
   });
@@ -75,6 +88,7 @@ function startProjectReview() {
       browser: first.browser,
       environment: first.environment,
       ...branchQuery(first),
+      ...inboxScopeQuery(),
     },
   });
 }
