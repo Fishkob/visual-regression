@@ -35,6 +35,8 @@ describe('AdminApiKeysController', () => {
       name: 'ci-upload',
       rawKey: 'raw-secret',
       keyHint: '7f3a',
+      scopes: ['upload'],
+      projectNames: [],
       expiresAt: null,
     });
 
@@ -49,6 +51,8 @@ describe('AdminApiKeysController', () => {
       name: 'ci-upload',
       rawKey: 'raw-secret',
       keyHint: '7f3a',
+      scopes: ['upload'],
+      projectNames: [],
       expiresAt: null,
     });
   });
@@ -59,6 +63,8 @@ describe('AdminApiKeysController', () => {
       name: 'ci-upload',
       rawKey: 'raw-secret',
       keyHint: '7f3a',
+      scopes: ['upload'],
+      projectNames: [],
       expiresAt: new Date('2027-01-01'),
     });
 

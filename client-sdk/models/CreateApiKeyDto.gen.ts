@@ -6,4 +6,12 @@ export type CreateApiKeyDto = {
      * Lifetime in days; omit for a key that never expires
      */
     expiresInDays?: number;
+    /**
+     * Permissions of the key. Defaults to upload only; admin is opt-in.
+     */
+    scopes?: Array<'upload' | 'read' | 'approve' | 'admin'>;
+    /**
+     * Project names the key may access. Empty means every project; a non-empty list confines the key to those project routes.
+     */
+    projectNames?: Array<string>;
 };

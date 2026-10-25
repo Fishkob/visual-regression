@@ -64,6 +64,9 @@ export class ApiKeysController {
       name: dto.name,
       expiresInDays: dto.expiresInDays ?? null,
       createdBy: req.auth?.username ?? null,
+      ownerId: req.auth?.userId ?? null,
+      scopes: dto.scopes,
+      projectNames: dto.projectNames,
     });
     return plainToInstance(CreatedApiKeyDto, issued, {
       excludeExtraneousValues: true,

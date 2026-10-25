@@ -37,7 +37,11 @@ describe('AuthenticationGuard', () => {
       getClass: () => TestController,
       getHandler: () => handler,
       switchToHttp: () => ({
-        getRequest: () => ({ headers }),
+        getRequest: () => ({
+          headers,
+          method: 'GET',
+          path: '/api/v1/projects',
+        }),
       }),
     }) as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
 
@@ -347,9 +351,16 @@ describe('AuthenticationGuard', () => {
     mockApiKeyService.resolveApiKey.mockResolvedValue({
       id: 'k1',
       name: 'ci',
+      ownerId: 'u1',
+      scopes: ['upload', 'read', 'approve'],
+      projectNames: [],
     });
 
-    const request = { headers: { 'x-api-key': 'rawkey' } };
+    const request = {
+      headers: { 'x-api-key': 'rawkey' },
+      method: 'GET',
+      path: '/api/v1/projects',
+    };
     const ctx = {
       getClass: () => TestController,
       getHandler: () => testHandler,
@@ -364,6 +375,8 @@ describe('AuthenticationGuard', () => {
       username: 'ci',
       role: 'MEMBER',
       apiKeyId: 'k1',
+      scopes: ['upload', 'read', 'approve'],
+      projectNames: [],
     });
   });
 
@@ -462,6 +475,144 @@ describe('AuthenticationGuard', () => {
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
   });
 
+  function apiKeyContext(options: {
+    method: string;
+    path: string;
+    params?: Record<string, string>;
+  }) {
+    const request = {
+      headers: { 'x-api-key': 'rawkey' },
+      method: options.method,
+      path: options.path,
+      params: options.params ?? {},
+    };
+    return {
+      getClass: () => TestController,
+      getHandler: () => testHandler,
+      switchToHttp: () => ({ getRequest: () => request }),
+    } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
+  }
+
+  it('requires the read scope for reads', async () => {
+    mockApiKeyService.resolveApiKey.mockResolvedValue({
+      id: 'k1',
+      name: 'ci',
+      ownerId: 'u1',
+      scopes: ['upload'],
+      projectNames: [],
+    });
+
+    await expect(
+      guard.canActivate(
+        apiKeyContext({ method: 'GET', path: '/api/v1/projects/p' }),
+      ),
+    ).rejects.toThrow(/missing the "read" scope/);
+  });
+
+  it('lets an upload-only key upload and read its own job status', async () => {
+    mockApiKeyService.resolveApiKey.mockResolvedValue({
+      id: 'k1',
+      name: 'ci',
+      ownerId: 'u1',
+      scopes: ['upload'],
+      projectNames: [],
+    });
+
+    await expect(
+      guard.canActivate(
+        apiKeyContext({
+          method: 'POST',
+          path: '/api/v1/projects/p/tests/t/upload',
+        }),
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      guard.canActivate(
+        apiKeyContext({
+          method: 'GET',
+          path: '/api/v1/projects/p/tests/t/jobs/j1',
+        }),
+      ),
+    ).resolves.toBe(true);
+  });
+
+  it('requires approve for approvals and admin for other writes', async () => {
+    mockApiKeyService.resolveApiKey.mockResolvedValue({
+      id: 'k1',
+      name: 'ci',
+      ownerId: 'u1',
+      scopes: ['upload', 'read'],
+      projectNames: [],
+    });
+
+    await expect(
+      guard.canActivate(
+        apiKeyContext({
+          method: 'POST',
+          path: '/api/v1/projects/p/tests/t/approval',
+        }),
+      ),
+    ).rejects.toThrow(/missing the "approve" scope/);
+    await expect(
+      guard.canActivate(
+        apiKeyContext({
+          method: 'DELETE',
+          path: '/api/v1/projects/p',
+        }),
+      ),
+    ).rejects.toThrow(/missing the "admin" scope/);
+  });
+
+  it('confines a key with a project allowlist', async () => {
+    mockApiKeyService.resolveApiKey.mockResolvedValue({
+      id: 'k1',
+      name: 'ci',
+      ownerId: 'u1',
+      scopes: ['read'],
+      projectNames: ['allowed'],
+    });
+
+    await expect(
+      guard.canActivate(
+        apiKeyContext({
+          method: 'GET',
+          path: '/api/v1/projects/other/runs',
+          params: { projectName: 'other' },
+        }),
+      ),
+    ).rejects.toThrow(/not allowed to access project "other"/);
+    await expect(
+      guard.canActivate(
+        apiKeyContext({
+          method: 'GET',
+          path: '/api/v1/projects/allowed/runs',
+          params: { projectName: 'allowed' },
+        }),
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      guard.canActivate(
+        apiKeyContext({ method: 'GET', path: '/api/v1/projects' }),
+      ),
+    ).rejects.toThrow(/restricted to specific projects/);
+  });
+
+  it('grants the admin role to a key with the admin scope', async () => {
+    mockApiKeyService.resolveApiKey.mockResolvedValue({
+      id: 'k1',
+      name: 'ci',
+      ownerId: 'u1',
+      scopes: ['admin'],
+      projectNames: [],
+    });
+
+    await expect(
+      guard.canActivate(
+        apiKeyContext({ method: 'DELETE', path: '/api/v1/projects/p' }),
+      ),
+    ).resolves.toBe(true);
+  });
+
   it('rejects an invalid api key', async () => {
     mockRepository.findSessionByTokenHash.mockResolvedValue(null);
     mockApiKeyService.resolveApiKey.mockResolvedValue(null);
@@ -477,6 +628,9 @@ describe('AuthenticationGuard', () => {
     mockApiKeyService.resolveApiKey.mockResolvedValue({
       id: 'k1',
       name: 'ci',
+      ownerId: 'u1',
+      scopes: ['upload', 'read', 'approve'],
+      projectNames: [],
     });
 
     await expect(
@@ -496,6 +650,9 @@ describe('AuthenticationGuard', () => {
       mockApiKeyService.resolveApiKey.mockResolvedValue({
         id: 'k1',
         name: 'ci',
+        ownerId: 'u1',
+        scopes: ['upload', 'read', 'approve'],
+        projectNames: [],
       });
 
       await expect(
@@ -510,9 +667,16 @@ describe('AuthenticationGuard', () => {
       mockApiKeyService.resolveApiKey.mockResolvedValue({
         id: 'k1',
         name: 'ci',
+        ownerId: 'u1',
+        scopes: ['upload', 'read', 'approve'],
+        projectNames: [],
       });
 
-      const request = { headers: { 'x-api-key': 'rawkey' } };
+      const request = {
+        headers: { 'x-api-key': 'rawkey' },
+        method: 'GET',
+        path: '/api/v1/projects',
+      };
       const ctx = {
         getClass: () => TestController,
         getHandler: () => sessionOnlyHandler,
@@ -554,6 +718,9 @@ describe('AuthenticationGuard', () => {
       mockApiKeyService.resolveApiKey.mockResolvedValue({
         id: 'k1',
         name: 'ci',
+        ownerId: 'u1',
+        scopes: ['upload', 'read', 'approve'],
+        projectNames: [],
       });
 
       await expect(

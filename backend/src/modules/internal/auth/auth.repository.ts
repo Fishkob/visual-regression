@@ -33,6 +33,10 @@ export interface ApiKeyRow {
   name: string;
   keyHash: string;
   keyHint: string | null;
+  ownerId: string | null;
+  scopes: string[];
+  projectNames: string[];
+  owner?: { username: string } | null;
   createdBy: string | null;
   createdAt: Date;
   lastUsedAt: Date | null;
@@ -46,6 +50,9 @@ export interface CreateApiKeyInput {
   name: string;
   keyHash: string;
   keyHint: string;
+  ownerId: string | null;
+  scopes: string[];
+  projectNames: string[];
   createdBy: string | null;
   expiresAt: Date | null;
 }
@@ -308,15 +315,24 @@ export class AuthRepository {
   }
 
   async findApiKeyByHash(keyHash: string): Promise<ApiKeyRow | null> {
-    return this.client.apiKey.findUnique({ where: { keyHash } });
+    return this.client.apiKey.findUnique({
+      where: { keyHash },
+      include: { owner: { select: { username: true } } },
+    });
   }
 
   async findApiKeyById(id: string): Promise<ApiKeyRow | null> {
-    return this.client.apiKey.findUnique({ where: { id } });
+    return this.client.apiKey.findUnique({
+      where: { id },
+      include: { owner: { select: { username: true } } },
+    });
   }
 
   async listApiKeys(): Promise<ApiKeyRow[]> {
-    return this.client.apiKey.findMany({ orderBy: { createdAt: 'desc' } });
+    return this.client.apiKey.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { owner: { select: { username: true } } },
+    });
   }
 
   async revokeApiKey(

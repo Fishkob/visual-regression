@@ -381,6 +381,7 @@ model User {
   sessions            Session[]
   recoveryCodes       RecoveryCode[]
   twoFactorChallenges TwoFactorChallenge[]
+  apiKeys             ApiKey[]            @relation("ApiKeyOwner")
 
   @@index([role, isActive])
   @@map("User")
@@ -442,6 +443,10 @@ model ApiKey {
   name          String
   keyHash       String    @unique
   keyHint       String?
+  owner         User?     @relation("ApiKeyOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  ownerId       String?
+  scopes        String[]  @default(["upload", "read", "approve"])
+  projectNames  String[]  @default([])
   createdBy     String?
   createdAt     DateTime  @default(now())
   lastUsedAt    DateTime?
@@ -450,6 +455,7 @@ model ApiKey {
   revokedReason String?
   replacedById  String?
 
+  @@index([ownerId])
   @@map("ApiKey")
 }
 

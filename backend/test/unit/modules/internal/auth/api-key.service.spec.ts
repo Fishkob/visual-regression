@@ -14,6 +14,10 @@ function makeRow(overrides: Partial<ApiKeyRow> = {}): ApiKeyRow {
     name: 'ci-upload',
     keyHash: 'hash',
     keyHint: '7f3a',
+    ownerId: 'u1',
+    scopes: ['upload', 'read', 'approve'],
+    projectNames: [],
+    owner: { username: 'alice' },
     createdBy: 'alice',
     createdAt: new Date('2026-01-01T00:00:00Z'),
     lastUsedAt: null,
@@ -47,6 +51,47 @@ describe('ApiKeyService', () => {
   });
 
   describe('createKey', () => {
+    it('defaults a new key to upload-only and records its owner', async () => {
+      mockRepository.createApiKey.mockResolvedValue(
+        makeRow({ scopes: ['upload'] }),
+      );
+
+      const result = await service.createKey({
+        name: 'ci-upload',
+        ownerId: 'u1',
+        createdBy: 'alice',
+      });
+
+      expect(mockRepository.createApiKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: 'u1',
+          scopes: ['upload'],
+          projectNames: [],
+        }),
+      );
+      expect(result.scopes).toEqual(['upload']);
+      expect(result.projectNames).toEqual([]);
+    });
+
+    it('stores explicit scopes and a project allowlist', async () => {
+      mockRepository.createApiKey.mockResolvedValue(
+        makeRow({ scopes: ['read'], projectNames: ['checkout'] }),
+      );
+
+      await service.createKey({
+        name: 'reader',
+        scopes: ['read'],
+        projectNames: ['checkout'],
+      });
+
+      expect(mockRepository.createApiKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          scopes: ['read'],
+          projectNames: ['checkout'],
+        }),
+      );
+    });
+
     it('generates a raw key and stores only its sha256 hash', async () => {
       mockRepository.createApiKey.mockResolvedValue(makeRow());
 
@@ -234,6 +279,27 @@ describe('ApiKeyService', () => {
   });
 
   describe('rotateKey', () => {
+    it('inherits scopes, project allowlist and owner', async () => {
+      mockRepository.findApiKeyById.mockResolvedValue(
+        makeRow({ scopes: ['upload'], projectNames: ['checkout'] }),
+      );
+      mockRepository.replaceApiKey.mockResolvedValue(
+        makeRow({ scopes: ['upload'], projectNames: ['checkout'] }),
+      );
+
+      await service.rotateKey('k1');
+
+      expect(mockRepository.replaceApiKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ownerId: 'u1',
+          scopes: ['upload'],
+          projectNames: ['checkout'],
+        }),
+        'k1',
+        expect.anything(),
+      );
+    });
+
     it('creates a successor and retires the predecessor in one call', async () => {
       mockRepository.findApiKeyById.mockResolvedValue(makeRow());
       mockRepository.replaceApiKey.mockResolvedValue(makeRow({ id: 'k2' }));
@@ -344,6 +410,18 @@ describe('ApiKeyService', () => {
   });
 
   describe('resolveApiKey', () => {
+    it('returns the scopes and allowlist for the guard', async () => {
+      mockRepository.findApiKeyByHash.mockResolvedValue(makeRow());
+
+      await expect(service.resolveApiKey('raw')).resolves.toEqual({
+        id: 'k1',
+        name: 'ci-upload',
+        ownerId: 'u1',
+        scopes: ['upload', 'read', 'approve'],
+        projectNames: [],
+      });
+    });
+
     it('rejects a revoked key', async () => {
       mockRepository.findApiKeyByHash.mockResolvedValue(
         makeRow({ revokedAt: new Date('2026-01-01') }),
@@ -366,6 +444,9 @@ describe('ApiKeyService', () => {
       await expect(service.resolveApiKey('any')).resolves.toEqual({
         id: 'k1',
         name: 'ci-upload',
+        ownerId: 'u1',
+        scopes: ['upload', 'read', 'approve'],
+        projectNames: [],
       });
     });
 
@@ -425,6 +506,9 @@ describe('ApiKeyService', () => {
       await expect(service.resolveApiKey('any')).resolves.toEqual({
         id: 'k1',
         name: 'ci-upload',
+        ownerId: 'u1',
+        scopes: ['upload', 'read', 'approve'],
+        projectNames: [],
       });
     });
   });

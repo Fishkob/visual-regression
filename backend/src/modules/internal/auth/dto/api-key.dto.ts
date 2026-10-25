@@ -33,6 +33,30 @@ export class ApiKeyDto {
   keyHint!: string | null;
 
   @Expose()
+  @ApiProperty({ type: String, nullable: true })
+  ownerId!: string | null;
+
+  @Expose()
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Username that owns the key',
+  })
+  ownerUsername!: string | null;
+
+  @Expose()
+  @ApiProperty({ enum: ['upload', 'read', 'approve', 'admin'], isArray: true })
+  scopes!: string[];
+
+  @Expose()
+  @ApiProperty({
+    type: [String],
+    isArray: true,
+    description: 'Empty means every project',
+  })
+  projectNames!: string[];
+
+  @Expose()
   @ApiProperty({
     type: String,
     nullable: true,

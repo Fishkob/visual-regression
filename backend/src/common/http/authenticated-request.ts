@@ -11,5 +11,7 @@ export interface AuthenticatedRequest extends Request {
     mustChangePassword?: boolean;
     totpEnabled?: boolean;
     apiKeyId?: string;
+    scopes?: string[];
+    projectNames?: string[];
   };
 }

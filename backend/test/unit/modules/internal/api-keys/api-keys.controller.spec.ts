@@ -10,6 +10,10 @@ function makeView(overrides: Partial<ApiKeyView> = {}): ApiKeyView {
     id: 'k1',
     name: 'ci-upload',
     keyHint: '7f3a',
+    ownerId: 'u1',
+    ownerUsername: 'alice',
+    scopes: ['upload'],
+    projectNames: [],
     createdBy: 'alice',
     createdAt: new Date('2026-01-01T00:00:00Z'),
     lastUsedAt: null,
@@ -58,6 +62,8 @@ describe('ApiKeysController', () => {
       name: 'ci-upload',
       rawKey: 'raw-secret',
       keyHint: '7f3a',
+      scopes: ['upload'],
+      projectNames: [],
       expiresAt: null,
     });
 
@@ -67,12 +73,17 @@ describe('ApiKeysController', () => {
       name: 'ci-upload',
       expiresInDays: null,
       createdBy: 'alice',
+      ownerId: null,
+      scopes: undefined,
+      projectNames: undefined,
     });
     expect(result).toEqual({
       id: 'k1',
       name: 'ci-upload',
       rawKey: 'raw-secret',
       keyHint: '7f3a',
+      scopes: ['upload'],
+      projectNames: [],
       expiresAt: null,
     });
   });
@@ -84,6 +95,8 @@ describe('ApiKeysController', () => {
       name: 'ci-upload',
       rawKey: 'raw-secret',
       keyHint: 'ab12',
+      scopes: ['upload'],
+      projectNames: [],
       expiresAt,
       replacesId: 'k1',
       replacesKeyHint: '7f3a',
@@ -102,6 +115,8 @@ describe('ApiKeysController', () => {
       name: 'ci-upload',
       rawKey: 'raw-secret',
       keyHint: 'ab12',
+      scopes: ['upload'],
+      projectNames: [],
       expiresAt,
     });
     expect(result).not.toHaveProperty('replacesId');
@@ -113,6 +128,8 @@ describe('ApiKeysController', () => {
       name: 'ci-upload',
       rawKey: 'raw-secret',
       keyHint: 'ab12',
+      scopes: ['upload'],
+      projectNames: [],
       expiresAt: null,
       replacesId: 'k1',
       replacesKeyHint: '7f3a',

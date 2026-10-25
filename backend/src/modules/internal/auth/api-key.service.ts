@@ -23,12 +23,21 @@ const ROTATION_REASON = 'rotated';
 
 export type ApiKeyStatus = 'active' | 'revoked' | 'expired';
 
+import {
+  DEFAULT_API_KEY_SCOPES,
+  type ApiKeyScope,
+} from '@common/domain/api-key-scopes';
+
 // The list-facing shape: everything the dashboard needs to decide what to do
 // with a key, and nothing that could reconstruct it (no hash, no raw key).
 export interface ApiKeyView {
   id: string;
   name: string;
   keyHint: string | null;
+  ownerId: string | null;
+  ownerUsername: string | null;
+  scopes: ApiKeyScope[];
+  projectNames: string[];
   createdBy: string | null;
   createdAt: Date;
   lastUsedAt: Date | null;
@@ -43,6 +52,9 @@ export interface CreateApiKeyOptions {
   name: string;
   expiresInDays?: number | null;
   createdBy?: string | null;
+  ownerId?: string | null;
+  scopes?: ApiKeyScope[];
+  projectNames?: string[];
 }
 
 export interface RotateApiKeyOptions {
@@ -60,6 +72,8 @@ export interface IssuedApiKey {
   name: string;
   rawKey: string;
   keyHint: string;
+  scopes: ApiKeyScope[];
+  projectNames: string[];
   expiresAt: Date | null;
 }
 
@@ -82,6 +96,8 @@ export class ApiKeyService {
       name: row.name,
       rawKey: issued.rawKey,
       keyHint: input.keyHint,
+      scopes: input.scopes as ApiKeyScope[],
+      projectNames: input.projectNames,
       expiresAt: input.expiresAt,
     };
   }
@@ -152,6 +168,12 @@ export class ApiKeyService {
       {
         name: current.name,
         createdBy: options.createdBy ?? null,
+        ownerId: current.ownerId,
+        // A successor inherits the predecessor's scopes, project allowlist and
+        // remaining lifetime unless the caller asks for an explicit one —
+        // rotating must not silently widen or narrow access.
+        scopes: current.scopes as ApiKeyScope[],
+        projectNames: current.projectNames,
         // A successor inherits the predecessor's remaining lifetime unless the
         // caller asks for an explicit one — rotating must not silently grant a
         // key that never expires to a key that did. Only an explicit null turns
@@ -170,6 +192,8 @@ export class ApiKeyService {
       name: row.name,
       rawKey: issued.rawKey,
       keyHint: input.keyHint,
+      scopes: input.scopes as ApiKeyScope[],
+      projectNames: input.projectNames,
       expiresAt: input.expiresAt,
       replacesId: current.id,
       replacesKeyHint: current.keyHint,
@@ -180,13 +204,23 @@ export class ApiKeyService {
   // Resolves a raw key to its stored id + name if it is active (not revoked,
   // not expired). The guard uses the id as the per-key rate-limit identity and
   // the name as the authenticated identity for key-authenticated requests.
-  async resolveApiKey(
-    rawKey: string,
-  ): Promise<{ id: string; name: string } | null> {
+  async resolveApiKey(rawKey: string): Promise<{
+    id: string;
+    name: string;
+    ownerId: string | null;
+    scopes: ApiKeyScope[];
+    projectNames: string[];
+  } | null> {
     const row = await this.repo.findApiKeyByHash(hashToken(rawKey));
     if (!row || !this.isActive(row, Date.now())) return null;
     await this.recordUsage(row);
-    return { id: row.id, name: row.name };
+    return {
+      id: row.id,
+      name: row.name,
+      ownerId: row.ownerId,
+      scopes: row.scopes as ApiKeyScope[],
+      projectNames: row.projectNames,
+    };
   }
 
   private generate(): { rawKey: string; keyHint: string; keyHash: string } {
@@ -208,6 +242,9 @@ export class ApiKeyService {
       name: options.name,
       keyHash: issued.keyHash,
       keyHint: issued.keyHint,
+      ownerId: options.ownerId ?? null,
+      scopes: options.scopes ?? DEFAULT_API_KEY_SCOPES,
+      projectNames: options.projectNames ?? [],
       createdBy: options.createdBy ?? null,
       expiresAt: days && days > 0 ? this.plusDays(now, days) : null,
     };
@@ -229,6 +266,10 @@ export class ApiKeyService {
       id: row.id,
       name: row.name,
       keyHint: row.keyHint,
+      ownerId: row.ownerId,
+      ownerUsername: row.owner?.username ?? null,
+      scopes: row.scopes as ApiKeyScope[],
+      projectNames: row.projectNames,
       createdBy: row.createdBy,
       createdAt: row.createdAt,
       lastUsedAt: row.lastUsedAt,

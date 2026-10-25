@@ -225,6 +225,9 @@ describe('AuthRepository', () => {
       name: 'ci-upload',
       keyHash: 'keyhash',
       keyHint: '7f3a',
+      ownerId: 'u1',
+      scopes: ['upload'],
+      projectNames: [],
       createdBy: 'alice',
       expiresAt: null,
     };
@@ -246,6 +249,7 @@ describe('AuthRepository', () => {
 
     expect(mockClient.apiKey.findUnique).toHaveBeenCalledWith({
       where: { keyHash: 'keyhash' },
+      include: { owner: { select: { username: true } } },
     });
     expect(result).toEqual({ id: 'k1', name: 'ci-upload', revokedAt: null });
   });
@@ -257,6 +261,7 @@ describe('AuthRepository', () => {
 
     expect(mockClient.apiKey.findUnique).toHaveBeenCalledWith({
       where: { id: 'k1' },
+      include: { owner: { select: { username: true } } },
     });
   });
 
@@ -267,6 +272,7 @@ describe('AuthRepository', () => {
 
     expect(mockClient.apiKey.findMany).toHaveBeenCalledWith({
       orderBy: { createdAt: 'desc' },
+      include: { owner: { select: { username: true } } },
     });
     expect(result).toEqual([{ id: 'k1' }]);
   });
@@ -310,6 +316,9 @@ describe('AuthRepository', () => {
       name: 'ci-upload',
       keyHash: 'newhash',
       keyHint: 'ab12',
+      ownerId: 'u1',
+      scopes: ['upload'],
+      projectNames: [],
       createdBy: 'alice',
       expiresAt: null,
     };

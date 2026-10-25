@@ -7,6 +7,16 @@ export type ApiKeyDto = {
      * Last characters of the raw key, for recognition only
      */
     keyHint: string | null;
+    ownerId: string | null;
+    /**
+     * Username that owns the key
+     */
+    ownerUsername: string | null;
+    scopes: Array<'upload' | 'read' | 'approve' | 'admin'>;
+    /**
+     * Empty means every project
+     */
+    projectNames: Array<string>;
     /**
      * User that created the key
      */

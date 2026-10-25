@@ -6388,6 +6388,29 @@
             "minimum": 1,
             "maximum": 3650,
             "description": "Lifetime in days; omit for a key that never expires"
+          },
+          "scopes": {
+            "type": "array",
+            "default": [
+              "upload"
+            ],
+            "description": "Permissions of the key. Defaults to upload only; admin is opt-in.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "upload",
+                "read",
+                "approve",
+                "admin"
+              ]
+            }
+          },
+          "projectNames": {
+            "description": "Project names the key may access. Empty means every project; a non-empty list confines the key to those project routes.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -6408,6 +6431,24 @@
             "type": "string",
             "description": "Shown exactly once; only the hash is stored"
           },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "upload",
+                "read",
+                "approve",
+                "admin"
+              ]
+            }
+          },
+          "projectNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "keyHint": {
             "type": "string",
             "example": "7f3a"
@@ -6421,6 +6462,8 @@
           "id",
           "name",
           "rawKey",
+          "scopes",
+          "projectNames",
           "keyHint",
           "expiresAt"
         ]
@@ -6440,6 +6483,34 @@
             "nullable": true,
             "example": "7f3a",
             "description": "Last characters of the raw key, for recognition only"
+          },
+          "ownerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "ownerUsername": {
+            "type": "string",
+            "nullable": true,
+            "description": "Username that owns the key"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "upload",
+                "read",
+                "approve",
+                "admin"
+              ]
+            }
+          },
+          "projectNames": {
+            "description": "Empty means every project",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "createdBy": {
             "type": "string",
@@ -6487,6 +6558,10 @@
           "id",
           "name",
           "keyHint",
+          "ownerId",
+          "ownerUsername",
+          "scopes",
+          "projectNames",
           "createdBy",
           "createdAt",
           "lastUsedAt",

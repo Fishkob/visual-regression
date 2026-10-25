@@ -7,6 +7,8 @@ export type CreatedApiKeyDto = {
      * Shown exactly once; only the hash is stored
      */
     rawKey: string;
+    scopes: Array<'upload' | 'read' | 'approve' | 'admin'>;
+    projectNames: Array<string>;
     keyHint: string;
     expiresAt: string | null;
 };

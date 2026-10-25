@@ -79,15 +79,75 @@ export class AuthenticationGuard implements CanActivate {
         }
         request.auth = {
           username: resolved.name,
-          role: 'MEMBER',
+          role: resolved.scopes.includes('admin') ? 'ADMIN' : 'MEMBER',
           apiKeyId: resolved.id,
+          scopes: resolved.scopes,
+          projectNames: resolved.projectNames,
         };
         this.enforceAccess(context, request);
+        this.enforceApiKeyAccess(request);
         return true;
       }
     }
 
     throw new UnauthorizedException('Authentication required');
+  }
+
+  // API keys carry explicit scopes and an optional project allowlist. Sessions
+  // are governed by the R9 role matrix; keys never inherit the owner's role.
+  private enforceApiKeyAccess(request: AuthenticatedRequest): void {
+    const auth = request.auth;
+    if (!auth?.apiKeyId) return;
+    const scopes = auth.scopes ?? [];
+    const isAdmin = scopes.includes('admin');
+    const required = this.requiredApiKeyScope(request, scopes);
+    if (required && !isAdmin && !scopes.includes(required)) {
+      throw new ForbiddenException(
+        `API key is missing the "${required}" scope`,
+      );
+    }
+    const allowlist = auth.projectNames ?? [];
+    if (allowlist.length === 0) return;
+    const rawProject = request.params?.projectName;
+    const projectName = Array.isArray(rawProject) ? rawProject[0] : rawProject;
+    if (projectName) {
+      if (!allowlist.includes(projectName)) {
+        throw new ForbiddenException(
+          `API key is not allowed to access project "${projectName}"`,
+        );
+      }
+      return;
+    }
+    // Project-spanning reads cannot be safely filtered for a scoped key; a key
+    // with an allowlist is confined to project-scoped routes.
+    if (
+      /^\/api\/v1\/(projects|inbox|audit|users)(\/|$)/.test(request.path ?? '')
+    ) {
+      throw new ForbiddenException(
+        'This API key is restricted to specific projects',
+      );
+    }
+  }
+
+  private requiredApiKeyScope(
+    request: AuthenticatedRequest,
+    scopes: string[],
+  ): 'upload' | 'read' | 'approve' | 'admin' | null {
+    const path = request.path ?? '';
+    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      if (
+        path.includes('/jobs/') &&
+        (scopes.includes('upload') || scopes.includes('read'))
+      ) {
+        return null;
+      }
+      return 'read';
+    }
+    if (path.endsWith('/upload')) return 'upload';
+    if (path.includes('/approval') || path.includes('/baseline-restore')) {
+      return 'approve';
+    }
+    return 'admin';
   }
 
   // Session cookies are SameSite=Lax, which already blocks most cross-site
