@@ -313,6 +313,72 @@ describe('ApprovalService', () => {
       });
     });
 
+    it('carries the decision reason and note into the audit row and the approval webhook', async () => {
+      testResolver.findTestOfKind.mockResolvedValue(imageTest);
+      comparisons.findByIdForTest.mockResolvedValue(
+        makeComparison(makeBaseline(), makeCandidate()),
+      );
+      statusService.recomputeStatus.mockResolvedValue(undefined);
+
+      await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        approvedBy,
+        undefined,
+        options({ reason: 'FLAKE', note: 'Flaky promo banner' }),
+      );
+
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'approval',
+          metadata: expect.objectContaining({
+            reason: 'FLAKE',
+            note: 'Flaky promo banner',
+          }),
+        }),
+      );
+      expect(webhooks.enqueueComparisonApproved).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reason: 'FLAKE',
+          note: 'Flaky promo banner',
+        }),
+      );
+      expect(approvalAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reason: 'FLAKE',
+          note: 'Flaky promo banner',
+        }),
+      );
+    });
+
+    it('records null reason and note in the audit metadata when none was given', async () => {
+      testResolver.findTestOfKind.mockResolvedValue(imageTest);
+      comparisons.findByIdForTest.mockResolvedValue(
+        makeComparison(makeBaseline(), makeCandidate()),
+      );
+      statusService.recomputeStatus.mockResolvedValue(undefined);
+
+      await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        approvedBy,
+        undefined,
+        options(),
+      );
+
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'approval',
+          metadata: expect.objectContaining({ reason: null, note: null }),
+        }),
+      );
+      expect(webhooks.enqueueComparisonApproved).toHaveBeenCalledWith(
+        expect.objectContaining({ reason: null, note: null }),
+      );
+    });
+
     it('records the replaced baseline before overwriting it', async () => {
       const baseline = makeBaseline();
       const comparison = makeComparison(baseline, makeCandidate());

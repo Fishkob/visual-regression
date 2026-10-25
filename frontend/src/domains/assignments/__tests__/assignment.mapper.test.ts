@@ -101,6 +101,56 @@ describe("assignment helpers", () => {
     ).toBe(false);
   });
 
+  it("matches a default-branch assignment on an unscoped route", () => {
+    // Current assignments carry the resolved branch ("main") while a detail
+    // route without ?branch means the project default.
+    expect(
+      matchesAssignmentScope(assignment, {
+        projectName: "checkout",
+        testName: "login",
+        defaultBranchName: "main",
+      }),
+    ).toBe(true);
+    // A null branch is the older spelling of the same default branch.
+    expect(
+      matchesAssignmentScope(mapAssignment(dto({ branchName: null }))!, {
+        projectName: "checkout",
+        testName: "login",
+        defaultBranchName: "main",
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps a default-branch assignment off a feature-branch route", () => {
+    expect(
+      matchesAssignmentScope(assignment, {
+        projectName: "checkout",
+        testName: "login",
+        branch: "feature/x",
+        defaultBranchName: "main",
+      }),
+    ).toBe(false);
+    expect(
+      matchesAssignmentScope(mapAssignment(dto({ branchName: null }))!, {
+        projectName: "checkout",
+        testName: "login",
+        branch: "feature/x",
+        defaultBranchName: "main",
+      }),
+    ).toBe(false);
+  });
+
+  it("matches a feature-branch assignment scoped to that branch", () => {
+    expect(
+      matchesAssignmentScope(mapAssignment(dto({ branchName: "feature/x" }))!, {
+        projectName: "checkout",
+        testName: "login",
+        branch: "feature/x",
+        defaultBranchName: "main",
+      }),
+    ).toBe(true);
+  });
+
   it("accepts the generated DTO shape", () => {
     expect(mapAssignment(dto())?.testKind).toBe("image");
     expect(mapAssignment({} as AssignmentDto)?.id).toBe("");

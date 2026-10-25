@@ -1,6 +1,11 @@
+// The subscriptions an endpoint can select; kept in the backend's order
+// (WEBHOOK_SUBSCRIPTION_EVENTS in webhook.types.ts) so the picker and the
+// dispatch list cannot drift.
 export const WEBHOOK_EVENTS = [
   "review.requested",
   "comparison.approved",
+  "review.assigned",
+  "review.comment",
 ] as const;
 
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
@@ -8,6 +13,8 @@ export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
 export const WEBHOOK_EVENT_LABEL: Record<WebhookEvent, string> = {
   "review.requested": "Review requested",
   "comparison.approved": "Comparison approved",
+  "review.assigned": "Review assigned",
+  "review.comment": "Review comment",
 };
 
 // A subscription the API adds later still renders: the raw name is better than

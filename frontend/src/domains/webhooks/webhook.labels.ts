@@ -7,6 +7,8 @@ import type { WebhookDeliveryStatus } from "./webhook.model";
 const EVENT_KEY: Record<string, string> = {
   "review.requested": "webhookEvent.reviewRequested",
   "comparison.approved": "webhookEvent.comparisonApproved",
+  "review.assigned": "webhookEvent.reviewAssigned",
+  "review.comment": "webhookEvent.reviewComment",
 };
 
 const STATUS_KEY: Record<WebhookDeliveryStatus, string> = {

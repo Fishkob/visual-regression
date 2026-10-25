@@ -52,6 +52,9 @@ export interface ReviewSessionOptions {
   ) => Promise<unknown>;
   invalidateDetails: (client: QueryClient, args: TestDetailsArgs) => void;
   returnToInbox?: boolean | Ref<boolean>;
+  // The pending list is assignment-scoped when the pass started from "My
+  // reviews"; the optimistic cache write must target that same entry.
+  assignedToMe?: Ref<boolean>;
 }
 
 export function useReviewSession(args: ReviewSessionOptions) {
@@ -65,6 +68,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
     approve,
     invalidateDetails,
     returnToInbox = false,
+    assignedToMe,
   } = args;
   const queryClient = useQueryClient();
   const navigation = useTestNavigation({ projectName, branchName });
@@ -125,6 +129,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
         projectName.value,
         branchName.value,
         buildCurrentKey(),
+        unref(assignedToMe ?? false),
       );
       const inboxRemoval =
         shouldReturnToInbox.value && currentComparisonId.value
@@ -148,6 +153,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
         return tm("approval.pendingToast", {
           votes: pending.votes,
           required: pending.required,
+          count: Math.max(0, pending.required - pending.votes),
         });
       }
       return tm("toast.approvedForTest", {

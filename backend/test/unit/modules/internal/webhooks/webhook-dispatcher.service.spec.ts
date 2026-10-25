@@ -42,6 +42,7 @@ describe('WebhookDispatcher', () => {
       nextAttemptAt: null,
       responseStatus: null,
       lastError: null,
+      claimedAt: null,
       createdAt: new Date(),
       deliveredAt: null,
       ...overrides,

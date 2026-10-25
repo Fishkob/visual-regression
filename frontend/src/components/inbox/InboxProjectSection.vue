@@ -37,17 +37,26 @@ function isSelected(comparisonId: string): boolean {
 // branch the pass starts on. The server sends that count with every row, so
 // paginating the inbox cannot shrink "Review N"; the page-local fallback only
 // covers payloads that predate the field.
+//
+// "My reviews" is part of the pass's scope too: it narrows the pending list the
+// details page walks, so the count below describes the assigned subset.
+const assignedToMe = computed(() => route.query.assignedToMe === "1");
+
 const reviewStart = computed<ReviewInboxItem | undefined>(
   () => props.section.items[0],
 );
 const reviewTotal = computed(() => {
   const start = reviewStart.value;
   if (!start) return 0;
-  return (
-    start.projectPendingCount ??
-    props.section.items.filter((item) => item.branchName === start.branchName)
-      .length
-  );
+  const onBranch = props.section.items.filter(
+    (item) => item.branchName === start.branchName,
+  ).length;
+  // projectPendingCount describes every pending comparison of the branch, which
+  // is the set an unfiltered pass walks. With "My reviews" on the pass walks the
+  // assigned subset instead, and the payload carries no assigned count — the
+  // section's own (server-filtered) rows are the only honest source.
+  if (assignedToMe.value) return onBranch;
+  return start.projectPendingCount ?? onBranch;
 });
 const reviewChangeCount = computed(() =>
   t("inbox.reviewCount", reviewTotal.value),
@@ -69,12 +78,14 @@ function branchQuery(item: ReviewInboxItem) {
 
 // The kind/group filters are the rest of the pass's scope: they ride along as
 // `inboxKind`/`inboxGroup` so the "back to inbox" leg can restore the filtered
-// queue instead of widening it to every pending change.
+// queue instead of widening it to every pending change. "My reviews" keeps its
+// own key on both routes.
 function inboxScopeQuery() {
   const scope: Record<string, string> = {};
   const { kind, group } = route.query;
   if (typeof kind === "string" && kind) scope.inboxKind = kind;
   if (typeof group === "string" && group) scope.inboxGroup = group;
+  if (assignedToMe.value) scope.assignedToMe = "1";
   return scope;
 }
 

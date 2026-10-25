@@ -138,4 +138,20 @@ describe("useRouteParams", () => {
 
     expect(branch.value).toBeUndefined();
   });
+
+  it("exposes the my-reviews scope from the query string", () => {
+    mockRoute.query = { assignedToMe: "1" };
+
+    const { assignedToMe } = useRouteParams();
+
+    expect(assignedToMe.value).toBe(true);
+  });
+
+  it("treats any other my-reviews spelling as off", () => {
+    mockRoute.query = { assignedToMe: "true" };
+
+    const { assignedToMe } = useRouteParams();
+
+    expect(assignedToMe.value).toBe(false);
+  });
 });

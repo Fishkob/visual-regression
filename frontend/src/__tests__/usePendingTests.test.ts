@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ref } from "vue";
 import { testsQueriesControllerGetTestsWithPendingStatus } from "@sdk";
 import { usePendingTestsQuery } from "@/composables/usePendingTests";
+import { pendingTestQueryKeys } from "@/domains/pending-tests/query-keys";
 
 vi.mock("@sdk", () => ({
   testsQueriesControllerGetTestsWithPendingStatus: vi.fn(),
@@ -133,5 +134,48 @@ describe("usePendingTestsQuery", () => {
         query: { skip: 0, take: 100, branch: "feature/x" },
       });
     });
+  });
+
+  it("scopes the pending list to my assignments", async () => {
+    mockGetTestsWithPendingStatus.mockResolvedValue({
+      data: { data: [], meta: { page: 1, limit: 100, total: 0 } },
+    });
+
+    usePendingTestsQuery(
+      ref("checkout-ui"),
+      ref(undefined),
+      ref(true),
+      ref(true),
+    );
+
+    await vi.waitFor(() => {
+      expect(mockGetTestsWithPendingStatus).toHaveBeenCalledWith({
+        path: { projectName: "checkout-ui" },
+        query: { skip: 0, take: 100, assignedToMe: true },
+      });
+    });
+  });
+
+  it("keeps the assigned scope in the cache key", async () => {
+    mockGetTestsWithPendingStatus.mockResolvedValue({
+      data: { data: [], meta: { page: 1, limit: 100, total: 0 } },
+    });
+
+    usePendingTestsQuery(
+      ref("checkout-ui"),
+      ref("feature/x"),
+      ref(true),
+      ref(true),
+    );
+
+    await vi.waitFor(() =>
+      expect(mockGetTestsWithPendingStatus).toHaveBeenCalled(),
+    );
+    expect(pendingTestQueryKeys.list("checkout-ui", "feature/x", true)).toEqual(
+      ["pending-tests", "list", "checkout-ui", "feature/x", "assigned-to-me"],
+    );
+    expect(
+      pendingTestQueryKeys.list("checkout-ui", "feature/x", false),
+    ).toEqual(["pending-tests", "list", "checkout-ui", "feature/x"]);
   });
 });

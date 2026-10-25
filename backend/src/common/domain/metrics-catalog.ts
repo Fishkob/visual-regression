@@ -49,6 +49,9 @@ export const METRICS = {
   cleanupSessionsLastRun: 'cleanup_sessions_last_run',
   cleanupRunsAutoFinished: 'cleanup_runs_auto_finished',
   cleanupRunsRetained: 'cleanup_runs_retained_total',
+  cleanupReviewCommentsDeleted: 'cleanup_review_comments_deleted',
+  cleanupApprovalVotesDeleted: 'cleanup_approval_votes_deleted',
+  cleanupReviewArtifactsLastRun: 'cleanup_review_artifacts_last_run',
   storageSizeBackfilled: 'storage_size_backfilled_total',
 } as const;
 

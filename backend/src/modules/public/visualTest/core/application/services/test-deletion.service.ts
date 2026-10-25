@@ -3,6 +3,7 @@ import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/re
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import { ReviewArtifactRepository } from '@public/visualTest/core/infrastructure/repositories/review-artifact.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { JOB_PRODUCER, IJobProducer } from '@common/domain/job-queue.interface';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
@@ -39,6 +40,7 @@ export class TestDeletionService {
     private readonly workflow: StateChangeWorkflow,
     private readonly retirement: ComparisonRetirementService,
     private readonly audit: AuditService,
+    private readonly reviewArtifacts: ReviewArtifactRepository,
   ) {}
 
   async deleteScreenshotsByFilters(
@@ -171,6 +173,10 @@ export class TestDeletionService {
         : [];
 
     if (testIds.length > 0) {
+      // Comments/votes have no FK to the test (their trail deliberately
+      // outlives rows), so deleting the test would silently orphan them.
+      // Same transaction: a rolled-back delete keeps the discussion.
+      await this.reviewArtifacts.deleteForTestIds(testIds);
       await this.tests.deleteByIds(testIds);
       for (const testId of testIds) {
         await this.audit.record({
@@ -185,6 +191,9 @@ export class TestDeletionService {
       }
     }
     if (deleteProjectName) {
+      // Backstop for rows whose testId no longer resolves (an earlier failed
+      // delete, or a project deleted without tests).
+      await this.reviewArtifacts.deleteForProjectName(deleteProjectName);
       await this.projects.deleteByName(deleteProjectName);
     }
 

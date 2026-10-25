@@ -69,7 +69,8 @@
     "trigger": "Alle ausstehenden genehmigen",
     "title": "Alle ausstehenden Varianten genehmigen?",
     "description": "Jede ausstehende Änderung dieses Tests auf diesem Branch wird zur neuen Baseline. Das kann nicht rückgängig gemacht werden.",
-    "confirm": "Alle genehmigen"
+    "confirm": "Alle genehmigen",
+    "descriptionMulti": "Jede ausstehende Änderung dieses Tests auf diesem Branch erfasst eine Stimme von dir. Die Änderungen bleiben ausstehend, bis genügend Prüfende zugestimmt haben. Das kann nicht rückgängig gemacht werden."
   },
   "forbidden": {
     "title": "Nicht erlaubt",
@@ -128,7 +129,7 @@
     "approveSelected": "Ausgewählte genehmigen",
     "noMatch": "Keine ausstehenden Prüfungen entsprechen diesen Filtern.",
     "approveDialogTitle": "Ausgewählte Änderungen genehmigen",
-    "approveDialogDescription": "Genehmige {scope}. Jede Änderung wird zur neuen Baseline auf ihrem Branch; das kann nicht rückgängig gemacht werden.",
+    "approveDialogDescription": "Genehmige {scope}. Eine Änderung wird zur neuen Baseline auf ihrem Branch oder — wenn ein Projekt mehrere Genehmigungen verlangt — als eine Stimme erfasst und bleibt ausstehend. Das kann nicht rückgängig gemacht werden.",
     "failureTitle": "Einige Änderungen konnten nicht genehmigt werden",
     "failureBody": "Der Batch wurde trotz dieser Änderungen fortgesetzt. Behebe die Ursache und prüfe sie einzeln.",
     "selectedChanges": "{count} Änderung | {count} Änderungen",
@@ -617,12 +618,21 @@
       "apiKeyCreate": "API-Schlüssel erstellt",
       "apiKeyRevoke": "API-Schlüssel widerrufen",
       "apiKeyRotate": "API-Schlüssel rotiert",
-      "apiKeyDelete": "API-Schlüssel gelöscht"
+      "apiKeyDelete": "API-Schlüssel gelöscht",
+      "reviewVote": "Review-Stimme erfasst",
+      "reviewAssign": "Review zugewiesen",
+      "reviewComplete": "Review abgeschlossen",
+      "reviewComment": "Review-Kommentar",
+      "reviewCommentResolve": "Review-Kommentar aufgelöst",
+      "projectReviewPolicy": "Review-Richtlinie geändert",
+      "testThreshold": "Schwellenwert geändert"
     }
   },
   "webhookEvent": {
     "reviewRequested": "Prüfung angefordert",
-    "comparisonApproved": "Vergleich genehmigt"
+    "comparisonApproved": "Vergleich genehmigt",
+    "reviewAssigned": "Review zugewiesen",
+    "reviewComment": "Review-Kommentar"
   },
   "webhookStatus": {
     "PENDING": "Ausstehend",
@@ -942,7 +952,7 @@
   },
   "approval": {
     "approvedBy": "Genehmigt von {user} · {age}",
-    "pendingToast": "Genehmigung erfasst — warten auf {votes} von {required} Prüfenden",
+    "pendingToast": "Deine Stimme ist erfasst — {votes} von {required} Genehmigungen, {count} weitere Genehmigung fehlt | Deine Stimme ist erfasst — {votes} von {required} Genehmigungen, {count} weitere Genehmigungen fehlen",
     "alreadyVoted": "Du hast diesen Vergleich bereits genehmigt",
     "awaitingCount": "{count} warten auf weitere Genehmigung",
     "voteDetail": "{votes} von {required} Stimmen",

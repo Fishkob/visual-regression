@@ -187,6 +187,65 @@ describe("CommentsPanel", () => {
   it("shows the empty state when there are no comments", async () => {
     mockList.mockResolvedValue({ data: [] });
     const wrapper = mountPanel();
+    await vi.waitFor(() =>
+      expect(
+        wrapper.get(`[data-testid="${TEST_ID.commentsToggle}"]`).text(),
+      ).toContain("Comments"),
+    );
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.commentsToggle}"]`)
+      .trigger("click");
     await vi.waitFor(() => expect(wrapper.text()).toContain("No comments yet"));
+  });
+
+  it("collapses an empty thread so it does not push the diff down", async () => {
+    mockList.mockResolvedValue({ data: [] });
+    const wrapper = mountPanel();
+
+    const toggle = wrapper.get(`[data-testid="${TEST_ID.commentsToggle}"]`);
+    await vi.waitFor(() => expect(mockList).toHaveBeenCalled());
+
+    expect(toggle.attributes("aria-expanded")).toBe("false");
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.commentsBody}"]`).exists(),
+    ).toBe(false);
+    // Still discoverable through its header and count.
+    expect(toggle.text()).toContain("Comments");
+    expect(toggle.text()).toContain("0");
+  });
+
+  it("expands a thread that has comments", async () => {
+    const wrapper = mountPanel();
+    await waitForComments(wrapper, 2);
+
+    expect(
+      wrapper
+        .get(`[data-testid="${TEST_ID.commentsToggle}"]`)
+        .attributes("aria-expanded"),
+    ).toBe("true");
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.commentsBody}"]`).exists(),
+    ).toBe(true);
+  });
+
+  it("keeps a reviewer's collapse choice when the thread reloads", async () => {
+    const wrapper = mountPanel();
+    await waitForComments(wrapper, 2);
+
+    const toggle = wrapper.get(`[data-testid="${TEST_ID.commentsToggle}"]`);
+    await toggle.trigger("click");
+    expect(toggle.attributes("aria-expanded")).toBe("false");
+
+    // A different branch loads another thread; the manual collapse wins over
+    // the auto-expand.
+    await wrapper.setProps({ branch: "feature/x" });
+    await vi.waitFor(() =>
+      expect(mockList).toHaveBeenLastCalledWith({
+        path: { projectName: "checkout", testName: "login" },
+        query: { branch: "feature/x" },
+      }),
+    );
+    expect(toggle.attributes("aria-expanded")).toBe("false");
   });
 });

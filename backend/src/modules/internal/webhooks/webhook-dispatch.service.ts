@@ -135,6 +135,8 @@ export class WebhookDispatchService {
     comparisonId: string;
     mismatchPixelCount: number;
     approvedBy: string;
+    reason?: string | null;
+    note?: string | null;
   }): Promise<number> {
     const project = await this.context.findProjectByName(input.projectName);
     if (!project) return 0;
@@ -151,6 +153,10 @@ export class WebhookDispatchService {
         kind: input.kind,
       },
       approvedBy: input.approvedBy,
+      // The reviewer's decision context is optional: an approval without a
+      // reason/note keeps the pre-existing payload shape.
+      ...(input.reason ? { reason: input.reason } : {}),
+      ...(input.note ? { note: input.note } : {}),
       links: {
         review: this.reviewLink(
           project.name,

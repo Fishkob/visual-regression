@@ -181,8 +181,12 @@ describe("WebhooksView", () => {
     const checkboxes = wrapper.findAll(
       `[data-testid="${TEST_ID.webhookEventCheckbox}"]`,
     );
-    expect(checkboxes).toHaveLength(2);
+    // Every backend subscription is selectable, including the review
+    // assignment/comment events.
+    expect(checkboxes).toHaveLength(4);
     await checkboxes[1]!.setValue(false);
+    await checkboxes[2]!.setValue(false);
+    await checkboxes[3]!.setValue(false);
 
     wrapper.getComponent(Select).vm.$emit("update:modelValue", "slack");
     await nextTick();
@@ -344,6 +348,51 @@ describe("WebhooksView", () => {
         path: { projectName: "checkout", id: "wh-1", deliveryId: "d-1" },
       }),
     );
+  });
+
+  it("labels the review assignment/comment events and unknown ones", async () => {
+    mockDeliveries.mockResolvedValue({
+      data: [
+        deliveryDto({
+          id: "d-1",
+          event: "review.assigned",
+          createdAt: minutesAgo(3),
+        }),
+        deliveryDto({
+          id: "d-2",
+          event: "review.comment",
+          createdAt: minutesAgo(2),
+        }),
+        deliveryDto({
+          id: "d-3",
+          // A delivery from an event this build does not know must not render
+          // an empty badge.
+          event: "job.failed",
+          createdAt: minutesAgo(1),
+        }),
+      ],
+    });
+
+    const wrapper = mountView();
+    await waitForRows(wrapper, 1);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.webhookDeliveries}"]`)
+      .trigger("click");
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper.findAll(`[data-testid="${TEST_ID.webhookDeliveryRow}"]`),
+      ).toHaveLength(3),
+    );
+
+    // Newest first: the unknown event row lands first.
+    const rows = wrapper.findAll(
+      `[data-testid="${TEST_ID.webhookDeliveryRow}"]`,
+    );
+    expect(rows[0].text()).toContain("job.failed");
+    expect(rows[1].text()).toContain("Review comment");
+    expect(rows[2].text()).toContain("Review assigned");
   });
 
   it("says so when an endpoint has no deliveries yet", async () => {

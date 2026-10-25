@@ -261,10 +261,12 @@ model WebhookDelivery {
   nextAttemptAt  DateTime?
   responseStatus Int?
   lastError      String?
+  claimedAt      DateTime?
   createdAt      DateTime              @default(now())
   deliveredAt    DateTime?
 
   @@index([status, nextAttemptAt])
+  @@index([status, claimedAt])
   @@index([endpointId, createdAt])
   @@map("WebhookDelivery")
 }

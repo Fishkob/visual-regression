@@ -136,6 +136,20 @@ describe("auditActionLabel", () => {
     expect(auditActionLabel("api-key.rotate")).toBe("API key rotated");
   });
 
+  it("labels the review and policy actions", () => {
+    expect(auditActionLabel("review.vote")).toBe("Review vote recorded");
+    expect(auditActionLabel("review.assign")).toBe("Review assigned");
+    expect(auditActionLabel("review.complete")).toBe("Review completed");
+    expect(auditActionLabel("review.comment")).toBe("Review comment");
+    expect(auditActionLabel("review.comment-resolve")).toBe(
+      "Review comment resolved",
+    );
+    expect(auditActionLabel("project.review-policy")).toBe(
+      "Review policy changed",
+    );
+    expect(auditActionLabel("test.threshold")).toBe("Threshold changed");
+  });
+
   it("falls back to the raw value for an action added later", () => {
     expect(auditActionLabel("user.invite")).toBe("user.invite");
   });

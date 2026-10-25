@@ -69,7 +69,8 @@
     "trigger": "Approve all pending",
     "title": "Approve all pending variants?",
     "description": "Every pending change of this test on this branch becomes the new baseline. This cannot be undone.",
-    "confirm": "Approve all"
+    "confirm": "Approve all",
+    "descriptionMulti": "Every pending comparison of this test on this branch records one vote from you. The comparisons stay pending until enough reviewers approve. This cannot be undone."
   },
   "forbidden": {
     "title": "Not allowed",
@@ -128,7 +129,7 @@
     "approveSelected": "Approve selected",
     "noMatch": "No pending reviews match these filters.",
     "approveDialogTitle": "Approve selected changes",
-    "approveDialogDescription": "Approve {scope}. Each change becomes the new baseline on its branch; this cannot be undone.",
+    "approveDialogDescription": "Approve {scope}. A change becomes the new baseline on its branch, or — when a project requires several approvals — records one vote and stays pending. This cannot be undone.",
     "failureTitle": "Some changes could not be approved",
     "failureBody": "The batch continued past these changes. Fix the cause and review them individually.",
     "selectedChanges": "{count} change | {count} changes",
@@ -617,12 +618,21 @@
       "apiKeyCreate": "API key created",
       "apiKeyRevoke": "API key revoked",
       "apiKeyRotate": "API key rotated",
-      "apiKeyDelete": "API key deleted"
+      "apiKeyDelete": "API key deleted",
+      "reviewVote": "Review vote recorded",
+      "reviewAssign": "Review assigned",
+      "reviewComplete": "Review completed",
+      "reviewComment": "Review comment",
+      "reviewCommentResolve": "Review comment resolved",
+      "projectReviewPolicy": "Review policy changed",
+      "testThreshold": "Threshold changed"
     }
   },
   "webhookEvent": {
     "reviewRequested": "Review requested",
-    "comparisonApproved": "Comparison approved"
+    "comparisonApproved": "Comparison approved",
+    "reviewAssigned": "Review assigned",
+    "reviewComment": "Review comment"
   },
   "webhookStatus": {
     "PENDING": "Pending",
@@ -942,7 +952,7 @@
   },
   "approval": {
     "approvedBy": "Approved by {user} · {age}",
-    "pendingToast": "Approval recorded — waiting for {votes} of {required} reviewers",
+    "pendingToast": "Your vote is recorded — {votes} of {required} approvals, {count} more approval needed | Your vote is recorded — {votes} of {required} approvals, {count} more approvals needed",
     "alreadyVoted": "You have already approved this comparison",
     "awaitingCount": "{count} awaiting additional approval",
     "voteDetail": "{votes} of {required} votes",

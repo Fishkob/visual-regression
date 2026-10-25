@@ -13,6 +13,7 @@ import {
   useMyAssignmentsQuery,
 } from "@/composables/useAssignments";
 import { useRouteParams } from "@/composables/useRouteParams";
+import { useProjectDetailQuery } from "@/composables/useProjects";
 import {
   useTestMetadata,
   useUpdateTestMetadata,
@@ -42,6 +43,12 @@ const { data: me } = useMeQuery();
 const { data: assignments } = useMyAssignmentsQuery();
 const completeAssignment = useCompleteAssignment();
 
+// The assignment stores the resolved branch name ("main"), while the detail
+// route omits `?branch` for the project default. The project read supplies the
+// default branch name so an unscoped route still matches; it shares the key the
+// detail views already query, so this adds no request.
+const { data: project } = useProjectDetailQuery(projectName, branch);
+
 // Only an open assignment of this exact project/test/branch is actionable here;
 // a completed or sibling-variant assignment is not shown.
 const assignment = computed(() =>
@@ -52,6 +59,7 @@ const assignment = computed(() =>
         projectName: projectName.value,
         testName: testName.value,
         branch: branch.value,
+        defaultBranchName: project.value?.defaultBranchName,
       }),
   ),
 );

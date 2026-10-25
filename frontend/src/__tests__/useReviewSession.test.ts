@@ -670,6 +670,20 @@ describe("useReviewSession", () => {
       });
     });
 
+    it("targets the assignment-scoped pending cache for a my-reviews pass", async () => {
+      const args = {
+        ...createArgs(),
+        assignedToMe: ref(true),
+      };
+      useReviewSession(args);
+
+      await mutationOptions.onMutate();
+
+      expect(mockCancelQueries).toHaveBeenCalledWith({
+        queryKey: ["pending-tests", "list", "test-project", "assigned-to-me"],
+      });
+    });
+
     it("includes the branch in the invalidation args", () => {
       const args = {
         ...createArgs(),
@@ -789,11 +803,31 @@ describe("useReviewSession 4-eyes voting", () => {
     );
 
     expect(toast.success).toHaveBeenCalledWith(
-      "Approval recorded — waiting for 1 of 2 reviewers",
+      "Your vote is recorded — 1 of 2 approvals, 1 more approval needed",
     );
     expect(toast.error).not.toHaveBeenCalled();
     expect(mockPush).not.toHaveBeenCalled();
     expect(ctx.restore).toHaveBeenCalled();
+  });
+
+  it("pluralizes the remaining approvals in the recorded-vote toast", () => {
+    const args = createArgs();
+    useReviewSession(args);
+
+    mutationOptions.onSuccess(
+      {
+        approved: false,
+        requiresMoreApprovals: true,
+        votes: 1,
+        required: 3,
+      },
+      "comp-1",
+      context(),
+    );
+
+    expect(toast.success).toHaveBeenCalledWith(
+      "Your vote is recorded — 1 of 3 approvals, 2 more approvals needed",
+    );
   });
 
   it("keeps the normal success path for the final vote", () => {

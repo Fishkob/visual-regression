@@ -13,4 +13,5 @@ export const MAINTENANCE_LOCK_IDS = {
   runAutoFinish: 1007,
   runHistoryCleanup: 1008,
   storageSizeBackfill: 1009,
+  reviewArtifactCleanup: 1010,
 } as const;

@@ -91,6 +91,21 @@ describe("useKindDetailsPage (shared shell)", () => {
     expect(mockUsePendingTestsQuery.mock.calls[0][2].value).toBe(true);
   });
 
+  it("threads my reviews into the pending query and the review session", async () => {
+    const { useKindDetailsPage } =
+      await import("@/composables/useTestDetailsPage");
+    const assignedToMe = ref(true);
+    useKindDetailsPage({
+      ...createArgs(createAdapter()),
+      assignedToMe,
+    });
+
+    expect(mockUsePendingTestsQuery.mock.calls[0][3]).toBe(assignedToMe);
+    expect(mockUseReviewSession.mock.calls[0][0].assignedToMe).toBe(
+      assignedToMe,
+    );
+  });
+
   it("composes the review session with the adapter's approve + invalidation", async () => {
     const { useKindDetailsPage } =
       await import("@/composables/useTestDetailsPage");

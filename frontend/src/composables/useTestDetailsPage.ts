@@ -162,8 +162,12 @@ export function useKindDetailsPage<
   branchName: Ref<string | undefined>;
   filters: Ref<VariantParams>;
   returnToInbox?: Ref<boolean>;
+  // A pass started from "My reviews" walks only the reviewer's assignments, so
+  // the pending list (and its cache key) carries the flag too.
+  assignedToMe?: Ref<boolean>;
 }) {
-  const { adapter, projectName, testName, branchName, filters } = args;
+  const { adapter, projectName, testName, branchName, filters, assignedToMe } =
+    args;
 
   const { data, isLoading, error, refetch } = adapter.useDetailsQuery(
     projectName,
@@ -183,6 +187,7 @@ export function useKindDetailsPage<
     projectName,
     branchName,
     pendingEnabled,
+    assignedToMe,
   );
   const pendingTests = computed(() => pendingQuery.data.value ?? []);
 
@@ -211,6 +216,7 @@ export function useKindDetailsPage<
             ),
       invalidateDetails: adapter.invalidateDetails,
       returnToInbox: args.returnToInbox,
+      ...(assignedToMe ? { assignedToMe } : {}),
     },
   );
 
@@ -243,6 +249,7 @@ export function useVisualTestDetailsPage(args: {
   branchName: Ref<string | undefined>;
   filters: Ref<VariantParams>;
   returnToInbox?: Ref<boolean>;
+  assignedToMe?: Ref<boolean>;
 }) {
   return useKindDetailsPage({ ...args, adapter: IMAGE_ADAPTER });
 }
@@ -253,6 +260,7 @@ export function usePdfTestDetailsPage(args: {
   branchName: Ref<string | undefined>;
   filters: Ref<VariantParams>;
   returnToInbox?: Ref<boolean>;
+  assignedToMe?: Ref<boolean>;
 }) {
   return useKindDetailsPage({ ...args, adapter: PDF_ADAPTER });
 }

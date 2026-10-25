@@ -340,6 +340,8 @@ export class ApprovalService {
                 browser: decision.newBaseline.variant.browser,
                 environment: decision.newBaseline.variant.environment,
                 mismatchPixelCount: comparison.mismatchPixelCount,
+                reason: options?.reason ?? null,
+                note: options?.note ?? null,
               },
             });
             // Notify subscribed webhook endpoints in the same transaction: an
@@ -358,6 +360,8 @@ export class ApprovalService {
               comparisonId: comparison.id,
               mismatchPixelCount: comparison.mismatchPixelCount,
               approvedBy,
+              reason: options?.reason ?? null,
+              note: options?.note ?? null,
             });
             return {
               change: change([test.id], {

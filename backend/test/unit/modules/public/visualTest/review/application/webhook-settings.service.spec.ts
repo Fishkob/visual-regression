@@ -55,6 +55,7 @@ describe('WebhookSettingsService', () => {
       nextAttemptAt: null,
       responseStatus: 500,
       lastError: 'HTTP 500',
+      claimedAt: null,
       createdAt: new Date(),
       deliveredAt: null,
     });

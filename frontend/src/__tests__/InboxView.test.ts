@@ -11,6 +11,7 @@ const {
   mockGroups,
   mockOverdue,
   mockReplace,
+  mockPush,
   routeState,
 } = vi.hoisted(() => ({
   mockPending: vi.fn(),
@@ -18,6 +19,7 @@ const {
   mockGroups: vi.fn(),
   mockOverdue: vi.fn(),
   mockReplace: vi.fn(),
+  mockPush: vi.fn(),
   routeState: {} as {
     route?: { params: Record<string, string>; query: Record<string, string> };
   },
@@ -43,7 +45,7 @@ vi.mock("vue-router", async () => {
   routeState.route = route;
   return {
     useRoute: () => route,
-    useRouter: () => ({ replace: mockReplace }),
+    useRouter: () => ({ replace: mockReplace, push: mockPush }),
     RouterLink: { template: "<a><slot /></a>" },
   };
 });
@@ -278,6 +280,113 @@ describe("InboxView assignments", () => {
         assignedToMe: true,
       }),
     );
+    // The scope is persisted, and the page parameter steps aside.
+    expect(mockReplace).toHaveBeenCalledWith({
+      query: { assignedToMe: "1" },
+    });
+  });
+
+  it("restores my reviews from the URL", async () => {
+    routeState.route!.query = { assignedToMe: "1" };
+
+    const wrapper = mountView();
+    await waitForItems(wrapper, 1);
+
+    expect(
+      (
+        wrapper.get(`[data-testid="${TEST_ID.inboxAssignedToMe}"]`)
+          .element as HTMLInputElement
+      ).checked,
+    ).toBe(true);
+    expect(lastPendingQuery().query).toEqual({
+      skip: 0,
+      take: 50,
+      assignedToMe: true,
+    });
+  });
+
+  it("keeps my reviews when another filter changes", async () => {
+    routeState.route!.query = { assignedToMe: "1", page: "2" };
+
+    const wrapper = mountView();
+    await waitForItems(wrapper, 1);
+    expect(lastPendingQuery().query).toEqual({
+      skip: 50,
+      take: 50,
+      assignedToMe: true,
+    });
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.inboxTagFilter}"]`)
+      .setValue("Smoke");
+
+    await vi.waitFor(() =>
+      expect(lastPendingQuery().query).toEqual({
+        skip: 0,
+        take: 50,
+        tag: "smoke",
+        assignedToMe: true,
+      }),
+    );
+    expect(mockReplace).toHaveBeenCalledWith({
+      query: { assignedToMe: "1" },
+    });
+  });
+
+  it("carries my reviews into the project review link and count", async () => {
+    routeState.route!.query = { assignedToMe: "1" };
+    mockPending.mockResolvedValue(
+      pageOf([
+        pendingDto({ comparisonId: "c-1", projectPendingCount: 9 }),
+        pendingDto({
+          comparisonId: "c-2",
+          projectName: "admin-ui",
+          testName: "users",
+          projectPendingCount: 4,
+        }),
+      ]),
+    );
+
+    const wrapper = mountView();
+    await waitForItems(wrapper, 2);
+
+    const section = wrapper
+      .findAll(`[data-testid="${TEST_ID.inboxProjectSection}"]`)
+      .find((entry) => entry.text().includes("checkout"));
+    if (!section) throw new Error("checkout section not found");
+    // The branch-wide server count describes a different set than the assigned
+    // pass, so the section's own assigned rows are what "Review N" counts.
+    expect(
+      section.get(`[data-testid="${TEST_ID.reviewProjectButton}"]`).text(),
+    ).toContain("Review 1");
+
+    await section
+      .get(`[data-testid="${TEST_ID.reviewProjectButton}"]`)
+      .trigger("click");
+
+    expect(mockPush).toHaveBeenCalledWith({
+      name: "test-detail",
+      params: { projectName: "checkout", testName: "checkout-flow" },
+      query: {
+        viewport: "1280x720",
+        browser: "chromium",
+        environment: "staging",
+        assignedToMe: "1",
+      },
+    });
+  });
+
+  it("counts the whole branch when my reviews is off", async () => {
+    mockPending.mockResolvedValue(
+      pageOf([pendingDto({ comparisonId: "c-1", projectPendingCount: 9 })]),
+    );
+
+    const wrapper = mountView();
+    await waitForItems(wrapper, 1);
+
+    expect(
+      wrapper.get(`[data-testid="${TEST_ID.reviewProjectButton}"]`).text(),
+    ).toContain("Review 9");
   });
 
   it("shows the overdue assignment count", async () => {

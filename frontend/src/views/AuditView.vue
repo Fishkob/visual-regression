@@ -61,6 +61,13 @@ const ACTION_KEY: Record<AuditAction, string> = {
   "api-key.revoke": "audit.actions.apiKeyRevoke",
   "api-key.rotate": "audit.actions.apiKeyRotate",
   "api-key.delete": "audit.actions.apiKeyDelete",
+  "review.vote": "audit.actions.reviewVote",
+  "review.assign": "audit.actions.reviewAssign",
+  "review.complete": "audit.actions.reviewComplete",
+  "review.comment": "audit.actions.reviewComment",
+  "review.comment-resolve": "audit.actions.reviewCommentResolve",
+  "project.review-policy": "audit.actions.projectReviewPolicy",
+  "test.threshold": "audit.actions.testThreshold",
 };
 
 function actionLabel(action: string): string {

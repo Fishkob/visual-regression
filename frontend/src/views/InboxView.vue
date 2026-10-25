@@ -139,17 +139,30 @@ watch(runInput, (value) => {
   }, 300);
 });
 
-// The tag filter is answered server-side like the other text filters, so it
-// debounces and resets the page when a new tag is applied.
-const assignedToMe = ref(false);
+// "My reviews" is review scope, not a local toggle: it narrows the server query,
+// the pass it starts and the count that describes that pass, so it lives in the
+// URL like the branch/kind/group filters. A refresh, a deep link and the review
+// loop's "back to inbox" leg therefore all restore the same assigned queue.
+const assignedToMe = computed<boolean>({
+  get: () => route.query.assignedToMe === "1",
+  set: (value: boolean) => {
+    const query = { ...route.query };
+    if (value) query.assignedToMe = "1";
+    else delete query.assignedToMe;
+    delete query.page;
+    void router.replace({ query });
+  },
+});
+
 const { data: overdueAssignments } = useOverdueAssignmentsQuery();
 const overdueCount = computed(() => overdueAssignments.value?.length ?? 0);
 
 function toggleAssignedToMe(event: Event): void {
   assignedToMe.value = (event.target as HTMLInputElement).checked;
-  if (page.value !== 1) page.value = 1;
 }
 
+// The tag filter is answered server-side like the other text filters, so it
+// debounces and resets the page when a new tag is applied.
 const tagInput = ref("");
 const tagFilter = ref("");
 let tagTimer: ReturnType<typeof setTimeout> | undefined;

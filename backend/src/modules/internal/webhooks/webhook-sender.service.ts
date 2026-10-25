@@ -90,6 +90,19 @@ export class WebhookSender {
             : payload.event === 'review.comment'
               ? `received a comment from ${String(payload.comment?.author)}`
               : 'test delivery';
-    return `[Visual regression] ${subject} ${action} — ${payload.links.review}`;
+    const detail =
+      payload.event === 'comparison.approved'
+        ? this.approvalDetail(payload)
+        : '';
+    return `[Visual regression] ${subject} ${action}${detail} — ${payload.links.review}`;
+  }
+
+  // The approval's optional decision context, rendered as a compact suffix.
+  // Both fields are reviewer-supplied; the note is already capped at the DTO
+  // boundary.
+  private approvalDetail(payload: WebhookPayload): string {
+    const reason = payload.reason ? ` [${payload.reason}]` : '';
+    const note = payload.note ? ` — ${payload.note}` : '';
+    return `${reason}${note}`;
   }
 }

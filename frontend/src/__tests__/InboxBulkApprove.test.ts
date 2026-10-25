@@ -178,9 +178,14 @@ describe("Inbox bulk approve", () => {
         wrapper.find(`[data-testid="${TEST_ID.dialogConfirm}"]`).exists(),
       ).toBe(true),
     );
-    expect(
-      wrapper.get(`[data-testid="${TEST_ID.dialogDescription}"]`).text(),
-    ).toContain("3 changes across 2 projects");
+    const description = wrapper.get(
+      `[data-testid="${TEST_ID.dialogDescription}"]`,
+    );
+    expect(description.text()).toContain("3 changes across 2 projects");
+    // The confirm copy names both review policies: a baseline write for N=1 and
+    // a recorded vote that stays pending for multi-approval projects.
+    expect(description.text()).toContain("becomes the new baseline");
+    expect(description.text()).toContain("records one vote and stays pending");
 
     await wrapper
       .get(`[data-testid="${TEST_ID.dialogConfirm}"]`)

@@ -31,6 +31,8 @@ export interface WebhookPayload {
     kind: string;
   };
   approvedBy?: string;
+  reason?: string;
+  note?: string;
   assignee?: string;
   dueAt?: string | null;
   comment?: { author: string; body: string; comparisonId: string | null };
@@ -59,6 +61,7 @@ export interface WebhookDeliveryRow {
   nextAttemptAt: Date | null;
   responseStatus: number | null;
   lastError: string | null;
+  claimedAt: Date | null;
   createdAt: Date;
   deliveredAt: Date | null;
 }

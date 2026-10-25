@@ -135,6 +135,59 @@ describe('WebhookDispatchService', () => {
     );
   });
 
+  it('carries the optional approval reason and note', async () => {
+    endpoints.findActiveForProjectEvent.mockResolvedValue([
+      { id: 'wh-1' } as never,
+    ]);
+    deliveries.createMany.mockResolvedValue(1);
+
+    await service.enqueueComparisonApproved({
+      projectName: 'shop',
+      testName: 'checkout',
+      branchName: null,
+      kind: 'image',
+      variant,
+      comparisonId: 'cmp-2',
+      mismatchPixelCount: 7,
+      approvedBy: 'jane',
+      reason: 'FLAKE',
+      note: 'Flaky promo banner',
+    });
+
+    expect(deliveries.createMany).toHaveBeenCalledWith(
+      ['wh-1'],
+      'comparison.approved',
+      expect.objectContaining({
+        reason: 'FLAKE',
+        note: 'Flaky promo banner',
+      }),
+    );
+  });
+
+  it('omits reason and note when the approval carries none', async () => {
+    endpoints.findActiveForProjectEvent.mockResolvedValue([
+      { id: 'wh-1' } as never,
+    ]);
+    deliveries.createMany.mockResolvedValue(1);
+
+    await service.enqueueComparisonApproved({
+      projectName: 'shop',
+      testName: 'checkout',
+      branchName: null,
+      kind: 'image',
+      variant,
+      comparisonId: 'cmp-2',
+      mismatchPixelCount: 7,
+      approvedBy: 'jane',
+      reason: null,
+      note: null,
+    });
+
+    const payload = deliveries.createMany.mock.calls[0][2];
+    expect(payload).not.toHaveProperty('reason');
+    expect(payload).not.toHaveProperty('note');
+  });
+
   it('creates a synthetic test delivery for one endpoint', async () => {
     await service.enqueueTestEvent({
       endpointId: 'wh-1',

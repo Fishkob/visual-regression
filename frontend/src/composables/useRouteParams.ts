@@ -17,6 +17,10 @@ export function useRouteParams() {
   const environment = computed(() => queryString(route.query.environment));
   const branch = computed(() => queryString(route.query.branch));
   const fromInbox = computed(() => route.query.from === "inbox");
+  // "My reviews" is review scope, not a local preference: the inbox stores it in
+  // the URL, and a pass started from the filtered queue keeps walking the same
+  // assigned set.
+  const assignedToMe = computed(() => route.query.assignedToMe === "1");
 
   const filters = computed<VariantParams>(() => ({
     viewport: viewport.value,
@@ -31,5 +35,6 @@ export function useRouteParams() {
     filters,
     branch,
     fromInbox,
+    assignedToMe,
   };
 }

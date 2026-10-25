@@ -25,7 +25,8 @@ import { formatRelativeAge } from "@/lib/format-date";
 defineProps<{ kind?: string }>();
 
 const { t } = useI18n();
-const { projectName, testName, filters, branch, fromInbox } = useRouteParams();
+const { projectName, testName, filters, branch, fromInbox, assignedToMe } =
+  useRouteParams();
 const router = useRouter();
 
 const { data: project } = useProjectDetailQuery(projectName, branch);
@@ -47,6 +48,7 @@ const {
   branchName: branch,
   filters,
   returnToInbox: fromInbox,
+  assignedToMe,
 });
 
 // A test inherited from another branch has no reviewable baseline of its own
@@ -143,6 +145,7 @@ useReviewShortcuts({
         :project-name="projectName"
         :test-name="testName"
         :branch="branch"
+        :required-approvals="project?.requiredApprovals"
         :disabled="isApproving"
       />
       <span
@@ -165,14 +168,6 @@ useReviewShortcuts({
   </div>
 
   <TestMetadataPanel class="px-6 pb-1" />
-
-  <CommentsPanel
-    class="mx-6"
-    :project-name="projectName"
-    :test-name="testName"
-    :branch="branch"
-    :comparison-id="data?.comparison?.id"
-  />
 
   <div class="p-6 pt-0">
     <AsyncState
@@ -235,6 +230,16 @@ useReviewShortcuts({
     >
       {{ t("detail.shortcuts") }}
     </p>
+
+    <!-- The thread annotates the diff it sits under; the panel is collapsed
+         while empty so the comparison stays in view. -->
+    <CommentsPanel
+      class="mt-6"
+      :project-name="projectName"
+      :test-name="testName"
+      :branch="branch"
+      :comparison-id="data?.comparison?.id"
+    />
 
     <!-- Restoring replaces the baseline of the resolved variant and retires its
          pending comparison, so the panel needs the same read-only flag as the

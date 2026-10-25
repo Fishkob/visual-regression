@@ -5,18 +5,32 @@ import TestMetadataPanel from "@/components/test-lifecycle/TestMetadataPanel.vue
 import { Select } from "@/components/ui/select";
 import { TEST_ID } from "@/lib/test-ids";
 
-const { mockGet, mockUpdate, mockReplace, canWriteRef } = vi.hoisted(() => ({
+const {
+  mockGet,
+  mockUpdate,
+  mockReplace,
+  mockMine,
+  mockProject,
+  canWriteRef,
+  routeState,
+} = vi.hoisted(() => ({
   mockGet: vi.fn(),
   mockUpdate: vi.fn(),
   mockReplace: vi.fn(),
+  mockMine: vi.fn(),
+  mockProject: vi.fn(),
   canWriteRef: { value: true },
+  routeState: {
+    query: { branch: "main", viewport: "1280x720" } as Record<string, string>,
+  },
 }));
 
 vi.mock("@sdk", () => ({
   testLifecycleControllerGet: (...args: unknown[]) => mockGet(...args),
   testLifecycleControllerUpdate: (...args: unknown[]) => mockUpdate(...args),
-  assignmentControllerMine: () => Promise.resolve({ data: [] }),
+  assignmentControllerMine: (...args: unknown[]) => mockMine(...args),
   assignmentControllerComplete: vi.fn(),
+  projectsControllerGetOneProject: (...args: unknown[]) => mockProject(...args),
 }));
 
 vi.mock("@/composables/useAuth", () => ({
@@ -34,10 +48,28 @@ vi.mock("vue-router", () => ({
   useRoute: () => ({
     name: "test-detail",
     params: { projectName: "checkout", testName: "login" },
-    query: { branch: "main", viewport: "1280x720" },
+    query: routeState.query,
   }),
   useRouter: () => ({ replace: mockReplace, push: vi.fn() }),
 }));
+
+function assignmentDto(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "a-1",
+    projectName: "checkout",
+    branchName: "main",
+    testName: "login",
+    testKind: "image",
+    runKey: null,
+    assigneeUsername: "alice",
+    assignedBy: "bob",
+    dueAt: null,
+    completedAt: null,
+    createdAt: "2026-10-01T10:00:00.000Z",
+    isOverdue: false,
+    ...overrides,
+  };
+}
 
 function metadataDto(overrides: Record<string, unknown> = {}) {
   return {
@@ -97,7 +129,18 @@ async function openEditor(wrapper: ReturnType<typeof mountPanel>) {
 beforeEach(() => {
   vi.clearAllMocks();
   canWriteRef.value = true;
+  routeState.query = { branch: "main", viewport: "1280x720" };
   mockGet.mockResolvedValue({ data: metadataDto() });
+  mockMine.mockResolvedValue({ data: [] });
+  mockProject.mockResolvedValue({
+    data: {
+      id: "p-1",
+      name: "checkout",
+      branchName: "main",
+      defaultBranchName: "main",
+      requiredApprovals: 1,
+    },
+  });
   mockUpdate.mockImplementation(({ body }: { body: Record<string, unknown> }) =>
     Promise.resolve({
       data: metadataDto({
@@ -322,5 +365,50 @@ describe("TestMetadataPanel", () => {
     expect(
       wrapper.find(`[data-testid="${TEST_ID.testFlakeBadge}"]`).exists(),
     ).toBe(true);
+  });
+});
+
+describe("TestMetadataPanel assignment badge", () => {
+  it("matches a default-branch assignment on an unscoped route", async () => {
+    // The assignment stores the resolved branch ("main"); the detail route for
+    // the project default carries no ?branch, so the default name from the
+    // project read is what makes the two comparable.
+    routeState.query = { viewport: "1280x720" };
+    mockMine.mockResolvedValue({ data: [assignmentDto()] });
+
+    const wrapper = mountPanel();
+    await waitForPanel(wrapper);
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper.find(`[data-testid="${TEST_ID.assignBadge}"]`).exists(),
+      ).toBe(true),
+    );
+    expect(
+      wrapper.get(`[data-testid="${TEST_ID.assignBadge}"]`).text(),
+    ).toContain("alice");
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.assignComplete}"]`).exists(),
+    ).toBe(true);
+    // The default branch name comes from the project read of the same branch
+    // scope (an unscoped route means the project default).
+    expect(mockProject).toHaveBeenCalledWith({
+      path: { projectName: "checkout" },
+      query: { skip: 0, take: 50 },
+    });
+  });
+
+  it("keeps a default-branch assignment off a feature-branch route", async () => {
+    routeState.query = { branch: "feature/x", viewport: "1280x720" };
+    mockMine.mockResolvedValue({ data: [assignmentDto()] });
+
+    const wrapper = mountPanel();
+    await waitForPanel(wrapper);
+
+    // Let the project read settle before asserting the absence.
+    await vi.waitFor(() => expect(mockProject).toHaveBeenCalled());
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.assignBadge}"]`).exists(),
+    ).toBe(false);
   });
 });

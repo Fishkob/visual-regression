@@ -1,10 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@/prisma/base.repository';
-import type { Prisma } from '@/prisma/client';
+import { Prisma } from '@/prisma/client';
 import type {
   WebhookDeliveryRow,
   WebhookPayload,
 } from '@internal/webhooks/webhook.types';
+
+// A row left in PROCESSING longer than this is presumed abandoned (dispatcher
+// crash, restart, killed process) and is returned to PENDING. The lease bounds
+// how long a delivery can silently vanish; an expired claim gets re-delivered,
+// which the at-least-once contract already allows.
+export const WEBHOOK_PROCESSING_LEASE_MINUTES = 10;
 
 @Injectable()
 export class WebhookDeliveryRepository extends BaseRepository {
@@ -40,15 +46,33 @@ export class WebhookDeliveryRepository extends BaseRepository {
     });
   }
 
-  // Atomic claim: the sub-select locks the due rows, the UPDATE flips them to
-  // PROCESSING and RETURNING hands them to the dispatcher. A crashed dispatcher
-  // leaves PROCESSING rows behind; recovery is a future maintenance concern
-  // (rows are at-least-once and a replay resets them).
+  // Reclaim expired claims before claiming: a row whose dispatcher died stays
+  // PROCESSING forever otherwise. Attempts are deliberately NOT reset (the
+  // retry budget is the delivery's, not the claim's) and nextAttemptAt is set
+  // to NOW() so the row is claimable in the same cycle. Rows claimed before
+  // this column existed fall back to createdAt for an age estimate.
+  async reclaimExpired(): Promise<number> {
+    return this.client.$executeRaw(Prisma.sql`
+      UPDATE "WebhookDelivery"
+      SET "status" = 'PENDING'::"WebhookDeliveryStatus",
+          "nextAttemptAt" = NOW(),
+          "claimedAt" = NULL
+      WHERE "status" = 'PROCESSING'::"WebhookDeliveryStatus"
+        AND COALESCE("claimedAt", "createdAt") <
+            NOW() - make_interval(mins => ${WEBHOOK_PROCESSING_LEASE_MINUTES})
+    `);
+  }
+
+  // Atomic claim: expired claims are returned to PENDING first, then the
+  // sub-select locks the due rows, the UPDATE flips them to PROCESSING (with
+  // the lease start stamped) and RETURNING hands them to the dispatcher.
   async claimDue(limit: number): Promise<WebhookDeliveryRow[]> {
+    await this.reclaimExpired();
     const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 100);
     return this.client.$queryRawUnsafe<WebhookDeliveryRow[]>(
       `UPDATE "WebhookDelivery"
-       SET "status" = 'PROCESSING'::"WebhookDeliveryStatus"
+       SET "status" = 'PROCESSING'::"WebhookDeliveryStatus",
+           "claimedAt" = NOW()
        WHERE "id" IN (
          SELECT "id" FROM "WebhookDelivery"
          WHERE "status" = 'PENDING'::"WebhookDeliveryStatus"
@@ -58,8 +82,8 @@ export class WebhookDeliveryRepository extends BaseRepository {
          FOR UPDATE SKIP LOCKED
        )
        RETURNING "id", "endpointId", "event", "payload", "status", "attempts",
-                 "nextAttemptAt", "responseStatus", "lastError", "createdAt",
-                 "deliveredAt"`,
+                 "nextAttemptAt", "responseStatus", "lastError", "claimedAt",
+                 "createdAt", "deliveredAt"`,
     );
   }
 
@@ -91,6 +115,7 @@ export class WebhookDeliveryRepository extends BaseRepository {
         responseStatus,
         lastError: null,
         deliveredAt: new Date(),
+        claimedAt: null,
       },
     });
   }
@@ -109,6 +134,7 @@ export class WebhookDeliveryRepository extends BaseRepository {
         lastError: error,
         responseStatus,
         nextAttemptAt: null,
+        claimedAt: null,
       },
     });
   }
@@ -128,6 +154,7 @@ export class WebhookDeliveryRepository extends BaseRepository {
         lastError: error,
         responseStatus,
         nextAttemptAt,
+        claimedAt: null,
       },
     });
   }
@@ -142,6 +169,7 @@ export class WebhookDeliveryRepository extends BaseRepository {
         responseStatus: null,
         lastError: null,
         deliveredAt: null,
+        claimedAt: null,
       },
     });
   }

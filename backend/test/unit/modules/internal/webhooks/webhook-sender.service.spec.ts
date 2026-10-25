@@ -35,6 +35,7 @@ describe('WebhookSender', () => {
     nextAttemptAt: null,
     responseStatus: null,
     lastError: null,
+    claimedAt: null,
     createdAt: new Date(),
     deliveredAt: null,
   } satisfies WebhookDeliveryRow;
@@ -74,6 +75,32 @@ describe('WebhookSender', () => {
     expect(body).toEqual({
       text: expect.stringContaining('shop / checkout needs review'),
     });
+  });
+
+  it('adds the approval reason and note to the Slack summary', async () => {
+    fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
+    const approved = {
+      ...delivery,
+      event: 'comparison.approved',
+      payload: {
+        event: 'comparison.approved',
+        project: { name: 'shop' },
+        test: { name: 'checkout', kind: 'image' },
+        approvedBy: 'jane',
+        reason: 'FLAKE',
+        note: 'Flaky promo banner',
+        links: {
+          review: 'https://vrt.example.com/projects/shop/tests/checkout',
+        },
+      },
+    } satisfies WebhookDeliveryRow;
+
+    await sender.send({ ...endpoint, format: 'slack' }, approved);
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.text).toContain('was approved');
+    expect(body.text).toContain('[FLAKE]');
+    expect(body.text).toContain('Flaky promo banner');
   });
 
   it('reports a non-2xx response with the response body', async () => {

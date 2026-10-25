@@ -890,8 +890,9 @@ v-html), approval reason/note selection on the single-approve path, reason badge
   structured reason round-trip; frontend tests cover the thread and payload.
 
 **Known limitation.** Mentions, comment editing/deletion, image pins and
-unread/in-app notifications are v2; comments are not yet retention-bounded and
-survive test deletion as orphan rows. Decision: ADR-040.
+unread/in-app notifications are v2; comments beyond the newest 200 need cursor
+pagination. Test/project deletion removes comments/votes and a bounded task
+cleans orphans (ADR-042). Decision: ADR-040/042.
 
 **Size.** M · depends on R9.
 

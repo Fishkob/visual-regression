@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, toRef } from "vue";
+import { computed, ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { ChevronDown, ChevronRight } from "@lucide/vue";
 import AsyncState from "@/components/AsyncState.vue";
@@ -18,7 +18,13 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const expanded = ref(true);
+// A thread without comments opens collapsed: the panel sits below the diff, so
+// an empty composer must not eat the reviewer's scroll. The first non-empty
+// result expands it once; after the reviewer toggles, their choice wins. A
+// reload that happens to answer empty does not collapse an open thread, so
+// switching threads cannot flicker the section shut.
+const expanded = ref(false);
+const userToggled = ref(false);
 const onlyComparison = ref(false);
 const body = ref("");
 
@@ -38,6 +44,20 @@ const {
 );
 
 const list = computed(() => comments.value ?? []);
+
+watch(
+  list,
+  (thread) => {
+    if (!userToggled.value && thread.length > 0) expanded.value = true;
+  },
+  { immediate: true },
+);
+
+function toggle() {
+  userToggled.value = true;
+  expanded.value = !expanded.value;
+}
+
 const trimmed = computed(() => body.value.trim());
 const tooLong = computed(() => trimmed.value.length > COMMENT_MAX_LENGTH);
 const invalid = computed(() => trimmed.value.length === 0 || tooLong.value);
@@ -69,7 +89,7 @@ function submit() {
       class="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-semibold"
       :aria-expanded="expanded"
       :data-testid="TEST_ID.commentsToggle"
-      @click="expanded = !expanded"
+      @click="toggle"
     >
       <ChevronDown v-if="expanded" class="h-4 w-4" />
       <ChevronRight v-else class="h-4 w-4" />

@@ -32,11 +32,13 @@ export const pendingTestQueryKeys = {
   lists: () => [...pendingTestQueryKeys.all(), "list"] as const,
   // The branch part is appended only when one is selected, so the
   // project-default read keeps its stable key while a branch-scoped read gets
-  // its own cache entry (and lists() prefix-matches both).
-  list: (projectName: string, branchName?: string) =>
+  // its own cache entry (and lists() prefix-matches both). The assigned-only
+  // scope is its own read too: it walks a subset of the branch's pending tests.
+  list: (projectName: string, branchName?: string, assignedToMe = false) =>
     [
       ...pendingTestQueryKeys.lists(),
       projectName,
       ...(branchName ? [branchName] : []),
+      ...(assignedToMe ? ["assigned-to-me"] : []),
     ] as const,
 } as const;

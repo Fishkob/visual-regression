@@ -21,6 +21,7 @@ function successMessage(result: BulkApproveResultDto): string {
     return tm("approval.pendingToast", {
       votes: pending.votes,
       required: pending.required,
+      count: Math.max(0, pending.required - pending.votes),
     });
   }
   if (result.pending.length > 0) {

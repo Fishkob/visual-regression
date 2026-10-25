@@ -60,7 +60,7 @@ A project-scoped outbound notification target: URL, signing secret, subscribed e
 _Avoid_: Hook, integration, notification channel
 
 **WebhookDelivery**:
-One outbox row per event × endpoint. Written in the same transaction as the domain change where one exists, claimed by the worker's dispatcher, retried with backoff, delivered at-least-once and deduplicated by `X-VRT-Delivery-Id`.
+One outbox row per event × endpoint. Written in the same transaction as the domain change where one exists, claimed by the worker's dispatcher, retried with backoff, delivered at-least-once and deduplicated by `X-VRT-Delivery-Id`. Claims carry `claimedAt`; a row stuck in PROCESSING for more than 10 minutes is returned to PENDING and redelivered.
 _Avoid_: Webhook job, message, notification
 
 **AuditEvent**:
@@ -70,6 +70,10 @@ _Avoid_: Log entry, history row
 **Role**:
 The global permission level of a user: `ADMIN` (users, API keys, webhooks, audit, project/branch deletion, review policy and pixel thresholds), `MEMBER` (uploads, approvals, restores, assignments, comments, test/variant deletion) or `VIEWER` (read-only). API keys act as `MEMBER` until R11 scopes exist. A temporary password (`mustChangePassword`) only unlocks `/auth/*` until changed.
 _Avoid_: Permission, scope, group membership
+
+**ReviewComment**:
+A plain-text discussion entry on a test, optionally anchored to a comparison. Threads resolve instead of deleting; the read returns the newest 200 (oldest→newest for display). Test/project deletion removes the comments in the same transaction, and a bounded maintenance task cleans historical orphans.
+_Avoid_: Note, annotation, message
 
 **ReviewAssignment**:
 A review work item: project/branch plus a test or run, an assigned active user, an optional due date and a completion timestamp. Creation and completion require a browser session; the inbox can filter to "my reviews". Overdue is derived from the due date, not stored.

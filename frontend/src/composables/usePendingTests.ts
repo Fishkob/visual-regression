@@ -12,20 +12,28 @@ import {
 } from "@/composables/useDomainQuery";
 
 // Fetches the complete pending list for a project (optionally scoped to one
-// branch), paging past the first page. The review session walks every pending
-// test, so a truncated page would silently end the pass at the /done page with
-// tests still awaiting review.
+// branch and to the reviewer's own assignments), paging past the first page. The
+// review session walks every pending test, so a truncated page would silently
+// end the pass at the /done page with tests still awaiting review. The
+// assigned-only scope must reach the server: a pass started from "My reviews"
+// walks that subset and nothing else.
 export function usePendingTestsQuery(
   projectName: MaybeRef<string>,
   branchName: MaybeRef<string | undefined> = undefined,
   enabled: MaybeRef<boolean> = true,
+  assignedToMe: MaybeRef<boolean> = false,
 ) {
   const nameRef = computed(() => unref(projectName));
   const branchRef = computed(() => unref(branchName));
+  const assignedRef = computed(() => unref(assignedToMe));
   return usePaginatedListQuery<PendingTestDto, PendingTest>({
     queryKey: computed(() =>
       nameRef.value
-        ? pendingTestQueryKeys.list(nameRef.value, branchRef.value)
+        ? pendingTestQueryKeys.list(
+            nameRef.value,
+            branchRef.value,
+            assignedRef.value,
+          )
         : [],
     ),
     enabled,
@@ -36,6 +44,7 @@ export function usePendingTestsQuery(
           skip,
           take,
           ...(branchRef.value ? { branch: branchRef.value } : {}),
+          ...(assignedRef.value ? { assignedToMe: true } : {}),
         },
       }),
     map: mapPendingTests,
@@ -46,17 +55,18 @@ export function usePendingTestsQuery(
 // transaction. The review session removes the approved/skipped test from the
 // pending cache optimistically; it does so through this seam instead of
 // hand-rolling the cancel/get/set/rollback pairing on a query it does not own.
-// The branch is part of the targeted key so a branch-scoped pass never mutates
-// the default branch's cache. Returns a `restore` closure that replays the
-// pre-removal snapshot, so the caller never touches the previous/keys artifacts
-// themselves.
+// The branch and the assigned-only scope are part of the targeted key so a
+// scoped pass never mutates another scope's cache. Returns a `restore` closure
+// that replays the pre-removal snapshot, so the caller never touches the
+// previous/keys artifacts themselves.
 export async function withPendingTestRemoved(
   client: QueryClient,
   projectName: string,
   branchName: string | undefined,
   currentKey: string,
+  assignedToMe = false,
 ): Promise<{ restore: () => void }> {
-  const keys = pendingTestQueryKeys.list(projectName, branchName);
+  const keys = pendingTestQueryKeys.list(projectName, branchName, assignedToMe);
   await client.cancelQueries({ queryKey: keys });
   const previous = client.getQueryData<PendingTest[]>(keys);
   client.setQueryData<PendingTest[]>(keys, (old) =>

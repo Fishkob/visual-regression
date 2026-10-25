@@ -235,6 +235,30 @@ describe("useTestNavigation", () => {
         state: REVIEW_LOOP_NAV_STATE,
       });
     });
+
+    it("keeps my reviews scoped for the whole pass", () => {
+      mockRoute.query = { assignedToMe: "1" };
+      const { navigateToNextTest } = useTestNavigation(createOptions());
+
+      navigateToNextTest({
+        name: "signup-form",
+        viewport: "1280x720",
+        browser: "firefox",
+        environment: "staging",
+      });
+
+      expect(mockPush).toHaveBeenCalledWith({
+        name: "test-detail",
+        params: { projectName: "test-project", testName: "signup-form" },
+        query: {
+          viewport: "1280x720",
+          browser: "firefox",
+          environment: "staging",
+          assignedToMe: "1",
+        },
+        state: REVIEW_LOOP_NAV_STATE,
+      });
+    });
   });
 
   describe("navigateToInbox (return from an inbox-started pass)", () => {
@@ -274,6 +298,18 @@ describe("useTestNavigation", () => {
           kind: "pdf",
           group: "group-1",
         },
+      });
+    });
+
+    it("restores my reviews after a pass that started from it", () => {
+      mockRoute.query = { assignedToMe: "1" };
+      const { navigateToInbox } = useTestNavigation(createOptions());
+
+      navigateToInbox();
+
+      expect(mockPush).toHaveBeenCalledWith({
+        name: "review-inbox",
+        query: { assignedToMe: "1" },
       });
     });
   });

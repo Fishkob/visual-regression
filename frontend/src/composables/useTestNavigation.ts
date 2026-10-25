@@ -25,15 +25,20 @@ export function useTestNavigation(options: TestNavigationOptions) {
     branchName?.value ? { branch: branchName.value } : {};
 
   // Only strings are a usable scope: a repeated/array query parameter means the
-  // URL was hand-written, not produced by the inbox filters.
+  // URL was hand-written, not produced by the inbox filters. "My reviews" keeps
+  // its own key on the detail route (it scopes the pending list), so the loop
+  // and the way back carry it unchanged.
   function inboxScopeQuery() {
     const scope: Record<string, string> = {};
-    const { inboxKind, inboxGroup } = route.query;
+    const { inboxKind, inboxGroup, assignedToMe } = route.query;
     if (typeof inboxKind === "string" && inboxKind) {
       scope.inboxKind = inboxKind;
     }
     if (typeof inboxGroup === "string" && inboxGroup) {
       scope.inboxGroup = inboxGroup;
+    }
+    if (assignedToMe === "1") {
+      scope.assignedToMe = "1";
     }
     return scope;
   }
@@ -92,6 +97,7 @@ export function useTestNavigation(options: TestNavigationOptions) {
       ...(branchName?.value ? { branch: branchName.value } : {}),
       ...(scope.inboxKind ? { kind: scope.inboxKind } : {}),
       ...(scope.inboxGroup ? { group: scope.inboxGroup } : {}),
+      ...(scope.assignedToMe ? { assignedToMe: scope.assignedToMe } : {}),
     };
     router.push({
       name: "review-inbox",
