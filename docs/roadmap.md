@@ -54,7 +54,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R8  | Reporting & exports                      | 3     | M–L  | R6 · ADR-033                  | Shipped     |
 | R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Shipped     |
 | R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9 · ADR-034                  | Shipped     |
-| R11 | API key scopes & ownership               | 4     | S–M  | R9                            | Planned     |
+| R11 | API key scopes & ownership               | 4     | S–M  | R9 · ADR-035                  | Shipped     |
 | R12 | Bulk actions                             | 5     | M    | —                             | Planned     |
 | R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 (actor), R8 (outcomes)     | Planned     |
 | R14 | Search & discovery                       | 5     | M    | —                             | Planned     |
@@ -632,10 +632,18 @@ every project. Rotation exists, but least privilege does not.
 
 **Acceptance.**
 
-- [ ] Upload-only key gets `403` on approve/list
-- [ ] Project-scoped key cannot read another project
-- [ ] Existing keys migrate to `admin` scope (backward compatible)
-- [ ] Rotation preserves scopes
+- [x] Upload-only key gets `403` on approve/list
+- [x] Project-scoped key cannot read another project
+- [x] Existing keys keep their previous capabilities (upload/read/approve; **not**
+      admin — promoting them would be a privilege increase)
+- [x] Rotation preserves scopes
+
+**Verification.** `api-key-scopes.e2e-spec.ts` covers the upload-only default,
+project allowlist, read/upload separation, rotation inheritance and admin-scope
+deletion. Guard unit tests cover the scope-to-path mapping, the named missing
+scope, allowlist confinement and global-read denial. The create dialog/list are
+covered by frontend tests (default upload, restricted projects, owner/scope/
+project badges). Decision: ADR-035.
 
 **Size / dependencies.** S–M · depends on R9.
 

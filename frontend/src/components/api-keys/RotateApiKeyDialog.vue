@@ -115,6 +115,11 @@ function submit() {
     </label>
 
     <p class="text-sm text-muted-foreground">
+      The new key inherits this key's scopes, project allowlist and owner —
+      rotation only changes the secret and its lifetime.
+    </p>
+
+    <p class="text-sm text-muted-foreground">
       {{
         graceMinutes > 0
           ? "Update the CI secret before the grace window ends — the old key stops working afterwards."

@@ -20,6 +20,20 @@ async function mockApiKeysBackend(
     const isCreate = route.request().method() === "POST";
     return route.fulfill(isCreate ? CREATED_API_KEY_RESPONSE : list);
   });
+  // The create dialog's project allowlist picker reads the project list when it
+  // opens; the mock keeps that request off the Vite proxy.
+  await page.route("**/api/v1/projects/pending*", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        data: [
+          { id: "p1", name: "checkout-ui" },
+          { id: "p2", name: "admin-ui" },
+        ],
+      }),
+    }),
+  );
   await page.route(`**${API_KEYS_PATH}/*/rotate`, (route) =>
     route.fulfill(ROTATED_API_KEY_RESPONSE),
   );
@@ -119,7 +133,11 @@ test.describe("API keys", () => {
     await submit.click();
 
     const body = JSON.parse((await request).postData() ?? "{}");
-    expect(body).toEqual({ name: "nightly" });
+    expect(body).toEqual({
+      name: "nightly",
+      scopes: ["upload"],
+      projectNames: [],
+    });
 
     await expect(page.getByTestId(TEST_ID.apiKeyReveal)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.apiKeyRevealValue)).toHaveText(

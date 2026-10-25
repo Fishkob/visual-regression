@@ -6,6 +6,10 @@ const apiKeyDto = (overrides: Partial<ApiKeyDto> = {}): ApiKeyDto => ({
   id: "k1",
   name: "ci-upload",
   keyHint: "7f3a",
+  ownerId: "u-1",
+  ownerUsername: "alice",
+  scopes: ["upload", "read"],
+  projectNames: ["checkout-ui"],
   createdBy: "alice",
   createdAt: "2026-10-20T10:00:00.000Z",
   lastUsedAt: null,
@@ -23,6 +27,9 @@ describe("api key mapper", () => {
       id: "k1",
       name: "ci-upload",
       keyHint: "7f3a",
+      ownerUsername: "alice",
+      scopes: ["upload", "read"],
+      projectNames: ["checkout-ui"],
       createdBy: "alice",
       createdAt: "2026-10-20T10:00:00.000Z",
       lastUsedAt: null,
@@ -49,6 +56,32 @@ describe("api key mapper", () => {
     expect(mapped.replacedById).toBe("k2");
   });
 
+  it("defaults a key with no scopes to upload-only and no allowlist", () => {
+    const mapped = mapApiKey(
+      apiKeyDto({
+        ownerUsername: null,
+        scopes: [],
+        projectNames: undefined as unknown as string[],
+      }),
+    );
+
+    expect(mapped.ownerUsername).toBeNull();
+    expect(mapped.scopes).toEqual(["upload"]);
+    expect(mapped.projectNames).toEqual([]);
+  });
+
+  it("drops unknown scopes and duplicate project names", () => {
+    const mapped = mapApiKey(
+      apiKeyDto({
+        scopes: ["upload", "superuser", "read", "upload"] as never,
+        projectNames: ["checkout-ui", "", "checkout-ui", "admin-ui"],
+      }),
+    );
+
+    expect(mapped.scopes).toEqual(["upload", "read"]);
+    expect(mapped.projectNames).toEqual(["checkout-ui", "admin-ui"]);
+  });
+
   it("tolerates missing optional columns", () => {
     const mapped = mapApiKey(
       apiKeyDto({
@@ -73,6 +106,8 @@ describe("api key mapper", () => {
       name: "ci-upload",
       rawKey: "raw-secret",
       keyHint: "7f3a",
+      scopes: ["upload"],
+      projectNames: [],
       expiresAt: null,
     };
 
@@ -81,6 +116,8 @@ describe("api key mapper", () => {
       name: "ci-upload",
       rawKey: "raw-secret",
       keyHint: "7f3a",
+      scopes: ["upload"],
+      projectNames: [],
       expiresAt: null,
     });
   });

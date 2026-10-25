@@ -11,6 +11,7 @@ import { mapIssuedApiKey } from "@/domains/api-keys/api-key.mapper";
 import {
   API_KEY_STATUS_LABEL,
   type ApiKey,
+  type CreateApiKeyInput,
   type IssuedApiKey,
 } from "@/domains/api-keys/api-key.model";
 import { formatRelativeAge } from "@/lib/format-date";
@@ -78,7 +79,7 @@ function openCreate() {
   createOpen.value = true;
 }
 
-function submitCreate(payload: { name: string; expiresInDays?: number }) {
+function submitCreate(payload: CreateApiKeyInput) {
   createKey.mutate(payload, {
     onSuccess: (issued) => {
       revealKey.value = mapIssuedApiKey(issued);
@@ -160,6 +161,12 @@ function confirmDelete() {
       deleteTarget.value = null;
     },
   });
+}
+
+// The owner is the account the key belongs to; createdBy is the legacy actor
+// field from before ownership existed, so it is the fallback.
+function ownerLabel(key: ApiKey): string {
+  return key.ownerUsername ?? key.createdBy ?? "—";
 }
 
 function describeUsage(key: ApiKey): string {
@@ -248,12 +255,49 @@ function describeExpiry(key: ApiKey): string | null {
                 …{{ key.keyHint }}
               </code>
             </div>
+            <div
+              class="mt-1 flex flex-wrap items-center gap-1"
+              :data-testid="TEST_ID.apiKeyScopes"
+            >
+              <Badge
+                v-for="scope in key.scopes"
+                :key="scope"
+                variant="secondary"
+                class="font-mono text-[10px]"
+              >
+                {{ scope }}
+              </Badge>
+            </div>
+
+            <div
+              class="mt-1 flex flex-wrap items-center gap-1"
+              :data-testid="TEST_ID.apiKeyProjects"
+            >
+              <Badge
+                v-if="key.projectNames.length === 0"
+                variant="outline"
+                class="text-[10px]"
+              >
+                All projects
+              </Badge>
+              <Badge
+                v-for="projectName in key.projectNames"
+                :key="projectName"
+                variant="outline"
+                class="font-mono text-[10px]"
+              >
+                {{ projectName }}
+              </Badge>
+            </div>
+
             <p
               class="mt-1 flex flex-wrap gap-x-2 text-sm text-muted-foreground"
               :data-testid="TEST_ID.apiKeyLastUsed"
             >
-              <span>{{ describeUsage(key) }}</span>
-              <span v-if="key.createdBy">· by {{ key.createdBy }}</span>
+              <span :data-testid="TEST_ID.apiKeyOwner">
+                Owner {{ ownerLabel(key) }}
+              </span>
+              <span>· {{ describeUsage(key) }}</span>
               <span v-if="describeExpiry(key)">
                 · {{ describeExpiry(key) }}
               </span>

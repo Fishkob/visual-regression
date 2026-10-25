@@ -20,6 +20,8 @@ export interface ProjectDetailQuery {
 
 export const projectQueryKeys = {
   all: () => ["projects"] as const,
+  // The unpaginated list used by pickers (e.g. an API key's project allowlist).
+  allProjects: () => [...projectQueryKeys.all(), "all"] as const,
   // The filter/page object is part of the key so navigating a page or changing
   // a filter fetches its own page instead of reusing the previous result.
   // Omitting the query yields the list prefix, which invalidates every page.

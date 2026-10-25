@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, toRef, watch } from "vue";
 import { Input } from "@/components/ui/input";
 import FormDialog from "@/components/FormDialog.vue";
 import {
@@ -9,6 +9,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAllProjectsQuery } from "@/composables/useProjects";
+import {
+  API_KEY_SCOPES,
+  API_KEY_SCOPE_DESCRIPTION,
+  DEFAULT_API_KEY_SCOPES,
+  type ApiKeyScope,
+} from "@/domains/api-keys/api-key.model";
 import { sdkErrorMessage } from "@/lib/sdk";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -20,7 +27,15 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
-  (e: "submit", payload: { name: string; expiresInDays?: number }): void;
+  (
+    e: "submit",
+    payload: {
+      name: string;
+      expiresInDays?: number;
+      scopes: ApiKeyScope[];
+      projectNames: string[];
+    },
+  ): void;
 }>();
 
 const EXPIRY_OPTIONS = [
@@ -32,8 +47,56 @@ const EXPIRY_OPTIONS = [
 
 const name = ref("");
 const expiry = ref("never");
+// Upload-only is the default; every extra scope is an explicit grant.
+const scopes = ref<ApiKeyScope[]>([...DEFAULT_API_KEY_SCOPES]);
+const allProjects = ref(true);
+const selectedProjects = ref<string[]>([]);
+const projectNamesInput = ref("");
 
-const invalid = computed(() => !name.value.trim());
+// The allowlist needs every project name, not one page, so it reads the
+// unpaginated list. When that list is empty (nothing created yet, or the read
+// failed) the field falls back to a comma-separated input.
+// Only fetched once the dialog opens: the allowlist picker is the only consumer,
+// and a closed dialog must not spend a request per page view.
+const { data: projectsData, isLoading: projectsLoading } = useAllProjectsQuery(
+  toRef(props, "open"),
+);
+
+const projectOptions = computed(() =>
+  (projectsData.value ?? [])
+    .map((project) => project.name)
+    .filter((projectName): projectName is string => !!projectName),
+);
+
+function parseProjectNames(value: string): string[] {
+  return [
+    ...new Set(
+      value
+        .split(/[\n,]/)
+        .map((projectName) => projectName.trim())
+        .filter((projectName) => projectName.length > 0),
+    ),
+  ];
+}
+
+const needsProjectInput = computed(
+  () => !projectsLoading.value && projectOptions.value.length === 0,
+);
+
+const restrictedProjectNames = computed(() =>
+  needsProjectInput.value
+    ? parseProjectNames(projectNamesInput.value)
+    : selectedProjects.value,
+);
+
+const noScopes = computed(() => scopes.value.length === 0);
+const noProjects = computed(
+  () => !allProjects.value && restrictedProjectNames.value.length === 0,
+);
+const invalid = computed(
+  () => !name.value.trim() || noScopes.value || noProjects.value,
+);
+const showAdminWarning = computed(() => scopes.value.includes("admin"));
 
 watch(
   () => props.open,
@@ -41,6 +104,10 @@ watch(
     if (!open) return;
     name.value = "";
     expiry.value = "never";
+    scopes.value = [...DEFAULT_API_KEY_SCOPES];
+    allProjects.value = true;
+    selectedProjects.value = [];
+    projectNamesInput.value = "";
   },
 );
 
@@ -51,6 +118,8 @@ function submit() {
     ...(expiry.value === "never"
       ? {}
       : { expiresInDays: Number(expiry.value) }),
+    scopes: [...scopes.value],
+    projectNames: allProjects.value ? [] : restrictedProjectNames.value,
   });
 }
 </script>
@@ -72,7 +141,7 @@ function submit() {
       <Input
         v-model="name"
         placeholder="ci-upload"
-        :aria-invalid="invalid"
+        :aria-invalid="!name.trim()"
         :data-testid="TEST_ID.createApiKeyName"
       />
     </label>
@@ -95,9 +164,90 @@ function submit() {
       </Select>
     </label>
 
-    <p v-if="invalid" class="text-sm text-muted-foreground" role="alert">
-      Name is required
-    </p>
+    <fieldset class="space-y-2">
+      <legend class="text-sm">Scopes</legend>
+      <label
+        v-for="scope in API_KEY_SCOPES"
+        :key="scope"
+        class="flex items-start gap-2 text-sm"
+      >
+        <input
+          v-model="scopes"
+          type="checkbox"
+          :value="scope"
+          class="mt-0.5"
+          :data-testid="TEST_ID.apiKeyScope"
+        />
+        <span>
+          <span class="font-mono font-medium">{{ scope }}</span>
+          <span class="block text-xs text-muted-foreground">
+            {{ API_KEY_SCOPE_DESCRIPTION[scope] }}
+          </span>
+        </span>
+      </label>
+      <p v-if="noScopes" class="text-sm text-destructive" role="alert">
+        Select at least one scope.
+      </p>
+      <p
+        v-if="showAdminWarning"
+        class="text-sm text-destructive"
+        role="alert"
+        :data-testid="TEST_ID.apiKeyAdminWarning"
+      >
+        Admin keys can delete projects and manage users — grant only when
+        needed.
+      </p>
+    </fieldset>
+
+    <fieldset class="space-y-2">
+      <legend class="text-sm">Projects</legend>
+      <label class="flex items-center gap-2 text-sm">
+        <input
+          v-model="allProjects"
+          type="checkbox"
+          :data-testid="TEST_ID.apiKeyAllProjects"
+        />
+        <span>All projects</span>
+      </label>
+
+      <template v-if="!allProjects">
+        <p v-if="projectsLoading" class="text-xs text-muted-foreground">
+          Loading projects…
+        </p>
+        <div
+          v-else-if="projectOptions.length > 0"
+          class="grid max-h-48 grid-cols-1 gap-1 overflow-y-auto rounded-md border p-2 sm:grid-cols-2"
+        >
+          <label
+            v-for="project in projectOptions"
+            :key="project"
+            class="flex items-center gap-2 text-sm"
+          >
+            <input
+              v-model="selectedProjects"
+              type="checkbox"
+              :value="project"
+              :data-testid="TEST_ID.apiKeyProject"
+            />
+            <span class="truncate">{{ project }}</span>
+          </label>
+        </div>
+        <div v-else class="space-y-1">
+          <p class="text-xs text-muted-foreground">
+            No project list is available — type the project names.
+          </p>
+          <Input
+            v-model="projectNamesInput"
+            placeholder="checkout-ui, admin-ui"
+            :data-testid="TEST_ID.apiKeyProjectNames"
+          />
+        </div>
+        <p v-if="noProjects" class="text-sm text-destructive" role="alert">
+          Select at least one project, or allow all projects.
+        </p>
+      </template>
+    </fieldset>
+
     <p v-if="error" class="text-sm text-destructive" role="alert">
       {{ sdkErrorMessage(error, "Could not create API key") }}
     </p>

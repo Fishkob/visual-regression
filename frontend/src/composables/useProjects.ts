@@ -15,6 +15,7 @@ import {
 import { PROJECT_DETAIL_PAGE_SIZE, PROJECTS_PAGE_SIZE } from "@/lib/pagination";
 import {
   usePagedListQuery,
+  usePaginatedListQuery,
   useSdkQuery,
   type MaybeRef,
 } from "@/composables/useDomainQuery";
@@ -82,5 +83,18 @@ export function useProjectDetailQuery(
       if (!data) throw new Error("Project not found");
       return mapProject(data);
     },
+  });
+}
+
+// Every project, for pickers that cannot paginate — an API key's project
+// allowlist must offer all of them, not just the first page. The project list is
+// small, so one fetch-all read is acceptable here.
+export function useAllProjectsQuery(enabled: MaybeRef<boolean> = true) {
+  return usePaginatedListQuery<ProjectDto, Project>({
+    queryKey: projectQueryKeys.allProjects(),
+    enabled,
+    fetchPage: (skip, take) =>
+      projectsControllerGetProjectsWithPendingFlag({ query: { skip, take } }),
+    map: (dtos) => mapProjects(dtos),
   });
 }

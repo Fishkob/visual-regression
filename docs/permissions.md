@@ -17,9 +17,12 @@ authentication guard (ADR-031); the UI mirrors it by hiding controls.
 
 Notes:
 
-- **API keys** authenticate as `MEMBER` until R11 adds key scopes. A key can
-  upload and read, but cannot administer users, keys, webhooks, audit or
-  project/branch deletion.
+- **API keys** have their own scopes, never the owner's role. Default is
+  `upload` (upload + own job status); `read`, `approve` and `admin` are opt-in.
+  An optional project allowlist confines the key to those project routes.
+  `admin` grants project/branch deletion and other writes but `@SessionOnly`
+  still blocks users, API keys, webhooks and audit. Existing keys keep their
+  previous upload/read/approve capabilities.
 - **VIEWER** is read-only globally: every non-GET request returns `403`, with
   the exception of `/auth/logout` and `/auth/change-password`.
 - **Temporary password**: `mustChangePassword` blocks every route except
