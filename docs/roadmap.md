@@ -56,7 +56,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9 · ADR-034                  | Shipped     |
 | R11 | API key scopes & ownership               | 4     | S–M  | R9 · ADR-035                  | Shipped     |
 | R12 | Bulk actions                             | 5     | M    | R9 (role gate)                | Shipped     |
-| R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 (actor), R8 (outcomes)     | Planned     |
+| R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 · R8 · ADR-036             | Shipped     |
 | R14 | Search & discovery                       | 5     | M    | —                             | Planned     |
 | R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Planned     |
 | R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Planned     |
@@ -687,6 +687,19 @@ tags/description with filters; mute/quarantine per test/variant with reason and
 expiry (excluded from inbox, CI action reports it, status shows muted); flake
 detection over the outcome history from R8 — start with oscillation counters, not
 ML.
+
+**Delivered.** Test rename/description/tags, test-level mute with reason/expiry
+(hidden from the inbox and from the CI gate via `mutedPending`), a 30-day
+oscillation flake signal, inbox tag filter, and a project-rename API with audit
+(no UI yet; test-rename UI exists). Variant-specific mute is deferred — mute is
+per test, so it covers every variant.
+
+**Verification.** `test-lifecycle.e2e-spec.ts` covers rename/tags/mute/unmute,
+rename collisions, muted inbox exclusion and un-mute visibility, project rename,
+and the flake signal. Service tests cover normalization, mute validation and
+audit; frontend tests cover the edit dialog, rename navigation, mute/unmute,
+badges and the inbox tag filter. `run.status.mutedPending` is reported by the
+action and shown in the run detail.
 
 **Size.** M–L (rename/tags/mute); flake separate L · depends on R9 (actor), R8
 (outcomes).

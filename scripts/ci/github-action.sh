@@ -130,7 +130,7 @@ write_summary() {
     fi
     if [ -n "$run_state" ]; then
       printf "| State | \`%s\` |\n" "$run_state"
-      printf "| Pending comparisons | %s |\n" "$run_pending"
+      printf "| Pending comparisons | %s (%s muted) |\n" "$run_pending" "$run_muted"
       printf "| Pending jobs | %s |\n" "$run_pending_jobs"
       printf "| Failed jobs | %s |\n" "$run_failed"
       printf "| Approved | %s |\n" "$run_approved"
@@ -166,6 +166,8 @@ parse_run_status() {
     fail "Run status returned invalid JSON."
   [ -n "$run_state" ] || fail "Run status response has no state."
   run_pending=$(jq -r '.status.pendingComparisons // 0' <<<"$response") ||
+    fail "Run status returned invalid JSON."
+  run_muted=$(jq -r '.status.mutedPending // 0' <<<"$response") ||
     fail "Run status returned invalid JSON."
   run_pending_jobs=$(jq -r '.status.pendingJobs // 0' <<<"$response") ||
     fail "Run status returned invalid JSON."
@@ -273,9 +275,9 @@ run_gate() {
       write_summary
       if [ "$FAIL_ON_PENDING" = "true" ]; then
         if [ "$run_pending_jobs" -gt 0 ]; then
-          fail "Run '$RUN_KEY' has ${run_pending} comparison(s) awaiting review and ${run_pending_jobs} job(s) still running. Review: $RUN_LINK"
+          fail "Run '$RUN_KEY' has ${run_pending} comparison(s) awaiting review (${run_muted} muted) and ${run_pending_jobs} job(s) still running. Review: $RUN_LINK"
         fi
-        fail "Run '$RUN_KEY' has ${run_pending} comparison(s) awaiting review. Review: $RUN_LINK"
+        fail "Run '$RUN_KEY' has ${run_pending} comparison(s) awaiting review (${run_muted} muted). Review: $RUN_LINK"
       fi
       echo "::warning::Run '$RUN_KEY' still has pending work, but fail-on-pending is false. Review: $RUN_LINK"
       ;;

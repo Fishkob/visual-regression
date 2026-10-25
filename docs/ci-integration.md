@@ -184,7 +184,7 @@ Run states and exit codes:
 
 `wait-seconds` therefore bounds both waits; a run that is still `open` at the deadline fails with the run link instead of passing silently. When `finish-run` is `false` the step never closes the run, so an `open` run at the deadline fails with an explanation (set `finish-run: "true"` or finish the run separately).
 
-Run-mode outputs are `run-key`, `run-state` and `run-pending-count` (comparisons awaiting review, i.e. `status.pendingComparisons`), in addition to the single-upload outputs. If a queued job did not reach a terminal state before the budget, `status` stays `comparison_queued` and the run status decides. The action also appends a markdown block with the run key, state and counts to `GITHUB_STEP_SUMMARY`, and failure messages link to the run detail page:
+Run-mode outputs are `run-key`, `run-state` and `run-pending-count` (comparisons awaiting review, i.e. `status.pendingComparisons`), in addition to the single-upload outputs. `status.mutedPending` is the subset belonging to muted/quarantined tests; those do not hold the run gate, and the step summary shows the count. If a queued job did not reach a terminal state before the budget, `status` stays `comparison_queued` and the run status decides. The action also appends a markdown block with the run key, state and counts to `GITHUB_STEP_SUMMARY`, and failure messages link to the run detail page:
 
 ```
 https://vrt.example.com/projects/checkout/runs/12345?branch=feature%2Fx
