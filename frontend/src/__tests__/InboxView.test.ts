@@ -148,6 +148,56 @@ describe("InboxView run filter", () => {
     expect(mockReplace).toHaveBeenCalledWith({ query: {} });
   });
 
+  it("sends the tag filter to the server and returns to the first page", async () => {
+    routeState.route!.query = { page: "2" };
+
+    const wrapper = mountView();
+    await waitForItems(wrapper, 1);
+    expect(lastPendingQuery().query).toEqual({ skip: 50, take: 50 });
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.inboxTagFilter}"]`)
+      .setValue("Smoke");
+
+    await vi.waitFor(() =>
+      expect(lastPendingQuery().query).toEqual({
+        skip: 0,
+        take: 50,
+        tag: "smoke",
+      }),
+    );
+    expect(mockReplace).toHaveBeenCalledWith({ query: {} });
+  });
+
+  it("combines the tag filter with the other filters", async () => {
+    const wrapper = mountView();
+    await waitForItems(wrapper, 1);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.inboxTagFilter}"]`)
+      .setValue("critical");
+    await vi.waitFor(() =>
+      expect(lastPendingQuery().query).toEqual({
+        skip: 0,
+        take: 50,
+        tag: "critical",
+      }),
+    );
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.inboxRunFilter}"]`)
+      .setValue("ci-7");
+
+    await vi.waitFor(() =>
+      expect(lastPendingQuery().query).toEqual({
+        skip: 0,
+        take: 50,
+        runKey: "ci-7",
+        tag: "critical",
+      }),
+    );
+  });
+
   it("shows the run badge only on grouped rows", async () => {
     mockPending.mockResolvedValue(
       pageOf([

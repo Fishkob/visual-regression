@@ -12,6 +12,7 @@ import { approvalQueryKeys } from "@/domains/approvals/query-keys";
 import { baselineHistoryQueryKeys } from "@/domains/baseline-history/query-keys";
 import { webhookQueryKeys } from "@/domains/webhooks/query-keys";
 import { runsQueryKeys } from "@/domains/runs/query-keys";
+import { testMetadataQueryKeys } from "@/domains/test-lifecycle/query-keys";
 import type { TestDetailsArgs } from "@/lib/variant-key";
 
 export function invalidateProjectDetail(
@@ -175,4 +176,17 @@ export function invalidateAfterBulkMove(client: QueryClient) {
   client.invalidateQueries({ queryKey: projectQueryKeys.all() });
   client.invalidateQueries({ queryKey: groupQueryKeys.all() });
   invalidateReviewInbox(client);
+}
+
+// Renaming, re-tagging or muting a test changes the test's metadata, the inbox
+// rows (muted tests leave the queue) and the project/branch counts that mirror
+// the pending set. The metadata read itself is refreshed through the same
+// fan-out; the test-name routes re-fetch under their new key after navigation.
+export function invalidateAfterTestMetadataChange(client: QueryClient) {
+  client.invalidateQueries({ queryKey: testMetadataQueryKeys.all() });
+  client.invalidateQueries({ queryKey: reviewInboxQueryKeys.all() });
+  client.invalidateQueries({ queryKey: pendingTestQueryKeys.all() });
+  client.invalidateQueries({ queryKey: projectQueryKeys.all() });
+  client.invalidateQueries({ queryKey: projectQueryKeys.withPending() });
+  client.invalidateQueries({ queryKey: branchQueryKeys.all() });
 }

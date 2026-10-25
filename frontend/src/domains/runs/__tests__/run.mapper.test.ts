@@ -37,6 +37,7 @@ const runDto = (overrides: Partial<RunSource> = {}): RunSource => ({
 const statusDto = (overrides: Partial<RunStatusDto> = {}): RunStatusDto => ({
   state: "pending",
   pendingComparisons: 3,
+  mutedPending: 1,
   pendingJobs: 1,
   failedJobs: 0,
   approved: 2,
@@ -150,6 +151,7 @@ describe("mapRunStatus", () => {
     expect(mapRunStatus(statusDto())).toEqual({
       state: "pending",
       pendingComparisons: 3,
+      mutedPending: 1,
       pendingJobs: 1,
       failedJobs: 0,
       approved: 2,
@@ -161,6 +163,7 @@ describe("mapRunStatus", () => {
     expect(mapRunStatus(undefined)).toEqual({
       state: "open",
       pendingComparisons: 0,
+      mutedPending: 0,
       pendingJobs: 0,
       failedJobs: 0,
       approved: 0,

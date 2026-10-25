@@ -65,6 +65,7 @@ export function shortCommitSha(sha: string | null): string {
 export interface RunStatus {
   state: RunState;
   pendingComparisons: number;
+  mutedPending: number;
   pendingJobs: number;
   failedJobs: number;
   approved: number;

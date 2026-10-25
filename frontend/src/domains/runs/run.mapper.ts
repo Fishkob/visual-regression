@@ -97,6 +97,7 @@ export function mapRunStatus(dto: RunStatusDto | undefined): RunStatus {
   return {
     state: presentRunState(dto?.state),
     pendingComparisons: dto?.pendingComparisons ?? 0,
+    mutedPending: dto?.mutedPending ?? 0,
     pendingJobs: dto?.pendingJobs ?? 0,
     failedJobs: dto?.failedJobs ?? 0,
     approved: dto?.approved ?? 0,

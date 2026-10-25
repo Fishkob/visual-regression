@@ -9,6 +9,8 @@ export interface InboxListQuery {
   // The CI run a pending comparison was uploaded under. Optional: the inbox
   // keeps showing ungrouped uploads when no run filter is set.
   runKey?: string;
+  // A test tag, answered server-side; muted tests never reach the inbox.
+  tag?: string;
 }
 
 export const reviewInboxQueryKeys = {

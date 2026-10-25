@@ -13,6 +13,7 @@ import PdfBaselineView from "@/components/pdf/PdfBaselineView.vue";
 import BaselineHistoryPanel from "@/components/detail-panels/BaselineHistoryPanel.vue";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
+import TestMetadataPanel from "@/components/test-lifecycle/TestMetadataPanel.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import ApprovalBadge from "@/components/ApprovalBadge.vue";
 import BulkApproveButton from "@/components/BulkApproveButton.vue";
@@ -142,6 +143,8 @@ useReviewShortcuts({
       </span>
     </div>
   </div>
+
+  <TestMetadataPanel class="px-6 pb-1" />
 
   <div class="p-6 pt-0">
     <AsyncState

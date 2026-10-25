@@ -135,9 +135,24 @@ watch(runInput, (value) => {
   }, 300);
 });
 
+// The tag filter is answered server-side like the other text filters, so it
+// debounces and resets the page when a new tag is applied.
+const tagInput = ref("");
+const tagFilter = ref("");
+let tagTimer: ReturnType<typeof setTimeout> | undefined;
+
+watch(tagInput, (value) => {
+  if (tagTimer) clearTimeout(tagTimer);
+  tagTimer = setTimeout(() => {
+    tagFilter.value = value.trim().toLowerCase();
+    if (page.value !== 1) page.value = 1;
+  }, 300);
+});
+
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer);
   if (runTimer) clearTimeout(runTimer);
+  if (tagTimer) clearTimeout(tagTimer);
 });
 
 const queryParams = computed<InboxListQuery>(() => ({
@@ -147,6 +162,7 @@ const queryParams = computed<InboxListQuery>(() => ({
   ...(group.value !== FILTER_ALL ? { groupId: group.value } : {}),
   ...(branch.value !== FILTER_ALL ? { branch: branch.value } : {}),
   ...(runFilter.value ? { runKey: runFilter.value } : {}),
+  ...(tagFilter.value ? { tag: tagFilter.value } : {}),
 }));
 
 const { items, sections, total, isLoading, error, refetch } =
@@ -186,7 +202,8 @@ const hasActiveFilters = computed(
     kind.value !== FILTER_ALL ||
     group.value !== FILTER_ALL ||
     branch.value !== FILTER_ALL ||
-    runFilter.value.length > 0,
+    runFilter.value.length > 0 ||
+    tagFilter.value.length > 0,
 );
 
 // Bulk selection is a writer tool: a VIEWER sees the queue and can walk it, but
@@ -350,6 +367,13 @@ function confirmBulkApprove() {
           aria-label="Filter by run key"
           class="w-48 rounded-xl shadow-sm"
           :data-testid="TEST_ID.inboxRunFilter"
+        />
+        <Input
+          v-model="tagInput"
+          placeholder="Filter by tag..."
+          aria-label="Filter by tag"
+          class="w-44 rounded-xl shadow-sm"
+          :data-testid="TEST_ID.inboxTagFilter"
         />
         <Select v-model="kind">
           <SelectTrigger
