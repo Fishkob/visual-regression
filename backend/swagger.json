@@ -6299,13 +6299,10 @@
         "type": "object",
         "properties": {
           "recoveryCodes": {
+            "type": "array",
             "items": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "type": "array"
+              "type": "string"
+            }
           }
         },
         "required": [

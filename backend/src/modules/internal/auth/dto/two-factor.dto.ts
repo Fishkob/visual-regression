@@ -51,7 +51,7 @@ export class TwoFactorSetupDto {
 }
 
 export class RecoveryCodesDto {
-  @ApiProperty({ type: [String], isArray: true })
+  @ApiProperty({ type: String, isArray: true })
   @Expose()
   recoveryCodes!: string[];
 }
