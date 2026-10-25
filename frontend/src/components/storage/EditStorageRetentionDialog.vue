@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import FormDialog from "@/components/FormDialog.vue";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,6 +18,8 @@ const props = defineProps<{
   pending?: boolean;
   error?: unknown;
 }>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
@@ -94,19 +97,19 @@ const soft = computed(() => {
 const errors = computed(() => {
   const problems: string[] = [];
   if (asText(quotaMb.value).trim() && quota.value === null) {
-    problems.push("Quota must be a positive number of MB.");
+    problems.push(t("storageEdit.quotaError"));
   }
   if (asText(baselineLimit.value).trim() && baseline.value === null) {
-    problems.push("Baseline revisions must be a positive whole number.");
+    problems.push(t("storageEdit.baselineError"));
   }
   if (asText(runHistoryDays.value).trim() && runDays.value === null) {
-    problems.push("Run history must be a positive whole number of days.");
+    problems.push(t("storageEdit.runError"));
   }
   if (asText(orphanGraceHours.value).trim() && orphanHours.value === null) {
-    problems.push("Orphan grace must be a positive whole number of hours.");
+    problems.push(t("storageEdit.orphanError"));
   }
   if (soft.value === null) {
-    problems.push("Soft percent must be a whole number between 1 and 100.");
+    problems.push(t("storageEdit.softError"));
   }
   return problems;
 });
@@ -130,9 +133,9 @@ function submit() {
 <template>
   <FormDialog
     :open="open"
-    title="Edit storage retention"
-    description="Retention limits are stored per project. Uploads over a hard quota are rejected; the maintenance tasks currently use the global retention defaults."
-    confirm-text="Save settings"
+    :title="t('storageEdit.title')"
+    :description="t('storageEdit.description')"
+    :confirm-text="t('storageEdit.confirm')"
     :pending="pending"
     :submit-disabled="invalid"
     :confirm-test-id="TEST_ID.storageSave"
@@ -141,59 +144,59 @@ function submit() {
   >
     <div class="space-y-4" :data-testid="TEST_ID.storageEditDialog">
       <label class="block space-y-1 text-sm">
-        <span>Storage quota (MB)</span>
+        <span>{{ t("storageEdit.quotaLabel") }}</span>
         <Input
           v-model="quotaMb"
           type="number"
           min="0"
           step="1"
-          placeholder="No quota"
+          :placeholder="t('storageEdit.noQuotaPlaceholder')"
           :data-testid="TEST_ID.storageQuotaMb"
         />
         <span class="block text-xs text-muted-foreground">
-          Leave empty for no quota; a decimal value is accepted.
+          {{ t("storageEdit.quotaHelp") }}
         </span>
       </label>
 
       <div class="grid gap-3 sm:grid-cols-2">
         <label class="block space-y-1 text-sm">
-          <span>Baseline revisions</span>
+          <span>{{ t("storageEdit.baseline") }}</span>
           <Input
             v-model="baselineLimit"
             type="number"
             min="1"
             step="1"
-            placeholder="Global default"
+            :placeholder="t('storageEdit.globalDefaultPlaceholder')"
             :data-testid="TEST_ID.storageBaselineLimit"
           />
         </label>
 
         <label class="block space-y-1 text-sm">
-          <span>Run history (days)</span>
+          <span>{{ t("storageEdit.runDays") }}</span>
           <Input
             v-model="runHistoryDays"
             type="number"
             min="1"
             step="1"
-            placeholder="Global default"
+            :placeholder="t('storageEdit.globalDefaultPlaceholder')"
             :data-testid="TEST_ID.storageRunDays"
           />
         </label>
 
         <label class="block space-y-1 text-sm">
-          <span>Orphan grace (hours)</span>
+          <span>{{ t("storageEdit.orphan") }}</span>
           <Input
             v-model="orphanGraceHours"
             type="number"
             min="1"
             step="1"
-            placeholder="Global default"
+            :placeholder="t('storageEdit.globalDefaultPlaceholder')"
             :data-testid="TEST_ID.storageOrphanHours"
           />
         </label>
 
         <label class="block space-y-1 text-sm">
-          <span>Soft warning percent</span>
+          <span>{{ t("storageEdit.soft") }}</span>
           <Input
             v-model="softPercent"
             type="number"
@@ -217,7 +220,7 @@ function submit() {
       </ul>
 
       <p v-if="error" class="text-sm text-destructive" role="alert">
-        {{ sdkErrorMessage(error, "Could not save the storage settings") }}
+        {{ sdkErrorMessage(error, t("storageEdit.errorFallback")) }}
       </p>
     </div>
   </FormDialog>

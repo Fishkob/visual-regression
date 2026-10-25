@@ -5,7 +5,7 @@
     <h1 class="text-3xl font-bold">404</h1>
 
     <p class="text-muted-foreground">
-      The page you’re looking for doesn’t exist.
+      {{ t("notFound.message") }}
     </p>
 
     <Button
@@ -13,17 +13,19 @@
       @click="goHome"
       :data-testid="TEST_ID.backToProjectList"
     >
-      Back to project list
+      {{ t("notFound.back") }}
     </Button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { TEST_ID } from "@/lib/test-ids";
 
 const router = useRouter();
+const { t } = useI18n();
 
 function goHome() {
   router.push({ name: "project-list" });

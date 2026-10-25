@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useChangePassword, useLogout } from "@/composables/useAuth";
@@ -7,6 +8,8 @@ import { sdkErrorMessage } from "@/lib/sdk";
 import { TEST_ID } from "@/lib/test-ids";
 
 const MIN_PASSWORD_LENGTH = 8;
+
+const { t } = useI18n();
 
 const currentPassword = ref("");
 const newPassword = ref("");
@@ -34,7 +37,7 @@ const canSubmit = computed(
 );
 const errorText = computed(() =>
   error.value
-    ? sdkErrorMessage(error.value, "Could not change the password")
+    ? sdkErrorMessage(error.value, t("changePassword.errorFallback"))
     : "",
 );
 
@@ -60,18 +63,17 @@ async function submit() {
   >
     <div class="space-y-1">
       <h1 class="text-2xl font-semibold tracking-tight">
-        Choose a new password
+        {{ t("changePassword.title") }}
       </h1>
       <p class="text-sm text-muted-foreground">
-        Your account has a temporary password. Set your own before you continue
-        to the review inbox.
+        {{ t("changePassword.intro") }}
       </p>
     </div>
 
     <form class="space-y-4" @submit.prevent="submit">
       <div class="space-y-1">
         <label for="change-password-current" class="block text-sm">
-          Current password
+          {{ t("changePassword.current") }}
         </label>
         <Input
           id="change-password-current"
@@ -85,7 +87,7 @@ async function submit() {
 
       <div class="space-y-1">
         <label for="change-password-new" class="block text-sm">
-          New password
+          {{ t("changePassword.new") }}
         </label>
         <Input
           id="change-password-new"
@@ -98,13 +100,13 @@ async function submit() {
           class="w-full"
         />
         <p v-if="tooShort" class="text-xs text-destructive" role="alert">
-          Use at least {{ MIN_PASSWORD_LENGTH }} characters.
+          {{ t("changePassword.tooShort", { min: MIN_PASSWORD_LENGTH }) }}
         </p>
       </div>
 
       <div class="space-y-1">
         <label for="change-password-confirm" class="block text-sm">
-          Confirm new password
+          {{ t("changePassword.confirm") }}
         </label>
         <Input
           id="change-password-confirm"
@@ -116,7 +118,7 @@ async function submit() {
           class="w-full"
         />
         <p v-if="mismatch" class="text-xs text-destructive" role="alert">
-          The new passwords do not match.
+          {{ t("changePassword.mismatch") }}
         </p>
       </div>
 
@@ -130,7 +132,9 @@ async function submit() {
         :disabled="!canSubmit || pending"
         :data-testid="TEST_ID.changePasswordSubmit"
       >
-        {{ pending ? "Updating…" : "Update password" }}
+        {{
+          pending ? t("changePassword.updating") : t("changePassword.submit")
+        }}
       </Button>
     </form>
 
@@ -139,7 +143,7 @@ async function submit() {
       class="self-center text-sm text-muted-foreground underline-offset-4 hover:underline"
       @click="logout()"
     >
-      Log out
+      {{ t("changePassword.logout") }}
     </button>
   </div>
 </template>

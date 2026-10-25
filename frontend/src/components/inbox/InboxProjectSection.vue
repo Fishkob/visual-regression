@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const route = useRoute();
+const { t } = useI18n();
 
 function isSelected(comparisonId: string): boolean {
   return props.selectedIds.includes(comparisonId);
@@ -47,16 +49,15 @@ const reviewTotal = computed(() => {
       .length
   );
 });
-const reviewChangeCount = computed(
-  () =>
-    `${reviewTotal.value} ${reviewTotal.value === 1 ? "change" : "changes"}`,
+const reviewChangeCount = computed(() =>
+  t("inbox.reviewCount", reviewTotal.value),
 );
 // Only name the branch when the project spans several — a single-branch project
 // needs no qualifier.
 const reviewScopeLabel = computed(() => {
   const start = reviewStart.value;
   if (!start || (start.projectBranchCount ?? 1) <= 1) return "";
-  return ` on ${start.branchName}`;
+  return t("inbox.reviewScope", { branch: start.branchName });
 });
 
 // The default branch needs no query parameter (same convention as the project
@@ -119,19 +120,29 @@ function startProjectReview() {
       <div>
         <h3 class="font-semibold">{{ section.projectName }}</h3>
         <p class="text-xs text-muted-foreground">
-          {{ reviewChangeCount }} to review{{ reviewScopeLabel }}
+          {{ reviewChangeCount }}{{ reviewScopeLabel }}
         </p>
       </div>
       <Button
         type="button"
         variant="outline"
         size="sm"
-        :aria-label="`Review ${reviewChangeCount}${reviewScopeLabel} in ${section.projectName}`"
+        :aria-label="
+          t('inbox.reviewAria', {
+            count: reviewTotal,
+            scope: reviewScopeLabel,
+            project: section.projectName,
+          })
+        "
         :data-testid="TEST_ID.reviewProjectButton"
         @click="startProjectReview"
       >
-        Review {{ reviewTotal
-        }}<span v-if="reviewScopeLabel">{{ reviewScopeLabel }}</span>
+        {{
+          t("inbox.reviewButton", {
+            count: reviewTotal,
+            scope: reviewScopeLabel,
+          })
+        }}
       </Button>
     </div>
 
@@ -146,7 +157,12 @@ function startProjectReview() {
           type="checkbox"
           class="h-4 w-4 shrink-0"
           :checked="isSelected(item.comparisonId)"
-          :aria-label="`Select ${item.testName} in ${section.projectName}`"
+          :aria-label="
+            t('inbox.ariaSelect', {
+              test: item.testName,
+              project: section.projectName,
+            })
+          "
           :data-testid="TEST_ID.inboxSelectRow"
           @change="emit('toggle', item.comparisonId)"
         />
@@ -159,7 +175,7 @@ function startProjectReview() {
           <div class="min-w-0">
             <p class="truncate font-medium">{{ item.testName }}</p>
             <p class="text-xs text-muted-foreground">
-              {{ formatVariantLabel(item) || "No variant" }}
+              {{ formatVariantLabel(item) || t("inbox.noVariant") }}
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -175,19 +191,23 @@ function startProjectReview() {
               v-if="item.runKey"
               variant="outline"
               class="font-mono text-[10px]"
-              :title="`Run ${item.runKey}`"
+              :title="t('inbox.runTitle', { runKey: item.runKey })"
               :data-testid="TEST_ID.inboxRunBadge"
             >
               {{ item.runKey }}
             </Badge>
             <Badge variant="outline">{{
-              item.kind === "pdf" ? "PDF" : "Image"
+              item.kind === "pdf" ? t("inbox.pdf") : t("inbox.image")
             }}</Badge>
             <Badge variant="destructive">
               {{
                 item.kind === "pdf"
-                  ? `${item.mismatchPageCount ?? 0} pages`
-                  : `${item.mismatchPixelCount} px`
+                  ? t("inbox.mismatchPages", {
+                      count: item.mismatchPageCount ?? 0,
+                    })
+                  : t("inbox.mismatchPixels", {
+                      count: item.mismatchPixelCount,
+                    })
               }}
             </Badge>
             <span class="text-xs text-muted-foreground">{{

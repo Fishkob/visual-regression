@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import FormDialog from "@/components/FormDialog.vue";
 import {
   Select,
@@ -26,6 +27,7 @@ const emit = defineEmits<{
   (e: "submit", payload: { groupId: string | null }): void;
 }>();
 
+const { t } = useI18n();
 const group = ref<string>(NO_GROUP);
 
 watch(
@@ -35,11 +37,8 @@ watch(
   },
 );
 
-const description = computed(
-  () =>
-    `Move ${props.selectedCount} selected ${
-      props.selectedCount === 1 ? "project" : "projects"
-    } to the chosen group. The projects keep their tests and pending reviews.`,
+const description = computed(() =>
+  t("bulkMove.description", props.selectedCount),
 );
 
 function submit() {
@@ -52,16 +51,16 @@ function submit() {
 <template>
   <FormDialog
     :open="open"
-    title="Move projects to a group"
+    :title="t('bulkMove.title')"
     :description="description"
-    confirm-text="Move projects"
+    :confirm-text="t('bulkMove.confirm')"
     :pending="pending"
     :confirm-test-id="TEST_ID.projectBulkMoveConfirm"
     @update:open="emit('update:open', $event)"
     @submit="submit"
   >
     <label class="block space-y-1 text-sm">
-      <span>Group</span>
+      <span>{{ t("bulkMove.group") }}</span>
       <Select v-model="group">
         <SelectTrigger :data-testid="TEST_ID.projectBulkMoveGroup">
           <SelectValue />

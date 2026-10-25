@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
-import { i18n } from "@/i18n";
 import LoginView from "@/views/LoginView.vue";
 import { TEST_ID } from "@/lib/test-ids";
 
 function mountLogin() {
-  return mount(LoginView, { global: { plugins: [i18n] } });
+  return mount(LoginView, { global: { plugins: [] } });
 }
 
 const push = vi.fn();

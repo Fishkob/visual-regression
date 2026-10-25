@@ -8,7 +8,10 @@ export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 const LOCALE_STORAGE_KEY = "vrt-locale-v1";
 
 export function isSupportedLocale(value: unknown): value is SupportedLocale {
-  return typeof value === "string" && (SUPPORTED_LOCALES as readonly string[]).includes(value);
+  return (
+    typeof value === "string" &&
+    (SUPPORTED_LOCALES as readonly string[]).includes(value)
+  );
 }
 
 function initialLocale(): SupportedLocale {

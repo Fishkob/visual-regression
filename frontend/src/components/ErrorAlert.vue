@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { AlertTriangle, XCircle, Info, RefreshCw } from "@lucide/vue";
+import { useI18n } from "vue-i18n";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -10,6 +11,8 @@ defineProps<{
   retry?: boolean;
   onRetry?: () => void;
 }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -38,7 +41,7 @@ defineProps<{
           :data-testid="TEST_ID.retry"
         >
           <RefreshCw class="w-4 h-4" />
-          Try again
+          {{ t("common.retry") }}
         </button>
       </div>
     </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import AsyncState from "@/components/AsyncState.vue";
 import EditStorageRetentionDialog from "@/components/storage/EditStorageRetentionDialog.vue";
 import RetentionPreviewDialog from "@/components/storage/RetentionPreviewDialog.vue";
@@ -14,12 +15,13 @@ import {
 import {
   formatBytes,
   formatPercent,
-  retentionLabel,
   type UpdateProjectStorageInput,
 } from "@/domains/storage/storage.model";
 import { TEST_ID } from "@/lib/test-ids";
 
 const props = defineProps<{ projectName: string }>();
+
+const { t } = useI18n();
 
 const {
   data: storage,
@@ -47,9 +49,18 @@ const dialogOpen = ref(false);
 
 const quotaLabel = computed(() =>
   storage.value?.quotaBytes == null
-    ? "No quota"
+    ? t("storage.noQuota")
     : formatBytes(storage.value.quotaBytes),
 );
+
+function retentionText(
+  value: number | null,
+  key: "revisions" | "days" | "hours",
+): string {
+  return value === null
+    ? t("storage.globalDefault")
+    : t(`storage.${key}`, value);
+}
 const progressPercent = computed(() =>
   Math.min(100, Math.max(0, storage.value?.percent ?? 0)),
 );
@@ -75,10 +86,9 @@ function submit(payload: UpdateProjectStorageInput) {
   >
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h2 class="font-medium">Storage</h2>
+        <h2 class="font-medium">{{ t("storage.title") }}</h2>
         <p class="text-sm text-muted-foreground">
-          Screenshots and diffs stored for this project, its quota and its
-          retention limits.
+          {{ t("storage.description") }}
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -89,7 +99,7 @@ function submit(payload: UpdateProjectStorageInput) {
           :data-testid="TEST_ID.storagePreviewAction"
           @click="previewOpen = true"
         >
-          Preview cleanup
+          {{ t("storage.previewAction") }}
         </Button>
         <Button
           v-if="canWrite && storage"
@@ -99,7 +109,7 @@ function submit(payload: UpdateProjectStorageInput) {
           :data-testid="TEST_ID.storageEditAction"
           @click="openDialog"
         >
-          Edit retention
+          {{ t("storage.editAction") }}
         </Button>
       </div>
     </div>
@@ -107,7 +117,7 @@ function submit(payload: UpdateProjectStorageInput) {
     <AsyncState
       :is-loading="isLoading"
       :error="error"
-      error-title="Failed to load storage usage"
+      :error-title="t('storage.errorTitle')"
       :retry="refetch"
       :empty="!storage"
     >
@@ -121,17 +131,17 @@ function submit(payload: UpdateProjectStorageInput) {
 
       <template #empty>
         <p class="mt-3 text-sm text-muted-foreground">
-          No storage data available for this project yet.
+          {{ t("storage.empty") }}
         </p>
       </template>
 
       <div v-if="storage" class="mt-3 space-y-3">
         <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <p class="text-lg font-semibold" :data-testid="TEST_ID.storageUsage">
-            {{ formatBytes(storage.usageBytes) }} used
+            {{ t("storage.usage", { size: formatBytes(storage.usageBytes) }) }}
           </p>
           <span class="text-sm text-muted-foreground">
-            of
+            {{ t("storage.of") }}
             <span :data-testid="TEST_ID.storageQuota">{{ quotaLabel }}</span>
           </span>
           <span
@@ -145,14 +155,14 @@ function submit(payload: UpdateProjectStorageInput) {
             variant="destructive"
             :data-testid="TEST_ID.storageWarning"
           >
-            Above {{ storage.softPercent }}% of quota
+            {{ t("storage.warning", { percent: storage.softPercent }) }}
           </Badge>
         </div>
 
         <div
           class="h-2 w-full overflow-hidden rounded-full bg-muted"
           role="progressbar"
-          aria-label="Storage usage"
+          :aria-label="t('storage.ariaUsage')"
           aria-valuemin="0"
           aria-valuemax="100"
           :aria-valuenow="progressPercent"
@@ -166,30 +176,27 @@ function submit(payload: UpdateProjectStorageInput) {
         </div>
 
         <p class="text-sm text-muted-foreground">
-          {{ storage.fileCount }}
-          {{ storage.fileCount === 1 ? "file" : "files" }} ·
-          {{ storage.diffCount }}
-          {{ storage.diffCount === 1 ? "diff" : "diffs" }}
+          {{ t("storage.files", storage.fileCount) }} ·
+          {{ t("storage.diffs", storage.diffCount) }}
         </p>
 
         <p class="text-sm" :data-testid="TEST_ID.storageRetention">
-          Baseline revisions:
+          {{ t("storage.baseline") }}
           <span class="font-medium">
-            {{ retentionLabel(storage.baselineRevisionLimit, "revisions") }}
+            {{ retentionText(storage.baselineRevisionLimit, "revisions") }}
           </span>
-          · Run history:
+          · {{ t("storage.runHistory") }}
           <span class="font-medium">
-            {{ retentionLabel(storage.runHistoryDays, "days") }}
+            {{ retentionText(storage.runHistoryDays, "days") }}
           </span>
-          · Orphan grace:
+          · {{ t("storage.orphan") }}
           <span class="font-medium">
-            {{ retentionLabel(storage.orphanGraceHours, "hours") }}
+            {{ retentionText(storage.orphanGraceHours, "hours") }}
           </span>
         </p>
 
         <p class="text-xs text-muted-foreground">
-          These limits are stored per project. Enforcement currently uses the
-          global defaults; per-project enforcement ships separately.
+          {{ t("storage.retentionNote") }}
         </p>
       </div>
     </AsyncState>

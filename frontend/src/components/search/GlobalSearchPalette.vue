@@ -7,6 +7,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { Search } from "@lucide/vue";
 import {
@@ -36,6 +37,7 @@ import {
 } from "@/domains/search/search-storage";
 import { TEST_ID } from "@/lib/test-ids";
 
+const { t } = useI18n();
 const { open, openPalette, closePalette } = useGlobalSearchPalette();
 const router = useRouter();
 const route = useRoute();
@@ -206,10 +208,9 @@ watch(
         class="fixed top-[15%] left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 gap-0 overflow-hidden rounded-xl border bg-background shadow-lg"
         :data-testid="TEST_ID.globalSearchDialog"
       >
-        <DialogTitle class="sr-only">Search</DialogTitle>
+        <DialogTitle class="sr-only">{{ t("search.title") }}</DialogTitle>
         <DialogDescription class="sr-only">
-          Search projects, tests and branches. Use the arrow keys to move and
-          Enter to open.
+          {{ t("search.description") }}
         </DialogDescription>
 
         <div class="flex items-center gap-2 border-b px-3 py-2">
@@ -219,10 +220,10 @@ watch(
             v-model="query"
             type="text"
             role="combobox"
-            aria-label="Search projects, tests and branches"
+            :aria-label="t('search.inputLabel')"
             aria-autocomplete="list"
             :aria-expanded="flatItems.length > 0"
-            placeholder="Search projects, tests and branches…"
+            :placeholder="t('search.placeholder')"
             class="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             :data-testid="TEST_ID.globalSearchInput"
             @keydown="onInputKeydown"
@@ -230,7 +231,7 @@ watch(
           <kbd
             class="hidden shrink-0 rounded border px-1 text-[10px] text-muted-foreground sm:inline"
           >
-            Esc
+            {{ t("search.esc") }}
           </kbd>
         </div>
 
@@ -241,7 +242,7 @@ watch(
               class="px-2 py-6 text-center text-sm text-muted-foreground"
               :data-testid="TEST_ID.globalSearchLoading"
             >
-              Searching…
+              {{ t("search.searching") }}
             </p>
 
             <p
@@ -257,7 +258,7 @@ watch(
                 <h3
                   class="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase"
                 >
-                  Projects
+                  {{ t("search.projects") }}
                 </h3>
                 <GlobalSearchResultRow
                   v-for="(item, index) in projectItems"
@@ -274,7 +275,7 @@ watch(
                 <h3
                   class="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase"
                 >
-                  Tests
+                  {{ t("search.tests") }}
                 </h3>
                 <GlobalSearchResultRow
                   v-for="(item, index) in testItems"
@@ -291,7 +292,7 @@ watch(
                 <h3
                   class="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase"
                 >
-                  Branches
+                  {{ t("search.branches") }}
                 </h3>
                 <GlobalSearchResultRow
                   v-for="(item, index) in branchItems"
@@ -313,7 +314,7 @@ watch(
               class="px-2 py-6 text-center text-sm text-muted-foreground"
               :data-testid="TEST_ID.globalSearchEmpty"
             >
-              No matches for "{{ normalizedQuery }}".
+              {{ t("search.noMatches", { query: normalizedQuery }) }}
             </p>
           </template>
 
@@ -326,7 +327,7 @@ watch(
               <h3
                 class="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase"
               >
-                Favorites
+                {{ t("search.favorites") }}
               </h3>
               <GlobalSearchResultRow
                 v-for="(item, index) in favorites"
@@ -348,7 +349,7 @@ watch(
                 <h3
                   class="text-xs font-semibold text-muted-foreground uppercase"
                 >
-                  Recent
+                  {{ t("search.recent") }}
                 </h3>
                 <button
                   type="button"
@@ -356,7 +357,7 @@ watch(
                   :data-testid="TEST_ID.globalSearchRecentClear"
                   @click="clearRecents"
                 >
-                  Clear
+                  {{ t("search.clear") }}
                 </button>
               </div>
               <GlobalSearchResultRow
@@ -374,7 +375,7 @@ watch(
               v-if="favorites.length === 0 && recents.length === 0"
               class="px-2 py-6 text-center text-sm text-muted-foreground"
             >
-              Type to search projects, tests and branches.
+              {{ t("search.hint") }}
             </p>
           </template>
         </div>

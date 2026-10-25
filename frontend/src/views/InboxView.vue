@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { Input } from "@/components/ui/input";
 import {
@@ -42,6 +43,7 @@ import { TEST_ID } from "@/lib/test-ids";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
 const page = computed({
   get: () => {
@@ -177,7 +179,7 @@ const groupOptions = computed(() => [
     value: entry.id,
     label: entry.name,
   })),
-  { value: UNASSIGNED_GROUP_QUERY, label: "Unassigned" },
+  { value: UNASSIGNED_GROUP_QUERY, label: t("inbox.unassigned") },
 ]);
 
 const branchOptions = computed(() => {
@@ -257,11 +259,10 @@ const approveSelections = computed<BulkApproveSelection[]>(() => {
 const selectedProjectCount = computed(() => approveSelections.value.length);
 const approveScopeLabel = computed(
   () =>
-    `${selectedCount.value} ${
-      selectedCount.value === 1 ? "change" : "changes"
-    } across ${selectedProjectCount.value} ${
-      selectedProjectCount.value === 1 ? "project" : "projects"
-    }`,
+    `${t("inbox.selectedChanges", selectedCount.value)} ${t(
+      "inbox.acrossProjects",
+      selectedProjectCount.value,
+    )}`,
 );
 
 const approveOpen = ref(false);
@@ -292,19 +293,21 @@ function confirmBulkApprove() {
 <template>
   <div class="space-y-6" :data-testid="TEST_ID.reviewInbox">
     <div>
-      <h1 class="text-xl font-semibold tracking-tight">Review inbox</h1>
+      <h1 class="text-xl font-semibold tracking-tight">
+        {{ t("inbox.title") }}
+      </h1>
       <p v-if="isLoading" class="text-sm text-muted-foreground">
-        Loading review inbox…
+        {{ t("inbox.loading") }}
       </p>
       <p v-else-if="!error" class="text-sm text-muted-foreground">
-        {{ total }} {{ total === 1 ? "change" : "changes" }} to review
+        {{ t("inbox.toReview", total) }}
       </p>
     </div>
 
     <AsyncState
       :is-loading="isLoading"
       :error="error"
-      error-title="Failed to load review inbox"
+      :error-title="t('inbox.errorTitle')"
       :retry="refetch"
       :empty="!isLoading && items.length === 0 && !hasActiveFilters"
     >
@@ -340,15 +343,15 @@ function confirmBulkApprove() {
 
       <template #empty>
         <div class="space-y-3 py-12 text-center">
-          <h2 class="text-lg font-medium">All caught up</h2>
+          <h2 class="text-lg font-medium">{{ t("inbox.emptyTitle") }}</h2>
           <p class="text-sm text-muted-foreground">
-            There are no pending reviews right now.
+            {{ t("inbox.emptyBody") }}
           </p>
           <RouterLink
             to="/projects"
             class="text-sm font-medium text-primary underline-offset-4 hover:underline"
           >
-            Browse projects
+            {{ t("inbox.browseProjects") }}
           </RouterLink>
         </div>
       </template>
@@ -356,49 +359,57 @@ function confirmBulkApprove() {
       <div class="flex flex-wrap items-center gap-3">
         <Input
           v-model="searchInput"
-          placeholder="Search test or project..."
-          aria-label="Search pending reviews"
+          :placeholder="t('inbox.searchPlaceholder')"
+          :aria-label="t('inbox.searchLabel')"
           class="w-64 rounded-xl shadow-sm"
           :data-testid="TEST_ID.inboxSearch"
         />
         <Input
           v-model="runInput"
-          placeholder="Filter by run key..."
-          aria-label="Filter by run key"
+          :placeholder="t('inbox.runPlaceholder')"
+          :aria-label="t('inbox.runLabel')"
           class="w-48 rounded-xl shadow-sm"
           :data-testid="TEST_ID.inboxRunFilter"
         />
         <Input
           v-model="tagInput"
-          placeholder="Filter by tag..."
-          aria-label="Filter by tag"
+          :placeholder="t('inbox.tagPlaceholder')"
+          :aria-label="t('inbox.tagLabel')"
           class="w-44 rounded-xl shadow-sm"
           :data-testid="TEST_ID.inboxTagFilter"
         />
         <Select v-model="kind">
           <SelectTrigger
             class="w-40"
-            aria-label="Filter by kind"
+            :aria-label="t('inbox.kindLabel')"
             :data-testid="TEST_ID.inboxFilterKind"
           >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem :value="FILTER_ALL">All kinds</SelectItem>
-            <SelectItem :value="IMAGE_TEST_KIND">Images</SelectItem>
-            <SelectItem :value="PDF_TEST_KIND">PDFs</SelectItem>
+            <SelectItem :value="FILTER_ALL">{{
+              t("inbox.allKinds")
+            }}</SelectItem>
+            <SelectItem :value="IMAGE_TEST_KIND">{{
+              t("inbox.images")
+            }}</SelectItem>
+            <SelectItem :value="PDF_TEST_KIND">{{
+              t("inbox.pdfs")
+            }}</SelectItem>
           </SelectContent>
         </Select>
         <Select v-model="branch">
           <SelectTrigger
             class="w-44"
-            aria-label="Filter by branch"
+            :aria-label="t('inbox.branchLabel')"
             :data-testid="TEST_ID.inboxFilterBranch"
           >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem :value="FILTER_ALL">All branches</SelectItem>
+            <SelectItem :value="FILTER_ALL">{{
+              t("inbox.allBranches")
+            }}</SelectItem>
             <SelectItem
               v-for="branchOption in branchOptions"
               :key="branchOption"
@@ -411,13 +422,15 @@ function confirmBulkApprove() {
         <Select v-model="group">
           <SelectTrigger
             class="w-48"
-            aria-label="Filter by group"
+            :aria-label="t('inbox.groupLabel')"
             :data-testid="TEST_ID.filterGroup"
           >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem :value="FILTER_ALL">All groups</SelectItem>
+            <SelectItem :value="FILTER_ALL">{{
+              t("inbox.allGroups")
+            }}</SelectItem>
             <SelectItem
               v-for="groupOption in groupOptions"
               :key="groupOption.value"
@@ -440,17 +453,15 @@ function confirmBulkApprove() {
             class="h-4 w-4"
             :checked="allSelected"
             :aria-label="
-              allSelected
-                ? 'Clear the selection'
-                : 'Select all pending changes on this page'
+              allSelected ? t('inbox.selectAll') : t('inbox.selectAllLabel')
             "
             :data-testid="TEST_ID.inboxSelectAll"
             @change="toggleAllSelection"
           />
-          <span>Select all on this page</span>
+          <span>{{ t("inbox.selectAllText") }}</span>
         </label>
         <span class="text-sm text-muted-foreground">
-          {{ selectedCount }} selected
+          {{ t("inbox.selected", selectedCount) }}
         </span>
         <Button
           type="button"
@@ -459,7 +470,7 @@ function confirmBulkApprove() {
           :data-testid="TEST_ID.inboxBulkApprove"
           @click="approveOpen = true"
         >
-          Approve selected
+          {{ t("inbox.approveSelected") }}
         </Button>
       </div>
 
@@ -467,7 +478,7 @@ function confirmBulkApprove() {
         v-if="total === 0"
         class="py-12 text-center text-sm text-muted-foreground"
       >
-        No pending reviews match these filters.
+        {{ t("inbox.noMatch") }}
       </div>
 
       <div v-for="section in sections" :key="section.key" class="space-y-4">
@@ -489,7 +500,7 @@ function confirmBulkApprove() {
         :page="page"
         :page-count="pageCount"
         :total="total"
-        item-label="changes"
+        :item-label="t('pagination.changes')"
         @update:page="page = $event"
       />
     </AsyncState>
@@ -497,10 +508,12 @@ function confirmBulkApprove() {
     <ConfirmDialog
       :open="approveOpen"
       :pending="bulkApprove.isPending.value"
-      title="Approve selected changes"
-      :description="`Approve ${approveScopeLabel}. Each change becomes the new baseline on its branch; this cannot be undone.`"
-      confirm-text="Approve selected"
-      cancel-text="Cancel"
+      :title="t('inbox.approveDialogTitle')"
+      :description="
+        t('inbox.approveDialogDescription', { scope: approveScopeLabel })
+      "
+      :confirm-text="t('inbox.approveSelected')"
+      :cancel-text="t('common.cancel')"
       @confirm="confirmBulkApprove"
       @cancel="approveOpen = false"
       @update:open="approveOpen = $event"
@@ -509,8 +522,8 @@ function confirmBulkApprove() {
     <BulkFailureDialog
       :open="failureOpen"
       :rows="failureRows"
-      title="Some changes could not be approved"
-      description="The batch continued past these changes. Fix the cause and review them individually."
+      :title="t('inbox.failureTitle')"
+      :description="t('inbox.failureBody')"
       @update:open="failureOpen = $event"
     />
   </div>

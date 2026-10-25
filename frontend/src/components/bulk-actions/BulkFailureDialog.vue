@@ -8,23 +8,19 @@ import {
   DialogRoot,
   DialogTitle,
 } from "reka-ui";
+import { useI18n } from "vue-i18n";
 import { Button } from "@/components/ui/button";
 import type { BulkFailureRow } from "@/domains/bulk-actions/bulk-action.model";
 import { TEST_ID } from "@/lib/test-ids";
 
-withDefaults(
-  defineProps<{
-    open: boolean;
-    rows: BulkFailureRow[];
-    title?: string;
-    description?: string;
-  }>(),
-  {
-    title: "Some items failed",
-    description:
-      "The bulk action continued past these items. Fix the cause and retry them individually.",
-  },
-);
+const props = defineProps<{
+  open: boolean;
+  rows: BulkFailureRow[];
+  title?: string;
+  description?: string;
+}>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
@@ -40,9 +36,11 @@ const emit = defineEmits<{
         :data-testid="TEST_ID.bulkFailureDialog"
       >
         <div class="flex flex-col gap-2">
-          <DialogTitle class="text-lg font-semibold">{{ title }}</DialogTitle>
+          <DialogTitle class="text-lg font-semibold">
+            {{ props.title ?? t("bulkFailure.title") }}
+          </DialogTitle>
           <DialogDescription class="text-sm text-muted-foreground">
-            {{ description }}
+            {{ props.description ?? t("bulkFailure.description") }}
           </DialogDescription>
         </div>
 
@@ -62,7 +60,7 @@ const emit = defineEmits<{
         <div class="flex justify-end">
           <DialogClose as-child>
             <Button type="button" :data-testid="TEST_ID.bulkFailureDone">
-              Done
+              {{ t("bulkFailure.done") }}
             </Button>
           </DialogClose>
         </div>

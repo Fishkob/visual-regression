@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ import PaginationBar from "@/components/PaginationBar.vue";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
 const page = computed({
   get: () => {
@@ -227,12 +229,14 @@ function create(payload: { name: string; groupId?: string }) {
 
   <div class="space-y-6 p-6">
     <div class="flex flex-wrap items-center justify-between gap-4">
-      <h1 class="text-xl font-semibold tracking-tight">Projects</h1>
+      <h1 class="text-xl font-semibold tracking-tight">
+        {{ t("projects.title") }}
+      </h1>
       <div class="flex flex-wrap items-center gap-2">
         <Input
           :model-value="searchInput"
-          placeholder="Search project..."
-          aria-label="Search projects"
+          :placeholder="t('projects.searchPlaceholder')"
+          :aria-label="t('projects.searchLabel')"
           class="w-64 rounded-xl shadow-sm"
           :data-testid="TEST_ID.projectSearch"
           @update:model-value="searchInput = String($event)"
@@ -244,13 +248,15 @@ function create(payload: { name: string; groupId?: string }) {
         >
           <SelectTrigger
             class="w-48"
-            aria-label="Filter by group"
+            :aria-label="t('projects.filterGroupLabel')"
             :data-testid="TEST_ID.filterGroup"
           >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem :value="FILTER_ALL">All groups</SelectItem>
+            <SelectItem :value="FILTER_ALL">{{
+              t("projects.allGroups")
+            }}</SelectItem>
             <SelectItem
               v-for="group in groups ?? []"
               :key="group.id"
@@ -258,7 +264,9 @@ function create(payload: { name: string; groupId?: string }) {
             >
               {{ group.name }}
             </SelectItem>
-            <SelectItem :value="UNASSIGNED_GROUP_QUERY">Unassigned</SelectItem>
+            <SelectItem :value="UNASSIGNED_GROUP_QUERY">
+              {{ t("projects.unassigned") }}
+            </SelectItem>
           </SelectContent>
         </Select>
         <Button
@@ -266,7 +274,7 @@ function create(payload: { name: string; groupId?: string }) {
           :data-testid="TEST_ID.newProject"
           @click="openCreate"
         >
-          New project
+          {{ t("projects.newProject") }}
         </Button>
       </div>
     </div>
@@ -274,7 +282,7 @@ function create(payload: { name: string; groupId?: string }) {
     <ErrorAlert
       v-if="error"
       variant="error"
-      title="Failed to load projects"
+      :title="t('projects.errorTitle')"
       :message="error.message"
       retry
       :on-retry="refetch"
@@ -284,7 +292,7 @@ function create(payload: { name: string; groupId?: string }) {
       <ErrorAlert
         v-if="groupsError"
         variant="error"
-        title="Failed to load groups"
+        :title="t('projects.groupsErrorTitle')"
         :message="groupsError.message"
         retry
         :on-retry="refetchGroups"
@@ -326,16 +334,16 @@ function create(payload: { name: string; groupId?: string }) {
               :checked="allSelected"
               :aria-label="
                 allSelected
-                  ? 'Clear the selection'
-                  : 'Select all projects on this page'
+                  ? t('projects.selectAll')
+                  : t('projects.selectAllLabel')
               "
               :data-testid="TEST_ID.projectSelectAll"
               @change="toggleAllSelection"
             />
-            <span>Select all on this page</span>
+            <span>{{ t("projects.selectAllText") }}</span>
           </label>
           <span class="text-sm text-muted-foreground">
-            {{ selectedCount }} selected
+            {{ t("projects.selectedCount", selectedCount) }}
           </span>
           <Button
             type="button"
@@ -344,7 +352,7 @@ function create(payload: { name: string; groupId?: string }) {
             :data-testid="TEST_ID.projectBulkMove"
             @click="moveOpen = true"
           >
-            Move to group
+            {{ t("projects.moveToGroup") }}
           </Button>
         </div>
 
@@ -362,7 +370,7 @@ function create(payload: { name: string; groupId?: string }) {
           :page="page"
           :page-count="pageCount"
           :total="total"
-          item-label="projects"
+          :item-label="t('pagination.projects')"
           @update:page="page = $event"
         />
 
@@ -370,13 +378,13 @@ function create(payload: { name: string; groupId?: string }) {
           <EmptyState
             :title="
               hasActiveFilters
-                ? 'No projects match these filters'
-                : 'No projects found'
+                ? t('projects.emptyFilteredTitle')
+                : t('projects.emptyTitle')
             "
             :description="
               hasActiveFilters
-                ? 'Try a different search or group.'
-                : 'Create a project or upload a screenshot from CI to get started.'
+                ? t('projects.emptyFilteredBody')
+                : t('projects.emptyBody')
             "
           />
           <div v-if="!hasActiveFilters" class="flex justify-center">
@@ -385,7 +393,7 @@ function create(payload: { name: string; groupId?: string }) {
               :data-testid="TEST_ID.newProjectEmpty"
               @click="openCreate"
             >
-              New project
+              {{ t("projects.newProject") }}
             </Button>
           </div>
         </div>
@@ -412,8 +420,8 @@ function create(payload: { name: string; groupId?: string }) {
     <BulkFailureDialog
       :open="failureOpen"
       :rows="failureRows"
-      title="Some projects could not be moved"
-      description="The batch continued past these projects. Fix the cause and move them individually."
+      :title="t('projects.bulkMoveFailureTitle')"
+      :description="t('projects.bulkMoveFailureBody')"
       @update:open="failureOpen = $event"
     />
   </div>

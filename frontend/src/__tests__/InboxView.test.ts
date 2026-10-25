@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
+import { i18n } from "@/i18n";
 import InboxView from "@/views/InboxView.vue";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -122,6 +123,7 @@ beforeEach(() => {
 
 afterEach(() => {
   mounted.splice(0).forEach((wrapper) => wrapper.unmount());
+  i18n.global.locale.value = "en";
 });
 
 describe("InboxView run filter", () => {
@@ -218,5 +220,27 @@ describe("InboxView run filter", () => {
     expect(badges).toHaveLength(1);
     expect(badges[0].text()).toBe("ci-42");
     expect(badges[0].attributes("title")).toBe("Run ci-42");
+  });
+});
+
+describe("InboxView locale", () => {
+  it("renders the German labels when the locale is German", async () => {
+    i18n.global.locale.value = "de";
+
+    const wrapper = mountView();
+    await waitForItems(wrapper, 1);
+
+    expect(wrapper.text()).toContain("Posteingang");
+    expect(wrapper.text()).toContain("1 Änderung zu prüfen");
+    expect(
+      wrapper
+        .get(`[data-testid="${TEST_ID.inboxSearch}"]`)
+        .attributes("placeholder"),
+    ).toBe("Test oder Projekt suchen...");
+    expect(
+      wrapper
+        .get(`[data-testid="${TEST_ID.inboxFilterKind}"]`)
+        .attributes("aria-label"),
+    ).toBe("Nach Typ filtern");
   });
 });

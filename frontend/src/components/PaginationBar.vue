@@ -1,13 +1,18 @@
 <script setup lang="ts">
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { Button } from "@/components/ui/button";
 import { TEST_ID } from "@/lib/test-ids";
 
-defineProps<{
+const props = defineProps<{
   page: number;
   pageCount: number;
   total: number;
   itemLabel?: string;
 }>();
+
+const { t } = useI18n();
+const label = computed(() => props.itemLabel ?? t("pagination.items"));
 
 const emit = defineEmits<{
   "update:page": [value: number];
@@ -17,7 +22,7 @@ const emit = defineEmits<{
 <template>
   <nav
     class="flex flex-wrap items-center justify-between gap-3 pt-2"
-    aria-label="Pagination"
+    :aria-label="t('pagination.label')"
   >
     <Button
       variant="outline"
@@ -26,15 +31,21 @@ const emit = defineEmits<{
       :data-testid="TEST_ID.paginationPrev"
       @click="emit('update:page', page - 1)"
     >
-      Previous
+      {{ t("pagination.previous") }}
     </Button>
 
     <p
       class="text-sm text-muted-foreground"
       :data-testid="TEST_ID.paginationStatus"
     >
-      Page {{ page }} of {{ pageCount }} · {{ total }}
-      {{ itemLabel ?? "items" }}
+      {{
+        t("pagination.status", {
+          page,
+          pageCount,
+          total,
+          itemLabel: label,
+        })
+      }}
     </p>
 
     <Button
@@ -44,7 +55,7 @@ const emit = defineEmits<{
       :data-testid="TEST_ID.paginationNext"
       @click="emit('update:page', page + 1)"
     >
-      Next
+      {{ t("pagination.next") }}
     </Button>
   </nav>
 </template>

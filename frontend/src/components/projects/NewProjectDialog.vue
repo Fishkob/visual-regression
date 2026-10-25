@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,7 @@ const emit = defineEmits<{
   (e: "submit", payload: { name: string; groupId?: string }): void;
 }>();
 
+const { t } = useI18n();
 const createGroup = useCreateGroup();
 const name = ref("");
 const groupId = ref("none");
@@ -73,17 +75,17 @@ function addGroup() {
 <template>
   <FormDialog
     :open="open"
-    title="New project"
-    description="Projects are usually created by the first CI upload. You can also create one manually."
+    :title="t('newProject.title')"
+    :description="t('newProject.description')"
     :pending="pending"
     :submit-disabled="invalid"
     :confirm-test-id="TEST_ID.projectFormSubmit"
-    confirm-text="Create"
+    :confirm-text="t('newProject.create')"
     @update:open="emit('update:open', $event)"
     @submit="submit"
   >
     <label class="block space-y-1 text-sm">
-      <span>Name</span>
+      <span>{{ t("newProject.name") }}</span>
       <Input
         v-model="name"
         :data-testid="TEST_ID.projectNameInput"
@@ -91,16 +93,16 @@ function addGroup() {
       />
     </label>
     <p v-if="invalid" class="text-sm text-muted-foreground" role="alert">
-      Project name is required.
+      {{ t("newProject.nameRequired") }}
     </p>
     <label class="block space-y-1 text-sm">
-      <span>Group</span>
+      <span>{{ t("newProject.group") }}</span>
       <Select v-model="groupId">
         <SelectTrigger :data-testid="TEST_ID.projectGroupSelect">
-          <SelectValue placeholder="Unassigned" />
+          <SelectValue :placeholder="t('newProject.unassigned')" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">Unassigned</SelectItem>
+          <SelectItem value="none">{{ t("newProject.unassigned") }}</SelectItem>
           <SelectItem v-for="group in groups" :key="group.id" :value="group.id">
             {{ group.name }}
           </SelectItem>
@@ -110,8 +112,8 @@ function addGroup() {
     <div class="flex items-end gap-2">
       <Input
         v-model="newGroupName"
-        placeholder="New group name"
-        aria-label="New group name"
+        :placeholder="t('newProject.newGroupName')"
+        :aria-label="t('newProject.newGroupName')"
         :data-testid="TEST_ID.projectNewGroupName"
       />
       <Button
@@ -120,14 +122,14 @@ function addGroup() {
         :data-testid="TEST_ID.projectAddGroup"
         @click="addGroup"
       >
-        Add
+        {{ t("newProject.add") }}
       </Button>
     </div>
     <p v-if="createGroupError" class="text-sm text-destructive" role="alert">
-      {{ sdkErrorMessage(createGroupError, "Could not create group") }}
+      {{ sdkErrorMessage(createGroupError, t("newProject.createGroupError")) }}
     </p>
     <p v-if="error" class="text-sm text-destructive" role="alert">
-      {{ sdkErrorMessage(error, "Could not create project") }}
+      {{ sdkErrorMessage(error, t("newProject.createError")) }}
     </p>
   </FormDialog>
 </template>

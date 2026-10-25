@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -42,6 +43,7 @@ const emit = defineEmits<{
   retarget: [targetBranch: string | null];
 }>();
 
+const { t } = useI18n();
 const open = ref(false);
 const confirmOpen = ref(false);
 const targetOpen = ref(false);
@@ -52,12 +54,16 @@ const canDelete = computed(
   () => !isDefault.value && dependents.value.length === 0,
 );
 const deleteBlockedReason = computed(() => {
-  if (isDefault.value) return "The default branch cannot be deleted";
+  if (isDefault.value) return t("branchActions.deleteBlockedDefault");
   if (dependents.value.length === 1) {
-    return `"${dependents.value[0]}" inherits from this branch — retarget it first`;
+    return t("branchActions.deleteBlockedOne", {
+      branch: dependents.value[0],
+    });
   }
   if (dependents.value.length > 1) {
-    return `${dependents.value.length} branches inherit from this one — retarget them first`;
+    return t("branchActions.deleteBlockedMany", {
+      count: dependents.value.length,
+    });
   }
   return "";
 });
@@ -101,7 +107,7 @@ function confirmTarget(target: string | null) {
           type="button"
           variant="outline"
           size="icon"
-          aria-label="Branch actions"
+          :aria-label="t('branchActions.label')"
           :data-testid="TEST_ID.branchActionsButton"
         >
           <MoreVertical class="h-4 w-4" />
@@ -119,7 +125,7 @@ function confirmTarget(target: string | null) {
           @click="requestSetDefault"
         >
           <Star class="w-4 h-4 mr-2" />
-          Set as default
+          {{ t("branchActions.setDefault") }}
         </DropdownMenuItem>
         <DropdownMenuItem
           :disabled="isDefault"
@@ -128,7 +134,7 @@ function confirmTarget(target: string | null) {
           @click="requestTargetChange"
         >
           <GitBranch class="w-4 h-4 mr-2" />
-          Change target…
+          {{ t("branchActions.changeTarget") }}
           <span
             v-if="!isDefault && branch.targetBranchName"
             class="ml-auto pl-2 font-mono text-[10px] text-muted-foreground"
@@ -143,7 +149,11 @@ function confirmTarget(target: string | null) {
         >
           <ArchiveRestore v-if="branch.isArchived" class="w-4 h-4 mr-2" />
           <Archive v-else class="w-4 h-4 mr-2" />
-          {{ branch.isArchived ? "Unarchive branch" : "Archive branch" }}
+          {{
+            branch.isArchived
+              ? t("branchActions.unarchive")
+              : t("branchActions.archive")
+          }}
         </DropdownMenuItem>
         <DropdownMenuItem
           :disabled="!canDelete"
@@ -151,7 +161,7 @@ function confirmTarget(target: string | null) {
           @click="requestDelete"
         >
           <Trash2 class="w-4 h-4 mr-2" />
-          Delete branch
+          {{ t("branchActions.delete") }}
         </DropdownMenuItem>
         <p
           v-if="deleteBlockedReason"
@@ -167,15 +177,15 @@ function confirmTarget(target: string | null) {
       :open="confirmOpen"
       :pending="pending"
       confirm-variant="destructive"
-      title="Delete branch"
-      confirm-text="Delete"
-      cancel-text="Cancel"
+      :title="t('branchActions.deleteTitle')"
+      :confirm-text="t('branchActions.deleteConfirm')"
+      :cancel-text="t('common.cancel')"
       @confirm="confirmDelete"
       @cancel="confirmOpen = false"
       @update:open="confirmOpen = $event"
     >
       <template #description>
-        Delete <strong>{{ branch.name }}</strong> and reclaim its files?
+        {{ t("branchActions.deleteDescription", { branch: branch.name }) }}
       </template>
     </ConfirmDialog>
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { Star } from "@lucide/vue";
 import type { SearchResultItem } from "@/domains/search/search.model";
 import { TEST_ID } from "@/lib/test-ids";
@@ -8,6 +9,8 @@ defineProps<{
   active: boolean;
   favorite: boolean;
 }>();
+
+const { t } = useI18n();
 
 defineEmits<{
   select: [];
@@ -40,8 +43,8 @@ defineEmits<{
       class="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
       :aria-label="
         favorite
-          ? `Remove ${item.label} from favorites`
-          : `Add ${item.label} to favorites`
+          ? t('search.removeFavorite', { label: item.label })
+          : t('search.addFavorite', { label: item.label })
       "
       :data-testid="TEST_ID.searchFavoriteToggle"
       @click.stop="$emit('toggleFavorite')"

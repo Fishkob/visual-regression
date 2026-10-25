@@ -793,11 +793,14 @@ date/number formatting, translated a11y labels, CI check for missing keys.
 **Delivered so far.** `vue-i18n` v11 (ADR-037), `en`/`de` message files, a
 persisted locale with a header switcher and `document.lang`, translated shell
 navigation/header/login (including a11y labels), and a key-parity CI script
-(`frontend i18n:check`, 26 keys). English remains the fallback.
+(`frontend i18n:check`, 26 keys). Second pass translated the inbox/projects/
+project-detail/groups/common-components slice plus storage, test lifecycle and
+search (322 keys, plural/parameter messages, German rendering test, global test
+setup). English remains the fallback.
 
-**Remaining.** Extract the domain pages (inbox, projects, runs, storage, users,
-security, audit, webhooks), switch date/number rendering to `d()`/`n()` and
-extend the check to detect untranslated literals.
+**Remaining.** Runs/Run detail/Trends/Users/Security/Audit/Webhooks/API keys/
+Test overview/Visual+PDF details and their dialogs/tables/detail panels, plus
+composable toast messages and the remaining `toLocale*` date/number calls.
 
 **Size.** M · independent.
 

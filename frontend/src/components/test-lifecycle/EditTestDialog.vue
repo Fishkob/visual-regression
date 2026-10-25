@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import FormDialog from "@/components/FormDialog.vue";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,8 +14,6 @@ import { sdkErrorMessage } from "@/lib/sdk";
 import {
   DEFAULT_SIZE_POLICY,
   SIZE_POLICIES,
-  SIZE_POLICY_DESCRIPTION,
-  SIZE_POLICY_LABEL,
   formatTags,
   parseTags,
   type SizePolicy,
@@ -34,6 +33,8 @@ const props = defineProps<{
   pending?: boolean;
   error?: unknown;
 }>();
+
+const { t, d } = useI18n();
 
 const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
@@ -112,9 +113,9 @@ function submit() {
 <template>
   <FormDialog
     :open="open"
-    title="Edit test"
-    description="Rename the test, describe it, tag it, choose how a size mismatch is handled, or mute it. A muted test leaves the review inbox until the mute expires."
-    confirm-text="Save changes"
+    :title="t('lifecycle.edit.title')"
+    :description="t('lifecycle.edit.description')"
+    :confirm-text="t('lifecycle.edit.confirm')"
     :pending="pending"
     :submit-disabled="invalid"
     :confirm-test-id="TEST_ID.testMuteSubmit"
@@ -123,7 +124,7 @@ function submit() {
   >
     <div class="space-y-4" :data-testid="TEST_ID.testEditDialog">
       <label class="block space-y-1 text-sm">
-        <span>Name</span>
+        <span>{{ t("lifecycle.edit.name") }}</span>
         <Input
           v-model="name"
           :aria-invalid="!name.trim()"
@@ -132,7 +133,7 @@ function submit() {
       </label>
 
       <label class="block space-y-1 text-sm">
-        <span>Description</span>
+        <span>{{ t("lifecycle.edit.descriptionLabel") }}</span>
         <textarea
           v-model="description"
           rows="3"
@@ -142,19 +143,19 @@ function submit() {
       </label>
 
       <label class="block space-y-1 text-sm">
-        <span>Tags</span>
+        <span>{{ t("lifecycle.edit.tags") }}</span>
         <Input
           v-model="tags"
-          placeholder="smoke, checkout"
+          :placeholder="t('lifecycle.edit.tagsPlaceholder')"
           :data-testid="TEST_ID.testEditTags"
         />
         <span class="block text-xs text-muted-foreground">
-          Comma-separated; stored lowercase.
+          {{ t("lifecycle.edit.tagsHelp") }}
         </span>
       </label>
 
       <label class="block space-y-1 text-sm">
-        <span>Size policy</span>
+        <span>{{ t("lifecycle.edit.sizePolicy") }}</span>
         <Select v-model="sizePolicy">
           <SelectTrigger :data-testid="TEST_ID.testSizePolicySelect">
             <SelectValue />
@@ -165,24 +166,28 @@ function submit() {
               :key="policy"
               :value="policy"
             >
-              {{ SIZE_POLICY_LABEL[policy] }}
+              {{ t(`sizePolicy.label.${policy}`) }}
             </SelectItem>
           </SelectContent>
         </Select>
         <span class="block text-xs text-muted-foreground">
-          {{ SIZE_POLICY_DESCRIPTION[sizePolicy] }}
+          {{ t(`sizePolicy.description.${sizePolicy}`) }}
         </span>
       </label>
 
       <fieldset class="space-y-2 rounded-md border p-3">
-        <legend class="px-1 text-sm">Mute</legend>
+        <legend class="px-1 text-sm">
+          {{ t("lifecycle.edit.muteLegend") }}
+        </legend>
         <p v-if="isMuted" class="text-sm text-muted-foreground">
-          Muted until
-          {{ mutedUntil ? new Date(mutedUntil).toLocaleString() : "unknown" }}.
-          Unmuting clears the schedule immediately.
+          {{
+            t("lifecycle.edit.mutedUntilText", {
+              date: mutedUntil ? d(new Date(mutedUntil)) : "unknown",
+            })
+          }}
         </p>
         <label class="block space-y-1 text-sm">
-          <span>Muted until</span>
+          <span>{{ t("lifecycle.edit.mutedUntilLabel") }}</span>
           <input
             v-model="mutedUntil"
             type="datetime-local"
@@ -191,10 +196,10 @@ function submit() {
           />
         </label>
         <label class="block space-y-1 text-sm">
-          <span>Reason</span>
+          <span>{{ t("lifecycle.edit.reason") }}</span>
           <Input
             v-model="muteReason"
-            placeholder="Flaky while the fixture is fixed"
+            :placeholder="t('lifecycle.edit.reasonPlaceholder')"
             :aria-invalid="muteReasonMissing"
             :data-testid="TEST_ID.testMuteReason"
           />
@@ -204,14 +209,14 @@ function submit() {
           class="text-sm text-destructive"
           role="alert"
         >
-          A mute reason is required when scheduling a mute.
+          {{ t("lifecycle.edit.reasonRequired") }}
         </p>
         <p
           v-if="invalid && !muteReasonMissing"
           class="text-sm text-muted-foreground"
           role="alert"
         >
-          Name is required.
+          {{ t("lifecycle.edit.nameRequired") }}
         </p>
         <div v-if="isMuted" class="flex justify-start">
           <button
@@ -220,13 +225,13 @@ function submit() {
             :data-testid="TEST_ID.testUnmute"
             @click="emit('unmute')"
           >
-            Unmute now
+            {{ t("lifecycle.edit.unmuteNow") }}
           </button>
         </div>
       </fieldset>
 
       <p v-if="error" class="text-sm text-destructive" role="alert">
-        {{ sdkErrorMessage(error, "Could not update the test") }}
+        {{ sdkErrorMessage(error, t("lifecycle.edit.errorFallback")) }}
       </p>
     </div>
   </FormDialog>

@@ -31,7 +31,7 @@ const { openPalette } = useGlobalSearchPalette();
       @click="openPalette"
     >
       <Search class="h-4 w-4" />
-      <span class="hidden sm:inline">{{ t('header.search') }}</span>
+      <span class="hidden sm:inline">{{ t("header.search") }}</span>
       <kbd
         class="hidden rounded border px-1 text-[10px] text-muted-foreground md:inline"
       >
@@ -76,7 +76,7 @@ const { openPalette } = useGlobalSearchPalette();
       @click="logout"
     >
       <LogOut class="h-4 w-4" />
-      <span class="hidden sm:inline">{{ t('header.logout') }}</span>
+      <span class="hidden sm:inline">{{ t("header.logout") }}</span>
     </Button>
   </header>
 </template>

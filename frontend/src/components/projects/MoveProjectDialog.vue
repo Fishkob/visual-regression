@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import FormDialog from "@/components/FormDialog.vue";
 import {
   Select,
@@ -25,6 +26,7 @@ const emit = defineEmits<{
   (e: "submit", groupId: string | null): void;
 }>();
 
+const { t } = useI18n();
 const selection = ref("none");
 
 watch(
@@ -43,22 +45,22 @@ function submit() {
 <template>
   <FormDialog
     :open="open"
-    title="Move project"
-    description="Choose the group this project belongs to."
+    :title="t('moveProject.title')"
+    :description="t('moveProject.description')"
     :pending="pending"
     :confirm-test-id="TEST_ID.moveProjectSubmit"
-    confirm-text="Move"
+    :confirm-text="t('moveProject.move')"
     @update:open="emit('update:open', $event)"
     @submit="submit"
   >
     <label class="block space-y-1 text-sm">
-      <span>Group</span>
+      <span>{{ t("moveProject.group") }}</span>
       <Select v-model="selection">
         <SelectTrigger :data-testid="TEST_ID.moveProjectSelect">
-          <SelectValue placeholder="Unassigned" />
+          <SelectValue :placeholder="t('newProject.unassigned')" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">Unassigned</SelectItem>
+          <SelectItem value="none">{{ t("newProject.unassigned") }}</SelectItem>
           <SelectItem v-for="group in groups" :key="group.id" :value="group.id">
             {{ group.name }}
           </SelectItem>
@@ -66,7 +68,7 @@ function submit() {
       </Select>
     </label>
     <p v-if="error" class="text-sm text-destructive" role="alert">
-      {{ sdkErrorMessage(error, "Could not move project") }}
+      {{ sdkErrorMessage(error, t("moveProject.error")) }}
     </p>
   </FormDialog>
 </template>

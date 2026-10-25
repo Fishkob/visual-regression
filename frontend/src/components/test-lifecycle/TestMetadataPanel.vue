@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import EditTestDialog from "@/components/test-lifecycle/EditTestDialog.vue";
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +12,12 @@ import {
   useUpdateTestMetadata,
 } from "@/composables/useTestLifecycle";
 import {
-  SIZE_POLICY_LABEL,
   testFlakeLabel,
   type UpdateTestMetadataInput,
 } from "@/domains/test-lifecycle/test-metadata.model";
 import { TEST_ID } from "@/lib/test-ids";
 
+const { t, d } = useI18n();
 const { projectName, testName, branch } = useRouteParams();
 const router = useRouter();
 const route = useRoute();
@@ -33,7 +34,7 @@ const mutedLabel = computed(() => {
   const until = metadata.value?.mutedUntil;
   if (!until) return "";
   const date = new Date(until);
-  return Number.isNaN(date.getTime()) ? until : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? until : d(date);
 });
 
 function openDialog() {
@@ -80,13 +81,18 @@ function unmute() {
       :title="metadata.muteReason ?? undefined"
       :data-testid="TEST_ID.testMutedBadge"
     >
-      Muted until {{ mutedLabel }}
+      {{ t("lifecycle.mutedBadge", { date: mutedLabel }) }}
     </Badge>
 
     <Badge
       variant="outline"
       class="text-xs"
-      :title="`${metadata.flake.changed} changed, ${metadata.flake.clean} clean in the last 30 days`"
+      :title="
+        t('lifecycle.flakeTitle', {
+          changed: metadata.flake.changed,
+          clean: metadata.flake.clean,
+        })
+      "
       :data-testid="TEST_ID.testFlakeBadge"
     >
       {{ testFlakeLabel(metadata.flake) }}
@@ -97,7 +103,11 @@ function unmute() {
       class="text-xs"
       :data-testid="TEST_ID.testSizePolicy"
     >
-      Size policy: {{ SIZE_POLICY_LABEL[metadata.sizePolicy] }}
+      {{
+        t("lifecycle.sizePolicy", {
+          policy: t(`sizePolicy.label.${metadata.sizePolicy}`),
+        })
+      }}
     </Badge>
 
     <div
@@ -123,7 +133,7 @@ function unmute() {
       :data-testid="TEST_ID.testEditAction"
       @click="openDialog"
     >
-      Edit test
+      {{ t("lifecycle.editAction") }}
     </Button>
 
     <p

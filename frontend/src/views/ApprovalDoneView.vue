@@ -5,18 +5,15 @@
     <CheckCircle class="w-12 h-12 text-status-success" />
 
     <h1 class="text-xl font-semibold" :data-testid="TEST_ID.doneHeading">
-      All comparisons reviewed
+      {{ t("approvalDone.heading") }}
     </h1>
 
     <p class="text-muted-foreground">
-      <template v-if="branch">
-        You’ve completed all pending approvals on
-        <span class="font-mono text-foreground">{{ branch }}</span
-        >.
-      </template>
-      <template v-else>
-        You’ve completed all pending approvals for this project.
-      </template>
+      {{
+        branch
+          ? t("approvalDone.branchDone", { branch })
+          : t("approvalDone.projectDone")
+      }}
     </p>
 
     <Button
@@ -25,13 +22,14 @@
       class="mt-4"
       :data-testid="TEST_ID.backToProjectList"
     >
-      Back to project list
+      {{ t("approvalDone.back") }}
     </Button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { CheckCircle } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { useRoute, useRouter } from "vue-router";
@@ -39,6 +37,7 @@ import { TEST_ID } from "@/lib/test-ids";
 
 const router = useRouter();
 const route = useRoute();
+const { t } = useI18n();
 
 // The review pass is branch-scoped, so "done" must not claim project-wide
 // completion when it only finished one branch.

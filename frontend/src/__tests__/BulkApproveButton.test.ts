@@ -30,7 +30,9 @@ function mountButton(props: {
 }) {
   return mount(BulkApproveButton, {
     props,
-    global: { stubs: { ConfirmDialog: ConfirmDialogStub } },
+    global: {
+      stubs: { ConfirmDialog: ConfirmDialogStub },
+    },
   });
 }
 

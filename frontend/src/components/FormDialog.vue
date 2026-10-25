@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   DialogClose,
   DialogContent,
@@ -24,13 +25,17 @@ const props = withDefaults(
   }>(),
   {
     description: "",
-    confirmText: "Save",
-    cancelText: "Cancel",
+    confirmText: undefined,
+    cancelText: undefined,
     confirmTestId: undefined,
     pending: false,
     submitDisabled: false,
   },
 );
+
+const { t } = useI18n();
+const confirmLabel = computed(() => props.confirmText ?? t("common.save"));
+const cancelLabel = computed(() => props.cancelText ?? t("common.cancel"));
 
 const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
@@ -72,7 +77,7 @@ const modelOpen = computed({
                 :disabled="pending"
                 @click="emit('cancel')"
               >
-                {{ cancelText }}
+                {{ cancelLabel }}
               </Button>
             </DialogClose>
             <Button
@@ -80,7 +85,7 @@ const modelOpen = computed({
               :disabled="pending || submitDisabled"
               :data-testid="confirmTestId"
             >
-              {{ pending ? "Saving…" : confirmText }}
+              {{ pending ? t("formDialog.saving") : confirmLabel }}
             </Button>
           </div>
         </form>

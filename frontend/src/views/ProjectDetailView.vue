@@ -18,14 +18,13 @@
             class="text-sm text-muted-foreground"
             :data-testid="TEST_ID.projectPendingCount"
           >
-            {{ pendingCount }}
-            {{ pendingCount === 1 ? "change" : "changes" }}
+            {{ t("projectDetail.pendingCount", pendingCount) }}
           </span>
           <span
             class="text-sm text-muted-foreground"
             :data-testid="TEST_ID.projectTestCount"
           >
-            {{ testCount }} {{ testCount === 1 ? "test" : "tests" }}
+            {{ t("projectDetail.testCount", testCount) }}
           </span>
         </template>
       </div>
@@ -34,10 +33,10 @@
           <Select v-model="selectedBranchModel">
             <SelectTrigger
               class="w-56"
-              aria-label="Branch"
+              :aria-label="t('projectDetail.branch')"
               :data-testid="TEST_ID.projectBranchSelect"
             >
-              <SelectValue placeholder="Default branch" />
+              <SelectValue :placeholder="t('projectDetail.defaultBranch')" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem
@@ -46,8 +45,15 @@
                 :value="branchOption.name"
               >
                 {{ branchOption.name
-                }}{{ branchOption.isDefault ? " (default)" : ""
-                }}{{ branchOption.isArchived ? " (archived)" : "" }}
+                }}{{
+                  branchOption.isDefault
+                    ? t("projectDetail.defaultSuffix")
+                    : ""
+                }}{{
+                  branchOption.isArchived
+                    ? t("projectDetail.archivedSuffix")
+                    : ""
+                }}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -56,7 +62,7 @@
             class="text-xs text-muted-foreground"
             :data-testid="TEST_ID.projectBranchTarget"
           >
-            inherits {{ inheritLabel }}
+            {{ t("projectDetail.inherits", { target: inheritLabel }) }}
           </span>
           <BranchActionsMenu
             v-if="selectedBranchInfo"
@@ -75,14 +81,14 @@
           class="flex items-center gap-2 text-xs text-muted-foreground"
           :data-testid="TEST_ID.branchSwitcherError"
         >
-          Branches unavailable
+          {{ t("projectDetail.branchesUnavailable") }}
           <Button
             type="button"
             variant="outline"
             size="sm"
             @click="refetchBranches()"
           >
-            Retry
+            {{ t("projectDetail.retry") }}
           </Button>
         </span>
         <Button
@@ -92,7 +98,7 @@
           :data-testid="TEST_ID.moveProject"
           @click="openMove"
         >
-          Move to group
+          {{ t("projectDetail.moveToGroup") }}
         </Button>
         <RouterLink
           v-if="project"
@@ -101,7 +107,7 @@
           :data-testid="TEST_ID.runsLink"
         >
           <ListChecks class="h-4 w-4" />
-          Runs
+          {{ t("projectDetail.runs") }}
         </RouterLink>
         <RouterLink
           v-if="project"
@@ -110,7 +116,7 @@
           :data-testid="TEST_ID.trendsLink"
         >
           <TrendingUp class="h-4 w-4" />
-          Trends
+          {{ t("projectDetail.trends") }}
         </RouterLink>
         <RouterLink
           v-if="project && isAdmin"
@@ -119,7 +125,7 @@
           :data-testid="TEST_ID.webhooksLink"
         >
           <Webhook class="h-4 w-4" />
-          Webhooks
+          {{ t("projectDetail.webhooks") }}
         </RouterLink>
       </div>
     </div>
@@ -129,7 +135,7 @@
     <AsyncState
       :is-loading="activeTabState.isLoading"
       :error="activeTabState.error"
-      error-title="Failed to load project"
+      :error-title="t('projectDetail.errorTitle')"
       :retry="activeTabState.refetch"
       :empty="tests.length === 0"
       :empty-title="emptyTitle"
@@ -151,7 +157,7 @@
         :page="page"
         :page-count="pageCount"
         :total="meta?.total ?? 0"
-        item-label="variants"
+        :item-label="t('projectDetail.variants')"
         @update:page="page = $event"
       />
     </AsyncState>
@@ -170,6 +176,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { ListChecks, TrendingUp, Webhook } from "@lucide/vue";
 
@@ -206,6 +213,7 @@ import { PROJECT_DETAIL_PAGE_SIZE } from "@/lib/pagination";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { projectName } = useRouteParams();
+const { t } = useI18n();
 // Webhooks are admin-only (route meta enforces it too); Runs and Trends stay
 // available to every role.
 const { isAdmin } = useCurrentRole();
@@ -272,12 +280,14 @@ const filters = computed<ProjectDetailFilters>(() => {
 // which one it is so a reviewer does not conclude the branch has no tests.
 const hasActiveFilters = computed(() => Object.keys(filters.value).length > 0);
 const emptyTitle = computed(() =>
-  hasActiveFilters.value ? "No tests match these filters" : "No tests found",
+  hasActiveFilters.value
+    ? t("projectDetail.emptyFilteredTitle")
+    : t("projectDetail.emptyTitle"),
 );
 const emptyDescription = computed(() =>
   hasActiveFilters.value
-    ? "Try a different search or filter."
-    : "This project has no tests yet.",
+    ? t("projectDetail.emptyFilteredBody")
+    : t("projectDetail.emptyBody"),
 );
 
 const page = computed({
@@ -341,7 +351,7 @@ const selectedBranchInfo = computed(() =>
 const inheritLabel = computed(() => {
   const info = selectedBranchInfo.value;
   if (!info || info.isDefault || !info.targetBranchName) return "";
-  return `from ${info.targetBranchName}`;
+  return info.targetBranchName;
 });
 
 // A branch that (transitively) inherits from the branch being retargeted would

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { Input } from "@/components/ui/input";
 import FormDialog from "@/components/FormDialog.vue";
 import { sdkErrorMessage } from "@/lib/sdk";
@@ -18,6 +19,7 @@ const emit = defineEmits<{
   (e: "submit", name: string): void;
 }>();
 
+const { t } = useI18n();
 const name = ref("");
 const invalid = computed(() => !name.value.trim());
 
@@ -33,11 +35,9 @@ watch(
 <template>
   <FormDialog
     :open="open"
-    :title="group ? 'Rename group' : 'New group'"
+    :title="group ? t('groupForm.renameTitle') : t('groupForm.newTitle')"
     :description="
-      group
-        ? 'Update the display name.'
-        : 'Groups organize projects. They do not restrict access.'
+      group ? t('groupForm.renameDescription') : t('groupForm.newDescription')
     "
     :pending="pending"
     :submit-disabled="invalid"
@@ -46,7 +46,7 @@ watch(
     @submit="emit('submit', name.trim())"
   >
     <label class="block space-y-1 text-sm">
-      <span>Name</span>
+      <span>{{ t("groupForm.name") }}</span>
       <Input
         v-model="name"
         :aria-invalid="invalid"
@@ -54,10 +54,10 @@ watch(
       />
     </label>
     <p v-if="invalid" class="text-sm text-muted-foreground" role="alert">
-      Name is required
+      {{ t("groupForm.nameRequired") }}
     </p>
     <p v-if="error" class="text-sm text-destructive" role="alert">
-      {{ sdkErrorMessage(error, "Could not save group") }}
+      {{ sdkErrorMessage(error, t("groupForm.errorFallback")) }}
     </p>
   </FormDialog>
 </template>

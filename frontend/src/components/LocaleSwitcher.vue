@@ -14,7 +14,9 @@ function change(event: Event): void {
 </script>
 
 <template>
-  <label class="sr-only" for="locale-switcher">{{ t("header.language") }}</label>
+  <label class="sr-only" for="locale-switcher">{{
+    t("header.language")
+  }}</label>
   <select
     id="locale-switcher"
     class="rounded-md border bg-card px-2 py-1 text-xs"

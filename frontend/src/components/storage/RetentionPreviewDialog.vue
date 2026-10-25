@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import {
   DialogClose,
   DialogContent,
@@ -24,6 +25,8 @@ defineProps<{
   preview: RetentionPreview | null;
 }>();
 
+const { t } = useI18n();
+
 const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
   (e: "retry"): void;
@@ -39,12 +42,11 @@ const emit = defineEmits<{
         :data-testid="TEST_ID.storagePreviewDialog"
       >
         <div class="flex flex-col gap-2">
-          <DialogTitle class="text-lg font-semibold"
-            >Preview cleanup</DialogTitle
-          >
+          <DialogTitle class="text-lg font-semibold">
+            {{ t("storagePreview.title") }}
+          </DialogTitle>
           <DialogDescription class="text-sm text-muted-foreground">
-            Dry run — nothing is deleted. This is what the current retention
-            policy would remove right now.
+            {{ t("storagePreview.description") }}
           </DialogDescription>
         </div>
 
@@ -53,7 +55,7 @@ const emit = defineEmits<{
           class="py-4 text-sm text-muted-foreground"
           :data-testid="TEST_ID.storagePreviewLoading"
         >
-          Calculating what would be cleaned up…
+          {{ t("storagePreview.loading") }}
         </p>
 
         <div
@@ -70,44 +72,73 @@ const emit = defineEmits<{
             :data-testid="TEST_ID.storagePreviewRetry"
             @click="emit('retry')"
           >
-            Try again
+            {{ t("common.retry") }}
           </Button>
         </div>
 
         <dl v-else-if="preview" class="grid gap-2 text-sm sm:grid-cols-2">
           <div class="rounded-md border p-2">
-            <dt class="text-xs text-muted-foreground">Baseline revisions</dt>
+            <dt class="text-xs text-muted-foreground">
+              {{ t("storagePreview.baseline") }}
+            </dt>
             <dd>
-              {{ preview.baselineRevisions.overflow }} over the limit of
-              {{ preview.baselineRevisions.limit }} kept per variant
+              {{
+                t("storagePreview.baselineValue", {
+                  overflow: preview.baselineRevisions.overflow,
+                  limit: preview.baselineRevisions.limit,
+                })
+              }}
             </dd>
           </div>
 
           <div class="rounded-md border p-2">
-            <dt class="text-xs text-muted-foreground">Runs</dt>
+            <dt class="text-xs text-muted-foreground">
+              {{ t("storagePreview.runs") }}
+            </dt>
             <dd>
-              {{ preview.runs.eligible }} eligible in the
-              {{ preview.runs.days }}-day window
+              {{
+                t("storagePreview.runsValue", {
+                  eligible: preview.runs.eligible,
+                  days: preview.runs.days,
+                })
+              }}
             </dd>
           </div>
 
           <div class="rounded-md border p-2">
-            <dt class="text-xs text-muted-foreground">Orphan grace</dt>
-            <dd>{{ preview.orphanGraceHours }} hours</dd>
+            <dt class="text-xs text-muted-foreground">
+              {{ t("storagePreview.orphan") }}
+            </dt>
+            <dd>
+              {{
+                t("storagePreview.hours", { count: preview.orphanGraceHours })
+              }}
+            </dd>
           </div>
 
           <div class="rounded-md border p-2">
-            <dt class="text-xs text-muted-foreground">Storage</dt>
+            <dt class="text-xs text-muted-foreground">
+              {{ t("storagePreview.storage") }}
+            </dt>
             <dd class="flex flex-wrap items-center gap-2">
-              <span>{{ formatBytes(preview.storage.usageBytes) }} used</span>
+              <span>{{
+                t("storagePreview.used", {
+                  size: formatBytes(preview.storage.usageBytes),
+                })
+              }}</span>
               <span v-if="preview.storage.quotaBytes != null">
-                of {{ formatBytes(preview.storage.quotaBytes) }} ({{
-                  formatPercent(preview.storage.percent)
-                }})
+                {{
+                  t("storagePreview.ofQuota", {
+                    quota: formatBytes(preview.storage.quotaBytes),
+                    percent: formatPercent(preview.storage.percent),
+                  })
+                }}
               </span>
-              <span v-else class="text-muted-foreground">· No quota</span>
+              <span v-else class="text-muted-foreground">
+                {{ t("storagePreview.noQuota") }}
+              </span>
               <Badge v-if="preview.storage.warning" variant="destructive">
-                Near quota
+                {{ t("storagePreview.nearQuota") }}
               </Badge>
             </dd>
           </div>
@@ -116,7 +147,7 @@ const emit = defineEmits<{
         <div class="flex justify-end">
           <DialogClose as-child>
             <Button type="button" :data-testid="TEST_ID.storagePreviewClose">
-              Close
+              {{ t("storagePreview.close") }}
             </Button>
           </DialogClose>
         </div>

@@ -98,7 +98,7 @@ const pending = computed(() => pendingCount.value ?? 0);
           :class="collapsed ? 'md:hidden' : ''"
           :data-testid="TEST_ID.navInboxLabel"
         >
-          {{ t('nav.inbox') }}
+          {{ t("nav.inbox") }}
         </span>
         <span
           v-if="pending > 0"

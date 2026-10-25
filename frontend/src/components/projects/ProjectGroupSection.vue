@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { RouterLink } from "vue-router";
 import { getStatusCountBadge } from "@/components/StatusBadge";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
@@ -17,6 +18,8 @@ const props = withDefaults(
   }>(),
   { selectable: false, selectedNames: () => [] },
 );
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   toggle: [projectName: string];
@@ -43,8 +46,7 @@ const {
         {{ section.name }}
       </h2>
       <span class="text-xs text-muted-foreground">
-        {{ section.items.length }}
-        {{ section.items.length === 1 ? "project" : "projects" }}
+        {{ t("projects.projectCount", section.items.length) }}
       </span>
     </div>
 
@@ -59,7 +61,7 @@ const {
           type="checkbox"
           class="h-4 w-4 shrink-0"
           :checked="isSelected(project.name)"
-          :aria-label="`Select ${project.name}`"
+          :aria-label="t('projects.selectProject', { project: project.name })"
           :data-testid="TEST_ID.projectSelectRow"
           @change="emit('toggle', project.name)"
         />
@@ -73,15 +75,16 @@ const {
         >
           <p class="truncate font-medium">{{ project.name }}</p>
           <p class="text-xs text-muted-foreground">
-            {{ project.testCount ?? 0 }}
-            {{ (project.testCount ?? 0) === 1 ? "test" : "tests" }}
+            {{ t("projects.testCount", project.testCount ?? 0) }}
           </p>
         </RouterLink>
 
         <div class="flex items-center gap-2">
           <span
             v-if="(project.pendingCount ?? 0) > 0"
-            :aria-label="`${project.pendingCount ?? 0} pending`"
+            :aria-label="
+              t('projects.pendingAria', { count: project.pendingCount ?? 0 })
+            "
           >
             <component
               :is="
@@ -94,7 +97,7 @@ const {
             />
           </span>
           <RowActionsCell
-            delete-label="Delete project"
+            :delete-label="t('projects.deleteProject')"
             :test-id="TEST_ID.projectActionsButton"
             @request-delete="requestDelete(project)"
           />
@@ -106,10 +109,10 @@ const {
       v-model:open="showConfirm"
       :pending="deleting"
       confirm-variant="destructive"
-      title="Delete project"
+      :title="t('projects.deleteTitle')"
       :description="deleteDescription"
-      confirm-text="Delete"
-      cancel-text="Cancel"
+      :confirm-text="t('projects.deleteButton')"
+      :cancel-text="t('common.cancel')"
       @confirm="confirmDelete"
       @cancel="cancelDelete"
     />

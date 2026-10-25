@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { Button } from "@/components/ui/button";
 import { useCurrentRole } from "@/composables/useAuth";
 import { TEST_ID } from "@/lib/test-ids";
@@ -21,6 +22,7 @@ defineEmits<{
 // A VIEWER can still walk the queue (Skip / Back to project), but approving is
 // a write the backend would reject with 403.
 const { canWrite } = useCurrentRole();
+const { t } = useI18n();
 </script>
 
 <template>
@@ -32,7 +34,11 @@ const { canWrite } = useCurrentRole();
       :disabled="isApproving"
       @click="$emit('skip')"
     >
-      {{ approved ? "Back to project" : "Skip" }}
+      {{
+        approved
+          ? t("approveSkipFooter.backToProject")
+          : t("approveSkipFooter.skip")
+      }}
     </Button>
 
     <Button
@@ -42,7 +48,7 @@ const { canWrite } = useCurrentRole();
       :disabled="isApproving"
       @click="$emit('approve')"
     >
-      Approve changes
+      {{ t("approveSkipFooter.approve") }}
     </Button>
   </div>
 </template>

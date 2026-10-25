@@ -10,7 +10,9 @@
       @submit.prevent="submit"
     >
       <div class="space-y-1">
-        <label for="login-username" class="block text-sm">{{ t("login.username") }}</label>
+        <label for="login-username" class="block text-sm">{{
+          t("login.username")
+        }}</label>
         <Input
           id="login-username"
           v-model="username"
@@ -21,7 +23,9 @@
         />
       </div>
       <div class="space-y-1">
-        <label for="login-password" class="block text-sm">{{ t("login.password") }}</label>
+        <label for="login-password" class="block text-sm">{{
+          t("login.password")
+        }}</label>
         <Input
           id="login-password"
           v-model="password"
@@ -47,7 +51,9 @@
         {{ t("login.twoFactorHelp") }}
       </p>
       <div class="space-y-1">
-        <label for="login-two-factor-code" class="block text-sm">{{ t("login.code") }}</label>
+        <label for="login-two-factor-code" class="block text-sm">{{
+          t("login.code")
+        }}</label>
         <Input
           id="login-two-factor-code"
           v-model="code"

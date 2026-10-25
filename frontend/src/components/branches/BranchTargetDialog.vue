@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +38,7 @@ const emit = defineEmits<{
   (e: "confirm", target: string | null): void;
 }>();
 
+const { t } = useI18n();
 const selected = ref(props.currentTarget ?? DEFAULT_TARGET);
 
 watch(
@@ -55,23 +57,23 @@ function confirm() {
   <AlertDialog :open="open" @update:open="emit('update:open', $event)">
     <AlertDialogContent :data-testid="TEST_ID.branchTargetDialog">
       <AlertDialogHeader>
-        <AlertDialogTitle>Change target branch</AlertDialogTitle>
+        <AlertDialogTitle>{{ t("branchTarget.title") }}</AlertDialogTitle>
         <AlertDialogDescription>
-          <strong class="font-mono">{{ branchName }}</strong> inherits the
-          baselines it has not approved yet from its target. The project default
-          keeps following whichever branch is the default.
+          {{ t("branchTarget.description", { branch: branchName }) }}
         </AlertDialogDescription>
       </AlertDialogHeader>
 
       <Select v-model="selected">
         <SelectTrigger
-          aria-label="Target branch"
+          :aria-label="t('branchTarget.label')"
           :data-testid="TEST_ID.branchTargetSelect"
         >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem :value="DEFAULT_TARGET">Project default</SelectItem>
+          <SelectItem :value="DEFAULT_TARGET">
+            {{ t("branchTarget.projectDefault") }}
+          </SelectItem>
           <SelectItem v-for="target in targets" :key="target" :value="target">
             {{ target }}
           </SelectItem>
@@ -83,14 +85,14 @@ function confirm() {
           :data-testid="TEST_ID.branchTargetCancel"
           @click="emit('update:open', false)"
         >
-          Cancel
+          {{ t("branchTarget.cancel") }}
         </AlertDialogCancel>
         <AlertDialogAction
           :disabled="pending"
           :data-testid="TEST_ID.branchTargetConfirm"
           @click="confirm"
         >
-          Save target
+          {{ t("branchTarget.save") }}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

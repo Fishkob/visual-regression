@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 
 import {
   AlertDialog,
@@ -28,6 +29,8 @@ const props = defineProps<{
   /** Optional: confirm button variant styling */
   confirmVariant?: "default" | "destructive";
 }>();
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
@@ -63,8 +66,9 @@ const confirmBtnClass = computed(() => {
   return "";
 });
 
-const confirmLabel = computed(() => props.confirmText ?? "Confirm");
-const cancelLabel = computed(() => props.cancelText ?? "Cancel");
+const confirmLabel = computed(() => props.confirmText ?? t("common.confirm"));
+const cancelLabel = computed(() => props.cancelText ?? t("common.cancel"));
+const titleText = computed(() => props.title ?? t("confirmDialog.title"));
 </script>
 
 <template>
@@ -73,7 +77,7 @@ const cancelLabel = computed(() => props.cancelText ?? "Cancel");
       <AlertDialogHeader>
         <AlertDialogTitle :data-testid="TEST_ID.dialogTitle">
           <slot name="title">
-            {{ title ?? "Confirm" }}
+            {{ titleText }}
           </slot>
         </AlertDialogTitle>
 

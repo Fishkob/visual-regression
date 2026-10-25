@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, toRef } from "vue";
+import { useI18n } from "vue-i18n";
 import { Button } from "@/components/ui/button";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import { useBulkApprove } from "@/composables/useBulkApprove";
@@ -23,6 +24,7 @@ const { mutate, isPending } = useBulkApprove(
 // A batch approval is a write: a VIEWER gets no trigger at all, not a disabled
 // one (a disabled control would advertise an action the role can never use).
 const { canWrite } = useCurrentRole();
+const { t } = useI18n();
 
 function confirm() {
   mutate();
@@ -39,15 +41,15 @@ function confirm() {
     :data-testid="TEST_ID.bulkApprove"
     @click="open = true"
   >
-    Approve all pending
+    {{ t("bulkApprove.trigger") }}
   </Button>
 
   <ConfirmDialog
     v-if="canWrite"
     v-model:open="open"
-    title="Approve all pending variants?"
-    description="Every pending change of this test on this branch becomes the new baseline. This cannot be undone."
-    confirm-text="Approve all"
+    :title="t('bulkApprove.title')"
+    :description="t('bulkApprove.description')"
+    :confirm-text="t('bulkApprove.confirm')"
     :pending="isPending"
     @confirm="confirm"
   />
