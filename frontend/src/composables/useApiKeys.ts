@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import {
   apiKeysControllerCreate,
   apiKeysControllerFindAll,
@@ -48,8 +49,8 @@ export function useCreateApiKey() {
   return useSdkMutation<CreatedApiKeyDto, CreateApiKeyInput>({
     mutationFn: (body) =>
       apiKeysControllerCreate({ body: toCreateApiKeyBody(body) }),
-    successMessage: "API key created",
-    errorMessage: "Could not create API key",
+    successMessage: tm("toast.apiKeyCreated"),
+    errorMessage: tm("toast.apiKeyCreateError"),
     invalidate: (client) => {
       client.invalidateQueries({ queryKey: apiKeyQueryKeys.all() });
     },
@@ -63,8 +64,8 @@ export function useRotateApiKey() {
   >({
     mutationFn: ({ id, rotation }) =>
       apiKeysControllerRotate({ path: { id }, body: rotation }),
-    successMessage: "API key rotated",
-    errorMessage: "Could not rotate API key",
+    successMessage: tm("toast.apiKeyRotated"),
+    errorMessage: tm("toast.apiKeyRotateError"),
     invalidate: (client) => {
       client.invalidateQueries({ queryKey: apiKeyQueryKeys.all() });
     },
@@ -78,8 +79,8 @@ export function useRevokeApiKey() {
         path: { id },
         body: reason ? { reason } : {},
       }),
-    successMessage: "API key revoked",
-    errorMessage: "Could not revoke API key",
+    successMessage: tm("toast.apiKeyRevoked"),
+    errorMessage: tm("toast.apiKeyRevokeError"),
     invalidate: (client) => {
       client.invalidateQueries({ queryKey: apiKeyQueryKeys.all() });
     },
@@ -89,8 +90,8 @@ export function useRevokeApiKey() {
 export function useDeleteApiKey() {
   return useSdkMutation<unknown, string>({
     mutationFn: (id) => apiKeysControllerRemove({ path: { id } }),
-    successMessage: "API key deleted",
-    errorMessage: "Could not delete API key",
+    successMessage: tm("toast.apiKeyDeleted"),
+    errorMessage: tm("toast.apiKeyDeleteError"),
     invalidate: (client) => {
       client.invalidateQueries({ queryKey: apiKeyQueryKeys.all() });
     },

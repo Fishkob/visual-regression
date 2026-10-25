@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import type { QueryClient } from "@tanstack/vue-query";
 import {
   usersControllerCreate,
@@ -38,8 +39,8 @@ const invalidateUsers = (client: QueryClient) => {
 export function useCreateUser() {
   return useSdkMutation<CreatedUserDto, CreateUserInput>({
     mutationFn: (body) => usersControllerCreate({ body }),
-    successMessage: "User created",
-    errorMessage: "Could not create the user",
+    successMessage: tm("toast.userCreated"),
+    errorMessage: tm("toast.userCreateError"),
     invalidate: invalidateUsers,
   });
 }
@@ -55,8 +56,8 @@ export function useUpdateUser() {
         },
       }),
     successMessage: (user) =>
-      user.isActive ? "User reactivated" : "User deactivated",
-    errorMessage: "Could not update the user",
+      tm(user.isActive ? "toast.userReactivated" : "toast.userDeactivated"),
+    errorMessage: tm("toast.userUpdateError"),
     invalidate: invalidateUsers,
   });
 }
@@ -64,8 +65,8 @@ export function useUpdateUser() {
 export function useResetUserPassword() {
   return useSdkMutation<ResetPasswordResultDto, string>({
     mutationFn: (id) => usersControllerResetPassword({ path: { id } }),
-    successMessage: "Temporary password issued",
-    errorMessage: "Could not reset the password",
+    successMessage: tm("toast.tempPasswordIssued"),
+    errorMessage: tm("toast.resetPasswordError"),
     invalidate: invalidateUsers,
   });
 }

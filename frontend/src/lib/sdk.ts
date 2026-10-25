@@ -18,9 +18,11 @@ export function getData<T>(result: unknown): T | undefined {
 // Single home for reading the message out of an SDK error payload. The
 // generated client resolves non-2xx as `{ error, request, response }`; the
 // error member is a string (often) or an object carrying a `message`.
+import { translateMessage as tm } from "@/lib/i18n-messages";
+
 export function sdkErrorMessage(
   error: unknown,
-  fallback = "Request failed",
+  fallback = tm("common.requestFailed"),
 ): string {
   if (typeof error === "string") return error;
   if (typeof error === "object" && error) {
@@ -39,7 +41,7 @@ export function sdkErrorMessage(
 // unwrapping normally.
 export function unwrapSdkData<T>(
   response: unknown,
-  fallbackMessage = "Request failed",
+  fallbackMessage = tm("common.requestFailed"),
 ): T | undefined {
   if (typeof response === "object" && response && "error" in response) {
     throw new Error(

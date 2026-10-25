@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { unref } from "vue";
 import {
   baselineHistoryControllerRestore,
@@ -61,11 +62,12 @@ export function useRestoreBaseline(options: {
 
     successMessage: (_, { testName: tn, viewport, browser, environment }) => {
       const variantInfo =
-        formatVariantLabel({ viewport, browser, environment }) || "entire test";
-      return `Baseline restored for ${variantInfo} of "${tn}"`;
+        formatVariantLabel({ viewport, browser, environment }) ||
+        tm("toast.entireTest");
+      return tm("toast.baselineRestored", { variant: variantInfo, test: tn });
     },
 
-    errorMessage: "Failed to restore baseline",
+    errorMessage: tm("toast.baselineRestoreError"),
 
     invalidate: (
       client,

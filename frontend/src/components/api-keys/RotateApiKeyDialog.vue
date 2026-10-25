@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import FormDialog from "@/components/FormDialog.vue";
 import {
   Select,
@@ -27,19 +28,20 @@ const emit = defineEmits<{
   ): void;
 }>();
 
+const { t } = useI18n();
 const GRACE_OPTIONS = [
-  { value: "0", label: "Immediately" },
-  { value: "30", label: "After 30 minutes" },
-  { value: "60", label: "After 1 hour" },
-  { value: "1440", label: "After 24 hours" },
+  { value: "0", labelKey: "apiKeyRotate.immediately" },
+  { value: "30", labelKey: "apiKeyRotate.after30" },
+  { value: "60", labelKey: "apiKeyRotate.after60" },
+  { value: "1440", labelKey: "apiKeyRotate.after1440" },
 ];
 
 const EXPIRY_OPTIONS = [
-  { value: "inherit", label: "Like the current key" },
-  { value: "never", label: "Never" },
-  { value: "30", label: "30 days" },
-  { value: "90", label: "90 days" },
-  { value: "365", label: "1 year" },
+  { value: "inherit", labelKey: "apiKeyRotate.inherit" },
+  { value: "never", labelKey: "apiKeyRotate.never" },
+  { value: "30", labelKey: "apiKeyRotate.days30" },
+  { value: "90", labelKey: "apiKeyRotate.days90" },
+  { value: "365", labelKey: "apiKeyRotate.year" },
 ];
 
 const grace = ref("0");
@@ -60,11 +62,11 @@ watch(
 const expiryHint = computed(() => {
   if (inheritsExpiry.value) {
     return props.apiKey?.expiresAt
-      ? "The new key inherits what is left of the current key's lifetime."
-      : "The current key does not expire, so neither does the new one.";
+      ? t("apiKeyRotate.inheritHintExpiring")
+      : t("apiKeyRotate.inheritHintNoExpiry");
   }
-  if (expiry.value === "never") return "The new key never expires.";
-  return `The new key expires in ${expiry.value} days.`;
+  if (expiry.value === "never") return t("apiKeyRotate.neverHint");
+  return t("apiKeyRotate.expiresHint", { days: expiry.value });
 });
 
 function submit() {
@@ -84,23 +86,23 @@ function submit() {
 <template>
   <FormDialog
     :open="open"
-    title="Rotate API key"
+    :title="t('apiKeyRotate.title')"
     :description="
       apiKey?.keyHint
-        ? `A new key replaces …${apiKey.keyHint}. The new key is shown once.`
-        : 'A new key replaces the current one. The new key is shown once.'
+        ? t('apiKeyRotate.descriptionHint', { hint: apiKey.keyHint })
+        : t('apiKeyRotate.description')
     "
-    confirm-text="Rotate"
+    :confirm-text="t('apiKeyRotate.confirm')"
     :pending="pending"
     :confirm-test-id="TEST_ID.rotateApiKeySubmit"
     @update:open="emit('update:open', $event)"
     @submit="submit"
   >
     <label class="block space-y-1 text-sm">
-      <span>Keep the old key working</span>
+      <span>{{ t("apiKeyRotate.grace") }}</span>
       <Select v-model="grace">
         <SelectTrigger :data-testid="TEST_ID.rotateApiKeyGrace">
-          <SelectValue placeholder="Immediately" />
+          <SelectValue :placeholder="t('apiKeyRotate.immediately')" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem
@@ -108,30 +110,29 @@ function submit() {
             :key="option.value"
             :value="option.value"
           >
-            {{ option.label }}
+            {{ t(option.labelKey) }}
           </SelectItem>
         </SelectContent>
       </Select>
     </label>
 
     <p class="text-sm text-muted-foreground">
-      The new key inherits this key's scopes, project allowlist and owner —
-      rotation only changes the secret and its lifetime.
+      {{ t("apiKeyRotate.inheritHelp") }}
     </p>
 
     <p class="text-sm text-muted-foreground">
       {{
         graceMinutes > 0
-          ? "Update the CI secret before the grace window ends — the old key stops working afterwards."
-          : "The old key stops working as soon as you rotate."
+          ? t("apiKeyRotate.graceWarning")
+          : t("apiKeyRotate.immediateWarning")
       }}
     </p>
 
     <label class="block space-y-1 text-sm">
-      <span>Expires</span>
+      <span>{{ t("apiKeyRotate.expires") }}</span>
       <Select v-model="expiry">
         <SelectTrigger :data-testid="TEST_ID.rotateApiKeyExpiry">
-          <SelectValue placeholder="Like the current key" />
+          <SelectValue :placeholder="t('apiKeyRotate.inherit')" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem
@@ -139,7 +140,7 @@ function submit() {
             :key="option.value"
             :value="option.value"
           >
-            {{ option.label }}
+            {{ t(option.labelKey) }}
           </SelectItem>
         </SelectContent>
       </Select>
@@ -147,7 +148,7 @@ function submit() {
     </label>
 
     <p v-if="error" class="text-sm text-destructive" role="alert">
-      {{ sdkErrorMessage(error, "Could not rotate API key") }}
+      {{ sdkErrorMessage(error, t("apiKeyRotate.error")) }}
     </p>
   </FormDialog>
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { Check, Copy } from "@lucide/vue";
 import {
   DialogClose,
@@ -22,6 +23,7 @@ const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
 }>();
 
+const { t } = useI18n();
 const copied = ref(false);
 
 watch(
@@ -49,11 +51,10 @@ async function copy() {
       >
         <div class="flex flex-col gap-2">
           <DialogTitle class="text-lg font-semibold">
-            Recovery codes
+            {{ t("recoveryCodes.title") }}
           </DialogTitle>
           <DialogDescription class="text-sm text-destructive">
-            Store these now. They are shown once, each works once, and they are
-            the only way into your account if you lose the authenticator app.
+            {{ t("recoveryCodes.description") }}
           </DialogDescription>
         </div>
 
@@ -73,17 +74,21 @@ async function copy() {
             variant="outline"
             :data-testid="TEST_ID.recoveryCodesCopy"
             :aria-label="
-              copied ? 'Recovery codes copied' : 'Copy recovery codes'
+              copied
+                ? t('recoveryCodes.copiedAria')
+                : t('recoveryCodes.copyAria')
             "
             @click="copy"
           >
             <Check v-if="copied" class="h-4 w-4" />
             <Copy v-else class="h-4 w-4" />
-            <span>{{ copied ? "Copied" : "Copy codes" }}</span>
+            <span>{{
+              copied ? t("recoveryCodes.copied") : t("recoveryCodes.copy")
+            }}</span>
           </Button>
           <DialogClose as-child>
             <Button type="button" :data-testid="TEST_ID.recoveryCodesDone">
-              Done
+              {{ t("recoveryCodes.done") }}
             </Button>
           </DialogClose>
         </div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { ref } from "vue";
 
 import {
@@ -17,6 +18,8 @@ import { LayoutGrid, MoreVertical, Trash2 } from "@lucide/vue";
 // concern — it binds its own requestDelete against the row it rendered.
 // `readOnly` suppresses the menu entirely for rows the caller cannot mutate
 // (e.g. a test inherited from another branch).
+const { t } = useI18n();
+
 defineProps<{
   deleteLabel: string;
   testId: string;
@@ -52,7 +55,7 @@ function handleOverview() {
           <button
             type="button"
             class="p-2 rounded-md hover:bg-muted cursor-pointer inline-flex items-center justify-center focus-visible:ring-2 focus-visible:ring-ring/50"
-            aria-label="Row actions"
+            :aria-label="t('tables.rowActions')"
             :data-testid="testId"
           >
             <MoreVertical class="w-4 h-4" />

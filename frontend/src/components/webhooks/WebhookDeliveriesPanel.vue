@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { computed, toRef } from "vue";
+import { useI18n } from "vue-i18n";
+import { formatDateTime } from "@/lib/format-date";
 import { RefreshCw } from "@lucide/vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useWebhookDeliveries } from "@/composables/useWebhooks";
 import {
-  WEBHOOK_DELIVERY_STATUS_LABEL,
   WEBHOOK_MAX_ATTEMPTS,
-  webhookEventLabel,
   type WebhookDeliveryStatus,
 } from "@/domains/webhooks/webhook.model";
+import {
+  webhookEventLabelI18n,
+  webhookStatusLabel,
+} from "@/domains/webhooks/webhook.labels";
 import { formatRelativeAge } from "@/lib/format-date";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -20,6 +24,7 @@ const props = defineProps<{
   expanded: boolean;
 }>();
 
+const { t } = useI18n();
 const { data, isLoading, error, refetch, replay, isReplaying } =
   useWebhookDeliveries(
     toRef(props, "projectName"),
@@ -41,7 +46,10 @@ const statusClass: Record<WebhookDeliveryStatus, string> = {
 };
 
 function replayLabel(event: string, createdAt: string): string {
-  return `Replay the ${webhookEventLabel(event)} delivery from ${formatRelativeAge(createdAt)}`;
+  return t("webhookDeliveries.replayAria", {
+    event: webhookEventLabelI18n(event),
+    age: formatRelativeAge(createdAt),
+  });
 }
 </script>
 
@@ -52,18 +60,18 @@ function replayLabel(event: string, createdAt: string): string {
     class="border-t px-4 py-3"
   >
     <div class="mb-2 flex items-center justify-between gap-2">
-      <h3 class="text-sm font-semibold">Recent deliveries</h3>
+      <h3 class="text-sm font-semibold">{{ t("webhookDeliveries.recent") }}</h3>
       <Button
         type="button"
         variant="ghost"
         size="sm"
         :disabled="isLoading"
-        :aria-label="'Refresh deliveries'"
+        :aria-label="t('webhookDeliveries.refreshAria')"
         :data-testid="TEST_ID.webhookDeliveriesRefresh"
         @click="refetch()"
       >
         <RefreshCw class="h-4 w-4" />
-        Refresh
+        {{ t("webhookDeliveries.refresh") }}
       </Button>
     </div>
 
@@ -78,13 +86,13 @@ function replayLabel(event: string, createdAt: string): string {
         :key="row"
         class="h-12 animate-pulse rounded-md bg-muted"
       />
-      <span class="sr-only">Loading deliveries</span>
+      <span class="sr-only">{{ t("webhookDeliveries.loading") }}</span>
     </div>
 
     <ErrorAlert
       v-else-if="error"
       variant="error"
-      title="Failed to load deliveries"
+      :title="t('webhookDeliveries.errorTitle')"
       :message="error.message"
       retry
       :on-retry="() => refetch()"
@@ -95,7 +103,7 @@ function replayLabel(event: string, createdAt: string): string {
       class="py-2 text-sm text-muted-foreground"
       :data-testid="TEST_ID.webhookDeliveriesEmpty"
     >
-      No deliveries yet
+      {{ t("webhookDeliveries.empty") }}
     </p>
 
     <ul v-else class="divide-y">
@@ -112,13 +120,18 @@ function replayLabel(event: string, createdAt: string): string {
               :class="statusClass[delivery.status]"
               :data-testid="TEST_ID.webhookDeliveryStatus"
             >
-              {{ WEBHOOK_DELIVERY_STATUS_LABEL[delivery.status] }}
+              {{ webhookStatusLabel(delivery.status) }}
             </Badge>
             <span class="text-sm font-medium">
-              {{ webhookEventLabel(delivery.event) }}
+              {{ webhookEventLabelI18n(delivery.event) }}
             </span>
             <span class="text-xs text-muted-foreground">
-              {{ delivery.attempts }}/{{ WEBHOOK_MAX_ATTEMPTS }} attempts
+              {{
+                t("webhookDeliveries.attempts", {
+                  done: delivery.attempts,
+                  max: WEBHOOK_MAX_ATTEMPTS,
+                })
+              }}
             </span>
             <span
               v-if="delivery.responseStatus !== null"
@@ -130,7 +143,11 @@ function replayLabel(event: string, createdAt: string): string {
               v-if="delivery.deliveredAt"
               class="text-xs text-muted-foreground"
             >
-              delivered {{ formatRelativeAge(delivery.deliveredAt) }}
+              {{
+                t("webhookDeliveries.delivered", {
+                  age: formatRelativeAge(delivery.deliveredAt),
+                })
+              }}
             </span>
           </div>
 
@@ -144,11 +161,15 @@ function replayLabel(event: string, createdAt: string): string {
           </p>
 
           <p class="text-xs text-muted-foreground">
-            <span :title="new Date(delivery.createdAt).toLocaleString()">
+            <span :title="formatDateTime(new Date(delivery.createdAt))">
               {{ formatRelativeAge(delivery.createdAt) }}
             </span>
             <template v-if="delivery.nextAttemptAt">
-              · next attempt {{ formatRelativeAge(delivery.nextAttemptAt) }}
+              {{
+                t("webhookDeliveries.nextAttempt", {
+                  age: formatRelativeAge(delivery.nextAttemptAt),
+                })
+              }}
             </template>
           </p>
         </div>
@@ -162,7 +183,7 @@ function replayLabel(event: string, createdAt: string): string {
           :data-testid="TEST_ID.webhookReplay"
           @click="replay(delivery.id)"
         >
-          Replay
+          {{ t("webhookDeliveries.replay") }}
         </Button>
       </li>
     </ul>

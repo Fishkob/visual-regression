@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
+import { formatDateTime } from "@/lib/format-date";
 import { RouterLink } from "vue-router";
 import { ArrowLeft, Download, ExternalLink } from "@lucide/vue";
 import AsyncState from "@/components/AsyncState.vue";
@@ -26,7 +28,6 @@ import {
 import { mapRunApproveAllResult } from "@/domains/runs/run.mapper";
 import {
   RUN_STATE_BADGE_VARIANT,
-  RUN_STATE_LABEL,
   runFinishedLabel,
   shortCommitSha,
   type RunPending,
@@ -36,6 +37,7 @@ import { formatVariantLabel } from "@/lib/format-variant-label";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { projectName, runKey, branch } = useRouteParams();
+const { t } = useI18n();
 
 const {
   data: detail,
@@ -101,7 +103,7 @@ function confirmApproveAll() {
 function absoluteTime(iso: string | null): string | undefined {
   if (!iso) return undefined;
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? iso : formatDateTime(date);
 }
 
 // The reviewable-details page is branch-scoped, and a run's pending row names
@@ -117,8 +119,8 @@ function testLink(item: RunPending) {
 
 function mismatchLabel(item: RunPending): string {
   return item.kind === "pdf"
-    ? `${item.mismatchPageCount ?? 0} pages`
-    : `${item.mismatchPixelCount} px`;
+    ? t("runDetail.mismatchPages", { count: item.mismatchPageCount ?? 0 })
+    : t("runDetail.mismatchPixels", { count: item.mismatchPixelCount });
 }
 </script>
 
@@ -130,14 +132,14 @@ function mismatchLabel(item: RunPending): string {
         class="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:underline"
       >
         <ArrowLeft class="h-4 w-4" />
-        All runs
+        {{ t("runDetail.allRuns") }}
       </RouterLink>
     </div>
 
     <AsyncState
       :is-loading="isLoading"
       :error="error"
-      error-title="Failed to load the run"
+      :error-title="t('runDetail.errorTitle')"
       :retry="refetch"
       :empty="!detail"
     >
@@ -152,7 +154,7 @@ function mismatchLabel(item: RunPending): string {
       <template #empty>
         <div class="rounded-xl border bg-card p-8 text-center shadow-sm">
           <p class="text-sm text-muted-foreground">
-            No run data — it may have been removed with its branch.
+            {{ t("runDetail.empty") }}
           </p>
         </div>
       </template>
@@ -171,7 +173,7 @@ function mismatchLabel(item: RunPending): string {
                 :variant="RUN_STATE_BADGE_VARIANT[detail.status.state]"
                 :data-testid="TEST_ID.runStateBadge"
               >
-                {{ RUN_STATE_LABEL[detail.status.state] }}
+                {{ t(`runState.${detail.status.state}`) }}
               </Badge>
             </div>
 
@@ -199,17 +201,21 @@ function mismatchLabel(item: RunPending): string {
                 rel="noreferrer"
                 class="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
               >
-                CI run
+                {{ t("runDetail.ciRun") }}
                 <ExternalLink class="h-3 w-3" />
               </a>
               <span :title="absoluteTime(detail.run.createdAt)">
-                Created {{ formatRelativeAge(detail.run.createdAt) }}
+                {{
+                  t("runDetail.created", {
+                    age: formatRelativeAge(detail.run.createdAt),
+                  })
+                }}
               </span>
               <span :title="absoluteTime(detail.run.finishedAt)">
-                Finished {{ finishedAge }}
+                {{ t("runDetail.finished", { age: finishedAge }) }}
               </span>
               <span v-if="detail.run.finishedAt">
-                by {{ runFinishedLabel(detail.run) }}
+                {{ t("runDetail.by", { user: runFinishedLabel(detail.run) }) }}
               </span>
             </div>
           </div>
@@ -218,7 +224,7 @@ function mismatchLabel(item: RunPending): string {
             <span
               class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
             >
-              Reports
+              {{ t("runDetail.reports") }}
             </span>
             <Button
               v-for="report in RUN_REPORT_FORMATS"
@@ -228,7 +234,12 @@ function mismatchLabel(item: RunPending): string {
               size="sm"
               :disabled="downloading !== null"
               :aria-busy="downloading === report"
-              :aria-label="`Download the ${REPORT_LABEL[report]} report of ${detail.run.key}`"
+              :aria-label="
+                t('runDetail.reportAria', {
+                  format: REPORT_LABEL[report],
+                  runKey: detail.run.key,
+                })
+              "
               :data-testid="REPORT_TEST_ID[report]"
               @click="downloadReport(report)"
             >
@@ -243,12 +254,12 @@ function mismatchLabel(item: RunPending): string {
             class="flex flex-wrap items-start justify-between gap-4 rounded-xl border bg-card p-4 shadow-sm"
           >
             <div>
-              <p class="font-medium">Run status</p>
+              <p class="font-medium">{{ t("runDetail.statusTitle") }}</p>
               <p class="text-sm text-muted-foreground">
                 {{
                   finished
-                    ? "This run is finished; its pending work can still be approved."
-                    : "While the run is open its status is refreshed every few seconds."
+                    ? t("runDetail.statusFinished")
+                    : t("runDetail.statusOpen")
                 }}
               </p>
             </div>
@@ -260,7 +271,7 @@ function mismatchLabel(item: RunPending): string {
                 :data-testid="TEST_ID.runApproveAll"
                 @click="requestApproveAll"
               >
-                Approve all pending
+                {{ t("runDetail.approveAllPending") }}
               </Button>
               <Button
                 type="button"
@@ -268,7 +279,7 @@ function mismatchLabel(item: RunPending): string {
                 :data-testid="TEST_ID.runFinish"
                 @click="requestFinish"
               >
-                Finish run
+                {{ t("runDetail.finishRun") }}
               </Button>
             </div>
           </div>
@@ -276,13 +287,15 @@ function mismatchLabel(item: RunPending): string {
           <ErrorAlert
             v-if="approveFailures.length > 0"
             variant="warning"
-            title="Some comparisons could not be approved"
+            :title="t('runDetail.approveFailuresTitle')"
             :message="approveFailureMessage"
           />
 
           <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
             <div class="rounded-xl border bg-card p-3 shadow-sm">
-              <p class="text-xs text-muted-foreground">Pending comparisons</p>
+              <p class="text-xs text-muted-foreground">
+                {{ t("runDetail.pendingComparisons") }}
+              </p>
               <p
                 class="text-lg font-semibold"
                 :data-testid="TEST_ID.runPendingCount"
@@ -291,23 +304,31 @@ function mismatchLabel(item: RunPending): string {
               </p>
             </div>
             <div class="rounded-xl border bg-card p-3 shadow-sm">
-              <p class="text-xs text-muted-foreground">Pending jobs</p>
+              <p class="text-xs text-muted-foreground">
+                {{ t("runDetail.pendingJobs") }}
+              </p>
               <p class="text-lg font-semibold">
                 {{ detail.status.pendingJobs }}
               </p>
             </div>
             <div class="rounded-xl border bg-card p-3 shadow-sm">
-              <p class="text-xs text-muted-foreground">Failed jobs</p>
+              <p class="text-xs text-muted-foreground">
+                {{ t("runDetail.failedJobs") }}
+              </p>
               <p class="text-lg font-semibold">
                 {{ detail.status.failedJobs }}
               </p>
             </div>
             <div class="rounded-xl border bg-card p-3 shadow-sm">
-              <p class="text-xs text-muted-foreground">Approved</p>
+              <p class="text-xs text-muted-foreground">
+                {{ t("runDetail.approved") }}
+              </p>
               <p class="text-lg font-semibold">{{ detail.status.approved }}</p>
             </div>
             <div class="rounded-xl border bg-card p-3 shadow-sm">
-              <p class="text-xs text-muted-foreground">Tests</p>
+              <p class="text-xs text-muted-foreground">
+                {{ t("runDetail.tests") }}
+              </p>
               <p class="text-lg font-semibold">{{ detail.status.testCount }}</p>
             </div>
           </div>
@@ -315,13 +336,15 @@ function mismatchLabel(item: RunPending): string {
 
         <section class="space-y-2">
           <h2 class="text-sm font-semibold text-muted-foreground">
-            Pending comparisons ({{ detail.pending.length }})
+            {{
+              t("runDetail.pendingSection", { count: detail.pending.length })
+            }}
           </h2>
           <div
             v-if="detail.pending.length === 0"
             class="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground shadow-sm"
           >
-            No pending comparisons in this run.
+            {{ t("runDetail.noPending") }}
           </div>
           <div
             v-else
@@ -330,10 +353,10 @@ function mismatchLabel(item: RunPending): string {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Test</TableHead>
-                  <TableHead>Variant</TableHead>
-                  <TableHead>Mismatch</TableHead>
-                  <TableHead>Age</TableHead>
+                  <TableHead>{{ t("runDetail.test") }}</TableHead>
+                  <TableHead>{{ t("runDetail.variant") }}</TableHead>
+                  <TableHead>{{ t("runDetail.mismatch") }}</TableHead>
+                  <TableHead>{{ t("runDetail.age") }}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -351,7 +374,7 @@ function mismatchLabel(item: RunPending): string {
                     </RouterLink>
                   </TableCell>
                   <TableCell class="text-sm">
-                    {{ formatVariantLabel(item) || "No variant" }}
+                    {{ formatVariantLabel(item) || t("runDetail.noVariant") }}
                   </TableCell>
                   <TableCell>
                     <Badge variant="destructive">
@@ -371,16 +394,18 @@ function mismatchLabel(item: RunPending): string {
 
         <section v-if="detail.failedJobs.length > 0" class="space-y-2">
           <h2 class="text-sm font-semibold text-muted-foreground">
-            Failed jobs ({{ detail.failedJobs.length }})
+            {{
+              t("runDetail.failedSection", { count: detail.failedJobs.length })
+            }}
           </h2>
           <div class="overflow-hidden rounded-xl border bg-card shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Test</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Error</TableHead>
-                  <TableHead>Age</TableHead>
+                  <TableHead>{{ t("runDetail.test") }}</TableHead>
+                  <TableHead>{{ t("runDetail.branch") }}</TableHead>
+                  <TableHead>{{ t("runDetail.error") }}</TableHead>
+                  <TableHead>{{ t("runDetail.age") }}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -409,13 +434,17 @@ function mismatchLabel(item: RunPending): string {
 
         <section class="space-y-2">
           <h2 class="text-sm font-semibold text-muted-foreground">
-            Approvals ({{ detail.approvals.length }})
+            {{
+              t("runDetail.approvalsSection", {
+                count: detail.approvals.length,
+              })
+            }}
           </h2>
           <div
             v-if="detail.approvals.length === 0"
             class="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground shadow-sm"
           >
-            No approvals in this run yet.
+            {{ t("runDetail.noApprovals") }}
           </div>
           <ul
             v-else
@@ -429,7 +458,7 @@ function mismatchLabel(item: RunPending): string {
             >
               <span class="font-medium">{{ approval.testName }}</span>
               <span class="text-sm text-muted-foreground">
-                approved by {{ approval.approvedBy }}
+                {{ t("runDetail.approvedBy", { user: approval.approvedBy }) }}
               </span>
               <span
                 class="text-xs text-muted-foreground"
@@ -446,10 +475,10 @@ function mismatchLabel(item: RunPending): string {
     <ConfirmDialog
       :open="finishOpen"
       :pending="finish.isPending.value"
-      title="Finish run"
-      :description="`Finishing ${runKey} marks it complete. Uploads with the same run key reopen it.`"
-      confirm-text="Finish run"
-      cancel-text="Cancel"
+      :title="t('runDetail.finishTitle')"
+      :description="t('runDetail.finishDescription', { runKey })"
+      :confirm-text="t('runDetail.finishConfirm')"
+      :cancel-text="t('common.cancel')"
       @confirm="confirmFinish"
       @cancel="finishOpen = false"
       @update:open="finishOpen = $event"
@@ -458,10 +487,10 @@ function mismatchLabel(item: RunPending): string {
     <ConfirmDialog
       :open="approveAllOpen"
       :pending="approveAll.isPending.value"
-      title="Approve all pending"
-      :description="`Approves every pending comparison in ${runKey}. A comparison that changed meanwhile fails alone; the rest are still approved.`"
-      confirm-text="Approve all"
-      cancel-text="Cancel"
+      :title="t('runDetail.approveAllTitle')"
+      :description="t('runDetail.approveAllDescription', { runKey })"
+      :confirm-text="t('runDetail.approveAllConfirm')"
+      :cancel-text="t('common.cancel')"
       @confirm="confirmApproveAll"
       @cancel="approveAllOpen = false"
       @update:open="approveAllOpen = $event"

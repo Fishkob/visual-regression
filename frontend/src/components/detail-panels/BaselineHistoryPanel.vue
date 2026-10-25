@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, toRef } from "vue";
+import { useI18n } from "vue-i18n";
+import { formatDateTime } from "@/lib/format-date";
 import { FileText } from "@lucide/vue";
 import {
   Accordion,
@@ -21,6 +23,8 @@ import type {
 import { formatRelativeAge } from "@/lib/format-date";
 import { TEST_ID } from "@/lib/test-ids";
 import type { VariantParams } from "@/lib/variant-key";
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -69,10 +73,10 @@ const rows = computed(() => revisions.value ?? []);
 
 // The reason names the overwrite that retired the recorded baseline, so the
 // badge reads as "what happened to it", not as a status of the image.
-const REASON_LABELS: Record<BaselineRevisionReason, string> = {
-  approval: "Approval",
-  restore: "Restore",
-  import: "Import",
+const REASON_KEY: Record<BaselineRevisionReason, string> = {
+  approval: "baseline.reason.approval",
+  restore: "baseline.reason.restore",
+  import: "baseline.reason.import",
 };
 
 function isCurrent(revision: BaselineRevision): boolean {
@@ -81,7 +85,7 @@ function isCurrent(revision: BaselineRevision): boolean {
 
 function pageCountLabel(revision: BaselineRevision): string | null {
   if (revision.pageCount == null) return null;
-  return `${revision.pageCount} page${revision.pageCount === 1 ? "" : "s"}`;
+  return t("baseline.pageCount", revision.pageCount);
 }
 
 const restoreTarget = ref<BaselineRevision | null>(null);
@@ -100,8 +104,10 @@ function confirmRestore() {
 
 const confirmDescription = computed(() => {
   const target = restoreTarget.value;
-  const when = target ? ` from ${formatRelativeAge(target.createdAt)}` : "";
-  return `Restoring the baseline${when} replaces the current baseline of this variant and retires any pending comparison. The baseline in place now stays in the history.`;
+  const when = target
+    ? t("baseline.when", { age: formatRelativeAge(target.createdAt) })
+    : "";
+  return t("baseline.confirmDescription", { when });
 });
 </script>
 
@@ -117,7 +123,7 @@ const confirmDescription = computed(() => {
           :data-testid="TEST_ID.baselineHistoryToggle"
         >
           <span class="text-sm font-semibold">
-            Baseline history ({{ rows.length }})
+            {{ t("baseline.title", { count: rows.length }) }}
           </span>
         </AccordionTrigger>
 
@@ -133,13 +139,13 @@ const confirmDescription = computed(() => {
               :key="row"
               class="h-14 animate-pulse rounded-md bg-muted"
             />
-            <span class="sr-only">Loading baseline history</span>
+            <span class="sr-only">{{ t("baseline.loading") }}</span>
           </div>
 
           <ErrorAlert
             v-else-if="error"
             variant="error"
-            title="Failed to load baseline history"
+            :title="t('baseline.errorTitle')"
             :message="error.message"
             retry
             :on-retry="() => refetch()"
@@ -150,8 +156,7 @@ const confirmDescription = computed(() => {
             class="py-4 text-sm text-muted-foreground"
             :data-testid="TEST_ID.baselineHistoryEmpty"
           >
-            No replaced baselines yet — approving a change will keep the
-            previous baseline here.
+            {{ t("baseline.empty") }}
           </p>
 
           <ul v-else class="divide-y">
@@ -164,7 +169,11 @@ const confirmDescription = computed(() => {
               <img
                 v-if="kind !== 'pdf'"
                 :src="revision.imageUrl"
-                :alt="`Baseline from ${formatRelativeAge(revision.createdAt)}`"
+                :alt="
+                  t('baseline.thumbAlt', {
+                    age: formatRelativeAge(revision.createdAt),
+                  })
+                "
                 loading="lazy"
                 class="h-12 w-16 shrink-0 rounded border bg-muted object-cover"
                 :data-testid="TEST_ID.baselineHistoryThumb"
@@ -184,20 +193,20 @@ const confirmDescription = computed(() => {
                     variant="secondary"
                     :data-testid="TEST_ID.baselineHistoryReason"
                   >
-                    {{ REASON_LABELS[revision.reason] }}
+                    {{ t(REASON_KEY[revision.reason]) }}
                   </Badge>
                   <Badge v-if="isCurrent(revision)" variant="outline">
-                    current
+                    {{ t("baseline.current") }}
                   </Badge>
                   <span class="truncate text-sm">
-                    {{ revision.createdBy ?? "unknown" }}
+                    {{ revision.createdBy ?? t("baseline.unknown") }}
                   </span>
                 </div>
 
                 <div
                   class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
                 >
-                  <span :title="new Date(revision.createdAt).toLocaleString()">
+                  <span :title="formatDateTime(new Date(revision.createdAt))">
                     {{ formatRelativeAge(revision.createdAt) }}
                   </span>
                   <span aria-hidden="true">·</span>
@@ -215,11 +224,15 @@ const confirmDescription = computed(() => {
                 variant="outline"
                 size="sm"
                 :disabled="isCurrent(revision) || isPending"
-                :aria-label="`Restore the baseline from ${formatRelativeAge(revision.createdAt)}`"
+                :aria-label="
+                  t('baseline.restoreAria', {
+                    age: formatRelativeAge(revision.createdAt),
+                  })
+                "
                 :data-testid="TEST_ID.baselineHistoryRestore"
                 @click="askRestore(revision)"
               >
-                Restore
+                {{ t("baseline.restore") }}
               </Button>
             </li>
           </ul>
@@ -229,9 +242,9 @@ const confirmDescription = computed(() => {
 
     <ConfirmDialog
       :open="confirmOpen"
-      title="Restore this baseline?"
+      :title="t('baseline.confirmTitle')"
       :description="confirmDescription"
-      confirm-text="Restore baseline"
+      :confirm-text="t('baseline.confirmText')"
       :pending="isPending"
       @update:open="(open: boolean) => (confirmOpen = open)"
       @confirm="confirmRestore"

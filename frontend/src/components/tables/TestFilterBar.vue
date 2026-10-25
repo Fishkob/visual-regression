@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import {
   FILTER_ALL,
   STATUS_FILTER_OK,
@@ -17,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Monitor, Globe, Filter, FileText, RefreshCcw } from "@lucide/vue";
 import { TEST_ID } from "@/lib/test-ids";
+
+const { t } = useI18n();
 
 defineProps<{
   filters: VisualTestFilters;
@@ -46,13 +49,15 @@ const emit = defineEmits<{
         >
           <SelectTrigger
             class="min-w-[130px]"
-            aria-label="Filter by viewport"
+            :aria-label="t('filterBar.viewportLabel')"
             :data-testid="TEST_ID.filterViewport"
           >
-            <SelectValue placeholder="Viewport" />
+            <SelectValue :placeholder="t('filterBar.viewport')" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem :value="FILTER_ALL">Viewports</SelectItem>
+            <SelectItem :value="FILTER_ALL">{{
+              t("filterBar.viewports")
+            }}</SelectItem>
             <SelectItem v-for="v in viewports" :key="v" :value="v">{{
               v
             }}</SelectItem>
@@ -70,13 +75,15 @@ const emit = defineEmits<{
         >
           <SelectTrigger
             class="min-w-[130px]"
-            aria-label="Filter by browser"
+            :aria-label="t('filterBar.browserLabel')"
             :data-testid="TEST_ID.filterBrowser"
           >
-            <SelectValue placeholder="Browser" />
+            <SelectValue :placeholder="t('filterBar.browser')" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem :value="FILTER_ALL">Browser</SelectItem>
+            <SelectItem :value="FILTER_ALL">{{
+              t("filterBar.browser")
+            }}</SelectItem>
             <SelectItem v-for="b in browsers" :key="b" :value="b">{{
               b
             }}</SelectItem>
@@ -97,13 +104,15 @@ const emit = defineEmits<{
         >
           <SelectTrigger
             class="min-w-[130px]"
-            aria-label="Filter by environment"
+            :aria-label="t('filterBar.environmentLabel')"
             :data-testid="TEST_ID.filterEnvironment"
           >
-            <SelectValue placeholder="Environment" />
+            <SelectValue :placeholder="t('filterBar.environment')" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem :value="FILTER_ALL">Environments</SelectItem>
+            <SelectItem :value="FILTER_ALL">{{
+              t("filterBar.environments")
+            }}</SelectItem>
             <SelectItem v-for="e in environments" :key="e" :value="e">{{
               e
             }}</SelectItem>
@@ -121,15 +130,21 @@ const emit = defineEmits<{
         >
           <SelectTrigger
             class="min-w-[130px]"
-            aria-label="Filter by kind"
+            :aria-label="t('filterBar.kindLabel')"
             :data-testid="TEST_ID.filterKind"
           >
-            <SelectValue placeholder="Kind" />
+            <SelectValue :placeholder="t('filterBar.kind')" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem :value="FILTER_ALL">All kinds</SelectItem>
-            <SelectItem :value="IMAGE_TEST_KIND">Images</SelectItem>
-            <SelectItem :value="PDF_TEST_KIND">PDFs</SelectItem>
+            <SelectItem :value="FILTER_ALL">{{
+              t("filterBar.allKinds")
+            }}</SelectItem>
+            <SelectItem :value="IMAGE_TEST_KIND">{{
+              t("filterBar.images")
+            }}</SelectItem>
+            <SelectItem :value="PDF_TEST_KIND">{{
+              t("filterBar.pdfs")
+            }}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -144,14 +159,18 @@ const emit = defineEmits<{
         >
           <SelectTrigger
             class="min-w-[130px]"
-            aria-label="Filter by status"
+            :aria-label="t('filterBar.statusLabel')"
             :data-testid="TEST_ID.filterStatus"
           >
-            <SelectValue placeholder="Status" />
+            <SelectValue :placeholder="t('filterBar.status')" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem :value="FILTER_ALL">Status</SelectItem>
-            <SelectItem :value="STATUS_FILTER_PENDING">Pending</SelectItem>
+            <SelectItem :value="FILTER_ALL">{{
+              t("filterBar.status")
+            }}</SelectItem>
+            <SelectItem :value="STATUS_FILTER_PENDING">{{
+              t("filterBar.pending")
+            }}</SelectItem>
             <SelectItem :value="STATUS_FILTER_OK">OK</SelectItem>
           </SelectContent>
         </Select>
@@ -163,7 +182,7 @@ const emit = defineEmits<{
         @click="emit('reset')"
         :data-testid="TEST_ID.resetFilter"
       >
-        <RefreshCcw class="w-4 h-4" /> Reset
+        <RefreshCcw class="w-4 h-4" /> {{ t("filterBar.reset") }}
       </Button>
     </div>
 
@@ -172,8 +191,8 @@ const emit = defineEmits<{
       @update:model-value="
         emit('update:filters', { ...filters, search: $event as string })
       "
-      placeholder="Search test name…"
-      aria-label="Search tests"
+      :placeholder="t('filterBar.searchPlaceholder')"
+      :aria-label="t('filterBar.searchLabel')"
       class="w-64 rounded-xl shadow-sm"
       :data-testid="TEST_ID.testSearch"
     />

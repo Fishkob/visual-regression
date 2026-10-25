@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { ref, computed } from "vue";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,6 +16,8 @@ import type {
   PdfComparison,
   PdfScreenshot,
 } from "@/domains/pdf-test/pdf-test.model";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   projectName: string;
@@ -52,9 +55,12 @@ const download = (type: PdfDownloadType) => {
 
 const mismatchInfo = computed(() => {
   const c = props.comparison;
-  if (c.pageCount <= 0) return "Unknown page count";
-  if (c.mismatchPageCount === 0) return "All pages match";
-  return `${c.mismatchPageCount} of ${c.pageCount} pages differ`;
+  if (c.pageCount <= 0) return t("pdf.unknownPageCount");
+  if (c.mismatchPageCount === 0) return t("pdf.allPagesMatch");
+  return t("pdf.pagesDiffer", {
+    mismatch: c.mismatchPageCount,
+    count: c.pageCount,
+  });
 });
 
 const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
@@ -110,7 +116,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
           :test-name="testName"
           :pdf-url="baseline.pdfUrl"
           :page="currentPage"
-          label="Baseline"
+          :label="t('pdf.baseline')"
           border="green"
           :branch-name="branchName"
         />
@@ -121,7 +127,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
             :data-testid="TEST_ID.downloadBaseline"
             @click.prevent="download('baseline')"
           >
-            Download Baseline PDF
+            {{ t("pdf.downloadBaseline") }}
           </a>
         </div>
       </div>
@@ -131,7 +137,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
           :test-name="testName"
           :pdf-url="comparison.candidate.pdfUrl"
           :page="currentPage"
-          label="Current"
+          :label="t('pdf.current')"
           border="blue"
           :branch-name="branchName"
         />
@@ -142,7 +148,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
             :data-testid="TEST_ID.downloadCandidate"
             @click.prevent="download('candidate')"
           >
-            Download Candidate PDF
+            {{ t("pdf.downloadCandidate") }}
           </a>
         </div>
       </div>
@@ -152,7 +158,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
           :test-name="testName"
           :pdf-url="comparison.diffPdfUrl"
           :page="currentPage"
-          label="Diff"
+          :label="t('pdf.diff')"
           border="red"
           :branch-name="branchName"
         />
@@ -163,7 +169,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
             :data-testid="TEST_ID.downloadDiff"
             @click.prevent="download('diff')"
           >
-            Download Diff PDF
+            {{ t("pdf.downloadDiff") }}
           </a>
         </div>
       </div>
@@ -172,7 +178,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
         class="flex items-center justify-center min-h-[200px] text-muted-foreground"
         :data-testid="TEST_ID.diffRemovedNote"
       >
-        Diff removed after approval
+        {{ t("pdf.diffRemoved") }}
       </div>
     </div>
 

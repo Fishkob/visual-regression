@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouteParams } from "@/composables/useRouteParams";
 import { useTestKind } from "@/composables/useTestKind";
 import { useTestNavigation } from "@/composables/useTestNavigation";
@@ -20,6 +21,7 @@ import { ArrowLeft, ArrowRight } from "@lucide/vue";
 // size. No review state, no candidate image, no approve/skip — pending changes
 // belong to the review page, which a card opens for its variant. A variant
 // without a baseline yet stays visible as a placeholder.
+const { t } = useI18n();
 const { projectName, testName, branch } = useRouteParams();
 const { navigateToTest } = useTestNavigation({
   projectName,
@@ -94,8 +96,8 @@ function cardLabel(variant: VariantSummary): string {
           </Badge>
         </h1>
         <p class="text-sm text-muted-foreground">
-          {{ variants.length }}
-          {{ variants.length === 1 ? "variant" : "variants" }} · baselines
+          {{ t("detail.variantCount", variants.length) }} ·
+          {{ t("detail.baselines") }}
         </p>
       </div>
 
@@ -107,7 +109,7 @@ function cardLabel(variant: VariantSummary): string {
         @click="openVariant(comparisonTarget)"
       >
         <ArrowLeft />
-        Comparison
+        {{ t("detail.comparison") }}
       </Button>
     </div>
 
@@ -125,7 +127,7 @@ function cardLabel(variant: VariantSummary): string {
       v-else-if="kindError"
       class="rounded-xl border border-destructive/40 bg-destructive/5 p-6 text-sm text-status-danger"
     >
-      Failed to load this test: {{ kindError.message }}
+      {{ t("detail.errorKind", { message: kindError.message }) }}
     </div>
 
     <div
@@ -133,9 +135,9 @@ function cardLabel(variant: VariantSummary): string {
       class="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground"
       :data-testid="TEST_ID.testOverviewPdfNote"
     >
-      This is a PDF test — the page-by-page comparison lives in the review view.
+      {{ t("detail.pdfNote") }}
       <RouterLink :to="projectRoute" class="underline hover:text-foreground">
-        Open the project
+        {{ t("detail.openProject") }}
       </RouterLink>
     </div>
 
@@ -143,11 +145,11 @@ function cardLabel(variant: VariantSummary): string {
       v-else
       :is-loading="isLoading"
       :error="error"
-      error-title="Failed to load variants"
+      :error-title="t('overview.errorTitle')"
       :retry="() => refetch()"
       :empty="!isLoading && variants.length === 0"
-      empty-title="No screenshots yet"
-      empty-description="Upload a screenshot for this test to see its variants here."
+      :empty-title="t('overview.emptyTitle')"
+      :empty-description="t('overview.emptyDescription')"
     >
       <template #loading>
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
@@ -196,14 +198,14 @@ function cardLabel(variant: VariantSummary): string {
                 v-else
                 class="flex h-full items-center justify-center text-xs text-muted-foreground"
               >
-                No baseline yet
+                {{ t("overview.noBaseline") }}
               </span>
             </div>
 
             <div
               class="flex items-center justify-end gap-1 px-3 py-2 text-xs text-muted-foreground group-hover:text-foreground"
             >
-              Open comparison
+              {{ t("detail.openComparison") }}
               <ArrowRight class="h-3.5 w-3.5" aria-hidden />
             </div>
           </button>

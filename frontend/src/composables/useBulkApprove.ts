@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { unref } from "vue";
 import type { BulkApproveResultDto } from "@sdk";
 import { approvalsControllerApproveAllPending } from "@sdk";
@@ -15,12 +16,12 @@ import { branchQueryKeys } from "@/domains/branches/query-keys";
 
 function successMessage(result: BulkApproveResultDto): string {
   const failed = result.failed.length
-    ? ` (${result.failed.length} failed)`
+    ? tm("toast.failedParenthetical", { count: result.failed.length })
     : "";
   if (result.approved === 0 && result.failed.length === 0) {
-    return "No pending variants";
+    return tm("toast.noPendingVariants");
   }
-  return `Approved ${result.approved} variant${result.approved === 1 ? "" : "s"}${failed}`;
+  return `${tm("toast.approvedVariants", { count: result.approved })}${failed}`;
 }
 
 export function useBulkApprove(
@@ -40,7 +41,7 @@ export function useBulkApprove(
       });
     },
     successMessage,
-    errorMessage: "Bulk approval failed",
+    errorMessage: tm("toast.bulkApproveFailed"),
     invalidate: (client) => {
       // The batch promotes baselines across variants, so every read that shows
       // a status, a baseline, a queue or a trail is stale afterwards.

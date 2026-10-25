@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { useVisualTestDetailsPage } from "@/composables/useTestDetailsPage";
 import { useTestVariantsQuery } from "@/composables/useTestVariants";
@@ -30,6 +31,7 @@ defineProps<{ kind?: string }>();
 /* ROUTE + PARAMS                                                */
 /* ------------------------------------------------------------- */
 
+const { t } = useI18n();
 const { projectName, testName, filters, branch, fromInbox } = useRouteParams();
 const router = useRouter();
 const route = useRoute();
@@ -126,7 +128,7 @@ useReviewShortcuts({
         :group-name="groupName"
       />
       <Badge v-if="kind" variant="outline">
-        {{ kind === "pdf" ? "PDF" : "Image" }}
+        {{ kind === "pdf" ? t("detail.pdf") : t("detail.image") }}
       </Badge>
       <Badge
         v-if="isInherited"
@@ -134,7 +136,7 @@ useReviewShortcuts({
         class="font-mono text-[10px]"
         :data-testid="TEST_ID.inheritedBadge"
       >
-        inherited from {{ data?.inheritedFrom }}
+        {{ t("detail.inherited", { branch: data?.inheritedFrom }) }}
       </Badge>
       <!-- The baseline can be inherited even when the test itself is owned:
            it then tracks the target branch until an approval pins it here.
@@ -144,10 +146,22 @@ useReviewShortcuts({
         v-else-if="data?.baselineInherited"
         variant="outline"
         class="font-mono text-[10px]"
-        :title="`This baseline follows ${data?.inheritTarget ?? 'the target branch'} until it is approved on this branch`"
+        :title="
+          t('detail.baselineFollowsTitle', {
+            target:
+              data?.inheritTarget ??
+              t('detail.baselineFollows', {
+                target: '',
+              }),
+          })
+        "
         :data-testid="TEST_ID.baselineInheritedBadge"
       >
-        baseline follows {{ data?.inheritTarget ?? "target" }}
+        {{
+          t("detail.baselineFollows", {
+            target: data?.inheritTarget ?? "target",
+          })
+        }}
       </Badge>
       <span
         v-if="!fromInbox && progress.total > 0"
@@ -157,7 +171,12 @@ useReviewShortcuts({
         :data-testid="TEST_ID.reviewProgress"
       >
         {{
-          progress.total > 0 ? `${progress.current} of ${progress.total}` : ""
+          progress.total > 0
+            ? t("detail.progress", {
+                current: progress.current,
+                total: progress.total,
+              })
+            : ""
         }}
       </span>
       <BulkApproveButton
@@ -197,11 +216,11 @@ useReviewShortcuts({
     <AsyncState
       :is-loading="isLoading"
       :error="error"
-      error-title="Failed to load test"
+      :error-title="t('detail.errorTitle')"
       :retry="() => refetch()"
       :empty="!data?.comparison && !data?.baseline"
-      empty-title="No visual test data available"
-      empty-description="This test has no baseline or comparison data yet."
+      :empty-title="t('detail.emptyTitle')"
+      :empty-description="t('detail.emptyDescription')"
     >
       <template #loading>
         <TestComparisonSkeleton />
@@ -229,7 +248,7 @@ useReviewShortcuts({
       class="mt-2 text-center text-xs text-muted-foreground"
       :data-testid="TEST_ID.shortcutsHint"
     >
-      Press A to approve, S to skip, Esc to go back.
+      {{ t("detail.shortcuts") }}
     </p>
 
     <!-- The history belongs to the variant the details resolved, not to the

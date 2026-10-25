@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { projectsControllerUpdateProject, type ProjectDto } from "@sdk";
 import { useSdkMutation } from "@/composables/useSdkMutation";
 import { invalidateProjectsForGroupChange } from "@/lib/invalidation";
@@ -12,8 +13,8 @@ export function useProjectGroupAssignment() {
         path: { projectName },
         body: { groupId },
       }),
-    successMessage: "Project moved",
-    errorMessage: "Could not move project",
+    successMessage: tm("toast.projectMoved"),
+    errorMessage: tm("toast.projectMoveError"),
     invalidate: (client) => invalidateProjectsForGroupChange(client),
   });
 }

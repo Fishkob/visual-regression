@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import type { QueryClient } from "@tanstack/vue-query";
 import {
   authControllerDisableTwoFactor,
@@ -42,15 +43,15 @@ export function useSessionsQuery() {
 export function useTwoFactorSetup() {
   return useSdkMutation<TwoFactorSetupDto, void>({
     mutationFn: () => authControllerSetupTwoFactor(),
-    errorMessage: "Could not start two-factor setup",
+    errorMessage: tm("toast.twoFactorSetupError"),
   });
 }
 
 export function useEnableTwoFactor() {
   return useSdkMutation<RecoveryCodesDto, string>({
     mutationFn: (code) => authControllerEnableTwoFactor({ body: { code } }),
-    successMessage: "Two-factor authentication enabled",
-    errorMessage: "Could not enable two-factor authentication",
+    successMessage: tm("toast.twoFactorEnabled"),
+    errorMessage: tm("toast.twoFactorEnableError"),
     invalidate: invalidateMe,
   });
 }
@@ -62,8 +63,8 @@ export function useDisableTwoFactor() {
     allowEmptyResponse: true,
     mutationFn: (password) =>
       authControllerDisableTwoFactor({ body: { password } }),
-    successMessage: "Two-factor authentication disabled",
-    errorMessage: "Could not disable two-factor authentication",
+    successMessage: tm("toast.twoFactorDisabled"),
+    errorMessage: tm("toast.twoFactorDisableError"),
     invalidate: invalidateMe,
   });
 }
@@ -72,8 +73,8 @@ export function useRevokeSession() {
   return useSdkMutation<void, string>({
     allowEmptyResponse: true,
     mutationFn: (id) => authControllerRevokeSession({ path: { id } }),
-    successMessage: "Session revoked",
-    errorMessage: "Could not revoke the session",
+    successMessage: tm("toast.sessionRevoked"),
+    errorMessage: tm("toast.sessionRevokeError"),
     invalidate: invalidateSessions,
   });
 }
@@ -83,10 +84,10 @@ export function useRevokeAllSessions() {
     mutationFn: () => authControllerRevokeAllSessions(),
     successMessage: (result) => {
       const revoked = mapRevokeAllResult(result);
-      if (revoked === 0) return "No other sessions were signed out";
-      return `Signed out ${revoked} other session${revoked === 1 ? "" : "s"}`;
+      if (revoked === 0) return tm("toast.noOtherSessions");
+      return tm("toast.sessionsRevoked", { count: revoked });
     },
-    errorMessage: "Could not sign out the other sessions",
+    errorMessage: tm("toast.revokeOthersError"),
     invalidate: invalidateSessions,
   });
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { Input } from "@/components/ui/input";
 import FormDialog from "@/components/FormDialog.vue";
 import { sdkErrorMessage } from "@/lib/sdk";
@@ -18,6 +19,7 @@ const emit = defineEmits<{
   (e: "submit", reason: string | undefined): void;
 }>();
 
+const { t } = useI18n();
 const reason = ref("");
 
 watch(
@@ -36,29 +38,29 @@ function submit() {
 <template>
   <FormDialog
     :open="open"
-    title="Revoke API key"
+    :title="t('apiKeyRevoke.title')"
     :description="
       apiKey?.keyHint
-        ? `…${apiKey.keyHint} stops authenticating immediately. The key stays listed for the audit trail.`
-        : 'The key stops authenticating immediately and stays listed for the audit trail.'
+        ? t('apiKeyRevoke.descriptionHint', { hint: apiKey.keyHint })
+        : t('apiKeyRevoke.description')
     "
-    confirm-text="Revoke"
+    :confirm-text="t('apiKeyRevoke.confirm')"
     :pending="pending"
     :confirm-test-id="TEST_ID.revokeApiKeySubmit"
     @update:open="emit('update:open', $event)"
     @submit="submit"
   >
     <label class="block space-y-1 text-sm">
-      <span>Reason (optional)</span>
+      <span>{{ t("apiKeyRevoke.reason") }}</span>
       <Input
         v-model="reason"
-        placeholder="pipeline migrated to new key"
+        :placeholder="t('apiKeyRevoke.reasonPlaceholder')"
         :data-testid="TEST_ID.revokeApiKeyReason"
       />
     </label>
 
     <p v-if="error" class="text-sm text-destructive" role="alert">
-      {{ sdkErrorMessage(error, "Could not revoke API key") }}
+      {{ sdkErrorMessage(error, t("apiKeyRevoke.error")) }}
     </p>
   </FormDialog>
 </template>

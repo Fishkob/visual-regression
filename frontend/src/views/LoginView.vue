@@ -137,7 +137,7 @@ async function submit(): Promise<void> {
       step.value = "twoFactor";
     }
   } catch {
-    errorText.value = "Invalid username or password";
+    errorText.value = t("login.invalidCredentials");
   }
 }
 

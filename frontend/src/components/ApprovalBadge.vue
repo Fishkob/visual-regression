@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { computed, toRef } from "vue";
+import { useI18n } from "vue-i18n";
+import { formatDateTime } from "@/lib/format-date";
 import { useTestApprovalsQuery } from "@/composables/useTestApprovals";
 import { formatRelativeAge } from "@/lib/format-date";
 import { TEST_ID } from "@/lib/test-ids";
 import type { VariantParams } from "@/lib/variant-key";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   projectName: string;
@@ -48,8 +52,8 @@ const approvedAgo = computed(() =>
   newest.value ? formatRelativeAge(newest.value.approvedAt.toISOString()) : "",
 );
 
-const approvedAtTitle = computed(
-  () => newest.value?.approvedAt.toLocaleString() ?? "",
+const approvedAtTitle = computed(() =>
+  newest.value ? formatDateTime(newest.value.approvedAt) : "",
 );
 </script>
 
@@ -60,6 +64,11 @@ const approvedAtTitle = computed(
     :title="approvedAtTitle"
     :data-testid="TEST_ID.approvalBadge"
   >
-    Approved by {{ newest.approvedBy }} · {{ approvedAgo }}
+    {{
+      t("approval.approvedBy", {
+        user: newest.approvedBy,
+        age: approvedAgo,
+      })
+    }}
   </span>
 </template>

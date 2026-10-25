@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { unref } from "vue";
 import type { StorageUsageDto } from "@sdk";
 import {
@@ -33,8 +34,8 @@ export function useUpdateProjectStorage(projectName: MaybeRef<string>) {
         path: { projectName: unref(projectName) },
         body,
       }),
-    successMessage: "Storage settings saved",
-    errorMessage: "Could not save the storage settings",
+    successMessage: tm("toast.storageSaved"),
+    errorMessage: tm("toast.storageSaveError"),
     invalidate: (client) =>
       invalidateProjectStorage(client, unref(projectName)),
   });

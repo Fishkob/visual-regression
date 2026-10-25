@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { computed, ref, unref } from "vue";
 import type { QueryClient } from "@tanstack/vue-query";
 import { keepPreviousData } from "@tanstack/vue-query";
@@ -110,8 +111,8 @@ export function useRunMutations(
         ...(branchName ? { query: { branch: branchName } } : {}),
       });
     },
-    successMessage: "Run finished",
-    errorMessage: "Could not finish the run",
+    successMessage: tm("toast.runFinished"),
+    errorMessage: tm("toast.finishRunError"),
     invalidate,
   });
 
@@ -131,11 +132,12 @@ export function useRunMutations(
     successMessage: (result) => {
       const failed = result.failed?.length ?? 0;
       if (result.approved === 0 && failed === 0)
-        return "No pending comparisons";
-      const partial = failed > 0 ? `, ${failed} failed` : "";
-      return `Approved ${result.approved} comparison${result.approved === 1 ? "" : "s"}${partial}`;
+        return tm("toast.noPendingComparisons");
+      const partial =
+        failed > 0 ? tm("toast.failedSuffix", { count: failed }) : "";
+      return `${tm("toast.approvedComparisons", { count: result.approved })}${partial}`;
     },
-    errorMessage: "Could not approve the run's pending comparisons",
+    errorMessage: tm("toast.approveRunError"),
     invalidate: (client) =>
       invalidateAfterRunApproveAll(client, unref(projectName), unref(runKey)),
   });
@@ -210,7 +212,9 @@ export function useRunReports(
       }
       triggerDownload(await response.blob(), runReportFilename(key, format));
     } catch {
-      toast.error(`Could not download the ${RUN_REPORT_LABEL[format]} report`);
+      toast.error(
+        tm("toast.reportError", { format: RUN_REPORT_LABEL[format] }),
+      );
     } finally {
       downloading.value = null;
     }

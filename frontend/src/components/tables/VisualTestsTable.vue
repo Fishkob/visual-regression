@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { h, toRef } from "vue";
+import { computed, h, toRef } from "vue";
+import { useI18n } from "vue-i18n";
 
 import TestFilterBar from "@/components/tables/TestFilterBar.vue";
 import TestAccordionGroups from "@/components/tables/TestAccordionGroups.vue";
@@ -18,6 +19,8 @@ import { useVisualTestDelete } from "@/composables/useVisualTestDelete";
 import { useTestNavigation } from "@/composables/useTestNavigation";
 import { isInheritedOrigin } from "@/domains/branches/branch-origin";
 import { TEST_ID } from "@/lib/test-ids";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   tests: VisualTestItem[];
@@ -88,13 +91,13 @@ function inheritedBadge(inheritedFrom: string | null | undefined) {
 
 /* ------------------------- TABLE COLUMNS -------------------------- */
 
-const columns: ColumnDef<AppTableFeatures, VisualTestItem>[] = [
-  { accessorKey: "viewport", header: "Viewport" },
-  { accessorKey: "browser", header: "Browser" },
-  { accessorKey: "environment", header: "Env" },
+const columns = computed<ColumnDef<AppTableFeatures, VisualTestItem>[]>(() => [
+  { accessorKey: "viewport", header: t("tables.viewport") },
+  { accessorKey: "browser", header: t("tables.browser") },
+  { accessorKey: "environment", header: t("tables.env") },
   {
     accessorKey: "kind",
-    header: "Kind",
+    header: t("tables.kind"),
     cell: ({ row }) =>
       h(
         "span",
@@ -104,7 +107,7 @@ const columns: ColumnDef<AppTableFeatures, VisualTestItem>[] = [
   },
   {
     accessorKey: "latestStatus",
-    header: "Status",
+    header: t("tables.status"),
     cell: ({ row }) =>
       h("div", { class: "flex items-center gap-2" }, [
         getStatusBadge(row.original.latestStatus),
@@ -119,15 +122,15 @@ const columns: ColumnDef<AppTableFeatures, VisualTestItem>[] = [
     enableSorting: false,
     cell: ({ row }) =>
       h(RowActionsCell, {
-        deleteLabel: "Delete variant",
-        overviewLabel: "Overview",
+        deleteLabel: t("tables.deleteVariant"),
+        overviewLabel: t("tables.overview"),
         testId: TEST_ID.testActionsButton,
         readOnly: isInheritedOrigin(row.original.origin),
         onRequestDelete: () => requestDelete(row.original),
         onRequestOverview: () => navigateToTestOverview(row.original),
       }),
   },
-];
+]);
 </script>
 
 <template>
@@ -151,9 +154,9 @@ const columns: ColumnDef<AppTableFeatures, VisualTestItem>[] = [
       :open="showConfirm"
       :pending="deleting"
       confirmVariant="destructive"
-      title="Delete test"
-      confirmText="Delete"
-      cancelText="Cancel"
+      :title="t('tables.deleteTitle')"
+      :confirmText="t('tables.deleteTitle')"
+      :cancelText="t('common.cancel')"
       @confirm="confirmDelete"
       @cancel="cancelDelete"
       @update:open="showConfirm = $event"

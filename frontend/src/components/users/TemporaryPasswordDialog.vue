@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import {
   DialogClose,
   DialogContent,
@@ -18,6 +19,8 @@ defineProps<{
   title?: string;
 }>();
 
+const { t } = useI18n();
+
 const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
 }>();
@@ -33,11 +36,10 @@ const emit = defineEmits<{
       >
         <div class="flex flex-col gap-2">
           <DialogTitle class="text-lg font-semibold">
-            {{ title ?? "Temporary password" }}
+            {{ title ?? t("tempPassword.title") }}
           </DialogTitle>
           <DialogDescription class="text-sm text-muted-foreground">
-            Copy this password now and hand it to the user over a secure
-            channel. It is shown once and cannot be retrieved again.
+            {{ t("tempPassword.description") }}
           </DialogDescription>
         </div>
 
@@ -49,13 +51,13 @@ const emit = defineEmits<{
         </code>
 
         <p v-if="username" class="text-sm text-muted-foreground">
-          User: <span class="font-medium">{{ username }}</span>
+          {{ t("tempPassword.user", { username }) }}
         </p>
 
         <div class="flex justify-end">
           <DialogClose as-child>
             <Button type="button" :data-testid="TEST_ID.temporaryPasswordDone">
-              Done
+              {{ t("tempPassword.done") }}
             </Button>
           </DialogClose>
         </div>

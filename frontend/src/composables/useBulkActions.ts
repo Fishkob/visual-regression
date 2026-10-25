@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 import {
@@ -11,12 +12,10 @@ import {
   mapBulkMoveResult,
   mergeBulkApproveResults,
 } from "@/domains/bulk-actions/bulk-action.mapper";
-import {
-  bulkApproveSummary,
-  bulkMoveSummary,
-  type BulkApproveResult,
-  type BulkApproveSelection,
-  type BulkMoveResult,
+import type {
+  BulkApproveResult,
+  BulkApproveSelection,
+  BulkMoveResult,
 } from "@/domains/bulk-actions/bulk-action.model";
 import { unwrapSdkData } from "@/lib/sdk";
 import {
@@ -53,10 +52,16 @@ export function useBulkApproveSelection() {
     },
     onSuccess: (result) => {
       invalidateAfterBulkApprove(queryClient);
-      toast.success(bulkApproveSummary(result));
+      toast.success(
+        `${tm("toast.bulkApproved", { count: result.approved.length })}${
+          result.failed.length > 0
+            ? tm("toast.failedSuffix", { count: result.failed.length })
+            : ""
+        }`,
+      );
     },
     onError: () => {
-      toast.error("Could not approve the selected changes");
+      toast.error(tm("toast.bulkApproveError"));
     },
   });
 }
@@ -84,10 +89,16 @@ export function useBulkMoveProjects() {
     },
     onSuccess: (result) => {
       invalidateAfterBulkMove(queryClient);
-      toast.success(bulkMoveSummary(result));
+      toast.success(
+        `${tm("toast.bulkMoved", { count: result.moved.length })}${
+          result.failed.length > 0
+            ? tm("toast.failedSuffix", { count: result.failed.length })
+            : ""
+        }`,
+      );
     },
     onError: () => {
-      toast.error("Could not move the selected projects");
+      toast.error(tm("toast.bulkMoveError"));
     },
   });
 }

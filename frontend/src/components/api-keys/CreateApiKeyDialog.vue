@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, toRef, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { Input } from "@/components/ui/input";
 import FormDialog from "@/components/FormDialog.vue";
 import {
@@ -12,7 +13,6 @@ import {
 import { useAllProjectsQuery } from "@/composables/useProjects";
 import {
   API_KEY_SCOPES,
-  API_KEY_SCOPE_DESCRIPTION,
   DEFAULT_API_KEY_SCOPES,
   type ApiKeyScope,
 } from "@/domains/api-keys/api-key.model";
@@ -38,11 +38,12 @@ const emit = defineEmits<{
   ): void;
 }>();
 
+const { t } = useI18n();
 const EXPIRY_OPTIONS = [
-  { value: "never", label: "Never" },
-  { value: "30", label: "30 days" },
-  { value: "90", label: "90 days" },
-  { value: "365", label: "1 year" },
+  { value: "never", labelKey: "apiKeyDialog.never" },
+  { value: "30", labelKey: "apiKeyDialog.days30" },
+  { value: "90", labelKey: "apiKeyDialog.days90" },
+  { value: "365", labelKey: "apiKeyDialog.year" },
 ];
 
 const name = ref("");
@@ -127,9 +128,9 @@ function submit() {
 <template>
   <FormDialog
     :open="open"
-    title="New API key"
-    description="The key is shown once. Store it in your CI secret store right away."
-    confirm-text="Create"
+    :title="t('apiKeyDialog.title')"
+    :description="t('apiKeyDialog.description')"
+    :confirm-text="t('apiKeyDialog.create')"
     :pending="pending"
     :submit-disabled="invalid"
     :confirm-test-id="TEST_ID.createApiKeySubmit"
@@ -137,7 +138,7 @@ function submit() {
     @submit="submit"
   >
     <label class="block space-y-1 text-sm">
-      <span>Name</span>
+      <span>{{ t("apiKeyDialog.name") }}</span>
       <Input
         v-model="name"
         placeholder="ci-upload"
@@ -147,10 +148,10 @@ function submit() {
     </label>
 
     <label class="block space-y-1 text-sm">
-      <span>Expires</span>
+      <span>{{ t("apiKeyDialog.expires") }}</span>
       <Select v-model="expiry">
         <SelectTrigger :data-testid="TEST_ID.createApiKeyExpiry">
-          <SelectValue placeholder="Never" />
+          <SelectValue :placeholder="t('apiKeyDialog.never')" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem
@@ -158,14 +159,14 @@ function submit() {
             :key="option.value"
             :value="option.value"
           >
-            {{ option.label }}
+            {{ t(option.labelKey) }}
           </SelectItem>
         </SelectContent>
       </Select>
     </label>
 
     <fieldset class="space-y-2">
-      <legend class="text-sm">Scopes</legend>
+      <legend class="text-sm">{{ t("apiKeyDialog.scopes") }}</legend>
       <label
         v-for="scope in API_KEY_SCOPES"
         :key="scope"
@@ -181,12 +182,12 @@ function submit() {
         <span>
           <span class="font-mono font-medium">{{ scope }}</span>
           <span class="block text-xs text-muted-foreground">
-            {{ API_KEY_SCOPE_DESCRIPTION[scope] }}
+            {{ t(`apiKeyDialog.scope.${scope}`) }}
           </span>
         </span>
       </label>
       <p v-if="noScopes" class="text-sm text-destructive" role="alert">
-        Select at least one scope.
+        {{ t("apiKeyDialog.noScopes") }}
       </p>
       <p
         v-if="showAdminWarning"
@@ -194,25 +195,24 @@ function submit() {
         role="alert"
         :data-testid="TEST_ID.apiKeyAdminWarning"
       >
-        Admin keys can delete projects and manage users — grant only when
-        needed.
+        {{ t("apiKeyDialog.adminWarning") }}
       </p>
     </fieldset>
 
     <fieldset class="space-y-2">
-      <legend class="text-sm">Projects</legend>
+      <legend class="text-sm">{{ t("apiKeyDialog.projects") }}</legend>
       <label class="flex items-center gap-2 text-sm">
         <input
           v-model="allProjects"
           type="checkbox"
           :data-testid="TEST_ID.apiKeyAllProjects"
         />
-        <span>All projects</span>
+        <span>{{ t("apiKeyDialog.allProjects") }}</span>
       </label>
 
       <template v-if="!allProjects">
         <p v-if="projectsLoading" class="text-xs text-muted-foreground">
-          Loading projects…
+          {{ t("apiKeyDialog.loadingProjects") }}
         </p>
         <div
           v-else-if="projectOptions.length > 0"
@@ -234,7 +234,7 @@ function submit() {
         </div>
         <div v-else class="space-y-1">
           <p class="text-xs text-muted-foreground">
-            No project list is available — type the project names.
+            {{ t("apiKeyDialog.noProjectList") }}
           </p>
           <Input
             v-model="projectNamesInput"
@@ -243,13 +243,13 @@ function submit() {
           />
         </div>
         <p v-if="noProjects" class="text-sm text-destructive" role="alert">
-          Select at least one project, or allow all projects.
+          {{ t("apiKeyDialog.noProjects") }}
         </p>
       </template>
     </fieldset>
 
     <p v-if="error" class="text-sm text-destructive" role="alert">
-      {{ sdkErrorMessage(error, "Could not create API key") }}
+      {{ sdkErrorMessage(error, t("apiKeyDialog.createError")) }}
     </p>
   </FormDialog>
 </template>

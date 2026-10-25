@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import FormDialog from "@/components/FormDialog.vue";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,13 +12,13 @@ import {
 } from "@/components/ui/select";
 import {
   WEBHOOK_EVENTS,
-  WEBHOOK_EVENT_LABEL,
   WEBHOOK_FORMATS,
   WEBHOOK_FORMAT_LABEL,
   type CreateWebhookInput,
   type WebhookEndpoint,
   type WebhookEvent,
 } from "@/domains/webhooks/webhook.model";
+import { webhookEventLabelI18n } from "@/domains/webhooks/webhook.labels";
 import { sdkErrorMessage } from "@/lib/sdk";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -34,6 +35,7 @@ const emit = defineEmits<{
   (e: "submit", payload: CreateWebhookInput): void;
 }>();
 
+const { t } = useI18n();
 const url = ref("");
 const events = ref<WebhookEvent[]>([]);
 // Kept as a plain string for the Select's model; submit narrows it to the two
@@ -83,20 +85,20 @@ function submit() {
 <template>
   <FormDialog
     :open="open"
-    :title="isEdit ? 'Edit webhook endpoint' : 'Add webhook endpoint'"
+    :title="isEdit ? t('webhookDialog.editTitle') : t('webhookDialog.addTitle')"
     :description="
       isEdit
-        ? 'Change where this project delivers review and approval events. Leave the secret blank to keep the current one.'
-        : 'Deliveries are signed, retried five times and at-least-once. Only review and approval events are available.'
+        ? t('webhookDialog.editDescription')
+        : t('webhookDialog.addDescription')
     "
-    :confirm-text="isEdit ? 'Save' : 'Create endpoint'"
+    :confirm-text="isEdit ? t('webhookDialog.save') : t('webhookDialog.create')"
     :pending="pending"
     :confirm-test-id="TEST_ID.webhookSubmit"
     @update:open="emit('update:open', $event)"
     @submit="submit"
   >
     <label class="block space-y-1 text-sm">
-      <span>Endpoint URL</span>
+      <span>{{ t("webhookDialog.urlLabel") }}</span>
       <Input
         v-model="url"
         type="url"
@@ -112,11 +114,11 @@ function submit() {
       class="text-sm text-destructive"
       role="alert"
     >
-      URL is required
+      {{ t("webhookDialog.urlRequired") }}
     </p>
 
     <fieldset class="space-y-2">
-      <legend class="text-sm">Events</legend>
+      <legend class="text-sm">{{ t("webhookDialog.events") }}</legend>
       <label
         v-for="event in WEBHOOK_EVENTS"
         :key="event"
@@ -129,19 +131,19 @@ function submit() {
           class="h-4 w-4 rounded border-input accent-primary"
           :data-testid="TEST_ID.webhookEventCheckbox"
         />
-        <span>{{ WEBHOOK_EVENT_LABEL[event] }}</span>
+        <span>{{ webhookEventLabelI18n(event) }}</span>
       </label>
       <p
         v-if="showValidation && eventsMissing"
         class="text-sm text-destructive"
         role="alert"
       >
-        Select at least one event
+        {{ t("webhookDialog.selectEvent") }}
       </p>
     </fieldset>
 
     <label class="block space-y-1 text-sm">
-      <span>Format</span>
+      <span>{{ t("webhookDialog.format") }}</span>
       <Select v-model="format">
         <SelectTrigger :data-testid="TEST_ID.webhookFormatSelect">
           <SelectValue placeholder="JSON" />
@@ -162,8 +164,8 @@ function submit() {
       <span>
         {{
           isEdit
-            ? "Rotate signing secret (leave blank to keep)"
-            : "Signing secret (leave blank to generate one)"
+            ? t("webhookDialog.rotateSecret")
+            : t("webhookDialog.secretLabel")
         }}
       </span>
       <Input
@@ -174,8 +176,7 @@ function submit() {
       />
     </label>
     <p class="text-xs text-muted-foreground">
-      The secret signs every request; it is shown once and cannot be read back.
-      A custom secret must be at least 16 characters.
+      {{ t("webhookDialog.secretHelp") }}
     </p>
 
     <p v-if="error" class="text-sm text-destructive" role="alert">
@@ -183,8 +184,8 @@ function submit() {
         sdkErrorMessage(
           error,
           isEdit
-            ? "Could not update webhook endpoint"
-            : "Could not create webhook endpoint",
+            ? t("webhookDialog.updateError")
+            : t("webhookDialog.createError"),
         )
       }}
     </p>

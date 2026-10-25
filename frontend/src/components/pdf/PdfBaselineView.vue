@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { ref } from "vue";
 import PdfPageViewer from "@/components/pdf/PdfPageViewer.vue";
 import PdfPageNavigation from "@/components/pdf/PdfPageNavigation.vue";
@@ -11,6 +12,7 @@ defineProps<{
   branchName?: string;
 }>();
 
+const { t } = useI18n();
 const currentPage = ref(1);
 </script>
 
@@ -26,7 +28,7 @@ const currentPage = ref(1);
       :test-name="testName"
       :pdf-url="pdfUrl"
       :page="currentPage"
-      label="Baseline"
+      :label="t('pdf.baseline')"
       border="green"
       :branch-name="branchName"
     />

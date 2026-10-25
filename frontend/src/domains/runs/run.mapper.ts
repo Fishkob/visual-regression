@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import type {
   PaginatedRunDto,
   RunApprovalDto,
@@ -188,7 +189,7 @@ export function mapRunApproveAllFailure(dto: {
 }): RunApproveAllFailure {
   return {
     comparisonId: presentString(dto.comparisonId) ?? "",
-    error: presentString(dto.error) ?? "Unknown error",
+    error: presentString(dto.error) ?? tm("runs.unknownError"),
   };
 }
 

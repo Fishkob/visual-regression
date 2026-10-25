@@ -60,7 +60,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R14 | Search & discovery                       | 5     | M    | —                             | Shipped     |
 | R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Shipped     |
 | R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Shipped     |
-| R17 | Internationalization                     | 5     | M    | ADR-037                       | In progress |
+| R17 | Internationalization                     | 5     | M    | ADR-037                       | Shipped     |
 | R18 | Share links                              | 5     | M    | R9                            | Planned     |
 | R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4                        | Planned     |
 | R20 | Review comments & decision notes         | 5     | M    | R9                            | Planned     |
@@ -790,17 +790,22 @@ the same bars.
 `package.json` first), extract strings, German + English, persisted locale,
 date/number formatting, translated a11y labels, CI check for missing keys.
 
-**Delivered so far.** `vue-i18n` v11 (ADR-037), `en`/`de` message files, a
-persisted locale with a header switcher and `document.lang`, translated shell
-navigation/header/login (including a11y labels), and a key-parity CI script
-(`frontend i18n:check`, 26 keys). Second pass translated the inbox/projects/
-project-detail/groups/common-components slice plus storage, test lifecycle and
-search (322 keys, plural/parameter messages, German rendering test, global test
-setup). English remains the fallback.
+**Delivered.** `vue-i18n` v11 (ADR-037), EN/DE message files with **903 keys**
+(plural/parameter messages), persisted locale + header switcher +
+`document.lang`, and a key-parity CI script (`frontend i18n:check`). Every view
+and dialog is translated (shell/login, inbox/projects/groups, runs/run detail/
+trends, users/security, audit, webhooks, API keys, test overview, image/PDF
+details), as are composable toasts, status/approval labels, a11y labels and
+empty/error states. Relative ages use `Intl.RelativeTimeFormat`; absolute
+timestamps use a locale-aware `formatDateTime`. German rendering tests cover
+the inbox and runs pages. English remains the fallback.
 
-**Remaining.** Runs/Run detail/Trends/Users/Security/Audit/Webhooks/API keys/
-Test overview/Visual+PDF details and their dialogs/tables/detail panels, plus
-composable toast messages and the remaining `toLocale*` date/number calls.
+**Intentional exclusions.** API enum values (ADMIN/MEMBER/VIEWER,
+PENDING_APPROVAL, image/pdf), brand/format names (JUnit/HTML/CSV), example
+placeholders, storage keys/test ids and server-provided errors stay
+untranslated. A few internal `Error` fallbacks remain English; domain label
+constants are the English fallback where not overridden by `t()`. `formatBytes`
+keeps "." decimals.
 
 **Size.** M · independent.
 

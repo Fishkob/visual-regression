@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { Check, Copy } from "@lucide/vue";
 import {
   DialogClose,
@@ -25,6 +26,7 @@ const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
 }>();
 
+const { t } = useI18n();
 const copied = ref(false);
 
 watch(
@@ -55,13 +57,10 @@ async function copy() {
       >
         <div class="flex flex-col gap-2">
           <DialogTitle class="text-lg font-semibold">
-            {{ title ?? "API key created" }}
+            {{ title ?? t("apiKeyReveal.defaultTitle") }}
           </DialogTitle>
           <DialogDescription class="text-sm text-muted-foreground">
-            {{
-              description ??
-              "Copy this key now. It is stored hashed and cannot be shown again."
-            }}
+            {{ description ?? t("apiKeyReveal.defaultDescription") }}
           </DialogDescription>
         </div>
 
@@ -76,23 +75,27 @@ async function copy() {
             type="button"
             variant="outline"
             :data-testid="TEST_ID.apiKeyCopy"
-            :aria-label="copied ? 'Key copied' : 'Copy key'"
+            :aria-label="
+              copied ? t('apiKeyReveal.copiedAria') : t('apiKeyReveal.copyAria')
+            "
             @click="copy"
           >
             <Check v-if="copied" class="h-4 w-4" />
             <Copy v-else class="h-4 w-4" />
-            <span>{{ copied ? "Copied" : "Copy" }}</span>
+            <span>{{
+              copied ? t("apiKeyReveal.copied") : t("apiKeyReveal.copy")
+            }}</span>
           </Button>
         </div>
 
         <p class="text-sm text-muted-foreground">
-          Name: <span class="font-medium">{{ issuedKey?.name }}</span>
+          {{ t("apiKeyReveal.name", { name: issuedKey?.name ?? "" }) }}
         </p>
 
         <div class="flex justify-end">
           <DialogClose as-child>
             <Button type="button" :data-testid="TEST_ID.apiKeyRevealDone">
-              Done
+              {{ t("apiKeyReveal.done") }}
             </Button>
           </DialogClose>
         </div>

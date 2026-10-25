@@ -9,7 +9,7 @@
 
     <img
       :src="baseline.imageUrl"
-      alt="Baseline"
+      :alt="t('detail.baselineAlt')"
       loading="lazy"
       class="border rounded shadow-lg w-[500px] h-[400px] object-contain mx-auto"
       :data-testid="TEST_ID.baseImageBlock"
@@ -18,8 +18,11 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import type { Screenshot } from "@/domains/visual-test/visual-test.model";
 import { TEST_ID } from "@/lib/test-ids";
+
+const { t } = useI18n();
 
 defineProps<{
   baseline: Screenshot;

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { formatDateTime } from "@/lib/format-date";
 import { useRoute, useRouter } from "vue-router";
 import EditTestDialog from "@/components/test-lifecycle/EditTestDialog.vue";
 import { Badge } from "@/components/ui/badge";
@@ -11,13 +12,10 @@ import {
   useTestMetadata,
   useUpdateTestMetadata,
 } from "@/composables/useTestLifecycle";
-import {
-  testFlakeLabel,
-  type UpdateTestMetadataInput,
-} from "@/domains/test-lifecycle/test-metadata.model";
+import type { UpdateTestMetadataInput } from "@/domains/test-lifecycle/test-metadata.model";
 import { TEST_ID } from "@/lib/test-ids";
 
-const { t, d } = useI18n();
+const { t } = useI18n();
 const { projectName, testName, branch } = useRouteParams();
 const router = useRouter();
 const route = useRoute();
@@ -34,7 +32,7 @@ const mutedLabel = computed(() => {
   const until = metadata.value?.mutedUntil;
   if (!until) return "";
   const date = new Date(until);
-  return Number.isNaN(date.getTime()) ? until : d(date);
+  return Number.isNaN(date.getTime()) ? until : formatDateTime(date);
 });
 
 function openDialog() {
@@ -95,7 +93,7 @@ function unmute() {
       "
       :data-testid="TEST_ID.testFlakeBadge"
     >
-      {{ testFlakeLabel(metadata.flake) }}
+      {{ t("lifecycle.flake", { count: metadata.flake.transitions }) }}
     </Badge>
 
     <Badge

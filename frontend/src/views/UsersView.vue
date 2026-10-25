@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
+import { formatDateTime } from "@/lib/format-date";
 import AsyncState from "@/components/AsyncState.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import CreateUserDialog from "@/components/users/CreateUserDialog.vue";
@@ -29,6 +31,7 @@ import type { User } from "@/domains/users/user.model";
 import { formatRelativeAge } from "@/lib/format-date";
 import { TEST_ID } from "@/lib/test-ids";
 
+const { t } = useI18n();
 const { data, isLoading, error, refetch } = useUsersQuery();
 const createUser = useCreateUser();
 const updateUser = useUpdateUser();
@@ -40,7 +43,7 @@ const createOpen = ref(false);
 const tempOpen = ref(false);
 const temporaryPassword = ref("");
 const temporaryUsername = ref("");
-const temporaryTitle = ref("User created");
+const temporaryTitle = ref(t("users.userCreated"));
 
 function openCreate() {
   createUser.reset();
@@ -54,7 +57,7 @@ function submitCreate(payload: { username: string; role: UserRole }) {
       createOpen.value = false;
       temporaryUsername.value = result.user.username;
       temporaryPassword.value = result.temporaryPassword;
-      temporaryTitle.value = "User created";
+      temporaryTitle.value = t("users.userCreated");
       tempOpen.value = true;
     },
   });
@@ -78,7 +81,7 @@ function confirmReset() {
       temporaryUsername.value = target.username;
       temporaryPassword.value =
         mapResetPasswordResult(result).temporaryPassword;
-      temporaryTitle.value = "Password reset";
+      temporaryTitle.value = t("users.passwordReset");
       tempOpen.value = true;
       resetTarget.value = null;
     },
@@ -92,8 +95,8 @@ const toggleDescription = computed(() => {
   const target = toggleTarget.value;
   if (!target) return "";
   return target.isActive
-    ? `Deactivating ${target.username} ends their sessions and blocks new sign-ins. Their reviews and audit trail stay intact.`
-    : `Reactivating ${target.username} lets them sign in again with their current password.`;
+    ? t("users.deactivateDescription", { username: target.username })
+    : t("users.reactivateDescription", { username: target.username });
 });
 
 function requestToggle(user: User) {
@@ -119,7 +122,7 @@ function confirmToggle() {
 function absoluteTime(iso: string | null): string | undefined {
   if (!iso) return undefined;
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? iso : formatDateTime(date);
 }
 </script>
 
@@ -127,10 +130,11 @@ function absoluteTime(iso: string | null): string | undefined {
   <div class="space-y-6" :data-testid="TEST_ID.usersView">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 class="text-xl font-semibold tracking-tight">Users</h1>
+        <h1 class="text-xl font-semibold tracking-tight">
+          {{ t("users.title") }}
+        </h1>
         <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Admins manage who can sign in and what they may do. New accounts get a
-          temporary password they must replace at first sign-in.
+          {{ t("users.subtitle") }}
         </p>
       </div>
       <Button
@@ -138,18 +142,18 @@ function absoluteTime(iso: string | null): string | undefined {
         :data-testid="TEST_ID.userCreate"
         @click="openCreate"
       >
-        New user
+        {{ t("users.newUser") }}
       </Button>
     </div>
 
     <AsyncState
       :is-loading="isLoading"
       :error="error"
-      error-title="Failed to load users"
+      :error-title="t('users.errorTitle')"
       :retry="refetch"
       :empty="users.length === 0"
-      empty-title="No users yet"
-      empty-description="Create the first account to share this installation."
+      :empty-title="t('users.emptyTitle')"
+      :empty-description="t('users.emptyDescription')"
     >
       <template #loading>
         <div class="overflow-hidden rounded-xl border bg-card shadow-sm">
@@ -175,11 +179,13 @@ function absoluteTime(iso: string | null): string | undefined {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead class="text-right">Actions</TableHead>
+                <TableHead>{{ t("users.user") }}</TableHead>
+                <TableHead>{{ t("users.role") }}</TableHead>
+                <TableHead>{{ t("users.status") }}</TableHead>
+                <TableHead>{{ t("users.created") }}</TableHead>
+                <TableHead class="text-right">{{
+                  t("users.actions")
+                }}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -192,7 +198,7 @@ function absoluteTime(iso: string | null): string | undefined {
                   <div class="flex flex-wrap items-center gap-2">
                     <span class="font-medium">{{ user.username }}</span>
                     <Badge v-if="user.mustChangePassword" variant="outline">
-                      Must change password
+                      {{ t("users.mustChangePassword") }}
                     </Badge>
                   </div>
                 </TableCell>
@@ -209,7 +215,9 @@ function absoluteTime(iso: string | null): string | undefined {
                     :variant="user.isActive ? 'default' : 'outline'"
                     :data-testid="TEST_ID.userActive"
                   >
-                    {{ user.isActive ? "Active" : "Inactive" }}
+                    {{
+                      user.isActive ? t("users.active") : t("users.inactive")
+                    }}
                   </Badge>
                 </TableCell>
                 <TableCell class="text-sm">
@@ -226,11 +234,13 @@ function absoluteTime(iso: string | null): string | undefined {
                       type="button"
                       variant="outline"
                       size="sm"
-                      :aria-label="`Reset the password of ${user.username}`"
+                      :aria-label="
+                        t('users.resetAria', { username: user.username })
+                      "
                       :data-testid="TEST_ID.userReset"
                       @click="requestReset(user)"
                     >
-                      Reset password
+                      {{ t("users.resetPassword") }}
                     </Button>
                     <Button
                       type="button"
@@ -238,13 +248,21 @@ function absoluteTime(iso: string | null): string | undefined {
                       size="sm"
                       :aria-label="
                         user.isActive
-                          ? `Deactivate ${user.username}`
-                          : `Reactivate ${user.username}`
+                          ? t('users.deactivateAria', {
+                              username: user.username,
+                            })
+                          : t('users.reactivateAria', {
+                              username: user.username,
+                            })
                       "
                       :data-testid="TEST_ID.userDeactivate"
                       @click="requestToggle(user)"
                     >
-                      {{ user.isActive ? "Deactivate" : "Reactivate" }}
+                      {{
+                        user.isActive
+                          ? t("users.deactivate")
+                          : t("users.reactivate")
+                      }}
                     </Button>
                   </div>
                 </TableCell>
@@ -273,10 +291,14 @@ function absoluteTime(iso: string | null): string | undefined {
     <ConfirmDialog
       :open="resetOpen"
       :pending="resetPassword.isPending.value"
-      title="Reset password"
-      :description="`Resets the password of ${resetTarget?.username ?? 'this user'}. Their sessions end and the new temporary password must be changed at next sign-in.`"
-      confirm-text="Reset password"
-      cancel-text="Cancel"
+      :title="t('users.resetTitle')"
+      :description="
+        t('users.resetDescription', {
+          username: resetTarget?.username ?? t('users.thisUser'),
+        })
+      "
+      :confirm-text="t('users.resetPassword')"
+      :cancel-text="t('common.cancel')"
       @confirm="confirmReset"
       @cancel="resetOpen = false"
       @update:open="resetOpen = $event"
@@ -285,11 +307,13 @@ function absoluteTime(iso: string | null): string | undefined {
     <ConfirmDialog
       :open="toggleOpen"
       :pending="updateUser.isPending.value"
-      title="Change user access"
+      :title="t('users.toggleTitle')"
       :description="toggleDescription"
-      :confirm-text="toggleTarget?.isActive ? 'Deactivate' : 'Reactivate'"
+      :confirm-text="
+        toggleTarget?.isActive ? t('users.deactivate') : t('users.reactivate')
+      "
       :confirm-variant="toggleTarget?.isActive ? 'destructive' : 'default'"
-      cancel-text="Cancel"
+      :cancel-text="t('common.cancel')"
       @confirm="confirmToggle"
       @cancel="toggleOpen = false"
       @update:open="toggleOpen = $event"

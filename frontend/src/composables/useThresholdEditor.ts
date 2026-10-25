@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { ref, watch, type Ref, unref } from "vue";
 import {
   type UpdateThresholdResultDto,
@@ -81,14 +82,18 @@ export function useThresholdEditor(options: ThresholdEditorOptions) {
         syncThreshold(data.threshold ?? 0);
         const variantInfo =
           formatVariantLabel({ viewport, browser, environment }) ||
-          "entire test";
+          tm("toast.entireTest");
         const accepted = data.autoAcceptedCount
-          ? ` · ${data.autoAcceptedCount} comparison(s) auto-accepted`
+          ? tm("toast.thresholdAccepted", { count: data.autoAcceptedCount })
           : "";
-        return `Threshold updated for ${variantInfo} of "${testName}"${accepted}`;
+        return tm("toast.thresholdUpdated", {
+          variant: variantInfo,
+          test: testName,
+          accepted,
+        });
       },
 
-      errorMessage: "Failed to update threshold",
+      errorMessage: tm("toast.thresholdError"),
 
       invalidate: (
         client,
@@ -169,7 +174,7 @@ export function useThresholdEditor(options: ThresholdEditorOptions) {
 
     if (!result) {
       resetInputToCurrent();
-      toast.error("Invalid number");
+      toast.error(tm("toast.invalidNumber"));
       return;
     }
 
@@ -182,9 +187,7 @@ export function useThresholdEditor(options: ThresholdEditorOptions) {
     const autoAcceptedCount = await previewAutoAccept(result.value);
 
     if (autoAcceptedCount === null) {
-      toast.error(
-        "Could not check whether this threshold would auto-accept changes",
-      );
+      toast.error(tm("toast.thresholdCheckError"));
       resetInputToCurrent();
       return;
     }

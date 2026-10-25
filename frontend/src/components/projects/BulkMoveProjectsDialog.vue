@@ -9,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UNASSIGNED_GROUP_LABEL } from "@/domains/groups/group-section";
 import type { ProjectGroup } from "@/domains/groups/group.model";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -67,7 +66,7 @@ function submit() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem :value="NO_GROUP">{{
-            UNASSIGNED_GROUP_LABEL
+            t("projects.unassigned")
           }}</SelectItem>
           <SelectItem
             v-for="option in groups"

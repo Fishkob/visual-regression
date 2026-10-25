@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useRouteParams } from "@/composables/useRouteParams";
 import { usePdfTestDetailsPage } from "@/composables/useTestDetailsPage";
@@ -22,6 +23,7 @@ import { formatRelativeAge } from "@/lib/format-date";
 
 defineProps<{ kind?: string }>();
 
+const { t } = useI18n();
 const { projectName, testName, filters, branch, fromInbox } = useRouteParams();
 const router = useRouter();
 
@@ -87,7 +89,7 @@ useReviewShortcuts({
         :group-name="groupName"
       />
       <Badge v-if="kind" variant="outline">
-        {{ kind === "pdf" ? "PDF" : "Image" }}
+        {{ kind === "pdf" ? t("detail.pdf") : t("detail.image") }}
       </Badge>
       <Badge
         v-if="isInherited"
@@ -95,7 +97,7 @@ useReviewShortcuts({
         class="font-mono text-[10px]"
         :data-testid="TEST_ID.inheritedBadge"
       >
-        inherited from {{ data?.inheritedFrom }}
+        {{ t("detail.inherited", { branch: data?.inheritedFrom }) }}
       </Badge>
       <!-- The baseline can be inherited even when the test itself is owned:
            it then tracks the target branch until an approval pins it here.
@@ -105,10 +107,22 @@ useReviewShortcuts({
         v-else-if="data?.baselineInherited"
         variant="outline"
         class="font-mono text-[10px]"
-        :title="`This baseline follows ${data?.inheritTarget ?? 'the target branch'} until it is approved on this branch`"
+        :title="
+          t('detail.baselineFollowsTitle', {
+            target:
+              data?.inheritTarget ??
+              t('detail.baselineFollows', {
+                target: '',
+              }),
+          })
+        "
         :data-testid="TEST_ID.baselineInheritedBadge"
       >
-        baseline follows {{ data?.inheritTarget ?? "target" }}
+        {{
+          t("detail.baselineFollows", {
+            target: data?.inheritTarget ?? "target",
+          })
+        }}
       </Badge>
       <span
         v-if="data?.comparison?.createdAt"
@@ -138,7 +152,12 @@ useReviewShortcuts({
         :data-testid="TEST_ID.reviewProgress"
       >
         {{
-          progress.total > 0 ? `${progress.current} of ${progress.total}` : ""
+          progress.total > 0
+            ? t("detail.progress", {
+                current: progress.current,
+                total: progress.total,
+              })
+            : ""
         }}
       </span>
     </div>
@@ -150,11 +169,11 @@ useReviewShortcuts({
     <AsyncState
       :is-loading="isLoading"
       :error="error"
-      error-title="Failed to load PDF test"
+      :error-title="t('detail.pdfErrorTitle')"
       :retry="() => refetch()"
       :empty="!data?.baseline"
-      empty-title="No PDF test data available"
-      empty-description="This test has no baseline or comparison data yet."
+      :empty-title="t('detail.pdfEmptyTitle')"
+      :empty-description="t('detail.emptyDescription')"
     >
       <template #loading>
         <TestComparisonSkeleton />
@@ -191,7 +210,7 @@ useReviewShortcuts({
         :data-testid="TEST_ID.pdfPageCountUnknown"
         class="flex items-center justify-center min-h-[200px] text-muted-foreground"
       >
-        Page count unknown — upload a comparison
+        {{ t("detail.pdfPageUnknown") }}
       </div>
     </AsyncState>
 
@@ -205,7 +224,7 @@ useReviewShortcuts({
       class="mt-2 text-center text-xs text-muted-foreground"
       :data-testid="TEST_ID.shortcutsHint"
     >
-      Press A to approve, S to skip, Esc to go back.
+      {{ t("detail.shortcuts") }}
     </p>
 
     <!-- Restoring replaces the baseline of the resolved variant and retires its

@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import {
   projectGroupsControllerCreate,
   projectGroupsControllerFindAll,
@@ -24,8 +25,8 @@ export function useGroupsQuery() {
 export function useCreateGroup() {
   return useSdkMutation<ProjectGroupDto, { name: string }>({
     mutationFn: (body) => projectGroupsControllerCreate({ body }),
-    successMessage: "Group created",
-    errorMessage: "Could not create group",
+    successMessage: tm("toast.groupCreated"),
+    errorMessage: tm("toast.groupCreateError"),
     invalidate: (client) => {
       client.invalidateQueries({ queryKey: groupQueryKeys.all() });
     },
@@ -36,8 +37,8 @@ export function useRenameGroup() {
   return useSdkMutation<ProjectGroupDto, { id: string; name: string }>({
     mutationFn: ({ id, name }) =>
       projectGroupsControllerRename({ path: { id }, body: { name } }),
-    successMessage: "Group renamed",
-    errorMessage: "Could not rename group",
+    successMessage: tm("toast.groupRenamed"),
+    errorMessage: tm("toast.groupRenameError"),
     invalidate: (client) => invalidateProjectsForGroupChange(client),
   });
 }
@@ -45,8 +46,8 @@ export function useRenameGroup() {
 export function useDeleteGroup() {
   return useSdkMutation<unknown, string>({
     mutationFn: (id) => projectGroupsControllerRemove({ path: { id } }),
-    successMessage: "Group deleted",
-    errorMessage: "Could not delete group",
+    successMessage: tm("toast.groupDeleted"),
+    errorMessage: tm("toast.groupDeleteError"),
     invalidate: (client) => invalidateProjectsForGroupChange(client),
   });
 }

@@ -1,3 +1,5 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
+
 export const UNASSIGNED_GROUP_KEY = "__unassigned__";
 export const UNASSIGNED_GROUP_LABEL = "Unassigned";
 export const UNASSIGNED_GROUP_QUERY = "unassigned";
@@ -25,7 +27,7 @@ export function resolveGroupIdentity(ref: {
     return {
       id: null,
       key: UNASSIGNED_GROUP_KEY,
-      name: UNASSIGNED_GROUP_LABEL,
+      name: tm("projects.unassigned"),
       isUnassigned: true,
     };
   }

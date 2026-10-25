@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { unref } from "vue";
 import type { QueryClient } from "@tanstack/vue-query";
 import {
@@ -58,8 +59,8 @@ export function useWebhookMutations(projectName: MaybeRef<string>) {
           ...(secret ? { secret } : {}),
         },
       }),
-    successMessage: "Webhook endpoint created",
-    errorMessage: "Could not create webhook endpoint",
+    successMessage: tm("toast.webhookCreated"),
+    errorMessage: tm("toast.webhookCreateError"),
     invalidate,
   });
 
@@ -78,8 +79,8 @@ export function useWebhookMutations(projectName: MaybeRef<string>) {
           ...(secret ? { secret } : {}),
         },
       }),
-    successMessage: "Webhook endpoint updated",
-    errorMessage: "Could not update webhook endpoint",
+    successMessage: tm("toast.webhookUpdated"),
+    errorMessage: tm("toast.webhookUpdateError"),
     invalidate,
   });
 
@@ -88,8 +89,8 @@ export function useWebhookMutations(projectName: MaybeRef<string>) {
       webhooksControllerRemove({
         path: { projectName: unref(projectName), id },
       }),
-    successMessage: "Webhook endpoint deleted",
-    errorMessage: "Could not delete webhook endpoint",
+    successMessage: tm("toast.webhookDeleted"),
+    errorMessage: tm("toast.webhookDeleteError"),
     invalidate,
   });
 
@@ -98,8 +99,8 @@ export function useWebhookMutations(projectName: MaybeRef<string>) {
       webhooksControllerTest({
         path: { projectName: unref(projectName), id },
       }),
-    successMessage: "Test delivery queued",
-    errorMessage: "Could not queue a test delivery",
+    successMessage: tm("toast.webhookTestQueued"),
+    errorMessage: tm("toast.webhookTestError"),
     invalidate,
   });
 
@@ -136,8 +137,8 @@ export function useWebhookDeliveries(
           deliveryId,
         },
       }),
-    successMessage: "Delivery replayed",
-    errorMessage: "Could not replay delivery",
+    successMessage: tm("toast.webhookReplayed"),
+    errorMessage: tm("toast.webhookReplayError"),
     invalidate: (client) =>
       invalidateWebhookDeliveries(
         client,

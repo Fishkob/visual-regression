@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
+import { formatDateTime } from "@/lib/format-date";
 import { RouterLink } from "vue-router";
 import AsyncState from "@/components/AsyncState.vue";
 import PaginationBar from "@/components/PaginationBar.vue";
@@ -32,6 +34,7 @@ import { formatRelativeAge } from "@/lib/format-date";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { projectName } = useRouteParams();
+const { t } = useI18n();
 
 // The branch filter and the page are view-local: unlike the review inbox they
 // are not a review scope another page hands back, so they do not belong in the
@@ -70,7 +73,7 @@ const filtered = computed(() => branchFilter.value !== FILTER_ALL);
 
 function absoluteTime(iso: string): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? iso : formatDateTime(date);
 }
 
 // A run key is unique per branch, so the detail link carries the branch it was
@@ -89,18 +92,21 @@ function runLink(run: Run) {
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <p class="text-sm text-muted-foreground">{{ projectName }}</p>
-        <h1 class="text-xl font-semibold tracking-tight">Runs</h1>
+        <h1 class="text-xl font-semibold tracking-tight">
+          {{ t("runs.title") }}
+        </h1>
         <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
-          CI uploads grouped by run key — commit, derived status and the pending
-          review a gate will wait for.
+          {{ t("runs.subtitle") }}
         </p>
       </div>
       <Select v-model="branchModel">
-        <SelectTrigger class="w-56" aria-label="Filter runs by branch">
+        <SelectTrigger class="w-56" :aria-label="t('runs.filterLabel')">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem :value="FILTER_ALL">All branches</SelectItem>
+          <SelectItem :value="FILTER_ALL">{{
+            t("runs.allBranches")
+          }}</SelectItem>
           <SelectItem
             v-for="branch in branchOptions"
             :key="branch.name"
@@ -115,7 +121,7 @@ function runLink(run: Run) {
     <AsyncState
       :is-loading="isLoading"
       :error="error"
-      error-title="Failed to load runs"
+      :error-title="t('runs.errorTitle')"
       :retry="refetch"
       :empty="runs.length === 0"
     >
@@ -144,11 +150,7 @@ function runLink(run: Run) {
           :data-testid="TEST_ID.runsEmpty"
         >
           <p class="text-sm text-muted-foreground">
-            {{
-              filtered
-                ? "No runs on this branch yet."
-                : "No runs yet — pass a runKey on upload to group a CI run."
-            }}
+            {{ filtered ? t("runs.emptyFiltered") : t("runs.empty") }}
           </p>
         </div>
       </template>
@@ -158,12 +160,12 @@ function runLink(run: Run) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Key</TableHead>
-                <TableHead>Branch</TableHead>
-                <TableHead>Commit</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Last activity</TableHead>
-                <TableHead>Finished</TableHead>
+                <TableHead>{{ t("runs.key") }}</TableHead>
+                <TableHead>{{ t("runs.branch") }}</TableHead>
+                <TableHead>{{ t("runs.commit") }}</TableHead>
+                <TableHead>{{ t("runs.created") }}</TableHead>
+                <TableHead>{{ t("runs.lastActivity") }}</TableHead>
+                <TableHead>{{ t("runs.finished") }}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -243,7 +245,7 @@ function runLink(run: Run) {
           :page="currentPage"
           :page-count="pageCount"
           :total="total"
-          item-label="runs"
+          :item-label="t('pagination.runs')"
           @update:page="page = $event"
         />
       </div>

@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { computed } from "vue";
 import { Button } from "@/components/ui/button";
 import ImageDisplay from "@/components/ImageDisplay.vue";
 import { usePdfPageRenderQuery } from "@/composables/usePdfPageRender";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   projectName: string;
@@ -54,7 +57,9 @@ const renderUrl = computed(
       <span class="text-sm text-status-danger"
         >Failed to load page {{ page }}</span
       >
-      <Button variant="outline" size="sm" @click="refetch()">Retry</Button>
+      <Button variant="outline" size="sm" @click="refetch()">{{
+        t("pdf.retry")
+      }}</Button>
     </div>
   </div>
 </template>

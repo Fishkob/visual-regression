@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import {
   ref,
   computed,
@@ -15,6 +16,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { TEST_ID } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -401,7 +404,7 @@ const panels = computed(() => {
     if (props.baselineUrl)
       list.push({
         key: "baseline",
-        label: "Baseline",
+        label: t("detail.baselineAlt"),
         url: props.baselineUrl,
         dotClass: "bg-status-success",
         testId: TEST_ID.panelBaseline,
@@ -409,7 +412,7 @@ const panels = computed(() => {
     if (props.candidateUrl)
       list.push({
         key: "candidate",
-        label: "Candidate",
+        label: t("detail.candidateAlt"),
         url: props.candidateUrl,
         dotClass: "bg-status-info",
         testId: TEST_ID.panelCandidate,
@@ -420,7 +423,7 @@ const panels = computed(() => {
     if (props.diffUrl)
       list.push({
         key: "diff",
-        label: "Diff",
+        label: t("imageViewer.diff"),
         url: props.diffUrl,
         dotClass: "bg-status-danger",
         testId: TEST_ID.panelDiff,
@@ -435,7 +438,7 @@ const isLayered = computed(
 );
 
 const layeredLabel = computed(() =>
-  viewMode.value === "overlay" ? "Overlay" : "Wipe",
+  viewMode.value === "overlay" ? t("viewMode.overlay") : t("viewMode.wipe"),
 );
 
 const layeredTestId = computed(() =>
@@ -482,7 +485,7 @@ const imageFitClass = computed(() =>
     "
     :role="isFullscreen ? 'dialog' : undefined"
     :aria-modal="isFullscreen ? 'true' : undefined"
-    :aria-label="isFullscreen ? 'Image comparison viewer' : undefined"
+    :aria-label="isFullscreen ? t('imageViewer.label') : undefined"
   >
     <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
       <ViewModeToggle v-model="viewMode" :show-diff="hasDiff" />
@@ -499,11 +502,11 @@ const imageFitClass = computed(() =>
         <div
           class="flex items-center gap-1"
           role="group"
-          aria-label="Zoom controls"
+          :aria-label="t('imageViewer.zoomControls')"
         >
           <button
             :data-testid="TEST_ID.zoomOut"
-            aria-label="Zoom out"
+            :aria-label="t('imageViewer.zoomOut')"
             :class="
               cn(
                 controlClass,
@@ -533,7 +536,7 @@ const imageFitClass = computed(() =>
           >
           <button
             :data-testid="TEST_ID.zoomIn"
-            aria-label="Zoom in"
+            :aria-label="t('imageViewer.zoomIn')"
             :class="
               cn(
                 controlClass,
@@ -559,7 +562,7 @@ const imageFitClass = computed(() =>
           </button>
           <button
             :data-testid="TEST_ID.zoomReset"
-            aria-label="Reset zoom"
+            :aria-label="t('imageViewer.resetZoom')"
             :class="cn(controlClass, 'hover:bg-muted text-muted-foreground')"
             @click="zoomReset"
           >
@@ -582,11 +585,11 @@ const imageFitClass = computed(() =>
         <div
           class="flex items-center gap-1 border-l border-border pl-1"
           role="group"
-          aria-label="View controls"
+          :aria-label="t('imageViewer.viewControls')"
         >
           <button
             :data-testid="TEST_ID.fitToggle"
-            aria-label="Fit to screen"
+            :aria-label="t('imageViewer.fit')"
             :aria-pressed="fitToScreen"
             :class="
               cn(
@@ -616,7 +619,7 @@ const imageFitClass = computed(() =>
           </button>
           <button
             :data-testid="TEST_ID.actualSizeToggle"
-            aria-label="Actual size"
+            :aria-label="t('imageViewer.actual')"
             :aria-pressed="isActualSize"
             :class="
               cn(
@@ -635,7 +638,7 @@ const imageFitClass = computed(() =>
           <button
             ref="fullscreenToggle"
             :data-testid="TEST_ID.fullscreenToggle"
-            aria-label="Fullscreen"
+            :aria-label="t('imageViewer.fullscreen')"
             :aria-pressed="isFullscreen"
             :class="
               cn(
@@ -667,7 +670,7 @@ const imageFitClass = computed(() =>
             v-if="isFullscreen"
             ref="closeButton"
             :data-testid="TEST_ID.fullscreenClose"
-            aria-label="Close fullscreen"
+            :aria-label="t('imageViewer.closeFullscreen')"
             :class="cn(controlClass, 'hover:bg-muted text-muted-foreground')"
             @click="closeFullscreen"
           >
@@ -706,7 +709,7 @@ const imageFitClass = computed(() =>
               v-if="viewMode === 'overlay'"
               class="flex items-center gap-2 text-xs text-muted-foreground"
             >
-              <span>Candidate opacity</span>
+              <span>{{ t("imageViewer.opacity") }}</span>
               <input
                 v-model.number="overlayOpacity"
                 :data-testid="TEST_ID.overlayOpacity"
@@ -734,7 +737,9 @@ const imageFitClass = computed(() =>
               v-if="isFailed('baseline')"
               class="flex flex-col items-center justify-center gap-2 min-h-[300px] p-4 text-center"
             >
-              <span class="text-sm text-status-danger">Image unavailable</span>
+              <span class="text-sm text-status-danger">{{
+                t("imageViewer.unavailable")
+              }}</span>
               <Button
                 variant="outline"
                 size="sm"
@@ -758,7 +763,7 @@ const imageFitClass = computed(() =>
               <img
                 :key="imageKey('baseline')"
                 :src="baselineUrl"
-                alt="Baseline"
+                :alt="t('detail.baselineAlt')"
                 :width="sizes.baseline?.width"
                 :height="sizes.baseline?.height"
                 decoding="async"
@@ -771,7 +776,7 @@ const imageFitClass = computed(() =>
                 v-if="candidateUrl && !isFailed('candidate')"
                 :key="imageKey('candidate')"
                 :src="candidateUrl"
-                alt="Candidate"
+                :alt="t('detail.candidateAlt')"
                 decoding="async"
                 draggable="false"
                 class="pointer-events-none absolute inset-0 h-full w-full select-none object-contain"
@@ -786,7 +791,7 @@ const imageFitClass = computed(() =>
                 :aria-valuenow="wipePosition"
                 aria-valuemin="0"
                 aria-valuemax="100"
-                aria-label="Wipe position"
+                :aria-label="t('imageViewer.wipe')"
                 tabindex="0"
                 class="absolute inset-y-0 w-1 -translate-x-1/2 cursor-ew-resize bg-foreground shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 :style="{ left: `${wipePosition}%` }"
@@ -820,7 +825,9 @@ const imageFitClass = computed(() =>
               v-if="isFailed(panel.key)"
               class="flex flex-col items-center justify-center gap-2 min-h-[300px] p-4 text-center"
             >
-              <span class="text-sm text-status-danger">Image unavailable</span>
+              <span class="text-sm text-status-danger">{{
+                t("imageViewer.unavailable")
+              }}</span>
               <Button
                 variant="outline"
                 size="sm"

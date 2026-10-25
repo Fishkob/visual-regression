@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import AsyncState from "@/components/AsyncState.vue";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,7 @@ import {
 import { TEST_ID } from "@/lib/test-ids";
 
 const { projectName } = useRouteParams();
+const { t } = useI18n();
 
 // The range is a local view preference: the page always opens on 30 days and the
 // window is not part of a deep link a reviewer would hand back.
@@ -48,18 +50,22 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <p class="text-sm text-muted-foreground">{{ projectName }}</p>
-        <h1 class="text-xl font-semibold tracking-tight">Trends</h1>
+        <h1 class="text-xl font-semibold tracking-tight">
+          {{ t("trends.title") }}
+        </h1>
         <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Comparison volume, review age, approval latency and flake rate over
-          the last {{ range }} days<template v-if="trends">
-            ({{ trends.from }} → {{ trends.to }})</template
-          >.
+          {{ t("trends.subtitle", { range })
+          }}<template v-if="trends">
+            {{
+              t("trends.window", { from: trends.from, to: trends.to })
+            }}</template
+          >
         </p>
       </div>
       <div
         class="flex items-center gap-2"
         role="group"
-        aria-label="Trend range"
+        :aria-label="t('trends.rangeLabel')"
       >
         <Button
           v-for="option in TREND_RANGES"
@@ -71,7 +77,7 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
           :data-testid="RANGE_TEST_ID[option]"
           @click="range = option"
         >
-          {{ option }} days
+          {{ t("trends.days", { count: option }) }}
         </Button>
       </div>
     </div>
@@ -79,7 +85,7 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
     <AsyncState
       :is-loading="isLoading"
       :error="error"
-      error-title="Failed to load trends"
+      :error-title="t('trends.errorTitle')"
       :retry="refetch"
       :empty="!trends"
     >
@@ -99,8 +105,7 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
       <template #empty>
         <div class="rounded-xl border bg-card p-8 text-center shadow-sm">
           <p class="text-sm text-muted-foreground">
-            No trend data yet — comparisons recorded on this project will appear
-            here.
+            {{ t("trends.empty") }}
           </p>
         </div>
       </template>
@@ -114,20 +119,24 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
             <p
               class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
             >
-              Comparisons
+              {{ t("trends.comparisons") }}
             </p>
             <p class="mt-1 text-2xl font-semibold">{{ totals.total }}</p>
             <dl class="mt-2 space-y-1 text-sm">
               <div class="flex items-center justify-between gap-2">
-                <dt class="text-muted-foreground">Changed</dt>
+                <dt class="text-muted-foreground">{{ t("trends.changed") }}</dt>
                 <dd>{{ totals.changed }}</dd>
               </div>
               <div class="flex items-center justify-between gap-2">
-                <dt class="text-muted-foreground">Unchanged</dt>
+                <dt class="text-muted-foreground">
+                  {{ t("trends.unchanged") }}
+                </dt>
                 <dd>{{ totals.unchanged }}</dd>
               </div>
               <div class="flex items-center justify-between gap-2">
-                <dt class="text-muted-foreground">Within threshold</dt>
+                <dt class="text-muted-foreground">
+                  {{ t("trends.withinThreshold") }}
+                </dt>
                 <dd>{{ totals.withinThreshold }}</dd>
               </div>
             </dl>
@@ -140,14 +149,16 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
             <p
               class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
             >
-              Pending review
+              {{ t("trends.pendingReview") }}
             </p>
             <p class="mt-1 text-2xl font-semibold">
               {{ trends.pendingReview.count }}
             </p>
             <dl class="mt-2 space-y-1 text-sm">
               <div class="flex items-center justify-between gap-2">
-                <dt class="text-muted-foreground">Average age</dt>
+                <dt class="text-muted-foreground">
+                  {{ t("trends.averageAge") }}
+                </dt>
                 <dd>
                   {{
                     formatAverage(
@@ -158,7 +169,7 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
                 </dd>
               </div>
               <div class="flex items-center justify-between gap-2">
-                <dt class="text-muted-foreground">Oldest</dt>
+                <dt class="text-muted-foreground">{{ t("trends.oldest") }}</dt>
                 <dd>
                   {{
                     formatAverage(
@@ -178,14 +189,16 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
             <p
               class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
             >
-              Approval latency
+              {{ t("trends.approvalLatency") }}
             </p>
             <p class="mt-1 text-2xl font-semibold">
               {{ trends.approvalLatency.count }}
             </p>
             <dl class="mt-2 space-y-1 text-sm">
               <div class="flex items-center justify-between gap-2">
-                <dt class="text-muted-foreground">Average to approve</dt>
+                <dt class="text-muted-foreground">
+                  {{ t("trends.averageToApprove") }}
+                </dt>
                 <dd>
                   {{
                     formatAverage(
@@ -196,7 +209,9 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
                 </dd>
               </div>
               <div class="flex items-center justify-between gap-2">
-                <dt class="text-muted-foreground">Approved</dt>
+                <dt class="text-muted-foreground">
+                  {{ t("trends.approved") }}
+                </dt>
                 <dd>{{ trends.approvalLatency.count }}</dd>
               </div>
             </dl>
@@ -209,18 +224,22 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
             <p
               class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
             >
-              Flake rate
+              {{ t("trends.flakeRate") }}
             </p>
             <p class="mt-1 text-2xl font-semibold">
               {{ formatRate(trends.flakeRate.rate) }}
             </p>
             <dl class="mt-2 space-y-1 text-sm">
               <div class="flex items-center justify-between gap-2">
-                <dt class="text-muted-foreground">Flaky tests</dt>
+                <dt class="text-muted-foreground">
+                  {{ t("trends.flakyTests") }}
+                </dt>
                 <dd>{{ trends.flakeRate.flakyTests }}</dd>
               </div>
               <div class="flex items-center justify-between gap-2">
-                <dt class="text-muted-foreground">Tests with outcomes</dt>
+                <dt class="text-muted-foreground">
+                  {{ t("trends.testsWithOutcomes") }}
+                </dt>
                 <dd>{{ trends.flakeRate.totalTests }}</dd>
               </div>
             </dl>
@@ -229,7 +248,7 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
 
         <section class="space-y-2">
           <h2 class="text-sm font-semibold text-muted-foreground">
-            Daily comparisons
+            {{ t("trends.daily") }}
           </h2>
 
           <div
@@ -237,7 +256,7 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
             class="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground shadow-sm"
             :data-testid="TEST_ID.trendsEmpty"
           >
-            No comparison outcomes in this window yet.
+            {{ t("trends.noOutcomes") }}
           </div>
 
           <div
@@ -247,11 +266,11 @@ const RANGE_TEST_ID: Record<TrendRange, string> = {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Changed</TableHead>
-                  <TableHead>Unchanged</TableHead>
-                  <TableHead>Within threshold</TableHead>
-                  <TableHead>Total</TableHead>
+                  <TableHead>{{ t("trends.date") }}</TableHead>
+                  <TableHead>{{ t("trends.changed") }}</TableHead>
+                  <TableHead>{{ t("trends.unchanged") }}</TableHead>
+                  <TableHead>{{ t("trends.withinThreshold") }}</TableHead>
+                  <TableHead>{{ t("trends.total") }}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

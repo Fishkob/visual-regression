@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { useRouteParams } from "@/composables/useRouteParams";
 import { useTestKind } from "@/composables/useTestKind";
 import { isImageKind, isPdfKind, isTestKind } from "@/domains/test-kind";
@@ -8,6 +9,7 @@ import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vu
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import AsyncState from "@/components/AsyncState.vue";
 
+const { t } = useI18n();
 const { projectName, testName, branch } = useRouteParams();
 
 // The kind lookup is branch-scoped: a test that only exists on the branch must
@@ -23,7 +25,7 @@ const { kind, isLoading, error, refetch } = useTestKind(
   <AsyncState
     :is-loading="isLoading"
     :error="error"
-    error-title="Failed to load test"
+    :error-title="t('detail.errorTitle')"
     :retry="refetch"
     :empty="!isTestKind(kind)"
   >
@@ -35,8 +37,8 @@ const { kind, isLoading, error, refetch } = useTestKind(
     <template #empty>
       <ErrorAlert
         variant="error"
-        title="Test not found"
-        message="The requested test does not exist."
+        :title="t('detail.notFoundTitle')"
+        :message="t('detail.notFoundBody')"
       />
     </template>
   </AsyncState>

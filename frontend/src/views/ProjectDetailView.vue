@@ -12,7 +12,7 @@
         </h2>
         <template v-if="project">
           <Badge variant="secondary" :data-testid="TEST_ID.projectGroupBadge">
-            {{ project.groupName || UNASSIGNED_GROUP_LABEL }}
+            {{ project.groupName || t("projects.unassigned") }}
           </Badge>
           <span
             class="text-sm text-muted-foreground"
@@ -208,7 +208,6 @@ import {
 } from "@/composables/useProjectDetailPage";
 import { useProjectGroupAssignment } from "@/composables/useProjectGroupAssignment";
 import { useRouteParams } from "@/composables/useRouteParams";
-import { UNASSIGNED_GROUP_LABEL } from "@/domains/groups/group-section";
 import { PROJECT_DETAIL_PAGE_SIZE } from "@/lib/pagination";
 import { TEST_ID } from "@/lib/test-ids";
 

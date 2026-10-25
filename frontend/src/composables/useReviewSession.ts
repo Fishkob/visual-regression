@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { computed, unref, watch, type Ref } from "vue";
 import { useQueryClient, type QueryClient } from "@tanstack/vue-query";
 import type { ApproveResultDto } from "@sdk";
@@ -133,12 +134,22 @@ export function useReviewSession(args: ReviewSessionOptions) {
     },
 
     successMessage: (_data, _variables, context) =>
-      `Approved ${formatVariantLabel(context?.currentVariant ?? filters.value) || "entire test"} of "${context?.currentTestName || testName.value}"`,
+      tm("toast.approvedForTest", {
+        variant:
+          formatVariantLabel(context?.currentVariant ?? filters.value) ||
+          tm("toast.entireTest"),
+        test: context?.currentTestName || testName.value,
+      }),
 
     errorMessage: (error, _variables, context) => {
-      const base = `Could not approve ${formatVariantLabel(context?.currentVariant ?? filters.value) || "test"} of "${context?.currentTestName || testName.value}"`;
+      const base = tm("toast.approveForTestError", {
+        variant:
+          formatVariantLabel(context?.currentVariant ?? filters.value) ||
+          tm("toast.entireTest"),
+        test: context?.currentTestName || testName.value,
+      });
       const detail = sdkErrorMessage(error, "");
-      return detail && detail !== "Request failed"
+      return detail && detail !== tm("common.requestFailed")
         ? `${base}: ${detail}`
         : base;
     },

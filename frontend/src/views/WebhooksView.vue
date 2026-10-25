@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
+import { formatDateTime } from "@/lib/format-date";
 import { Plus } from "@lucide/vue";
 import AsyncState from "@/components/AsyncState.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
@@ -12,15 +14,16 @@ import { useRouteParams } from "@/composables/useRouteParams";
 import { useWebhookMutations, useWebhooks } from "@/composables/useWebhooks";
 import {
   WEBHOOK_FORMAT_LABEL,
-  webhookEventLabel,
   type CreateWebhookInput,
   type WebhookEndpoint,
 } from "@/domains/webhooks/webhook.model";
+import { webhookEventLabelI18n } from "@/domains/webhooks/webhook.labels";
 import { webhookSecretOf } from "@/domains/webhooks/webhook.mapper";
 import { formatRelativeAge } from "@/lib/format-date";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { projectName } = useRouteParams();
+const { t } = useI18n();
 
 const { data, isLoading, error, refetch } = useWebhooks(projectName);
 const { create, update, remove, test } = useWebhookMutations(projectName);
@@ -140,7 +143,7 @@ const deleteTarget = ref<WebhookEndpoint | null>(null);
 const deleteDescription = computed(() => {
   const target = deleteTarget.value;
   if (!target) return "";
-  return `Deleting ${target.url} also removes its delivery log and stops new deliveries immediately.`;
+  return t("webhooks.deleteDescription", { url: target.url });
 });
 
 function requestDelete(endpoint: WebhookEndpoint) {
@@ -167,11 +170,11 @@ function confirmDelete() {
     <div class="flex items-start justify-between gap-4">
       <div>
         <p class="text-sm text-muted-foreground">{{ projectName }}</p>
-        <h1 class="text-xl font-semibold tracking-tight">Webhooks</h1>
+        <h1 class="text-xl font-semibold tracking-tight">
+          {{ t("webhooks.title") }}
+        </h1>
         <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Endpoints are signed, retried up to five times and delivered
-          at-least-once. Subscribed events carry a dashboard link, not an
-          expiring storage URL.
+          {{ t("webhooks.subtitle") }}
         </p>
       </div>
       <Button
@@ -180,14 +183,14 @@ function confirmDelete() {
         @click="openCreate"
       >
         <Plus class="h-4 w-4" />
-        Add endpoint
+        {{ t("webhooks.addEndpoint") }}
       </Button>
     </div>
 
     <AsyncState
       :is-loading="isLoading"
       :error="error"
-      error-title="Failed to load webhooks"
+      :error-title="t('webhooks.errorTitle')"
       :retry="refetch"
       :empty="endpoints.length === 0"
     >
@@ -213,8 +216,7 @@ function confirmDelete() {
           :data-testid="TEST_ID.webhooksEmpty"
         >
           <p class="text-sm text-muted-foreground">
-            No webhook endpoints yet — subscribe a project to review and
-            approval events.
+            {{ t("webhooks.empty") }}
           </p>
         </div>
       </template>
@@ -244,7 +246,7 @@ function confirmDelete() {
                   :key="event"
                   variant="secondary"
                 >
-                  {{ webhookEventLabel(event) }}
+                  {{ webhookEventLabelI18n(event) }}
                 </Badge>
                 <Badge variant="outline">
                   {{ WEBHOOK_FORMAT_LABEL[endpoint.format] }}
@@ -255,8 +257,12 @@ function confirmDelete() {
               </div>
 
               <p class="text-xs text-muted-foreground">
-                <span :title="new Date(endpoint.createdAt).toLocaleString()">
-                  Created {{ formatRelativeAge(endpoint.createdAt) }}
+                <span :title="formatDateTime(new Date(endpoint.createdAt))">
+                  {{
+                    t("webhooks.created", {
+                      age: formatRelativeAge(endpoint.createdAt),
+                    })
+                  }}
                 </span>
               </p>
             </div>
@@ -272,7 +278,7 @@ function confirmDelete() {
                   :checked="endpoint.active"
                   :disabled="pendingActiveId === endpoint.id"
                   :aria-busy="pendingActiveId === endpoint.id"
-                  :aria-label="`Endpoint active for ${endpoint.url}`"
+                  :aria-label="t('webhooks.activeAria', { url: endpoint.url })"
                   :data-testid="TEST_ID.webhookActiveToggle"
                   @change="onActiveChange(endpoint, $event)"
                 />
@@ -282,10 +288,10 @@ function confirmDelete() {
                 <span class="text-muted-foreground">
                   {{
                     pendingActiveId === endpoint.id
-                      ? "Saving…"
+                      ? t("webhooks.saving")
                       : endpoint.active
-                        ? "Active"
-                        : "Inactive"
+                        ? t("webhooks.active")
+                        : t("webhooks.inactive")
                   }}
                 </span>
               </label>
@@ -294,22 +300,22 @@ function confirmDelete() {
                 type="button"
                 variant="outline"
                 size="sm"
-                :aria-label="`Edit ${endpoint.url}`"
+                :aria-label="t('webhooks.editAria', { url: endpoint.url })"
                 :data-testid="TEST_ID.webhookEdit"
                 @click="openEdit(endpoint)"
               >
-                Edit
+                {{ t("webhooks.edit") }}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 :disabled="test.isPending.value"
-                :aria-label="`Send a test delivery to ${endpoint.url}`"
+                :aria-label="t('webhooks.testAria', { url: endpoint.url })"
                 :data-testid="TEST_ID.webhookTest"
                 @click="runTest(endpoint)"
               >
-                Test
+                {{ t("webhooks.test") }}
               </Button>
               <Button
                 type="button"
@@ -317,21 +323,23 @@ function confirmDelete() {
                 size="sm"
                 :aria-expanded="isExpanded(endpoint.id)"
                 :aria-controls="`webhook-deliveries-${endpoint.id}`"
-                :aria-label="`Deliveries of ${endpoint.url}`"
+                :aria-label="
+                  t('webhooks.deliveriesAria', { url: endpoint.url })
+                "
                 :data-testid="TEST_ID.webhookDeliveries"
                 @click="toggleDeliveries(endpoint.id)"
               >
-                Deliveries
+                {{ t("webhooks.deliveries") }}
               </Button>
               <Button
                 type="button"
                 variant="destructive"
                 size="sm"
-                :aria-label="`Delete ${endpoint.url}`"
+                :aria-label="t('webhooks.deleteAria', { url: endpoint.url })"
                 :data-testid="TEST_ID.webhookDelete"
                 @click="requestDelete(endpoint)"
               >
-                Delete
+                {{ t("webhooks.delete") }}
               </Button>
             </div>
           </div>
@@ -365,10 +373,10 @@ function confirmDelete() {
       :open="deleteOpen"
       :pending="remove.isPending.value"
       confirm-variant="destructive"
-      title="Delete webhook endpoint"
+      :title="t('webhooks.deleteTitle')"
       :description="deleteDescription"
-      confirm-text="Delete"
-      cancel-text="Cancel"
+      :confirm-text="t('webhooks.delete')"
+      :cancel-text="t('common.cancel')"
       @confirm="confirmDelete"
       @cancel="
         () => {

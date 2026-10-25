@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
+import { i18n } from "@/i18n";
 import RunsView from "@/views/RunsView.vue";
 import { Select } from "@/components/ui/select";
 import { TEST_ID } from "@/lib/test-ids";
@@ -210,5 +211,19 @@ describe("RunsView", () => {
     expect(target).toContain('"name":"run-detail"');
     expect(target).toContain('"runKey":"ci-42"');
     expect(target).toContain('"branch":"main"');
+  });
+});
+
+describe("RunsView locale", () => {
+  it("renders the German labels when the locale is German", async () => {
+    i18n.global.locale.value = "de";
+
+    const wrapper = mountView();
+    await waitForRows(wrapper, 1);
+
+    expect(wrapper.text()).toContain("Läufe");
+    expect(wrapper.text()).toContain("Erstellt");
+    expect(wrapper.text()).toContain("Letzte Aktivität");
+    expect(wrapper.text()).toContain("Abgeschlossen");
   });
 });

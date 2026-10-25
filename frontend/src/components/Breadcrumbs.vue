@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { useRoute, RouterLink } from "vue-router";
 
 import {
@@ -14,6 +15,7 @@ import { TEST_ID } from "@/lib/test-ids";
 
 defineProps<{ groupName?: string }>();
 
+const { t } = useI18n();
 const route = useRoute();
 
 const projectName = computed(
@@ -40,7 +42,9 @@ const branch = computed(() =>
       <!-- Home / Projects -->
       <BreadcrumbItem>
         <BreadcrumbLink as-child>
-          <RouterLink :to="{ name: 'project-list' }">Projects</RouterLink>
+          <RouterLink :to="{ name: 'project-list' }">{{
+            t("nav.projects")
+          }}</RouterLink>
         </BreadcrumbLink>
       </BreadcrumbItem>
 

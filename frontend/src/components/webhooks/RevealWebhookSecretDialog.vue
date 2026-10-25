@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { Check, Copy } from "@lucide/vue";
 import {
   DialogClose,
@@ -23,6 +24,7 @@ const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
 }>();
 
+const { t } = useI18n();
 const copied = ref(false);
 
 watch(
@@ -51,11 +53,10 @@ async function copy() {
       >
         <div class="flex flex-col gap-2">
           <DialogTitle class="text-lg font-semibold">
-            Signing secret
+            {{ t("webhookSecret.title") }}
           </DialogTitle>
           <DialogDescription class="text-sm text-muted-foreground">
-            Copy this secret into your receiver now. It signs every request and
-            is shown only once.
+            {{ t("webhookSecret.description") }}
           </DialogDescription>
         </div>
 
@@ -70,32 +71,33 @@ async function copy() {
             type="button"
             variant="outline"
             :data-testid="TEST_ID.webhookSecretCopy"
-            :aria-label="copied ? 'Secret copied' : 'Copy secret'"
+            :aria-label="
+              copied
+                ? t('webhookSecret.copiedAria')
+                : t('webhookSecret.copyAria')
+            "
             @click="copy"
           >
             <Check v-if="copied" class="h-4 w-4" />
             <Copy v-else class="h-4 w-4" />
-            <span>{{ copied ? "Copied" : "Copy" }}</span>
+            <span>{{
+              copied ? t("webhookSecret.copied") : t("webhookSecret.copy")
+            }}</span>
           </Button>
         </div>
 
         <p v-if="url" class="text-sm text-muted-foreground">
-          Endpoint: <span class="break-all font-medium">{{ url }}</span>
+          {{ t("webhookSecret.endpoint", { url }) }}
         </p>
 
         <p class="text-sm text-muted-foreground">
-          Requests carry
-          <code class="font-mono text-xs"
-            >X-VRT-Signature: sha256=&lt;hmac&gt;</code
-          >
-          and <code class="font-mono text-xs">X-VRT-Timestamp</code>; verify
-          them before trusting a payload.
+          {{ t("webhookSecret.headers") }}
         </p>
 
         <div class="flex justify-end">
           <DialogClose as-child>
             <Button type="button" :data-testid="TEST_ID.webhookSecretDone">
-              Done
+              {{ t("webhookSecret.done") }}
             </Button>
           </DialogClose>
         </div>

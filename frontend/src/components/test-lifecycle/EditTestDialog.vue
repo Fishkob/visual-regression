@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { formatDateTime } from "@/lib/format-date";
 import FormDialog from "@/components/FormDialog.vue";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,7 +35,7 @@ const props = defineProps<{
   error?: unknown;
 }>();
 
-const { t, d } = useI18n();
+const { t } = useI18n();
 
 const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
@@ -182,7 +183,9 @@ function submit() {
         <p v-if="isMuted" class="text-sm text-muted-foreground">
           {{
             t("lifecycle.edit.mutedUntilText", {
-              date: mutedUntil ? d(new Date(mutedUntil)) : "unknown",
+              date: mutedUntil
+                ? formatDateTime(new Date(mutedUntil))
+                : "unknown",
             })
           }}
         </p>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onErrorCaptured } from "vue";
+import { useI18n } from "vue-i18n";
 import { TEST_ID } from "@/lib/test-ids";
 
+const { t } = useI18n();
 const hasError = ref(false);
 const errorMessage = ref("");
 const resetKey = ref(0);
@@ -9,7 +11,7 @@ const resetKey = ref(0);
 onErrorCaptured((err) => {
   hasError.value = true;
   errorMessage.value =
-    err?.message || String(err) || "An unexpected error occurred";
+    err?.message || String(err) || t("errorBoundary.fallback");
   return false;
 });
 
@@ -27,7 +29,7 @@ function recover() {
   >
     <div class="text-center space-y-4">
       <div class="text-status-danger text-lg font-semibold">
-        Something went wrong
+        {{ t("errorBoundary.title") }}
       </div>
       <div class="text-muted-foreground text-sm">{{ errorMessage }}</div>
       <button
@@ -35,7 +37,7 @@ function recover() {
         @click="recover"
         :data-testid="TEST_ID.retry"
       >
-        Try again
+        {{ t("errorBoundary.retry") }}
       </button>
     </div>
   </div>

@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { computed } from "vue";
 import { projectsControllerDeleteProject } from "@sdk";
 import type { Project } from "@/domains/projects/project.model";
@@ -23,9 +24,10 @@ export function useProjectDelete() {
 
     argsOf: (project) => project.name ?? null,
 
-    successMessage: (projectName) => `Deleted project "${projectName}"`,
+    successMessage: (projectName) =>
+      tm("toast.projectDeleted", { name: projectName }),
 
-    errorMessage: "Could not delete project",
+    errorMessage: tm("toast.projectDeleteError"),
 
     invalidate: (client, projectName) => {
       invalidateProjectsForGroupChange(client);
@@ -35,7 +37,7 @@ export function useProjectDelete() {
 
   const deleteDescription = computed(() =>
     pendingProject.value?.name
-      ? `Are you sure you want to delete "${pendingProject.value.name}"? This action cannot be undone.`
+      ? tm("confirm.deleteProject", { name: pendingProject.value.name })
       : "",
   );
 

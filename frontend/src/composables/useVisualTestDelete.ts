@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { computed, unref } from "vue";
 import { testCommandsControllerDeleteVisualTest } from "@sdk";
 import type { VisualTestItem } from "@/domains/projects/project.model";
@@ -56,9 +57,14 @@ export function useVisualTestDelete(options: DeleteOptions) {
     }),
 
     successMessage: ({ testName, viewport, browser, environment }) =>
-      `Deleted ${formatVariantLabel({ viewport, browser, environment }) || "entire test"} of "${testName}"`,
+      tm("toast.testDeleted", {
+        variant:
+          formatVariantLabel({ viewport, browser, environment }) ||
+          tm("toast.entireTest"),
+        test: testName,
+      }),
 
-    errorMessage: "Could not delete test or variant",
+    errorMessage: tm("toast.testDeleteError"),
 
     invalidate: (client) => {
       invalidateProjectDetail(client, projectName);

@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import type { QueryClient } from "@tanstack/vue-query";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
@@ -88,7 +89,7 @@ export function useSdkMutation<TData, TVariables, TContext = undefined>(
         typeof config.errorMessage === "function"
           ? config.errorMessage(error, variables, context)
           : config.errorMessage;
-      toast.error(msg ?? "Operation failed");
+      toast.error(msg ?? tm("toast.operationFailed"));
       config.onError?.(error, variables, context);
     },
 

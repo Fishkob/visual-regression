@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { Input } from "@/components/ui/input";
 import FormDialog from "@/components/FormDialog.vue";
 import {
@@ -26,6 +27,7 @@ const emit = defineEmits<{
   (e: "submit", payload: { username: string; role: UserRole }): void;
 }>();
 
+const { t } = useI18n();
 const username = ref("");
 const role = ref<UserRole>(DEFAULT_ROLE);
 
@@ -51,9 +53,9 @@ function submit() {
 <template>
   <FormDialog
     :open="open"
-    title="New user"
-    description="The account gets a temporary password and must choose a new one at first sign-in."
-    confirm-text="Create user"
+    :title="t('createUser.title')"
+    :description="t('createUser.description')"
+    :confirm-text="t('createUser.confirm')"
     :pending="pending"
     :submit-disabled="invalid"
     :confirm-test-id="TEST_ID.createUserSubmit"
@@ -61,7 +63,7 @@ function submit() {
     @submit="submit"
   >
     <label class="block space-y-1 text-sm">
-      <span>Username</span>
+      <span>{{ t("createUser.username") }}</span>
       <Input
         v-model="username"
         placeholder="jane.doe"
@@ -71,7 +73,7 @@ function submit() {
     </label>
 
     <label class="block space-y-1 text-sm">
-      <span>Role</span>
+      <span>{{ t("createUser.role") }}</span>
       <Select v-model="role">
         <SelectTrigger class="w-full" :data-testid="TEST_ID.createUserRole">
           <SelectValue />

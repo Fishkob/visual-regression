@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
+import { formatDateTime } from "@/lib/format-date";
 import { Download } from "@lucide/vue";
 import { auditControllerExport } from "@sdk";
 import { toast } from "vue-sonner";
@@ -31,7 +33,6 @@ import {
   type AuditFilters,
 } from "@/domains/audit/audit-event.model";
 import {
-  auditActionLabel,
   auditMetadataJson,
   describeAuditMetadata,
 } from "@/domains/audit/audit-event.mapper";
@@ -44,6 +45,29 @@ import { TEST_ID } from "@/lib/test-ids";
 // Draft inputs stay local so typing does not fire a request per keystroke; the
 // applied filters are what the query (and the export) reads. Applying always
 // returns to page 1 because the previous page may not exist for the new set.
+const { t } = useI18n();
+
+const ACTION_KEY: Record<AuditAction, string> = {
+  approval: "audit.actions.approval",
+  "baseline.restore": "audit.actions.baselineRestore",
+  "test.delete": "audit.actions.testDelete",
+  "variant.delete": "audit.actions.variantDelete",
+  "project.delete": "audit.actions.projectDelete",
+  "branch.delete": "audit.actions.branchDelete",
+  "webhook.create": "audit.actions.webhookCreate",
+  "webhook.update": "audit.actions.webhookUpdate",
+  "webhook.delete": "audit.actions.webhookDelete",
+  "api-key.create": "audit.actions.apiKeyCreate",
+  "api-key.revoke": "audit.actions.apiKeyRevoke",
+  "api-key.rotate": "audit.actions.apiKeyRotate",
+  "api-key.delete": "audit.actions.apiKeyDelete",
+};
+
+function actionLabel(action: string): string {
+  const key = ACTION_KEY[action as AuditAction];
+  return key ? t(key) : action;
+}
+
 const actorInput = ref("");
 const actionInput = ref<string>(FILTER_ALL);
 const projectInput = ref("");
@@ -106,7 +130,7 @@ function resetFilters() {
 
 function absoluteTime(iso: string): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? iso : formatDateTime(date);
 }
 
 function targetLabel(event: AuditEvent): string {
@@ -152,9 +176,9 @@ async function exportCsv() {
       throw new Error("The audit export came back empty");
     }
     triggerDownload(new Blob([csv], { type: "text/csv" }), "audit.csv");
-    toast.success("Audit log exported");
+    toast.success(t("audit.exported"));
   } catch {
-    toast.error("Could not export the audit log");
+    toast.error(t("audit.exportError"));
   } finally {
     exporting.value = false;
   }
@@ -165,9 +189,11 @@ async function exportCsv() {
   <div class="space-y-6" :data-testid="TEST_ID.auditView">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 class="text-xl font-semibold tracking-tight">Audit log</h1>
+        <h1 class="text-xl font-semibold tracking-tight">
+          {{ t("audit.title") }}
+        </h1>
         <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Who changed what — approvals, restores, deletions and settings.
+          {{ t("audit.subtitle") }}
         </p>
       </div>
       <Button
@@ -178,7 +204,7 @@ async function exportCsv() {
         @click="exportCsv"
       >
         <Download class="h-4 w-4" />
-        {{ exporting ? "Exporting…" : "Export CSV" }}
+        {{ exporting ? t("audit.exporting") : t("audit.exportCsv") }}
       </Button>
     </div>
 
@@ -187,67 +213,75 @@ async function exportCsv() {
       @submit.prevent="applyFilters"
     >
       <div class="flex flex-col gap-1">
-        <span class="text-xs text-muted-foreground">Actor</span>
+        <span class="text-xs text-muted-foreground">{{
+          t("audit.actor")
+        }}</span>
         <Input
           v-model="actorInput"
-          placeholder="Any actor"
-          aria-label="Filter by actor"
+          :placeholder="t('audit.actorPlaceholder')"
+          :aria-label="t('audit.actorLabel')"
           class="w-40"
           :data-testid="TEST_ID.auditActorFilter"
         />
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="text-xs text-muted-foreground">Action</span>
+        <span class="text-xs text-muted-foreground">{{
+          t("audit.action")
+        }}</span>
         <Select v-model="actionInput">
           <SelectTrigger
             class="w-48"
-            aria-label="Filter by action"
+            :aria-label="t('audit.actionLabel')"
             :data-testid="TEST_ID.auditActionFilter"
           >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem :value="FILTER_ALL">All actions</SelectItem>
+            <SelectItem :value="FILTER_ALL">{{
+              t("audit.allActions")
+            }}</SelectItem>
             <SelectItem
               v-for="action in AUDIT_ACTIONS"
               :key="action"
               :value="action"
             >
-              {{ auditActionLabel(action) }}
+              {{ actionLabel(action) }}
             </SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="text-xs text-muted-foreground">Project</span>
+        <span class="text-xs text-muted-foreground">{{
+          t("audit.project")
+        }}</span>
         <Input
           v-model="projectInput"
-          placeholder="Any project"
-          aria-label="Filter by project"
+          :placeholder="t('audit.projectPlaceholder')"
+          :aria-label="t('audit.projectLabel')"
           class="w-40"
           :data-testid="TEST_ID.auditProjectFilter"
         />
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="text-xs text-muted-foreground">From</span>
+        <span class="text-xs text-muted-foreground">{{ t("audit.from") }}</span>
         <Input
           v-model="fromInput"
           type="date"
-          aria-label="Filter from date"
+          :aria-label="t('audit.fromLabel')"
           class="w-40"
           :data-testid="TEST_ID.auditFromFilter"
         />
       </div>
 
       <div class="flex flex-col gap-1">
-        <span class="text-xs text-muted-foreground">To</span>
+        <span class="text-xs text-muted-foreground">{{ t("audit.to") }}</span>
         <Input
           v-model="toInput"
           type="date"
-          aria-label="Filter to date"
+          :aria-label="t('audit.toLabel')"
           class="w-40"
           :data-testid="TEST_ID.auditToFilter"
         />
@@ -259,7 +293,7 @@ async function exportCsv() {
           :data-testid="TEST_ID.auditApply"
           @click="applyFilters"
         >
-          Apply
+          {{ t("audit.apply") }}
         </Button>
         <Button
           type="button"
@@ -267,7 +301,7 @@ async function exportCsv() {
           :data-testid="TEST_ID.auditReset"
           @click="resetFilters"
         >
-          Reset
+          {{ t("audit.reset") }}
         </Button>
       </div>
     </form>
@@ -275,7 +309,7 @@ async function exportCsv() {
     <AsyncState
       :is-loading="isLoading"
       :error="error"
-      error-title="Failed to load the audit log"
+      :error-title="t('audit.errorTitle')"
       :retry="refetch"
       :empty="events.length === 0"
     >
@@ -304,7 +338,7 @@ async function exportCsv() {
           :data-testid="TEST_ID.auditEmpty"
         >
           <p class="text-sm text-muted-foreground">
-            No audit events match these filters.
+            {{ t("audit.empty") }}
           </p>
         </div>
       </template>
@@ -314,12 +348,12 @@ async function exportCsv() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Time</TableHead>
-                <TableHead>Actor</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Project/Test</TableHead>
-                <TableHead>Target</TableHead>
-                <TableHead>Details</TableHead>
+                <TableHead>{{ t("audit.time") }}</TableHead>
+                <TableHead>{{ t("audit.actor") }}</TableHead>
+                <TableHead>{{ t("audit.action") }}</TableHead>
+                <TableHead>{{ t("audit.projectTest") }}</TableHead>
+                <TableHead>{{ t("audit.target") }}</TableHead>
+                <TableHead>{{ t("audit.details") }}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -338,7 +372,7 @@ async function exportCsv() {
                 </TableCell>
                 <TableCell>
                   <Badge variant="secondary">
-                    {{ auditActionLabel(event.action) }}
+                    {{ actionLabel(event.action) }}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -385,7 +419,7 @@ async function exportCsv() {
           :page="currentPage"
           :page-count="pageCount"
           :total="total"
-          item-label="events"
+          :item-label="t('pagination.events')"
           @update:page="page = $event"
         />
       </div>

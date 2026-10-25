@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import {
   branchesControllerRemove,
   branchesControllerUpdate,
@@ -70,10 +71,11 @@ export interface RetargetBranchVariables {
 // The interesting branch failures are 409s with a message the reviewer can act
 // on ("Branch target creates a cycle", "… is the target of … — retarget it
 // first"). Keep the server text instead of a generic "Operation failed".
-function branchErrorMessage(action: string) {
+function branchErrorMessage(key: string) {
   return (error: unknown) => {
     const detail = sdkErrorMessage(error, "");
-    return detail ? `${action}: ${detail}` : action;
+    const base = tm(key);
+    return detail ? `${base}: ${detail}` : base;
   };
 }
 
@@ -97,30 +99,30 @@ export function useBranchMutations(projectName: MaybeRef<string>) {
   const archive = useSdkMutation<unknown, ArchiveBranchVariables>({
     mutationFn: ({ branch, isArchived }) =>
       archiveBranch(project(), branch, isArchived),
-    successMessage: "Branch updated",
-    errorMessage: branchErrorMessage("Could not update the branch"),
+    successMessage: tm("toast.branchUpdated"),
+    errorMessage: branchErrorMessage("toast.branchUpdateError"),
     invalidate,
   });
 
   const remove = useSdkMutation<unknown, string>({
     mutationFn: (branch) => deleteBranch(project(), branch),
-    successMessage: "Branch deleted",
-    errorMessage: branchErrorMessage("Could not delete the branch"),
+    successMessage: tm("toast.branchDeleted"),
+    errorMessage: branchErrorMessage("toast.branchDeleteError"),
     invalidate,
   });
 
   const setDefault = useSdkMutation<unknown, string>({
     mutationFn: (branch) => setDefaultBranch(project(), branch),
-    successMessage: "Default branch updated",
-    errorMessage: branchErrorMessage("Could not set the default branch"),
+    successMessage: tm("toast.defaultBranchUpdated"),
+    errorMessage: branchErrorMessage("toast.defaultBranchError"),
     invalidate,
   });
 
   const setTarget = useSdkMutation<unknown, RetargetBranchVariables>({
     mutationFn: ({ branch, targetBranch }) =>
       retargetBranch(project(), branch, targetBranch),
-    successMessage: "Branch target updated",
-    errorMessage: branchErrorMessage("Could not change the branch target"),
+    successMessage: tm("toast.branchTargetUpdated"),
+    errorMessage: branchErrorMessage("toast.branchTargetError"),
     invalidate,
   });
 

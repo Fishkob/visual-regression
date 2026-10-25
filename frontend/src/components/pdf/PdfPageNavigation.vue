@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { computed, watch } from "vue";
 import { Button } from "@/components/ui/button";
 import { TEST_ID } from "@/lib/test-ids";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   currentPage: number;
@@ -45,10 +48,10 @@ function next() {
       :disabled="displayPage <= 1"
       @click="prev"
     >
-      ← Prev
+      {{ t("pdf.prev") }}
     </Button>
     <span class="text-sm text-muted-foreground">
-      Page {{ displayPage }} of {{ safePageCount }}
+      {{ t("pdf.page", { page: displayPage, count: safePageCount }) }}
     </span>
     <Button
       variant="outline"
@@ -56,7 +59,7 @@ function next() {
       :disabled="displayPage >= safePageCount"
       @click="next"
     >
-      Next →
+      {{ t("pdf.next") }}
     </Button>
   </div>
 </template>

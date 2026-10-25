@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   useApiKeysQuery,
   useCreateApiKey,
@@ -8,11 +9,10 @@ import {
   useRotateApiKey,
 } from "@/composables/useApiKeys";
 import { mapIssuedApiKey } from "@/domains/api-keys/api-key.mapper";
-import {
-  API_KEY_STATUS_LABEL,
-  type ApiKey,
-  type CreateApiKeyInput,
-  type IssuedApiKey,
+import type {
+  ApiKey,
+  CreateApiKeyInput,
+  IssuedApiKey,
 } from "@/domains/api-keys/api-key.model";
 import { formatRelativeAge } from "@/lib/format-date";
 import { TEST_ID } from "@/lib/test-ids";
@@ -25,6 +25,12 @@ import RevealApiKeyDialog from "@/components/api-keys/RevealApiKeyDialog.vue";
 import RotateApiKeyDialog from "@/components/api-keys/RotateApiKeyDialog.vue";
 import RevokeApiKeyDialog from "@/components/api-keys/RevokeApiKeyDialog.vue";
 
+const { t } = useI18n();
+const STATUS_KEY: Record<ApiKey["status"], string> = {
+  active: "apiKeys.active",
+  revoked: "apiKeys.revoked",
+  expired: "apiKeys.expired",
+};
 const { data: apiKeys, isLoading, error, refetch } = useApiKeysQuery();
 const createKey = useCreateApiKey();
 const rotateKey = useRotateApiKey();
@@ -34,7 +40,7 @@ const deleteKey = useDeleteApiKey();
 const createOpen = ref(false);
 const revealOpen = ref(false);
 const revealKey = ref<IssuedApiKey | null>(null);
-const revealTitle = ref("API key created");
+const revealTitle = ref(t("apiKeys.created"));
 
 const rotateOpen = ref(false);
 const rotateTarget = ref<ApiKey | null>(null);
@@ -65,7 +71,7 @@ function isRetiring(key: ApiKey): boolean {
 }
 
 function statusLabel(key: ApiKey): string {
-  return isRetiring(key) ? "Retiring" : API_KEY_STATUS_LABEL[key.status];
+  return isRetiring(key) ? t("apiKeys.retiring") : t(STATUS_KEY[key.status]);
 }
 
 function badgeClass(key: ApiKey): string {
@@ -83,7 +89,7 @@ function submitCreate(payload: CreateApiKeyInput) {
   createKey.mutate(payload, {
     onSuccess: (issued) => {
       revealKey.value = mapIssuedApiKey(issued);
-      revealTitle.value = "API key created";
+      revealTitle.value = t("apiKeys.created");
       createOpen.value = false;
       revealOpen.value = true;
     },
@@ -117,7 +123,7 @@ function submitRotate(payload: {
     {
       onSuccess: (issued) => {
         revealKey.value = mapIssuedApiKey(issued);
-        revealTitle.value = "API key rotated";
+        revealTitle.value = t("apiKeys.rotated");
         rotateOpen.value = false;
         rotateTarget.value = null;
         revealOpen.value = true;
@@ -171,13 +177,13 @@ function ownerLabel(key: ApiKey): string {
 
 function describeUsage(key: ApiKey): string {
   return key.lastUsedAt
-    ? `Last used ${formatRelativeAge(key.lastUsedAt)}`
-    : "Never used";
+    ? t("apiKeys.lastUsed", { age: formatRelativeAge(key.lastUsedAt) })
+    : t("apiKeys.neverUsed");
 }
 
 function describeExpiry(key: ApiKey): string | null {
   if (!key.expiresAt) return null;
-  return `Expires ${formatRelativeAge(key.expiresAt)}`;
+  return t("apiKeys.expires", { age: formatRelativeAge(key.expiresAt) });
 }
 </script>
 
@@ -185,10 +191,11 @@ function describeExpiry(key: ApiKey): string | null {
   <div class="space-y-6">
     <div class="flex items-start justify-between gap-4">
       <div>
-        <h1 class="text-xl font-semibold tracking-tight">API keys</h1>
+        <h1 class="text-xl font-semibold tracking-tight">
+          {{ t("apiKeys.title") }}
+        </h1>
         <p class="mt-1 text-sm text-muted-foreground">
-          Keys authenticate CI pipelines against the API. Only a signed-in
-          session can manage them.
+          {{ t("apiKeys.subtitle") }}
         </p>
       </div>
       <Button
@@ -196,18 +203,18 @@ function describeExpiry(key: ApiKey): string | null {
         :data-testid="TEST_ID.newApiKey"
         @click="openCreate"
       >
-        New API key
+        {{ t("apiKeys.newKey") }}
       </Button>
     </div>
 
     <AsyncState
       :is-loading="isLoading"
       :error="error"
-      error-title="Failed to load API keys"
+      :error-title="t('apiKeys.errorTitle')"
       :retry="refetch"
       :empty="keys.length === 0"
-      empty-title="No API keys yet"
-      empty-description="Create a key to authenticate your CI uploads."
+      :empty-title="t('apiKeys.emptyTitle')"
+      :empty-description="t('apiKeys.emptyDescription')"
     >
       <template #loading>
         <div class="overflow-hidden rounded-xl border bg-card shadow-sm">
@@ -278,7 +285,7 @@ function describeExpiry(key: ApiKey): string | null {
                 variant="outline"
                 class="text-[10px]"
               >
-                All projects
+                {{ t("apiKeys.allProjects") }}
               </Badge>
               <Badge
                 v-for="projectName in key.projectNames"
@@ -295,7 +302,7 @@ function describeExpiry(key: ApiKey): string | null {
               :data-testid="TEST_ID.apiKeyLastUsed"
             >
               <span :data-testid="TEST_ID.apiKeyOwner">
-                Owner {{ ownerLabel(key) }}
+                {{ t("apiKeys.owner", { owner: ownerLabel(key) }) }}
               </span>
               <span>· {{ describeUsage(key) }}</span>
               <span v-if="describeExpiry(key)">
@@ -311,43 +318,40 @@ function describeExpiry(key: ApiKey): string | null {
               type="button"
               variant="outline"
               size="sm"
-              :aria-label="`Rotate ${key.name}`"
+              :aria-label="t('apiKeys.rotateAria', { name: key.name })"
               :data-testid="TEST_ID.rotateApiKey"
               @click="openRotate(key)"
             >
-              Rotate
+              {{ t("apiKeys.rotate") }}
             </Button>
             <Button
               v-if="key.status === 'active'"
               type="button"
               variant="destructive"
               size="sm"
-              :aria-label="`Revoke ${key.name}`"
+              :aria-label="t('apiKeys.revokeAria', { name: key.name })"
               :data-testid="TEST_ID.revokeApiKey"
               @click="openRevoke(key)"
             >
-              Revoke
+              {{ t("apiKeys.revoke") }}
             </Button>
             <Button
               v-if="!key.lastUsedAt"
               type="button"
               variant="outline"
               size="sm"
-              :aria-label="`Delete ${key.name}`"
+              :aria-label="t('apiKeys.deleteAria', { name: key.name })"
               :data-testid="TEST_ID.deleteApiKey"
               @click="requestDelete(key)"
             >
-              Delete
+              {{ t("apiKeys.delete") }}
             </Button>
           </div>
         </div>
       </div>
 
       <p class="text-sm text-muted-foreground">
-        {{ activeCount }}
-        {{ activeCount === 1 ? "key authenticates" : "keys authenticate" }}
-        right now (keys in a rotation grace window included). A key that has
-        been used can only be revoked — the row is the audit trail.
+        {{ t("apiKeys.activeCount", activeCount) }}
       </p>
     </AsyncState>
 
@@ -388,9 +392,9 @@ function describeExpiry(key: ApiKey): string | null {
       :open="deleteOpen"
       :pending="deleteKey.isPending.value"
       confirm-variant="destructive"
-      title="Delete API key"
-      confirm-text="Delete"
-      cancel-text="Cancel"
+      :title="t('apiKeys.deleteTitle')"
+      :confirm-text="t('apiKeys.delete')"
+      :cancel-text="t('common.cancel')"
       @confirm="confirmDelete"
       @cancel="
         () => {
@@ -401,8 +405,7 @@ function describeExpiry(key: ApiKey): string | null {
       @update:open="deleteOpen = $event"
     >
       <template #description>
-        {{ deleteTarget?.name }} was never used, so it can be removed outright.
-        A key that has authenticated a request can only be revoked.
+        {{ t("apiKeys.deleteDescription", { name: deleteTarget?.name ?? "" }) }}
       </template>
     </ConfirmDialog>
   </div>

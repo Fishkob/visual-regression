@@ -128,7 +128,9 @@ const pending = computed(() => pendingCount.value ?? 0);
         :data-testid="TEST_ID.navProjects"
       >
         <LayoutGrid class="h-4 w-4 shrink-0" />
-        <span :class="collapsed ? 'md:hidden' : ''">Projects</span>
+        <span :class="collapsed ? 'md:hidden' : ''">{{
+          t("nav.projects")
+        }}</span>
       </RouterLink>
 
       <RouterLink
@@ -144,7 +146,7 @@ const pending = computed(() => pendingCount.value ?? 0);
         :data-testid="TEST_ID.navGroups"
       >
         <Users class="h-4 w-4 shrink-0" />
-        <span :class="collapsed ? 'md:hidden' : ''">Groups</span>
+        <span :class="collapsed ? 'md:hidden' : ''">{{ t("nav.groups") }}</span>
       </RouterLink>
 
       <RouterLink
@@ -161,7 +163,9 @@ const pending = computed(() => pendingCount.value ?? 0);
         :data-testid="TEST_ID.navApiKeys"
       >
         <KeyRound class="h-4 w-4 shrink-0" />
-        <span :class="collapsed ? 'md:hidden' : ''">API keys</span>
+        <span :class="collapsed ? 'md:hidden' : ''">{{
+          t("nav.apiKeys")
+        }}</span>
       </RouterLink>
 
       <RouterLink
@@ -178,7 +182,7 @@ const pending = computed(() => pendingCount.value ?? 0);
         :data-testid="TEST_ID.usersNavLink"
       >
         <UserCog class="h-4 w-4 shrink-0" />
-        <span :class="collapsed ? 'md:hidden' : ''">Users</span>
+        <span :class="collapsed ? 'md:hidden' : ''">{{ t("nav.users") }}</span>
       </RouterLink>
 
       <RouterLink
@@ -195,7 +199,7 @@ const pending = computed(() => pendingCount.value ?? 0);
         :data-testid="TEST_ID.auditNavLink"
       >
         <ScrollText class="h-4 w-4 shrink-0" />
-        <span :class="collapsed ? 'md:hidden' : ''">Audit</span>
+        <span :class="collapsed ? 'md:hidden' : ''">{{ t("nav.audit") }}</span>
       </RouterLink>
 
       <RouterLink
@@ -211,7 +215,9 @@ const pending = computed(() => pendingCount.value ?? 0);
         :data-testid="TEST_ID.securityNavLink"
       >
         <ShieldCheck class="h-4 w-4 shrink-0" />
-        <span :class="collapsed ? 'md:hidden' : ''">Security</span>
+        <span :class="collapsed ? 'md:hidden' : ''">{{
+          t("nav.security")
+        }}</span>
       </RouterLink>
     </nav>
   </aside>

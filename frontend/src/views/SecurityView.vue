@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import AsyncState from "@/components/AsyncState.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import FormDialog from "@/components/FormDialog.vue";
@@ -27,6 +28,7 @@ import type {
 import { formatRelativeAge } from "@/lib/format-date";
 import { TEST_ID } from "@/lib/test-ids";
 
+const { t } = useI18n();
 const { data: me } = useMeQuery();
 const { data: sessionData, isLoading, error, refetch } = useSessionsQuery();
 const setup = useTwoFactorSetup();
@@ -96,8 +98,9 @@ const revokeOpen = ref(false);
 const revokeDescription = computed(() => {
   const target = revokeTarget.value;
   if (!target) return "";
-  const origin = target.ip ? ` from ${target.ip}` : "";
-  return `Revoking the session${origin} signs it out immediately; it must sign in again.`;
+  return target.ip
+    ? t("security.revokeDescriptionIp", { ip: target.ip })
+    : t("security.revokeDescriptionNoIp");
 });
 
 function requestRevoke(session: Session) {
@@ -123,36 +126,33 @@ function confirmRevokeAll() {
   revokeAll.mutate();
 }
 
-function absoluteTime(iso: string | null): string | undefined {
-  if (!iso) return undefined;
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
-}
-
 function lastSeenLabel(session: Session): string {
-  return session.lastSeenAt ? formatRelativeAge(session.lastSeenAt) : "never";
+  return session.lastSeenAt
+    ? formatRelativeAge(session.lastSeenAt)
+    : t("security.never");
 }
 </script>
 
 <template>
   <div class="space-y-6" :data-testid="TEST_ID.securityView">
     <div>
-      <h1 class="text-xl font-semibold tracking-tight">Security</h1>
+      <h1 class="text-xl font-semibold tracking-tight">
+        {{ t("security.title") }}
+      </h1>
       <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
-        Protect your account with a second factor and review the devices that
-        are signed in.
+        {{ t("security.subtitle") }}
       </p>
     </div>
 
     <section class="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 class="font-medium">Two-factor authentication</h2>
+          <h2 class="font-medium">{{ t("security.twoFactorTitle") }}</h2>
           <p class="text-sm text-muted-foreground">
             {{
               totpEnabled
-                ? "Enabled — a code from your authenticator app is required at every sign-in."
-                : "Not enabled — add a time-based one-time code as a second factor."
+                ? t("security.twoFactorEnabled")
+                : t("security.twoFactorDisabled")
             }}
           </p>
         </div>
@@ -163,7 +163,7 @@ function lastSeenLabel(session: Session): string {
           :data-testid="TEST_ID.twoFactorEnable"
           @click="startSetup"
         >
-          {{ setupPending ? "Starting…" : "Enable 2FA" }}
+          {{ setupPending ? t("security.starting") : t("security.enable2fa") }}
         </Button>
         <Button
           v-if="totpEnabled"
@@ -172,18 +172,17 @@ function lastSeenLabel(session: Session): string {
           :data-testid="TEST_ID.twoFactorDisable"
           @click="openDisable"
         >
-          Disable 2FA
+          {{ t("security.disable2fa") }}
         </Button>
       </div>
 
       <div v-if="setupData" class="space-y-3 rounded-lg border bg-muted/30 p-3">
         <p class="text-sm">
-          Add this secret to your authenticator app, or use the setup URI. No QR
-          code is required.
+          {{ t("security.setupHelp") }}
         </p>
         <div class="space-y-1">
           <span class="text-xs font-medium text-muted-foreground uppercase">
-            Secret
+            {{ t("security.secret") }}
           </span>
           <code
             class="block overflow-x-auto rounded-md border bg-background px-3 py-2 font-mono text-sm select-all"
@@ -194,7 +193,7 @@ function lastSeenLabel(session: Session): string {
         </div>
         <div class="space-y-1">
           <span class="text-xs font-medium text-muted-foreground uppercase">
-            Setup URI
+            {{ t("security.setupUri") }}
           </span>
           <code
             class="block overflow-x-auto rounded-md border bg-background px-3 py-2 font-mono text-xs select-all"
@@ -205,7 +204,7 @@ function lastSeenLabel(session: Session): string {
         </div>
         <div class="flex flex-wrap items-end gap-2">
           <label class="space-y-1 text-sm">
-            <span>Code</span>
+            <span>{{ t("security.code") }}</span>
             <Input
               v-model="setupCode"
               type="text"
@@ -221,24 +220,24 @@ function lastSeenLabel(session: Session): string {
             :data-testid="TEST_ID.twoFactorConfirm"
             @click="confirmEnable"
           >
-            {{ enablePending ? "Enabling…" : "Enable 2FA" }}
+            {{
+              enablePending ? t("security.enabling") : t("security.enable2fa")
+            }}
           </Button>
         </div>
       </div>
 
       <p v-if="totpEnabled" class="text-sm text-muted-foreground">
-        Recovery codes were issued when you enabled two-factor authentication.
-        Each one works once; store them somewhere safe. Disabling removes them.
+        {{ t("security.recoveryHelp") }}
       </p>
     </section>
 
     <section class="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 class="font-medium">Sessions</h2>
+          <h2 class="font-medium">{{ t("security.sessionsTitle") }}</h2>
           <p class="text-sm text-muted-foreground">
-            Browsers and devices currently signed in to your account. The
-            current session cannot be revoked here.
+            {{ t("security.sessionsHelp") }}
           </p>
         </div>
         <Button
@@ -248,14 +247,14 @@ function lastSeenLabel(session: Session): string {
           :data-testid="TEST_ID.sessionsRevokeAll"
           @click="revokeAllOpen = true"
         >
-          Log out other sessions
+          {{ t("security.logoutOthers") }}
         </Button>
       </div>
 
       <AsyncState
         :is-loading="isLoading"
         :error="error"
-        error-title="Failed to load sessions"
+        :error-title="t('security.sessionsError')"
         :retry="refetch"
         :empty="sessions.length === 0"
       >
@@ -271,7 +270,7 @@ function lastSeenLabel(session: Session): string {
 
         <template #empty>
           <div class="py-6 text-center text-sm text-muted-foreground">
-            No active sessions found.
+            {{ t("security.noSessions") }}
           </div>
         </template>
 
@@ -292,25 +291,26 @@ function lastSeenLabel(session: Session): string {
                   variant="secondary"
                   :data-testid="TEST_ID.sessionCurrent"
                 >
-                  This session
+                  {{ t("security.thisSession") }}
                 </Badge>
-                <span class="text-sm">{{ session.ip ?? "Unknown IP" }}</span>
+                <span class="text-sm">{{
+                  session.ip ?? t("security.unknownIp")
+                }}</span>
               </div>
               <p class="text-xs text-muted-foreground">
-                Created
-                <span :title="absoluteTime(session.createdAt)">
-                  {{ formatRelativeAge(session.createdAt) }}
-                </span>
-                · Last seen {{ lastSeenLabel(session) }} · Expires
-                <span :title="absoluteTime(session.expiresAt)">
-                  {{ formatRelativeAge(session.expiresAt) }}
-                </span>
+                {{
+                  t("security.sessionMeta", {
+                    created: formatRelativeAge(session.createdAt),
+                    lastSeen: lastSeenLabel(session),
+                    expires: formatRelativeAge(session.expiresAt),
+                  })
+                }}
               </p>
               <p
                 class="max-w-full truncate text-xs text-muted-foreground"
                 :title="session.userAgent ?? undefined"
               >
-                {{ session.userAgent ?? "No user agent recorded" }}
+                {{ session.userAgent ?? t("security.noUserAgent") }}
               </p>
             </div>
             <Button
@@ -318,13 +318,19 @@ function lastSeenLabel(session: Session): string {
               type="button"
               variant="outline"
               size="sm"
-              :aria-label="`Revoke the session${session.ip ? ` from ${session.ip}` : ''}`"
+              :aria-label="
+                session.ip
+                  ? t('security.revokeAriaIp', { ip: session.ip })
+                  : t('security.revokeAria')
+              "
               :data-testid="TEST_ID.sessionRevoke"
               @click="requestRevoke(session)"
             >
-              Revoke
+              {{ t("security.revoke") }}
             </Button>
-            <span v-else class="text-xs text-muted-foreground"> Current </span>
+            <span v-else class="text-xs text-muted-foreground">
+              {{ t("security.current") }}
+            </span>
           </li>
         </ul>
       </AsyncState>
@@ -332,9 +338,9 @@ function lastSeenLabel(session: Session): string {
 
     <FormDialog
       :open="disableOpen"
-      title="Disable two-factor authentication"
-      description="Confirm with your password. The recovery codes from the time you enabled 2FA stop working."
-      confirm-text="Disable 2FA"
+      :title="t('security.disableTitle')"
+      :description="t('security.disableDescription')"
+      :confirm-text="t('security.disable2fa')"
       :pending="disable.isPending.value"
       :submit-disabled="!disablePassword"
       :confirm-test-id="TEST_ID.twoFactorDisableSubmit"
@@ -342,7 +348,7 @@ function lastSeenLabel(session: Session): string {
       @submit="confirmDisable"
     >
       <label class="block space-y-1 text-sm">
-        <span>Password</span>
+        <span>{{ t("security.password") }}</span>
         <Input
           v-model="disablePassword"
           type="password"
@@ -355,10 +361,10 @@ function lastSeenLabel(session: Session): string {
     <ConfirmDialog
       :open="revokeOpen"
       :pending="revoke.isPending.value"
-      title="Revoke session"
+      :title="t('security.revokeTitle')"
       :description="revokeDescription"
-      confirm-text="Revoke session"
-      cancel-text="Cancel"
+      :confirm-text="t('security.revokeConfirm')"
+      :cancel-text="t('common.cancel')"
       @confirm="confirmRevoke"
       @cancel="revokeOpen = false"
       @update:open="revokeOpen = $event"
@@ -367,10 +373,10 @@ function lastSeenLabel(session: Session): string {
     <ConfirmDialog
       :open="revokeAllOpen"
       :pending="revokeAll.isPending.value"
-      title="Log out other sessions"
-      description="Signs out every session except this one. Devices must sign in again."
-      confirm-text="Log out others"
-      cancel-text="Cancel"
+      :title="t('security.revokeAllTitle')"
+      :description="t('security.revokeAllDescription')"
+      :confirm-text="t('security.revokeAllConfirm')"
+      :cancel-text="t('common.cancel')"
       @confirm="confirmRevokeAll"
       @cancel="revokeAllOpen = false"
       @update:open="revokeAllOpen = $event"

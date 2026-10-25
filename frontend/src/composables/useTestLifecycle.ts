@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { unref } from "vue";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
@@ -72,7 +73,7 @@ export function useUpdateTestMetadata(
         body: toUpdateBody(input),
       });
       const metadata = mapTestMetadata(
-        unwrapSdkData<TestMetadataDto>(response, "Could not update the test"),
+        unwrapSdkData<TestMetadataDto>(response, tm("toast.testUpdateError")),
       );
       if (!metadata) throw new Error("The update returned no metadata");
       return metadata;
@@ -81,10 +82,10 @@ export function useUpdateTestMetadata(
       // A rename, a tag change and a mute all move the inbox/pending reads; the
       // metadata itself is refreshed through the same fan-out.
       invalidateAfterTestMetadataChange(queryClient);
-      toast.success("Test updated");
+      toast.success(tm("toast.testUpdated"));
     },
     onError: () => {
-      toast.error("Could not update the test");
+      toast.error(tm("toast.testUpdateError"));
     },
   });
 }

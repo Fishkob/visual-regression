@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { TEST_ID } from "@/lib/test-ids";
 
 export type ViewMode = "side-by-side" | "diff-only" | "overlay" | "wipe";
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -20,15 +23,15 @@ const emit = defineEmits<{
   "update:modelValue": [ViewMode];
 }>();
 
-const modes: { key: ViewMode; label: string; testId: string }[] = [
+const modes: { key: ViewMode; labelKey: string; testId: string }[] = [
   {
     key: "side-by-side",
-    label: "Side by Side",
+    labelKey: "viewMode.sideBySide",
     testId: TEST_ID.modeSidebyside,
   },
-  { key: "diff-only", label: "Diff Only", testId: TEST_ID.modeDiff },
-  { key: "overlay", label: "Overlay", testId: TEST_ID.modeOverlay },
-  { key: "wipe", label: "Wipe", testId: TEST_ID.modeWipe },
+  { key: "diff-only", labelKey: "viewMode.diffOnly", testId: TEST_ID.modeDiff },
+  { key: "overlay", labelKey: "viewMode.overlay", testId: TEST_ID.modeOverlay },
+  { key: "wipe", labelKey: "viewMode.wipe", testId: TEST_ID.modeWipe },
 ];
 
 const visibleModes = computed(() =>
@@ -45,7 +48,7 @@ const visibleModes = computed(() =>
   <div
     class="flex gap-1 p-1 bg-muted rounded-lg"
     role="group"
-    aria-label="View mode"
+    :aria-label="t('viewMode.label')"
   >
     <button
       v-for="mode in visibleModes"
@@ -60,7 +63,7 @@ const visibleModes = computed(() =>
       "
       @click="emit('update:modelValue', mode.key)"
     >
-      {{ mode.label }}
+      {{ t(mode.labelKey) }}
     </button>
   </div>
 </template>

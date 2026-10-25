@@ -1,3 +1,4 @@
+import { translateMessage as tm } from "@/lib/i18n-messages";
 import { computed } from "vue";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
@@ -89,9 +90,9 @@ export function useLogin() {
     mutationFn: async (credentials: LoginCredentials) => {
       const response = await authControllerLogin({ body: credentials });
       const result = mapLoginResult(
-        unwrapSdkData<unknown>(response, "Invalid username or password"),
+        unwrapSdkData<unknown>(response, tm("toast.invalidCredentials")),
       );
-      if (!result) throw new Error("Invalid username or password");
+      if (!result) throw new Error(tm("toast.invalidCredentials"));
       return result;
     },
     onSuccess: async (result) => {
@@ -110,9 +111,9 @@ export function useVerifyTwoFactor() {
         body: { challengeToken: input.challengeToken, code: input.code },
       });
       const user = mapMe(
-        unwrapSdkData<MeDto>(response, "Invalid two-factor code"),
+        unwrapSdkData<MeDto>(response, tm("toast.invalidTwoFactor")),
       );
-      if (!user) throw new Error("Invalid two-factor code");
+      if (!user) throw new Error(tm("toast.invalidTwoFactor"));
       return user;
     },
     onSuccess: enterSession,
@@ -129,13 +130,13 @@ export function useChangePassword() {
   return useMutation({
     mutationFn: async (input: ChangePasswordInput) => {
       const response = await authControllerChangePassword({ body: input });
-      return unwrapSdkData<MeDto>(response, "Could not change the password");
+      return unwrapSdkData<MeDto>(response, tm("changePassword.errorFallback"));
     },
     onSuccess: async (me) => {
       const user = mapMe(me);
       if (user) queryClient.setQueryData(authQueryKeys.me(), user);
       await queryClient.invalidateQueries({ queryKey: authQueryKeys.me() });
-      toast.success("Password changed");
+      toast.success(tm("toast.passwordChanged"));
       router.push({ name: "review-inbox" });
     },
   });
@@ -147,7 +148,7 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      unwrapSdkData(await authControllerLogout(), "Logout failed");
+      unwrapSdkData(await authControllerLogout(), tm("toast.logoutFailed"));
     },
     onSuccess: () => {
       queryClient.clear();

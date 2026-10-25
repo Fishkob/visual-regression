@@ -49,7 +49,7 @@
         </TooltipTrigger>
 
         <TooltipContent side="top" :side-offset="6" class="text-xs">
-          Number of pixels that differ from baseline. {{ toleranceHint }}
+          {{ t("comparison.mismatchTooltip", { tolerance: toleranceHint }) }}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -62,14 +62,17 @@
             class="px-2 py-0.5 cursor-default"
             :data-testid="TEST_ID.badgeWithinTolerance"
           >
-            within tolerance
+            {{ t("comparison.withinTolerance") }}
           </Badge>
         </TooltipTrigger>
 
         <TooltipContent side="top" :side-offset="6" class="text-xs">
-          {{ comparison?.mismatchPixelCount }} px is at or below the
-          {{ baselineThreshold }} px tolerance, so it was accepted
-          automatically.
+          {{
+            t("comparison.withinTooltip", {
+              mismatch: comparison?.mismatchPixelCount,
+              threshold: baselineThreshold,
+            })
+          }}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -85,7 +88,7 @@
               @blur="onBlur"
               @keydown.enter.prevent="onBlur"
               type="number"
-              aria-label="Mismatch threshold in pixels"
+              :aria-label="t('comparison.thresholdAria')"
               class="w-12 bg-transparent border-none outline-none text-center text-[13px]"
               :data-testid="TEST_ID.thresholdInput"
             />
@@ -94,7 +97,7 @@
         </TooltipTrigger>
 
         <TooltipContent side="top" :side-offset="6" class="text-xs">
-          {{ toleranceHint }} Larger changes need review.
+          {{ t("comparison.thresholdTooltip", { tolerance: toleranceHint }) }}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -102,23 +105,23 @@
     <ConfirmDialog
       v-model:open="confirmVisible"
       :pending="updateThresholdPending"
-      confirmText="Yes, continue"
-      cancelText="Cancel"
+      :confirmText="t('comparison.confirmContinue')"
+      :cancelText="t('common.cancel')"
       @confirm="handleConfirmThreshold"
       @cancel="handleCancelThreshold"
     >
-      <template #title> Replace comparison? </template>
+      <template #title> {{ t("comparison.replaceTitle") }} </template>
       <template #description>
         <p>
-          This will keep the current baseline and remove the pending comparison.
+          {{ t("comparison.replaceDescription") }}
         </p>
         <p class="mt-2 text-sm">
-          Mismatch:
+          {{ t("comparison.mismatchLabel") }}
           <span class="font-bold text-status-danger"
             >{{ comparison?.mismatchPixelCount }} px</span
           >
           <span class="mx-1">→</span>
-          New threshold:
+          {{ t("comparison.newThreshold") }}
           <span class="font-bold text-status-danger"
             >{{ pendingThreshold ?? "-" }} px</span
           >
@@ -130,6 +133,7 @@
 
 <script setup lang="ts">
 import { computed, toRef } from "vue";
+import { useI18n } from "vue-i18n";
 import { Badge } from "@/components/ui/badge";
 import ApprovalBadge from "@/components/ApprovalBadge.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
@@ -161,6 +165,8 @@ const props = defineProps<{
   readOnly?: boolean;
 }>();
 
+const { t } = useI18n();
+
 const variant = computed(() => ({
   viewport: props.viewport ?? props.baseline?.viewport,
   browser: props.browser ?? props.baseline?.browser,
@@ -183,8 +189,8 @@ const withinTolerance = computed(
 
 const toleranceHint = computed(() =>
   baselineThreshold.value > 0
-    ? `Differences up to ${baselineThreshold.value} px are accepted automatically.`
-    : "No tolerance set — every difference needs review.",
+    ? t("comparison.toleranceSet", { threshold: baselineThreshold.value })
+    : t("comparison.toleranceNone"),
 );
 
 const {

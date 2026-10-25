@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import { computed, ref, watch } from "vue";
 import { Button } from "@/components/ui/button";
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -69,8 +72,12 @@ watch(
         v-else
         class="flex flex-col items-center justify-center gap-2 p-4 text-center"
       >
-        <span class="text-sm text-status-danger">Image unavailable</span>
-        <Button variant="outline" size="sm" @click="retry">Retry</Button>
+        <span class="text-sm text-status-danger">{{
+          t("imageViewer.unavailable")
+        }}</span>
+        <Button variant="outline" size="sm" @click="retry">{{
+          t("imageViewer.retry")
+        }}</Button>
       </div>
     </div>
   </div>
