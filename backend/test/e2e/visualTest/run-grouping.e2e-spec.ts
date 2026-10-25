@@ -96,6 +96,30 @@ describe('Run grouping (e2e)', () => {
     expect(detail.body.pending).toEqual([]);
     expect(detail.body.approvals).toEqual([]);
     expect(detail.body.status.state).toBe('passed');
+
+    const junit = await authRequest(app)
+      .get('/api/v1/projects/checkout-ui/runs/ci-1/report/junit?branch=main')
+      .expect(200);
+    expect(junit.headers['content-type']).toContain('application/xml');
+    expect(junit.text).toContain('<testsuite');
+    expect(junit.text).toContain('login-form');
+
+    const csv = await authRequest(app)
+      .get('/api/v1/projects/checkout-ui/runs/ci-1/report/csv?branch=main')
+      .expect(200);
+    expect(csv.text).toContain('project,runKey,branch,test,kind,variant');
+    expect(csv.text).toContain('login-form');
+
+    const trends = await authRequest(app)
+      .get('/api/v1/projects/checkout-ui/trends?days=30')
+      .expect(200);
+    expect(trends.body.days).toBe(30);
+    expect(trends.body.daily).toEqual([]);
+    expect(trends.body.flakeRate).toEqual({
+      flakyTests: 0,
+      totalTests: 0,
+      rate: 0,
+    });
   });
 
   it('keeps uploads without a run key outside every run', async () => {
