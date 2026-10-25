@@ -59,4 +59,46 @@ describe("ViewModeToggle", () => {
       false,
     );
   });
+
+  it("shows all four modes when a diff is available", () => {
+    const wrapper = mount(ViewModeToggle, {
+      props: { modelValue: "side-by-side" },
+    });
+
+    for (const id of [
+      TEST_ID.modeSidebyside,
+      TEST_ID.modeDiff,
+      TEST_ID.modeOverlay,
+      TEST_ID.modeWipe,
+    ]) {
+      expect(wrapper.find(`[data-testid="${id}"]`).exists()).toBe(true);
+    }
+  });
+
+  it("hides the overlay and wipe modes without a diff or when opted out", () => {
+    const withoutDiff = mount(ViewModeToggle, {
+      props: { modelValue: "side-by-side", showDiff: false },
+    });
+
+    expect(
+      withoutDiff.find(`[data-testid="${TEST_ID.modeOverlay}"]`).exists(),
+    ).toBe(false);
+    expect(
+      withoutDiff.find(`[data-testid="${TEST_ID.modeWipe}"]`).exists(),
+    ).toBe(false);
+
+    const withoutLayered = mount(ViewModeToggle, {
+      props: { modelValue: "side-by-side", showLayered: false },
+    });
+
+    expect(
+      withoutLayered.find(`[data-testid="${TEST_ID.modeOverlay}"]`).exists(),
+    ).toBe(false);
+    expect(
+      withoutLayered.find(`[data-testid="${TEST_ID.modeWipe}"]`).exists(),
+    ).toBe(false);
+    expect(
+      withoutLayered.find(`[data-testid="${TEST_ID.modeDiff}"]`).exists(),
+    ).toBe(true);
+  });
 });

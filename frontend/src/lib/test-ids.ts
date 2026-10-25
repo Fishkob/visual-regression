@@ -65,10 +65,19 @@ export const TEST_ID = {
   panelBaseline: "panel-baseline",
   panelCandidate: "panel-candidate",
   panelDiff: "panel-diff",
+  panelOverlay: "panel-overlay",
+  panelWipe: "panel-wipe",
   zoomIn: "zoom-in",
   zoomOut: "zoom-out",
   zoomReset: "zoom-reset",
   zoomLevel: "zoom-level",
+  fitToggle: "fit-toggle",
+  actualSizeToggle: "actual-size-toggle",
+  fullscreenToggle: "fullscreen-toggle",
+  fullscreenClose: "fullscreen-close",
+  mismatchPercent: "mismatch-percent",
+  overlayOpacity: "overlay-opacity",
+  wipeHandle: "wipe-handle",
 
   variantGallery: "variant-gallery",
   variantGalleryTile: "variant-gallery-tile",
@@ -111,6 +120,8 @@ export const TEST_ID = {
 
   modeSidebyside: "mode-sidebyside",
   modeDiff: "mode-diff",
+  modeOverlay: "mode-overlay",
+  modeWipe: "mode-wipe",
 
   loginUsername: "login-username",
   loginPassword: "login-password",

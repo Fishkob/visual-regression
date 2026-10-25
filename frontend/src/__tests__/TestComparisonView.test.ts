@@ -5,8 +5,8 @@ import TestComparisonView from "@/components/detail-panels/TestComparisonView.vu
 vi.mock("@/components/detail-panels/InteractiveImageViewer.vue", () => ({
   default: {
     template:
-      '<div data-testid="interactive-viewer">{{ baselineUrl }} {{ candidateUrl }} {{ diffUrl }}</div>',
-    props: ["baselineUrl", "candidateUrl", "diffUrl"],
+      '<div data-testid="interactive-viewer">{{ baselineUrl }} {{ candidateUrl }} {{ diffUrl }} {{ mismatchPixelCount }}</div>',
+    props: ["baselineUrl", "candidateUrl", "diffUrl", "mismatchPixelCount"],
   },
 }));
 
@@ -15,6 +15,7 @@ const mockComparison = {
   baseline: { imageUrl: "/images/baseline.png" },
   candidate: { imageUrl: "/images/candidate.png" },
   diffImageUrl: "/images/diff.png",
+  mismatchPixelCount: 157,
   status: "PENDING_APPROVAL" as const,
   thresholdExceeded: false,
 };
@@ -31,6 +32,7 @@ describe("TestComparisonView", () => {
     expect(text).toContain("/images/baseline.png");
     expect(text).toContain("/images/candidate.png");
     expect(text).toContain("/images/diff.png");
+    expect(text).toContain("157");
   });
 
   it("emits skip on skip button click", async () => {

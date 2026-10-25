@@ -1,15 +1,18 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { TEST_ID } from "@/lib/test-ids";
 
-export type ViewMode = "side-by-side" | "diff-only";
+export type ViewMode = "side-by-side" | "diff-only" | "overlay" | "wipe";
 
 const props = withDefaults(
   defineProps<{
     modelValue: ViewMode;
     showDiff?: boolean;
+    showLayered?: boolean;
   }>(),
   {
     showDiff: true,
+    showLayered: true,
   },
 );
 
@@ -24,9 +27,18 @@ const modes: { key: ViewMode; label: string; testId: string }[] = [
     testId: TEST_ID.modeSidebyside,
   },
   { key: "diff-only", label: "Diff Only", testId: TEST_ID.modeDiff },
+  { key: "overlay", label: "Overlay", testId: TEST_ID.modeOverlay },
+  { key: "wipe", label: "Wipe", testId: TEST_ID.modeWipe },
 ];
 
-const visibleModes = () => (props.showDiff ? modes : [modes[0]]);
+const visibleModes = computed(() =>
+  modes.filter((mode) => {
+    if (mode.key === "side-by-side") return true;
+    if (!props.showDiff) return false;
+    if (mode.key === "diff-only") return true;
+    return props.showLayered;
+  }),
+);
 </script>
 
 <template>
@@ -36,7 +48,7 @@ const visibleModes = () => (props.showDiff ? modes : [modes[0]]);
     aria-label="View mode"
   >
     <button
-      v-for="mode in visibleModes()"
+      v-for="mode in visibleModes"
       :key="mode.key"
       :data-testid="mode.testId"
       :aria-pressed="modelValue === mode.key"

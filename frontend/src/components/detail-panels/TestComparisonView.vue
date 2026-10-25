@@ -32,6 +32,7 @@ defineEmits<{
         :baseline-url="comparison.baseline?.imageUrl"
         :candidate-url="comparison.candidate?.imageUrl"
         :diff-url="comparison.diffImageUrl"
+        :mismatch-pixel-count="comparison.mismatchPixelCount"
       />
 
       <ApproveSkipFooter

@@ -63,7 +63,12 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
 <template>
   <div class="w-full">
     <div class="flex items-center mb-3">
-      <ViewModeToggle v-model="viewMode" :show-diff="hasDiff" />
+      <!-- Overlay/wipe layer two images; PDF pages are rendered documents. -->
+      <ViewModeToggle
+        v-model="viewMode"
+        :show-diff="hasDiff"
+        :show-layered="false"
+      />
       <div
         class="flex-1 text-center text-sm text-muted-foreground"
         :data-testid="TEST_ID.mismatchInfo"
