@@ -15,7 +15,7 @@ describe('AuthRepository', () => {
       session: {
         create: vi.fn(),
         findUnique: vi.fn(),
-        delete: vi.fn(),
+        deleteMany: vi.fn(),
         update: vi.fn(),
       },
       apiKey: {
@@ -150,12 +150,12 @@ describe('AuthRepository', () => {
     });
   });
 
-  it('deletes a session by token hash', async () => {
-    mockClient.session.delete.mockResolvedValue({ id: 's1' });
+  it('deletes a session by token hash with a no-op for a missing session', async () => {
+    mockClient.session.deleteMany.mockResolvedValue({ count: 0 });
 
     await repository.deleteSessionByTokenHash('tokenhash');
 
-    expect(mockClient.session.delete).toHaveBeenCalledWith({
+    expect(mockClient.session.deleteMany).toHaveBeenCalledWith({
       where: { tokenHash: 'tokenhash' },
     });
   });

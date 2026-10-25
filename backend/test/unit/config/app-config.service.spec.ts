@@ -175,4 +175,20 @@ describe('AppConfigService', () => {
       buildAppConfig({ ...baseValues, TRUST_PROXY: false }).trustProxy,
     ).toBe(false);
   });
+
+  it('trusts exactly one proxy hop when TRUST_PROXY is enabled', () => {
+    expect(
+      buildAppConfig({ ...baseValues, TRUST_PROXY: true }).trustProxyHops,
+    ).toBe(1);
+  });
+
+  it('trusts no proxy hop when TRUST_PROXY is unset or false', () => {
+    const values = { ...baseValues };
+    delete values.TRUST_PROXY;
+
+    expect(buildAppConfig(values).trustProxyHops).toBe(false);
+    expect(
+      buildAppConfig({ ...baseValues, TRUST_PROXY: false }).trustProxyHops,
+    ).toBe(false);
+  });
 });

@@ -83,9 +83,72 @@ describe('RateLimitGuard', () => {
     appConfig.uploadRateLimitPerMinute = 60;
   });
 
-  it('consumes the login bucket keyed by ip', async () => {
+  it('consumes the coarse ip bucket and the ip+username login bucket', async () => {
     mockRateLimit.tryConsume.mockResolvedValue({ allowed: true, count: 2 });
-    const { context } = makeContext({ ip: '203.0.113.9' }, 'login');
+    const { context } = makeContext(
+      { ip: '203.0.113.9', body: { username: 'alice' } },
+      'login',
+    );
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockRateLimit.tryConsume).toHaveBeenNthCalledWith(
+      1,
+      'login',
+      'ip:203.0.113.9',
+      5,
+    );
+    expect(mockRateLimit.tryConsume).toHaveBeenNthCalledWith(
+      2,
+      'login',
+      'ip:203.0.113.9:user:alice',
+      5,
+    );
+  });
+
+  it('normalizes the attempted username in the login bucket key', async () => {
+    mockRateLimit.tryConsume.mockResolvedValue({ allowed: true, count: 1 });
+    const { context } = makeContext(
+      {
+        ip: '203.0.113.9',
+        body: { username: `  ${'A'.repeat(200)}  ` },
+      },
+      'login',
+    );
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockRateLimit.tryConsume).toHaveBeenNthCalledWith(
+      2,
+      'login',
+      `ip:203.0.113.9:user:${'a'.repeat(128)}`,
+      5,
+    );
+  });
+
+  it('rejects when the ip+username bucket is exhausted even if the ip bucket allows', async () => {
+    mockRateLimit.tryConsume
+      .mockResolvedValueOnce({ allowed: true, count: 1 })
+      .mockResolvedValueOnce({ allowed: false, count: 6 });
+    const { context } = makeContext(
+      { ip: '203.0.113.9', body: { username: 'alice' } },
+      'login',
+    );
+
+    await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+      HttpException,
+    );
+    expect(mockRateLimit.tryConsume).toHaveBeenCalledTimes(2);
+    expect(mockMetrics.incrementCounter).toHaveBeenCalledWith(
+      METRICS.rateLimitedTotal,
+      { scope: 'login' },
+    );
+  });
+
+  it('falls back to the ip-only login bucket without a string username', async () => {
+    mockRateLimit.tryConsume.mockResolvedValue({ allowed: true, count: 1 });
+    const { context } = makeContext(
+      { ip: '203.0.113.9', body: { username: 42 } },
+      'login',
+    );
 
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(mockRateLimit.tryConsume).toHaveBeenCalledWith(
@@ -95,9 +158,12 @@ describe('RateLimitGuard', () => {
     );
   });
 
-  it('consumes the log bucket keyed by ip', async () => {
+  it('consumes the log bucket keyed by ip only', async () => {
     mockRateLimit.tryConsume.mockResolvedValue({ allowed: true, count: 1 });
-    const { context } = makeContext({ ip: '203.0.113.9' }, 'log');
+    const { context } = makeContext(
+      { ip: '203.0.113.9', body: { username: 'alice' } },
+      'log',
+    );
 
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(mockRateLimit.tryConsume).toHaveBeenCalledWith(
@@ -122,11 +188,28 @@ describe('RateLimitGuard', () => {
     );
   });
 
-  it('does not count a session upload without an apiKeyId', async () => {
+  it('consumes the upload bucket of a session user', async () => {
+    mockRateLimit.tryConsume.mockResolvedValue({ allowed: true, count: 1 });
     const { context } = makeContext({ auth: { username: 'alice' } }, 'upload');
 
     await expect(guard.canActivate(context)).resolves.toBe(true);
-    expect(mockRateLimit.tryConsume).not.toHaveBeenCalled();
+    expect(mockRateLimit.tryConsume).toHaveBeenCalledWith(
+      'upload',
+      'session:alice',
+      60,
+    );
+  });
+
+  it('consumes the upload bucket of a session request without a username by ip', async () => {
+    mockRateLimit.tryConsume.mockResolvedValue({ allowed: true, count: 1 });
+    const { context } = makeContext({ ip: '203.0.113.9' }, 'upload');
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockRateLimit.tryConsume).toHaveBeenCalledWith(
+      'upload',
+      'session:203.0.113.9',
+      60,
+    );
   });
 
   it('rejects with 429, Retry-After and a scope metric over the limit', async () => {

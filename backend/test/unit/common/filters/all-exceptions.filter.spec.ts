@@ -75,12 +75,24 @@ describe('AllExceptionsFilter', () => {
       );
     });
 
-    it('logs server errors via logger.error for 5xx', () => {
+    it('masks an INTERNAL_ERROR DomainError message while logging the detail', () => {
       const ex = new DomainError('DB failure', 'INTERNAL_ERROR');
       filter.catch(ex, mockHost);
 
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 500,
+          message: 'Internal server error',
+          code: 'INTERNAL_ERROR',
+        }),
+      );
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('Domain error'),
+        expect.any(String),
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('DB failure'),
         expect.any(String),
       );
     });
@@ -117,8 +129,12 @@ describe('AllExceptionsFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 500,
-          message: 'no-code error',
+          message: 'Internal server error',
         }),
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('no-code error'),
+        expect.any(String),
       );
     });
 
@@ -151,7 +167,7 @@ describe('AllExceptionsFilter', () => {
       );
     });
 
-    it('maps SIDECAR_ERROR code to 502', () => {
+    it('maps SIDECAR_ERROR code to a masked 502', () => {
       const ex = new DomainError('PDF sidecar unavailable', 'SIDECAR_ERROR');
       filter.catch(ex, mockHost);
 
@@ -159,8 +175,13 @@ describe('AllExceptionsFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 502,
-          message: 'PDF sidecar unavailable',
+          message: 'Internal server error',
+          code: 'SIDECAR_ERROR',
         }),
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('PDF sidecar unavailable'),
+        expect.any(String),
       );
     });
 
@@ -418,7 +439,7 @@ describe('AllExceptionsFilter', () => {
       );
     });
 
-    it('renders Request failed for structured bodies without a message', () => {
+    it('renders the generic message for structured 5xx bodies without a message', () => {
       const ex = new HttpException(
         { status: 503, details: { db: 'up' } },
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -429,7 +450,7 @@ describe('AllExceptionsFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           statusCode: 503,
-          message: 'Request failed',
+          message: 'Internal server error',
           details: { db: 'up' },
         }),
       );
@@ -483,6 +504,25 @@ describe('AllExceptionsFilter', () => {
 
       expect(mockLogger.error).toHaveBeenCalledWith(
         expect.stringContaining('Http server error'),
+        expect.any(String),
+      );
+    });
+
+    it('masks a 5xx HttpException message while logging the original detail', () => {
+      const ex = new HttpException(
+        'S3 upload failed: AccessDenied for bucket visual-tests',
+        500,
+      );
+      filter.catch(ex, mockHost);
+
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 500,
+          message: 'Internal server error',
+        }),
+      );
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('S3 upload failed: AccessDenied'),
         expect.any(String),
       );
     });

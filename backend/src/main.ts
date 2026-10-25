@@ -116,11 +116,13 @@ async function bootstrapApi(): Promise<INestApplication> {
   app.setGlobalPrefix('api/v1');
   const appConfig = app.get(AppConfigService);
 
-  // Trust X-Forwarded-For from the reverse proxy so the IP-keyed login/log
-  // rate limits and request logging see the real client IP (they collapse to
-  // the proxy IP otherwise). Opt-in via TRUST_PROXY; `false` keeps the default
-  // Express behavior for direct exposure.
-  app.set('trust proxy', appConfig.trustProxy);
+  // Trust exactly one X-Forwarded-For hop (nginx/ingress) so the IP-keyed
+  // login/log rate limits and request logging see the real client IP instead
+  // of the proxy IP. A hop count rather than a boolean: `true` would trust
+  // every appended entry and let a client spoof req.ip. Opt-in via
+  // TRUST_PROXY; `false` keeps the default Express behavior for direct
+  // exposure.
+  app.set('trust proxy', appConfig.trustProxyHops);
 
   configureBodyParsers(app, appConfig);
   configureSecurity(app, appConfig);

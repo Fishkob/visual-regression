@@ -10,11 +10,11 @@ describe('AuthController', () => {
   let controller: AuthController;
   let mockAuthService: Mocked<AuthService>;
 
-  const mockAppConfig = {
-    auth: { cookieSecure: false },
-  } as unknown as AppConfigService;
+  const mockAuth = { cookieSecure: false };
+  const mockAppConfig = { auth: mockAuth } as unknown as AppConfigService;
 
   beforeEach(async () => {
+    mockAuth.cookieSecure = false;
     mockAuthService = createMock<AuthService>();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -41,6 +41,7 @@ describe('AuthController', () => {
 
     const result = await controller.login(
       { username: 'alice', password: 'secret' },
+      { secure: false } as never,
       res as never,
     );
 
@@ -55,6 +56,47 @@ describe('AuthController', () => {
       }),
     );
     expect(result).toEqual({ username: 'alice' });
+  });
+
+  it('marks the session cookie secure on an https request', async () => {
+    mockAuthService.login.mockResolvedValue({
+      token: 'tok123',
+      username: 'alice',
+    });
+    const res = { cookie: vi.fn(), clearCookie: vi.fn() };
+
+    await controller.login(
+      { username: 'alice', password: 'secret' },
+      { secure: true } as never,
+      res as never,
+    );
+
+    expect(res.cookie).toHaveBeenCalledWith(
+      SESSION_COOKIE,
+      'tok123',
+      expect.objectContaining({ secure: true }),
+    );
+  });
+
+  it('marks the session cookie secure when AUTH_COOKIE_SECURE is configured', async () => {
+    mockAuth.cookieSecure = true;
+    mockAuthService.login.mockResolvedValue({
+      token: 'tok123',
+      username: 'alice',
+    });
+    const res = { cookie: vi.fn(), clearCookie: vi.fn() };
+
+    await controller.login(
+      { username: 'alice', password: 'secret' },
+      { secure: false } as never,
+      res as never,
+    );
+
+    expect(res.cookie).toHaveBeenCalledWith(
+      SESSION_COOKIE,
+      'tok123',
+      expect.objectContaining({ secure: true }),
+    );
   });
 
   it('clears the session cookie on logout', async () => {

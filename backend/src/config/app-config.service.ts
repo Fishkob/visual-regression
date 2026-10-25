@@ -143,6 +143,13 @@ export class AppConfigService {
     return this.config.get<boolean>('TRUST_PROXY') === true;
   }
 
+  // Express's `trust proxy` is a hop count, not a boolean: `true` trusts every
+  // X-Forwarded-For entry, so a client appends a fake address and spoofs
+  // req.ip. Exactly one hop is the bundled nginx (or a single ingress).
+  get trustProxyHops(): number | false {
+    return this.trustProxy ? 1 : false;
+  }
+
   get csp() {
     return this.s.csp;
   }

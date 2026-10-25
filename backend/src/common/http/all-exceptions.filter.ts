@@ -51,7 +51,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   // One envelope, one severity rule. Every branch derives only its status +
   // message and lets these two helpers own the traceId lookup, the log
-  // dispatch, and the timestamp/path/json shape.
+  // dispatch, and the timestamp/path/json shape. The response and the log
+  // deliberately diverge for 5xx: internal detail (raw S3/sidecar/Prisma
+  // text) is what operators need in the log and is exactly what a client
+  // must not receive, so the body is always the generic message.
   private sendError(
     host: ArgumentsHost,
     statusCode: number,
@@ -78,7 +81,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const errorResponse: ErrorResponseDto & Record<string, unknown> = {
       statusCode,
-      message,
+      message: statusCode >= 500 ? 'Internal server error' : message,
       timestamp: new Date().toISOString(),
       path: request.url,
       traceId,

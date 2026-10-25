@@ -16,7 +16,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { PublicEndpoint } from '@common/http/public.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import {
@@ -46,6 +46,7 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Invalid username or password' })
   async login(
     @Body() dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<MeDto> {
     const { token, username } = await this.authService.login(
@@ -55,7 +56,7 @@ export class AuthController {
     res.cookie(
       SESSION_COOKIE,
       token,
-      sessionCookieOptions(this.appConfig.auth.cookieSecure),
+      sessionCookieOptions(this.appConfig.auth.cookieSecure || req.secure),
     );
     return { username };
   }

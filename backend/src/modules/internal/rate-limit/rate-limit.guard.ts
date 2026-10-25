@@ -19,6 +19,8 @@ import { RateLimitService } from './rate-limit.service';
 import { retryAfterSeconds } from './rate-limit-window';
 import { RATE_LIMIT_SCOPE_KEY, RateLimitScope } from './rate-limit.decorator';
 
+const LOGIN_KEY_MAX_USERNAME_LENGTH = 128;
+
 // The single rate-limit rule: consume one unit from the scope's one-minute
 // bucket in Postgres. Registered as a global APP_GUARD after the
 // AuthenticationGuard; a pass-through on every route that carries no
@@ -44,29 +46,31 @@ export class RateLimitGuard implements CanActivate {
     if (limit <= 0) return true;
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const key = this.bucketKey(scope, request);
-    if (!key) return true;
+    const keys = this.bucketKeys(scope, request);
 
     const now = Date.now();
-    const { allowed: isAllowed } = await this.rateLimit.tryConsume(
-      scope,
-      key,
-      limit,
-    );
-    if (isAllowed) return true;
-
-    this.metrics.incrementCounter(METRICS.rateLimitedTotal, { scope });
-    context
-      .switchToHttp()
-      .getResponse<Response>()
-      .setHeader('Retry-After', String(retryAfterSeconds(now)));
-    throw new HttpException(
-      {
-        statusCode: HttpStatus.TOO_MANY_REQUESTS,
-        message: `Rate limit exceeded for ${scope}. Retry after the current minute window.`,
-      },
-      HttpStatus.TOO_MANY_REQUESTS,
-    );
+    for (const key of keys) {
+      const { allowed: isAllowed } = await this.rateLimit.tryConsume(
+        scope,
+        key,
+        limit,
+      );
+      if (!isAllowed) {
+        this.metrics.incrementCounter(METRICS.rateLimitedTotal, { scope });
+        context
+          .switchToHttp()
+          .getResponse<Response>()
+          .setHeader('Retry-After', String(retryAfterSeconds(now)));
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.TOO_MANY_REQUESTS,
+            message: `Rate limit exceeded for ${scope}. Retry after the current minute window.`,
+          },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+    }
+    return true;
   }
 
   private limitFor(scope: RateLimitScope): number {
@@ -80,18 +84,43 @@ export class RateLimitGuard implements CanActivate {
     }
   }
 
-  private bucketKey(
+  private bucketKeys(
     scope: RateLimitScope,
     request: AuthenticatedRequest,
-  ): string | undefined {
+  ): string[] {
     switch (scope) {
-      case 'login':
+      case 'login': {
+        const username = loginUsername(request);
+        // Two buckets: the coarse per-IP one stops password spraying across
+        // many usernames (each would otherwise mint a fresh bucket), the
+        // composite one stops a shared-NAT neighbour from exhausting the
+        // bucket of an account they are not targeting.
+        return username
+          ? [`ip:${request.ip}`, `ip:${request.ip}:user:${username}`]
+          : [`ip:${request.ip}`];
+      }
       case 'log':
-        return `ip:${request.ip}`;
+        return [`ip:${request.ip}`];
       case 'upload':
-        return request.auth?.apiKeyId
-          ? `apikey:${request.auth.apiKeyId}`
-          : undefined;
+        return [
+          request.auth?.apiKeyId
+            ? `apikey:${request.auth.apiKeyId}`
+            : `session:${request.auth?.username ?? request.ip}`,
+        ];
     }
   }
+}
+
+// Login is keyed by IP *and* attempted username: an attacker cannot burn one
+// shared IP bucket against every account, and normalization (trim, lowercase,
+// truncate) keeps `Alice`, `alice `, and a padded payload on one bucket.
+function loginUsername(request: AuthenticatedRequest): string | undefined {
+  const body = request.body as Record<string, unknown> | undefined;
+  const username = body?.username;
+  if (typeof username !== 'string') return undefined;
+  const normalized = username
+    .trim()
+    .toLowerCase()
+    .slice(0, LOGIN_KEY_MAX_USERNAME_LENGTH);
+  return normalized || undefined;
 }

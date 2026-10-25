@@ -87,7 +87,7 @@ export class AuthRepository {
   }
 
   async deleteSessionByTokenHash(tokenHash: string): Promise<void> {
-    await this.client.session.delete({ where: { tokenHash } });
+    await this.client.session.deleteMany({ where: { tokenHash } });
   }
 
   async extendSessionExpiry(tokenHash: string, expiresAt: Date): Promise<void> {
