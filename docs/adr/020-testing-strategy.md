@@ -32,7 +32,7 @@ There is **no integration test category**. Repository-layer tests against real P
 
 - **Single runner across stack**: Vitest is used in both `backend/` and `frontend/`. It exposes the standard `describe`/`it`/`expect` testing style and runs natively on Vite's transform pipeline — no framework-specific transforms needed.
 - **ESM/CJS compatible**: Vitest handles the backend's CommonJS output and the frontend's ESM modules without separate configuration.
-- **Coverage**: `@vitest/coverage-v8` provides Istanbul-compatible coverage reports. Backend targets unit tests; frontend targets composables and domain logic (excluding UI components, which are covered by Playwright CT). The backend CI job enforces a ≥70% line-coverage threshold and fails below it.
+- **Coverage**: `@vitest/coverage-v8` provides Istanbul-compatible coverage reports. Backend targets unit tests; frontend targets composables and domain logic (excluding UI components, which are covered by Playwright CT). The backend coverage thresholds live in `backend/vitest.config.ts` (≥95% statements/lines/functions, ≥85% branches) and are enforced by the Vitest run itself, so the CI job fails when they are not met.
 - **In-source testing**: Backend tests use `Test.createTestingModule()` from `@nestjs/testing` — the NestJS DI container is available without HTTP overhead.
 
 ### Playwright for E2E + Component Tests
@@ -74,5 +74,5 @@ Playwright was chosen as the single browser-automation vendor for both E2E and c
 - Backend E2E tests (`test/e2e/`) must be added for new HTTP endpoints — these validate the full stack (controller → real DB/RustFS).
 - New frontend composables should have Vitest tests in `src/__tests__/`. New UI components should have Playwright CT tests in `tests/ct/` (backed by a `*.story.ts` file picked up by the gallery).
 - E2E tests run against Docker Compose services (Postgres + RustFS) and require the frontend to be built or served. The `test:e2e` script coordinates this.
-- CI runs: lint/typecheck → unit tests → backend E2E, and frontend lint → build → unit + CT + E2E. The backend unit-test CI job enforces a ≥70% line-coverage gate (checked against `coverage/coverage-summary.json`). This should be revisited if it becomes a burden rather than a guard.
+- CI runs: lint/typecheck → unit tests → backend E2E, and frontend lint → build → unit + CT + E2E. The backend unit-test CI job enforces coverage through the thresholds configured in `backend/vitest.config.ts` (≥95% statements/lines/functions, ≥85% branches); the Vitest run fails when they are not met, so there is no separate coverage gate outside Vitest. This should be revisited if it becomes a burden rather than a guard.
 - No integration tests should be added unless one of the thresholds above is met.

@@ -1,5 +1,12 @@
 name: CI (Frontend)
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-frontend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   workflow_dispatch:
     inputs:
@@ -23,6 +30,8 @@ on:
       - ".dockerignore"
       - ".github/actions/setup/**"
       - ".github/workflows/ci-frontend.yml"
+      - ".github/workflows/sdk-sync-check.yml"
+      - "openapi-ts.config.ts"
       - "!README.md"
   pull_request:
     branches: [main, develop]
@@ -39,12 +48,15 @@ on:
       - ".dockerignore"
       - ".github/actions/setup/**"
       - ".github/workflows/ci-frontend.yml"
+      - ".github/workflows/sdk-sync-check.yml"
+      - "openapi-ts.config.ts"
       - "!README.md"
 
 jobs:
   lint-and-typecheck:
     name: Lint & TypeCheck
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.event.inputs.skipTests != 'true'
 
     steps:
@@ -57,9 +69,14 @@ jobs:
         run: pnpm run lint:check && pnpm run typecheck
         working-directory: frontend
 
+      - name: Run Prettier
+        run: pnpm exec prettier --check "src/**/*.{ts,vue,js,json,css,md}"
+        working-directory: frontend
+
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [lint-and-typecheck]
     if: github.event.inputs.skipTests != 'true'
 
@@ -75,6 +92,7 @@ jobs:
   frontend-unit-tests:
     name: Frontend Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [build]
     if: github.event.inputs.skipTests != 'true'
 
@@ -98,6 +116,7 @@ jobs:
   frontend-ct:
     name: Frontend Component Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     needs: [build]
     if: github.event.inputs.skipTests != 'true'
 
@@ -172,6 +191,7 @@ jobs:
   frontend-e2e:
     name: Frontend E2E Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     needs: [build]
     if: github.event.inputs.skipTests != 'true'
 
