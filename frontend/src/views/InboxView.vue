@@ -109,8 +109,24 @@ watch(searchInput, (value) => {
   }, 300);
 });
 
+// The run filter is the same shape as the search box — free text answered by the
+// server — so it debounces too, and applying a new run key returns to the first
+// page because the previous page may not exist for the narrower queue.
+const runInput = ref("");
+const runFilter = ref("");
+let runTimer: ReturnType<typeof setTimeout> | undefined;
+
+watch(runInput, (value) => {
+  if (runTimer) clearTimeout(runTimer);
+  runTimer = setTimeout(() => {
+    runFilter.value = value.trim();
+    if (page.value !== 1) page.value = 1;
+  }, 300);
+});
+
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer);
+  if (runTimer) clearTimeout(runTimer);
 });
 
 const queryParams = computed<InboxListQuery>(() => ({
@@ -119,6 +135,7 @@ const queryParams = computed<InboxListQuery>(() => ({
   ...(kind.value !== FILTER_ALL ? { kind: kind.value } : {}),
   ...(group.value !== FILTER_ALL ? { groupId: group.value } : {}),
   ...(branch.value !== FILTER_ALL ? { branch: branch.value } : {}),
+  ...(runFilter.value ? { runKey: runFilter.value } : {}),
 }));
 
 const { items, sections, total, isLoading, error, refetch } =
@@ -157,7 +174,8 @@ const hasActiveFilters = computed(
     searchQuery.value.trim().length > 0 ||
     kind.value !== FILTER_ALL ||
     group.value !== FILTER_ALL ||
-    branch.value !== FILTER_ALL,
+    branch.value !== FILTER_ALL ||
+    runFilter.value.length > 0,
 );
 </script>
 
@@ -232,6 +250,13 @@ const hasActiveFilters = computed(
           aria-label="Search pending reviews"
           class="w-64 rounded-xl shadow-sm"
           :data-testid="TEST_ID.inboxSearch"
+        />
+        <Input
+          v-model="runInput"
+          placeholder="Filter by run key..."
+          aria-label="Filter by run key"
+          class="w-48 rounded-xl shadow-sm"
+          :data-testid="TEST_ID.inboxRunFilter"
         />
         <Select v-model="kind">
           <SelectTrigger

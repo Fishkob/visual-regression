@@ -12,6 +12,9 @@ export const PROJECT_DETAIL_PAGE_SIZE = 50;
 // The audit trail is a long-running, cross-project log: 50 rows fills a screen
 // without turning every page change into a scroll.
 export const AUDIT_PAGE_SIZE = 50;
+// Runs are one row per CI run, not per capture: the backend defaults to 20 and
+// a denser page would not say more per screen.
+export const RUNS_PAGE_SIZE = 20;
 
 export interface PageFetch<T> {
   items: T[];

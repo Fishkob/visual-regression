@@ -15,6 +15,7 @@ export function mapReviewInboxItem(dto: PendingReviewDto): ReviewInboxItem {
     testName: dto.testName,
     kind: toKind(dto.kind),
     branchName: dto.branchName,
+    runKey: dto.runKey ?? null,
     isDefaultBranch: dto.isDefaultBranch,
     ...(dto.variant ?? {}),
     mismatchPixelCount: dto.mismatchPixelCount,

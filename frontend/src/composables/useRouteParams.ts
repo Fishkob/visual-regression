@@ -11,6 +11,7 @@ export function useRouteParams() {
 
   const projectName = computed(() => route.params.projectName as string);
   const testName = computed(() => route.params.testName as string);
+  const runKey = computed(() => route.params.runKey as string);
   const viewport = computed(() => queryString(route.query.viewport));
   const browser = computed(() => queryString(route.query.browser));
   const environment = computed(() => queryString(route.query.environment));
@@ -26,6 +27,7 @@ export function useRouteParams() {
   return {
     projectName,
     testName,
+    runKey,
     filters,
     branch,
     fromInbox,

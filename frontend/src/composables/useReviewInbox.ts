@@ -58,6 +58,7 @@ export function useReviewInboxQuery(
             ? { groupId: queryRef.value.groupId }
             : {}),
           ...(queryRef.value.branch ? { branch: queryRef.value.branch } : {}),
+          ...(queryRef.value.runKey ? { runKey: queryRef.value.runKey } : {}),
         },
       }),
     map: mapReviewInbox,

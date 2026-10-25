@@ -11,6 +11,7 @@ import { pdfTestQueryKeys } from "@/domains/pdf-test/query-keys";
 import { approvalQueryKeys } from "@/domains/approvals/query-keys";
 import { baselineHistoryQueryKeys } from "@/domains/baseline-history/query-keys";
 import { webhookQueryKeys } from "@/domains/webhooks/query-keys";
+import { runsQueryKeys } from "@/domains/runs/query-keys";
 import type { TestDetailsArgs } from "@/lib/variant-key";
 
 export function invalidateProjectDetail(
@@ -115,4 +116,39 @@ export function invalidateWebhookDeliveries(
   client.invalidateQueries({
     queryKey: webhookQueryKeys.deliveries(projectName, endpointId),
   });
+}
+
+// A finish is a metadata write: the run row and its derived status change, and
+// the list's finished column with them. Every branch/page list entry of the
+// project hangs off the project prefix.
+export function invalidateRun(
+  client: QueryClient,
+  projectName: string,
+  runKey: string,
+) {
+  client.invalidateQueries({ queryKey: runsQueryKeys.list(projectName) });
+  client.invalidateQueries({
+    queryKey: runsQueryKeys.detail(projectName, runKey),
+  });
+  client.invalidateQueries({
+    queryKey: runsQueryKeys.status(projectName, runKey),
+  });
+}
+
+// Approve-all is a batch approval over the run's comparisons, so every read that
+// shows a status, a queue, a baseline or a trail is stale afterwards — the same
+// fan-out as the per-test bulk approval, plus the run the batch belongs to.
+export function invalidateAfterRunApproveAll(
+  client: QueryClient,
+  projectName: string,
+  runKey: string,
+) {
+  invalidateRun(client, projectName, runKey);
+  invalidateProjectDetail(client, projectName);
+  client.invalidateQueries({ queryKey: projectQueryKeys.withPending() });
+  client.invalidateQueries({ queryKey: branchQueryKeys.all() });
+  client.invalidateQueries({ queryKey: approvalQueryKeys.all() });
+  client.invalidateQueries({ queryKey: visualTestQueryKeys.variantsAll() });
+  client.invalidateQueries({ queryKey: pdfTestQueryKeys.all() });
+  invalidateReviewInbox(client);
 }

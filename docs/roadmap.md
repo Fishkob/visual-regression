@@ -49,7 +49,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R3  | Baseline history & restore               | 2     | L    | —                             | In progress |
 | R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | Shipped     |
 | R5  | Global audit log                         | 2     | M    | —                             | Shipped     |
-| R6  | Run grouping                             | 3     | XL   | ADR-030                       | In progress |
+| R6  | Run grouping                             | 3     | XL   | ADR-030                       | Shipped     |
 | R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Planned     |
 | R8  | Reporting & exports                      | 3     | M–L  | R6                            | Planned     |
 | R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Planned     |
@@ -374,7 +374,8 @@ there is no way to say "this pull request has 12 changes" or gate on a run
 **Scope (v1).**
 
 - `Run` per project + branch: client-supplied `runKey`, `commitSha`,
-  `commitMessage`, `ciUrl`, metadata JSON, `startedAt`, `finishedAt`.
+  `commitMessage`, `ciUrl`, metadata JSON, `createdAt`/`lastActivityAt`,
+  `finishedAt`/`finishedBy`.
 - Optional `runKey` (+ commit fields) on upload; link jobs, comparisons and
   approval audit rows to the run. No `runKey` → today's behavior.
 - Read API: list runs, run detail (tests/variants/status counts), run status for
@@ -392,8 +393,8 @@ deeper rework), merge queues, GitHub App/check-runs, cross-project runs.
 
 - Additive table + nullable `runId` columns on `ComparisonJob`, `UnifiedComparison`
   and `Approval` (denormalized so history survives deletions).
-- Derive run status from jobs/comparisons; do not maintain aggregate counters in
-  v1.
+- Derive run status from the run's upload rows plus pending comparisons/jobs and
+  approvals; do not maintain aggregate counters.
 - Inbox: add a run filter and badge; keep the existing project/group grouping.
 - The run does **not** fix upload races — document that explicitly. It provides
   grouping and a gate, not isolation.
@@ -404,14 +405,18 @@ deeper rework), merge queues, GitHub App/check-runs, cross-project runs.
 
 - [x] Two uploads with the same `runKey` appear under one run
 - [x] Run status returns counts and a terminal state after `finish`
-- [ ] Action fails once for the run when any comparison is pending, not per file
+- [x] Action fails once for the run when any comparison is pending, not per file
 - [x] Uploads without `runKey` behave exactly as today
 - [x] Deleting a branch/project leaves no orphan run rows
-- [ ] Run page paginated; inbox run filter combines with existing filters
+- [x] Run page paginated; inbox run filter combines with existing filters
 
-**Verification.** `run-grouping.e2e-spec.ts` covers the grouping, status/finish,
-no-run-key and project-cascade paths against Postgres. The UI and action
-acceptance lines are checked when those land.
+**Verification.** `run-grouping.e2e-spec.ts` covers grouping, status/finish,
+no-run-key and project-cascade against Postgres. The action run mode was
+exercised against a local stub API (11 scenarios), and the frontend view/
+composable tests cover the list, detail, polling, finish/approve-all and the
+inbox run filter. `RunUpload` makes baseline-only uploads count as run tests
+(jobs/comparisons alone would miss them). The new runs views are not yet in the
+Playwright quality/axe gallery — follow-up.
 
 **Size / dependencies.** XL · ADR-030 first; touches upload, job, review reads,
 SDK, action.

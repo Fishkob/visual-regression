@@ -18,6 +18,15 @@ export interface PaginatedDto<T> {
 
 export type MaybeRef<T> = T | Ref<T>;
 
+// TanStack accepts a function so the interval can depend on the query state
+// (e.g. poll a run only while it is open). The parameter is structurally typed
+// instead of importing TanStack's generic Query: the seam forwards it untouched
+// and every caller passes a plain reader of `query.state.data`.
+export type RefetchIntervalOption =
+  | number
+  | false
+  | ((query: { state: { data?: unknown } }) => number | false | undefined);
+
 export interface DomainQueryOptions<T> {
   queryKey: MaybeRef<QueryKey>;
   enabled?: MaybeRef<boolean>;
@@ -25,7 +34,7 @@ export interface DomainQueryOptions<T> {
   placeholderData?: unknown;
   retry?: number | boolean;
   staleTime?: number;
-  refetchInterval?: number | false;
+  refetchInterval?: RefetchIntervalOption;
   refetchIntervalInBackground?: boolean;
   refetchOnWindowFocus?: boolean | "always";
 }
@@ -34,7 +43,7 @@ export interface DomainQueryOptions<T> {
 // forwards the same set instead of each one re-declaring a partial copy.
 export interface LiveQueryOptions {
   staleTime?: number;
-  refetchInterval?: number | false;
+  refetchInterval?: RefetchIntervalOption;
   refetchIntervalInBackground?: boolean;
   refetchOnWindowFocus?: boolean | "always";
 }

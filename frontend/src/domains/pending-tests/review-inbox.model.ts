@@ -8,6 +8,9 @@ export interface ReviewInboxItem {
   testName: string;
   kind?: TestKind;
   branchName: string;
+  // Present when the upload carried a run key; the inbox filters and badges by
+  // it. Null keeps uploads without a run grouped exactly as before.
+  runKey?: string | null;
   isDefaultBranch: boolean;
   viewport?: string;
   browser?: string;

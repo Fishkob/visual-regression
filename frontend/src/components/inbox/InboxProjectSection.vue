@@ -144,6 +144,15 @@ function startProjectReview() {
           >
             {{ item.branchName }}
           </Badge>
+          <Badge
+            v-if="item.runKey"
+            variant="outline"
+            class="font-mono text-[10px]"
+            :title="`Run ${item.runKey}`"
+            :data-testid="TEST_ID.inboxRunBadge"
+          >
+            {{ item.runKey }}
+          </Badge>
           <Badge variant="outline">{{
             item.kind === "pdf" ? "PDF" : "Image"
           }}</Badge>

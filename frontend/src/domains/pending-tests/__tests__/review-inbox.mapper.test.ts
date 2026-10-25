@@ -10,6 +10,7 @@ const dto = (overrides: Partial<PendingReviewDto> = {}): PendingReviewDto => ({
   testName: "cart",
   kind: "image",
   branchName: "main",
+  runKey: "ci-42",
   isDefaultBranch: true,
   variant: {
     viewport: "1280x720",
@@ -34,6 +35,7 @@ describe("mapReviewInboxItem", () => {
       testName: "cart",
       kind: "image",
       branchName: "main",
+      runKey: "ci-42",
       isDefaultBranch: true,
       viewport: "1280x720",
       browser: "chromium",
@@ -70,6 +72,15 @@ describe("mapReviewInboxItem", () => {
     expect(item.groupId).toBeNull();
     expect(item.groupName).toBeNull();
     expect(item.mismatchPageCount).toBeNull();
+  });
+
+  it("maps the run key of a grouped upload", () => {
+    expect(mapReviewInboxItem(dto({ runKey: "ci-7" })).runKey).toBe("ci-7");
+  });
+
+  it("defaults a missing run key to null", () => {
+    expect(mapReviewInboxItem(dto({ runKey: undefined })).runKey).toBeNull();
+    expect(mapReviewInboxItem(dto({ runKey: null })).runKey).toBeNull();
   });
 });
 
