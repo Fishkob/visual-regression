@@ -8,6 +8,10 @@ export type ProjectDto = {
     id?: string;
     name?: string;
     createdAt?: string;
+    /**
+     * Approvals needed to finalize a comparison
+     */
+    requiredApprovals?: number;
     visualTests?: Array<VisualTestDto>;
     groupId?: string | null;
     groupName?: string | null;

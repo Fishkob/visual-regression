@@ -65,6 +65,17 @@ export class ProjectDto {
   @Expose()
   createdAt?: Date;
 
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Approvals needed to finalize a comparison',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  @Expose()
+  requiredApprovals?: number;
+
   @ApiPropertyOptional({ type: () => VisualTestDto, isArray: true })
   @IsOptional()
   @Expose()
@@ -221,6 +232,14 @@ export class UpdateProjectDto {
   @IsString()
   @MaxLength(MAX_BRANCH_NAME_LENGTH)
   defaultBranchName?: string;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  requiredApprovals?: number;
 }
 
 export class UpdateThresholdDto {

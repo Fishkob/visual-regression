@@ -31,6 +31,7 @@ export interface ProjectWithVariants {
   groupName: string | null;
   branchName: string;
   defaultBranchName: string;
+  requiredApprovals: number;
   variants: ProjectVariantStatus[];
   total: number;
   filterOptions: ProjectVariantFilterOptions;
@@ -104,6 +105,7 @@ export class ProjectReadRepository {
       groupName: project.group?.name ?? null,
       branchName: branch.branchName,
       defaultBranchName,
+      requiredApprovals: project.requiredApprovals,
       variants: page.data,
       total: page.total,
       filterOptions,

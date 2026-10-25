@@ -161,6 +161,12 @@ export class ProjectService {
     projectName: string,
     dto: UpdateProjectDto,
   ): Promise<ProjectDto> {
+    if (dto.requiredApprovals !== undefined) {
+      await this.projects.updateRequiredApprovals(
+        projectName,
+        dto.requiredApprovals,
+      );
+    }
     if (dto.groupId === undefined && dto.defaultBranchName === undefined) {
       return this.getWithLatestVariantStatuses(projectName);
     }

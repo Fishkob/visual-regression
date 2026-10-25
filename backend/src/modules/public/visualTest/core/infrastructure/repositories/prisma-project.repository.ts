@@ -95,6 +95,16 @@ export class ProjectRepository extends BaseRepository {
     });
   }
 
+  async updateRequiredApprovals(
+    name: string,
+    requiredApprovals: number,
+  ): Promise<void> {
+    await this.client.project.update({
+      where: { name },
+      data: { requiredApprovals },
+    });
+  }
+
   async updateRetention(
     name: string,
     data: {

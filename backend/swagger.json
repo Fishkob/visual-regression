@@ -5149,6 +5149,11 @@
             "type": "string",
             "example": "2025-10-11T10:15:00Z"
           },
+          "requiredApprovals": {
+            "type": "number",
+            "example": 1,
+            "description": "Approvals needed to finalize a comparison"
+          },
           "visualTests": {
             "type": "array",
             "items": {
@@ -5221,6 +5226,11 @@
             "type": "string",
             "description": "Branch to promote to the project default",
             "example": "release/1.2"
+          },
+          "requiredApprovals": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10
           }
         }
       },
