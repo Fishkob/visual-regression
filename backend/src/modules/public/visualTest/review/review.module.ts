@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@prisma/prisma.module';
+import { AppConfigModule } from '@config/app-config.module';
 import { StorageModule } from '@internal/storage/storage.module';
 import { VisualTestInfraModule } from '@public/visualTest/core/visual-test-infra.module';
 import { VisualTestApplicationModule } from '@public/visualTest/core/visual-test-application.module';
@@ -32,10 +33,13 @@ import { RunsController } from '@public/visualTest/review/presentation/controlle
 import { RunService } from '@public/visualTest/review/application/run.service';
 import { WebhooksController } from '@public/visualTest/review/presentation/controllers/webhooks.controller';
 import { WebhookSettingsService } from '@public/visualTest/review/application/webhook-settings.service';
+import { TrendsController } from '@public/visualTest/review/presentation/controllers/trends.controller';
+import { TrendsService } from '@public/visualTest/review/application/trends.service';
 
 @Module({
   imports: [
     PrismaModule,
+    AppConfigModule,
     StorageModule,
     VisualTestInfraModule,
     VisualTestApplicationModule,
@@ -55,6 +59,7 @@ import { WebhookSettingsService } from '@public/visualTest/review/application/we
     BaselineHistoryController,
     WebhooksController,
     RunsController,
+    TrendsController,
   ],
   providers: [
     TestQueryService,
@@ -72,6 +77,7 @@ import { WebhookSettingsService } from '@public/visualTest/review/application/we
     BranchCommandService,
     WebhookSettingsService,
     RunService,
+    TrendsService,
   ],
 })
 export class ReviewModule {}

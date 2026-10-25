@@ -301,6 +301,32 @@ model RunUpload {
   @@map("RunUpload")
 }
 
+// Durable analytics history. Comparisons are deleted on approval and the
+// candidate rows are reclaimed, so the completion outcome (and the run/test
+// context) would otherwise disappear. This table feeds trends and flake rates;
+// it has no foreign keys so deleting a test/run does not erase its history.
+model ComparisonOutcomeEvent {
+  id             String   @id @default(cuid())
+  testId         String
+  testName       String
+  kind           TestKind
+  viewport       String
+  browser        String
+  environment    String
+  comparisonId   String?
+  runId          String?
+  runKey         String?
+  outcome        String
+  mismatchMetric Int
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([testId, createdAt])
+  @@index([runKey])
+  @@index([comparisonId])
+  @@map("ComparisonOutcomeEvent")
+}
+
 model ComparisonJob {
   id                  String        @id @default(cuid())
   testId              String

@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Header,
   HttpCode,
   Param,
   Post,
@@ -15,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { AppConfigService } from '@config/app-config.service';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import {
@@ -30,6 +32,11 @@ import {
   RunStatusResultDto,
 } from '@public/visualTest/review/presentation/dto/run.dto';
 import type { RunWithBranch } from '@public/visualTest/core/infrastructure/repositories/run.repository';
+import {
+  buildRunCsv,
+  buildRunHtml,
+  buildRunJUnit,
+} from '@public/visualTest/review/application/run-report.builder';
 
 function toRunDto(run: RunWithBranch): RunDto {
   return {
@@ -49,7 +56,10 @@ function toRunDto(run: RunWithBranch): RunDto {
 @ApiTags('Runs')
 @Controller('projects/:projectName/runs')
 export class RunsController {
-  constructor(private readonly runs: RunService) {}
+  constructor(
+    private readonly runs: RunService,
+    private readonly config: AppConfigService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List CI runs of a project (newest first)' })
@@ -72,6 +82,50 @@ export class RunsController {
       data: result.data.map(toRunDto),
       meta: createPaginatedResponse([], page, limit, result.total).meta,
     };
+  }
+
+  @Get(':runKey/report/junit')
+  @Header('Content-Type', 'application/xml; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="vrt-run.xml"')
+  @ApiOperation({
+    summary: 'JUnit XML for a run (pending review is a failure)',
+  })
+  @ApiOkResponse({ type: String, description: 'JUnit XML document' })
+  async junitReport(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('runKey') runKey: string,
+    @BranchQuery() branch?: string,
+  ): Promise<string> {
+    const detail = await this.runs.detail(projectName, runKey, branch);
+    return buildRunJUnit(detail, projectName, runKey, this.config.appPublicUrl);
+  }
+
+  @Get(':runKey/report/html')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="vrt-run.html"')
+  @ApiOperation({ summary: 'Self-contained HTML report for a run' })
+  @ApiOkResponse({ type: String, description: 'HTML report' })
+  async htmlReport(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('runKey') runKey: string,
+    @BranchQuery() branch?: string,
+  ): Promise<string> {
+    const detail = await this.runs.detail(projectName, runKey, branch);
+    return buildRunHtml(detail, projectName, this.config.appPublicUrl);
+  }
+
+  @Get(':runKey/report/csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="vrt-run.csv"')
+  @ApiOperation({ summary: 'CSV of the tests and outcomes of a run' })
+  @ApiOkResponse({ type: String, description: 'CSV report' })
+  async csvReport(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('runKey') runKey: string,
+    @BranchQuery() branch?: string,
+  ): Promise<string> {
+    const detail = await this.runs.detail(projectName, runKey, branch);
+    return buildRunCsv(detail, projectName);
   }
 
   @Get(':runKey')

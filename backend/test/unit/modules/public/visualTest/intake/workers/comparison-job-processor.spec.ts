@@ -13,6 +13,7 @@ import { Tracker } from '@common/tracker/tracker.service';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { CandidateReclamationService } from '@public/visualTest/core/application/services/candidate-reclamation.service';
 import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
+import { ComparisonOutcomeService } from '@public/visualTest/core/application/services/comparison-outcome.service';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
@@ -39,6 +40,7 @@ describe('ComparisonJobProcessor', () => {
   let retirement: Mocked<ComparisonRetirementService>;
   let reclamation: Mocked<CandidateReclamationService>;
   let webhooks: Mocked<WebhookDispatchService>;
+  let outcomes: Mocked<ComparisonOutcomeService>;
   let screenshots: Mocked<UnifiedScreenshotRepository>;
   let metrics: Mocked<IMetricsRecorder>;
   let uow: Mocked<PrismaUnitOfWork>;
@@ -46,6 +48,9 @@ describe('ComparisonJobProcessor', () => {
   const imageJobData: JobData = {
     testKind: 'image',
     testId: 'test-1',
+    testName: 'checkout',
+    runId: 'run-1',
+    runKey: 'ci-1',
     candidateHash: 'hash-from-upload',
     candidate: {
       id: 'candidate-1',
@@ -116,6 +121,8 @@ describe('ComparisonJobProcessor', () => {
     reclamation = createMock<CandidateReclamationService>();
     webhooks = createMock<WebhookDispatchService>();
     webhooks.enqueueReviewRequested.mockResolvedValue(0);
+    outcomes = createMock<ComparisonOutcomeService>();
+    outcomes.record.mockResolvedValue(undefined);
     screenshots = createMock<UnifiedScreenshotRepository>();
     metrics = createMock<IMetricsRecorder>();
     metrics.incrementCounter.mockReturnValue(undefined);
@@ -162,6 +169,7 @@ describe('ComparisonJobProcessor', () => {
         { provide: ComparisonRetirementService, useValue: retirement },
         { provide: CandidateReclamationService, useValue: reclamation },
         { provide: WebhookDispatchService, useValue: webhooks },
+        { provide: ComparisonOutcomeService, useValue: outcomes },
         {
           provide: COMPARISON_ENGINES,
           useValue: { image: imageEngine, pdf: pdfEngine },
@@ -274,6 +282,7 @@ describe('ComparisonJobProcessor', () => {
           { provide: ComparisonRetirementService, useValue: retirement },
           { provide: CandidateReclamationService, useValue: reclamation },
           { provide: WebhookDispatchService, useValue: webhooks },
+          { provide: ComparisonOutcomeService, useValue: outcomes },
           { provide: COMPARISON_ENGINES, useValue: {} },
           { provide: STORAGE_PROVIDER, useValue: storage },
           { provide: Tracker, useValue: tracker2 },
@@ -336,6 +345,12 @@ describe('ComparisonJobProcessor', () => {
       );
       expect(retirement.createPendingForVariant).not.toHaveBeenCalled();
       expect(storage.putObject).not.toHaveBeenCalled();
+      expect(outcomes.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          outcome: 'within_threshold',
+          mismatchMetric: 15,
+        }),
+      );
     });
 
     it('auto-accepts an exact boundary match', async () => {
@@ -437,6 +452,9 @@ describe('ComparisonJobProcessor', () => {
             }),
           ],
         }),
+      );
+      expect(outcomes.record).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: 'unchanged', mismatchMetric: 0 }),
       );
     });
 
@@ -540,6 +558,8 @@ describe('ComparisonJobProcessor', () => {
         candidateId: 'candidate-1',
         diffUrl: 'http://storage/diff.png',
         result: imageDiff,
+        runId: 'run-1',
+        runKey: 'ci-1',
       });
       expect(storage.deleteAll).toHaveBeenCalledWith([
         'http://storage/stale-diff.png',
@@ -554,6 +574,13 @@ describe('ComparisonJobProcessor', () => {
         variant: imageJobData.variant,
         mismatchPixelCount: 15,
       });
+      expect(outcomes.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          outcome: 'changed',
+          comparisonId: 'comp-1',
+          testName: 'checkout',
+        }),
+      );
     });
 
     it('cleans up the diff file when persisting the comparison fails', async () => {

@@ -107,10 +107,16 @@ import type { ReviewInboxControllerGetPendingData } from './models/ReviewInboxCo
 import type { ReviewInboxControllerGetPendingResponses } from './models/ReviewInboxControllerGetPendingResponses.gen';
 import type { RunsControllerApproveAllData } from './models/RunsControllerApproveAllData.gen';
 import type { RunsControllerApproveAllResponses } from './models/RunsControllerApproveAllResponses.gen';
+import type { RunsControllerCsvReportData } from './models/RunsControllerCsvReportData.gen';
+import type { RunsControllerCsvReportResponses } from './models/RunsControllerCsvReportResponses.gen';
 import type { RunsControllerDetailData } from './models/RunsControllerDetailData.gen';
 import type { RunsControllerDetailResponses } from './models/RunsControllerDetailResponses.gen';
 import type { RunsControllerFinishData } from './models/RunsControllerFinishData.gen';
 import type { RunsControllerFinishResponses } from './models/RunsControllerFinishResponses.gen';
+import type { RunsControllerHtmlReportData } from './models/RunsControllerHtmlReportData.gen';
+import type { RunsControllerHtmlReportResponses } from './models/RunsControllerHtmlReportResponses.gen';
+import type { RunsControllerJunitReportData } from './models/RunsControllerJunitReportData.gen';
+import type { RunsControllerJunitReportResponses } from './models/RunsControllerJunitReportResponses.gen';
 import type { RunsControllerListData } from './models/RunsControllerListData.gen';
 import type { RunsControllerListResponses } from './models/RunsControllerListResponses.gen';
 import type { RunsControllerStatusData } from './models/RunsControllerStatusData.gen';
@@ -131,6 +137,8 @@ import type { TestsQueriesControllerGetVariantsResponses } from './models/TestsQ
 import type { TestsQueriesControllerGetVisualTestDetailsData } from './models/TestsQueriesControllerGetVisualTestDetailsData.gen';
 import type { TestsQueriesControllerGetVisualTestDetailsErrors } from './models/TestsQueriesControllerGetVisualTestDetailsErrors.gen';
 import type { TestsQueriesControllerGetVisualTestDetailsResponses } from './models/TestsQueriesControllerGetVisualTestDetailsResponses.gen';
+import type { TrendsControllerGetData } from './models/TrendsControllerGetData.gen';
+import type { TrendsControllerGetResponses } from './models/TrendsControllerGetResponses.gen';
 import type { UploadControllerUploadData } from './models/UploadControllerUploadData.gen';
 import type { UploadControllerUploadErrors } from './models/UploadControllerUploadErrors.gen';
 import type { UploadControllerUploadResponses } from './models/UploadControllerUploadResponses.gen';
@@ -616,6 +624,33 @@ export const runsControllerList = <ThrowOnError extends boolean = false>(options
 });
 
 /**
+ * JUnit XML for a run (pending review is a failure)
+ */
+export const runsControllerJunitReport = <ThrowOnError extends boolean = false>(options: Options<RunsControllerJunitReportData, ThrowOnError>): RequestResult<RunsControllerJunitReportResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerJunitReportResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}/report/junit',
+    ...options
+});
+
+/**
+ * Self-contained HTML report for a run
+ */
+export const runsControllerHtmlReport = <ThrowOnError extends boolean = false>(options: Options<RunsControllerHtmlReportData, ThrowOnError>): RequestResult<RunsControllerHtmlReportResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerHtmlReportResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}/report/html',
+    ...options
+});
+
+/**
+ * CSV of the tests and outcomes of a run
+ */
+export const runsControllerCsvReport = <ThrowOnError extends boolean = false>(options: Options<RunsControllerCsvReportData, ThrowOnError>): RequestResult<RunsControllerCsvReportResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerCsvReportResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}/report/csv',
+    ...options
+});
+
+/**
  * Read a run with its pending and approved work
  */
 export const runsControllerDetail = <ThrowOnError extends boolean = false>(options: Options<RunsControllerDetailData, ThrowOnError>): RequestResult<RunsControllerDetailResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerDetailResponses, unknown, ThrowOnError>({
@@ -648,6 +683,15 @@ export const runsControllerFinish = <ThrowOnError extends boolean = false>(optio
 export const runsControllerApproveAll = <ThrowOnError extends boolean = false>(options: Options<RunsControllerApproveAllData, ThrowOnError>): RequestResult<RunsControllerApproveAllResponses, unknown, ThrowOnError> => (options.client ?? client).post<RunsControllerApproveAllResponses, unknown, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/projects/{projectName}/runs/{runKey}/approve-all',
+    ...options
+});
+
+/**
+ * Read comparison volume, review age, approval latency and flake rate
+ */
+export const trendsControllerGet = <ThrowOnError extends boolean = false>(options: Options<TrendsControllerGetData, ThrowOnError>): RequestResult<TrendsControllerGetResponses, unknown, ThrowOnError> => (options.client ?? client).get<TrendsControllerGetResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/trends',
     ...options
 });
 

@@ -2721,6 +2721,129 @@
         ]
       }
     },
+    "/projects/{projectName}/runs/{runKey}/report/junit": {
+      "get": {
+        "operationId": "RunsController_junitReport",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "JUnit XML for a run (pending review is a failure)",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/projects/{projectName}/runs/{runKey}/report/html": {
+      "get": {
+        "operationId": "RunsController_htmlReport",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Self-contained HTML report for a run",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/projects/{projectName}/runs/{runKey}/report/csv": {
+      "get": {
+        "operationId": "RunsController_csvReport",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "CSV of the tests and outcomes of a run",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
     "/projects/{projectName}/runs/{runKey}": {
       "get": {
         "operationId": "RunsController_detail",
@@ -2910,6 +3033,48 @@
         "summary": "Approve every pending comparison of a run",
         "tags": [
           "Runs"
+        ]
+      }
+    },
+    "/projects/{projectName}/trends": {
+      "get": {
+        "operationId": "TrendsController_get",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 365,
+              "default": 30,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrendsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read comparison volume, review age, approval latency and flake rate",
+        "tags": [
+          "Reports"
         ]
       }
     },
@@ -5400,6 +5565,121 @@
         "required": [
           "approved",
           "failed"
+        ]
+      },
+      "DailyOutcomeDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "example": "2026-01-01"
+          },
+          "changed": {
+            "type": "number"
+          },
+          "unchanged": {
+            "type": "number"
+          },
+          "withinThreshold": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "changed",
+          "unchanged",
+          "withinThreshold"
+        ]
+      },
+      "PendingReviewTrendDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "avgSeconds": {
+            "type": "number"
+          },
+          "maxSeconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "count",
+          "avgSeconds",
+          "maxSeconds"
+        ]
+      },
+      "ApprovalLatencyDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "avgSeconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "count",
+          "avgSeconds"
+        ]
+      },
+      "FlakeRateDto": {
+        "type": "object",
+        "properties": {
+          "flakyTests": {
+            "type": "number"
+          },
+          "totalTests": {
+            "type": "number"
+          },
+          "rate": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "flakyTests",
+          "totalTests",
+          "rate"
+        ]
+      },
+      "TrendsDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "days": {
+            "type": "number"
+          },
+          "daily": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyOutcomeDto"
+            }
+          },
+          "pendingReview": {
+            "$ref": "#/components/schemas/PendingReviewTrendDto"
+          },
+          "approvalLatency": {
+            "$ref": "#/components/schemas/ApprovalLatencyDto"
+          },
+          "flakeRate": {
+            "$ref": "#/components/schemas/FlakeRateDto"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "days",
+          "daily",
+          "pendingReview",
+          "approvalLatency",
+          "flakeRate"
         ]
       },
       "DetailedHealthDto": {

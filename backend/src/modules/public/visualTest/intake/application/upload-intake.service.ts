@@ -448,6 +448,7 @@ export class UploadIntake {
     const jobData: JobData = {
       testKind: kind,
       testId,
+      testName: params.testName,
       candidateHash: contentHash,
       candidate: { id: candidate.id, url: fileUrl },
       baseline: { id: baseline.id, url: baseline.fileUrl },

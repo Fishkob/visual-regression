@@ -21,6 +21,7 @@ import { CandidateReclamationService } from '@public/visualTest/core/application
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
+import { ComparisonOutcomeService } from '@public/visualTest/core/application/services/comparison-outcome.service';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { isThresholdExceeded } from '@public/visualTest/core/domain/policies/threshold-policy';
 import type { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
@@ -48,6 +49,7 @@ export class ComparisonJobProcessor {
     private readonly reclamation: CandidateReclamationService,
     private readonly screenshots: UnifiedScreenshotRepository,
     private readonly webhooks: WebhookDispatchService,
+    private readonly outcomes: ComparisonOutcomeService,
     @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
     @Inject(COMPARISON_ENGINES) private readonly engines: ComparisonEngines,
   ) {}
@@ -100,10 +102,13 @@ export class ComparisonJobProcessor {
       const mismatch = mismatchCount(result);
       if (mismatch === 0) {
         await this.handleUnchanged(data);
+        await this.recordOutcome(data, 'unchanged', 0);
       } else if (this.isWithinThreshold(data.testKind, mismatch, baseline)) {
         await this.handleWithinThreshold(data, mismatch);
+        await this.recordOutcome(data, 'within_threshold', mismatch);
       } else {
-        await this.handleDiff(data, result);
+        const comparisonId = await this.handleDiff(data, result);
+        await this.recordOutcome(data, 'changed', mismatch, comparisonId);
       }
     } catch (err) {
       if (err instanceof SupersededDiffError) {
@@ -294,50 +299,76 @@ export class ComparisonJobProcessor {
   private async handleDiff(
     data: JobData,
     result: ComparisonResult,
-  ): Promise<void> {
+  ): Promise<string> {
     // Per-attempt unique artifact name: a stall-reclaimed job re-runs with the
     // same payload, so the diff object name must not be frozen in the payload.
     // A fresh name per attempt means a re-run writes a new object instead of
     // overwriting the artifact its sibling comparison references.
     const diffName = this.diffName(data);
-    await this.workflow.executeWithStoredFile({
-      store: () =>
-        this.storage.putObject(
-          diffName,
-          result.diffOutput,
-          this.diffMimeType(data),
-        ),
-      change: async (diffUrl) => {
-        const current = await this.loadCurrentCandidateOrFail(data);
-        const persisted = await this.persistDiff(
-          data,
-          result,
-          diffUrl,
-          current.id,
-        );
-        // Outbox write in the same transaction as the comparison: a pending
-        // review never commits without its notification rows.
-        await this.webhooks.enqueueReviewRequested({
-          testId: data.testId,
-          comparisonId: persisted.comparisonId,
-          kind: data.testKind,
-          variant: data.variant,
-          mismatchPixelCount: mismatchCount(result),
-        });
-        return change([data.testId], {
-          staleUrls: persisted.staleDiffUrls,
-          events: [
-            {
-              kind: 'comparison_completed',
-              testKind: data.testKind,
-              visualTestId: data.testId,
-              comparisonId: persisted.comparisonId,
-              outcome: 'changed',
-              diffMetric: mismatchCount(result),
-            },
-          ],
-        });
-      },
+    return this.workflow
+      .executeWithStoredFile<{ comparisonId: string }>({
+        store: () =>
+          this.storage.putObject(
+            diffName,
+            result.diffOutput,
+            this.diffMimeType(data),
+          ),
+        change: async (diffUrl) => {
+          const current = await this.loadCurrentCandidateOrFail(data);
+          const persisted = await this.persistDiff(
+            data,
+            result,
+            diffUrl,
+            current.id,
+          );
+          // Outbox write in the same transaction as the comparison: a pending
+          // review never commits without its notification rows.
+          await this.webhooks.enqueueReviewRequested({
+            testId: data.testId,
+            comparisonId: persisted.comparisonId,
+            kind: data.testKind,
+            variant: data.variant,
+            mismatchPixelCount: mismatchCount(result),
+          });
+          return {
+            change: change([data.testId], {
+              staleUrls: persisted.staleDiffUrls,
+              events: [
+                {
+                  kind: 'comparison_completed',
+                  testKind: data.testKind,
+                  visualTestId: data.testId,
+                  comparisonId: persisted.comparisonId,
+                  outcome: 'changed',
+                  diffMetric: mismatchCount(result),
+                },
+              ],
+            }),
+            result: { comparisonId: persisted.comparisonId },
+          };
+        },
+      })
+      .then((outcome) => outcome.result.comparisonId);
+  }
+
+  private recordOutcome(
+    data: JobData,
+    outcome: 'unchanged' | 'within_threshold' | 'changed',
+    mismatch: number,
+    comparisonId?: string,
+  ): Promise<void> {
+    return this.outcomes.record({
+      testId: data.testId,
+      testName: data.testName ?? 'unknown',
+      kind: data.testKind,
+      viewport: data.variant.viewport,
+      browser: data.variant.browser,
+      environment: data.variant.environment,
+      outcome,
+      mismatchMetric: mismatch,
+      ...(comparisonId ? { comparisonId } : {}),
+      ...(data.runId ? { runId: data.runId } : {}),
+      ...(data.runKey ? { runKey: data.runKey } : {}),
     });
   }
 
