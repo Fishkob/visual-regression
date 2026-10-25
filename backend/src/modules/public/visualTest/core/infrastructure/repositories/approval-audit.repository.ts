@@ -11,6 +11,8 @@ export interface ApprovalAuditEntry {
   testName: string;
   branchName: string | null;
   testId: string;
+  runId?: string | null;
+  runKey?: string | null;
   testKind: TestKind;
   variantViewport: string;
   variantBrowser: string;

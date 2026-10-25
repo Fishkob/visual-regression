@@ -32,6 +32,9 @@ import {
 } from '@common/domain/upload-outcome';
 import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
 import type { JobData } from '@common/domain/job-data.types';
+import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
+import type { ResolvedBranch } from '@public/visualTest/core/application/services/branch-resolver.service';
+import type { Run } from '@/prisma/client';
 import type { AnyUploadResult } from '@common/domain/unified-upload-result.type';
 import { DEFAULT_BRANCH_NAME } from '@public/visualTest/core/domain/constants/branch.constants';
 import type { TestKind } from '@common/domain/test-kind';
@@ -85,6 +88,7 @@ export class UploadIntake {
     private readonly screenshots: UnifiedScreenshotRepository,
     @Inject(JOB_PRODUCER) private readonly jobQueue: IJobProducer,
     @Inject(PDF_PAGE_COUNTER) private readonly pageCounter: IPdfPageCounter,
+    private readonly runs: RunResolver,
   ) {}
 
   async upload(params: UploadParams, kind: TestKind): Promise<AnyUploadResult> {
@@ -139,7 +143,7 @@ export class UploadIntake {
             return this.applyStoredChange(
               kind,
               fresh.decision,
-              fresh.branchName,
+              fresh.branch,
               params,
               fileUrl,
               pageCount,
@@ -159,6 +163,7 @@ export class UploadIntake {
     const outcome = await this.workflow.executeStateChange<{
       superseded: boolean;
       branchName?: string;
+      runKey?: string;
     }>(async () => {
       // Read-only re-resolution inside the transaction: the gate must not
       // ensureTest, otherwise a test deleted between the gate and here is
@@ -168,14 +173,22 @@ export class UploadIntake {
       if (!fresh) {
         return { change: noop(), result: { superseded: false } };
       }
+      const run = await this.resolveRun(fresh.branch, params);
       const superseded = await this.supersedeIdentical(fresh.testId, params);
       return {
         change: superseded,
-        result: { superseded: true, branchName: fresh.branchName },
+        result: {
+          superseded: true,
+          branchName: fresh.branch.branchName,
+          runKey: run?.key,
+        },
       };
     });
     if (!outcome.result.superseded) return null;
-    return identicalResult(outcome.result.branchName ?? DEFAULT_BRANCH_NAME);
+    return identicalResult(
+      outcome.result.branchName ?? DEFAULT_BRANCH_NAME,
+      outcome.result.runKey,
+    );
   }
 
   // An identical upload retires the variant's pending comparison + candidate
@@ -202,11 +215,12 @@ export class UploadIntake {
   private async applyStoredChange(
     kind: TestKind,
     fresh: UploadDecision,
-    branchName: string,
+    branch: ResolvedBranch,
     params: UploadParams,
     fileUrl: string,
     pageCount?: number,
   ): Promise<StateChangeOutcome<AnyUploadResult>> {
+    const run = await this.resolveRun(branch, params);
     switch (fresh.status) {
       case ComparisonOutcome.IDENTICAL: {
         const identical = await this.supersedeIdentical(fresh.testId, params);
@@ -217,7 +231,7 @@ export class UploadIntake {
             // retired diff artifacts.
             staleUrls: [fileUrl, ...(identical.staleUrls ?? [])],
           }),
-          result: identicalResult(branchName),
+          result: identicalResult(branch.branchName, run?.key),
         };
       }
       case ComparisonOutcome.BASELINE_CREATED: {
@@ -237,7 +251,8 @@ export class UploadIntake {
             testId: fresh.testId,
             fileUrl,
             signedFileUrl: this.storage.signUrl(fileUrl),
-            branch: branchName,
+            branch: branch.branchName,
+            ...(run?.key ? { runKey: run.key } : {}),
           } as const,
         };
       }
@@ -248,6 +263,7 @@ export class UploadIntake {
           params,
           fileUrl,
           pageCount,
+          run,
         );
         return {
           change: change([fresh.testId], {
@@ -260,7 +276,7 @@ export class UploadIntake {
               },
             ],
           }),
-          result: this.queuedResult(kind, branchName, jobId),
+          result: this.queuedResult(kind, branch.branchName, jobId, run?.key),
         };
       }
       default:
@@ -285,6 +301,7 @@ export class UploadIntake {
     kind: TestKind,
     branch: string,
     jobId: string,
+    runKey?: string,
   ): AnyUploadResult {
     const config = UPLOAD_KIND_CONFIG[kind];
     return {
@@ -293,7 +310,22 @@ export class UploadIntake {
       message: config.queuedMessage,
       branch,
       jobId,
+      ...(runKey ? { runKey } : {}),
     };
+  }
+
+  private resolveRun(
+    branch: ResolvedBranch,
+    params: UploadParams,
+  ): Promise<Run | null> {
+    return this.runs.resolveForUpload({
+      projectId: branch.projectId,
+      branchId: branch.branchId,
+      runKey: params.runKey,
+      commitSha: params.commitSha,
+      commitMessage: params.commitMessage,
+      ciUrl: params.ciUrl,
+    });
   }
 
   private async writeBaseline(
@@ -317,6 +349,7 @@ export class UploadIntake {
     params: UploadParams,
     fileUrl: string,
     pageCount?: number,
+    run?: Run | null,
   ): Promise<{ staleUrls: string[]; jobId: string }> {
     const staleUrls = await this.retirement.supersedeForVariant(
       decision.testId,
@@ -328,6 +361,7 @@ export class UploadIntake {
       params,
       fileUrl,
       pageCount,
+      run,
     );
     const jobId = await this.jobQueue.enqueue(prepared.jobData);
     return { staleUrls: [...staleUrls, ...prepared.staleUrls], jobId };
@@ -354,6 +388,7 @@ export class UploadIntake {
     params: UploadParams,
     fileUrl: string,
     pageCount?: number,
+    run?: Run | null,
   ): Promise<PreparedComparison> {
     const { testId, contentHash, baseline } = decision;
     const variant = toVariant(params);
@@ -370,6 +405,7 @@ export class UploadIntake {
       candidate: { id: candidate.id, url: fileUrl },
       baseline: { id: baseline.id, url: baseline.fileUrl },
       variant: variant.toRecord(),
+      ...(run ? { runId: run.id, runKey: run.key } : {}),
     };
     // The replaced candidate URL funnels through the same "safe to reclaim"
     // owner every other reclamation uses, so an old candidate file that a
@@ -397,11 +433,12 @@ function assertKindMatchesMime(kind: TestKind, mimetype: string): void {
 // The identical outcome, single-sourced: both the fast path and the stored
 // path (which re-resolves after a concurrent baseline replacement) return the
 // same shape, so the upload result contract edits in one place.
-function identicalResult(branch: string): AnyUploadResult {
+function identicalResult(branch: string, runKey?: string): AnyUploadResult {
   return {
     status: ComparisonOutcome.IDENTICAL,
     mismatchPixelCount: 0,
     branch,
+    ...(runKey ? { runKey } : {}),
   };
 }
 

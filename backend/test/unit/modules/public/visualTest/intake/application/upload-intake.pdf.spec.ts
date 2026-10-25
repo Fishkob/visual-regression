@@ -34,6 +34,7 @@ import {
   IPdfPageCounter,
 } from '@common/domain/pdf-sidecar.interface';
 import { MAX_PDF_PAGES } from '@config/upload-limits';
+import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { AppLoggerService } from '@common/logging/app-logger.service';
@@ -182,6 +183,10 @@ describe('UploadIntake (pdf kind)', () => {
         { provide: TestStatusService, useValue: statusService },
         { provide: METRICS_RECORDER, useValue: metrics },
         { provide: PDF_PAGE_COUNTER, useValue: pageCounter },
+        {
+          provide: RunResolver,
+          useValue: { resolveForUpload: vi.fn().mockResolvedValue(null) },
+        },
       ],
     }).compile();
 

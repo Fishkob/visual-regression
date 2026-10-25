@@ -10,4 +10,5 @@ export const MAINTENANCE_LOCK_IDS = {
   unreferencedObjectCleanup: 1004,
   rateLimitBucketCleanup: 1005,
   sessionCleanup: 1006,
+  runAutoFinish: 1007,
 } as const;

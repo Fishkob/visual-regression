@@ -199,6 +199,8 @@ export class ApprovalService {
             testName,
             branchName: branchName ?? null,
             testId: test.id,
+            runId: comparison.runId ?? null,
+            runKey: comparison.runKey ?? null,
             testKind: kind,
             variantViewport: decision.newBaseline.variant.viewport,
             variantBrowser: decision.newBaseline.variant.browser,

@@ -37,6 +37,8 @@ export function toComparisonEntityWithRelations(
     pageCount: prisma.pageCount ?? undefined,
     mismatchPageCount: prisma.mismatchPageCount ?? undefined,
     diffPdfUrl: prisma.diffPdfUrl ?? undefined,
+    runId: prisma.runId ?? undefined,
+    runKey: prisma.runKey ?? undefined,
     baseline,
     candidate,
   });

@@ -20,6 +20,13 @@ export type UploadControllerUploadData = {
          * Branch the new branch inherits from (defaults to the project default branch)
          */
         targetBranch?: string;
+        /**
+         * Groups this upload with the rest of a CI run
+         */
+        runKey?: string;
+        commitSha?: string;
+        commitMessage?: string;
+        ciUrl?: string;
     };
     path: {
         projectName: string;

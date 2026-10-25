@@ -9,6 +9,10 @@ export type ComparisonQueuedResultDto = {
      * Branch the upload landed on (the resolved default when the request omitted it)
      */
     branch: string;
+    /**
+     * Run key echoed when the upload belonged to a run
+     */
+    runKey?: string;
     error: ComparisonErrorCode;
     message: string;
     /**

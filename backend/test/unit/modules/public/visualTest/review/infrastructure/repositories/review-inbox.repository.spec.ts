@@ -77,6 +77,7 @@ describe('ReviewInboxRepository', () => {
       testName: 'login',
       kind: 'image',
       branchName: 'feature/x',
+      runKey: null,
       isDefaultBranch: false,
       variant: {
         viewport: '1920x1080',

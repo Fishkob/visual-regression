@@ -108,7 +108,7 @@ describe('UploadDecisionResolver', () => {
 
       const result = await resolver.resolveIdentical(params, 'same-hash');
 
-      expect(result).toEqual({ testId: 'test-1', branchName: 'main' });
+      expect(result).toEqual({ testId: 'test-1', branch: mainBranch });
       expect(branches.findReadOrNull).toHaveBeenCalledWith(
         'test-project',
         undefined,

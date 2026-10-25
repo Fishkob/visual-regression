@@ -16,6 +16,7 @@ export interface PendingReviewRow {
   testName: string;
   kind: string;
   branchName: string;
+  runKey: string | null;
   isDefaultBranch: boolean;
   variant: { viewport: string; browser: string; environment: string };
   mismatchPixelCount: number;
@@ -71,6 +72,7 @@ export class ReviewInboxRepository {
       kind?: string;
       groupId?: string;
       q?: string;
+      runKey?: string;
     },
   ): Promise<{
     data: PendingReviewRow[];
@@ -107,6 +109,7 @@ export class ReviewInboxRepository {
     const where: Prisma.UnifiedComparisonWhereInput = {
       ...PENDING_APPROVAL_STATUS_FILTER,
       test: testWhere,
+      ...(filters?.runKey ? { runKey: filters.runKey } : {}),
     };
     const { data, total } = await findManyWithCount<InboxComparisonRow>(
       this.client.unifiedComparison,
@@ -138,6 +141,7 @@ export class ReviewInboxRepository {
           testName: row.test.name,
           kind: row.test.kind,
           branchName,
+          runKey: row.runKey ?? null,
           isDefaultBranch:
             row.test.branch.id === row.test.branch.project.defaultBranchId,
           variant: {

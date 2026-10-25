@@ -91,6 +91,20 @@ export class UploadController {
           description:
             'Branch the new branch inherits from (defaults to the project default branch)',
         },
+        runKey: {
+          type: 'string',
+          example: 'ci-12345',
+          description: 'Groups this upload with the rest of a CI run',
+        },
+        commitSha: { type: 'string', example: '9fceb02' },
+        commitMessage: {
+          type: 'string',
+          example: 'feat: add checkout v2',
+        },
+        ciUrl: {
+          type: 'string',
+          example: 'https://github.com/org/repo/actions/runs/1',
+        },
       },
     },
   })
@@ -134,6 +148,10 @@ export class UploadController {
         browser: body.browser,
         environment: body.environment,
         file,
+        runKey: body.runKey,
+        commitSha: body.commitSha,
+        commitMessage: body.commitMessage,
+        ciUrl: body.ciUrl,
       },
       testKind,
     );

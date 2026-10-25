@@ -10,6 +10,7 @@ export interface IdenticalResult {
   status: ComparisonOutcome.IDENTICAL;
   mismatchPixelCount: number;
   branch: string;
+  runKey?: string;
 }
 
 export interface BaselineCreatedResult {
@@ -18,6 +19,7 @@ export interface BaselineCreatedResult {
   fileUrl: string;
   signedFileUrl: string;
   branch: string;
+  runKey?: string;
 }
 
 export interface ComparisonQueuedResult {
@@ -26,6 +28,7 @@ export interface ComparisonQueuedResult {
   message: string;
   branch: string;
   jobId: string;
+  runKey?: string;
 }
 
 export type AnyUploadResult =

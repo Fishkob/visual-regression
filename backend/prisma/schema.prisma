@@ -17,6 +17,7 @@ model Project {
   defaultBranch   Branch?       @relation("DefaultBranch", fields: [defaultBranchId], references: [id], onDelete: SetNull)
   branches        Branch[]      @relation("ProjectBranches")
   webhooks        WebhookEndpoint[]
+  runs            Run[]
 
   @@index([groupId])
 }
@@ -33,6 +34,7 @@ model Branch {
   isArchived      Boolean      @default(false)
   createdAt       DateTime     @default(now())
   tests           UnifiedTest[]
+  runs            Run[]
 
   @@unique([projectId, name])
   @@index([targetBranchId])
@@ -101,6 +103,8 @@ model UnifiedComparison {
   id                 String              @id @default(cuid())
   test               UnifiedTest         @relation(fields: [testId], references: [id], onDelete: Cascade)
   testId             String
+  runId              String?
+  runKey             String?
   pageCount          Int?
   mismatchPixelCount Int
   mismatchPageCount  Int?
@@ -120,6 +124,8 @@ model UnifiedComparison {
   @@index([candidateId])
   @@index([diffImageUrl])
   @@index([diffPdfUrl])
+  @@index([runId])
+  @@index([runKey])
   @@map("UnifiedComparison")
 }
 
@@ -133,6 +139,8 @@ model Approval {
   testName           String
   branchName         String?
   testId             String
+  runId              String?
+  runKey             String?
   testKind           TestKind
   variantViewport    String
   variantBrowser     String
@@ -150,6 +158,8 @@ model Approval {
 
   @@index([projectName, testName, approvedAt])
   @@index([approvedAt])
+  @@index([runId])
+  @@index([runKey])
   @@map("Approval")
 }
 
@@ -244,9 +254,33 @@ model AuditEvent {
   @@map("AuditEvent")
 }
 
+model Run {
+  id             String    @id @default(cuid())
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId      String
+  branch         Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branchId       String
+  key            String
+  commitSha      String?
+  commitMessage  String?
+  ciUrl          String?
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+  lastActivityAt DateTime  @default(now())
+  finishedAt     DateTime?
+  finishedBy     String?
+
+  @@unique([branchId, key])
+  @@index([projectId, createdAt])
+  @@index([finishedAt, lastActivityAt])
+  @@map("Run")
+}
+
 model ComparisonJob {
   id                  String        @id @default(cuid())
   testId              String
+  runId               String?
+  runKey              String?
   payload             Json
   candidateId         String?
   variantViewport     String?
@@ -268,6 +302,8 @@ model ComparisonJob {
   @@index([status, completedAt])
   @@index([testId])
   @@index([createdAt])
+  @@index([runId])
+  @@index([runKey])
 }
 
 model User {

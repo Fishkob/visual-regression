@@ -15,6 +15,7 @@ import { ComparisonRetirementService } from '@public/visualTest/core/application
 import { CandidateReclamationService } from '@public/visualTest/core/application/services/candidate-reclamation.service';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { ThresholdUpdateService } from '@public/visualTest/core/application/services/threshold-update.service';
+import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
 import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
 
 @Module({
@@ -38,6 +39,7 @@ import { BaselineHistoryService } from '@public/visualTest/core/application/serv
     StateChangeWorkflow,
     ThresholdUpdateService,
     BaselineHistoryService,
+    RunResolver,
   ],
   exports: [
     BranchBaselineResolver,
@@ -50,6 +52,7 @@ import { BaselineHistoryService } from '@public/visualTest/core/application/serv
     StateChangeWorkflow,
     ThresholdUpdateService,
     BaselineHistoryService,
+    RunResolver,
   ],
 })
 export class VisualTestApplicationModule {}

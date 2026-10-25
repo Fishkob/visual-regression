@@ -366,6 +366,8 @@ export class ComparisonJobProcessor {
       candidateId,
       diffUrl,
       result,
+      ...(data.runId ? { runId: data.runId } : {}),
+      ...(data.runKey ? { runKey: data.runKey } : {}),
     });
     return { comparisonId: created.id, staleDiffUrls: created.staleUrls };
   }

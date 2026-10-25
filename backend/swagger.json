@@ -293,6 +293,23 @@
                     "type": "string",
                     "example": "main",
                     "description": "Branch the new branch inherits from (defaults to the project default branch)"
+                  },
+                  "runKey": {
+                    "type": "string",
+                    "example": "ci-12345",
+                    "description": "Groups this upload with the rest of a CI run"
+                  },
+                  "commitSha": {
+                    "type": "string",
+                    "example": "9fceb02"
+                  },
+                  "commitMessage": {
+                    "type": "string",
+                    "example": "feat: add checkout v2"
+                  },
+                  "ciUrl": {
+                    "type": "string",
+                    "example": "https://github.com/org/repo/actions/runs/1"
                   }
                 }
               }
@@ -2007,6 +2024,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "runKey",
+            "required": false,
+            "in": "query",
+            "description": "Filter pending reviews by CI run key",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2637,6 +2663,256 @@
         ]
       }
     },
+    "/projects/{projectName}/runs": {
+      "get": {
+        "operationId": "RunsController_list",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedRunDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List CI runs of a project (newest first)",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/projects/{projectName}/runs/{runKey}": {
+      "get": {
+        "operationId": "RunsController_detail",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read a run with its pending and approved work",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/projects/{projectName}/runs/{runKey}/status": {
+      "get": {
+        "operationId": "RunsController_status",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunStatusResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read the CI gate status of a run (pending/failed/passed/open)",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/projects/{projectName}/runs/{runKey}/finish": {
+      "post": {
+        "operationId": "RunsController_finish",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunStatusResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Finish a run (idempotent)",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
+    "/projects/{projectName}/runs/{runKey}/approve-all": {
+      "post": {
+        "operationId": "RunsController_approveAll",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runKey",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunApproveAllResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Approve every pending comparison of a run",
+        "tags": [
+          "Runs"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -3211,6 +3487,10 @@
             "example": "feature/checkout-v2",
             "description": "Branch the upload landed on (the resolved default when the request omitted it)"
           },
+          "runKey": {
+            "type": "string",
+            "description": "Run key echoed when the upload belonged to a run"
+          },
           "testId": {
             "type": "string"
           },
@@ -3246,6 +3526,10 @@
             "example": "feature/checkout-v2",
             "description": "Branch the upload landed on (the resolved default when the request omitted it)"
           },
+          "runKey": {
+            "type": "string",
+            "description": "Run key echoed when the upload belonged to a run"
+          },
           "mismatchPixelCount": {
             "type": "number"
           }
@@ -3277,6 +3561,10 @@
             "type": "string",
             "example": "feature/checkout-v2",
             "description": "Branch the upload landed on (the resolved default when the request omitted it)"
+          },
+          "runKey": {
+            "type": "string",
+            "description": "Run key echoed when the upload belonged to a run"
           },
           "error": {
             "allOf": [
@@ -4384,6 +4672,10 @@
             "type": "string",
             "example": "main"
           },
+          "runKey": {
+            "type": "string",
+            "nullable": true
+          },
           "isDefaultBranch": {
             "type": "boolean",
             "example": true
@@ -4843,6 +5135,236 @@
         },
         "required": [
           "queued"
+        ]
+      },
+      "RunDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "branchName": {
+            "type": "string"
+          },
+          "commitSha": {
+            "type": "object",
+            "nullable": true
+          },
+          "commitMessage": {
+            "type": "object",
+            "nullable": true
+          },
+          "ciUrl": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastActivityAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "finishedAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "finishedBy": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "branchName",
+          "createdAt",
+          "lastActivityAt"
+        ]
+      },
+      "PaginatedRunDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "RunStatusDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "pending",
+              "failed",
+              "passed"
+            ]
+          },
+          "pendingComparisons": {
+            "type": "number"
+          },
+          "pendingJobs": {
+            "type": "number"
+          },
+          "failedJobs": {
+            "type": "number"
+          },
+          "approved": {
+            "type": "number"
+          },
+          "testCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "state",
+          "pendingComparisons",
+          "pendingJobs",
+          "failedJobs",
+          "approved",
+          "testCount"
+        ]
+      },
+      "RunPendingDto": {
+        "type": "object",
+        "properties": {
+          "comparisonId": {
+            "type": "string"
+          },
+          "testName": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "branchName": {
+            "type": "string"
+          },
+          "variant": {
+            "type": "object"
+          },
+          "mismatchPixelCount": {
+            "type": "number"
+          },
+          "mismatchPageCount": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "comparisonId",
+          "testName",
+          "kind",
+          "branchName",
+          "variant",
+          "mismatchPixelCount",
+          "createdAt"
+        ]
+      },
+      "RunApprovalDto": {
+        "type": "object",
+        "properties": {
+          "comparisonId": {
+            "type": "string"
+          },
+          "testName": {
+            "type": "string"
+          },
+          "approvedBy": {
+            "type": "string"
+          },
+          "approvedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "comparisonId",
+          "testName",
+          "approvedBy",
+          "approvedAt"
+        ]
+      },
+      "RunDetailDto": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/RunDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatusDto"
+          },
+          "pending": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunPendingDto"
+            }
+          },
+          "approvals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunApprovalDto"
+            }
+          }
+        },
+        "required": [
+          "run",
+          "status",
+          "pending",
+          "approvals"
+        ]
+      },
+      "RunStatusResultDto": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/RunDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatusDto"
+          }
+        },
+        "required": [
+          "run",
+          "status"
+        ]
+      },
+      "RunApproveAllResultDto": {
+        "type": "object",
+        "properties": {
+          "approved": {
+            "type": "number"
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "approved",
+          "failed"
         ]
       },
       "DetailedHealthDto": {

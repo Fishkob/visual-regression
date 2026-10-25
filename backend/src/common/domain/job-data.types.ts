@@ -8,6 +8,8 @@ import type { VariantJson } from '@common/domain/variant-record';
 export interface JobData {
   testKind: TestKind;
   testId: string;
+  runId?: string;
+  runKey?: string;
   candidateHash: string;
   baseline: { id: string; url: string };
   candidate: { id: string; url: string };

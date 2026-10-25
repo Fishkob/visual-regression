@@ -90,6 +90,8 @@ export class PostgresJobQueue
       const job = await this.txCtx.client.comparisonJob.create({
         data: {
           testId,
+          runId: data.runId ?? null,
+          runKey: data.runKey ?? null,
           payload: dataWithTrace,
           candidateId: data.candidate.id,
           variantViewport: data.variant.viewport,

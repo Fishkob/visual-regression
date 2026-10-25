@@ -32,6 +32,7 @@ import {
   ComparisonOutcome,
 } from '@public/visualTest/core/domain/types/visual-test.types';
 import { PDF_PAGE_COUNTER } from '@common/domain/pdf-sidecar.interface';
+import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
 import { createMock } from '@test/utils/create-mock';
 import {
   createMockStorage,
@@ -54,6 +55,7 @@ describe('UploadIntake (image kind)', () => {
   let comparisons: Mocked<UnifiedComparisonsRepository>;
   let retirement: Mocked<ComparisonRetirementService>;
   let metrics: Mocked<IMetricsRecorder>;
+  let runs: Mocked<RunResolver>;
 
   const testBuffer = Buffer.from('test-image-content');
   const testHash = createHash('sha256').update(testBuffer).digest('hex');
@@ -132,6 +134,8 @@ describe('UploadIntake (image kind)', () => {
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
     jobQueue = createMock<IJobProducer>();
     jobQueue.enqueue.mockResolvedValue('job-1');
+    runs = createMock<RunResolver>();
+    runs.resolveForUpload.mockResolvedValue(null);
     tracker = createMock<Tracker>();
     tracker.track.mockImplementation(
       (_name: string, fn: () => Promise<unknown>) => fn(),
@@ -166,6 +170,7 @@ describe('UploadIntake (image kind)', () => {
         { provide: TestStatusService, useValue: statusService },
         { provide: METRICS_RECORDER, useValue: metrics },
         { provide: PDF_PAGE_COUNTER, useValue: { count: vi.fn() } },
+        { provide: RunResolver, useValue: runs },
       ],
     }).compile();
 
@@ -430,6 +435,41 @@ describe('UploadIntake (image kind)', () => {
 
     expect(storage.deleteQuietly).toHaveBeenCalledWith(
       `https://storage/${testHash}-${testDate}.png`,
+    );
+  });
+
+  it('links a queued comparison and the result to the resolved run', async () => {
+    tests.ensureTest.mockResolvedValue({ testId: 'test-1' });
+    screenshots.findBaselineByVariant.mockResolvedValue({
+      id: 'base-1',
+      imageUrl: 'https://storage/baseline.png',
+      imageHash: differentHash,
+      pixelDiffThreshold: 0,
+    } as never);
+    storage.putObject.mockResolvedValue(
+      `https://storage/${testHash}-${testDate}.png`,
+    );
+    screenshots.upsertCandidateForVariant.mockResolvedValue({
+      id: 'candidate-1',
+    } as never);
+    runs.resolveForUpload.mockResolvedValue({
+      id: 'run-1',
+      key: 'ci-1',
+    } as never);
+
+    const result = await uploadIntake.upload(
+      { ...baseParams, runKey: 'ci-1', commitSha: 'abc' },
+      'image',
+    );
+
+    expect(runs.resolveForUpload).toHaveBeenCalledWith(
+      expect.objectContaining({ runKey: 'ci-1', commitSha: 'abc' }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({ status: 'comparison_queued', runKey: 'ci-1' }),
+    );
+    expect(jobQueue.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ runId: 'run-1', runKey: 'ci-1' }),
     );
   });
 

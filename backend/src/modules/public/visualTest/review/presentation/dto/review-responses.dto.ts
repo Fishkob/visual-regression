@@ -180,6 +180,12 @@ export class PendingReviewDto {
   @Expose()
   branchName!: string;
 
+  @ApiPropertyOptional({ nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  runKey?: string | null;
+
   @ApiProperty({ example: true })
   @IsBoolean()
   @Expose()

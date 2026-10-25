@@ -9,6 +9,10 @@ export interface UploadParams {
   browser: string;
   environment: string;
   file: Express.Multer.File;
+  runKey?: string;
+  commitSha?: string;
+  commitMessage?: string;
+  ciUrl?: string;
 }
 
 export function toVariant(params: UploadParams): Variant {

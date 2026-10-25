@@ -40,6 +40,8 @@ export class ComparisonEntity {
   readonly pageCount?: number;
   readonly mismatchPageCount?: number;
   readonly diffPdfUrl?: string;
+  readonly runId?: string;
+  readonly runKey?: string;
 
   constructor(params: {
     id: string;
@@ -55,6 +57,8 @@ export class ComparisonEntity {
     pageCount?: number;
     mismatchPageCount?: number;
     diffPdfUrl?: string;
+    runId?: string;
+    runKey?: string;
   }) {
     if (!params.id || params.id.trim() === '') {
       throw new DomainError('Comparison id is required', 'INVALID_STATE');
@@ -97,6 +101,8 @@ export class ComparisonEntity {
     this.pageCount = params.pageCount;
     this.mismatchPageCount = params.mismatchPageCount;
     this.diffPdfUrl = params.diffPdfUrl;
+    this.runId = params.runId;
+    this.runKey = params.runKey;
   }
 
   // Threshold is an image-only concept (PDF threshold updates are rejected), so

@@ -40,6 +40,10 @@ export type ReviewInboxControllerGetPendingData = {
          * Case-insensitive search across the test name and the project name
          */
         q?: string;
+        /**
+         * Filter pending reviews by CI run key
+         */
+        runKey?: string;
     };
     url: '/review/pending';
 };

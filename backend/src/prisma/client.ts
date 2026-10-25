@@ -9,4 +9,5 @@ export {
   type User,
   type Session,
   type ApiKey,
+  type Run,
 } from '../../prisma/generated/client';

@@ -10,6 +10,7 @@ export type PendingReviewDto = {
     testName: string;
     kind: string;
     branchName: string;
+    runKey?: string | null;
     isDefaultBranch: boolean;
     variant: VariantDto;
     mismatchPixelCount: number;

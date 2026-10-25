@@ -51,9 +51,7 @@ describe('WebhookSender', () => {
   });
 
   it('POSTs the JSON payload with signature headers', async () => {
-    fetchMock.mockResolvedValue(
-      new Response('ok', { status: 200 }),
-    );
+    fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
 
     const result = await sender.send(endpoint, delivery);
 
@@ -79,9 +77,7 @@ describe('WebhookSender', () => {
   });
 
   it('reports a non-2xx response with the response body', async () => {
-    fetchMock.mockResolvedValue(
-      new Response('nope', { status: 500 }),
-    );
+    fetchMock.mockResolvedValue(new Response('nope', { status: 500 }));
 
     const result = await sender.send(endpoint, delivery);
 

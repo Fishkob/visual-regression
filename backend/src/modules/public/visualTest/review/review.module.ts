@@ -28,6 +28,8 @@ import { BranchCommandService } from '@public/visualTest/review/application/bran
 import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
 import { WebhooksModule } from '@internal/webhooks/webhooks.module';
 import { AuditModule } from '@internal/audit/audit.module';
+import { RunsController } from '@public/visualTest/review/presentation/controllers/runs.controller';
+import { RunService } from '@public/visualTest/review/application/run.service';
 import { WebhooksController } from '@public/visualTest/review/presentation/controllers/webhooks.controller';
 import { WebhookSettingsService } from '@public/visualTest/review/application/webhook-settings.service';
 
@@ -52,6 +54,7 @@ import { WebhookSettingsService } from '@public/visualTest/review/application/we
     BranchesController,
     BaselineHistoryController,
     WebhooksController,
+    RunsController,
   ],
   providers: [
     TestQueryService,
@@ -68,6 +71,7 @@ import { WebhookSettingsService } from '@public/visualTest/review/application/we
     BranchReadRepository,
     BranchCommandService,
     WebhookSettingsService,
+    RunService,
   ],
 })
 export class ReviewModule {}

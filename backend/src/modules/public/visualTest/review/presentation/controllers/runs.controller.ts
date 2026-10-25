@@ -1,0 +1,160 @@
+import {
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
+import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { BranchQuery } from '@common/http/branch-query.decorator';
+import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import {
+  createPaginatedResponse,
+  PaginatedResponseDto,
+} from '@common/dto/paginated-response.dto';
+import { RunService } from '@public/visualTest/review/application/run.service';
+import {
+  RunApproveAllResultDto,
+  RunDetailDto,
+  RunDto,
+  RunListQueryDto,
+  RunStatusResultDto,
+} from '@public/visualTest/review/presentation/dto/run.dto';
+import type { RunWithBranch } from '@public/visualTest/core/infrastructure/repositories/run.repository';
+
+function toRunDto(run: RunWithBranch): RunDto {
+  return {
+    id: run.id,
+    key: run.key,
+    branchName: run.branch.name,
+    commitSha: run.commitSha,
+    commitMessage: run.commitMessage,
+    ciUrl: run.ciUrl,
+    createdAt: run.createdAt,
+    lastActivityAt: run.lastActivityAt,
+    finishedAt: run.finishedAt,
+    finishedBy: run.finishedBy,
+  };
+}
+
+@ApiTags('Runs')
+@Controller('projects/:projectName/runs')
+export class RunsController {
+  constructor(private readonly runs: RunService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List CI runs of a project (newest first)' })
+  @ApiQuery({ name: 'branch', required: false })
+  @ApiOkResponse({ type: PaginatedResponseDto(RunDto) })
+  async list(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Query() query: RunListQueryDto,
+    @BranchQuery() branch?: string,
+  ) {
+    const page = query.page ?? 1;
+    const limit = Math.min(Math.max(query.limit ?? 20, 1), 100);
+    const result = await this.runs.list(
+      projectName,
+      branch ?? query.branch,
+      (page - 1) * limit,
+      limit,
+    );
+    return {
+      data: result.data.map(toRunDto),
+      meta: createPaginatedResponse([], page, limit, result.total).meta,
+    };
+  }
+
+  @Get(':runKey')
+  @ApiOperation({ summary: 'Read a run with its pending and approved work' })
+  @ApiOkResponse({ type: RunDetailDto })
+  async detail(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('runKey') runKey: string,
+    @BranchQuery() branch?: string,
+  ): Promise<RunDetailDto> {
+    const detail = await this.runs.detail(projectName, runKey, branch);
+    return plainToInstance(
+      RunDetailDto,
+      {
+        ...detail,
+        run: toRunDto(detail.run),
+      },
+      { excludeExtraneousValues: true },
+    );
+  }
+
+  @Get(':runKey/status')
+  @ApiOperation({
+    summary: 'Read the CI gate status of a run (pending/failed/passed/open)',
+  })
+  @ApiOkResponse({ type: RunStatusResultDto })
+  async status(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('runKey') runKey: string,
+    @BranchQuery() branch?: string,
+  ): Promise<RunStatusResultDto> {
+    const result = await this.runs.status(projectName, runKey, branch);
+    return plainToInstance(
+      RunStatusResultDto,
+      {
+        run: toRunDto(result.run),
+        status: result.status,
+      },
+      { excludeExtraneousValues: true },
+    );
+  }
+
+  @Post(':runKey/finish')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Finish a run (idempotent)' })
+  @ApiOkResponse({ type: RunStatusResultDto })
+  async finish(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('runKey') runKey: string,
+    @Req() req: AuthenticatedRequest,
+    @BranchQuery() branch?: string,
+  ): Promise<RunStatusResultDto> {
+    const result = await this.runs.finish(
+      projectName,
+      runKey,
+      req.auth?.username,
+      branch,
+    );
+    return plainToInstance(
+      RunStatusResultDto,
+      { run: toRunDto(result.run), status: result.status },
+      { excludeExtraneousValues: true },
+    );
+  }
+
+  @Post(':runKey/approve-all')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Approve every pending comparison of a run' })
+  @ApiOkResponse({ type: RunApproveAllResultDto })
+  async approveAll(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('runKey') runKey: string,
+    @Req() req: AuthenticatedRequest,
+    @BranchQuery() branch?: string,
+  ): Promise<RunApproveAllResultDto> {
+    const result = await this.runs.approveAll(
+      projectName,
+      runKey,
+      req.auth?.username ?? 'unknown',
+      branch,
+    );
+    return plainToInstance(RunApproveAllResultDto, result, {
+      excludeExtraneousValues: true,
+    });
+  }
+}

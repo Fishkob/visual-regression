@@ -15,6 +15,7 @@ import { PdfRenderCacheCleanupTask } from '@internal/data-deletion/tasks/pdf-ren
 import { UnreferencedObjectCleanupTask } from '@internal/data-deletion/tasks/unreferenced-object-cleanup.task';
 import { RateLimitBucketCleanupTask } from '@internal/data-deletion/tasks/rate-limit-bucket-cleanup.task';
 import { SessionCleanupTask } from '@internal/data-deletion/tasks/session-cleanup.task';
+import { RunAutoFinishTask } from '@internal/data-deletion/tasks/run-auto-finish.task';
 import { OrphanCleanupService } from './services/orphan-cleanup.service';
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
     UnreferencedObjectCleanupTask,
     RateLimitBucketCleanupTask,
     SessionCleanupTask,
+    RunAutoFinishTask,
     {
       provide: MAINTENANCE_TASKS,
       useFactory: (
@@ -42,6 +44,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         unreferencedObjectCleanupTask: UnreferencedObjectCleanupTask,
         rateLimitBucketCleanupTask: RateLimitBucketCleanupTask,
         sessionCleanupTask: SessionCleanupTask,
+        runAutoFinishTask: RunAutoFinishTask,
       ) =>
         [
           orphanCleanupService,
@@ -50,6 +53,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
           unreferencedObjectCleanupTask,
           rateLimitBucketCleanupTask,
           sessionCleanupTask,
+          runAutoFinishTask,
         ] as MaintenanceTask[],
       inject: [
         OrphanCleanupService,
@@ -58,6 +62,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         UnreferencedObjectCleanupTask,
         RateLimitBucketCleanupTask,
         SessionCleanupTask,
+        RunAutoFinishTask,
       ],
     },
   ],

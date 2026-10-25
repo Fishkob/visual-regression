@@ -49,7 +49,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R3  | Baseline history & restore               | 2     | L    | —                             | In progress |
 | R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | Shipped     |
 | R5  | Global audit log                         | 2     | M    | —                             | Shipped     |
-| R6  | Run grouping                             | 3     | XL   | ADR-030                       | Planned     |
+| R6  | Run grouping                             | 3     | XL   | ADR-030                       | In progress |
 | R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Planned     |
 | R8  | Reporting & exports                      | 3     | M–L  | R6                            | Planned     |
 | R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Planned     |

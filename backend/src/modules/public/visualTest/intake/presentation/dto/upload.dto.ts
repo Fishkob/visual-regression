@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { MAX_BRANCH_NAME_LENGTH } from '@public/visualTest/core/domain/constants/branch.constants';
 import {
   ComparisonErrorCode,
@@ -28,6 +28,39 @@ export class UploadDocumentDto extends VariantParamsDto {
   @IsString()
   @MaxLength(MAX_BRANCH_NAME_LENGTH)
   targetBranch?: string;
+
+  @ApiPropertyOptional({
+    example: 'ci-12345',
+    description: 'CI run key that groups this upload with the rest of the run',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  @Matches(/^[A-Za-z0-9._:/-]+$/, {
+    message:
+      'runKey may only contain letters, digits, dot, underscore, colon, slash or dash',
+  })
+  runKey?: string;
+
+  @ApiPropertyOptional({ example: '9fceb02' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  commitSha?: string;
+
+  @ApiPropertyOptional({ example: 'feat: add checkout v2' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  commitMessage?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://github.com/org/repo/actions/runs/1',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  ciUrl?: string;
 }
 
 export class UploadResultDto {
@@ -45,6 +78,12 @@ export class UploadResultDto {
   })
   @Expose()
   branch!: string;
+
+  @ApiPropertyOptional({
+    description: 'Run key echoed when the upload belonged to a run',
+  })
+  @Expose()
+  runKey?: string;
 }
 
 export class BaselineCreatedResultDto extends UploadResultDto {

@@ -36,6 +36,8 @@ interface PendingComparisonBase {
   testId: string;
   baselineId: string;
   candidateId: string;
+  runId?: string;
+  runKey?: string;
 }
 
 // The comparison row is built from the engine's authoritative output — the

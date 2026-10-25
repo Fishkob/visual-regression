@@ -105,6 +105,16 @@ import type { ReviewInboxControllerGetBranchesData } from './models/ReviewInboxC
 import type { ReviewInboxControllerGetBranchesResponses } from './models/ReviewInboxControllerGetBranchesResponses.gen';
 import type { ReviewInboxControllerGetPendingData } from './models/ReviewInboxControllerGetPendingData.gen';
 import type { ReviewInboxControllerGetPendingResponses } from './models/ReviewInboxControllerGetPendingResponses.gen';
+import type { RunsControllerApproveAllData } from './models/RunsControllerApproveAllData.gen';
+import type { RunsControllerApproveAllResponses } from './models/RunsControllerApproveAllResponses.gen';
+import type { RunsControllerDetailData } from './models/RunsControllerDetailData.gen';
+import type { RunsControllerDetailResponses } from './models/RunsControllerDetailResponses.gen';
+import type { RunsControllerFinishData } from './models/RunsControllerFinishData.gen';
+import type { RunsControllerFinishResponses } from './models/RunsControllerFinishResponses.gen';
+import type { RunsControllerListData } from './models/RunsControllerListData.gen';
+import type { RunsControllerListResponses } from './models/RunsControllerListResponses.gen';
+import type { RunsControllerStatusData } from './models/RunsControllerStatusData.gen';
+import type { RunsControllerStatusResponses } from './models/RunsControllerStatusResponses.gen';
 import type { TestCommandsControllerDeleteVisualTestData } from './models/TestCommandsControllerDeleteVisualTestData.gen';
 import type { TestCommandsControllerDeleteVisualTestResponses } from './models/TestCommandsControllerDeleteVisualTestResponses.gen';
 import type { TestCommandsControllerUpdateThresholdData } from './models/TestCommandsControllerUpdateThresholdData.gen';
@@ -593,6 +603,51 @@ export const webhooksControllerTest = <ThrowOnError extends boolean = false>(opt
             type: 'apiKey'
         }],
     url: '/projects/{projectName}/webhooks/{id}/test',
+    ...options
+});
+
+/**
+ * List CI runs of a project (newest first)
+ */
+export const runsControllerList = <ThrowOnError extends boolean = false>(options: Options<RunsControllerListData, ThrowOnError>): RequestResult<RunsControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerListResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs',
+    ...options
+});
+
+/**
+ * Read a run with its pending and approved work
+ */
+export const runsControllerDetail = <ThrowOnError extends boolean = false>(options: Options<RunsControllerDetailData, ThrowOnError>): RequestResult<RunsControllerDetailResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerDetailResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}',
+    ...options
+});
+
+/**
+ * Read the CI gate status of a run (pending/failed/passed/open)
+ */
+export const runsControllerStatus = <ThrowOnError extends boolean = false>(options: Options<RunsControllerStatusData, ThrowOnError>): RequestResult<RunsControllerStatusResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerStatusResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}/status',
+    ...options
+});
+
+/**
+ * Finish a run (idempotent)
+ */
+export const runsControllerFinish = <ThrowOnError extends boolean = false>(options: Options<RunsControllerFinishData, ThrowOnError>): RequestResult<RunsControllerFinishResponses, unknown, ThrowOnError> => (options.client ?? client).post<RunsControllerFinishResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}/finish',
+    ...options
+});
+
+/**
+ * Approve every pending comparison of a run
+ */
+export const runsControllerApproveAll = <ThrowOnError extends boolean = false>(options: Options<RunsControllerApproveAllData, ThrowOnError>): RequestResult<RunsControllerApproveAllResponses, unknown, ThrowOnError> => (options.client ?? client).post<RunsControllerApproveAllResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}/approve-all',
     ...options
 });
 

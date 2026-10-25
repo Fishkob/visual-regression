@@ -8,6 +8,10 @@ export type BaselineCreatedResultDto = {
      * Branch the upload landed on (the resolved default when the request omitted it)
      */
     branch: string;
+    /**
+     * Run key echoed when the upload belonged to a run
+     */
+    runKey?: string;
     testId: string;
     /**
      * Canonical storage URL of the new baseline (identity)

@@ -8,7 +8,10 @@ import {
   type BaselineInfo,
   type UploadDecision,
 } from '@public/visualTest/core/domain/policies/upload-decision-policy';
-import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
+import {
+  BranchResolver,
+  type ResolvedBranch,
+} from '@public/visualTest/core/application/services/branch-resolver.service';
 import type { TestKind } from '@common/domain/test-kind';
 import {
   UploadParams,
@@ -40,7 +43,7 @@ export class UploadDecisionResolver {
   async resolveIdentical(
     params: UploadParams,
     fileHash: string,
-  ): Promise<{ testId: string; branchName: string } | null> {
+  ): Promise<{ testId: string; branch: ResolvedBranch } | null> {
     const branch = await this.branches.findReadOrNull(
       params.projectName,
       params.branch,
@@ -68,7 +71,7 @@ export class UploadDecisionResolver {
     ) {
       return null;
     }
-    return { testId: test.id, branchName: branch.branchName };
+    return { testId: test.id, branch };
   }
 
   // Stored-path resolution: ensures the project/test row, resolves the effective
@@ -80,7 +83,7 @@ export class UploadDecisionResolver {
     kind: TestKind,
     params: UploadParams,
     fileHash: string,
-  ): Promise<{ decision: UploadDecision; branchName: string }> {
+  ): Promise<{ decision: UploadDecision; branch: ResolvedBranch }> {
     const branch = await this.branches.resolveForUpload(
       params.projectName,
       params.branch,
@@ -104,7 +107,7 @@ export class UploadDecisionResolver {
     });
     return {
       decision: this.decide(testId, baseline, fileHash),
-      branchName: branch.branchName,
+      branch,
     };
   }
 

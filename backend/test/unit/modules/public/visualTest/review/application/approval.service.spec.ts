@@ -329,6 +329,8 @@ describe('ApprovalService', () => {
         testName: 'my-test',
         branchName: 'feature/x',
         testId: 'test-1',
+        runId: null,
+        runKey: null,
         testKind: 'image',
         variantViewport: '1920x1080',
         variantBrowser: 'chrome',

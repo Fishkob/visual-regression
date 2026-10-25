@@ -40,6 +40,7 @@ export class ReviewInboxController {
       kind: pagination.kind,
       groupId: pagination.groupId,
       q: pagination.q?.trim(),
+      runKey: pagination.runKey?.trim(),
     });
   }
 
