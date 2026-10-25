@@ -15,6 +15,7 @@ export interface ProjectData {
   orphanGraceHours?: number | null;
   storageQuotaBytes?: bigint | null;
   quotaSoftPercent?: number | null;
+  requiredApprovals?: number;
 }
 
 @Injectable()

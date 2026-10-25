@@ -24,6 +24,8 @@ import {
 } from '@common/domain/metrics-recorder.interface';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
+import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import { ApprovalVoteRepository } from '@public/visualTest/review/infrastructure/repositories/approval-vote.repository';
 import { ApprovalAuditRepository } from '@public/visualTest/core/infrastructure/repositories/approval-audit.repository';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
@@ -56,6 +58,8 @@ describe('ApprovalService', () => {
   let audit: Mocked<AuditService>;
   let pdfRenderCache: Mocked<IPdfRenderCache>;
   let approvalAudit: Mocked<ApprovalAuditRepository>;
+  let projects: Mocked<ProjectRepository>;
+  let votes: Mocked<ApprovalVoteRepository>;
 
   const imageTest = { id: 'test-1', name: 'my-test', kind: 'image' as const };
   const pdfTest = { id: 'test-1', name: 'my-test', kind: 'pdf' as const };
@@ -148,6 +152,12 @@ describe('ApprovalService', () => {
   }
 
   beforeEach(async () => {
+    projects = createMock<ProjectRepository>();
+    projects.findByName.mockResolvedValue({ requiredApprovals: 1 } as never);
+    votes = createMock<ApprovalVoteRepository>();
+    votes.hasVoted.mockResolvedValue(false);
+    votes.countForComparison.mockResolvedValue(0);
+    votes.record.mockResolvedValue(undefined);
     statusService = createMock<TestStatusService>();
     testResolver = createMock<TestResolver>();
     metrics = createMock<IMetricsRecorder>();
@@ -195,6 +205,8 @@ describe('ApprovalService', () => {
         { provide: AuditService, useValue: audit },
         { provide: PDF_RENDER_CACHE, useValue: pdfRenderCache },
         { provide: ApprovalAuditRepository, useValue: approvalAudit },
+        { provide: ProjectRepository, useValue: projects },
+        { provide: ApprovalVoteRepository, useValue: votes },
         { provide: AppLoggerService, useValue: createMockLogger() },
         { provide: METRICS_RECORDER, useValue: metrics },
       ],
@@ -543,6 +555,36 @@ describe('ApprovalService', () => {
 
       expect(storage.deleteAll).not.toHaveBeenCalled();
     });
+  });
+
+  it('waits for the required number of distinct approvers', async () => {
+    projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
+    votes.countForComparison.mockResolvedValue(0);
+    testResolver.findTestOfKind.mockResolvedValue(imageTest);
+    const baseline = makeBaseline();
+    const candidate = makeCandidate();
+    comparisons.findByIdForTest.mockResolvedValue(
+      makeComparison(baseline, candidate),
+    );
+    statusService.recomputeStatus.mockResolvedValue(undefined);
+
+    const result = await service.approveImage(
+      'my-project',
+      'my-test',
+      'comp-1',
+      'reviewer',
+    );
+
+    expect(result).toEqual({
+      approved: false,
+      requiresMoreApprovals: true,
+      votes: 1,
+      required: 2,
+    });
+    expect(votes.record).toHaveBeenCalledWith(
+      expect.objectContaining({ comparisonId: 'comp-1', username: 'reviewer' }),
+    );
+    expect(approvalAudit.record).not.toHaveBeenCalled();
   });
 
   describe('approvePdf', () => {

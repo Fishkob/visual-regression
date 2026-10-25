@@ -24,6 +24,7 @@ import { ProjectService } from '@public/visualTest/review/application/project.se
 import { ProjectGroupService } from '@public/visualTest/review/application/project-group.service';
 import { TestCommandService } from '@public/visualTest/review/application/test-command.service';
 import { ApprovalService } from '@public/visualTest/review/application/approval.service';
+import { ApprovalVoteRepository } from '@public/visualTest/review/infrastructure/repositories/approval-vote.repository';
 import { PdfAccessService } from '@public/visualTest/review/application/pdf-access.service';
 import { ReviewInboxService } from '@public/visualTest/review/application/review-inbox.service';
 import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
@@ -96,6 +97,7 @@ import {
     ProjectGroupService,
     TestCommandService,
     ApprovalService,
+    ApprovalVoteRepository,
     PdfAccessService,
     ReviewInboxService,
     TestReadRepository,

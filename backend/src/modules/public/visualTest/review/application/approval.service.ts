@@ -15,6 +15,8 @@ import {
   type ApprovalAuditRecord,
 } from '@public/visualTest/core/infrastructure/repositories/approval-audit.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
+import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import { ApprovalVoteRepository } from '@public/visualTest/review/infrastructure/repositories/approval-vote.repository';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
 import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
@@ -30,6 +32,29 @@ import {
   STORAGE_PROVIDER,
   IStorageProvider,
 } from '@common/domain/storage-provider.interface';
+
+export interface ApprovedResult {
+  approved: true;
+  newBaselineUrl: string;
+  signedNewBaselineUrl: string;
+}
+
+export interface ApprovalPendingResult {
+  approved: false;
+  requiresMoreApprovals: true;
+  votes: number;
+  required: number;
+}
+
+export type ApprovalResult = ApprovedResult | ApprovalPendingResult;
+
+type ApprovalChangeResult =
+  | {
+      approved: true;
+      decision: ApprovalDecision;
+      newBaselineUrl: string;
+    }
+  | ApprovalPendingResult;
 
 @Injectable()
 export class ApprovalService {
@@ -97,7 +122,37 @@ export class ApprovalService {
     private readonly pdfRenderCache: IPdfRenderCache,
     @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
     private readonly approvalAudit: ApprovalAuditRepository,
+    private readonly projects: ProjectRepository,
+    private readonly votes: ApprovalVoteRepository,
   ) {}
+
+  private async requireMoreApprovals(
+    comparisonId: string,
+    projectName: string,
+    testId: string,
+    approvedBy: string,
+  ): Promise<{ partial: true; votes: number; required: number } | null> {
+    const project = await this.projects.findByName(projectName);
+    const required = Math.max(1, project?.requiredApprovals ?? 1);
+    if (required <= 1) return null;
+    if (await this.votes.hasVoted(comparisonId, approvedBy)) {
+      throw new DomainError(
+        'You have already approved this comparison',
+        'CONFLICT',
+      );
+    }
+    const existing = await this.votes.countForComparison(comparisonId);
+    await this.votes.record({
+      comparisonId,
+      projectName,
+      testId,
+      username: approvedBy,
+    });
+    if (existing + 1 < required) {
+      return { partial: true, votes: existing + 1, required };
+    }
+    return null;
+  }
 
   async approveImage(
     projectName: string,
@@ -105,11 +160,7 @@ export class ApprovalService {
     comparisonId: string,
     approvedBy: string,
     branchName?: string,
-  ): Promise<{
-    approved: true;
-    newBaselineUrl: string;
-    signedNewBaselineUrl: string;
-  }> {
+  ): Promise<ApprovalResult> {
     return this.executeApproval(
       'image',
       projectName,
@@ -126,11 +177,7 @@ export class ApprovalService {
     comparisonId: string,
     approvedBy: string,
     branchName?: string,
-  ): Promise<{
-    approved: true;
-    newBaselineUrl: string;
-    signedNewBaselineUrl: string;
-  }> {
+  ): Promise<ApprovalResult> {
     return this.executeApproval(
       'pdf',
       projectName,
@@ -148,11 +195,7 @@ export class ApprovalService {
     comparisonId: string,
     approvedBy: string,
     branchName?: string,
-  ): Promise<{
-    approved: true;
-    newBaselineUrl: string;
-    signedNewBaselineUrl: string;
-  }> {
+  ): Promise<ApprovalResult> {
     return this.tracker.track(TRACKED_OPERATIONS.approval[kind], async () => {
       const test = await this.resolveTestOfKind(
         projectName,
@@ -164,121 +207,145 @@ export class ApprovalService {
 
       const config = this.kindConfigs[kind];
 
-      const result = await this.workflow.executeStateChange(
-        async () => {
-          const comparison = await this.resolve(test.id, comparisonId);
-          if (!comparison.baseline || !comparison.candidate) {
-            throw new DomainError(
-              'Comparison missing baseline or candidate',
-              'NOT_FOUND',
+      const result =
+        await this.workflow.executeStateChange<ApprovalChangeResult>(
+          async () => {
+            const comparison = await this.resolve(test.id, comparisonId);
+            if (!comparison.baseline || !comparison.candidate) {
+              throw new DomainError(
+                'Comparison missing baseline or candidate',
+                'NOT_FOUND',
+              );
+            }
+            const decision: ApprovalDecision = comparison.approve(
+              comparison.baseline,
+              comparison.candidate,
             );
-          }
-          const decision: ApprovalDecision = comparison.approve(
-            comparison.baseline,
-            comparison.candidate,
-          );
-          // Keep the baseline that is about to be replaced, so the approval can
-          // be undone from the history view. This writes the history row in the
-          // same transaction as the baseline overwrite; the previous baseline's
-          // file is no longer reclaimed because the revision now references it.
-          const revisionUrls =
-            await this.baselineHistory.recordOutgoingBaseline({
+            const partial = await this.requireMoreApprovals(
+              comparison.id,
+              projectName,
+              test.id,
+              approvedBy,
+            );
+            if (partial) {
+              return {
+                change: change([test.id]),
+                result: {
+                  approved: false as const,
+                  requiresMoreApprovals: true as const,
+                  votes: partial.votes,
+                  required: partial.required,
+                },
+              };
+            }
+            // Keep the baseline that is about to be replaced, so the approval can
+            // be undone from the history view. This writes the history row in the
+            // same transaction as the baseline overwrite; the previous baseline's
+            // file is no longer reclaimed because the revision now references it.
+            const revisionUrls =
+              await this.baselineHistory.recordOutgoingBaseline({
+                testId: test.id,
+                variant: decision.newBaseline.variant,
+                baseline: comparison.baseline,
+                reason: 'approval',
+                createdBy: approvedBy,
+              });
+            const staleDiffUrls = await this.persist(config, decision);
+            // The trail is written in the SAME change: an approval never commits
+            // without its audit row, and an audit failure rolls the approval back.
+            // The row is denormalized from the loaded entities because the
+            // comparison is about to be deleted (image) or stripped (PDF).
+            await this.approvalAudit.record({
+              projectName,
+              testName,
+              branchName: branchName ?? null,
               testId: test.id,
-              variant: decision.newBaseline.variant,
-              baseline: comparison.baseline,
-              reason: 'approval',
-              createdBy: approvedBy,
-            });
-          const staleDiffUrls = await this.persist(config, decision);
-          // The trail is written in the SAME change: an approval never commits
-          // without its audit row, and an audit failure rolls the approval back.
-          // The row is denormalized from the loaded entities because the
-          // comparison is about to be deleted (image) or stripped (PDF).
-          await this.approvalAudit.record({
-            projectName,
-            testName,
-            branchName: branchName ?? null,
-            testId: test.id,
-            runId: comparison.runId ?? null,
-            runKey: comparison.runKey ?? null,
-            testKind: kind,
-            variantViewport: decision.newBaseline.variant.viewport,
-            variantBrowser: decision.newBaseline.variant.browser,
-            variantEnvironment: decision.newBaseline.variant.environment,
-            comparisonId: comparison.id,
-            baselineId: decision.baselineId,
-            candidateId: decision.candidateId,
-            candidateHash: decision.newBaseline.imageHash,
-            baselineHash: comparison.baseline?.imageHash ?? null,
-            mismatchPixelCount: comparison.mismatchPixelCount,
-            mismatchPageCount: comparison.mismatchPageCount ?? null,
-            pageCount:
-              comparison.pageCount ?? decision.newBaseline.pageCount ?? null,
-            approvedBy,
-          });
-          await this.audit.record({
-            actor: approvedBy,
-            action: AUDIT_ACTIONS.approval,
-            projectName,
-            testName,
-            branchName: branchName ?? null,
-            targetType: 'test',
-            targetId: test.id,
-            metadata: {
-              comparisonId: comparison.id,
+              runId: comparison.runId ?? null,
+              runKey: comparison.runKey ?? null,
               testKind: kind,
-              viewport: decision.newBaseline.variant.viewport,
-              browser: decision.newBaseline.variant.browser,
-              environment: decision.newBaseline.variant.environment,
+              variantViewport: decision.newBaseline.variant.viewport,
+              variantBrowser: decision.newBaseline.variant.browser,
+              variantEnvironment: decision.newBaseline.variant.environment,
+              comparisonId: comparison.id,
+              baselineId: decision.baselineId,
+              candidateId: decision.candidateId,
+              candidateHash: decision.newBaseline.imageHash,
+              baselineHash: comparison.baseline?.imageHash ?? null,
               mismatchPixelCount: comparison.mismatchPixelCount,
-            },
-          });
-          // Notify subscribed webhook endpoints in the same transaction: an
-          // approval never commits without its review notifications. The
-          // dispatcher runs in the worker; the API only writes the outbox.
-          await this.webhooks.enqueueComparisonApproved({
-            projectName,
-            testName,
-            branchName: branchName ?? null,
-            kind,
-            variant: {
-              viewport: decision.newBaseline.variant.viewport,
-              browser: decision.newBaseline.variant.browser,
-              environment: decision.newBaseline.variant.environment,
-            },
-            comparisonId: comparison.id,
-            mismatchPixelCount: comparison.mismatchPixelCount,
-            approvedBy,
-          });
-          return {
-            change: change([test.id], {
-              staleUrls: [...staleDiffUrls, ...revisionUrls],
-              events: [
-                {
-                  kind: 'comparison_approved',
-                  baselineId: decision.baselineId,
-                  visualTestId: test.id,
-                },
-                {
-                  kind: 'baseline_updated',
-                  visualTestId: test.id,
-                  baselineId: decision.baselineId,
-                },
-              ],
-            }),
-            result: {
-              decision,
-              newBaselineUrl: decision.newBaselineUrl,
-            },
-          };
-        },
-        {
-          onSuccess: async ({ result }) => {
-            await config.cleanupAfterCommit?.(result.decision);
+              mismatchPageCount: comparison.mismatchPageCount ?? null,
+              pageCount:
+                comparison.pageCount ?? decision.newBaseline.pageCount ?? null,
+              approvedBy,
+            });
+            await this.audit.record({
+              actor: approvedBy,
+              action: AUDIT_ACTIONS.approval,
+              projectName,
+              testName,
+              branchName: branchName ?? null,
+              targetType: 'test',
+              targetId: test.id,
+              metadata: {
+                comparisonId: comparison.id,
+                testKind: kind,
+                viewport: decision.newBaseline.variant.viewport,
+                browser: decision.newBaseline.variant.browser,
+                environment: decision.newBaseline.variant.environment,
+                mismatchPixelCount: comparison.mismatchPixelCount,
+              },
+            });
+            // Notify subscribed webhook endpoints in the same transaction: an
+            // approval never commits without its review notifications. The
+            // dispatcher runs in the worker; the API only writes the outbox.
+            await this.webhooks.enqueueComparisonApproved({
+              projectName,
+              testName,
+              branchName: branchName ?? null,
+              kind,
+              variant: {
+                viewport: decision.newBaseline.variant.viewport,
+                browser: decision.newBaseline.variant.browser,
+                environment: decision.newBaseline.variant.environment,
+              },
+              comparisonId: comparison.id,
+              mismatchPixelCount: comparison.mismatchPixelCount,
+              approvedBy,
+            });
+            return {
+              change: change([test.id], {
+                staleUrls: [...staleDiffUrls, ...revisionUrls],
+                events: [
+                  {
+                    kind: 'comparison_approved',
+                    baselineId: decision.baselineId,
+                    visualTestId: test.id,
+                  },
+                  {
+                    kind: 'baseline_updated',
+                    visualTestId: test.id,
+                    baselineId: decision.baselineId,
+                  },
+                ],
+              }),
+              result: {
+                approved: true as const,
+                decision,
+                newBaselineUrl: decision.newBaselineUrl,
+              },
+            };
           },
-        },
-      );
+          {
+            onSuccess: async ({ result }) => {
+              if (result.approved && 'decision' in result) {
+                await config.cleanupAfterCommit?.(result.decision);
+              }
+            },
+          },
+        );
 
+      if (!result.result.approved) {
+        return result.result;
+      }
       return {
         approved: true,
         newBaselineUrl: result.result.newBaselineUrl,

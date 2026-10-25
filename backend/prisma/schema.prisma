@@ -20,6 +20,7 @@ model Project {
   orphanGraceHours      Int?
   storageQuotaBytes     BigInt?
   quotaSoftPercent      Int?          @default(80)
+  requiredApprovals     Int           @default(1)
   branches        Branch[]      @relation("ProjectBranches")
   webhooks        WebhookEndpoint[]
   runs            Run[]
@@ -147,6 +148,24 @@ model UnifiedComparison {
 // image approval deletes the comparison row and a test (or branch, or project)
 // can be deleted, but the record of who approved what must survive all of it.
 // The identifiers are therefore plain strings, denormalized at approval time.
+// One row per reviewer's vote. The final Approval row is written only when the
+// project's requiredApprovals threshold is reached; votes survive as the
+// 4-eyes trail (comparisonId+userId is unique, so one reviewer counts once).
+model ApprovalVote {
+  id           String   @id @default(cuid())
+  comparisonId String
+  projectName  String
+  testId       String
+  userId       String
+  username     String
+  approvedAt   DateTime @default(now())
+
+  @@unique([comparisonId, userId])
+  @@index([projectName, approvedAt])
+  @@index([comparisonId])
+  @@map("ApprovalVote")
+}
+
 model Approval {
   id                 String   @id @default(cuid())
   projectName        String

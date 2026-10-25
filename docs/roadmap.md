@@ -62,7 +62,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Shipped     |
 | R17 | Internationalization                     | 5     | M    | ADR-037                       | Shipped     |
 | R18 | Share links                              | 5     | M    | R9 · ADR-038                  | Shipped     |
-| R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4                        | Planned     |
+| R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4                        | In progress |
 | R20 | Review comments & decision notes         | 5     | M    | R9                            | Planned     |
 
 Status is `Planned`, `In progress` or `Shipped`; a shipped item keeps its
@@ -844,6 +844,18 @@ multi-approval.
 **Scope.** Assign test/run to a user; "my reviews" filter; notifications via R4;
 due dates and aging report; per-project required approvals (1..N) with per-user
 approval rows finalized on threshold.
+
+**Delivered so far.** `Project.requiredApprovals` (default 1) and
+`ApprovalVote` (unique comparison+reviewer, scrypt-free username identity). With
+N > 1 the first approvals record a vote and return
+`{approved:false, requiresMoreApprovals:true, votes, required}`; the final
+approval applies the baseline and writes the existing `Approval`/audit/webhook
+trail. A reviewer can vote once per comparison (409 on repeat). N=1 keeps the
+existing behavior exactly. Unit tests cover the partial-vote path.
+
+**Remaining.** Assignment model/endpoints ("my reviews", due dates, aging),
+webhook notification on assignment, the review UI for vote progress/required
+approvals, and e2e coverage of a two-approver finalization.
 
 **Size.** L · depends on R9 + R4.
 

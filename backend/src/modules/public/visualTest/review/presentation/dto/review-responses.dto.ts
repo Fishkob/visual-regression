@@ -12,6 +12,24 @@ import {
 } from 'class-validator';
 import { VariantDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 
+export class ApprovalPendingDto {
+  @ApiProperty({ example: false })
+  @Expose()
+  approved!: false;
+
+  @ApiProperty({ example: true })
+  @Expose()
+  requiresMoreApprovals!: true;
+
+  @ApiProperty()
+  @Expose()
+  votes!: number;
+
+  @ApiProperty()
+  @Expose()
+  required!: number;
+}
+
 export class ApproveResultDto {
   @ApiProperty({
     example: true,

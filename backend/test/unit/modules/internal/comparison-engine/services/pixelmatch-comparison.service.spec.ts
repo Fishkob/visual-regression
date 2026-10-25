@@ -91,7 +91,9 @@ describe('PixelmatchComparisonService', () => {
     });
 
     expect(result).toMatchObject({ kind: 'image' });
-    expect((result as { mismatchPixelCount: number }).mismatchPixelCount).toBeGreaterThan(0);
+    expect(
+      (result as { mismatchPixelCount: number }).mismatchPixelCount,
+    ).toBeGreaterThan(0);
   });
 
   it('throws a DomainError for different dimensions', async () => {

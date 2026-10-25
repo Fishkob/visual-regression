@@ -21,6 +21,7 @@ import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import {
+  ApprovalPendingDto,
   ApproveComparisonBodyDto,
   ApproveResultDto,
   BulkApproveResultDto,
@@ -49,6 +50,7 @@ export class ApprovalsController {
     summary: 'Approve a pending visual comparison',
   })
   @ApiOkResponse({ type: ApproveResultDto })
+  // A 4-eyes project may return the pending-vote shape instead.
   @ApiNotFoundResponse({ description: 'Comparison not found' })
   @ApiUnauthorizedResponse({ description: 'Authentication required' })
   async approveVisualTest(
@@ -57,7 +59,7 @@ export class ApprovalsController {
     @Body() params: ApproveComparisonBodyDto,
     @Req() req: AuthenticatedRequest,
     @BranchQuery() branch?: string,
-  ): Promise<ApproveResultDto> {
+  ): Promise<ApproveResultDto | ApprovalPendingDto> {
     return this.approvals.approveImage(
       projectName,
       testName,
@@ -70,6 +72,7 @@ export class ApprovalsController {
   @Post('pdf-approval')
   @ApiOperation({ summary: 'Approve a pending PDF comparison' })
   @ApiOkResponse({ type: ApproveResultDto })
+  // A 4-eyes project may return the pending-vote shape instead.
   @ApiNotFoundResponse({ description: 'Comparison not found' })
   @ApiUnauthorizedResponse({ description: 'Authentication required' })
   async approvePdfTest(
@@ -78,7 +81,7 @@ export class ApprovalsController {
     @Body() params: ApproveComparisonBodyDto,
     @Req() req: AuthenticatedRequest,
     @BranchQuery() branch?: string,
-  ): Promise<ApproveResultDto> {
+  ): Promise<ApproveResultDto | ApprovalPendingDto> {
     return this.approvals.approvePdf(
       projectName,
       testName,
