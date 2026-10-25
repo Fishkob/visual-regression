@@ -138,6 +138,44 @@ describe('Roles and users (e2e)', () => {
       .expect(200);
   });
 
+  it('applies a role change without re-login and audits it', async () => {
+    await seed('admin', 'ADMIN');
+    const target = await seed('member', 'MEMBER');
+    const admin = await login('admin');
+    const member = await login('member');
+
+    await request(app.getHttpServer())
+      .post('/api/v1/projects')
+      .set('Cookie', member.cookie)
+      .send({ name: 'allowed' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/users/${target.id}`)
+      .set('Cookie', admin.cookie)
+      .send({ role: 'VIEWER' })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/projects')
+      .set('Cookie', member.cookie)
+      .send({ name: 'now-forbidden' })
+      .expect(403);
+
+    const audit = await request(app.getHttpServer())
+      .get('/api/v1/audit?action=user.update')
+      .set('Cookie', admin.cookie)
+      .expect(200);
+    expect(audit.body.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: 'user.update',
+          targetId: target.id,
+        }),
+      ]),
+    );
+  });
+
   it('invalidates live sessions when a user is deactivated', async () => {
     await seed('admin', 'ADMIN');
     const target = await seed('member', 'MEMBER');

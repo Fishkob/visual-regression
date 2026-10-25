@@ -52,7 +52,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R6  | Run grouping                             | 3     | XL   | ADR-030                       | Shipped     |
 | R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Shipped     |
 | R8  | Reporting & exports                      | 3     | M–L  | R6 · ADR-033                  | Shipped     |
-| R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Planned     |
+| R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Shipped     |
 | R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9                            | Planned     |
 | R11 | API key scopes & ownership               | 4     | S–M  | R9                            | Planned     |
 | R12 | Bulk actions                             | 5     | M    | —                             | Planned     |
@@ -550,11 +550,19 @@ permissions), SSO/OIDC, SCIM, teams/orgs (single-tenant self-hosting).
 
 **Acceptance.**
 
-- [ ] Viewer gets `403` on approve/delete and sees no action buttons
-- [ ] Member cannot create users or keys
-- [ ] Deactivating a user invalidates live sessions
-- [ ] Role changes are audited and take effect without re-login
-- [ ] Bootstrap admin is `ADMIN` and can be demoted only by another admin
+- [x] Viewer gets `403` on approve/delete and sees no action buttons
+- [x] Member cannot create users or keys
+- [x] Deactivating a user invalidates live sessions
+- [x] Role changes are audited and take effect without re-login
+- [x] Bootstrap admin is `ADMIN` and can be demoted only by another admin
+
+**Verification.** `roles.e2e-spec.ts` covers viewer reads/writes, member
+admin-route rejection, forced password change, role-change immediacy + audit,
+deactivation and reset session revocation. The users service tests cover the
+last-admin/self-deactivation guards; the frontend tests cover the role-gated
+sidebar/header, Users page, change-password flow and viewer-hidden approve and
+restore controls. Permission matrix: [docs/permissions.md](../docs/permissions.md);
+decision: ADR-031.
 
 **Size / dependencies.** L · ADR-031 (permission matrix) first.
 
@@ -565,8 +573,9 @@ OIDC is deferred, but the basics should not be.
 
 **Scope (v1).**
 
-- Self-service password change, admin reset, "log out all sessions", session list
-  (created, last seen, IP, user agent) with revoke.
+- Self-service password change and admin reset shipped with R9; R10 adds "log
+  out all sessions" plus a session list (created, last seen, IP, user agent)
+  with revoke.
 - TOTP 2FA per user with recovery codes, implemented with `node:crypto`
   (zero-dependency, matching ADR-025).
 - Cookie/CSRF review: keep `SameSite=Lax` + `helmet`; require `AUTH_COOKIE_SECURE`
