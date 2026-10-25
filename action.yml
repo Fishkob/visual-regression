@@ -1,5 +1,5 @@
 name: Visual Regression
-description: Upload a screenshot or PDF, wait for the comparison, and fail when the change needs review.
+description: Upload a screenshot or PDF, wait for the comparison, and fail when the change needs review or the CI run is not green.
 author: Visual Regression Platform
 
 branding:
@@ -39,18 +39,38 @@ inputs:
     description: Branch that produced the upload. Defaults to the project default branch.
     required: false
     default: ""
+  run-key:
+    description: CI run key that groups uploads into one run. Omit for the single-comparison behavior.
+    required: false
+    default: ""
+  commit:
+    description: Commit SHA tested by the run. Only sent when run-key is set.
+    required: false
+    default: ""
+  commit-message:
+    description: Commit message for the run. Only sent when run-key is set.
+    required: false
+    default: ""
+  ci-url:
+    description: URL back to the CI build for the run. Only sent when run-key is set.
+    required: false
+    default: ""
+  finish-run:
+    description: Finish the run after the upload and gate the step on the run status. Ignored without run-key.
+    required: false
+    default: "true"
   wait-seconds:
-    description: How long to wait for a queued comparison before failing.
+    description: Overall budget in seconds for the job wait and the run status poll.
     required: false
     default: "30"
   fail-on-pending:
-    description: Fail the step when the comparison still needs human review.
+    description: Fail the step when the run (or comparison) still needs human review.
     required: false
     default: "true"
 
 outputs:
   status:
-    description: Upload status (identical, baseline_created, comparison_queued) or failed.
+    description: Upload status (identical, baseline_created, comparison_queued), the per-upload outcome (pending_approval, approved, unchanged) or failed.
     value: ${{ steps.run.outputs.status }}
   job-id:
     description: Comparison job id for a queued comparison.
@@ -61,12 +81,21 @@ outputs:
   comparison-status:
     description: Comparison status (PENDING_APPROVAL or APPROVED), when one exists.
     value: ${{ steps.run.outputs.comparison-status }}
+  run-key:
+    description: Run key echoed when the upload belonged to a run.
+    value: ${{ steps.run.outputs.run-key }}
+  run-state:
+    description: Run gate state when run-key is set (open, pending, failed or passed).
+    value: ${{ steps.run.outputs.run-state }}
+  run-pending-count:
+    description: Comparisons awaiting review in the run (status.pendingComparisons).
+    value: ${{ steps.run.outputs.run-pending-count }}
 
 runs:
   using: composite
   steps:
     - id: run
-      name: Upload and wait for the comparison
+      name: Upload and wait for the comparison or run
       shell: bash
       env:
         INPUT_API_URL: ${{ inputs.api-url }}
@@ -79,6 +108,11 @@ runs:
         INPUT_BROWSER: ${{ inputs.browser }}
         INPUT_ENVIRONMENT: ${{ inputs.environment }}
         INPUT_BRANCH: ${{ inputs.branch }}
+        INPUT_RUN_KEY: ${{ inputs.run-key }}
+        INPUT_COMMIT: ${{ inputs.commit }}
+        INPUT_COMMIT_MESSAGE: ${{ inputs.commit-message }}
+        INPUT_CI_URL: ${{ inputs.ci-url }}
+        INPUT_FINISH_RUN: ${{ inputs.finish-run }}
         INPUT_WAIT_SECONDS: ${{ inputs.wait-seconds }}
         INPUT_FAIL_ON_PENDING: ${{ inputs.fail-on-pending }}
       run: bash "${{ github.action_path }}/scripts/ci/github-action.sh"
