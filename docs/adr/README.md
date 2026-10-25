@@ -4,23 +4,36 @@ This directory documents the key architectural decisions for the Visual Regressi
 
 ## Index
 
-| ADR | Title                                                                 | Status            |
-| --- | --------------------------------------------------------------------- | ----------------- |
-| 001 | [Technology Stack](./001-technology-stack.md)                         | Accepted          |
-| 002 | [Database Layer](./002-database-layer.md)                             | Accepted          |
-| 004 | [Infrastructure Patterns](./004-infrastructure-patterns.md)           | Accepted          |
-| 005 | [OpenAPI-generated Client SDK](./005-openapi-sdk.md)                  | Accepted          |
-| 009 | [Frontend Architecture](./009-frontend-architecture.md)               | Accepted          |
-| 013 | [Backend Structure](./013-backend-structure.md)                       | Accepted          |
-| 016 | [Pixelmatch Comparison Engine](./016-pixelmatch-comparison-engine.md) | Accepted          |
-| 017 | [Backend Module Consolidation](./017-backend-module-consolidation.md) | Superseded by 013 |
-| 020 | [Testing Strategy](./020-testing-strategy.md)                         | Accepted          |
-| 022 | [Observability Stack](./022-observability-stack.md)                   | Accepted          |
-| 023 | [No Reject Endpoint](./023-no-reject-endpoint.md)                     | Accepted          |
-| 024 | [Database Migrations](./024-database-migrations.md)                   | Accepted          |
-| 025 | [Authentication](./025-authentication.md)                             | Accepted          |
-| 026 | [Rate-Limit Unification](./026-rate-limit-unification.md)             | Accepted          |
-| 027 | [Branch-Scoped Baselines](./ADR-027-branch-scoped-baselines.md)       | Accepted          |
+| ADR | Title                                                                       | Status            |
+| --- | --------------------------------------------------------------------------- | ----------------- |
+| 001 | [Technology Stack](./001-technology-stack.md)                               | Accepted          |
+| 002 | [Database Layer](./002-database-layer.md)                                   | Accepted          |
+| 004 | [Infrastructure Patterns](./004-infrastructure-patterns.md)                 | Accepted          |
+| 005 | [OpenAPI-generated Client SDK](./005-openapi-sdk.md)                        | Accepted          |
+| 009 | [Frontend Architecture](./009-frontend-architecture.md)                     | Accepted          |
+| 013 | [Backend Structure](./013-backend-structure.md)                             | Accepted          |
+| 016 | [Pixelmatch Comparison Engine](./016-pixelmatch-comparison-engine.md)       | Accepted          |
+| 017 | [Backend Module Consolidation](./017-backend-module-consolidation.md)       | Superseded by 013 |
+| 020 | [Testing Strategy](./020-testing-strategy.md)                               | Accepted          |
+| 022 | [Observability Stack](./022-observability-stack.md)                         | Accepted          |
+| 023 | [No Reject Endpoint](./023-no-reject-endpoint.md)                           | Accepted          |
+| 024 | [Database Migrations](./024-database-migrations.md)                         | Accepted          |
+| 025 | [Authentication](./025-authentication.md)                                   | Accepted          |
+| 026 | [Rate-Limit Unification](./026-rate-limit-unification.md)                   | Accepted          |
+| 027 | [Branch-Scoped Baselines](./ADR-027-branch-scoped-baselines.md)             | Accepted          |
+| 028 | [Baseline Revisions](./ADR-028-baseline-revisions.md)                       | Accepted          |
+| 029 | [Webhook Delivery](./ADR-029-webhook-delivery.md)                           | Accepted          |
+| 030 | [Run Grouping](./ADR-030-run-grouping.md)                                   | Accepted          |
+| 031 | [Users, Roles & Permissions](./ADR-031-users-roles-permissions.md)          | Accepted          |
+| 032 | [Image Formats & Size Policy](./ADR-032-image-formats.md)                   | Accepted          |
+| 033 | [Comparison Outcome History](./ADR-033-comparison-outcome-history.md)       | Accepted          |
+| 034 | [Auth Hardening](./ADR-034-auth-hardening.md)                               | Accepted          |
+| 035 | [API Key Scopes](./ADR-035-api-key-scopes.md)                               | Accepted          |
+| 036 | [Test Lifecycle](./ADR-036-test-lifecycle.md)                               | Accepted          |
+| 037 | [Internationalization](./ADR-037-i18n.md)                                   | Accepted          |
+| 038 | [Share Links](./ADR-038-share-links.md)                                     | Accepted          |
+| 039 | [Review Assignment, SLA & 4-Eyes](./ADR-039-review-assignment-four-eyes.md) | Accepted          |
+| 040 | [Review Comments & Reasons](./ADR-040-review-comments-reasons.md)           | Accepted          |
 
 ## Numbering
 

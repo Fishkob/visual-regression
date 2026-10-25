@@ -254,9 +254,9 @@ baseline (candidate: separate item), annotations.
 frontend CT/axe and `baseline-history.e2e-spec.ts` are green: two approvals leave
 two `storage.get`-readable revisions, `baselineRevisionLimit=1` prunes to the
 newest row (the older files become reclaimable), and the orphan/unreferenced
-sweeps leave revision-referenced files intact. The visual screenshot baselines
-for both detail views still need `./scripts/quality.sh visual --update` because
-the panel adds a section (tracked as a quality follow-up, not a behavior gap).
+sweeps leave revision-referenced files intact. Visual baselines and the axe
+suite pass for all 20 gallery cases after the history/comments panels were
+added (`quality.sh visual`, `quality.sh a11y`).
 
 **Size / dependencies.** L · independent; grows R15.
 

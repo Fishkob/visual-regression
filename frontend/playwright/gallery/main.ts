@@ -4,6 +4,7 @@ import router from "../../src/router/index.ts";
 import { VueQueryPlugin } from "@tanstack/vue-query";
 
 import { queryClient } from "../../src/lib/query-client";
+import { i18n } from "../../src/i18n";
 import { authQueryKeys } from "../../src/domains/auth/query-keys";
 
 import "../../src/style.css";
@@ -67,6 +68,7 @@ async function mountNext({
   props.value = next ?? {};
   if (!app) {
     app = createApp(host);
+    app.use(i18n);
     app.use(router);
     app.use(VueQueryPlugin, { queryClient });
     app.mount("#root");
