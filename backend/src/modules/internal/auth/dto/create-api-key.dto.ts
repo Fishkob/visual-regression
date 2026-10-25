@@ -52,7 +52,7 @@ export class CreateApiKeyDto {
   scopes?: ApiKeyScope[];
 
   @ApiPropertyOptional({
-    type: [String],
+    type: String,
     isArray: true,
     description:
       'Project names the key may access. Empty means every project; a non-empty list confines the key to those project routes.',
@@ -85,7 +85,7 @@ export class CreatedApiKeyDto {
   scopes!: ApiKeyScope[];
 
   @Expose()
-  @ApiProperty({ type: [String], isArray: true })
+  @ApiProperty({ type: String, isArray: true })
   projectNames!: string[];
 
   @Expose()

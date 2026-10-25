@@ -12,7 +12,7 @@ import {
 export const BULK_LIMIT = 100;
 
 export class BulkApprovalDto {
-  @ApiProperty({ type: [String], isArray: true, maxItems: BULK_LIMIT })
+  @ApiProperty({ type: String, isArray: true, maxItems: BULK_LIMIT })
   @IsArray()
   @ArrayNotEmpty()
   @ArrayMaxSize(BULK_LIMIT)
@@ -21,7 +21,7 @@ export class BulkApprovalDto {
 }
 
 export class BulkDeleteTestsDto {
-  @ApiProperty({ type: [String], isArray: true, maxItems: BULK_LIMIT })
+  @ApiProperty({ type: String, isArray: true, maxItems: BULK_LIMIT })
   @IsArray()
   @ArrayNotEmpty()
   @ArrayMaxSize(BULK_LIMIT)
@@ -36,7 +36,7 @@ export class BulkDeleteTestsDto {
 }
 
 export class BulkMoveProjectsDto {
-  @ApiProperty({ type: [String], isArray: true, maxItems: BULK_LIMIT })
+  @ApiProperty({ type: String, isArray: true, maxItems: BULK_LIMIT })
   @IsArray()
   @ArrayNotEmpty()
   @ArrayMaxSize(BULK_LIMIT)

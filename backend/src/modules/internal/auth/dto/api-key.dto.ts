@@ -50,7 +50,7 @@ export class ApiKeyDto {
 
   @Expose()
   @ApiProperty({
-    type: [String],
+    type: String,
     isArray: true,
     description: 'Empty means every project',
   })

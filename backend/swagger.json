@@ -6654,13 +6654,10 @@
           },
           "projectNames": {
             "description": "Project names the key may access. Empty means every project; a non-empty list confines the key to those project routes.",
+            "type": "array",
             "items": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "type": "array"
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -6694,13 +6691,10 @@
             }
           },
           "projectNames": {
+            "type": "array",
             "items": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "type": "array"
+              "type": "string"
+            }
           },
           "keyHint": {
             "type": "string",
@@ -6760,13 +6754,10 @@
           },
           "projectNames": {
             "description": "Empty means every project",
+            "type": "array",
             "items": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "type": "array"
+              "type": "string"
+            }
           },
           "createdBy": {
             "type": "string",
