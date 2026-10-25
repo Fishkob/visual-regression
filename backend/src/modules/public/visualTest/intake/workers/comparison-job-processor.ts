@@ -21,6 +21,8 @@ import { CandidateReclamationService } from '@public/visualTest/core/application
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
+import { isThresholdExceeded } from '@public/visualTest/core/domain/policies/threshold-policy';
+import type { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 import { change } from '@public/visualTest/core/application/services/state-change-options';
 import {
   KIND_MIME_TYPES,
@@ -81,8 +83,10 @@ export class ComparisonJobProcessor {
       // Gate before the expensive work: a superseded job (candidate replaced by
       // a newer upload, or baseline replaced by an approval) is retired without
       // paying for the candidate download, the baseline download, the
-      // comparison, or the diff artifact upload.
-      await this.loadCurrentCandidateOrFail(data);
+      // comparison, or the diff artifact upload. The returned baseline carries
+      // the threshold the auto-accept rule needs; reading it here means a
+      // threshold raised while the job is queued is honoured.
+      const { baseline } = await this.loadCurrentCandidateOrFail(data);
 
       const candidateBuffer = await this.getCandidateOrHandleMissing(data);
       if (candidateBuffer === null) return;
@@ -91,8 +95,11 @@ export class ComparisonJobProcessor {
 
       const engine = this.getEngine(data.testKind);
       const result = await engine.compare(baselineBuffer, candidateBuffer);
-      if (mismatchCount(result) === 0) {
+      const mismatch = mismatchCount(result);
+      if (mismatch === 0) {
         await this.handleUnchanged(data);
+      } else if (this.isWithinThreshold(data.testKind, mismatch, baseline)) {
+        await this.handleWithinThreshold(data, mismatch);
       } else {
         await this.handleDiff(data, result);
       }
@@ -103,6 +110,20 @@ export class ComparisonJobProcessor {
       }
       throw err;
     }
+  }
+
+  // Threshold is an image-only concept, and a missing value (legacy rows or a
+  // partial test double) means "no tolerance" — the same 0 default the schema
+  // uses, so the comparison stays a reviewable diff.
+  private isWithinThreshold(
+    testKind: TestKind,
+    mismatch: number,
+    baseline: ScreenshotEntity,
+  ): boolean {
+    return (
+      testKind === 'image' &&
+      !isThresholdExceeded(mismatch, baseline.pixelDiffThreshold ?? 0)
+    );
   }
 
   // A missing candidate object means the diff is moot (the candidate was
@@ -183,8 +204,11 @@ export class ComparisonJobProcessor {
   // the stale id would let it escape retirement — abort as superseded so the
   // processor retires the orphaned candidate instead. Approval updates the
   // baseline row in place (same id, new file URL), so the row's current URL is
-  // compared, not just the id, to detect an in-place replacement.
-  private async assertBaselineStillCurrent(data: JobData): Promise<void> {
+  // compared, not just the id, to detect an in-place replacement. Returns the
+  // row so the caller can read the current threshold from the same check.
+  private async assertBaselineStillCurrent(
+    data: JobData,
+  ): Promise<ScreenshotEntity> {
     const baseline = await this.screenshots.findBaselineByVariant(
       data.testId,
       Variant.fromRecord(data.variant),
@@ -199,24 +223,26 @@ export class ComparisonJobProcessor {
         'Baseline replaced by a newer approval or upload',
       );
     }
+    return baseline;
   }
 
   // The supersession rule, single-sourced for every call site: asserts the
   // candidate row still holds the payload's hash AND the baseline row/id/url
-  // still match the payload, and returns the current candidate row for the
-  // sites that persist against it. A job that fails either check is moot — the
-  // processor retires its candidate instead of committing a stale comparison.
-  // This is also the cheap pre-compare gate for the worker: a job that is
-  // already moot is retired before the expensive comparison + diff upload run
-  // (the gate discards the returned row). The in-transaction calls inside
-  // handleUnchanged/handleDiff stay as the race-closer for a job that becomes
-  // moot mid-compare.
-  private async loadCurrentCandidateOrFail(
-    data: JobData,
-  ): Promise<{ id: string; imageHash: string }> {
+  // still match the payload, and returns the current candidate row plus the
+  // baseline it was checked against. A job that fails either check is moot —
+  // the processor retires its candidate instead of committing a stale
+  // comparison. This is also the cheap pre-compare gate for the worker: a job
+  // that is already moot is retired before the expensive comparison + diff
+  // upload run. The in-transaction calls inside handleUnchanged/handleDiff stay
+  // as the race-closer for a job that becomes moot mid-compare.
+  private async loadCurrentCandidateOrFail(data: JobData): Promise<{
+    id: string;
+    imageHash: string;
+    baseline: ScreenshotEntity;
+  }> {
     const current = await this.loadCurrentCandidateByHash(data);
-    await this.assertBaselineStillCurrent(data);
-    return current;
+    const baseline = await this.assertBaselineStillCurrent(data);
+    return { ...current, baseline };
   }
 
   private async handleUnchanged(data: JobData): Promise<void> {
@@ -230,6 +256,33 @@ export class ComparisonJobProcessor {
           comparisonId: undefined,
           outcome: 'unchanged',
           diffMetric: 0,
+        },
+      ],
+      resolveCandidate: async () => this.loadCurrentCandidateOrFail(data),
+    });
+  }
+
+  // An image diff at or below the baseline threshold is accepted without a
+  // review. The baseline is deliberately kept (no silent promotion): every
+  // future run is measured against the same reference, so tolerated
+  // differences cannot accumulate, and approval stays the only path that
+  // writes a baseline. No comparison row and no diff artifact are stored — the
+  // candidate is reclaimed exactly like an unchanged diff, through the same
+  // in-transaction race-closer.
+  private async handleWithinThreshold(
+    data: JobData,
+    mismatch: number,
+  ): Promise<void> {
+    await this.reclamation.reclaimCandidateInChange({
+      testId: data.testId,
+      events: [
+        {
+          kind: 'comparison_completed',
+          testKind: data.testKind,
+          visualTestId: data.testId,
+          comparisonId: undefined,
+          outcome: 'within_threshold',
+          diffMetric: mismatch,
         },
       ],
       resolveCandidate: async () => this.loadCurrentCandidateOrFail(data),

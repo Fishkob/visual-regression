@@ -138,5 +138,6 @@ The action needs `curl` and `jq`; GitHub-hosted runners include both. `wait-seco
 - **Branch:** omit `branch` to use the project default; a new branch inherits the target branch's baseline. Pass the branch that produced the capture.
 - **Wait cap:** the API accepts `wait` up to 30 seconds per request. Loop for longer budgets (the action does).
 - **Idempotency:** uploads are content-addressed per test/variant; an identical capture short-circuits as `identical`. A retried job-status request is safe.
+- **Threshold:** an image diff at or below the baseline's `pixelDiffThreshold` is auto-accepted — the candidate is discarded, the baseline is kept, and the job completes with `comparison: null` (the action passes). A threshold of 0, the default, keeps every non-zero diff reviewable. The threshold is per variant and image-only; PDF comparisons always need review.
 - **Webhooks:** not part of this slice yet. Pipelines should use the wait endpoint or the action; a push-based webhook with signed delivery/retries is a separate feature.
 - **Rate limit:** uploads are capped per API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default 60). The status endpoint is not upload-rate-limited.

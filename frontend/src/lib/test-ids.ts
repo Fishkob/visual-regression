@@ -58,6 +58,7 @@ export const TEST_ID = {
   badgeBrowser: "badge-browser",
   badgeEnvironment: "badge-environment",
   badgeMismatch: "badge-mismatch",
+  badgeWithinTolerance: "badge-within-tolerance",
   thresholdInput: "threshold-input",
   baseImageBlock: "base-image-block",
   baselineOnlyNote: "baseline-only-note",

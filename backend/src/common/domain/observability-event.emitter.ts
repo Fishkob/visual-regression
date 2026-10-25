@@ -18,6 +18,9 @@ export const EVENT_COUNTER = METRICS.domainEventsTotal;
 // ComparisonStatus value is read here.
 const COMPLETION_METRIC_STATUS: Record<ComparisonCompletionOutcome, string> = {
   unchanged: 'UNCHANGED',
+  // Auto-accepted within the baseline threshold: the baseline is kept, so the
+  // test is unchanged. The log line still carries the outcome.
+  within_threshold: 'UNCHANGED',
   changed: 'PENDING_APPROVAL',
 };
 
@@ -49,6 +52,7 @@ export function emitObservabilityEvent(
         testKind: event.testKind,
         visualTestId: event.visualTestId,
         comparisonId: event.comparisonId,
+        outcome: event.outcome,
         status: metricStatus,
         diffMetric: event.diffMetric,
       });

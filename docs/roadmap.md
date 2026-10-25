@@ -42,28 +42,31 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 
 ## At a glance
 
-| ID  | Item                                     | Phase | Size | Depends on                    |
-| --- | ---------------------------------------- | ----- | ---- | ----------------------------- |
-| R1  | Threshold auto-accept at diff time       | 1     | S    | —                             |
-| R2  | Diff UX v1                               | 1     | M    | —                             |
-| R3  | Baseline history & restore               | 2     | L    | —                             |
-| R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) |
-| R5  | Global audit log                         | 2     | M    | —                             |
-| R6  | Run grouping                             | 3     | XL   | ADR-030                       |
-| R7  | Batch upload & capture integrations      | 3     | L    | R6                            |
-| R8  | Reporting & exports                      | 3     | M–L  | R6                            |
-| R9  | Users, roles & permissions               | 4     | L    | ADR-031                       |
-| R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9                            |
-| R11 | API key scopes & ownership               | 4     | S–M  | R9                            |
-| R12 | Bulk actions                             | 5     | M    | —                             |
-| R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 (actor), R8 (outcomes)     |
-| R14 | Search & discovery                       | 5     | M    | —                             |
-| R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        |
-| R16 | Image formats & size policy              | 5     | M    | ADR-032                       |
-| R17 | Internationalization                     | 5     | M    | —                             |
-| R18 | Share links                              | 5     | M    | R9                            |
-| R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4                        |
-| R20 | Review comments & decision notes         | 5     | M    | R9                            |
+| ID  | Item                                     | Phase | Size | Depends on                    | Status  |
+| --- | ---------------------------------------- | ----- | ---- | ----------------------------- | ------- |
+| R1  | Threshold auto-accept at diff time       | 1     | S    | —                             | Shipped |
+| R2  | Diff UX v1                               | 1     | M    | —                             | Planned |
+| R3  | Baseline history & restore               | 2     | L    | —                             | Planned |
+| R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | Planned |
+| R5  | Global audit log                         | 2     | M    | —                             | Planned |
+| R6  | Run grouping                             | 3     | XL   | ADR-030                       | Planned |
+| R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Planned |
+| R8  | Reporting & exports                      | 3     | M–L  | R6                            | Planned |
+| R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Planned |
+| R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9                            | Planned |
+| R11 | API key scopes & ownership               | 4     | S–M  | R9                            | Planned |
+| R12 | Bulk actions                             | 5     | M    | —                             | Planned |
+| R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 (actor), R8 (outcomes)     | Planned |
+| R14 | Search & discovery                       | 5     | M    | —                             | Planned |
+| R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Planned |
+| R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Planned |
+| R17 | Internationalization                     | 5     | M    | —                             | Planned |
+| R18 | Share links                              | 5     | M    | R9                            | Planned |
+| R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4                        | Planned |
+| R20 | Review comments & decision notes         | 5     | M    | R9                            | Planned |
+
+Status is `Planned`, `In progress` or `Shipped`; a shipped item keeps its
+section and checked acceptance criteria so the history stays readable.
 
 Rough envelope: phases 1–5 are about 7–9 months for one developer. The order is
 deliberate: cheap noise reduction first, then trust, then the CI product, then
@@ -115,21 +118,24 @@ threshold (needs project settings, see R15), ignore regions (dropped, see
   (`findBaselineByVariant`) — no schema change, no new endpoint.
 - One policy function owns the boundary (`<=`), shared with the threshold-update
   path so the two cannot drift.
-- Race: the worker reads the threshold at completion; raising the threshold while
-  a job is in flight therefore wins. Lowering it never resurrects anything.
+- Race: the worker reads the threshold at the pre-compare gate; a raise while the
+  job is queued (or before it starts) therefore wins. A raise during the compare
+  itself is picked up by the next upload; lowering a threshold never resurrects
+  a retired comparison.
 
 **Acceptance.**
 
-- [ ] Threshold 50, diff 30 → no comparison row, no candidate row, no diff
+- [x] Threshold 50, diff 30 → no comparison row, no candidate row, no diff
       object, test `UNCHANGED`, job `COMPLETED` with `comparison: null`
-- [ ] Threshold 50, diff 51 → `PENDING_APPROVAL` as today
-- [ ] Threshold 0 → identical behavior to today
-- [ ] Threshold raised during a running job → auto-accepted
-- [ ] Composite action exits 0 for within-threshold; outputs unchanged
-- [ ] Flag visible in the UI; docs updated
+- [x] Threshold 50, diff 51 → `PENDING_APPROVAL` as today
+- [x] Threshold 0 → identical behavior to today
+- [x] Threshold raised while the job is queued → auto-accepted
+- [x] Composite action exits 0 for within-threshold; outputs unchanged
+- [x] Flag visible in the UI; docs updated
 
-**Decision needed.** Keep baseline (recommended) vs. silently promote the
-candidate. Only "keep" is in scope for v1.
+**Decision.** Keep the baseline (implemented): the candidate is reclaimed, no
+comparison is stored, and approval stays the only baseline writer. Silent
+promotion remains out of scope.
 
 **Size / dependencies.** S · independent.
 
@@ -760,8 +766,9 @@ Numbering starts after ADR-027. Each ADR follows the existing template
 
 ## Maintaining this document
 
-- Check off acceptance criteria as items ship; move shipped items to a
-  `## Shipped` section with the release that carried them.
+- Check off acceptance criteria as items ship and set the at-a-glance status to
+  `Shipped`; keep the section so the history stays readable. Git history carries
+  the commit.
 - When an item is dropped, record it under
   [Considered and rejected](#considered-and-rejected) with the reason and a
   revisit trigger — do not delete the row.

@@ -104,6 +104,33 @@ describe('emitObservabilityEvent', () => {
     });
   });
 
+  it('counts a within-threshold diff as unchanged and logs the outcome', () => {
+    const event: ObservabilityEvent = {
+      kind: 'comparison_completed',
+      testKind: 'image',
+      visualTestId: 'test-1',
+      outcome: 'within_threshold',
+      diffMetric: 15,
+    };
+
+    emitObservabilityEvent(event, { logger, metrics });
+
+    expect(logger.log).toHaveBeenCalledWith('Comparison completed', {
+      testKind: 'image',
+      visualTestId: 'test-1',
+      comparisonId: undefined,
+      outcome: 'within_threshold',
+      status: 'UNCHANGED',
+      diffMetric: 15,
+    });
+    expect(logger.warn).not.toHaveBeenCalled();
+    expect(metrics.incrementCounter).toHaveBeenCalledWith(EVENT_COUNTER, {
+      event: 'comparison_completed',
+      type: '',
+      status: 'UNCHANGED',
+    });
+  });
+
   it('logs and counts an approval', () => {
     const event: ObservabilityEvent = {
       kind: 'comparison_approved',

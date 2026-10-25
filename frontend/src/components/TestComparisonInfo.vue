@@ -49,7 +49,27 @@
         </TooltipTrigger>
 
         <TooltipContent side="top" :side-offset="6" class="text-xs">
-          Number of pixels that differ from baseline
+          Number of pixels that differ from baseline. {{ toleranceHint }}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+
+    <TooltipProvider v-if="withinTolerance">
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <Badge
+            variant="outline"
+            class="px-2 py-0.5 cursor-default"
+            :data-testid="TEST_ID.badgeWithinTolerance"
+          >
+            within tolerance
+          </Badge>
+        </TooltipTrigger>
+
+        <TooltipContent side="top" :side-offset="6" class="text-xs">
+          {{ comparison?.mismatchPixelCount }} px is at or below the
+          {{ baselineThreshold }} px tolerance, so it was accepted
+          automatically.
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -74,7 +94,7 @@
         </TooltipTrigger>
 
         <TooltipContent side="top" :side-offset="6" class="text-xs">
-          Set allowed pixel difference before comparison fails
+          {{ toleranceHint }} Larger changes need review.
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -146,6 +166,26 @@ const variant = computed(() => ({
   browser: props.browser ?? props.baseline?.browser,
   environment: props.environment ?? props.baseline?.environment,
 }));
+
+// The tolerance the comparison was accepted against. A pending comparison is
+// normally above it (below-threshold diffs are auto-accepted server-side); the
+// flag can still be false for a row created before a threshold raise.
+const baselineThreshold = computed(
+  () => props.baseline?.pixelDiffThreshold ?? 0,
+);
+
+const withinTolerance = computed(
+  () =>
+    props.comparison != null &&
+    props.comparison.thresholdExceeded === false &&
+    baselineThreshold.value > 0,
+);
+
+const toleranceHint = computed(() =>
+  baselineThreshold.value > 0
+    ? `Differences up to ${baselineThreshold.value} px are accepted automatically.`
+    : "No tolerance set — every difference needs review.",
+);
 
 const {
   inputValue,

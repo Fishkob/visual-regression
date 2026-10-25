@@ -1,11 +1,13 @@
 import type { ScreenshotType } from '@/prisma/client';
 import type { TestKind } from '@common/domain/test-kind';
 
-// A completed comparison has exactly two outcomes, and neither is a persisted
+// A completed comparison has three outcomes, none of which is a persisted
 // ComparisonStatus: a zero-diff run retires its candidate without storing a
-// row, and a real diff stores PENDING_APPROVAL. Carrying the outcome on the
-// event keeps observability from borrowing a status value no row can hold.
-export type ComparisonCompletionOutcome = 'unchanged' | 'changed';
+// row, a diff within the baseline threshold is auto-accepted the same way, and
+// a real diff stores PENDING_APPROVAL. Carrying the outcome on the event keeps
+// observability from borrowing a status value no row can hold.
+export type ComparisonCompletionOutcome =
+  'unchanged' | 'within_threshold' | 'changed';
 
 // Post-commit observability records returned by state-change mutations. The
 // StateChangeWorkflow emits them directly to the logger + metrics after commit

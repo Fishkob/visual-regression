@@ -294,6 +294,123 @@ describe('ComparisonJobProcessor', () => {
     });
   });
 
+  describe('within-threshold outcome', () => {
+    function setBaselineThreshold(threshold: number | undefined): void {
+      screenshots.findBaselineByVariant.mockResolvedValue({
+        id: 'baseline-1',
+        imageUrl: 'http://storage/baseline.png',
+        pixelDiffThreshold: threshold,
+      } as never);
+    }
+
+    it('auto-accepts a diff below the baseline threshold without storing a comparison or diff artifact', async () => {
+      screenshots.findCurrentByVariant.mockResolvedValue({
+        id: 'candidate-1',
+        imageHash: 'hash-from-upload',
+      });
+      setBaselineThreshold(20);
+      imageEngine.compare.mockResolvedValue({
+        ...imageDiff,
+        mismatchPixelCount: 15,
+      });
+
+      await processor.processJob(makeJob(imageJobData));
+
+      expect(reclamation.reclaimCandidateInChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          testId: 'test-1',
+          events: [
+            expect.objectContaining({
+              kind: 'comparison_completed',
+              outcome: 'within_threshold',
+              diffMetric: 15,
+            }),
+          ],
+        }),
+      );
+      expect(retirement.createPendingForVariant).not.toHaveBeenCalled();
+      expect(storage.putObject).not.toHaveBeenCalled();
+    });
+
+    it('auto-accepts an exact boundary match', async () => {
+      screenshots.findCurrentByVariant.mockResolvedValue({
+        id: 'candidate-1',
+        imageHash: 'hash-from-upload',
+      });
+      setBaselineThreshold(20);
+      imageEngine.compare.mockResolvedValue({
+        ...imageDiff,
+        mismatchPixelCount: 20,
+      });
+
+      await processor.processJob(makeJob(imageJobData));
+
+      expect(reclamation.reclaimCandidateInChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          events: [expect.objectContaining({ outcome: 'within_threshold' })],
+        }),
+      );
+      expect(retirement.createPendingForVariant).not.toHaveBeenCalled();
+    });
+
+    it('keeps a diff above the threshold reviewable', async () => {
+      screenshots.findCurrentByVariant.mockResolvedValue({
+        id: 'candidate-1',
+        imageHash: 'hash-from-upload',
+      });
+      setBaselineThreshold(20);
+      imageEngine.compare.mockResolvedValue({
+        ...imageDiff,
+        mismatchPixelCount: 21,
+      });
+      storage.putObject.mockResolvedValue('http://storage/diff.png');
+
+      await processor.processJob(makeJob(imageJobData));
+
+      expect(retirement.createPendingForVariant).toHaveBeenCalled();
+      expect(storage.putObject).toHaveBeenCalled();
+      expect(reclamation.reclaimCandidateInChange).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          events: [expect.objectContaining({ outcome: 'within_threshold' })],
+        }),
+      );
+    });
+
+    it('does not apply the threshold to PDF tests', async () => {
+      screenshots.findCurrentByVariant.mockResolvedValue({
+        id: 'candidate-1',
+        imageHash: 'hash-from-upload',
+      });
+      screenshots.findBaselineByVariant.mockResolvedValue({
+        id: 'baseline-1',
+        imageUrl: 'http://storage/baseline.pdf',
+        pixelDiffThreshold: 100,
+      } as never);
+      pdfEngine.compare.mockResolvedValue(pdfDiff);
+      storage.putObject.mockResolvedValue('http://storage/diff.pdf');
+
+      await processor.processJob(makeJob(pdfJobData));
+
+      expect(retirement.createPendingForVariant).toHaveBeenCalled();
+      expect(storage.putObject).toHaveBeenCalled();
+    });
+
+    it('treats a missing threshold as zero, keeping legacy comparisons reviewable', async () => {
+      screenshots.findCurrentByVariant.mockResolvedValue({
+        id: 'candidate-1',
+        imageHash: 'hash-from-upload',
+      });
+      setBaselineThreshold(undefined);
+      imageEngine.compare.mockResolvedValue(imageDiff);
+      storage.putObject.mockResolvedValue('http://storage/diff.png');
+
+      await processor.processJob(makeJob(imageJobData));
+
+      expect(retirement.createPendingForVariant).toHaveBeenCalled();
+      expect(storage.putObject).toHaveBeenCalled();
+    });
+  });
+
   describe('unchanged outcome', () => {
     it('delegates the reclaim to the retirement seam with an UNCHANGED event', async () => {
       screenshots.findCurrentByVariant.mockResolvedValue({
@@ -329,7 +446,7 @@ describe('ComparisonJobProcessor', () => {
       const call = reclamation.reclaimCandidateInChange.mock.calls[0][0] as {
         resolveCandidate?: () => Promise<{ id: string }>;
       };
-      await expect(call.resolveCandidate!()).resolves.toEqual({
+      await expect(call.resolveCandidate!()).resolves.toMatchObject({
         id: 'candidate-1',
         imageHash: 'hash-from-upload',
       });
