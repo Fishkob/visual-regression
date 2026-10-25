@@ -55,7 +55,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Shipped     |
 | R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9 · ADR-034                  | Shipped     |
 | R11 | API key scopes & ownership               | 4     | S–M  | R9 · ADR-035                  | Shipped     |
-| R12 | Bulk actions                             | 5     | M    | —                             | Planned     |
+| R12 | Bulk actions                             | 5     | M    | R9 (role gate)                | Shipped     |
 | R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 (actor), R8 (outcomes)     | Planned     |
 | R14 | Search & discovery                       | 5     | M    | —                             | Planned     |
 | R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Planned     |
@@ -661,6 +661,19 @@ Long-tail work; sequence by demand.
 loop with partial results), delete selected (typed confirmation), move projects.
 Batch endpoints return per-item outcomes; the UI never reports a silent partial
 success.
+
+**Delivered.** Inbox selection → bulk approval (grouped per project, merged
+results, failure dialog), projects selection → group move, and a per-item
+approval/test-deletion/group-move API. Bulk test deletion has an API but no
+multi-row test-list UI yet (the project detail list is a variant accordion); the
+typed-confirmation deletion UI is deferred with that list.
+
+**Verification.** `bulk-actions.e2e-spec.ts` covers per-item deletion, unknown
+comparisons, group moves and the viewer 403; bulk service unit tests cover
+partial approval/deletion/move; frontend tests cover selection, multi-project
+approval aggregation, failure dialogs, move payload and viewer-hidden controls.
+No silent partial success: both APIs return explicit `approved/failed` or
+`deleted/failed`/`moved/failed` arrays and the UI lists failures.
 
 **Size.** M · independent.
 

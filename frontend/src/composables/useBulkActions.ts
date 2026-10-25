@@ -1,0 +1,93 @@
+import { useMutation, useQueryClient } from "@tanstack/vue-query";
+import { toast } from "vue-sonner";
+import {
+  bulkActionsControllerApprove,
+  projectsBulkControllerMove,
+  type BulkApprovalResultDto,
+  type BulkMoveResultDto,
+} from "@sdk";
+import {
+  mapBulkApproveResult,
+  mapBulkMoveResult,
+  mergeBulkApproveResults,
+} from "@/domains/bulk-actions/bulk-action.mapper";
+import {
+  bulkApproveSummary,
+  bulkMoveSummary,
+  type BulkApproveResult,
+  type BulkApproveSelection,
+  type BulkMoveResult,
+} from "@/domains/bulk-actions/bulk-action.model";
+import { unwrapSdkData } from "@/lib/sdk";
+import {
+  invalidateAfterBulkApprove,
+  invalidateAfterBulkMove,
+} from "@/lib/invalidation";
+
+// The approve endpoint is per project (max 100 ids), so a selection spanning
+// projects is one request per project and the answers are merged into a single
+// result. Sequential on purpose: the calls are small and a per-project failure
+// should not abandon the projects already approved.
+export function useBulkApproveSelection() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (
+      selections: readonly BulkApproveSelection[],
+    ): Promise<BulkApproveResult> => {
+      const results: BulkApproveResult[] = [];
+      for (const selection of selections) {
+        if (selection.comparisonIds.length === 0) continue;
+        const response = await bulkActionsControllerApprove({
+          path: { projectName: selection.projectName },
+          body: { comparisonIds: [...selection.comparisonIds] },
+        });
+        const payload = unwrapSdkData<BulkApprovalResultDto>(
+          response,
+          "Could not approve the selected changes",
+        );
+        if (!payload) throw new Error("The bulk approval returned no result");
+        results.push(mapBulkApproveResult(payload));
+      }
+      return mergeBulkApproveResults(results);
+    },
+    onSuccess: (result) => {
+      invalidateAfterBulkApprove(queryClient);
+      toast.success(bulkApproveSummary(result));
+    },
+    onError: () => {
+      toast.error("Could not approve the selected changes");
+    },
+  });
+}
+
+export function useBulkMoveProjects() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: {
+      projectNames: string[];
+      groupId: string | null;
+    }): Promise<BulkMoveResult> => {
+      const response = await projectsBulkControllerMove({
+        body: {
+          projectNames: [...input.projectNames],
+          groupId: input.groupId,
+        },
+      });
+      const payload = unwrapSdkData<BulkMoveResultDto>(
+        response,
+        "Could not move the selected projects",
+      );
+      if (!payload) throw new Error("The bulk move returned no result");
+      return mapBulkMoveResult(payload);
+    },
+    onSuccess: (result) => {
+      invalidateAfterBulkMove(queryClient);
+      toast.success(bulkMoveSummary(result));
+    },
+    onError: () => {
+      toast.error("Could not move the selected projects");
+    },
+  });
+}

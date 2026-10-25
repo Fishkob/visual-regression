@@ -9,11 +9,26 @@ import type { InboxProjectSection } from "@/domains/pending-tests/group-review-i
 import type { ReviewInboxItem } from "@/domains/pending-tests/review-inbox.model";
 import { TEST_ID } from "@/lib/test-ids";
 
-const props = defineProps<{
-  section: InboxProjectSection;
+const props = withDefaults(
+  defineProps<{
+    section: InboxProjectSection;
+    // Multi-select is a writer action: a VIEWER gets no checkboxes at all.
+    selectable?: boolean;
+    selectedIds?: string[];
+  }>(),
+  { selectable: false, selectedIds: () => [] },
+);
+
+const emit = defineEmits<{
+  toggle: [comparisonId: string];
 }>();
+
 const router = useRouter();
 const route = useRoute();
+
+function isSelected(comparisonId: string): boolean {
+  return props.selectedIds.includes(comparisonId);
+}
 
 // The review pass is branch-scoped (the details page's pending list is), so the
 // count must describe the set it will walk: the project's pending items on the
@@ -121,53 +136,66 @@ function startProjectReview() {
     </div>
 
     <div class="overflow-hidden rounded-xl border bg-card shadow-sm">
-      <button
+      <div
         v-for="item in section.items"
         :key="item.comparisonId"
-        type="button"
-        class="flex w-full items-center justify-between gap-4 border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted/50"
-        :data-testid="TEST_ID.inboxItem"
-        @click="openItem(item)"
+        class="flex items-center gap-3 border-b px-4 py-3 last:border-b-0"
       >
-        <div class="min-w-0">
-          <p class="truncate font-medium">{{ item.testName }}</p>
-          <p class="text-xs text-muted-foreground">
-            {{ formatVariantLabel(item) || "No variant" }}
-          </p>
-        </div>
-        <div class="flex items-center gap-2">
-          <Badge
-            v-if="!item.isDefaultBranch"
-            variant="secondary"
-            class="font-mono text-[10px]"
-            :data-testid="TEST_ID.inboxBranchBadge"
-          >
-            {{ item.branchName }}
-          </Badge>
-          <Badge
-            v-if="item.runKey"
-            variant="outline"
-            class="font-mono text-[10px]"
-            :title="`Run ${item.runKey}`"
-            :data-testid="TEST_ID.inboxRunBadge"
-          >
-            {{ item.runKey }}
-          </Badge>
-          <Badge variant="outline">{{
-            item.kind === "pdf" ? "PDF" : "Image"
-          }}</Badge>
-          <Badge variant="destructive">
-            {{
-              item.kind === "pdf"
-                ? `${item.mismatchPageCount ?? 0} pages`
-                : `${item.mismatchPixelCount} px`
-            }}
-          </Badge>
-          <span class="text-xs text-muted-foreground">{{
-            formatRelativeAge(item.createdAt)
-          }}</span>
-        </div>
-      </button>
+        <input
+          v-if="selectable"
+          type="checkbox"
+          class="h-4 w-4 shrink-0"
+          :checked="isSelected(item.comparisonId)"
+          :aria-label="`Select ${item.testName} in ${section.projectName}`"
+          :data-testid="TEST_ID.inboxSelectRow"
+          @change="emit('toggle', item.comparisonId)"
+        />
+        <button
+          type="button"
+          class="flex min-w-0 flex-1 items-center justify-between gap-4 text-left transition-colors hover:bg-muted/50"
+          :data-testid="TEST_ID.inboxItem"
+          @click="openItem(item)"
+        >
+          <div class="min-w-0">
+            <p class="truncate font-medium">{{ item.testName }}</p>
+            <p class="text-xs text-muted-foreground">
+              {{ formatVariantLabel(item) || "No variant" }}
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <Badge
+              v-if="!item.isDefaultBranch"
+              variant="secondary"
+              class="font-mono text-[10px]"
+              :data-testid="TEST_ID.inboxBranchBadge"
+            >
+              {{ item.branchName }}
+            </Badge>
+            <Badge
+              v-if="item.runKey"
+              variant="outline"
+              class="font-mono text-[10px]"
+              :title="`Run ${item.runKey}`"
+              :data-testid="TEST_ID.inboxRunBadge"
+            >
+              {{ item.runKey }}
+            </Badge>
+            <Badge variant="outline">{{
+              item.kind === "pdf" ? "PDF" : "Image"
+            }}</Badge>
+            <Badge variant="destructive">
+              {{
+                item.kind === "pdf"
+                  ? `${item.mismatchPageCount ?? 0} pages`
+                  : `${item.mismatchPixelCount} px`
+              }}
+            </Badge>
+            <span class="text-xs text-muted-foreground">{{
+              formatRelativeAge(item.createdAt)
+            }}</span>
+          </div>
+        </button>
+      </div>
     </div>
   </section>
 </template>

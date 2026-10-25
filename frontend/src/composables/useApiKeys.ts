@@ -9,12 +9,10 @@ import {
 } from "@sdk";
 import { apiKeyQueryKeys } from "@/domains/api-keys/query-keys";
 import { mapApiKeys } from "@/domains/api-keys/api-key.mapper";
+import type { CreateApiKeyInput } from "@/domains/api-keys/api-key.model";
 import { useSdkQuery } from "@/composables/useDomainQuery";
 import { useSdkMutation } from "@/composables/useSdkMutation";
-import type {
-  CreateApiKeyInput,
-  RotateApiKeyInput,
-} from "@/domains/api-keys/api-key.model";
+import type { RotateApiKeyInput } from "@/domains/api-keys/api-key.model";
 
 export function useApiKeysQuery() {
   return useSdkQuery({
@@ -26,12 +24,30 @@ export function useApiKeysQuery() {
   });
 }
 
+// The generated OpenAPI spec double-nests projectNames (Array<Array<string>>)
+// while the backend sends a flat string[]; the wire body keeps the flat shape and
+// the cast bridges the generator quirk. Only explicit fields are sent so the
+// backend defaults stay authoritative.
+function toCreateApiKeyBody(input: CreateApiKeyInput) {
+  return {
+    name: input.name,
+    ...(input.expiresInDays === undefined
+      ? {}
+      : { expiresInDays: input.expiresInDays }),
+    ...(input.scopes === undefined ? {} : { scopes: input.scopes }),
+    ...(input.projectNames === undefined
+      ? {}
+      : { projectNames: input.projectNames }),
+  };
+}
+
 // Create and rotate both answer with the raw key exactly once, so they hand the
 // mapped issued key back to the caller instead of only toasting: the view shows
 // it in a reveal dialog that cannot be reopened.
 export function useCreateApiKey() {
   return useSdkMutation<CreatedApiKeyDto, CreateApiKeyInput>({
-    mutationFn: (body) => apiKeysControllerCreate({ body }),
+    mutationFn: (body) =>
+      apiKeysControllerCreate({ body: toCreateApiKeyBody(body) }),
     successMessage: "API key created",
     errorMessage: "Could not create API key",
     invalidate: (client) => {

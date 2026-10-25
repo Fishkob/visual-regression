@@ -152,3 +152,27 @@ export function invalidateAfterRunApproveAll(
   client.invalidateQueries({ queryKey: pdfTestQueryKeys.all() });
   invalidateReviewInbox(client);
 }
+
+// A bulk approval from the inbox is the per-test bulk approval repeated across
+// tests/projects: every read that shows a status, a queue, a baseline, a trail
+// or a run's derived counts is stale afterwards. There is no single project or
+// test to scope the keys to, so the whole read families are refreshed.
+export function invalidateAfterBulkApprove(client: QueryClient) {
+  client.invalidateQueries({ queryKey: visualTestQueryKeys.all() });
+  client.invalidateQueries({ queryKey: pdfTestQueryKeys.all() });
+  client.invalidateQueries({ queryKey: projectQueryKeys.all() });
+  client.invalidateQueries({ queryKey: projectQueryKeys.withPending() });
+  client.invalidateQueries({ queryKey: pendingTestQueryKeys.all() });
+  client.invalidateQueries({ queryKey: reviewInboxQueryKeys.all() });
+  client.invalidateQueries({ queryKey: branchQueryKeys.all() });
+  client.invalidateQueries({ queryKey: approvalQueryKeys.all() });
+  client.invalidateQueries({ queryKey: runsQueryKeys.all() });
+}
+
+// Moving projects between groups changes each project's group name (and the
+// inbox's group sections), but not the groups themselves.
+export function invalidateAfterBulkMove(client: QueryClient) {
+  client.invalidateQueries({ queryKey: projectQueryKeys.all() });
+  client.invalidateQueries({ queryKey: groupQueryKeys.all() });
+  invalidateReviewInbox(client);
+}

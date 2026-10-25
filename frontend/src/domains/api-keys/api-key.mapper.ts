@@ -11,6 +11,18 @@ import {
 // hand-built payload may omit them: the mapper is the only place that decides
 // what "missing" means (upload-only, every project), so the UI can trust the
 // model instead of re-defaulting per component.
+// The generated spec double-nests projectNames (`Array<Array<string>>`, the same
+// Swagger `type: [String], isArray: true` quirk as recovery codes) while the
+// backend sends a flat string[]. The source widens the column so both shapes map,
+// and the mapper flattens them to the model's string[].
+export type ApiKeySource = Omit<ApiKeyDto, "projectNames"> & {
+  projectNames?: unknown;
+};
+
+export type CreatedApiKeySource = Omit<CreatedApiKeyDto, "projectNames"> & {
+  projectNames?: unknown;
+};
+
 function presentScopes(value: unknown): ApiKeyScope[] {
   const scopes = Array.isArray(value) ? value.filter(isApiKeyScope) : [];
   // A key with no scopes could not do anything; treat it as the default.
@@ -21,14 +33,18 @@ function presentProjectNames(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return [
     ...new Set(
-      value.filter(
-        (name): name is string => typeof name === "string" && name.length > 0,
-      ),
+      (value as unknown[])
+        .flatMap((entry) =>
+          Array.isArray(entry) ? (entry as unknown[]) : [entry],
+        )
+        .filter(
+          (name): name is string => typeof name === "string" && name.length > 0,
+        ),
     ),
   ];
 }
 
-export function mapApiKey(dto: ApiKeyDto): ApiKey {
+export function mapApiKey(dto: ApiKeySource): ApiKey {
   return {
     id: String(dto.id ?? ""),
     name: dto.name ?? "",
@@ -51,7 +67,7 @@ export function mapApiKeys(dtos: ApiKeyDto[] | undefined = []): ApiKey[] {
   return dtos.map(mapApiKey);
 }
 
-export function mapIssuedApiKey(dto: CreatedApiKeyDto): IssuedApiKey {
+export function mapIssuedApiKey(dto: CreatedApiKeySource): IssuedApiKey {
   return {
     id: String(dto.id ?? ""),
     name: dto.name ?? "",

@@ -11,10 +11,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
+import BulkFailureDialog from "@/components/bulk-actions/BulkFailureDialog.vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import EmptyState from "@/components/EmptyState.vue";
 import ProjectGroupSection from "@/components/projects/ProjectGroupSection.vue";
+import BulkMoveProjectsDialog from "@/components/projects/BulkMoveProjectsDialog.vue";
 import NewProjectDialog from "@/components/projects/NewProjectDialog.vue";
+import { useBulkMoveProjects } from "@/composables/useBulkActions";
+import { useBulkSelection } from "@/composables/useBulkSelection";
+import { useCurrentRole } from "@/composables/useAuth";
 import { useCreateProject } from "@/composables/useProjectCreate";
 import { useProjectsWithPendingQuery } from "@/composables/useProjects";
 import { useGroupsQuery } from "@/composables/useGroups";
@@ -22,6 +27,10 @@ import { FILTER_ALL } from "@/domains/test-status";
 import { groupProjectsByGroup } from "@/domains/projects/group-projects-by-group";
 import type { ProjectsListQuery } from "@/domains/projects/query-keys";
 import { UNASSIGNED_GROUP_QUERY } from "@/domains/groups/group-section";
+import {
+  bulkFailureRows,
+  type BulkFailureRow,
+} from "@/domains/bulk-actions/bulk-action.model";
 import { PROJECTS_PAGE_SIZE } from "@/lib/pagination";
 import { TEST_ID } from "@/lib/test-ids";
 import PaginationBar from "@/components/PaginationBar.vue";
@@ -125,6 +134,61 @@ const dialogOpen = ref(false);
 
 const createPending = computed(() => createProject.isPending.value);
 const createError = computed(() => createProject.error.value);
+
+// Bulk move is a writer tool: VIEWERs get no checkboxes or bulk bar (the
+// backend answers 403 for them anyway).
+const { canWrite } = useCurrentRole();
+const bulkMove = useBulkMoveProjects();
+const {
+  selectedIds,
+  count: selectedCount,
+  toggle: toggleSelection,
+  selectAll,
+  clear: clearSelection,
+  prune: pruneSelection,
+} = useBulkSelection();
+
+const pageProjectNames = computed(() =>
+  projects.value.map((project) => project.name),
+);
+const allSelected = computed(
+  () =>
+    projects.value.length > 0 && selectedCount.value === projects.value.length,
+);
+
+// A refetch, a page change or a filter can remove rows; a stale name must not be
+// moved by a later bulk action.
+watch(pageProjectNames, (names) => pruneSelection(names));
+
+function toggleAllSelection() {
+  if (allSelected.value) clearSelection();
+  else selectAll(pageProjectNames.value);
+}
+
+const moveOpen = ref(false);
+const failureOpen = ref(false);
+const failureRows = ref<BulkFailureRow[]>([]);
+
+function confirmMove(payload: { groupId: string | null }) {
+  const labels = new Map(selectedIds.value.map((name) => [name, name]));
+  bulkMove.mutate(
+    {
+      // Sorted for a stable request payload regardless of the click order.
+      projectNames: [...selectedIds.value].sort(),
+      groupId: payload.groupId,
+    },
+    {
+      onSuccess: (result) => {
+        moveOpen.value = false;
+        clearSelection();
+        if (result.failed.length > 0) {
+          failureRows.value = bulkFailureRows(result.failed, labels);
+          failureOpen.value = true;
+        }
+      },
+    },
+  );
+}
 
 watch(
   [groups, groupsLoading],
@@ -250,10 +314,47 @@ function create(payload: { name: string; groupId?: string }) {
       </template>
 
       <template v-else>
+        <div
+          v-if="canWrite && projects.length > 0"
+          class="flex flex-wrap items-center gap-3 rounded-xl border bg-card px-4 py-2 shadow-sm"
+          :data-testid="TEST_ID.projectBulkBar"
+        >
+          <label class="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              class="h-4 w-4"
+              :checked="allSelected"
+              :aria-label="
+                allSelected
+                  ? 'Clear the selection'
+                  : 'Select all projects on this page'
+              "
+              :data-testid="TEST_ID.projectSelectAll"
+              @change="toggleAllSelection"
+            />
+            <span>Select all on this page</span>
+          </label>
+          <span class="text-sm text-muted-foreground">
+            {{ selectedCount }} selected
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            :disabled="selectedCount === 0 || bulkMove.isPending.value"
+            :data-testid="TEST_ID.projectBulkMove"
+            @click="moveOpen = true"
+          >
+            Move to group
+          </Button>
+        </div>
+
         <ProjectGroupSection
           v-for="section in sections"
           :key="section.key"
           :section="section"
+          :selectable="canWrite"
+          :selected-names="selectedIds"
+          @toggle="toggleSelection"
         />
 
         <PaginationBar
@@ -297,6 +398,23 @@ function create(payload: { name: string; groupId?: string }) {
       :pending="createPending"
       :error="createError"
       @submit="create"
+    />
+
+    <BulkMoveProjectsDialog
+      :open="moveOpen"
+      :groups="groups ?? []"
+      :selected-count="selectedCount"
+      :pending="bulkMove.isPending.value"
+      @update:open="moveOpen = $event"
+      @submit="confirmMove"
+    />
+
+    <BulkFailureDialog
+      :open="failureOpen"
+      :rows="failureRows"
+      title="Some projects could not be moved"
+      description="The batch continued past these projects. Fix the cause and move them individually."
+      @update:open="failureOpen = $event"
     />
   </div>
 </template>

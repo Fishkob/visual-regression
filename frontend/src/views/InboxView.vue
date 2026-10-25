@@ -10,13 +10,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import AsyncState from "@/components/AsyncState.vue";
+import BulkFailureDialog from "@/components/bulk-actions/BulkFailureDialog.vue";
+import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import InboxProjectSection from "@/components/inbox/InboxProjectSection.vue";
 import PaginationBar from "@/components/PaginationBar.vue";
+import { Button } from "@/components/ui/button";
+import { useCurrentRole } from "@/composables/useAuth";
+import { useBulkApproveSelection } from "@/composables/useBulkActions";
+import { useBulkSelection } from "@/composables/useBulkSelection";
 import {
   useInboxBranchesQuery,
   useReviewInboxSections,
 } from "@/composables/useReviewInbox";
 import { useGroupsQuery } from "@/composables/useGroups";
+import {
+  bulkFailureRows,
+  type BulkApproveSelection,
+  type BulkFailureRow,
+} from "@/domains/bulk-actions/bulk-action.model";
 import { FILTER_ALL } from "@/domains/test-status";
 import {
   IMAGE_TEST_KIND,
@@ -177,6 +188,88 @@ const hasActiveFilters = computed(
     branch.value !== FILTER_ALL ||
     runFilter.value.length > 0,
 );
+
+// Bulk selection is a writer tool: a VIEWER sees the queue and can walk it, but
+// gets no checkboxes or bulk bar (the backend would answer 403 anyway).
+const { canWrite } = useCurrentRole();
+const bulkApprove = useBulkApproveSelection();
+const {
+  selectedIds,
+  count: selectedCount,
+  isSelected,
+  toggle: toggleSelection,
+  selectAll,
+  clear: clearSelection,
+  prune: pruneSelection,
+} = useBulkSelection();
+
+const pageComparisonIds = computed(() =>
+  items.value.map((item) => item.comparisonId),
+);
+const allSelected = computed(
+  () => items.value.length > 0 && selectedCount.value === items.value.length,
+);
+
+// A refetch, a page change or a filter can remove rows; a stale id must never be
+// submitted by a later bulk approval.
+watch(pageComparisonIds, (ids) => pruneSelection(ids));
+
+function toggleAllSelection() {
+  if (allSelected.value) clearSelection();
+  else selectAll(pageComparisonIds.value);
+}
+
+const selectedItems = computed(() =>
+  items.value.filter((item) => isSelected(item.comparisonId)),
+);
+
+// The endpoint is per project, so the selection is grouped by project and sent
+// as one request per group; the composable merges the per-project answers.
+const approveSelections = computed<BulkApproveSelection[]>(() => {
+  const byProject = new Map<string, string[]>();
+  for (const item of selectedItems.value) {
+    const ids = byProject.get(item.projectName) ?? [];
+    ids.push(item.comparisonId);
+    byProject.set(item.projectName, ids);
+  }
+  return [...byProject.entries()].map(([projectName, comparisonIds]) => ({
+    projectName,
+    comparisonIds,
+  }));
+});
+const selectedProjectCount = computed(() => approveSelections.value.length);
+const approveScopeLabel = computed(
+  () =>
+    `${selectedCount.value} ${
+      selectedCount.value === 1 ? "change" : "changes"
+    } across ${selectedProjectCount.value} ${
+      selectedProjectCount.value === 1 ? "project" : "projects"
+    }`,
+);
+
+const approveOpen = ref(false);
+const failureOpen = ref(false);
+const failureRows = ref<BulkFailureRow[]>([]);
+
+function confirmBulkApprove() {
+  // Capture the labels before the mutation: the refreshed inbox may no longer
+  // contain the failed rows, and the dialog must still name them.
+  const labels = new Map(
+    selectedItems.value.map((item) => [
+      item.comparisonId,
+      `${item.projectName} · ${item.testName}`,
+    ]),
+  );
+  bulkApprove.mutate(approveSelections.value, {
+    onSuccess: (result) => {
+      clearSelection();
+      if (result.failed.length > 0) {
+        failureRows.value = bulkFailureRows(result.failed, labels);
+        failureOpen.value = true;
+      }
+    },
+  });
+}
 </script>
 
 <template>
@@ -313,6 +406,40 @@ const hasActiveFilters = computed(
       </div>
 
       <div
+        v-if="canWrite && items.length > 0"
+        class="flex flex-wrap items-center gap-3 rounded-xl border bg-card px-4 py-2 shadow-sm"
+        :data-testid="TEST_ID.inboxBulkBar"
+      >
+        <label class="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            class="h-4 w-4"
+            :checked="allSelected"
+            :aria-label="
+              allSelected
+                ? 'Clear the selection'
+                : 'Select all pending changes on this page'
+            "
+            :data-testid="TEST_ID.inboxSelectAll"
+            @change="toggleAllSelection"
+          />
+          <span>Select all on this page</span>
+        </label>
+        <span class="text-sm text-muted-foreground">
+          {{ selectedCount }} selected
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          :disabled="selectedCount === 0 || bulkApprove.isPending.value"
+          :data-testid="TEST_ID.inboxBulkApprove"
+          @click="approveOpen = true"
+        >
+          Approve selected
+        </Button>
+      </div>
+
+      <div
         v-if="total === 0"
         class="py-12 text-center text-sm text-muted-foreground"
       >
@@ -327,6 +454,9 @@ const hasActiveFilters = computed(
           v-for="project in section.items"
           :key="project.projectName"
           :section="project"
+          :selectable="canWrite"
+          :selected-ids="selectedIds"
+          @toggle="toggleSelection"
         />
       </div>
 
@@ -339,5 +469,25 @@ const hasActiveFilters = computed(
         @update:page="page = $event"
       />
     </AsyncState>
+
+    <ConfirmDialog
+      :open="approveOpen"
+      :pending="bulkApprove.isPending.value"
+      title="Approve selected changes"
+      :description="`Approve ${approveScopeLabel}. Each change becomes the new baseline on its branch; this cannot be undone.`"
+      confirm-text="Approve selected"
+      cancel-text="Cancel"
+      @confirm="confirmBulkApprove"
+      @cancel="approveOpen = false"
+      @update:open="approveOpen = $event"
+    />
+
+    <BulkFailureDialog
+      :open="failureOpen"
+      :rows="failureRows"
+      title="Some changes could not be approved"
+      description="The batch continued past these changes. Fix the cause and review them individually."
+      @update:open="failureOpen = $event"
+    />
   </div>
 </template>

@@ -282,6 +282,22 @@ export const TEST_ID = {
   runApprovalRow: "run-approval-row",
   runFailedJobRow: "run-failed-job-row",
   runCommit: "run-commit",
+  inboxSelectRow: "inbox-select-row",
+  inboxSelectAll: "inbox-select-all",
+  inboxBulkApprove: "inbox-bulk-approve",
+  inboxBulkBar: "inbox-bulk-bar",
+
+  projectSelectRow: "project-select-row",
+  projectSelectAll: "project-select-all",
+  projectBulkMove: "project-bulk-move",
+  projectBulkBar: "project-bulk-bar",
+  projectBulkMoveGroup: "project-bulk-move-group",
+  projectBulkMoveConfirm: "project-bulk-move-confirm",
+
+  bulkFailureDialog: "bulk-failure-dialog",
+  bulkFailureRow: "bulk-failure-row",
+  bulkFailureDone: "bulk-failure-done",
+
   inboxRunFilter: "inbox-run-filter",
   inboxRunBadge: "inbox-run-badge",
 

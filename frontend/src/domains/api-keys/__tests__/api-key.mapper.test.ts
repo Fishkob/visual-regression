@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { ApiKeyDto, CreatedApiKeyDto } from "@sdk";
-import { mapApiKey, mapApiKeys, mapIssuedApiKey } from "../api-key.mapper";
+import {
+  mapApiKey,
+  mapApiKeys,
+  mapIssuedApiKey,
+  type ApiKeySource,
+  type CreatedApiKeySource,
+} from "../api-key.mapper";
 
-const apiKeyDto = (overrides: Partial<ApiKeyDto> = {}): ApiKeyDto => ({
+const apiKeyDto = (overrides: Partial<ApiKeySource> = {}): ApiKeySource => ({
   id: "k1",
   name: "ci-upload",
   keyHint: "7f3a",
@@ -82,6 +87,16 @@ describe("api key mapper", () => {
     expect(mapped.projectNames).toEqual(["checkout-ui", "admin-ui"]);
   });
 
+  it("flattens the doubled project array the OpenAPI schema declares", () => {
+    const mapped = mapApiKey(
+      apiKeyDto({
+        projectNames: [["checkout-ui"], ["admin-ui"]] as unknown as string[],
+      }),
+    );
+
+    expect(mapped.projectNames).toEqual(["checkout-ui", "admin-ui"]);
+  });
+
   it("tolerates missing optional columns", () => {
     const mapped = mapApiKey(
       apiKeyDto({
@@ -101,7 +116,7 @@ describe("api key mapper", () => {
   });
 
   it("maps the create-once response", () => {
-    const created: CreatedApiKeyDto = {
+    const created: CreatedApiKeySource = {
       id: "k1",
       name: "ci-upload",
       rawKey: "raw-secret",

@@ -24,6 +24,10 @@ vi.mock("@sdk", () => ({
 
 // The route is real enough to react to router.replace: the page reads `page`
 // from the URL, so a filter apply must be able to move the route back to page 1.
+vi.mock("@/composables/useAuth", () => ({
+  useCurrentRole: () => ({ canWrite: true }),
+}));
+
 vi.mock("vue-router", async () => {
   const { reactive } = await import("vue");
   const route = reactive({ params: {}, query: {} as Record<string, string> });
