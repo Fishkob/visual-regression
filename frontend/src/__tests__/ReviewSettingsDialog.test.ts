@@ -7,7 +7,8 @@ import { TEST_ID } from "@/lib/test-ids";
 const { mockUpdate } = vi.hoisted(() => ({ mockUpdate: vi.fn() }));
 
 vi.mock("@sdk", () => ({
-  projectsControllerUpdateProject: (...args: unknown[]) => mockUpdate(...args),
+  projectsControllerUpdateReviewPolicy: (...args: unknown[]) =>
+    mockUpdate(...args),
 }));
 
 vi.mock("vue-sonner", () => ({

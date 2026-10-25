@@ -59,10 +59,13 @@ export interface CreateApiKeyInput {
 
 // The retirement half of a rotation: the predecessor stops authenticating
 // either immediately (revokedAt) or when its grace window runs out (expiresAt).
+// Keys have unique names, so the predecessor's name is released before the
+// successor is created and the successor keeps the name people know.
 export interface ApiKeyRetirement {
   revokedAt: Date | null;
   expiresAt: Date | null;
   revokedReason: string;
+  retiredName?: string;
 }
 
 // This repository does not extend BaseRepository: auth reads/writes never join
@@ -305,10 +308,17 @@ export class AuthRepository {
     retirement: ApiKeyRetirement,
   ): Promise<ApiKeyRow> {
     return this.client.$transaction(async (tx) => {
+      const { retiredName, ...retirementData } = retirement;
+      if (retiredName) {
+        await tx.apiKey.update({
+          where: { id: retiredId },
+          data: { name: retiredName },
+        });
+      }
       const row = await tx.apiKey.create({ data: created });
       await tx.apiKey.update({
         where: { id: retiredId },
-        data: { ...retirement, replacedById: row.id },
+        data: { ...retirementData, replacedById: row.id },
       });
       return row;
     });

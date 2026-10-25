@@ -7,9 +7,9 @@ export class ApprovalVoteRepository extends BaseRepository {
     return this.client.approvalVote.count({ where: { comparisonId } });
   }
 
-  async hasVoted(comparisonId: string, username: string): Promise<boolean> {
+  async hasVoted(comparisonId: string, principalId: string): Promise<boolean> {
     const row = await this.client.approvalVote.findUnique({
-      where: { comparisonId_userId: { comparisonId, userId: username } },
+      where: { comparisonId_userId: { comparisonId, userId: principalId } },
       select: { id: true },
     });
     return row !== null;
@@ -19,6 +19,7 @@ export class ApprovalVoteRepository extends BaseRepository {
     comparisonId: string;
     projectName: string;
     testId: string;
+    userId: string;
     username: string;
   }): Promise<void> {
     this.assertWritable();
@@ -27,7 +28,7 @@ export class ApprovalVoteRepository extends BaseRepository {
         comparisonId: input.comparisonId,
         projectName: input.projectName,
         testId: input.testId,
-        userId: input.username,
+        userId: input.userId,
         username: input.username,
       },
     });

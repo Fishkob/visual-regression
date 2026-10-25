@@ -78,6 +78,7 @@ export class TestCommandService {
     filters?: VariantFilter,
     preview = false,
     branchName?: string,
+    actor?: string,
   ): Promise<{
     status: 'updated';
     test: string;
@@ -99,6 +100,7 @@ export class TestCommandService {
       threshold,
       filters,
       preview,
+      { actor, projectName, branchName },
     );
 
     return { status: 'updated', test: testName, threshold, autoAcceptedCount };

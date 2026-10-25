@@ -1,6 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Tracker } from '@common/tracker/tracker.service';
 import { DomainError } from '@common/domain/domain-error';
+import type { ApprovalPrincipal } from '@common/domain/approval-principal';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { change } from '@public/visualTest/core/application/services/state-change-options';
 import type { TestKind } from '@common/domain/test-kind';
@@ -48,7 +49,7 @@ export interface ApprovalPendingResult {
 
 export type ApprovalResult = ApprovedResult | ApprovalPendingResult;
 
-export interface ApprovalDecisionOptions {
+export interface ApprovalDecisionOptions extends ApprovalPrincipal {
   reason?: 'INTENDED_CHANGE' | 'FLAKE' | 'INFRA';
   note?: string;
 }
@@ -131,30 +132,62 @@ export class ApprovalService {
     private readonly votes: ApprovalVoteRepository,
   ) {}
 
-  private async requireMoreApprovals(
-    comparisonId: string,
-    projectName: string,
-    testId: string,
-    approvedBy: string,
-  ): Promise<{ partial: true; votes: number; required: number } | null> {
-    const project = await this.projects.findByName(projectName);
+  private async requireMoreApprovals(input: {
+    comparisonId: string;
+    projectName: string;
+    testName: string;
+    branchName?: string;
+    testId: string;
+    approvedBy: string;
+    principal: ApprovalPrincipal;
+  }): Promise<{ partial: true; votes: number; required: number } | null> {
+    const project = await this.projects.findByName(input.projectName);
     const required = Math.max(1, project?.requiredApprovals ?? 1);
     if (required <= 1) return null;
-    if (await this.votes.hasVoted(comparisonId, approvedBy)) {
+    // A 4-eyes gate counts humans: a CI key is one credential a single operator
+    // controls, so allowing it to vote would let that operator satisfy N>1.
+    if (input.principal.principalType === 'apiKey') {
+      throw new DomainError(
+        '4-eyes approvals require signed-in reviewers; API keys cannot approve a comparison that needs more than one approval',
+        'FORBIDDEN',
+      );
+    }
+    if (
+      await this.votes.hasVoted(input.comparisonId, input.principal.principalId)
+    ) {
       throw new DomainError(
         'You have already approved this comparison',
         'CONFLICT',
       );
     }
-    const existing = await this.votes.countForComparison(comparisonId);
+    const existing = await this.votes.countForComparison(input.comparisonId);
     await this.votes.record({
-      comparisonId,
-      projectName,
-      testId,
-      username: approvedBy,
+      comparisonId: input.comparisonId,
+      projectName: input.projectName,
+      testId: input.testId,
+      userId: input.principal.principalId,
+      username: input.approvedBy,
     });
-    if (existing + 1 < required) {
-      return { partial: true, votes: existing + 1, required };
+    const votes = existing + 1;
+    if (votes < required) {
+      // The vote row and its audit row commit together, so a partial vote can
+      // never exist without the trail that proves who cast it.
+      await this.audit.record({
+        actor: input.approvedBy,
+        action: AUDIT_ACTIONS.reviewVote,
+        projectName: input.projectName,
+        testName: input.testName,
+        branchName: input.branchName ?? null,
+        targetType: 'comparison',
+        targetId: input.comparisonId,
+        metadata: {
+          comparisonId: input.comparisonId,
+          votes,
+          required,
+          principalType: input.principal.principalType,
+        },
+      });
+      return { partial: true, votes, required };
     }
     return null;
   }
@@ -164,8 +197,8 @@ export class ApprovalService {
     testName: string,
     comparisonId: string,
     approvedBy: string,
-    branchName?: string,
-    options?: ApprovalDecisionOptions,
+    branchName: string | undefined,
+    options: ApprovalDecisionOptions,
   ): Promise<ApprovalResult> {
     return this.executeApproval(
       'image',
@@ -183,8 +216,8 @@ export class ApprovalService {
     testName: string,
     comparisonId: string,
     approvedBy: string,
-    branchName?: string,
-    options?: ApprovalDecisionOptions,
+    branchName: string | undefined,
+    options: ApprovalDecisionOptions,
   ): Promise<ApprovalResult> {
     return this.executeApproval(
       'pdf',
@@ -203,8 +236,8 @@ export class ApprovalService {
     testName: string,
     comparisonId: string,
     approvedBy: string,
-    branchName?: string,
-    options?: ApprovalDecisionOptions,
+    branchName: string | undefined,
+    options: ApprovalDecisionOptions,
   ): Promise<ApprovalResult> {
     return this.tracker.track(TRACKED_OPERATIONS.approval[kind], async () => {
       const test = await this.resolveTestOfKind(
@@ -231,12 +264,15 @@ export class ApprovalService {
               comparison.baseline,
               comparison.candidate,
             );
-            const partial = await this.requireMoreApprovals(
-              comparison.id,
+            const partial = await this.requireMoreApprovals({
+              comparisonId: comparison.id,
               projectName,
-              test.id,
+              testName,
+              branchName,
+              testId: test.id,
               approvedBy,
-            );
+              principal: options,
+            });
             if (partial) {
               return {
                 change: change([test.id]),
@@ -383,6 +419,7 @@ export class ApprovalService {
     projectName: string,
     testName: string,
     approvedBy: string,
+    principal: ApprovalPrincipal,
     branchName?: string,
   ): Promise<BulkApprovalResult> {
     const test = await this.testResolver.findOwnTest(
@@ -407,6 +444,7 @@ export class ApprovalService {
           comparisonId,
           approvedBy,
           branchName,
+          principal,
         );
         if (!outcome.approved) {
           result.pending.push({

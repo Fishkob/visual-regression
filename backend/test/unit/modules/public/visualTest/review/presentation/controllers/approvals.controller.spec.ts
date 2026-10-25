@@ -12,7 +12,11 @@ describe('ApprovalsController', () => {
   let controller: ApprovalsController;
   let approvals: Mocked<ApprovalService>;
 
-  const req = { auth: { username: 'jane.doe' } } as AuthenticatedRequest;
+  const req = {
+    auth: { username: 'jane.doe', userId: 'user-1' },
+  } as AuthenticatedRequest;
+
+  const principal = { principalType: 'user' as const, principalId: 'user-1' };
 
   beforeEach(async () => {
     approvals = createMock<ApprovalService>();
@@ -77,13 +81,45 @@ describe('ApprovalsController', () => {
         'comp-1',
         'jane.doe',
         undefined,
-        { reason: undefined, note: undefined },
+        { reason: undefined, note: undefined, ...principal },
       );
       expect(result).toEqual({
         approved: true,
         newBaselineUrl: 'https://example.com/baseline.png',
         signedNewBaselineUrl: 'https://example.com/baseline.png?sig',
       });
+    });
+
+    it('builds an API-key principal from the request', async () => {
+      approvals.approveImage.mockResolvedValue({
+        approved: true,
+        newBaselineUrl: 'https://example.com/baseline.png',
+        signedNewBaselineUrl: 'https://example.com/baseline.png?sig',
+      });
+      const apiKeyReq = {
+        auth: { username: 'ci-key', apiKeyId: 'key-1' },
+      } as AuthenticatedRequest;
+
+      await controller.approveVisualTest(
+        'checkout-ui',
+        'login-form',
+        { comparisonId: 'comp-1' },
+        apiKeyReq,
+      );
+
+      expect(approvals.approveImage).toHaveBeenCalledWith(
+        'checkout-ui',
+        'login-form',
+        'comp-1',
+        'ci-key',
+        undefined,
+        {
+          reason: undefined,
+          note: undefined,
+          principalType: 'apiKey',
+          principalId: 'key-1',
+        },
+      );
     });
 
     it('rejects the approval when the request carries no authenticated principal', async () => {
@@ -124,7 +160,7 @@ describe('ApprovalsController', () => {
         'pdf-comp-1',
         'jane.doe',
         'feature/x',
-        { reason: undefined, note: undefined },
+        { reason: undefined, note: undefined, ...principal },
       );
       expect(result).toEqual({
         approved: true,
@@ -165,6 +201,7 @@ describe('ApprovalsController', () => {
         'checkout-ui',
         'login-form',
         'jane.doe',
+        principal,
         'feature/x',
       );
       expect(result).toEqual({ approved: 2, pending: [], failed: [] });
@@ -183,6 +220,7 @@ describe('ApprovalsController', () => {
         'checkout-ui',
         'login-form',
         'jane.doe',
+        principal,
         undefined,
       );
     });

@@ -133,6 +133,9 @@ import type { ProjectsControllerGetProjectsWithPendingFlagData } from './models/
 import type { ProjectsControllerGetProjectsWithPendingFlagResponses } from './models/ProjectsControllerGetProjectsWithPendingFlagResponses.gen';
 import type { ProjectsControllerUpdateProjectData } from './models/ProjectsControllerUpdateProjectData.gen';
 import type { ProjectsControllerUpdateProjectResponses } from './models/ProjectsControllerUpdateProjectResponses.gen';
+import type { ProjectsControllerUpdateReviewPolicyData } from './models/ProjectsControllerUpdateReviewPolicyData.gen';
+import type { ProjectsControllerUpdateReviewPolicyErrors } from './models/ProjectsControllerUpdateReviewPolicyErrors.gen';
+import type { ProjectsControllerUpdateReviewPolicyResponses } from './models/ProjectsControllerUpdateReviewPolicyResponses.gen';
 import type { PublicShareControllerResolveData } from './models/PublicShareControllerResolveData.gen';
 import type { PublicShareControllerResolveResponses } from './models/PublicShareControllerResolveResponses.gen';
 import type { ReviewCommentControllerCreateData } from './models/ReviewCommentControllerCreateData.gen';
@@ -321,6 +324,19 @@ export const projectsControllerGetAllProjects = <ThrowOnError extends boolean = 
 export const projectsControllerCreate = <ThrowOnError extends boolean = false>(options: Options<ProjectsControllerCreateData, ThrowOnError>): RequestResult<ProjectsControllerCreateResponses, ProjectsControllerCreateErrors, ThrowOnError> => (options.client ?? client).post<ProjectsControllerCreateResponses, ProjectsControllerCreateErrors, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/projects',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update how many approvals a comparison needs in a project
+ */
+export const projectsControllerUpdateReviewPolicy = <ThrowOnError extends boolean = false>(options: Options<ProjectsControllerUpdateReviewPolicyData, ThrowOnError>): RequestResult<ProjectsControllerUpdateReviewPolicyResponses, ProjectsControllerUpdateReviewPolicyErrors, ThrowOnError> => (options.client ?? client).patch<ProjectsControllerUpdateReviewPolicyResponses, ProjectsControllerUpdateReviewPolicyErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/review-policy',
     ...options,
     headers: {
         'Content-Type': 'application/json',

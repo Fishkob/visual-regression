@@ -13,5 +13,4 @@ export type UpdateProjectDto = {
      * Branch to promote to the project default
      */
     defaultBranchName?: string;
-    requiredApprovals?: number;
 };

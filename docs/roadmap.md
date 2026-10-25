@@ -256,7 +256,9 @@ two `storage.get`-readable revisions, `baselineRevisionLimit=1` prunes to the
 newest row (the older files become reclaimable), and the orphan/unreferenced
 sweeps leave revision-referenced files intact. Visual baselines and the axe
 suite pass for all 20 gallery cases after the history/comments panels were
-added (`quality.sh visual`, `quality.sh a11y`).
+added (`quality.sh visual`, `quality.sh a11y`). Follow-up ADR-041 tightened
+governance: review policy and pixel thresholds are ADMIN-only/audited, and API
+keys cannot vote in a 4-eyes project.
 
 **Size / dependencies.** L · independent; grows R15.
 
@@ -848,14 +850,16 @@ due dates and aging report; per-project required approvals (1..N) with per-user
 approval rows finalized on threshold.
 
 **Delivered.** `Project.requiredApprovals` (default 1) and `ApprovalVote`
-(unique comparison+reviewer); partial votes return
+(unique comparison+principal); partial votes return
 `{approved:false, requiresMoreApprovals:true, votes, required}`, the threshold
 runs the unchanged finalization, and a repeat vote is 409. Bulk, run and
 test-level "approve all" responses now separate `pending` votes from `approved`.
 `ReviewAssignment` (test/run → active user, dueAt, completedAt),
 `GET /assignments/mine`, `/mine/overdue`, `POST /:id/complete`, the server-side
 `assignedToMe` inbox filter, `review.assigned` webhook and
-`review.assign`/`review.complete` audit rows. UI: project review-settings dialog
+`review.assign`/`review.complete`/`review.vote` audit rows. Review policy is
+ADMIN-only and audited; 4-eyes votes are human-only (API keys are rejected for
+N>1). UI: project review-settings dialog
 (1–10), vote-aware toasts/dialogs/alerts (never reports a vote as approved),
 test assignment badge + assign/complete dialog, inbox "My reviews" toggle and
 overdue banner. E2E: two distinct approvers finalize (repeat vote 409), the

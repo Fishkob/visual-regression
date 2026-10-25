@@ -62,7 +62,16 @@ describe('BulkActionService', () => {
       } as never)
       .mockResolvedValueOnce(null);
 
-    const result = await service.approve('shop', ['c1', 'c2'], 'ada');
+    const principal = {
+      principalType: 'user' as const,
+      principalId: 'user-ada',
+    };
+    const result = await service.approve(
+      'shop',
+      ['c1', 'c2'],
+      'ada',
+      principal,
+    );
 
     expect(result.approved).toEqual([{ id: 'c1', success: true }]);
     expect(result.failed).toEqual([
@@ -78,6 +87,7 @@ describe('BulkActionService', () => {
       'c1',
       'ada',
       'main',
+      principal,
     );
   });
 

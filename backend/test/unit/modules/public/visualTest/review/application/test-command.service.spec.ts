@@ -55,6 +55,7 @@ describe('TestCommandService', () => {
         20,
         undefined,
         false,
+        { actor: undefined, projectName: 'my-project', branchName: undefined },
       );
       expect(result).toMatchObject({
         test: 'my-test',
@@ -77,6 +78,7 @@ describe('TestCommandService', () => {
           viewport: '1920x1080',
         },
         false,
+        { actor: undefined, projectName: 'my-project', branchName: undefined },
       );
     });
 
@@ -89,6 +91,28 @@ describe('TestCommandService', () => {
         20,
         {},
         true,
+        { actor: undefined, projectName: 'my-project', branchName: undefined },
+      );
+    });
+
+    it('forwards the actor and branch for the threshold audit', async () => {
+      await service.updateThreshold(
+        'my-test',
+        'my-project',
+        20,
+        undefined,
+        false,
+        'main',
+        'jane',
+      );
+
+      expect(screenshots.update).toHaveBeenCalledWith(
+        'test-1',
+        'my-test',
+        20,
+        undefined,
+        false,
+        { actor: 'jane', projectName: 'my-project', branchName: 'main' },
       );
     });
 

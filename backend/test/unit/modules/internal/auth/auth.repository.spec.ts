@@ -346,6 +346,47 @@ describe('AuthRepository', () => {
     expect(result).toEqual({ id: 'k2' });
   });
 
+  it('releases the predecessor name before creating the successor', async () => {
+    const created = {
+      name: 'ci-upload',
+      keyHash: 'newhash',
+      keyHint: 'ab12',
+      ownerId: 'u1',
+      scopes: ['upload'],
+      projectNames: [],
+      createdBy: 'alice',
+      expiresAt: null,
+    };
+    const revokedAt = new Date('2026-03-01');
+    mockClient.apiKey.create.mockResolvedValue({ id: 'k2' });
+    mockClient.apiKey.update.mockResolvedValue({ id: 'k1' });
+
+    await repository.replaceApiKey(created, 'k1', {
+      revokedAt,
+      expiresAt: null,
+      revokedReason: 'rotated',
+      retiredName: 'ci-upload (rotated k1)',
+    });
+
+    expect(mockClient.apiKey.update).toHaveBeenNthCalledWith(1, {
+      where: { id: 'k1' },
+      data: { name: 'ci-upload (rotated k1)' },
+    });
+    expect(mockClient.apiKey.create).toHaveBeenCalledWith({ data: created });
+    expect(mockClient.apiKey.update).toHaveBeenNthCalledWith(2, {
+      where: { id: 'k1' },
+      data: {
+        revokedAt,
+        expiresAt: null,
+        revokedReason: 'rotated',
+        replacedById: 'k2',
+      },
+    });
+    expect(mockClient.apiKey.update.mock.invocationCallOrder[0]).toBeLessThan(
+      mockClient.apiKey.create.mock.invocationCallOrder[0]!,
+    );
+  });
+
   it('counts users (for bootstrap check)', async () => {
     mockClient.user.count.mockResolvedValue(0);
 

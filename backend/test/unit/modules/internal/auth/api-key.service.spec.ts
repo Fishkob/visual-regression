@@ -152,6 +152,27 @@ describe('ApiKeyService', () => {
 
       expect(result.expiresAt).toBeNull();
     });
+
+    it('reports a duplicate key name as a conflict', async () => {
+      mockRepository.createApiKey.mockRejectedValue({ code: 'P2002' });
+
+      await expect(
+        service.createKey({ name: 'ci-upload' }),
+      ).rejects.toMatchObject({
+        code: 'CONFLICT',
+        message: 'An API key named "ci-upload" already exists',
+      });
+    });
+
+    it('rethrows a non-unique repository failure unchanged', async () => {
+      mockRepository.createApiKey.mockRejectedValue(
+        new Error('db unavailable'),
+      );
+
+      await expect(service.createKey({ name: 'ci-upload' })).rejects.toThrow(
+        'db unavailable',
+      );
+    });
   });
 
   describe('listKeys', () => {
@@ -313,6 +334,7 @@ describe('ApiKeyService', () => {
           revokedAt: expect.any(Date),
           expiresAt: null,
           revokedReason: 'rotated',
+          retiredName: 'ci-upload (rotated k1)',
         },
       );
       expect(result.id).toBe('k2');
@@ -377,6 +399,16 @@ describe('ApiKeyService', () => {
       expect(result.expiresAt!.getTime()).toBeLessThanOrEqual(
         Date.now() + 90 * DAY_MS,
       );
+    });
+
+    it('reports a duplicate successor name as a conflict', async () => {
+      mockRepository.findApiKeyById.mockResolvedValue(makeRow());
+      mockRepository.replaceApiKey.mockRejectedValue({ code: 'P2002' });
+
+      await expect(service.rotateKey('k1')).rejects.toMatchObject({
+        code: 'CONFLICT',
+        message: 'An API key named "ci-upload" already exists',
+      });
     });
 
     it('rejects a revoked key', async () => {

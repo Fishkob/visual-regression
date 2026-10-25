@@ -482,6 +482,17 @@ export class UnifiedScreenshotRepository extends BaseRepository {
     return rows.map((row) => row.imageUrl);
   }
 
+  // The previous threshold values of the baselines a threshold update is about
+  // to overwrite, so the audit row can state from → to.
+  async findThresholdsByIds(screenshotIds: string[]): Promise<number[]> {
+    if (screenshotIds.length === 0) return [];
+    const rows = await this.client.unifiedScreenshot.findMany({
+      where: { id: { in: screenshotIds } },
+      select: { pixelDiffThreshold: true },
+    });
+    return rows.map((row) => row.pixelDiffThreshold);
+  }
+
   async updateThresholdMany(
     screenshotIds: string[],
     threshold: number,

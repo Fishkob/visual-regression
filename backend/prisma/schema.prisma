@@ -496,7 +496,7 @@ model RecoveryCode {
 
 model ApiKey {
   id            String    @id @default(cuid())
-  name          String
+  name          String    @unique
   keyHash       String    @unique
   keyHint       String?
   owner         User?     @relation("ApiKeyOwner", fields: [ownerId], references: [id], onDelete: SetNull)

@@ -1,9 +1,17 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { ref } from "vue";
 import { mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import TestComparisonInfo from "@/components/TestComparisonInfo.vue";
 import type { Comparison } from "@/domains/visual-test/visual-test.model";
 import { TEST_ID } from "@/lib/test-ids";
+
+vi.mock("@/composables/useAuth", () => ({
+  useCurrentRole: () => ({
+    isAdmin: ref(true),
+    canWrite: ref(true),
+  }),
+}));
 
 const mounted: { unmount: () => void }[] = [];
 

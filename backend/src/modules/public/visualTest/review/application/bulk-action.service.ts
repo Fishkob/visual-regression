@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { ApprovalPrincipal } from '@common/domain/approval-principal';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
@@ -43,6 +44,7 @@ export class BulkActionService {
     projectName: string,
     comparisonIds: string[],
     actor: string,
+    principal: ApprovalPrincipal,
   ): Promise<BulkApprovalResult> {
     const approved: BulkItemResult[] = [];
     const pendingVotes: BulkPendingVote[] = [];
@@ -64,6 +66,7 @@ export class BulkActionService {
                 comparisonId,
                 actor,
                 test.branch.name,
+                principal,
               )
             : await this.approvals.approvePdf(
                 projectName,
@@ -71,6 +74,7 @@ export class BulkActionService {
                 comparisonId,
                 actor,
                 test.branch.name,
+                principal,
               );
         if (!outcome.approved) {
           pendingVotes.push({

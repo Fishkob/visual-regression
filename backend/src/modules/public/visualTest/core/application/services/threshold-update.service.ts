@@ -6,7 +6,15 @@ import { StateChangeWorkflow } from '@public/visualTest/core/application/service
 import { change } from '@public/visualTest/core/application/services/state-change-options';
 import { decideThresholdAction } from '@public/visualTest/core/domain/policies/threshold-policy';
 import { DomainError } from '@common/domain/domain-error';
+import { AuditService } from '@internal/audit/audit.service';
+import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import type { VariantFilter } from '@public/visualTest/core/domain/value-objects/variant.vo';
+
+export interface ThresholdAuditContext {
+  actor?: string;
+  projectName?: string;
+  branchName?: string;
+}
 
 // Single owner of the threshold-update recipe, so the caller stops hand-rolling
 // executeStateChange. Writes the new value on the matching baselines, then
@@ -22,6 +30,7 @@ export class ThresholdUpdateService {
     private readonly screenshots: UnifiedScreenshotRepository,
     private readonly comparisons: UnifiedComparisonsRepository,
     private readonly retirement: ComparisonRetirementService,
+    private readonly audit: AuditService,
   ) {}
 
   async update(
@@ -30,6 +39,7 @@ export class ThresholdUpdateService {
     threshold: number,
     filters?: VariantFilter,
     preview = false,
+    auditContext: ThresholdAuditContext = {},
   ): Promise<{ autoAcceptedCount: number }> {
     if (preview) {
       // Server-owned preview of the rule: the frontend asks how many pending
@@ -50,9 +60,28 @@ export class ThresholdUpdateService {
         threshold,
         filters,
       );
+      const previousThresholds =
+        await this.screenshots.findThresholdsByIds(baselineIds);
 
       await this.screenshots.updateThresholdMany(baselineIds, threshold);
       autoAcceptedCount = toDelete.length;
+
+      // Transaction-riding: the audit row commits or rolls back with the
+      // baseline write it records.
+      await this.audit.record({
+        actor: auditContext.actor ?? null,
+        action: AUDIT_ACTIONS.testThreshold,
+        projectName: auditContext.projectName ?? null,
+        testName,
+        branchName: auditContext.branchName ?? null,
+        targetType: 'test',
+        targetId: testId,
+        metadata: {
+          from: [...new Set(previousThresholds)].sort((a, b) => a - b),
+          to: threshold,
+          autoAcceptedCount,
+        },
+      });
 
       if (toDelete.length > 0) {
         const stale = await this.retirement.retirePendingComparisons(

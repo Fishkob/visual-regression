@@ -232,14 +232,36 @@ export class UpdateProjectDto {
   @IsString()
   @MaxLength(MAX_BRANCH_NAME_LENGTH)
   defaultBranchName?: string;
+}
 
-  @ApiPropertyOptional({ minimum: 1, maximum: 10 })
-  @IsOptional()
+// The review policy is its own ADMIN-only surface: the generic project PATCH
+// must not change how many approvals a comparison needs.
+export class UpdateProjectReviewPolicyDto {
+  @ApiProperty({
+    description: 'Approvals needed to finalize a comparison',
+    minimum: 1,
+    maximum: 10,
+    example: 2,
+  })
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(10)
-  requiredApprovals?: number;
+  requiredApprovals!: number;
+}
+
+export class ProjectReviewPolicyDto {
+  @ApiProperty({
+    description: 'Approvals needed to finalize a comparison',
+    minimum: 1,
+    maximum: 10,
+    example: 2,
+  })
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  @Expose()
+  requiredApprovals!: number;
 }
 
 export class UpdateThresholdDto {

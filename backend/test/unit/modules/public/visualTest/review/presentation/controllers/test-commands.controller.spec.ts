@@ -8,6 +8,8 @@ import {
 } from '@public/visualTest/review/presentation/dto/project.dto';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import { createMock } from '@test/utils/create-mock';
+import { Reflector } from '@nestjs/core';
+import { ROLES_KEY, type AppRole } from '@common/http/roles.decorator';
 describe('TestCommandsController', () => {
   let controller: TestCommandsController;
   let testCommandService: Mocked<TestCommandService>;
@@ -27,6 +29,14 @@ describe('TestCommandsController', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('requires an ADMIN for the threshold update, preview included', () => {
+    const roles = new Reflector().getAllAndOverride<AppRole[]>(ROLES_KEY, [
+      TestCommandsController.prototype.updateThreshold,
+    ]);
+
+    expect(roles).toEqual(['ADMIN']);
   });
 
   describe('updateThreshold', () => {
@@ -49,6 +59,7 @@ describe('TestCommandsController', () => {
         'login-form',
         body,
         query,
+        { auth: { username: 'jane' } } as never,
       );
 
       expect(result).toEqual(expected);
@@ -59,6 +70,7 @@ describe('TestCommandsController', () => {
         query,
         false,
         undefined,
+        'jane',
       );
     });
 
@@ -82,6 +94,7 @@ describe('TestCommandsController', () => {
         'login-form',
         body,
         query,
+        { auth: { username: 'jane' } } as never,
       );
 
       expect(testCommandService.updateThreshold).toHaveBeenCalledWith(
@@ -91,6 +104,7 @@ describe('TestCommandsController', () => {
         query,
         true,
         undefined,
+        'jane',
       );
     });
   });

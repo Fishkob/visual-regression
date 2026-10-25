@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DomainError } from '@common/domain/domain-error';
+import type { ApprovalPrincipal } from '@common/domain/approval-principal';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { ApprovalService } from '@public/visualTest/review/application/approval.service';
 import {
@@ -164,6 +165,7 @@ export class RunService {
     projectName: string,
     runKey: string,
     actor: string,
+    principal: ApprovalPrincipal,
     branchName?: string,
   ): Promise<RunApproveAllResult> {
     const run = await this.requireRun(projectName, runKey, branchName);
@@ -183,6 +185,7 @@ export class RunService {
                 row.id,
                 actor,
                 row.test.branch.name,
+                principal,
               )
             : await this.approvals.approvePdf(
                 projectName,
@@ -190,6 +193,7 @@ export class RunService {
                 row.id,
                 actor,
                 row.test.branch.name,
+                principal,
               );
         if (!outcome.approved) {
           result.pending.push({

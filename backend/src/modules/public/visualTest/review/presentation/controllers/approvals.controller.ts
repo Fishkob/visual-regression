@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Req,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import {
   ApiConflictResponse,
   ApiNotFoundResponse,
@@ -20,6 +12,7 @@ import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-valid
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { requireAuthenticatedPrincipal } from '@common/http/authenticated-principal';
 import {
   ApprovalPendingDto,
   ApproveComparisonBodyDto,
@@ -28,17 +21,6 @@ import {
 } from '@public/visualTest/review/presentation/dto/review-responses.dto';
 import { ApprovalDto } from '@public/visualTest/review/presentation/dto/approval.dto';
 import { mapApprovalToDto } from '@public/visualTest/review/infrastructure/mappers/approval.mapper';
-
-// The audit row records who approved, so the principal must be real. The global
-// guard attaches it to every non-public route; this throws instead of letting an
-// approval be written with a fabricated identity if that ever stops being true.
-function requireApprover(req: AuthenticatedRequest): string {
-  const username = req.auth?.username;
-  if (!username) {
-    throw new UnauthorizedException('Authentication required');
-  }
-  return username;
-}
 
 @ApiTags('Approvals')
 @Controller('projects/:projectName/tests/:testName')
@@ -60,13 +42,14 @@ export class ApprovalsController {
     @Req() req: AuthenticatedRequest,
     @BranchQuery() branch?: string,
   ): Promise<ApproveResultDto | ApprovalPendingDto> {
+    const { username, ...principal } = requireAuthenticatedPrincipal(req);
     return this.approvals.approveImage(
       projectName,
       testName,
       params.comparisonId,
-      requireApprover(req),
+      username,
       branch,
-      { reason: params.reason, note: params.note },
+      { reason: params.reason, note: params.note, ...principal },
     );
   }
 
@@ -83,13 +66,14 @@ export class ApprovalsController {
     @Req() req: AuthenticatedRequest,
     @BranchQuery() branch?: string,
   ): Promise<ApproveResultDto | ApprovalPendingDto> {
+    const { username, ...principal } = requireAuthenticatedPrincipal(req);
     return this.approvals.approvePdf(
       projectName,
       testName,
       params.comparisonId,
-      requireApprover(req),
+      username,
       branch,
-      { reason: params.reason, note: params.note },
+      { reason: params.reason, note: params.note, ...principal },
     );
   }
 
@@ -109,10 +93,12 @@ export class ApprovalsController {
     @Req() req: AuthenticatedRequest,
     @BranchQuery() branch?: string,
   ): Promise<BulkApproveResultDto> {
+    const { username, ...principal } = requireAuthenticatedPrincipal(req);
     return this.approvals.approveAllPending(
       projectName,
       testName,
-      requireApprover(req),
+      username,
+      principal,
       branch,
     );
   }

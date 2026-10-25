@@ -138,7 +138,7 @@ describe('Approve PDF Test (e2e)', () => {
         '/api/v1/projects/pdf-approval/tests/invoice/approvals/all?branch=main',
       )
       .expect(201);
-    expect(batch.body).toEqual({ approved: 1, failed: [] });
+    expect(batch.body).toEqual({ approved: 1, pending: [], failed: [] });
 
     // The PDF kind keeps the comparison row as history (APPROVED) and promotes
     // the candidate PDF to the baseline.

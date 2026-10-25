@@ -101,7 +101,7 @@
           {{ t("projectDetail.moveToGroup") }}
         </Button>
         <Button
-          v-if="project && canWrite"
+          v-if="project && isAdmin"
           type="button"
           variant="outline"
           :data-testid="TEST_ID.reviewSettingsAction"

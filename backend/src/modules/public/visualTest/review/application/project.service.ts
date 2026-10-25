@@ -157,16 +157,32 @@ export class ProjectService {
     });
   }
 
+  async updateReviewPolicy(
+    projectName: string,
+    requiredApprovals: number,
+    actor?: string,
+  ): Promise<{ requiredApprovals: number }> {
+    const project = await this.projects.findByName(projectName);
+    if (!project) {
+      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
+    }
+    const from = project.requiredApprovals ?? 1;
+    await this.projects.updateRequiredApprovals(projectName, requiredApprovals);
+    await this.audit.record({
+      actor: actor ?? null,
+      action: AUDIT_ACTIONS.projectReviewPolicy,
+      projectName,
+      targetType: 'project',
+      targetId: project.id,
+      metadata: { from, to: requiredApprovals },
+    });
+    return { requiredApprovals };
+  }
+
   async updateProjectGroup(
     projectName: string,
     dto: UpdateProjectDto,
   ): Promise<ProjectDto> {
-    if (dto.requiredApprovals !== undefined) {
-      await this.projects.updateRequiredApprovals(
-        projectName,
-        dto.requiredApprovals,
-      );
-    }
     if (dto.groupId === undefined && dto.defaultBranchName === undefined) {
       return this.getWithLatestVariantStatuses(projectName);
     }

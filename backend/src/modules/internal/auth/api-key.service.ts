@@ -90,7 +90,12 @@ export class ApiKeyService {
   async createKey(options: CreateApiKeyOptions): Promise<IssuedApiKey> {
     const issued = this.generate();
     const input = this.toInput(issued, options);
-    const row = await this.repo.createApiKey(input);
+    let row: ApiKeyRow;
+    try {
+      row = await this.repo.createApiKey(input);
+    } catch (error) {
+      this.rethrowNameConflict(error, input.name);
+    }
     return {
       id: row.id,
       name: row.name,
@@ -161,6 +166,9 @@ export class ApiKeyService {
       revokedAt: graceEndsAt ? null : now,
       expiresAt: graceEndsAt,
       revokedReason: ROTATION_REASON,
+      // Names are unique across all keys, so the retiring row must release the
+      // human-facing name before its successor can claim it.
+      retiredName: `${current.name} (rotated ${current.id})`,
     };
 
     const input = this.toInput(
@@ -185,7 +193,12 @@ export class ApiKeyService {
       },
       now,
     );
-    const row = await this.repo.replaceApiKey(input, id, retirement);
+    let row: ApiKeyRow;
+    try {
+      row = await this.repo.replaceApiKey(input, id, retirement);
+    } catch (error) {
+      this.rethrowNameConflict(error, input.name);
+    }
 
     return {
       id: row.id,
@@ -300,6 +313,16 @@ export class ApiKeyService {
     } catch {
       // Intentionally ignored — see comment above.
     }
+  }
+
+  private rethrowNameConflict(error: unknown, name: string): never {
+    if ((error as { code?: string }).code === 'P2002') {
+      throw new DomainError(
+        `An API key named "${name}" already exists`,
+        'CONFLICT',
+      );
+    }
+    throw error;
   }
 
   private plusDays(from: Date, days: number): Date {

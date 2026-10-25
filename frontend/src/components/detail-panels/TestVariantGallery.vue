@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { statusLabelFor } from "@/components/StatusBadge";
-import { useI18n } from "vue-i18n";
 import { getStatusConfig } from "@/domains/test-status";
 import { sortVariantSummaries } from "@/domains/visual-test/variant-order";
 import type { VariantSummary } from "@/domains/visual-test/visual-test.model";

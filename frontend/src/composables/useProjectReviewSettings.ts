@@ -1,6 +1,6 @@
 import { unref } from "vue";
 import type { QueryClient } from "@tanstack/vue-query";
-import { projectsControllerUpdateProject, type ProjectDto } from "@sdk";
+import { projectsControllerUpdateReviewPolicy } from "@sdk";
 import { translateMessage as tm } from "@/lib/i18n-messages";
 import { useSdkMutation } from "@/composables/useSdkMutation";
 import type { MaybeRef } from "@/composables/useDomainQuery";
@@ -15,9 +15,9 @@ function invalidate(client: QueryClient, projectName: string) {
 }
 
 export function useUpdateProjectReviewSettings(projectName: MaybeRef<string>) {
-  return useSdkMutation<ProjectDto, number>({
+  return useSdkMutation<{ requiredApprovals?: number }, number>({
     mutationFn: (requiredApprovals) =>
-      projectsControllerUpdateProject({
+      projectsControllerUpdateReviewPolicy({
         path: { projectName: unref(projectName) },
         body: { requiredApprovals },
       }),

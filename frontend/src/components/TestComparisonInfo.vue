@@ -77,7 +77,7 @@
       </Tooltip>
     </TooltipProvider>
 
-    <TooltipProvider v-if="!readOnly">
+    <TooltipProvider v-if="!readOnly && isAdmin">
       <Tooltip>
         <TooltipTrigger as-child>
           <div
@@ -148,6 +148,7 @@ import type {
   Comparison,
 } from "@/domains/visual-test/visual-test.model";
 import { TEST_ID } from "@/lib/test-ids";
+import { useCurrentRole } from "@/composables/useAuth";
 import { formatRelativeAge } from "@/lib/format-date";
 import { useThresholdEditor } from "@/composables/useThresholdEditor";
 
@@ -166,6 +167,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { isAdmin } = useCurrentRole();
 
 const variant = computed(() => ({
   viewport: props.viewport ?? props.baseline?.viewport,

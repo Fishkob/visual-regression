@@ -1,7 +1,10 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DomainError } from '@common/domain/domain-error';
-import { ApprovalService } from '@public/visualTest/review/application/approval.service';
+import {
+  ApprovalService,
+  type ApprovalDecisionOptions,
+} from '@public/visualTest/review/application/approval.service';
 import { Tracker } from '@common/tracker/tracker.service';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
@@ -65,6 +68,16 @@ describe('ApprovalService', () => {
   const pdfTest = { id: 'test-1', name: 'my-test', kind: 'pdf' as const };
   const variant = Variant.fromStrings('1920x1080', 'chrome', 'staging');
   const approvedBy = 'reviewer';
+
+  function options(
+    overrides: Partial<ApprovalDecisionOptions> = {},
+  ): ApprovalDecisionOptions {
+    return {
+      principalType: 'user',
+      principalId: 'user-1',
+      ...overrides,
+    };
+  }
 
   function makeBaseline(overrides = {}) {
     return new ScreenshotEntity({
@@ -242,6 +255,8 @@ describe('ApprovalService', () => {
         'my-test',
         'comp-1',
         approvedBy,
+        undefined,
+        options(),
       );
 
       expect(testResolver.findTestOfKind).toHaveBeenCalledWith(
@@ -305,7 +320,14 @@ describe('ApprovalService', () => {
       comparisons.findByIdForTest.mockResolvedValue(comparison);
       statusService.recomputeStatus.mockResolvedValue(undefined);
 
-      await service.approveImage('my-project', 'my-test', 'comp-1', approvedBy);
+      await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        approvedBy,
+        undefined,
+        options(),
+      );
 
       expect(baselineHistory.recordOutgoingBaseline).toHaveBeenCalledWith({
         testId: 'test-1',
@@ -333,6 +355,7 @@ describe('ApprovalService', () => {
         'comp-1',
         'jane.doe',
         'feature/x',
+        options(),
       );
 
       expect(approvalAudit.record).toHaveBeenCalledTimes(1);
@@ -368,7 +391,14 @@ describe('ApprovalService', () => {
       );
       statusService.recomputeStatus.mockResolvedValue(undefined);
 
-      await service.approveImage('my-project', 'my-test', 'comp-1', approvedBy);
+      await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        approvedBy,
+        undefined,
+        options(),
+      );
 
       expect(approvalAudit.record).toHaveBeenCalledWith(
         expect.objectContaining({ branchName: null, approvedBy }),
@@ -398,7 +428,14 @@ describe('ApprovalService', () => {
         return Promise.resolve();
       });
 
-      await service.approveImage('my-project', 'my-test', 'comp-1', approvedBy);
+      await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        approvedBy,
+        undefined,
+        options(),
+      );
 
       // The comparison is already gone (image approval deletes it) when the
       // audit row is written — which is why the row is denormalized.
@@ -417,7 +454,14 @@ describe('ApprovalService', () => {
       approvalAudit.record.mockRejectedValue(new Error('audit write failed'));
 
       await expect(
-        service.approveImage('my-project', 'my-test', 'comp-1', approvedBy),
+        service.approveImage(
+          'my-project',
+          'my-test',
+          'comp-1',
+          approvedBy,
+          undefined,
+          options(),
+        ),
       ).rejects.toThrow('audit write failed');
       expect(approvalAudit.record).toHaveBeenCalledTimes(1);
     });
@@ -431,7 +475,14 @@ describe('ApprovalService', () => {
       comparisons.findByIdForTest.mockResolvedValue(comparison);
       statusService.recomputeStatus.mockResolvedValue(undefined);
 
-      await service.approveImage('my-project', 'my-test', 'comp-1', approvedBy);
+      await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        approvedBy,
+        undefined,
+        options(),
+      );
 
       expect(uow.execute).toHaveBeenCalledWith(
         expect.any(Function),
@@ -446,7 +497,14 @@ describe('ApprovalService', () => {
         new DomainError('Project "my-project" not found', 'NOT_FOUND'),
       );
       await expect(
-        service.approveImage('my-project', 'my-test', 'comp-1', approvedBy),
+        service.approveImage(
+          'my-project',
+          'my-test',
+          'comp-1',
+          approvedBy,
+          undefined,
+          options(),
+        ),
       ).rejects.toThrow(DomainError);
     });
 
@@ -454,7 +512,14 @@ describe('ApprovalService', () => {
       mockResolvedTest();
       comparisons.findByIdForTest.mockResolvedValue(null);
       await expect(
-        service.approveImage('my-project', 'my-test', 'comp-1', approvedBy),
+        service.approveImage(
+          'my-project',
+          'my-test',
+          'comp-1',
+          approvedBy,
+          undefined,
+          options(),
+        ),
       ).rejects.toThrow(DomainError);
     });
 
@@ -473,7 +538,14 @@ describe('ApprovalService', () => {
         }),
       );
       await expect(
-        service.approveImage('my-project', 'my-test', 'comp-1', approvedBy),
+        service.approveImage(
+          'my-project',
+          'my-test',
+          'comp-1',
+          approvedBy,
+          undefined,
+          options(),
+        ),
       ).rejects.toMatchObject({ code: 'CONFLICT' });
     });
 
@@ -483,7 +555,14 @@ describe('ApprovalService', () => {
       comparison.baseline = null;
       comparisons.findByIdForTest.mockResolvedValue(comparison);
       await expect(
-        service.approveImage('my-project', 'my-test', 'comp-1', approvedBy),
+        service.approveImage(
+          'my-project',
+          'my-test',
+          'comp-1',
+          approvedBy,
+          undefined,
+          options(),
+        ),
       ).rejects.toThrow(DomainError);
     });
 
@@ -493,7 +572,14 @@ describe('ApprovalService', () => {
       comparison.candidate = null;
       comparisons.findByIdForTest.mockResolvedValue(comparison);
       await expect(
-        service.approveImage('my-project', 'my-test', 'comp-1', approvedBy),
+        service.approveImage(
+          'my-project',
+          'my-test',
+          'comp-1',
+          approvedBy,
+          undefined,
+          options(),
+        ),
       ).rejects.toThrow(DomainError);
     });
 
@@ -503,7 +589,14 @@ describe('ApprovalService', () => {
       );
 
       await expect(
-        service.approveImage('my-project', 'my-test', 'comp-1', approvedBy),
+        service.approveImage(
+          'my-project',
+          'my-test',
+          'comp-1',
+          approvedBy,
+          undefined,
+          options(),
+        ),
       ).rejects.toThrow(/not an image test/);
       expect(comparisons.findByIdForTest).not.toHaveBeenCalled();
       expect(comparisons.completeImageApproval).not.toHaveBeenCalled();
@@ -521,7 +614,14 @@ describe('ApprovalService', () => {
       ]);
       statusService.recomputeStatus.mockResolvedValue(undefined);
 
-      await service.approveImage('my-project', 'my-test', 'comp-1', approvedBy);
+      await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        approvedBy,
+        undefined,
+        options(),
+      );
 
       expect(screenshots.updateBaselineScreenshot).toHaveBeenCalledWith(
         'baseline-1',
@@ -553,40 +653,185 @@ describe('ApprovalService', () => {
       screenshots.filterReclaimableUrls.mockResolvedValue([]);
       statusService.recomputeStatus.mockResolvedValue(undefined);
 
-      await service.approveImage('my-project', 'my-test', 'comp-1', approvedBy);
+      await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        approvedBy,
+        undefined,
+        options(),
+      );
 
       expect(storage.deleteAll).not.toHaveBeenCalled();
     });
   });
 
-  it('waits for the required number of distinct approvers', async () => {
-    projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
-    votes.countForComparison.mockResolvedValue(0);
-    testResolver.findTestOfKind.mockResolvedValue(imageTest);
-    const baseline = makeBaseline();
-    const candidate = makeCandidate();
-    comparisons.findByIdForTest.mockResolvedValue(
-      makeComparison(baseline, candidate),
-    );
-    statusService.recomputeStatus.mockResolvedValue(undefined);
+  describe('4-eyes votes', () => {
+    function mockPendingImage() {
+      testResolver.findTestOfKind.mockResolvedValue(imageTest);
+      comparisons.findByIdForTest.mockResolvedValue(
+        makeComparison(makeBaseline(), makeCandidate()),
+      );
+      statusService.recomputeStatus.mockResolvedValue(undefined);
+    }
 
-    const result = await service.approveImage(
-      'my-project',
-      'my-test',
-      'comp-1',
-      'reviewer',
-    );
+    it('waits for the required number of distinct approvers and keys the vote on the principal id', async () => {
+      projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
+      votes.countForComparison.mockResolvedValue(0);
+      mockPendingImage();
 
-    expect(result).toEqual({
-      approved: false,
-      requiresMoreApprovals: true,
-      votes: 1,
-      required: 2,
+      const result = await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        'jane.doe',
+        undefined,
+        options({ principalId: 'user-alice' }),
+      );
+
+      expect(result).toEqual({
+        approved: false,
+        requiresMoreApprovals: true,
+        votes: 1,
+        required: 2,
+      });
+      expect(votes.record).toHaveBeenCalledWith({
+        comparisonId: 'comp-1',
+        projectName: 'my-project',
+        testId: 'test-1',
+        userId: 'user-alice',
+        username: 'jane.doe',
+      });
+      expect(audit.record).toHaveBeenCalledWith({
+        actor: 'jane.doe',
+        action: 'review.vote',
+        projectName: 'my-project',
+        testName: 'my-test',
+        branchName: null,
+        targetType: 'comparison',
+        targetId: 'comp-1',
+        metadata: {
+          comparisonId: 'comp-1',
+          votes: 1,
+          required: 2,
+          principalType: 'user',
+        },
+      });
+      expect(approvalAudit.record).not.toHaveBeenCalled();
     });
-    expect(votes.record).toHaveBeenCalledWith(
-      expect.objectContaining({ comparisonId: 'comp-1', username: 'reviewer' }),
-    );
-    expect(approvalAudit.record).not.toHaveBeenCalled();
+
+    it('writes the vote audit inside the same transaction as the vote', async () => {
+      projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
+      mockPendingImage();
+
+      let inChange = false;
+      let auditWrittenInChange: boolean | undefined;
+      uow.execute.mockImplementation(((fn: () => Promise<unknown>) => {
+        inChange = true;
+        return fn().finally(() => {
+          inChange = false;
+        });
+      }) as never);
+      audit.record.mockImplementation(() => {
+        auditWrittenInChange = inChange;
+        return Promise.resolve();
+      });
+
+      await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        approvedBy,
+        undefined,
+        options(),
+      );
+
+      expect(auditWrittenInChange).toBe(true);
+    });
+
+    it('rejects an API-key vote on a 4-eyes project without recording a vote', async () => {
+      projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
+      mockPendingImage();
+
+      await expect(
+        service.approveImage(
+          'my-project',
+          'my-test',
+          'comp-1',
+          'ci-key',
+          undefined,
+          options({ principalType: 'apiKey', principalId: 'api-key-1' }),
+        ),
+      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+      expect(votes.record).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
+      expect(approvalAudit.record).not.toHaveBeenCalled();
+    });
+
+    it('keeps API-key approvals working when a single approval is required', async () => {
+      projects.findByName.mockResolvedValue({ requiredApprovals: 1 } as never);
+      mockPendingImage();
+
+      const result = await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        'ci-key',
+        undefined,
+        options({ principalType: 'apiKey', principalId: 'api-key-1' }),
+      );
+
+      expect(result.approved).toBe(true);
+      expect(votes.record).not.toHaveBeenCalled();
+      expect(approvalAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ approvedBy: 'ci-key' }),
+      );
+    });
+
+    it('does not audit a duplicate vote', async () => {
+      projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
+      votes.hasVoted.mockResolvedValue(true);
+      mockPendingImage();
+
+      await expect(
+        service.approveImage(
+          'my-project',
+          'my-test',
+          'comp-1',
+          approvedBy,
+          undefined,
+          options(),
+        ),
+      ).rejects.toMatchObject({ code: 'CONFLICT' });
+      expect(votes.record).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
+      expect(approvalAudit.record).not.toHaveBeenCalled();
+    });
+
+    it('records the finalizing vote without a review.vote audit row', async () => {
+      projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
+      votes.countForComparison.mockResolvedValue(1);
+      mockPendingImage();
+
+      const result = await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        'bob',
+        undefined,
+        options({ principalId: 'user-bob' }),
+      );
+
+      expect(result.approved).toBe(true);
+      expect(votes.record).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'user-bob', username: 'bob' }),
+      );
+      expect(audit.record).toHaveBeenCalledTimes(1);
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'approval' }),
+      );
+      expect(approvalAudit.record).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('approvePdf', () => {
@@ -605,6 +850,8 @@ describe('ApprovalService', () => {
         'my-test',
         'pdf-comp-1',
         approvedBy,
+        undefined,
+        options(),
       );
 
       expect(comparisons.findByIdForTest).toHaveBeenCalledWith(
@@ -648,6 +895,8 @@ describe('ApprovalService', () => {
         'my-test',
         'pdf-comp-1',
         'jane.doe',
+        undefined,
+        options(),
       );
 
       expect(approvalAudit.record).toHaveBeenCalledTimes(1);
@@ -677,6 +926,8 @@ describe('ApprovalService', () => {
         'my-test',
         'pdf-comp-1',
         approvedBy,
+        undefined,
+        options(),
       );
 
       expect(screenshots.updateBaselineScreenshot).toHaveBeenCalledWith(
@@ -719,6 +970,8 @@ describe('ApprovalService', () => {
         'my-test',
         'pdf-comp-1',
         approvedBy,
+        undefined,
+        options(),
       );
 
       expect(comparisons.completePdfApproval).toHaveBeenCalledWith(
@@ -744,6 +997,8 @@ describe('ApprovalService', () => {
         'my-test',
         'pdf-comp-1',
         approvedBy,
+        undefined,
+        options(),
       );
 
       expect(comparisons.completePdfApproval).toHaveBeenCalledWith(
@@ -756,7 +1011,14 @@ describe('ApprovalService', () => {
       mockResolvedPdfTest();
       comparisons.findByIdForTest.mockResolvedValue(null);
       await expect(
-        service.approvePdf('my-project', 'my-test', 'comp-x', approvedBy),
+        service.approvePdf(
+          'my-project',
+          'my-test',
+          'comp-x',
+          approvedBy,
+          undefined,
+          options(),
+        ),
       ).rejects.toThrow(DomainError);
     });
 
@@ -766,7 +1028,14 @@ describe('ApprovalService', () => {
       );
 
       await expect(
-        service.approvePdf('my-project', 'my-test', 'comp-x', approvedBy),
+        service.approvePdf(
+          'my-project',
+          'my-test',
+          'comp-x',
+          approvedBy,
+          undefined,
+          options(),
+        ),
       ).rejects.toThrow(/not a PDF test/);
       expect(comparisons.findByIdForTest).not.toHaveBeenCalled();
       expect(comparisons.completePdfApproval).not.toHaveBeenCalled();
@@ -778,7 +1047,14 @@ describe('ApprovalService', () => {
       comparison.candidate = null;
       comparisons.findByIdForTest.mockResolvedValue(comparison);
       await expect(
-        service.approvePdf('my-project', 'my-test', 'comp-x', approvedBy),
+        service.approvePdf(
+          'my-project',
+          'my-test',
+          'comp-x',
+          approvedBy,
+          undefined,
+          options(),
+        ),
       ).rejects.toThrow(DomainError);
     });
   });
@@ -800,7 +1076,14 @@ describe('ApprovalService', () => {
     comparisons.completeImageApproval.mockResolvedValue([]);
     statusService.recomputeStatus.mockResolvedValue(undefined);
 
-    await service.approveImage('my-project', 'my-test', 'cmp-1', approvedBy);
+    await service.approveImage(
+      'my-project',
+      'my-test',
+      'cmp-1',
+      approvedBy,
+      undefined,
+      options(),
+    );
 
     expect(comparisons.findTestOfComparison).toHaveBeenCalledWith({
       projectName: 'my-project',
@@ -836,6 +1119,7 @@ describe('ApprovalService', () => {
         'my-project',
         'my-test',
         approvedBy,
+        options(),
         'feature/x',
       );
 
@@ -858,6 +1142,7 @@ describe('ApprovalService', () => {
         'my-project',
         'my-test',
         'jane.doe',
+        options(),
         'feature/x',
       );
 
@@ -900,6 +1185,7 @@ describe('ApprovalService', () => {
         'my-project',
         'my-test',
         approvedBy,
+        options(),
       );
 
       expect(result).toEqual({
@@ -930,6 +1216,7 @@ describe('ApprovalService', () => {
         'my-project',
         'my-test',
         approvedBy,
+        options(),
       );
 
       expect(result).toEqual({
@@ -954,6 +1241,7 @@ describe('ApprovalService', () => {
         'my-project',
         'my-test',
         approvedBy,
+        options(),
       );
 
       expect(result).toEqual({ approved: 1, pending: [], failed: [] });
@@ -982,6 +1270,7 @@ describe('ApprovalService', () => {
           'my-project',
           'my-test',
           approvedBy,
+          options(),
           'feature/x',
         ),
       ).rejects.toMatchObject({ code: 'CONFLICT' });
@@ -998,7 +1287,12 @@ describe('ApprovalService', () => {
       );
 
       await expect(
-        service.approveAllPending('my-project', 'my-test', approvedBy),
+        service.approveAllPending(
+          'my-project',
+          'my-test',
+          approvedBy,
+          options(),
+        ),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
       expect(
         comparisons.findPendingComparisonIdsForTest,
@@ -1039,7 +1333,14 @@ describe('ApprovalService', () => {
     );
 
     await expect(
-      service.approveImage('my-project', 'my-test', 'cmp-missing', approvedBy),
+      service.approveImage(
+        'my-project',
+        'my-test',
+        'cmp-missing',
+        approvedBy,
+        undefined,
+        options(),
+      ),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });

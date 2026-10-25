@@ -103,6 +103,9 @@
                 "share.revoke",
                 "share.access",
                 "review.assign",
+                "review.vote",
+                "project.review-policy",
+                "test.threshold",
                 "review.complete",
                 "review.comment",
                 "review.comment-resolve"
@@ -196,6 +199,9 @@
                 "share.revoke",
                 "share.access",
                 "review.assign",
+                "review.vote",
+                "project.review-policy",
+                "test.threshold",
                 "review.complete",
                 "review.comment",
                 "review.comment-resolve"
@@ -888,6 +894,52 @@
           }
         },
         "summary": "Get all projects",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{projectName}/review-policy": {
+      "patch": {
+        "operationId": "ProjectsController_updateReviewPolicy",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "description": "The project whose review policy to update",
+            "schema": {
+              "example": "checkout-ui",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectReviewPolicyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The project now requires the returned number of approvals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectReviewPolicyDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "summary": "Update how many approvals a comparison needs in a project",
         "tags": [
           "Projects"
         ]
@@ -5397,13 +5449,38 @@
             "type": "string",
             "description": "Branch to promote to the project default",
             "example": "release/1.2"
-          },
-          "requiredApprovals": {
-            "type": "number",
-            "minimum": 1,
-            "maximum": 10
           }
         }
+      },
+      "UpdateProjectReviewPolicyDto": {
+        "type": "object",
+        "properties": {
+          "requiredApprovals": {
+            "type": "number",
+            "description": "Approvals needed to finalize a comparison",
+            "minimum": 1,
+            "maximum": 10,
+            "example": 2
+          }
+        },
+        "required": [
+          "requiredApprovals"
+        ]
+      },
+      "ProjectReviewPolicyDto": {
+        "type": "object",
+        "properties": {
+          "requiredApprovals": {
+            "type": "number",
+            "description": "Approvals needed to finalize a comparison",
+            "minimum": 1,
+            "maximum": 10,
+            "example": 2
+          }
+        },
+        "required": [
+          "requiredApprovals"
+        ]
       },
       "ProjectGroupDto": {
         "type": "object",

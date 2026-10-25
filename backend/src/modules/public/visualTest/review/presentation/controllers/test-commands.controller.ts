@@ -23,6 +23,7 @@ import {
   UpdateThresholdQueryDto,
 } from '@public/visualTest/review/presentation/dto/project.dto';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { Roles } from '@common/http/roles.decorator';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
@@ -32,6 +33,7 @@ import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testna
 export class TestCommandsController {
   constructor(private readonly testCommand: TestCommandService) {}
 
+  @Roles('ADMIN')
   @Patch(':testName/threshold')
   @ApiOperation({ summary: 'Update pixelDiffThreshold for a specific variant' })
   @ApiQuery({ name: 'viewport', required: false })
@@ -50,6 +52,7 @@ export class TestCommandsController {
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
     @Body() body: UpdateThresholdDto,
     @Query() query: UpdateThresholdQueryDto,
+    @Req() req: AuthenticatedRequest,
     @BranchQuery() branch?: string,
   ) {
     const result = await this.testCommand.updateThreshold(
@@ -59,6 +62,7 @@ export class TestCommandsController {
       query,
       query.preview === 'true',
       branch,
+      req.auth?.username,
     );
     return plainToInstance(UpdateThresholdResultDto, result, {
       excludeExtraneousValues: true,

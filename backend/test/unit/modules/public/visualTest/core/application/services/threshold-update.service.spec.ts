@@ -23,6 +23,8 @@ import {
   createMockLogger,
 } from '@test/utils/mocks';
 import { AppLoggerService } from '@common/logging/app-logger.service';
+import { AuditService } from '@internal/audit/audit.service';
+import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 
 describe('ThresholdUpdateService', () => {
   let service: ThresholdUpdateService;
@@ -32,6 +34,7 @@ describe('ThresholdUpdateService', () => {
   let retirement: Mocked<ComparisonRetirementService>;
   let storage: Mocked<IStorageProvider>;
   let uow: Mocked<PrismaUnitOfWork>;
+  let audit: Mocked<AuditService>;
 
   function comparisonRow(
     overrides: Partial<{ id: string; mismatchPixelCount: number }> = {},
@@ -47,12 +50,14 @@ describe('ThresholdUpdateService', () => {
     statusService = createMock<TestStatusService>();
     statusService.recomputeStatus.mockResolvedValue(undefined);
     screenshots = createMock<UnifiedScreenshotRepository>();
+    screenshots.findThresholdsByIds.mockResolvedValue([0]);
     comparisons = createMock<UnifiedComparisonsRepository>();
     retirement = createMock<ComparisonRetirementService>();
     retirement.retirePendingComparisons.mockResolvedValue([]);
     storage = createMockStorage() as unknown as Mocked<IStorageProvider>;
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
     uow = createMockUoW() as unknown as Mocked<PrismaUnitOfWork>;
+    audit = createMock<AuditService>();
     const metrics = createMock<IMetricsRecorder>();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -67,6 +72,7 @@ describe('ThresholdUpdateService', () => {
         { provide: UnifiedScreenshotRepository, useValue: screenshots },
         { provide: UnifiedComparisonsRepository, useValue: comparisons },
         { provide: ComparisonRetirementService, useValue: retirement },
+        { provide: AuditService, useValue: audit },
       ],
     }).compile();
 
@@ -155,6 +161,76 @@ describe('ThresholdUpdateService', () => {
     expect(retirement.retirePendingComparisons).toHaveBeenCalledWith('test-1', [
       'cmp-1',
     ]);
+  });
+
+  describe('threshold audit', () => {
+    it('records test.threshold with the previous values, the new value and the auto-accepted count', async () => {
+      screenshots.findBaselineIdsByFilters.mockResolvedValue([
+        'baseline-A',
+        'baseline-B',
+      ]);
+      screenshots.findThresholdsByIds.mockResolvedValue([0, 0]);
+      comparisons.findPendingForBaselines.mockResolvedValue([comparisonRow()]);
+
+      await service.update('test-1', 'my-test', 20, undefined, false, {
+        actor: 'jane',
+        projectName: 'my-project',
+        branchName: 'main',
+      });
+
+      expect(audit.record).toHaveBeenCalledWith({
+        actor: 'jane',
+        action: AUDIT_ACTIONS.testThreshold,
+        projectName: 'my-project',
+        testName: 'my-test',
+        branchName: 'main',
+        targetType: 'test',
+        targetId: 'test-1',
+        metadata: {
+          from: [0],
+          to: 20,
+          autoAcceptedCount: 1,
+        },
+      });
+    });
+
+    it('reports every distinct previous threshold of the matching baselines', async () => {
+      screenshots.findBaselineIdsByFilters.mockResolvedValue([
+        'baseline-A',
+        'baseline-B',
+      ]);
+      screenshots.findThresholdsByIds.mockResolvedValue([0, 10]);
+      comparisons.findPendingForBaselines.mockResolvedValue([]);
+
+      await service.update('test-1', 'my-test', 20);
+
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: { from: [0, 10], to: 20, autoAcceptedCount: 0 },
+        }),
+      );
+    });
+
+    it('does not audit a preview', async () => {
+      screenshots.findBaselineIdsByFilters.mockResolvedValue(['baseline-A']);
+      comparisons.findPendingForBaselines.mockResolvedValue([comparisonRow()]);
+
+      await service.update('test-1', 'my-test', 20, undefined, true);
+
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+
+    it('does not audit when the transaction fails', async () => {
+      screenshots.findBaselineIdsByFilters.mockResolvedValue(['baseline-A']);
+      comparisons.findPendingForBaselines.mockResolvedValue([]);
+      screenshots.updateThresholdMany.mockRejectedValue(new Error('db down'));
+
+      await expect(service.update('test-1', 'my-test', 20)).rejects.toThrow(
+        'db down',
+      );
+
+      expect(audit.record).not.toHaveBeenCalled();
+    });
   });
 
   it('preview returns the auto-accept count without mutating anything', async () => {

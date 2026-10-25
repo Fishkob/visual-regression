@@ -170,10 +170,19 @@ describe('RunService', () => {
     });
     approvals.approvePdf.mockRejectedValue(new Error('stale'));
 
-    const result = await service.approveAll('shop', 'ci-1', 'jane');
+    const principal = { principalType: 'user' as const, principalId: 'user-1' };
+    const result = await service.approveAll('shop', 'ci-1', 'jane', principal);
 
     expect(result.approved).toBe(1);
     expect(result.failed).toEqual([{ comparisonId: 'cmp-2', error: 'stale' }]);
+    expect(approvals.approveImage).toHaveBeenCalledWith(
+      'shop',
+      'checkout',
+      'cmp-1',
+      'jane',
+      'main',
+      principal,
+    );
   });
 
   it('lists runs only for an existing project', async () => {

@@ -2,6 +2,7 @@ import { Body, Controller, Param, Patch, Post, Req } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { requireAuthenticatedPrincipal } from '@common/http/authenticated-principal';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { BulkActionService } from '@public/visualTest/review/application/bulk-action.service';
 import {
@@ -28,10 +29,12 @@ export class BulkActionsController {
     @Body() dto: BulkApprovalDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<BulkApprovalResultDto> {
+    const { username, ...principal } = requireAuthenticatedPrincipal(req);
     const result = await this.bulk.approve(
       projectName,
       dto.comparisonIds,
-      req.auth?.username ?? 'unknown',
+      username,
+      principal,
     );
     return plainToInstance(BulkApprovalResultDto, result, {
       excludeExtraneousValues: true,
