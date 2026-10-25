@@ -27,15 +27,19 @@ const { data, isLoading, isError, refetch } = usePdfPageRenderQuery(
   pageRef,
   branchNameRef,
 );
+
+const renderUrl = computed(
+  () => data.value?.signedImageUrl ?? data.value?.imageUrl,
+);
 </script>
 
 <template>
   <div class="relative w-full">
     <ImageDisplay
-      v-if="data?.imageUrl"
+      v-if="renderUrl"
       :label="label"
       :border="border ?? 'green'"
-      :url="data.imageUrl"
+      :url="renderUrl"
     />
     <div
       v-else-if="isLoading"

@@ -248,6 +248,24 @@ describe('ProjectService', () => {
   });
 
   describe('getAllWithPendingFlag', () => {
+    it('forwards the search and group filters to the read model', async () => {
+      const pagination = new PaginationDto();
+      projectRead.getAllWithPendingFlag.mockResolvedValue({
+        data: [],
+        total: 0,
+      });
+
+      await service.getAllWithPendingFlag(pagination, {
+        q: 'checkout',
+        groupId: 'unassigned',
+      });
+
+      expect(projectRead.getAllWithPendingFlag).toHaveBeenCalledWith(
+        { skip: 0, take: 20 },
+        { q: 'checkout', groupId: 'unassigned' },
+      );
+    });
+
     it('returns paginated projects with pending flag', async () => {
       const pagination = new PaginationDto();
       projectRead.getAllWithPendingFlag.mockResolvedValue({
@@ -278,10 +296,10 @@ describe('ProjectService', () => {
 
       const result = await service.getAllWithPendingFlag(pagination);
 
-      expect(projectRead.getAllWithPendingFlag).toHaveBeenCalledWith({
-        skip: 0,
-        take: 20,
-      });
+      expect(projectRead.getAllWithPendingFlag).toHaveBeenCalledWith(
+        { skip: 0, take: 20 },
+        undefined,
+      );
       expect(result.data).toHaveLength(2);
       expect(result.data[0]).toEqual({
         id: 'proj-1',
@@ -349,6 +367,14 @@ describe('ProjectService', () => {
             inheritedFrom: null,
           },
         ],
+        total: 2,
+        filterOptions: {
+          viewports: ['1920x1080', '800x600'],
+          browsers: ['chrome'],
+          environments: ['staging'],
+          testCount: 2,
+          pendingCount: 1,
+        },
       });
 
       const result = await service.getWithLatestVariantStatuses('my-project');
@@ -356,7 +382,17 @@ describe('ProjectService', () => {
       expect(projectRead.getWithLatestVariantStatuses).toHaveBeenCalledWith(
         'my-project',
         undefined,
+        { skip: 0, take: 20 },
+        undefined,
       );
+      expect(result.meta).toEqual({
+        page: 1,
+        limit: 20,
+        total: 2,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      });
       expect(result.id).toBe('proj-1');
       expect(result.groupId).toBeNull();
       expect(result.groupName).toBeNull();

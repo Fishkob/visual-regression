@@ -19,11 +19,21 @@ export class ComparisonDto {
   @Expose()
   id!: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'Canonical storage URL of the diff artifact (identity)',
+  })
   @IsOptional()
   @IsString()
   @Expose()
   diffImageUrl?: string;
+
+  @ApiPropertyOptional({
+    description: 'Time-limited presigned URL for rendering the diff',
+  })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  signedDiffImageUrl?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

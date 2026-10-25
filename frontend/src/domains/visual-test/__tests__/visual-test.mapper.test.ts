@@ -131,7 +131,9 @@ describe("mapTestVariants", () => {
         environment: "staging",
         status: "UNCHANGED",
         baselineUrl: "/baseline.png",
+        signedBaselineUrl: "/baseline.png",
         candidateUrl: null,
+        signedCandidateUrl: null,
         mismatchPixelCount: null,
         baselineInherited: false,
       },
@@ -141,7 +143,9 @@ describe("mapTestVariants", () => {
         environment: "staging",
         status: "PENDING_APPROVAL",
         baselineUrl: "/mobile-baseline.png",
+        signedBaselineUrl: "/mobile-baseline.png",
         candidateUrl: "/mobile-candidate.png",
+        signedCandidateUrl: "/mobile-candidate.png",
         mismatchPixelCount: 42,
         baselineInherited: true,
       },
@@ -169,6 +173,22 @@ describe("mapTestVariants", () => {
       mismatchPixelCount: 42,
       baselineInherited: true,
     });
+  });
+
+  it("prefers the presigned url over the canonical one", () => {
+    const result = mapTestVariants({
+      ...dto,
+      variants: [
+        {
+          ...dto.variants[1],
+          signedBaselineUrl: "/signed-baseline.png",
+          signedCandidateUrl: "/signed-candidate.png",
+        },
+      ],
+    });
+
+    expect(result?.variants[0].baselineUrl).toBe("/signed-baseline.png");
+    expect(result?.variants[0].candidateUrl).toBe("/signed-candidate.png");
   });
 
   it("omits null URLs and counts instead of mapping them to undefined keys", () => {

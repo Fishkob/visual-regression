@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { mockApi } from "./routes/api.routes";
 import {
   PROJECTS_PENDING_EMPTY_RESPONSE,
@@ -6,6 +6,36 @@ import {
 } from "./mocks/projects.mocks";
 import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
 import { TEST_ID } from "@/lib/test-ids";
+
+// The project list filters on the server now, so the CT mock must answer the
+// query it receives instead of returning a fixed page.
+async function mockFilteredProjects(page: Page) {
+  const body = JSON.parse(PROJECTS_PENDING_RESPONSE.body) as {
+    data: Array<{ name: string; groupId: string | null }>;
+  };
+
+  await page.route("**/api/v1/projects/pending*", async (route) => {
+    const url = new URL(route.request().url());
+    const search = url.searchParams.get("q")?.toLowerCase() ?? "";
+    const groupId = url.searchParams.get("groupId");
+    const data = body.data.filter((project) => {
+      const matchesSearch =
+        search === "" || project.name.toLowerCase().includes(search);
+      const matchesGroup =
+        !groupId ||
+        (groupId === "unassigned"
+          ? project.groupId === null
+          : project.groupId === groupId);
+      return matchesSearch && matchesGroup;
+    });
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ data, meta: { total: data.length } }),
+    });
+  });
+}
 
 test.describe("ProjectList", () => {
   test("shows projects", async ({ mount, page }) => {
@@ -132,10 +162,8 @@ test.describe("ProjectList", () => {
   });
 
   test("filters by group", async ({ mount, page }) => {
-    await mockApi(page, [
-      ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
-    ]);
+    await mockApi(page, [["**/api/v1/groups", GROUPS_RESPONSE]]);
+    await mockFilteredProjects(page);
 
     const component = await mount("views/ProjectsView/Projects");
 
@@ -150,10 +178,8 @@ test.describe("ProjectList", () => {
   });
 
   test("filters by search", async ({ mount, page }) => {
-    await mockApi(page, [
-      ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
-    ]);
+    await mockApi(page, [["**/api/v1/groups", GROUPS_RESPONSE]]);
+    await mockFilteredProjects(page);
 
     const component = await mount("views/ProjectsView/Projects");
 
@@ -197,10 +223,8 @@ test.describe("ProjectList", () => {
     mount,
     page,
   }) => {
-    await mockApi(page, [
-      ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
-    ]);
+    await mockApi(page, [["**/api/v1/groups", GROUPS_RESPONSE]]);
+    await mockFilteredProjects(page);
 
     const component = await mount("views/ProjectsView/Projects");
     await component.getByTestId(TEST_ID.projectSearch).fill("missing");

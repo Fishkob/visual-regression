@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,30 +11,42 @@ import {
 } from "@/components/ui/select";
 import AsyncState from "@/components/AsyncState.vue";
 import InboxProjectSection from "@/components/inbox/InboxProjectSection.vue";
-import { useReviewInboxSections } from "@/composables/useReviewInbox";
+import PaginationBar from "@/components/PaginationBar.vue";
+import {
+  useInboxBranchesQuery,
+  useReviewInboxSections,
+} from "@/composables/useReviewInbox";
+import { useGroupsQuery } from "@/composables/useGroups";
 import { FILTER_ALL } from "@/domains/test-status";
-import { IMAGE_TEST_KIND, PDF_TEST_KIND } from "@/domains/test-kind";
-import type { InboxProjectSection as InboxProjectSectionModel } from "@/domains/pending-tests/group-review-inbox";
+import {
+  IMAGE_TEST_KIND,
+  PDF_TEST_KIND,
+  type TestKind,
+} from "@/domains/test-kind";
+import { UNASSIGNED_GROUP_QUERY } from "@/domains/groups/group-section";
+import type { InboxListQuery } from "@/domains/pending-tests/query-keys";
+import { INBOX_PAGE_SIZE } from "@/lib/pagination";
 import { TEST_ID } from "@/lib/test-ids";
-
-const {
-  data: items,
-  sections,
-  isLoading,
-  error,
-  refetch,
-} = useReviewInboxSections();
 
 const route = useRoute();
 const router = useRouter();
 
-const search = ref("");
-const kind = ref(FILTER_ALL);
-const group = ref(FILTER_ALL);
+const page = computed({
+  get: () => {
+    const raw = Number(route.query.page ?? 1);
+    return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
+  },
+  set: (value: number) => {
+    const query = { ...route.query };
+    if (value <= 1) delete query.page;
+    else query.page = String(value);
+    void router.replace({ query });
+  },
+});
 
 // The branch filter is part of the review scope, not a local view preference:
 // the review loop hands it back on "return to inbox" and a deep link must
-// restore it. It therefore lives in the URL (the other filters stay local).
+// restore it. It therefore lives in the URL.
 const branch = computed<string>({
   get: () => {
     const requested = route.query.branch;
@@ -42,92 +54,83 @@ const branch = computed<string>({
   },
   set: (value: string) => {
     const query = { ...route.query };
-    if (!value || value === FILTER_ALL) {
-      delete query.branch;
-    } else {
-      query.branch = value;
-    }
+    if (!value || value === FILTER_ALL) delete query.branch;
+    else query.branch = value;
+    delete query.page;
     void router.replace({ query });
   },
 });
 
-const groups = computed(() =>
-  sections.value.map((section) => ({
-    key: section.key,
-    name: section.name,
-  })),
-);
+const kind = ref<TestKind | typeof FILTER_ALL>(FILTER_ALL);
+const group = ref(FILTER_ALL);
 
-// The unfiltered project sections: the review pass walks a project's pending
-// list, so its count must not be narrowed by the inbox filters above.
-const fullProjects = computed(() => {
-  const projects = new Map<string, InboxProjectSectionModel>();
-  for (const section of sections.value) {
-    for (const project of section.items) {
-      projects.set(project.projectName, project);
-    }
-  }
-  return projects;
+// Local input, debounced query value: the server does the searching, so an
+// un-debounced input would issue one request per keystroke.
+const searchInput = ref("");
+const searchQuery = ref("");
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+
+watch(searchInput, (value) => {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchQuery.value = value;
+    if (page.value !== 1) page.value = 1;
+  }, 300);
 });
 
-const branches = computed(() => {
-  const names = [
-    ...new Set((items.value ?? []).map((item) => item.branchName)),
-  ];
-  // Keep a deep-linked / handed-back branch selectable even when its last
-  // pending item is gone, so the filter does not look broken.
-  const selected = branch.value;
-  if (selected !== FILTER_ALL && !names.includes(selected)) {
-    names.push(selected);
+watch([kind, group], () => {
+  if (page.value !== 1) page.value = 1;
+});
+
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer);
+});
+
+const queryParams = computed<InboxListQuery>(() => ({
+  page: page.value,
+  ...(searchQuery.value.trim() ? { q: searchQuery.value.trim() } : {}),
+  ...(kind.value !== FILTER_ALL ? { kind: kind.value } : {}),
+  ...(group.value !== FILTER_ALL ? { groupId: group.value } : {}),
+  ...(branch.value !== FILTER_ALL ? { branch: branch.value } : {}),
+}));
+
+const { items, sections, total, isLoading, error, refetch } =
+  useReviewInboxSections(queryParams);
+
+// The group/branch choices must describe the whole pending set, not the page.
+const { data: groupsData } = useGroupsQuery();
+const { data: branchData } = useInboxBranchesQuery();
+
+const groupOptions = computed(() => [
+  ...(groupsData.value ?? []).map((entry) => ({
+    value: entry.id,
+    label: entry.name,
+  })),
+  { value: UNASSIGNED_GROUP_QUERY, label: "Unassigned" },
+]);
+
+const branchOptions = computed(() => {
+  const names = [...(branchData.value ?? [])];
+  if (branch.value !== FILTER_ALL && !names.includes(branch.value)) {
+    names.push(branch.value);
   }
   return names;
 });
 
-const filteredSections = computed(() => {
-  const term = search.value.toLowerCase();
-  const wantedGroup = group.value;
-  const wantedKind = kind.value;
-  const wantedBranch = branch.value;
-  return sections.value
-    .filter(
-      (section) => wantedGroup === FILTER_ALL || section.key === wantedGroup,
-    )
-    .map((section) => ({
-      ...section,
-      items: section.items
-        .map((project) => ({
-          ...project,
-          items: project.items.filter(
-            (item) =>
-              (wantedKind === FILTER_ALL || item.kind === wantedKind) &&
-              (wantedBranch === FILTER_ALL ||
-                item.branchName === wantedBranch) &&
-              (!term ||
-                item.testName.toLowerCase().includes(term) ||
-                project.projectName.toLowerCase().includes(term)),
-          ),
-        }))
-        .filter((project) => project.items.length > 0),
-    }))
-    .filter((section) => section.items.length > 0);
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil(total.value / INBOX_PAGE_SIZE)),
+);
+
+watch(pageCount, (count) => {
+  if (page.value > count) page.value = count;
 });
 
-const total = computed(() =>
-  filteredSections.value.reduce(
-    (sum, section) =>
-      sum +
-      section.items.reduce(
-        (projectSum, project) => projectSum + project.items.length,
-        0,
-      ),
-    0,
-  ),
-);
-const projectCount = computed(() =>
-  filteredSections.value.reduce(
-    (sum, section) => sum + section.items.length,
-    0,
-  ),
+const hasActiveFilters = computed(
+  () =>
+    searchQuery.value.trim().length > 0 ||
+    kind.value !== FILTER_ALL ||
+    group.value !== FILTER_ALL ||
+    branch.value !== FILTER_ALL,
 );
 </script>
 
@@ -139,8 +142,7 @@ const projectCount = computed(() =>
         Loading review inbox…
       </p>
       <p v-else-if="!error" class="text-sm text-muted-foreground">
-        {{ total }} {{ total === 1 ? "change" : "changes" }} to review across
-        {{ projectCount }} {{ projectCount === 1 ? "project" : "projects" }}
+        {{ total }} {{ total === 1 ? "change" : "changes" }} to review
       </p>
     </div>
 
@@ -149,7 +151,7 @@ const projectCount = computed(() =>
       :error="error"
       error-title="Failed to load review inbox"
       :retry="refetch"
-      :empty="!isLoading && (items ?? []).length === 0"
+      :empty="!isLoading && items.length === 0 && !hasActiveFilters"
     >
       <template #loading>
         <div class="space-y-6" aria-hidden="true">
@@ -198,7 +200,7 @@ const projectCount = computed(() =>
 
       <div class="flex flex-wrap items-center gap-3">
         <Input
-          v-model="search"
+          v-model="searchInput"
           placeholder="Search test or project..."
           aria-label="Search pending reviews"
           class="w-64 rounded-xl shadow-sm"
@@ -229,7 +231,7 @@ const projectCount = computed(() =>
           <SelectContent>
             <SelectItem :value="FILTER_ALL">All branches</SelectItem>
             <SelectItem
-              v-for="branchOption in branches"
+              v-for="branchOption in branchOptions"
               :key="branchOption"
               :value="branchOption"
             >
@@ -248,11 +250,11 @@ const projectCount = computed(() =>
           <SelectContent>
             <SelectItem :value="FILTER_ALL">All groups</SelectItem>
             <SelectItem
-              v-for="groupOption in groups"
-              :key="groupOption.key"
-              :value="groupOption.key"
+              v-for="groupOption in groupOptions"
+              :key="groupOption.value"
+              :value="groupOption.value"
             >
-              {{ groupOption.name }}
+              {{ groupOption.label }}
             </SelectItem>
           </SelectContent>
         </Select>
@@ -265,11 +267,7 @@ const projectCount = computed(() =>
         No pending reviews match these filters.
       </div>
 
-      <div
-        v-for="section in filteredSections"
-        :key="section.key"
-        class="space-y-4"
-      >
+      <div v-for="section in sections" :key="section.key" class="space-y-4">
         <h2 class="text-sm font-semibold text-muted-foreground">
           {{ section.name }}
         </h2>
@@ -277,9 +275,17 @@ const projectCount = computed(() =>
           v-for="project in section.items"
           :key="project.projectName"
           :section="project"
-          :project-section="fullProjects.get(project.projectName)"
         />
       </div>
+
+      <PaginationBar
+        v-if="pageCount > 1"
+        :page="page"
+        :page-count="pageCount"
+        :total="total"
+        item-label="changes"
+        @update:page="page = $event"
+      />
     </AsyncState>
   </div>
 </template>

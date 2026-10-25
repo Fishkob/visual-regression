@@ -24,9 +24,16 @@ const props = defineProps<{
   projectName: string;
   branchName?: string;
   syncUrl?: boolean;
+  serverFiltered?: boolean;
+  filterOptions?: {
+    viewports: string[];
+    browsers: string[];
+    environments: string[];
+  };
 }>();
 
 const testsRef = toRef(props, "tests");
+const filterOptionsRef = toRef(props, "filterOptions");
 
 const {
   filters,
@@ -36,7 +43,12 @@ const {
   groups,
   defaultAccordionValues,
   resetFilters,
-} = useVisualTestsTable({ tests: testsRef, syncUrl: props.syncUrl });
+} = useVisualTestsTable({
+  tests: testsRef,
+  syncUrl: props.syncUrl,
+  serverFiltered: props.serverFiltered,
+  filterOptions: filterOptionsRef,
+});
 
 const {
   showConfirm,

@@ -35,5 +35,6 @@ export interface PdfTestDetails {
 
 export interface PdfRenderResult {
   imageUrl: string;
+  signedImageUrl?: string;
   pageCount: number;
 }

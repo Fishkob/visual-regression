@@ -47,6 +47,8 @@ export function mapProject(dto: ProjectDto): Project {
     testCount,
     visualTests,
     createdAt: dto.createdAt,
+    ...(dto.meta ? { meta: dto.meta } : {}),
+    ...(dto.filterOptions ? { filterOptions: dto.filterOptions } : {}),
   };
 }
 

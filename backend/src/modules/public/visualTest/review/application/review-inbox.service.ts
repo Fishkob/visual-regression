@@ -11,7 +11,13 @@ export class ReviewInboxService {
 
   async getPending(
     pagination: PaginationDto,
-    filters?: { branchName?: string; projectName?: string },
+    filters?: {
+      branchName?: string;
+      projectName?: string;
+      kind?: string;
+      groupId?: string;
+      q?: string;
+    },
   ) {
     return paginatedQuery(
       (args) => this.inbox.findPending(args, filters),
@@ -21,5 +27,9 @@ export class ReviewInboxService {
           excludeExtraneousValues: true,
         }),
     );
+  }
+
+  async getBranchNames(): Promise<string[]> {
+    return this.inbox.findPendingBranchNames();
   }
 }

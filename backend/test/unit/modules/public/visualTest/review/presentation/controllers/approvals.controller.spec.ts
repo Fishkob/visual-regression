@@ -29,6 +29,7 @@ describe('ApprovalsController', () => {
       approvals.approveImage.mockResolvedValue({
         approved: true,
         newBaselineUrl: 'https://example.com/baseline.png',
+        signedNewBaselineUrl: 'https://example.com/baseline.png?sig',
       });
 
       const result = await controller.approveVisualTest(
@@ -48,6 +49,7 @@ describe('ApprovalsController', () => {
       expect(result).toEqual({
         approved: true,
         newBaselineUrl: 'https://example.com/baseline.png',
+        signedNewBaselineUrl: 'https://example.com/baseline.png?sig',
       });
     });
   });
@@ -57,6 +59,7 @@ describe('ApprovalsController', () => {
       approvals.approvePdf.mockResolvedValue({
         approved: true,
         newBaselineUrl: 'https://example.com/baseline.pdf',
+        signedNewBaselineUrl: 'https://example.com/baseline.pdf?sig',
       });
       const body: ApproveComparisonBodyDto = {
         comparisonId: 'pdf-comp-1',
@@ -77,6 +80,7 @@ describe('ApprovalsController', () => {
       expect(result).toEqual({
         approved: true,
         newBaselineUrl: 'https://example.com/baseline.pdf',
+        signedNewBaselineUrl: 'https://example.com/baseline.pdf?sig',
       });
     });
   });

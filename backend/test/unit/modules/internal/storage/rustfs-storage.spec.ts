@@ -60,6 +60,7 @@ const mockAppConfig = {
     secretKey: 'rustfsadmin',
     bucket: 'screenshots',
     publicUrl: 'http://localhost:9000',
+    signedUrlTtlSeconds: 3600,
     ensurePublicBucket: false,
   },
 };
@@ -827,6 +828,30 @@ describe('RustFsStorageService', () => {
     });
   });
 
+  describe('signUrl', () => {
+    it('presigns a stored URL with the configured lifetime', () => {
+      const signed = service.signUrl('http://localhost:9000/screenshots/a.png');
+
+      expect(
+        signed.startsWith('http://localhost:9000/screenshots/a.png?'),
+      ).toBe(true);
+      expect(signed).toContain('X-Amz-Expires=3600');
+      expect(signed).toContain('X-Amz-Signature=');
+    });
+
+    it('returns a foreign URL unchanged', () => {
+      const url = 'https://cdn.example.com/elsewhere/a.png';
+
+      expect(service.signUrl(url)).toBe(url);
+    });
+
+    it('does not re-sign an already presigned URL', () => {
+      const signed = service.signUrl('http://localhost:9000/screenshots/a.png');
+
+      expect(service.signUrl(signed)).toBe(signed);
+    });
+  });
+
   describe('public-read bucket policy', () => {
     async function buildService(
       ensurePublicBucket: boolean,
@@ -841,6 +866,7 @@ describe('RustFsStorageService', () => {
           secretKey: 'rustfsadmin',
           bucket: 'screenshots',
           publicUrl: 'http://localhost:9000',
+          signedUrlTtlSeconds: 3600,
           ensurePublicBucket,
         },
       };

@@ -1,22 +1,29 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Expose } from 'class-transformer';
 
 export class PaginationMetaDto {
   @ApiProperty()
+  @Expose()
   page!: number;
 
   @ApiProperty()
+  @Expose()
   limit!: number;
 
   @ApiProperty()
+  @Expose()
   total!: number;
 
   @ApiProperty()
+  @Expose()
   totalPages!: number;
 
   @ApiProperty()
+  @Expose()
   hasNextPage!: boolean;
 
   @ApiProperty()
+  @Expose()
   hasPreviousPage!: boolean;
 }
 

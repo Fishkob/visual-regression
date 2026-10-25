@@ -13,12 +13,18 @@ import {
   ScreenshotType,
 } from '@public/visualTest/core/domain/types/visual-test.types';
 import { createMock } from '@test/utils/create-mock';
+import { createMockStorage } from '@test/utils/mocks';
+import {
+  STORAGE_PROVIDER,
+  IStorageProvider,
+} from '@common/domain/storage-provider.interface';
 
 describe('TestQueryService', () => {
   let service: TestQueryService;
   let reviewRead: Mocked<TestReadRepository>;
   let testResolver: Mocked<TestResolver>;
   let branches: Mocked<BranchResolver>;
+  let storage: Mocked<IStorageProvider>;
 
   const variant = Variant.fromStrings('1920x1080', 'chrome', 'staging');
 
@@ -54,6 +60,7 @@ describe('TestQueryService', () => {
     reviewRead = createMock<TestReadRepository>();
     testResolver = createMock<TestResolver>();
     branches = createMock<BranchResolver>();
+    storage = createMockStorage() as unknown as Mocked<IStorageProvider>;
     branches.resolveRead.mockResolvedValue({
       projectId: 'proj-1',
       branchId: 'br-1',
@@ -68,6 +75,7 @@ describe('TestQueryService', () => {
         { provide: TestReadRepository, useValue: reviewRead },
         { provide: TestResolver, useValue: testResolver },
         { provide: BranchResolver, useValue: branches },
+        { provide: STORAGE_PROVIDER, useValue: storage },
       ],
     }).compile();
 
@@ -391,7 +399,9 @@ describe('TestQueryService', () => {
           environment: 'staging',
           status: 'UNCHANGED',
           baselineUrl: 'http://storage/baseline.png',
+          signedBaselineUrl: 'http://storage/baseline.png',
           candidateUrl: null,
+          signedCandidateUrl: null,
           mismatchPixelCount: null,
           baselineInherited: false,
         },
@@ -401,7 +411,9 @@ describe('TestQueryService', () => {
           environment: 'staging',
           status: 'PENDING_APPROVAL',
           baselineUrl: 'http://storage/baseline.png',
+          signedBaselineUrl: 'http://storage/baseline.png',
           candidateUrl: 'http://storage/candidate.png',
+          signedCandidateUrl: 'http://storage/candidate.png',
           mismatchPixelCount: 42,
           baselineInherited: false,
         },
@@ -411,7 +423,9 @@ describe('TestQueryService', () => {
           environment: 'staging',
           status: 'PENDING',
           baselineUrl: null,
+          signedBaselineUrl: null,
           candidateUrl: null,
+          signedCandidateUrl: null,
           mismatchPixelCount: null,
           baselineInherited: false,
         },

@@ -7,6 +7,8 @@ import { TestDeletionService } from '@public/visualTest/core/application/service
 import { DomainError } from '@common/domain/domain-error';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { paginatedQuery } from '@common/utils/paginated-query';
+import { createPaginatedResponse } from '@common/dto/paginated-response.dto';
+import type { TestKind } from '@common/domain/test-kind';
 import {
   mapProjectDetailToDto,
   mapProjectSummaryToDto,
@@ -27,9 +29,12 @@ export class ProjectService {
     private readonly branchCommands: BranchCommandService,
   ) {}
 
-  async getAllWithPendingFlag(pagination: PaginationDto) {
+  async getAllWithPendingFlag(
+    pagination: PaginationDto,
+    filters?: { q?: string; groupId?: string },
+  ) {
     return paginatedQuery(
-      (args) => this.projectRead.getAllWithPendingFlag(args),
+      (args) => this.projectRead.getAllWithPendingFlag(args, filters),
       pagination,
       mapProjectSummaryToDto,
     );
@@ -46,16 +51,40 @@ export class ProjectService {
   async getWithLatestVariantStatuses(
     projectName: string,
     branchName?: string,
+    pagination: PaginationDto = new PaginationDto(),
+    filters?: {
+      q?: string;
+      kind?: TestKind;
+      status?: 'pending' | 'ok';
+      viewport?: string;
+      browser?: string;
+      environment?: string;
+    },
   ): Promise<ProjectDto> {
     const project = await this.projectRead.getWithLatestVariantStatuses(
       projectName,
       branchName,
+      { skip: pagination.skip, take: pagination.take },
+      filters,
     );
     if (!project) {
       throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
     }
 
-    return mapProjectDetailToDto(project);
+    // The project payload carries its own pagination meta instead of the
+    // { data, meta } envelope, so derive the same truthful page the shared
+    // paginatedQuery helper would report.
+    const page = pagination.skipProvided
+      ? Math.floor(pagination.skip / pagination.take) + 1
+      : (pagination.page ?? 1);
+    const meta = createPaginatedResponse(
+      [],
+      page,
+      pagination.take,
+      project.total,
+    ).meta;
+
+    return mapProjectDetailToDto(project, meta);
   }
 
   async create(name: string, groupId?: string): Promise<ProjectDto> {

@@ -97,13 +97,9 @@ describe("getStatusBadge", () => {
 });
 
 describe("VisualTestStatus", () => {
-  it("supports all three status values", () => {
-    const statuses: VisualTestStatus[] = [
-      "UNCHANGED",
-      "PENDING_APPROVAL",
-      "APPROVED",
-    ];
+  it("supports both persisted comparison statuses", () => {
+    const statuses: VisualTestStatus[] = ["PENDING_APPROVAL", "APPROVED"];
 
-    expect(statuses).toHaveLength(3);
+    expect(statuses).toHaveLength(2);
   });
 });

@@ -4,6 +4,7 @@ import {
   useReviewInboxCountQuery,
   withReviewInboxItemRemoved,
 } from "@/composables/useReviewInbox";
+import type { PagedList } from "@/composables/useDomainQuery";
 import type { ReviewInboxItem } from "@/domains/pending-tests/review-inbox.model";
 import { reviewInboxQueryKeys } from "@/domains/pending-tests/query-keys";
 
@@ -27,14 +28,16 @@ const mockGetPending = vi.hoisted(() => vi.fn());
 
 vi.mock("@tanstack/vue-query", () => ({
   useQuery: mockUseQuery,
+  keepPreviousData: (previous: unknown) => previous,
 }));
 
 vi.mock("@sdk", () => ({
+  reviewInboxControllerGetBranches: vi.fn(),
   reviewInboxControllerGetPending: (...args: unknown[]) =>
     mockGetPending(...args),
 }));
 
-const key = ["review-inbox", "list"];
+const listPrefix = reviewInboxQueryKeys.lists();
 
 describe("useReviewInboxCountQuery", () => {
   beforeEach(() => {
@@ -70,61 +73,93 @@ const inboxItem = (comparisonId: string): ReviewInboxItem => ({
   createdAt: "2026-10-20T10:00:00.000Z",
 });
 
-function makeClient(previous: ReviewInboxItem[] | undefined) {
+function page(items: ReviewInboxItem[]): PagedList<ReviewInboxItem> {
+  return { items, total: items.length, page: 1, pageSize: 50 };
+}
+
+function makeClient(previous: [unknown, PagedList<ReviewInboxItem>][]) {
   const cancelQueries = vi.fn().mockResolvedValue(undefined);
-  const getQueryData = vi.fn().mockReturnValue(previous);
+  const getQueriesData = vi.fn().mockReturnValue(previous);
+  const setQueriesData = vi.fn();
   const setQueryData = vi.fn();
   return {
     client: {
       cancelQueries,
-      getQueryData,
+      getQueriesData,
+      setQueriesData,
       setQueryData,
     } as unknown as QueryClient,
     cancelQueries,
-    getQueryData,
+    getQueriesData,
+    setQueriesData,
     setQueryData,
   };
 }
 
 describe("withReviewInboxItemRemoved", () => {
-  it("cancels the inbox query and filters the matching item", async () => {
-    const previous = [inboxItem("a"), inboxItem("b"), inboxItem("c")];
-    const { client, cancelQueries, getQueryData, setQueryData } =
+  it("cancels the inbox lists and filters the matching item from every page", async () => {
+    const pageKey = reviewInboxQueryKeys.list({ page: 1 });
+    const previous: [unknown, PagedList<ReviewInboxItem>][] = [
+      [pageKey, page([inboxItem("a"), inboxItem("b"), inboxItem("c")])],
+    ];
+    const { client, cancelQueries, getQueriesData, setQueriesData } =
       makeClient(previous);
 
     await withReviewInboxItemRemoved(client, "b");
 
-    expect(cancelQueries).toHaveBeenCalledWith({ queryKey: key });
-    expect(getQueryData).toHaveBeenCalledWith(key);
-    expect(setQueryData).toHaveBeenCalledWith(key, expect.any(Function));
+    expect(cancelQueries).toHaveBeenCalledWith({ queryKey: listPrefix });
+    expect(getQueriesData).toHaveBeenCalledWith({ queryKey: listPrefix });
+    expect(setQueriesData).toHaveBeenCalledWith(
+      { queryKey: listPrefix },
+      expect.any(Function),
+    );
 
-    const update = setQueryData.mock.calls[0][1] as (
-      old: ReviewInboxItem[] | undefined,
-    ) => ReviewInboxItem[];
-    expect(update(previous).map((item) => item.comparisonId)).toEqual([
-      "a",
-      "c",
-    ]);
+    const update = setQueriesData.mock.calls[0][1] as (
+      old: PagedList<ReviewInboxItem> | undefined,
+    ) => PagedList<ReviewInboxItem> | undefined;
+    const next = update(previous[0][1]);
+    expect(next?.items.map((item) => item.comparisonId)).toEqual(["a", "c"]);
+    expect(next?.total).toBe(2);
   });
 
-  it("restores the previous snapshot", async () => {
-    const previous = [inboxItem("a")];
+  it("leaves a page that does not contain the item untouched", async () => {
+    const { client, setQueriesData } = makeClient([]);
+    await withReviewInboxItemRemoved(client, "missing");
+
+    const update = setQueriesData.mock.calls[0][1] as (
+      old: PagedList<ReviewInboxItem> | undefined,
+    ) => PagedList<ReviewInboxItem> | undefined;
+    const current = page([inboxItem("a")]);
+
+    expect(update(current)).toBe(current);
+  });
+
+  it("restores every previous page snapshot", async () => {
+    const previous: [unknown, PagedList<ReviewInboxItem>][] = [
+      [reviewInboxQueryKeys.list({ page: 1 }), page([inboxItem("a")])],
+      [reviewInboxQueryKeys.list({ page: 2 }), page([inboxItem("b")])],
+    ];
     const { client, setQueryData } = makeClient(previous);
 
     const { restore } = await withReviewInboxItemRemoved(client, "a");
     restore();
 
-    expect(setQueryData).toHaveBeenLastCalledWith(key, previous);
+    expect(setQueryData).toHaveBeenCalledWith(
+      reviewInboxQueryKeys.list({ page: 1 }),
+      previous[0][1],
+    );
+    expect(setQueryData).toHaveBeenCalledWith(
+      reviewInboxQueryKeys.list({ page: 2 }),
+      previous[1][1],
+    );
   });
 
   it("does not restore when there was no previous snapshot", async () => {
-    const { client, setQueryData } = makeClient(undefined);
+    const { client, setQueryData } = makeClient([]);
 
     const { restore } = await withReviewInboxItemRemoved(client, "a");
-    expect(setQueryData).toHaveBeenCalledTimes(1);
-
     restore();
 
-    expect(setQueryData).toHaveBeenCalledTimes(1);
+    expect(setQueryData).not.toHaveBeenCalled();
   });
 });

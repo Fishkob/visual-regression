@@ -101,6 +101,10 @@ export const TEST_ID = {
   retry: "retry",
   toaster: "toaster",
 
+  paginationPrev: "pagination-prev",
+  paginationNext: "pagination-next",
+  paginationStatus: "pagination-status",
+
   modeSidebyside: "mode-sidebyside",
   modeDiff: "mode-diff",
 

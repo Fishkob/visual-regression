@@ -226,6 +226,7 @@ export class UploadIntake {
             status: ComparisonOutcome.BASELINE_CREATED,
             testId: fresh.testId,
             fileUrl,
+            signedFileUrl: this.storage.signUrl(fileUrl),
             branch: branchName,
           } as const,
         };

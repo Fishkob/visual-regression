@@ -81,6 +81,8 @@ backend:
     RUSTFS_PORT: "9000"
     RUSTFS_BUCKET: vrt
     RUSTFS_USE_SSL: "false"
+    RUSTFS_SIGNED_URL_TTL_SECONDS: "3600"
+    RUSTFS_ENSURE_PUBLIC_BUCKET: "false"
     CORS_ORIGIN: http://vrt.local
     TRUST_PROXY: "false"
     LOG_LEVEL: info

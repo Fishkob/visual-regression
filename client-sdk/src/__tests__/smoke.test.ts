@@ -47,6 +47,7 @@ describe("SDK smoke test", () => {
     const _result: ApproveResultDto = {
       approved: true,
       newBaselineUrl: "https://example.com/baseline.pdf",
+      signedNewBaselineUrl: "https://example.com/baseline.pdf?sig",
     };
     const _data: ApprovalsControllerApprovePdfTestData = {
       url: "/projects/{projectName}/tests/{testName}/pdf-approval" as const,

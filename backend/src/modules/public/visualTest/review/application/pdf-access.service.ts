@@ -77,14 +77,22 @@ export class PdfAccessService {
     pdfUrl: string,
     page: number,
     branchName?: string,
-  ): Promise<{ imageUrl: string; pageCount: number }> {
+  ): Promise<{ imageUrl: string; signedImageUrl: string; pageCount: number }> {
     await this.reviewRead.assertPdfBelongsToTest(
       projectName,
       testName,
       pdfUrl,
       branchName,
     );
-    return this.pdfRenderCache.renderPage(pdfUrl, page);
+    const rendered = await this.pdfRenderCache.renderPage(pdfUrl, page);
+    // The page image is browser-fetched, so it leaves the API twice: canonical
+    // (identity) and presigned (render). The input pdfUrl above stays canonical
+    // — it is a storage key for `get`.
+    return {
+      imageUrl: rendered.imageUrl,
+      signedImageUrl: this.storage.signUrl(rendered.imageUrl),
+      pageCount: rendered.pageCount,
+    };
   }
 
   private resolveUrl(

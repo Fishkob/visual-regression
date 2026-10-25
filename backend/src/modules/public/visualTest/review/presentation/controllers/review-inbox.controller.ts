@@ -37,6 +37,20 @@ export class ReviewInboxController {
     return this.inbox.getPending(pagination, {
       branchName: branch,
       projectName: trimmedProject,
+      kind: pagination.kind,
+      groupId: pagination.groupId,
+      q: pagination.q?.trim(),
     });
+  }
+
+  // The inbox filter's branch choices. A separate read because they must cover
+  // every pending branch, not just the branches on the current page.
+  @Get('branches')
+  @ApiOperation({
+    summary: 'List branches that currently have pending reviews',
+  })
+  @ApiOkResponse({ type: [String] })
+  async getBranches(): Promise<string[]> {
+    return this.inbox.getBranchNames();
   }
 }

@@ -46,6 +46,9 @@ export function createMockStorage() {
   mock.deleteAll = vi.fn();
   mock.listObjects = vi.fn();
   mock.listObjectsWithLastModified = vi.fn();
+  // Identity by default: a spec that does not care about signing keeps seeing
+  // the stored URL, and one that does can override the implementation.
+  mock.signUrl = vi.fn((url: string) => url);
   return mock;
 }
 

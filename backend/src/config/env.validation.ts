@@ -28,10 +28,18 @@ export const envValidationSchema = Joi.object({
   RUSTFS_BUCKET: required,
   RUSTFS_PUBLIC_URL: requiredUrl,
   RUSTFS_USE_SSL: Joi.boolean().default(false),
-  RUSTFS_ENSURE_PUBLIC_BUCKET: Joi.boolean()
-    .default(true)
+  RUSTFS_SIGNED_URL_TTL_SECONDS: Joi.number()
+    .integer()
+    .min(1)
+    .max(604800)
+    .default(3600)
     .description(
-      'Set an anonymous read (s3:GetObject) bucket policy on startup, replacing the former mc init step. Disable for strict S3 providers (e.g. AWS S3 with a public-access block) and configure the policy out-of-band.',
+      'Lifetime of the presigned URLs the API returns for screenshots and rendered PDF pages. SigV4 caps this at seven days (604800).',
+    ),
+  RUSTFS_ENSURE_PUBLIC_BUCKET: Joi.boolean()
+    .default(false)
+    .description(
+      'Set an anonymous read (s3:GetObject) bucket policy on startup. Off by default: the API returns time-limited presigned URLs, so a public-read bucket is not required. Enable only if an external consumer fetches screenshots without credentials.',
     ),
 
   // CORS

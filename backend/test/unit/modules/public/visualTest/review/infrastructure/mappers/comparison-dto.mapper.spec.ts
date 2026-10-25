@@ -7,6 +7,8 @@ import {
   ScreenshotType,
 } from '@public/visualTest/core/domain/types/visual-test.types';
 
+const identitySigner = (url: string): string => url;
+
 function createComparison(
   overrides: Partial<ComparisonEntity> = {},
 ): ComparisonEntity {
@@ -52,7 +54,7 @@ describe('mapComparisonToDto', () => {
   it('maps full comparison to dto', () => {
     const comparison = createComparison();
 
-    const dto = mapComparisonToDto(comparison);
+    const dto = mapComparisonToDto(comparison, identitySigner);
 
     expect(dto.id).toBe('cmp-1');
     expect(dto.status).toBe(ComparisonStatus.PENDING_APPROVAL);
@@ -67,7 +69,7 @@ describe('mapComparisonToDto', () => {
       baseline: undefined as unknown as ScreenshotEntity,
     });
 
-    const dto = mapComparisonToDto(comparison);
+    const dto = mapComparisonToDto(comparison, identitySigner);
 
     expect(dto.baseline).toBeUndefined();
     expect(dto.candidate).toBeDefined();
@@ -78,7 +80,7 @@ describe('mapComparisonToDto', () => {
       candidate: undefined as unknown as ScreenshotEntity,
     });
 
-    const dto = mapComparisonToDto(comparison);
+    const dto = mapComparisonToDto(comparison, identitySigner);
 
     expect(dto.candidate).toBeUndefined();
     expect(dto.baseline).toBeDefined();
@@ -89,8 +91,27 @@ describe('mapComparisonToDto', () => {
       baseline: undefined as unknown as ScreenshotEntity,
     });
 
-    const dto = mapComparisonToDto(comparison);
+    const dto = mapComparisonToDto(comparison, identitySigner);
 
     expect(dto.thresholdExceeded).toBe(false);
+  });
+
+  it('returns canonical and signed urls side by side', () => {
+    const sign = (url: string): string => `${url}?X-Amz-Signature=sig`;
+
+    const dto = mapComparisonToDto(createComparison(), sign);
+
+    expect(dto.diffImageUrl).toBe('http://storage/diff.png');
+    expect(dto.signedDiffImageUrl).toBe(
+      'http://storage/diff.png?X-Amz-Signature=sig',
+    );
+    expect(dto.baseline?.imageUrl).toBe('http://storage/baseline.png');
+    expect(dto.baseline?.signedImageUrl).toBe(
+      'http://storage/baseline.png?X-Amz-Signature=sig',
+    );
+    expect(dto.candidate?.imageUrl).toBe('http://storage/candidate.png');
+    expect(dto.candidate?.signedImageUrl).toBe(
+      'http://storage/candidate.png?X-Amz-Signature=sig',
+    );
   });
 });

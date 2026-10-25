@@ -54,4 +54,11 @@ export interface IStorageProvider {
   // for get/delete/exists (null when the URL is not one this storage built).
   toPublicUrl(objectName: string): string;
   fromUrl(url: string): string | null;
+  // Rewrites a stored URL into a time-limited presigned URL so a browser can
+  // fetch the object directly from the store without a public-read bucket.
+  // Synchronous by design (the signature is a local HMAC, never I/O) and
+  // tolerant of foreign or already-presigned URLs, which are returned
+  // unchanged. PDF render/download inputs must stay raw: the backend reads them
+  // with `get`, which needs the canonical URL.
+  signUrl(url: string, ttlSeconds?: number): string;
 }

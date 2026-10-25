@@ -12,6 +12,8 @@ const mockMutate = vi.fn();
 const mockCancelQueries = vi.fn();
 const mockGetQueryData = vi.fn();
 const mockSetQueryData = vi.fn();
+const mockGetQueriesData = vi.fn();
+const mockSetQueriesData = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockPush = vi.fn();
 
@@ -24,6 +26,8 @@ vi.mock("@tanstack/vue-query", () => ({
     cancelQueries: mockCancelQueries,
     getQueryData: mockGetQueryData,
     setQueryData: mockSetQueryData,
+    getQueriesData: mockGetQueriesData,
+    setQueriesData: mockSetQueriesData,
     invalidateQueries: mockInvalidateQueries,
   })),
 }));
@@ -349,13 +353,16 @@ describe("useReviewSession", () => {
     it("removes the inbox item and returns to the inbox after approval", async () => {
       const args = { ...createArgs(), returnToInbox: true };
       const previousPending = [...args.pendingTests.value];
-      const previousInbox = [
-        { comparisonId: "comp-1" },
-        { comparisonId: "comp-2" },
-      ];
-      mockGetQueryData
-        .mockReturnValueOnce(previousPending)
-        .mockReturnValueOnce(previousInbox);
+      const previousInboxPage = {
+        items: [{ comparisonId: "comp-1" }, { comparisonId: "comp-2" }],
+        total: 2,
+        page: 1,
+        pageSize: 50,
+      };
+      mockGetQueryData.mockReturnValueOnce(previousPending);
+      mockGetQueriesData.mockReturnValueOnce([
+        [["review-inbox", "list"], previousInboxPage],
+      ]);
       useReviewSession(args);
 
       const context = await mutationOptions.onMutate();
@@ -364,12 +371,12 @@ describe("useReviewSession", () => {
         queryKey: ["review-inbox", "list"],
       });
       expect(context.restoreInbox).toEqual(expect.any(Function));
-      const inboxWrite = mockSetQueryData.mock.calls.find(
-        ([key]) => key[0] === "review-inbox",
+      const inboxWrite = mockSetQueriesData.mock.calls.find(
+        ([options]) => options.queryKey[0] === "review-inbox",
       );
-      expect(inboxWrite?.[1](previousInbox)).toEqual([
-        { comparisonId: "comp-2" },
-      ]);
+      const nextPage = inboxWrite?.[1](previousInboxPage);
+      expect(nextPage.items).toEqual([{ comparisonId: "comp-2" }]);
+      expect(nextPage.total).toBe(1);
 
       mutationOptions.onSuccess(undefined, undefined, context);
 
@@ -380,10 +387,16 @@ describe("useReviewSession", () => {
     it("onError restores both the pending and inbox caches", async () => {
       const args = { ...createArgs(), returnToInbox: true };
       const previousPending = [...args.pendingTests.value];
-      const previousInbox = [{ comparisonId: "comp-1" }];
-      mockGetQueryData
-        .mockReturnValueOnce(previousPending)
-        .mockReturnValueOnce(previousInbox);
+      const previousInboxPage = {
+        items: [{ comparisonId: "comp-1" }],
+        total: 1,
+        page: 1,
+        pageSize: 50,
+      };
+      mockGetQueryData.mockReturnValueOnce(previousPending);
+      mockGetQueriesData.mockReturnValueOnce([
+        [["review-inbox", "list"], previousInboxPage],
+      ]);
       useReviewSession(args);
 
       const context = await mutationOptions.onMutate();
@@ -397,7 +410,7 @@ describe("useReviewSession", () => {
       );
       expect(mockSetQueryData).toHaveBeenCalledWith(
         ["review-inbox", "list"],
-        previousInbox,
+        previousInboxPage,
       );
     });
 

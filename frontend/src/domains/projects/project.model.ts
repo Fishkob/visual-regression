@@ -16,6 +16,21 @@ export interface VisualTestItem {
   inheritedFrom?: string | null;
 }
 
+export interface ProjectPaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface ProjectFilterOptions {
+  viewports: string[];
+  browsers: string[];
+  environments: string[];
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -28,4 +43,6 @@ export interface Project {
   testCount?: number;
   visualTests?: VisualTestItem[];
   createdAt?: string;
+  meta?: ProjectPaginationMeta;
+  filterOptions?: ProjectFilterOptions;
 }

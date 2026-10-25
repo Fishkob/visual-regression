@@ -120,7 +120,9 @@ const IMAGE_ADAPTER: TestDetailsAdapter<VisualTestDetails> = {
       body: { comparisonId },
     }),
   invalidateDetails: invalidateVisualTestDetails,
-  viewKeyOf: (comparison) => comparison?.diffImageUrl ?? "",
+  // Strip the presign query so the remount key stays stable across refetches;
+  // the comparison id already pins the artifact.
+  viewKeyOf: (comparison) => comparison?.diffImageUrl?.split("?")[0] ?? "",
 };
 
 const PDF_ADAPTER: TestDetailsAdapter<PdfTestDetails> = {

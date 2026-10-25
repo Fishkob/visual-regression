@@ -1,6 +1,22 @@
+import type { TestKind } from "@/domains/test-kind";
+
+export interface InboxListQuery {
+  page?: number;
+  q?: string;
+  kind?: TestKind;
+  groupId?: string;
+  branch?: string;
+}
+
 export const reviewInboxQueryKeys = {
   all: () => ["review-inbox"] as const,
-  list: () => [...reviewInboxQueryKeys.all(), "list"] as const,
+  lists: () => [...reviewInboxQueryKeys.all(), "list"] as const,
+  // Omitting the query yields the prefix, which invalidates every page.
+  list: (query?: InboxListQuery) =>
+    (query
+      ? [...reviewInboxQueryKeys.lists(), query]
+      : [...reviewInboxQueryKeys.lists()]) as readonly unknown[],
+  branches: () => [...reviewInboxQueryKeys.all(), "branches"] as const,
   count: () => [...reviewInboxQueryKeys.all(), "count"] as const,
 } as const;
 

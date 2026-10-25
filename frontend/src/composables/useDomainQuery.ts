@@ -121,6 +121,49 @@ export function useSdkQuery<
   });
 }
 
+// The single-page list sibling: the server does the paging, the caller renders
+// one page and a pager. Unlike usePaginatedListQuery this never loops, so a
+// large project list costs one request instead of one per hundred rows.
+export interface PagedList<TModel> {
+  items: TModel[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export function usePagedListQuery<TDto, TModel>(options: {
+  queryKey: MaybeRef<QueryKey>;
+  page: MaybeRef<number>;
+  pageSize: number;
+  enabled?: MaybeRef<boolean>;
+  retry?: number | boolean;
+  placeholderData?: unknown;
+  fetchPage: (skip: number, take: number) => Promise<unknown>;
+  map: (items: TDto[]) => TModel[];
+}): UseQueryReturnType<PagedList<TModel>, Error> {
+  const pageRef = computed(() => Math.max(1, unref(options.page) || 1));
+  return useDomainQuery<PagedList<TModel>>({
+    queryKey: options.queryKey,
+    enabled: options.enabled,
+    retry: options.retry,
+    placeholderData: options.placeholderData,
+    queryFn: async () => {
+      const page = pageRef.value;
+      const response = await options.fetchPage(
+        (page - 1) * options.pageSize,
+        options.pageSize,
+      );
+      const payload = unwrapSdkData<PaginatedDto<TDto>>(response);
+      return {
+        items: options.map(payload?.data ?? []),
+        total: payload?.meta?.total ?? 0,
+        page,
+        pageSize: options.pageSize,
+      };
+    },
+  });
+}
+
 // The list sibling of useSdkQuery: absorbs the fetch-all-pages ceremony the
 // single-object query seam already absorbed for the detail case. Callers become
 // a declaration — key + page fetch (skip/take already unwrapped by the adapter)

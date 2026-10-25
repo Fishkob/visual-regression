@@ -246,6 +246,7 @@ describe('UploadIntake (pdf kind)', () => {
       testId: 'pdf-test-1',
       branch: 'main',
       fileUrl: `https://storage/${testPdfHash}.pdf`,
+      signedFileUrl: `https://storage/${testPdfHash}.pdf`,
     });
     expect(metrics.incrementCounter).toHaveBeenCalledWith(
       'domain_events_total',

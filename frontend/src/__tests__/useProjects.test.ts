@@ -5,6 +5,7 @@ import {
   useProjectDetailQuery,
 } from "@/composables/useProjects";
 import type { Project } from "@/domains/projects/project.model";
+import { PROJECT_DETAIL_PAGE_SIZE, PROJECTS_PAGE_SIZE } from "@/lib/pagination";
 
 interface QueryOptionsShape {
   queryKey: { value: unknown };
@@ -30,6 +31,7 @@ const mockGetOneProject = vi.hoisted(() => vi.fn());
 
 vi.mock("@tanstack/vue-query", () => ({
   useQuery: mockUseQuery,
+  keepPreviousData: (previous: unknown) => previous,
 }));
 
 vi.mock("@sdk", () => ({
@@ -53,42 +55,49 @@ describe("useProjectsWithPendingQuery", () => {
     queryOptions.current = undefined;
   });
 
-  it("pages past the first page and maps every row", async () => {
-    mockGetProjectsWithPending
-      .mockResolvedValueOnce({
-        data: {
-          data: [projectDto({ name: "checkout" })],
-          meta: { total: 2 },
-        },
-      })
-      .mockResolvedValueOnce({
-        data: {
-          data: [projectDto({ id: 2, name: "admin" })],
-          meta: { total: 2 },
-        },
-      });
-
-    useProjectsWithPendingQuery();
-
-    const result = (await queryOptions.current!.queryFn()) as Project[];
-
-    expect(result.map((p) => p.name)).toEqual(["checkout", "admin"]);
-    expect(mockGetProjectsWithPending).toHaveBeenNthCalledWith(1, {
-      query: { skip: 0, take: 100 },
+  it("fetches exactly one server page and reports the total", async () => {
+    mockGetProjectsWithPending.mockResolvedValue({
+      data: {
+        data: [projectDto({ name: "checkout" })],
+        meta: { total: 42 },
+      },
     });
-    expect(mockGetProjectsWithPending).toHaveBeenNthCalledWith(2, {
-      query: { skip: 100, take: 100 },
+
+    useProjectsWithPendingQuery({ page: 2, q: "check", groupId: "g1" });
+
+    const result = (await queryOptions.current!.queryFn()) as {
+      items: Project[];
+      total: number;
+      page: number;
+      pageSize: number;
+    };
+
+    expect(result.items.map((project) => project.name)).toEqual(["checkout"]);
+    expect(result.total).toBe(42);
+    expect(result.page).toBe(2);
+    expect(mockGetProjectsWithPending).toHaveBeenCalledTimes(1);
+    expect(mockGetProjectsWithPending).toHaveBeenCalledWith({
+      query: {
+        skip: PROJECTS_PAGE_SIZE,
+        take: PROJECTS_PAGE_SIZE,
+        q: "check",
+        groupId: "g1",
+      },
     });
   });
 
-  it("maps an empty payload to an empty list", async () => {
+  it("maps an empty payload to an empty page", async () => {
     mockGetProjectsWithPending.mockResolvedValue({ data: { data: [] } });
 
     useProjectsWithPendingQuery();
 
-    const result = (await queryOptions.current!.queryFn()) as Project[];
+    const result = (await queryOptions.current!.queryFn()) as {
+      items: Project[];
+      total: number;
+      page: number;
+    };
 
-    expect(result).toEqual([]);
+    expect(result).toMatchObject({ items: [], total: 0, page: 1 });
   });
 });
 
@@ -111,6 +120,7 @@ describe("useProjectDetailQuery", () => {
       "projects",
       "detail",
       "checkout",
+      { page: 1 },
     ]);
   });
 
@@ -126,13 +136,14 @@ describe("useProjectDetailQuery", () => {
       "detail",
       "checkout",
       "feature/x",
+      { page: 1 },
     ]);
 
     await queryOptions.current!.queryFn();
 
     expect(mockGetOneProject).toHaveBeenCalledWith({
       path: { projectName: "checkout" },
-      query: { branch: "feature/x" },
+      query: { skip: 0, take: PROJECT_DETAIL_PAGE_SIZE, branch: "feature/x" },
     });
   });
 

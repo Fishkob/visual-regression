@@ -16,6 +16,7 @@ export interface BaselineCreatedResult {
   status: ComparisonOutcome.BASELINE_CREATED;
   testId: string;
   fileUrl: string;
+  signedFileUrl: string;
   branch: string;
 }
 

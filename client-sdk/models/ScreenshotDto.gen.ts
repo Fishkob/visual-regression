@@ -6,7 +6,14 @@ import type { VariantDto } from './VariantDto.gen';
 export type ScreenshotDto = {
     id: string;
     visualTestId?: string;
+    /**
+     * Canonical storage URL (identity; not fetchable when the bucket is private)
+     */
     imageUrl?: string;
+    /**
+     * Time-limited presigned URL for browser rendering of the same object
+     */
+    signedImageUrl?: string;
     imageHash?: string;
     createdAt?: string;
     /**

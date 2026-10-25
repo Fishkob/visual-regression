@@ -113,7 +113,17 @@
         :tests="tests"
         :project-name="projectName ?? ''"
         :branch-name="selectedBranch"
+        :server-filtered="true"
+        :filter-options="filterOptions"
         sync-url
+      />
+      <PaginationBar
+        v-if="pageCount > 1"
+        :page="page"
+        :page-count="pageCount"
+        :total="meta?.total ?? 0"
+        item-label="variants"
+        @update:page="page = $event"
       />
     </AsyncState>
   </div>
@@ -130,7 +140,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
@@ -138,6 +148,7 @@ import AsyncState from "@/components/AsyncState.vue";
 import SkeletonAccordionGroups from "@/components/cards/SkeletonAccordionGroups.vue";
 import MoveProjectDialog from "@/components/projects/MoveProjectDialog.vue";
 import VisualTestsTable from "@/components/tables/VisualTestsTable.vue";
+import PaginationBar from "@/components/PaginationBar.vue";
 import BranchActionsMenu from "@/components/branches/BranchActionsMenu.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -152,10 +163,14 @@ import { useBranchesQuery } from "@/composables/useBranches";
 import type { ProjectBranch } from "@/domains/branches/branch.model";
 import { useBranchMutations } from "@/composables/useBranchMutations";
 import { useGroupsQuery } from "@/composables/useGroups";
-import { useProjectDetailPage } from "@/composables/useProjectDetailPage";
+import {
+  useProjectDetailPage,
+  type ProjectDetailFilters,
+} from "@/composables/useProjectDetailPage";
 import { useProjectGroupAssignment } from "@/composables/useProjectGroupAssignment";
 import { useRouteParams } from "@/composables/useRouteParams";
 import { UNASSIGNED_GROUP_LABEL } from "@/domains/groups/group-section";
+import { PROJECT_DETAIL_PAGE_SIZE } from "@/lib/pagination";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { projectName } = useRouteParams();
@@ -179,8 +194,73 @@ const routeBranch = computed(() =>
 // the resolved name comes from the project read itself, so keying on it would
 // refetch the project a second time (and flash the loading state) on first
 // paint. Selecting a branch writes it to the route, which is what re-keys it.
-const { project, tests, pendingCount, testCount, activeTabState } =
-  useProjectDetailPage(projectName, routeBranch);
+// Server-side search needs a debounce; the other filters apply immediately.
+const routeString = (key: string): string | undefined => {
+  const value = route.query[key];
+  return typeof value === "string" && value ? value : undefined;
+};
+
+const rawSearch = computed(() => routeString("q"));
+const searchQuery = ref(rawSearch.value ?? "");
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+watch(rawSearch, (value) => {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchQuery.value = value ?? "";
+  }, 300);
+});
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer);
+});
+
+// The table owns the filter inputs and writes them to the URL; the page reads
+// the same URL and turns it into the server query, so the table never filters
+// the one page it was handed.
+const filters = computed<ProjectDetailFilters>(() => {
+  const kind = routeString("kind");
+  const status = routeString("status");
+  const viewport = routeString("viewport");
+  const browser = routeString("browser");
+  const environment = routeString("environment");
+  return {
+    ...(searchQuery.value.trim() ? { q: searchQuery.value.trim() } : {}),
+    ...(kind === "image" || kind === "pdf" ? { kind } : {}),
+    ...(status === "pending" || status === "ok" ? { status } : {}),
+    ...(viewport ? { viewport } : {}),
+    ...(browser ? { browser } : {}),
+    ...(environment ? { environment } : {}),
+  };
+});
+
+const page = computed({
+  get: () => {
+    const raw = Number(route.query.page ?? 1);
+    return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
+  },
+  set: (value: number) => {
+    const query = { ...route.query };
+    if (value <= 1) delete query.page;
+    else query.page = String(value);
+    void router.replace({ query });
+  },
+});
+
+const {
+  project,
+  tests,
+  pendingCount,
+  testCount,
+  meta,
+  filterOptions,
+  activeTabState,
+} = useProjectDetailPage(projectName, routeBranch, filters, page);
+
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil((meta.value?.total ?? 0) / PROJECT_DETAIL_PAGE_SIZE)),
+);
+watch(pageCount, (count) => {
+  if (page.value > count) page.value = count;
+});
 
 // The selected branch is the explicitly requested one, else the branch the
 // project read resolved, else the project default. The backend resolves an

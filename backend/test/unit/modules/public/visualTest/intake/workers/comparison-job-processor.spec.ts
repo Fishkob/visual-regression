@@ -310,7 +310,7 @@ describe('ComparisonJobProcessor', () => {
           events: [
             expect.objectContaining({
               kind: 'comparison_completed',
-              newStatus: 'UNCHANGED',
+              outcome: 'unchanged',
             }),
           ],
         }),

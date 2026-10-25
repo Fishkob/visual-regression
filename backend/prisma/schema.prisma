@@ -199,7 +199,6 @@ enum ScreenshotType {
 }
 
 enum ComparisonStatus {
-  UNCHANGED
   PENDING_APPROVAL
   APPROVED
 }

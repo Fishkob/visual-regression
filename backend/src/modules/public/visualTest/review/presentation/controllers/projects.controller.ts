@@ -26,7 +26,10 @@ import {
   ProjectDto,
   CreateProjectDto,
   UpdateProjectDto,
+  ProjectsListQueryDto,
+  ProjectDetailQueryDto,
 } from '@public/visualTest/review/presentation/dto/project.dto';
+import type { TestKind } from '@common/domain/test-kind';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { PaginationDto } from '@common/dto/pagination.dto';
@@ -72,8 +75,11 @@ export class ProjectsController {
       },
     },
   })
-  async getProjectsWithPendingFlag(@Query() pagination: PaginationDto) {
-    return this.projectService.getAllWithPendingFlag(pagination);
+  async getProjectsWithPendingFlag(@Query() query: ProjectsListQueryDto) {
+    return this.projectService.getAllWithPendingFlag(query, {
+      q: query.q,
+      groupId: query.groupId,
+    });
   }
 
   @Delete(':projectName')
@@ -150,11 +156,21 @@ export class ProjectsController {
   @ApiNotFoundResponse({ description: 'Project not found' })
   async getOneProject(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Query() query: ProjectDetailQueryDto,
     @BranchQuery() branch?: string,
   ): Promise<ProjectDto> {
     return this.projectService.getWithLatestVariantStatuses(
       projectName,
       branch,
+      query,
+      {
+        q: query.q?.trim(),
+        kind: query.kind as TestKind | undefined,
+        status: query.status as 'pending' | 'ok' | undefined,
+        viewport: query.viewport,
+        browser: query.browser,
+        environment: query.environment,
+      },
     );
   }
 }

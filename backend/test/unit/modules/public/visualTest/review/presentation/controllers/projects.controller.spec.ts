@@ -1,5 +1,6 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ProjectDetailQueryDto } from '@public/visualTest/review/presentation/dto/project.dto';
 import { ProjectsController } from '@public/visualTest/review/presentation/controllers/projects.controller';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
 import { DomainError } from '@common/domain/domain-error';
@@ -148,6 +149,37 @@ describe('ProjectsController', () => {
   });
 
   describe('getOneProject', () => {
+    it('forwards the server-side filters and trims the search', async () => {
+      projectService.getWithLatestVariantStatuses.mockResolvedValue({
+        id: 'proj-1',
+        name: 'checkout-ui',
+      } as any);
+      const query = Object.assign(new ProjectDetailQueryDto(), {
+        q: '  login  ',
+        kind: 'pdf',
+        status: 'pending',
+        viewport: '1920x1080',
+        browser: 'Chrome',
+        environment: 'ci',
+      });
+
+      await controller.getOneProject('checkout-ui', query, 'feature/x');
+
+      expect(projectService.getWithLatestVariantStatuses).toHaveBeenCalledWith(
+        'checkout-ui',
+        'feature/x',
+        query,
+        {
+          q: 'login',
+          kind: 'pdf',
+          status: 'pending',
+          viewport: '1920x1080',
+          browser: 'Chrome',
+          environment: 'ci',
+        },
+      );
+    });
+
     it('returns project with variant statuses', async () => {
       projectService.getWithLatestVariantStatuses.mockResolvedValue({
         id: 'proj-1',
@@ -164,7 +196,10 @@ describe('ProjectsController', () => {
         ],
       } as any);
 
-      const result = await controller.getOneProject('checkout-ui');
+      const result = await controller.getOneProject(
+        'checkout-ui',
+        new ProjectDetailQueryDto(),
+      );
 
       expect(result).toMatchObject({
         id: 'proj-1',
@@ -177,9 +212,9 @@ describe('ProjectsController', () => {
         new DomainError('Project "nonexistent" not found', 'NOT_FOUND'),
       );
 
-      await expect(controller.getOneProject('nonexistent')).rejects.toThrow(
-        DomainError,
-      );
+      await expect(
+        controller.getOneProject('nonexistent', new ProjectDetailQueryDto()),
+      ).rejects.toThrow(DomainError);
     });
   });
 });

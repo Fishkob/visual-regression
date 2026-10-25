@@ -28,6 +28,18 @@ export type ReviewInboxControllerGetPendingData = {
          * Project to scope the read to (defaults to every project)
          */
         projectName?: string;
+        /**
+         * Filter by test kind
+         */
+        kind?: 'image' | 'pdf';
+        /**
+         * Group id, or "unassigned" for projects without a group
+         */
+        groupId?: string;
+        /**
+         * Case-insensitive search across the test name and the project name
+         */
+        q?: string;
     };
     url: '/review/pending';
 };

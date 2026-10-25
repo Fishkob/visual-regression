@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { mockApi } from "./routes/api.routes";
 import {
   REVIEW_INBOX_BRANCHES_RESPONSE,
@@ -6,16 +6,73 @@ import {
   REVIEW_INBOX_MULTI_RESPONSE,
   REVIEW_INBOX_RESPONSE,
 } from "./mocks/projects.mocks";
+import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
 import { TEST_ID } from "@/lib/test-ids";
 
 const INBOX_ENDPOINT = "**/api/v1/review/pending*";
+
+// The inbox filters and pages on the server now, so the CT mock answers the
+// query it receives. Groups and branches are separate reads.
+async function mockInbox(
+  page: Page,
+  response: { body: string },
+): Promise<void> {
+  const rows = JSON.parse(response.body).data as Array<{
+    projectName: string;
+    groupId: string | null;
+    testName: string;
+    kind: string;
+    branchName: string;
+  }>;
+
+  await mockApi(page, [
+    ["**/api/v1/groups", GROUPS_RESPONSE],
+    [
+      "**/api/v1/review/branches",
+      {
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([...new Set(rows.map((row) => row.branchName))]),
+      },
+    ],
+  ]);
+
+  await page.route(INBOX_ENDPOINT, async (route) => {
+    const url = new URL(route.request().url());
+    const search = url.searchParams.get("q")?.toLowerCase() ?? "";
+    const kind = url.searchParams.get("kind");
+    const groupId = url.searchParams.get("groupId");
+    const branch = url.searchParams.get("branch");
+
+    const data = rows.filter((row) => {
+      const matchesSearch =
+        search === "" ||
+        row.testName.toLowerCase().includes(search) ||
+        row.projectName.toLowerCase().includes(search);
+      const matchesKind = !kind || row.kind === kind;
+      const matchesGroup =
+        !groupId ||
+        (groupId === "unassigned"
+          ? row.groupId === null
+          : row.groupId === groupId);
+      const matchesBranch = !branch || row.branchName === branch;
+      return matchesSearch && matchesKind && matchesGroup && matchesBranch;
+    });
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ data, meta: { total: data.length } }),
+    });
+  });
+}
 
 test.describe("Review inbox", () => {
   test("groups pending reviews by group and project", async ({
     mount,
     page,
   }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
 
@@ -30,14 +87,14 @@ test.describe("Review inbox", () => {
   });
 
   test("shows the caught-up state", async ({ mount, page }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_EMPTY_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_EMPTY_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
     await expect(component).toContainText("All caught up");
   });
 
   test("filters by kind", async ({ mount, page }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
 
@@ -49,7 +106,7 @@ test.describe("Review inbox", () => {
   });
 
   test("filters by group", async ({ mount, page }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
 
@@ -66,7 +123,7 @@ test.describe("Review inbox", () => {
   });
 
   test("searches by test name or project name", async ({ mount, page }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
     const search = component.getByTestId(TEST_ID.inboxSearch);
@@ -80,7 +137,7 @@ test.describe("Review inbox", () => {
   });
 
   test("opens a single review from an inbox item", async ({ mount, page }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
 
@@ -97,7 +154,7 @@ test.describe("Review inbox", () => {
     mount,
     page,
   }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_MULTI_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_MULTI_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
 
@@ -124,7 +181,7 @@ test.describe("Review inbox", () => {
     mount,
     page,
   }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
 
@@ -161,7 +218,7 @@ test.describe("Review inbox", () => {
     mount,
     page,
   }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
 
@@ -176,7 +233,7 @@ test.describe("Review inbox", () => {
   });
 
   test("restores the branch filter from the URL", async ({ mount, page }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_BRANCHES_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_BRANCHES_RESPONSE);
 
     // "Return to inbox" from a branch-scoped pass links `?branch=…`; the filter
     // must restore from it instead of showing every branch again.
@@ -195,7 +252,7 @@ test.describe("Review inbox", () => {
     mount,
     page,
   }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_BRANCHES_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_BRANCHES_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
     await expect(component.getByTestId(TEST_ID.inboxItem)).toHaveCount(2);
@@ -217,7 +274,7 @@ test.describe("Review inbox", () => {
     mount,
     page,
   }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_BRANCHES_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_BRANCHES_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
 
@@ -239,7 +296,7 @@ test.describe("Review inbox", () => {
     mount,
     page,
   }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_BRANCHES_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_BRANCHES_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
 
@@ -256,7 +313,7 @@ test.describe("Review inbox", () => {
   });
 
   test("badges, filters and counts per branch", async ({ mount, page }) => {
-    await mockApi(page, [[INBOX_ENDPOINT, REVIEW_INBOX_BRANCHES_RESPONSE]]);
+    await mockInbox(page, REVIEW_INBOX_BRANCHES_RESPONSE);
 
     const component = await mount("views/InboxView/Inbox");
 

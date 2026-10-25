@@ -11,10 +11,20 @@ import type {
   VisualTestDetails,
 } from "./visual-test.model";
 
+// The API returns both the canonical storage URL (identity) and a presigned
+// URL (what the browser can actually fetch). The view model holds the signed
+// one and falls back to the canonical URL for older/mocked payloads.
+function renderableUrl(
+  signed: string | undefined,
+  canonical: string | undefined,
+): string {
+  return signed ?? canonical ?? "";
+}
+
 function mapScreenshot(dto: ScreenshotDto | undefined): Screenshot | undefined {
   if (!dto) return undefined;
   return {
-    imageUrl: dto.imageUrl ?? "",
+    imageUrl: renderableUrl(dto.signedImageUrl, dto.imageUrl),
     pixelDiffThreshold: dto.pixelDiffThreshold,
     ...(dto.variant ?? {}),
   };
@@ -24,7 +34,7 @@ function mapComparison(dto: ComparisonDto | undefined): Comparison | undefined {
   if (!dto) return undefined;
   return {
     id: dto.id,
-    diffImageUrl: dto.diffImageUrl ?? "",
+    diffImageUrl: renderableUrl(dto.signedDiffImageUrl, dto.diffImageUrl),
     mismatchPixelCount: dto.mismatchPixelCount,
     status: dto.status,
     thresholdExceeded: dto.thresholdExceeded,
@@ -66,8 +76,18 @@ export function mapTestVariants(
       environment: variant.environment,
       status: variant.status,
       baselineInherited: variant.baselineInherited,
-      ...(variant.baselineUrl ? { baselineUrl: variant.baselineUrl } : {}),
-      ...(variant.candidateUrl ? { candidateUrl: variant.candidateUrl } : {}),
+      ...((variant.signedBaselineUrl ?? variant.baselineUrl)
+        ? {
+            baselineUrl:
+              variant.signedBaselineUrl ?? variant.baselineUrl ?? undefined,
+          }
+        : {}),
+      ...((variant.signedCandidateUrl ?? variant.candidateUrl)
+        ? {
+            candidateUrl:
+              variant.signedCandidateUrl ?? variant.candidateUrl ?? undefined,
+          }
+        : {}),
       ...(variant.mismatchPixelCount != null
         ? { mismatchPixelCount: variant.mismatchPixelCount }
         : {}),

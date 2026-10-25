@@ -32,6 +32,7 @@ describe('PdfAccessService', () => {
     pdfRenderCache = createMock<IPdfRenderCache>();
     storage = createMock<IStorageProvider>();
     storage.get.mockResolvedValue(Buffer.from('pdf-content'));
+    storage.signUrl.mockImplementation((url: string) => url);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -221,6 +222,7 @@ describe('PdfAccessService', () => {
       );
       expect(result).toEqual({
         imageUrl: 'http://rustfs/render.png',
+        signedImageUrl: 'http://rustfs/render.png',
         pageCount: 3,
       });
     });

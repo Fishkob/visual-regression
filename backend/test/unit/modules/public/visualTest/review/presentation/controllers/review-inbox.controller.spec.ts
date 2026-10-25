@@ -31,6 +31,9 @@ describe('ReviewInboxController', () => {
     expect(inbox.getPending).toHaveBeenCalledWith(expect.anything(), {
       branchName: 'feature/x',
       projectName: 'checkout-ui',
+      kind: undefined,
+      groupId: undefined,
+      q: undefined,
     });
   });
 
@@ -45,7 +48,40 @@ describe('ReviewInboxController', () => {
     expect(inbox.getPending).toHaveBeenCalledWith(expect.anything(), {
       branchName: undefined,
       projectName: '',
+      kind: undefined,
+      groupId: undefined,
+      q: undefined,
     });
+  });
+
+  it('forwards the inbox filters and trims the search', async () => {
+    inbox.getPending.mockResolvedValue({ data: [], meta: {} } as never);
+
+    await controller.getPending(
+      Object.assign(new ReviewInboxPaginationDto(), {
+        q: '  login  ',
+        kind: 'pdf',
+        groupId: 'unassigned',
+      }),
+      undefined,
+    );
+
+    expect(inbox.getPending).toHaveBeenCalledWith(expect.anything(), {
+      branchName: undefined,
+      projectName: undefined,
+      kind: 'pdf',
+      groupId: 'unassigned',
+      q: 'login',
+    });
+  });
+
+  it('lists the pending branches', async () => {
+    inbox.getBranchNames.mockResolvedValue(['main', 'feature/x']);
+
+    await expect(controller.getBranches()).resolves.toEqual([
+      'main',
+      'feature/x',
+    ]);
   });
 
   it('rejects an invalid project name', async () => {

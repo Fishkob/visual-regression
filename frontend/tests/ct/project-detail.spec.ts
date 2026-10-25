@@ -10,6 +10,77 @@ import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
 import type { Routed } from "../../src/views/ProjectDetailView.story";
 import { TEST_ID } from "@/lib/test-ids";
 
+// The project overview filters and pages on the server now, so the CT mock must
+// answer the query it receives (search, kind, status, variant, skip/take) and
+// return the branch-wide filter options.
+async function mockProjectFilters(page: import("@playwright/test").Page) {
+  const body = JSON.parse(PROJECT_CHECKOUT_UI_RESPONSE.body) as {
+    visualTests: Array<Record<string, any>>;
+  };
+  const rows = body.visualTests;
+
+  await page.route("**/api/v1/projects/checkout-ui*", async (route) => {
+    const url = new URL(route.request().url());
+    const q = url.searchParams.get("q")?.toLowerCase() ?? "";
+    const kind = url.searchParams.get("kind");
+    const status = url.searchParams.get("status");
+    const viewport = url.searchParams.get("viewport");
+    const browser = url.searchParams.get("browser");
+    const environment = url.searchParams.get("environment");
+    const skip = Number(url.searchParams.get("skip") ?? 0);
+    const take = Number(url.searchParams.get("take") ?? 50);
+
+    const filtered = rows.filter((row) => {
+      const isPending = row.latestStatus === "PENDING_APPROVAL";
+      return (
+        (!q || String(row.name).toLowerCase().includes(q)) &&
+        (!kind || (row.kind ?? "image") === kind) &&
+        (!status || (status === "pending" ? isPending : !isPending)) &&
+        (!viewport || row.variant?.viewport === viewport) &&
+        (!browser || row.variant?.browser === browser) &&
+        (!environment || row.variant?.environment === environment)
+      );
+    });
+    const visualTests = filtered.slice(skip, skip + take);
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...body,
+        visualTests,
+        pendingCount: rows.filter(
+          (row) => row.latestStatus === "PENDING_APPROVAL",
+        ).length,
+        testCount: new Set(rows.map((row) => row.name)).size,
+        meta: {
+          page: Math.floor(skip / take) + 1,
+          limit: take,
+          total: filtered.length,
+          totalPages: Math.ceil(filtered.length / take),
+          hasNextPage: skip + take < filtered.length,
+          hasPreviousPage: skip > 0,
+        },
+        filterOptions: {
+          viewports: [
+            ...new Set(
+              rows.map((row) => row.variant?.viewport).filter(Boolean),
+            ),
+          ],
+          browsers: [
+            ...new Set(rows.map((row) => row.variant?.browser).filter(Boolean)),
+          ],
+          environments: [
+            ...new Set(
+              rows.map((row) => row.variant?.environment).filter(Boolean),
+            ),
+          ],
+        },
+      }),
+    });
+  });
+}
+
 test.describe("ProjectDetail", () => {
   test("shows details", async ({ mount, page }) => {
     await mockApi(page, [
@@ -168,10 +239,10 @@ test.describe("ProjectDetail", () => {
 
   test("filters by viewport and reset", async ({ mount, page }) => {
     await mockApi(page, [
-      ["**/api/v1/projects/checkout-ui", PROJECT_CHECKOUT_UI_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
+    await mockProjectFilters(page);
 
     const component = await mount<typeof Routed>(
       "views/ProjectDetailView/Routed",
@@ -189,10 +260,10 @@ test.describe("ProjectDetail", () => {
 
   test("filters by search", async ({ mount, page }) => {
     await mockApi(page, [
-      ["**/api/v1/projects/checkout-ui", PROJECT_CHECKOUT_UI_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
+    await mockProjectFilters(page);
 
     const component = await mount<typeof Routed>(
       "views/ProjectDetailView/Routed",

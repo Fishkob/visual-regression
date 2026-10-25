@@ -25,6 +25,7 @@ import type {
   StorageUploadResult,
 } from '@common/domain/storage-provider.interface';
 import { StorageObjectName } from './storage-object-name';
+import { S3Presigner } from './s3-presigner';
 import * as mime from 'mime-types';
 
 const RUSTFS_OPERATION_TIMEOUT_MS = 30_000;
@@ -36,6 +37,7 @@ export class RustFsStorageService
 {
   private readonly client: S3Client;
   private readonly bucket: string;
+  private readonly presigner: S3Presigner;
   private bucketReady: Promise<void> | null = null;
 
   constructor(
@@ -49,6 +51,7 @@ export class RustFsStorageService
       useSsl: isSslEnabled,
       accessKey,
       secretKey,
+      publicUrl,
     } = this.appConfig.rustfs;
     this.bucket = this.appConfig.rustfs.bucket;
 
@@ -61,6 +64,10 @@ export class RustFsStorageService
         secretAccessKey: secretKey,
       },
     });
+
+    // The browser talks to RUSTFS_PUBLIC_URL, not the internal endpoint, so the
+    // presigned host must come from the public URL.
+    this.presigner = new S3Presigner({ publicUrl, accessKey, secretKey });
 
     this.logger.log('Initialized RustFsStorageService', {
       endpoint,
@@ -362,6 +369,20 @@ export class RustFsStorageService
 
   fromUrl(url: string): string | null {
     return this.objectNames.fromUrl(url);
+  }
+
+  signUrl(url: string, ttlSeconds?: number): string {
+    // Already signed (e.g. a response re-signed by mistake): leave it alone.
+    if (url.includes('X-Amz-Signature=')) return url;
+    // A foreign URL is not ours to sign — returning it unchanged keeps the
+    // caller's link working instead of corrupting it.
+    const objectName = this.objectNames.fromUrl(url);
+    if (!objectName) return url;
+    return this.presigner.presignGet(
+      this.bucket,
+      objectName,
+      ttlSeconds ?? this.appConfig.rustfs.signedUrlTtlSeconds,
+    );
   }
 
   async healthCheck(): Promise<void> {

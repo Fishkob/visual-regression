@@ -241,6 +241,7 @@ describe('ApprovalService', () => {
       expect(result).toEqual({
         approved: true as const,
         newBaselineUrl: 'http://storage/candidate.png',
+        signedNewBaselineUrl: 'http://storage/candidate.png',
       });
     });
 
@@ -418,6 +419,7 @@ describe('ApprovalService', () => {
       expect(result).toEqual({
         approved: true,
         newBaselineUrl: 'http://storage/pdf-candidate.png',
+        signedNewBaselineUrl: 'http://storage/pdf-candidate.png',
       });
     });
 

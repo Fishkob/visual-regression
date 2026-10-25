@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,17 +20,100 @@ import { useProjectsWithPendingQuery } from "@/composables/useProjects";
 import { useGroupsQuery } from "@/composables/useGroups";
 import { FILTER_ALL } from "@/domains/test-status";
 import { groupProjectsByGroup } from "@/domains/projects/group-projects-by-group";
+import type { ProjectsListQuery } from "@/domains/projects/query-keys";
 import { UNASSIGNED_GROUP_QUERY } from "@/domains/groups/group-section";
+import { PROJECTS_PAGE_SIZE } from "@/lib/pagination";
 import { TEST_ID } from "@/lib/test-ids";
+import PaginationBar from "@/components/PaginationBar.vue";
 
 const route = useRoute();
 const router = useRouter();
-const {
-  data: projects,
-  isLoading,
-  error,
-  refetch,
-} = useProjectsWithPendingQuery();
+
+const page = computed({
+  get: () => {
+    const raw = Number(route.query.page ?? 1);
+    return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 1;
+  },
+  set: (value: number) => {
+    const query = { ...route.query };
+    if (value <= 1) delete query.page;
+    else query.page = String(value);
+    void router.replace({ query });
+  },
+});
+
+// The input is local so typing stays responsive; the URL (and therefore the
+// request) is updated after a short pause. Server-side search without a debounce
+// would issue one request per keystroke.
+const searchInput = ref(String(route.query.q ?? ""));
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+
+watch(searchInput, (value) => {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    if (String(route.query.q ?? "") === value) return;
+    const query: Record<string, string | undefined> = {
+      ...route.query,
+      q: value || undefined,
+    };
+    delete query.page;
+    void router.replace({ query });
+  }, 300);
+});
+
+watch(
+  () => route.query.q,
+  (value) => {
+    const next = String(value ?? "");
+    if (next !== searchInput.value) searchInput.value = next;
+  },
+);
+
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer);
+});
+
+const groupFilter = computed({
+  get: () => {
+    const value = route.query.group;
+    return typeof value === "string" && value ? value : FILTER_ALL;
+  },
+  set: (value: string) => {
+    const query: Record<string, string | undefined> = {
+      ...route.query,
+      group: value === FILTER_ALL ? undefined : value,
+    };
+    delete query.page;
+    void router.replace({ query });
+  },
+});
+
+// Filtering happens on the server: the view only holds the current page, so a
+// client-side filter would silently filter 25 of N projects.
+const queryParams = computed<ProjectsListQuery>(() => ({
+  page: page.value,
+  ...(searchInput.value.trim() ? { q: searchInput.value.trim() } : {}),
+  ...(groupFilter.value !== FILTER_ALL ? { groupId: groupFilter.value } : {}),
+}));
+
+const { data, isLoading, error, refetch } =
+  useProjectsWithPendingQuery(queryParams);
+const projects = computed(() => data.value?.items ?? []);
+const total = computed(() => data.value?.total ?? 0);
+const pageCount = computed(() =>
+  Math.max(1, Math.ceil(total.value / PROJECTS_PAGE_SIZE)),
+);
+const sections = computed(() => groupProjectsByGroup(projects.value));
+const hasActiveFilters = computed(
+  () => searchInput.value.trim().length > 0 || groupFilter.value !== FILTER_ALL,
+);
+
+// A filter change can shrink the result below the current page; keep the URL
+// and the request on a page that exists.
+watch(pageCount, (count) => {
+  if (page.value > count) page.value = count;
+});
+
 const {
   data: groups,
   isLoading: groupsLoading,
@@ -39,38 +122,6 @@ const {
 } = useGroupsQuery();
 const createProject = useCreateProject();
 const dialogOpen = ref(false);
-
-const searchTerm = computed({
-  get: () => String(route.query.q ?? ""),
-  set: (value: string) =>
-    void router.replace({ query: { ...route.query, q: value || undefined } }),
-});
-const groupFilter = computed({
-  get: () => {
-    const value = route.query.group;
-    return typeof value === "string" && value ? value : FILTER_ALL;
-  },
-  set: (value: string) =>
-    void router.replace({
-      query: {
-        ...route.query,
-        group: value === FILTER_ALL ? undefined : value,
-      },
-    }),
-});
-
-const filteredProjects = computed(() => {
-  const term = searchTerm.value.toLowerCase();
-  return (projects.value ?? []).filter((p) => {
-    const matchesSearch = (p.name ?? "").toLowerCase().includes(term);
-    const matchesGroup =
-      groupFilter.value === FILTER_ALL ||
-      (p.groupId ?? UNASSIGNED_GROUP_QUERY) === groupFilter.value;
-    return matchesSearch && matchesGroup;
-  });
-});
-const sections = computed(() => groupProjectsByGroup(filteredProjects.value));
-const hasAnyProjects = computed(() => (projects.value ?? []).length > 0);
 
 const createPending = computed(() => createProject.isPending.value);
 const createError = computed(() => createProject.error.value);
@@ -115,12 +166,12 @@ function create(payload: { name: string; groupId?: string }) {
       <h1 class="text-xl font-semibold tracking-tight">Projects</h1>
       <div class="flex flex-wrap items-center gap-2">
         <Input
-          :model-value="searchTerm"
+          :model-value="searchInput"
           placeholder="Search project..."
           aria-label="Search projects"
           class="w-64 rounded-xl shadow-sm"
           :data-testid="TEST_ID.projectSearch"
-          @update:model-value="searchTerm = String($event)"
+          @update:model-value="searchInput = String($event)"
         />
         <Select
           :model-value="groupFilter"
@@ -205,20 +256,29 @@ function create(payload: { name: string; groupId?: string }) {
           :section="section"
         />
 
-        <div v-if="filteredProjects.length === 0" class="space-y-4">
+        <PaginationBar
+          v-if="pageCount > 1"
+          :page="page"
+          :page-count="pageCount"
+          :total="total"
+          item-label="projects"
+          @update:page="page = $event"
+        />
+
+        <div v-if="projects.length === 0" class="space-y-4">
           <EmptyState
             :title="
-              hasAnyProjects
+              hasActiveFilters
                 ? 'No projects match these filters'
                 : 'No projects found'
             "
             :description="
-              hasAnyProjects
+              hasActiveFilters
                 ? 'Try a different search or group.'
                 : 'Create a project or upload a screenshot from CI to get started.'
             "
           />
-          <div v-if="!hasAnyProjects" class="flex justify-center">
+          <div v-if="!hasActiveFilters" class="flex justify-center">
             <Button
               type="button"
               :data-testid="TEST_ID.newProjectEmpty"

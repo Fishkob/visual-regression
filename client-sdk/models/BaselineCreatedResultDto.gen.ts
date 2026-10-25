@@ -9,5 +9,12 @@ export type BaselineCreatedResultDto = {
      */
     branch: string;
     testId: string;
+    /**
+     * Canonical storage URL of the new baseline (identity)
+     */
     fileUrl: string;
+    /**
+     * Time-limited presigned URL for fetching the new baseline
+     */
+    signedFileUrl: string;
 };

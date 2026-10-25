@@ -11,31 +11,26 @@ import { TEST_ID } from "@/lib/test-ids";
 
 const props = defineProps<{
   section: InboxProjectSection;
-  /** The same project unfiltered: the pass walks this, not the filtered view. */
-  projectSection?: InboxProjectSection;
 }>();
 const router = useRouter();
 
 // The review pass is branch-scoped (the details page's pending list is), so the
 // count must describe the set it will walk: the project's pending items on the
-// branch the pass starts on. Filtering the inbox down must not shrink "Review N",
-// and branching must not let it span branches the pass never visits.
-const reviewItems = computed(
-  () => props.projectSection?.items ?? props.section.items,
-);
+// branch the pass starts on. The server sends that count with every row, so
+// paginating the inbox cannot shrink "Review N"; the page-local fallback only
+// covers payloads that predate the field.
 const reviewStart = computed<ReviewInboxItem | undefined>(
-  () => reviewItems.value[0],
+  () => props.section.items[0],
 );
-const reviewScope = computed(() => {
+const reviewTotal = computed(() => {
   const start = reviewStart.value;
-  if (!start) return reviewItems.value;
-  // `start` always comes from `reviewItems`, so the filtered list cannot be
-  // empty; there is no "fall back to every branch" branch to get wrong.
-  return reviewItems.value.filter(
-    (item) => item.branchName === start.branchName,
+  if (!start) return 0;
+  return (
+    start.projectPendingCount ??
+    props.section.items.filter((item) => item.branchName === start.branchName)
+      .length
   );
 });
-const reviewTotal = computed(() => reviewScope.value.length);
 const reviewChangeCount = computed(
   () =>
     `${reviewTotal.value} ${reviewTotal.value === 1 ? "change" : "changes"}`,
@@ -43,9 +38,9 @@ const reviewChangeCount = computed(
 // Only name the branch when the project spans several — a single-branch project
 // needs no qualifier.
 const reviewScopeLabel = computed(() => {
-  const branches = new Set(reviewItems.value.map((item) => item.branchName));
-  const branchName = reviewStart.value?.branchName;
-  return branches.size > 1 && branchName ? ` on ${branchName}` : "";
+  const start = reviewStart.value;
+  if (!start || (start.projectBranchCount ?? 1) <= 1) return "";
+  return ` on ${start.branchName}`;
 });
 
 // The default branch needs no query parameter (same convention as the project

@@ -44,6 +44,8 @@ describe('ReviewInboxService', () => {
           mismatchPixelCount: 12,
           mismatchPageCount: null,
           createdAt: new Date('2026-10-20T10:00:00Z'),
+          projectPendingCount: 2,
+          projectBranchCount: 1,
         },
       ],
       total: 1,
@@ -59,7 +61,18 @@ describe('ReviewInboxService', () => {
       branchName: 'feature/x',
       isDefaultBranch: false,
       mismatchPixelCount: 12,
+      projectPendingCount: 2,
+      projectBranchCount: 1,
     });
+  });
+
+  it('lists the branches that have pending reviews', async () => {
+    inbox.findPendingBranchNames.mockResolvedValue(['main', 'feature/x']);
+
+    await expect(service.getBranchNames()).resolves.toEqual([
+      'main',
+      'feature/x',
+    ]);
   });
 
   it('passes branch and project filters to the repository', async () => {

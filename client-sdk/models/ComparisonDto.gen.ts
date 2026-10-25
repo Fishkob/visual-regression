@@ -5,7 +5,14 @@ import type { ScreenshotDto } from './ScreenshotDto.gen';
 
 export type ComparisonDto = {
     id: string;
+    /**
+     * Canonical storage URL of the diff artifact (identity)
+     */
     diffImageUrl?: string;
+    /**
+     * Time-limited presigned URL for rendering the diff
+     */
+    signedDiffImageUrl?: string;
     mismatchPixelCount?: number;
     status: ComparisonStatus;
     createdAt?: string;

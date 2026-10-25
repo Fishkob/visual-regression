@@ -20,6 +20,8 @@ export function mapReviewInboxItem(dto: PendingReviewDto): ReviewInboxItem {
     mismatchPixelCount: dto.mismatchPixelCount,
     mismatchPageCount: dto.mismatchPageCount ?? null,
     createdAt: dto.createdAt,
+    projectPendingCount: dto.projectPendingCount,
+    projectBranchCount: dto.projectBranchCount,
   };
 }
 

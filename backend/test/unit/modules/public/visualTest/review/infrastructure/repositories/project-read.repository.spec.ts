@@ -4,7 +4,6 @@ import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ProjectReadRepository } from '@public/visualTest/review/infrastructure/repositories/project-read.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
-import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
 import { createMock } from '@test/utils/create-mock';
 
 describe('ProjectReadRepository', () => {
@@ -13,7 +12,6 @@ describe('ProjectReadRepository', () => {
   let mockClient: any;
   let variants: Mocked<VariantStore>;
   let branchResolver: Mocked<BranchResolver>;
-  let branchTests: Mocked<BranchTestRepository>;
 
   beforeEach(async () => {
     mockClient = {
@@ -39,20 +37,13 @@ describe('ProjectReadRepository', () => {
       isArchived: false,
     });
     branchResolver.resolveDefaultName.mockResolvedValue('main');
-    branchTests = createMock<BranchTestRepository>();
-    branchTests.findEffectiveTests.mockResolvedValue({
-      data: [
-        {
-          id: 'test-1',
-          name: 'test-1',
-          kind: 'image',
-          status: 'UNCHANGED',
-          createdAt: new Date(),
-          origin: 'branch',
-          inheritedFrom: null,
-        },
-      ],
-      total: 1,
+    variants.findProjectVariantPage.mockResolvedValue({ data: [], total: 0 });
+    variants.findProjectVariantFilterOptions.mockResolvedValue({
+      viewports: [],
+      browsers: [],
+      environments: [],
+      testCount: 0,
+      pendingCount: 0,
     });
 
     const module: TestingModule = await Test.createTestingModule({
@@ -61,7 +52,6 @@ describe('ProjectReadRepository', () => {
         { provide: PrismaConnection, useValue: mockConnection },
         { provide: VariantStore, useValue: variants },
         { provide: BranchResolver, useValue: branchResolver },
-        { provide: BranchTestRepository, useValue: branchTests },
       ],
     }).compile();
 
@@ -80,18 +70,28 @@ describe('ProjectReadRepository', () => {
       group: null,
     };
 
-    it('returns project with variants and latest comparison status', async () => {
-      variants.findVariantStatusSignalsFor.mockResolvedValue([
-        {
-          testName: 'test-1',
-          testKind: 'image',
-          viewport: '1280x720',
-          browser: 'chrome',
-          environment: 'production',
-          hasBaseline: true,
-          latestComparisonStatus: 'PENDING_APPROVAL',
-        },
-      ]);
+    it('returns the project with its variant page and filter options', async () => {
+      const variantRow = {
+        testName: 'test-1',
+        kind: 'image',
+        viewport: '1280x720',
+        browser: 'chrome',
+        environment: 'production',
+        status: 'PENDING_APPROVAL' as const,
+        origin: 'branch' as const,
+        inheritedFrom: null,
+      };
+      variants.findProjectVariantPage.mockResolvedValue({
+        data: [variantRow],
+        total: 1,
+      });
+      variants.findProjectVariantFilterOptions.mockResolvedValue({
+        viewports: ['1280x720'],
+        browsers: ['chrome'],
+        environments: ['production'],
+        testCount: 1,
+        pendingCount: 1,
+      });
       mockClient.project.findUnique.mockResolvedValue(project);
 
       const result =
@@ -105,22 +105,55 @@ describe('ProjectReadRepository', () => {
         groupName: null,
         branchName: 'main',
         defaultBranchName: 'main',
-        variants: [
-          {
-            testName: 'test-1',
-            kind: 'image',
-            viewport: '1280x720',
-            browser: 'chrome',
-            environment: 'production',
-            status: 'PENDING_APPROVAL',
-            origin: 'branch',
-            inheritedFrom: null,
-          },
-        ],
+        variants: [variantRow],
+        total: 1,
+        filterOptions: {
+          viewports: ['1280x720'],
+          browsers: ['chrome'],
+          environments: ['production'],
+          testCount: 1,
+          pendingCount: 1,
+        },
       });
-      expect(variants.findVariantStatusSignalsFor).toHaveBeenCalledWith({
-        testId: { in: ['test-1'] },
-      });
+      expect(variants.findProjectVariantPage).toHaveBeenCalledWith(
+        'br-main',
+        {},
+        { skip: 0, take: 50 },
+      );
+      expect(variants.findProjectVariantFilterOptions).toHaveBeenCalledWith(
+        'br-main',
+      );
+    });
+
+    it('forwards pagination and every server-side filter', async () => {
+      mockClient.project.findUnique.mockResolvedValue(project);
+
+      await repository.getWithLatestVariantStatuses(
+        'my-project',
+        'feature/x',
+        { skip: 10, take: 5 },
+        {
+          q: 'login',
+          kind: 'pdf',
+          status: 'pending',
+          viewport: '1280x720',
+          browser: 'chrome',
+          environment: 'production',
+        },
+      );
+
+      expect(variants.findProjectVariantPage).toHaveBeenCalledWith(
+        'br-main',
+        {
+          q: 'login',
+          kind: 'pdf',
+          status: 'pending',
+          viewport: '1280x720',
+          browser: 'chrome',
+          environment: 'production',
+        },
+        { skip: 10, take: 5 },
+      );
     });
 
     it('returns null when project does not exist', async () => {
@@ -130,47 +163,7 @@ describe('ProjectReadRepository', () => {
         await repository.getWithLatestVariantStatuses('non-existent');
 
       expect(result).toBeNull();
-      expect(variants.findVariantStatusSignalsFor).not.toHaveBeenCalled();
-    });
-
-    it('reports PENDING for a variant with no baseline', async () => {
-      variants.findVariantStatusSignalsFor.mockResolvedValue([
-        {
-          testName: 'test-1',
-          testKind: 'image',
-          viewport: '1280x720',
-          browser: 'chrome',
-          environment: 'production',
-          hasBaseline: false,
-          latestComparisonStatus: null,
-        },
-      ]);
-      mockClient.project.findUnique.mockResolvedValue(project);
-
-      const result =
-        await repository.getWithLatestVariantStatuses('my-project');
-
-      expect(result!.variants[0].status).toBe('PENDING');
-    });
-
-    it('reports UNCHANGED for a variant with a baseline but no comparison', async () => {
-      variants.findVariantStatusSignalsFor.mockResolvedValue([
-        {
-          testName: 'test-1',
-          testKind: 'image',
-          viewport: '1280x720',
-          browser: 'chrome',
-          environment: 'production',
-          hasBaseline: true,
-          latestComparisonStatus: null,
-        },
-      ]);
-      mockClient.project.findUnique.mockResolvedValue(project);
-
-      const result =
-        await repository.getWithLatestVariantStatuses('my-project');
-
-      expect(result!.variants[0].status).toBe('UNCHANGED');
+      expect(variants.findProjectVariantPage).not.toHaveBeenCalled();
     });
   });
 
@@ -214,6 +207,7 @@ describe('ProjectReadRepository', () => {
         hasPendingComparisons: false,
       });
       expect(mockClient.project.findMany).toHaveBeenCalledWith({
+        where: {},
         orderBy: { createdAt: 'desc' },
         skip: undefined,
         take: undefined,
@@ -238,11 +232,35 @@ describe('ProjectReadRepository', () => {
       await repository.getAllWithPendingFlag({ skip: 5, take: 5 });
 
       expect(mockClient.project.findMany).toHaveBeenCalledWith({
+        where: {},
         orderBy: { createdAt: 'desc' },
         skip: 5,
         take: 5,
         include: { group: { select: { id: true, name: true } } },
       });
+    });
+
+    it('applies the search and group filters in the query, not client-side', async () => {
+      mockClient.project.findMany.mockResolvedValue([]);
+      mockClient.project.count.mockResolvedValue(0);
+
+      await repository.getAllWithPendingFlag(undefined, {
+        q: '  checkout  ',
+        groupId: 'unassigned',
+      });
+
+      const where = {
+        name: { contains: 'checkout', mode: 'insensitive' },
+        groupId: null,
+      };
+      expect(mockClient.project.findMany).toHaveBeenCalledWith({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: undefined,
+        take: undefined,
+        include: { group: { select: { id: true, name: true } } },
+      });
+      expect(mockClient.project.count).toHaveBeenCalledWith({ where });
     });
   });
 

@@ -70,6 +70,8 @@ import type { ProjectsControllerGetProjectsWithPendingFlagData } from './models/
 import type { ProjectsControllerGetProjectsWithPendingFlagResponses } from './models/ProjectsControllerGetProjectsWithPendingFlagResponses.gen';
 import type { ProjectsControllerUpdateProjectData } from './models/ProjectsControllerUpdateProjectData.gen';
 import type { ProjectsControllerUpdateProjectResponses } from './models/ProjectsControllerUpdateProjectResponses.gen';
+import type { ReviewInboxControllerGetBranchesData } from './models/ReviewInboxControllerGetBranchesData.gen';
+import type { ReviewInboxControllerGetBranchesResponses } from './models/ReviewInboxControllerGetBranchesResponses.gen';
 import type { ReviewInboxControllerGetPendingData } from './models/ReviewInboxControllerGetPendingData.gen';
 import type { ReviewInboxControllerGetPendingResponses } from './models/ReviewInboxControllerGetPendingResponses.gen';
 import type { TestCommandsControllerDeleteVisualTestData } from './models/TestCommandsControllerDeleteVisualTestData.gen';
@@ -340,6 +342,15 @@ export const testCommandsControllerUpdateThreshold = <ThrowOnError extends boole
 export const reviewInboxControllerGetPending = <ThrowOnError extends boolean = false>(options?: Options<ReviewInboxControllerGetPendingData, ThrowOnError>): RequestResult<ReviewInboxControllerGetPendingResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ReviewInboxControllerGetPendingResponses, unknown, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/review/pending',
+    ...options
+});
+
+/**
+ * List branches that currently have pending reviews
+ */
+export const reviewInboxControllerGetBranches = <ThrowOnError extends boolean = false>(options?: Options<ReviewInboxControllerGetBranchesData, ThrowOnError>): RequestResult<ReviewInboxControllerGetBranchesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ReviewInboxControllerGetBranchesResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/review/branches',
     ...options
 });
 

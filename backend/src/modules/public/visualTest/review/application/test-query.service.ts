@@ -1,5 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
+import {
+  STORAGE_PROVIDER,
+  IStorageProvider,
+} from '@common/domain/storage-provider.interface';
 import { TestReadRepository } from '@public/visualTest/review/infrastructure/repositories/test-read.repository';
 import { TestResolver } from '@public/visualTest/core/application/services/test-resolver.service';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
@@ -30,10 +34,15 @@ const isTestKind = (value: string): value is TestKind =>
 
 @Injectable()
 export class TestQueryService {
+  // Image URLs leave the read API presigned; PDF source URLs stay canonical
+  // because the render/download endpoints feed them back into storage.get().
+  private readonly signUrl = (url: string): string => this.storage.signUrl(url);
+
   constructor(
     private readonly testRead: TestReadRepository,
     private readonly testResolver: TestResolver,
     private readonly branches: BranchResolver,
+    @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
   ) {}
 
   async getTestNames(
@@ -156,8 +165,10 @@ export class TestQueryService {
       inheritedFrom,
       baselineInherited: isBaselineInherited,
       inheritTarget,
-      baseline: mapScreenshotToDto(baseline),
-      comparison: comparison ? mapComparisonToDto(comparison) : undefined,
+      baseline: mapScreenshotToDto(baseline, this.signUrl),
+      comparison: comparison
+        ? mapComparisonToDto(comparison, this.signUrl)
+        : undefined,
     };
   }
 
@@ -186,7 +197,7 @@ export class TestQueryService {
       'image',
     );
 
-    return mapTestVariantsToDto(result);
+    return mapTestVariantsToDto(result, this.signUrl);
   }
 
   async getPdfTestDetails(

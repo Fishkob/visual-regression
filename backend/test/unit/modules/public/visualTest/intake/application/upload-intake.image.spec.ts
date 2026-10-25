@@ -280,6 +280,7 @@ describe('UploadIntake (image kind)', () => {
       testId: 'test-1',
       branch: 'main',
       fileUrl: `https://storage/${testHash}-${testDate}.png`,
+      signedFileUrl: `https://storage/${testHash}-${testDate}.png`,
     });
     // ensureTest must run only in the stored path — the identical gate
     // transaction re-resolves read-only, so a test deleted between the gate
@@ -380,6 +381,7 @@ describe('UploadIntake (image kind)', () => {
       testId: 'test-1',
       branch: 'main',
       fileUrl: `https://storage/${testHash}-${testDate}.png`,
+      signedFileUrl: `https://storage/${testHash}-${testDate}.png`,
     });
     expect(workflow.executeWithStoredFile).toHaveBeenCalledWith(
       expect.objectContaining({

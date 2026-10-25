@@ -10,9 +10,40 @@ export type ProjectsControllerGetOneProjectData = {
     };
     query?: {
         /**
+         * Page number (1-based)
+         */
+        page?: number;
+        /**
+         * Items per page
+         */
+        limit?: number;
+        /**
+         * Record offset (0-based), alternative to page
+         */
+        skip?: number;
+        /**
+         * Page size, alternative to limit
+         */
+        take?: number;
+        /**
          * Branch to read or act on (defaults to the project default branch)
          */
         branch?: string;
+        /**
+         * Case-insensitive test-name search
+         */
+        q?: string;
+        /**
+         * Filter by test kind
+         */
+        kind?: 'image' | 'pdf';
+        /**
+         * Filter by review status
+         */
+        status?: 'pending' | 'ok';
+        viewport?: string;
+        browser?: string;
+        environment?: string;
     };
     url: '/projects/{projectName}';
 };

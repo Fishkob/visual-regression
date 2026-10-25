@@ -14,6 +14,7 @@ import {
 } from "@/domains/test-status";
 import { groupRowsByTestName } from "@/domains/projects/group-rows-by-test-name";
 import { IMAGE_TEST_KIND } from "@/domains/test-kind";
+import type { ProjectFilterOptions } from "@/domains/projects/project.model";
 
 // The visual-tests table's derived state has one owner: the filter vocabulary,
 // the filter state, and the grouping all live here, so the derive→filter→group
@@ -24,6 +25,10 @@ import { IMAGE_TEST_KIND } from "@/domains/test-kind";
 export interface VisualTestsTableOptions {
   tests: Ref<VisualTestItem[]>;
   syncUrl?: boolean;
+  // The page already holds one server-filtered page: do not filter again, and
+  // take the dropdown values from the branch-wide options the API returns.
+  serverFiltered?: boolean;
+  filterOptions?: Ref<ProjectFilterOptions | undefined>;
 }
 
 function emptyFilters(): VisualTestFilters {
@@ -73,7 +78,12 @@ function queryFromFilters(value: VisualTestFilters): Record<string, string> {
 }
 
 export function useVisualTestsTable(options: VisualTestsTableOptions) {
-  const { tests, syncUrl = false } = options;
+  const {
+    tests,
+    syncUrl = false,
+    serverFiltered = false,
+    filterOptions,
+  } = options;
   const currentRoute = syncUrl ? useRoute() : null;
   const currentRouter = syncUrl ? useRouter() : null;
 
@@ -102,6 +112,9 @@ export function useVisualTestsTable(options: VisualTestsTableOptions) {
         const query = { ...currentRoute.query };
         for (const key of FILTER_QUERY_KEYS) delete query[key];
         Object.assign(query, queryFromFilters(value));
+        // A filter change starts a new server page; a stale `page` would ask
+        // for a page the filtered result may not have.
+        delete query.page;
 
         const unchanged = FILTER_QUERY_KEYS.every(
           (key) =>
@@ -125,22 +138,31 @@ export function useVisualTestsTable(options: VisualTestsTableOptions) {
     );
   }
 
+  // With server filtering, the dropdown values come from the branch-wide
+  // options (one page cannot enumerate them); otherwise they are derived from
+  // the rows the table was handed.
   const viewports = computed(() =>
-    [...new Set(tests.value.map((t) => t.viewport))].filter((v): v is string =>
-      Boolean(v),
-    ),
+    filterOptions?.value
+      ? filterOptions.value.viewports
+      : [...new Set(tests.value.map((t) => t.viewport))].filter(
+          (v): v is string => Boolean(v),
+        ),
   );
 
   const browsers = computed(() =>
-    [...new Set(tests.value.map((t) => t.browser))].filter((b): b is string =>
-      Boolean(b),
-    ),
+    filterOptions?.value
+      ? filterOptions.value.browsers
+      : [...new Set(tests.value.map((t) => t.browser))].filter(
+          (b): b is string => Boolean(b),
+        ),
   );
 
   const environments = computed(() =>
-    [...new Set(tests.value.map((t) => t.environment))].filter(
-      (e): e is string => Boolean(e),
-    ),
+    filterOptions?.value
+      ? filterOptions.value.environments
+      : [...new Set(tests.value.map((t) => t.environment))].filter(
+          (e): e is string => Boolean(e),
+        ),
   );
 
   function matchesFilters(t: VisualTestItem) {
@@ -185,7 +207,12 @@ export function useVisualTestsTable(options: VisualTestsTableOptions) {
     return true;
   }
 
-  const filteredTests = computed(() => tests.value.filter(matchesFilters));
+  // Server-filtered rows are already the filtered set: re-filtering would apply
+  // the current inputs a second time and hide rows whose server query matched
+  // before a debounce caught up.
+  const filteredTests = computed(() =>
+    serverFiltered ? tests.value : tests.value.filter(matchesFilters),
+  );
 
   const groups = computed<TestGroup[]>(() =>
     [...groupRowsByTestName(filteredTests.value)].map(([name, items]) => {

@@ -6,7 +6,11 @@ export type ApproveResultDto = {
      */
     approved: boolean;
     /**
-     * URL of the new baseline object after approval
+     * Canonical URL of the new baseline object after approval
      */
     newBaselineUrl: string;
+    /**
+     * Time-limited presigned URL for rendering the new baseline
+     */
+    signedNewBaselineUrl: string;
 };

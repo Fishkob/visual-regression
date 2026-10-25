@@ -22,11 +22,18 @@ export class ApproveResultDto {
 
   @ApiProperty({
     example: 'http://localhost/baseline-new.png',
-    description: 'URL of the new baseline object after approval',
+    description: 'Canonical URL of the new baseline object after approval',
   })
   @IsString()
   @Expose()
   newBaselineUrl!: string;
+
+  @ApiProperty({
+    description: 'Time-limited presigned URL for rendering the new baseline',
+  })
+  @IsString()
+  @Expose()
+  signedNewBaselineUrl!: string;
 }
 
 // The approve request pins the exact comparison the reviewer acted on. Without
@@ -148,6 +155,22 @@ export class PendingReviewDto {
   @IsNumber()
   @Expose()
   mismatchPageCount?: number | null;
+
+  @ApiProperty({
+    description:
+      'Pending comparisons in this project on this branch, across every test (the set the review pass walks, independent of inbox filters)',
+  })
+  @IsNumber()
+  @Expose()
+  projectPendingCount!: number;
+
+  @ApiProperty({
+    description:
+      'Number of branches in this project that currently have pending comparisons',
+  })
+  @IsNumber()
+  @Expose()
+  projectBranchCount!: number;
 
   @ApiProperty()
   @IsDate()

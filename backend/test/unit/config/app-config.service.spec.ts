@@ -19,6 +19,7 @@ describe('AppConfigService', () => {
     RUSTFS_SECRET_KEY: 'test-secret',
     RUSTFS_BUCKET: 'visual-tests',
     RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+    RUSTFS_SIGNED_URL_TTL_SECONDS: 3600,
     PDF_SIDECAR_URL: 'http://pdf-sidecar:3001',
     PDF_SIDECAR_TIMEOUT: 30_000,
     JOB_RETENTION_DAYS: 7,
@@ -56,6 +57,17 @@ describe('AppConfigService', () => {
     expect(config.rustfs.secretKey).toBe('test-secret');
     expect(config.rustfs.bucket).toBe('visual-tests');
     expect(config.rustfs.publicUrl).toBe('http://localhost:9000');
+    expect(config.rustfs.signedUrlTtlSeconds).toBe(3600);
+    expect(config.rustfs.ensurePublicBucket).toBe(false);
+  });
+
+  it('enables the public-read policy only when explicitly configured', () => {
+    const config = buildAppConfig({
+      ...baseValues,
+      RUSTFS_ENSURE_PUBLIC_BUCKET: true,
+    });
+
+    expect(config.rustfs.ensurePublicBucket).toBe(true);
   });
 
   it('coerces RUSTFS_USE_SSL when it arrives as a string', () => {

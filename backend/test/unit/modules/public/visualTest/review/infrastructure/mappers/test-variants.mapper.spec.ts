@@ -2,6 +2,8 @@ import { mapTestVariantsToDto } from '@public/visualTest/review/infrastructure/m
 import type { TestVariantSummaryResult } from '@public/visualTest/review/infrastructure/repositories/test-read.repository';
 import type { VariantSummaryRow } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 
+const identitySigner = (url: string): string => url;
+
 describe('test-variants.mapper', () => {
   function variantRow(
     overrides: Partial<VariantSummaryRow> = {},
@@ -29,7 +31,7 @@ describe('test-variants.mapper', () => {
   }
 
   it('maps the test identity and an empty variant list', () => {
-    expect(mapTestVariantsToDto(result())).toMatchObject({
+    expect(mapTestVariantsToDto(result(), identitySigner)).toMatchObject({
       name: 'checkout',
       kind: 'image',
       variants: [],
@@ -52,6 +54,7 @@ describe('test-variants.mapper', () => {
           variantRow({ viewport: '768x1024', baselineUrl: null }),
         ],
       }),
+      identitySigner,
     );
 
     expect(dto.variants.map((variant) => variant.status)).toEqual([
@@ -75,6 +78,7 @@ describe('test-variants.mapper', () => {
           }),
         ],
       }),
+      identitySigner,
     );
 
     expect(dto.variants[0]).toMatchObject({
@@ -97,11 +101,40 @@ describe('test-variants.mapper', () => {
           variantRow({ viewport: '375x667' }),
         ],
       }),
+      identitySigner,
     );
 
     expect(dto.variants.map((variant) => variant.baselineInherited)).toEqual([
       true,
       false,
     ]);
+  });
+
+  it('signs baseline and candidate urls at the boundary', () => {
+    const sign = (url: string): string => `${url}?sig=1`;
+
+    const dto = mapTestVariantsToDto(
+      result({
+        variants: [
+          variantRow({
+            latestComparison: {
+              status: 'PENDING_APPROVAL',
+              mismatchPixelCount: 1,
+              candidate: { imageUrl: 'http://storage/candidate.png' },
+            },
+          }),
+        ],
+      }),
+      sign,
+    );
+
+    expect(dto.variants[0].baselineUrl).toBe('http://storage/baseline.png');
+    expect(dto.variants[0].signedBaselineUrl).toBe(
+      'http://storage/baseline.png?sig=1',
+    );
+    expect(dto.variants[0].candidateUrl).toBe('http://storage/candidate.png');
+    expect(dto.variants[0].signedCandidateUrl).toBe(
+      'http://storage/candidate.png?sig=1',
+    );
   });
 });

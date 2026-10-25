@@ -18,6 +18,7 @@ interface AppConfigSnapshot {
     secretKey: string;
     bucket: string;
     publicUrl: string;
+    signedUrlTtlSeconds: number;
     ensurePublicBucket: boolean;
   };
   pdfSidecar: { url: string; timeout: number; healthUrl: string | undefined };
@@ -174,10 +175,15 @@ export class AppConfigService {
         secretKey: this.config.getOrThrow<string>('RUSTFS_SECRET_KEY'),
         bucket: this.config.getOrThrow<string>('RUSTFS_BUCKET'),
         publicUrl: this.config.getOrThrow<string>('RUSTFS_PUBLIC_URL'),
-        // `!== false` so an unset value (Joi default true) leaves the policy
-        // step enabled and only an explicit `false` turns it off.
+        signedUrlTtlSeconds: Number(
+          this.config.getOrThrow<number | string>(
+            'RUSTFS_SIGNED_URL_TTL_SECONDS',
+          ),
+        ),
+        // Off unless explicitly enabled: responses carry presigned URLs, so the
+        // bucket no longer needs anonymous reads.
         ensurePublicBucket:
-          this.config.get<boolean>('RUSTFS_ENSURE_PUBLIC_BUCKET') !== false,
+          this.config.get<boolean>('RUSTFS_ENSURE_PUBLIC_BUCKET') === true,
       },
       pdfSidecar: {
         url: this.config.getOrThrow<string>('PDF_SIDECAR_URL'),

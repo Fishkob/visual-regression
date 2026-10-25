@@ -133,9 +133,21 @@ export class TestVariantSummaryDto {
   @Expose()
   status!: TestStatus;
 
-  @ApiProperty({ type: String, nullable: true })
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Canonical storage URL of the baseline (identity)',
+  })
   @Expose()
   baselineUrl!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Time-limited presigned URL for rendering the baseline',
+  })
+  @Expose()
+  signedBaselineUrl!: string | null;
 
   @ApiProperty({
     type: String,
@@ -145,6 +157,14 @@ export class TestVariantSummaryDto {
   })
   @Expose()
   candidateUrl!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Time-limited presigned URL for rendering the candidate',
+  })
+  @Expose()
+  signedCandidateUrl!: string | null;
 
   @ApiProperty({ type: Number, nullable: true })
   @Expose()

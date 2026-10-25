@@ -95,29 +95,55 @@ describe('project-response.mapper', () => {
     it('maps variants to visual test DTOs', () => {
       const createdAt = new Date('2024-01-01');
 
-      const dto = mapProjectDetailToDto({
-        id: 'proj-1',
-        name: 'checkout-ui',
-        createdAt,
-        groupId: null,
-        groupName: null,
-        branchName: 'main',
-        defaultBranchName: 'main',
-        variants: [
-          {
-            testName: 'login-form',
-            kind: 'image',
-            viewport: '1920x1080',
-            browser: 'chrome',
-            environment: 'production',
-            status: TestStatus.PENDING_APPROVAL,
-            origin: 'branch',
-            inheritedFrom: null,
+      const dto = mapProjectDetailToDto(
+        {
+          id: 'proj-1',
+          name: 'checkout-ui',
+          createdAt,
+          groupId: null,
+          groupName: null,
+          branchName: 'main',
+          defaultBranchName: 'main',
+          variants: [
+            {
+              testName: 'login-form',
+              kind: 'image',
+              viewport: '1920x1080',
+              browser: 'chrome',
+              environment: 'production',
+              status: TestStatus.PENDING_APPROVAL,
+              origin: 'branch',
+              inheritedFrom: null,
+            },
+          ],
+          total: 1,
+          filterOptions: {
+            viewports: ['1920x1080'],
+            browsers: ['chrome'],
+            environments: ['staging'],
+            testCount: 1,
+            pendingCount: 1,
           },
-        ],
-      });
+        },
+        {
+          page: 1,
+          limit: 20,
+          total: 1,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      );
 
       expect(dto).toBeInstanceOf(ProjectDto);
+      expect(dto.meta).toMatchObject({ page: 1, total: 1 });
+      expect(dto.filterOptions).toEqual({
+        viewports: ['1920x1080'],
+        browsers: ['chrome'],
+        environments: ['staging'],
+      });
+      expect(dto.pendingCount).toBe(1);
+      expect(dto.testCount).toBe(1);
       expect(dto.visualTests).toEqual([
         {
           name: 'login-form',

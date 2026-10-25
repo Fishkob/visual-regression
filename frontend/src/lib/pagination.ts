@@ -1,5 +1,14 @@
 export const DEFAULT_PAGE = 0;
 export const DEFAULT_PAGE_SIZE = 100;
+// One page of the project list. Small enough to page through visibly, large
+// enough that most installations never see a second page.
+export const PROJECTS_PAGE_SIZE = 25;
+// The review inbox is a triage queue: a larger page keeps a project's pending
+// items together on one page more often.
+export const INBOX_PAGE_SIZE = 50;
+// The project detail pages variant rows: a viewport/browser/environment matrix
+// multiplies rows, so this is larger than the project list's page.
+export const PROJECT_DETAIL_PAGE_SIZE = 50;
 
 export interface PageFetch<T> {
   items: T[];

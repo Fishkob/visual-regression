@@ -52,7 +52,7 @@ describe('emitObservabilityEvent', () => {
       testKind: 'image',
       visualTestId: 'test-1',
       comparisonId: 'comp-1',
-      newStatus: 'PENDING_APPROVAL',
+      outcome: 'changed',
       diffMetric: 42,
     };
 
@@ -73,7 +73,7 @@ describe('emitObservabilityEvent', () => {
       kind: 'comparison_completed',
       testKind: 'pdf',
       visualTestId: 'test-1',
-      newStatus: 'UNCHANGED',
+      outcome: 'unchanged',
       diffMetric: 0,
     };
 
@@ -90,13 +90,18 @@ describe('emitObservabilityEvent', () => {
       kind: 'comparison_completed',
       testKind: 'image',
       visualTestId: 'test-1',
-      newStatus: 'UNCHANGED',
+      outcome: 'unchanged',
       diffMetric: 0,
     };
 
     emitObservabilityEvent(event, { logger, metrics });
 
     expect(logger.warn).not.toHaveBeenCalled();
+    expect(metrics.incrementCounter).toHaveBeenCalledWith(EVENT_COUNTER, {
+      event: 'comparison_completed',
+      type: '',
+      status: 'UNCHANGED',
+    });
   });
 
   it('logs and counts an approval', () => {

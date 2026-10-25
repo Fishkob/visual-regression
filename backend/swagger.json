@@ -187,6 +187,24 @@
               "maximum": 100,
               "type": "number"
             }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive project-name search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupId",
+            "required": false,
+            "in": "query",
+            "description": "Group id, or \"unassigned\" for projects without a group",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -328,10 +346,113 @@
             }
           },
           {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "description": "Record offset (0-based), alternative to page",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Page size, alternative to limit",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          },
+          {
             "name": "branch",
             "required": false,
             "in": "query",
             "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive test-name search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "description": "Filter by test kind",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "image",
+                "pdf"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by review status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "ok"
+              ]
+            }
+          },
+          {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -1468,6 +1589,37 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "description": "Filter by test kind",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "image",
+                "pdf"
+              ]
+            }
+          },
+          {
+            "name": "groupId",
+            "required": false,
+            "in": "query",
+            "description": "Group id, or \"unassigned\" for projects without a group",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive search across the test name and the project name",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -1483,6 +1635,31 @@
           }
         },
         "summary": "List pending reviews across all projects",
+        "tags": [
+          "Review"
+        ]
+      }
+    },
+    "/review/branches": {
+      "get": {
+        "operationId": "ReviewInboxController_getBranches",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List branches that currently have pending reviews",
         "tags": [
           "Review"
         ]
@@ -1899,14 +2076,20 @@
             "type": "string"
           },
           "fileUrl": {
-            "type": "string"
+            "type": "string",
+            "description": "Canonical storage URL of the new baseline (identity)"
+          },
+          "signedFileUrl": {
+            "type": "string",
+            "description": "Time-limited presigned URL for fetching the new baseline"
           }
         },
         "required": [
           "status",
           "branch",
           "testId",
-          "fileUrl"
+          "fileUrl",
+          "signedFileUrl"
         ]
       },
       "IdenticalResultDto": {
@@ -1977,7 +2160,6 @@
       "ComparisonStatus": {
         "type": "string",
         "enum": [
-          "UNCHANGED",
           "PENDING_APPROVAL",
           "APPROVED"
         ]
@@ -2082,6 +2264,65 @@
           }
         }
       },
+      "PaginationMetaDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "page",
+          "limit",
+          "total",
+          "totalPages",
+          "hasNextPage",
+          "hasPreviousPage"
+        ]
+      },
+      "ProjectFilterOptionsDto": {
+        "type": "object",
+        "properties": {
+          "viewports": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "browsers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "environments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "viewports",
+          "browsers",
+          "environments"
+        ]
+      },
       "ProjectDto": {
         "type": "object",
         "properties": {
@@ -2133,6 +2374,22 @@
           "pending": {
             "type": "boolean",
             "description": "Whether the project has pending comparisons"
+          },
+          "meta": {
+            "description": "Pagination meta for visualTests (the project payload carries its own page meta)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaginationMetaDto"
+              }
+            ]
+          },
+          "filterOptions": {
+            "description": "Filter values for the branch, derived from the whole effective set (not the page)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProjectFilterOptionsDto"
+              }
+            ]
           }
         }
       },
@@ -2223,12 +2480,17 @@
           "newBaselineUrl": {
             "type": "string",
             "example": "http://localhost/baseline-new.png",
-            "description": "URL of the new baseline object after approval"
+            "description": "Canonical URL of the new baseline object after approval"
+          },
+          "signedNewBaselineUrl": {
+            "type": "string",
+            "description": "Time-limited presigned URL for rendering the new baseline"
           }
         },
         "required": [
           "approved",
-          "newBaselineUrl"
+          "newBaselineUrl",
+          "signedNewBaselineUrl"
         ]
       },
       "ProjectTestDto": {
@@ -2263,37 +2525,6 @@
         "required": [
           "name",
           "kind"
-        ]
-      },
-      "PaginationMetaDto": {
-        "type": "object",
-        "properties": {
-          "page": {
-            "type": "number"
-          },
-          "limit": {
-            "type": "number"
-          },
-          "total": {
-            "type": "number"
-          },
-          "totalPages": {
-            "type": "number"
-          },
-          "hasNextPage": {
-            "type": "boolean"
-          },
-          "hasPreviousPage": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "page",
-          "limit",
-          "total",
-          "totalPages",
-          "hasNextPage",
-          "hasPreviousPage"
         ]
       },
       "PaginatedProjectTestDto": {
@@ -2339,12 +2570,23 @@
           },
           "baselineUrl": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Canonical storage URL of the baseline (identity)"
+          },
+          "signedBaselineUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Time-limited presigned URL for rendering the baseline"
           },
           "candidateUrl": {
             "type": "string",
             "nullable": true,
             "description": "Candidate image of the pending comparison, if the variant has one"
+          },
+          "signedCandidateUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Time-limited presigned URL for rendering the candidate"
           },
           "mismatchPixelCount": {
             "type": "number",
@@ -2361,7 +2603,9 @@
           "environment",
           "status",
           "baselineUrl",
+          "signedBaselineUrl",
           "candidateUrl",
+          "signedCandidateUrl",
           "mismatchPixelCount",
           "baselineInherited"
         ]
@@ -2441,7 +2685,12 @@
             "type": "string"
           },
           "imageUrl": {
-            "type": "string"
+            "type": "string",
+            "description": "Canonical storage URL (identity; not fetchable when the bucket is private)"
+          },
+          "signedImageUrl": {
+            "type": "string",
+            "description": "Time-limited presigned URL for browser rendering of the same object"
           },
           "imageHash": {
             "type": "string"
@@ -2476,7 +2725,12 @@
             "type": "string"
           },
           "diffImageUrl": {
-            "type": "string"
+            "type": "string",
+            "description": "Canonical storage URL of the diff artifact (identity)"
+          },
+          "signedDiffImageUrl": {
+            "type": "string",
+            "description": "Time-limited presigned URL for rendering the diff"
           },
           "mismatchPixelCount": {
             "type": "number"
@@ -2827,6 +3081,14 @@
             "type": "number",
             "nullable": true
           },
+          "projectPendingCount": {
+            "type": "number",
+            "description": "Pending comparisons in this project on this branch, across every test (the set the review pass walks, independent of inbox filters)"
+          },
+          "projectBranchCount": {
+            "type": "number",
+            "description": "Number of branches in this project that currently have pending comparisons"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -2841,6 +3103,8 @@
           "isDefaultBranch",
           "variant",
           "mismatchPixelCount",
+          "projectPendingCount",
+          "projectBranchCount",
           "createdAt"
         ]
       },

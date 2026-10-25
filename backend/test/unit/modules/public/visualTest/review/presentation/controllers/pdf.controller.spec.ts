@@ -63,6 +63,7 @@ describe('PdfController', () => {
     it('renders a page through the pdf download application seam', async () => {
       pdfAccess.renderPdfPage.mockResolvedValue({
         imageUrl: 'http://storage/page-1.png',
+        signedImageUrl: 'http://storage/page-1.png?sig',
         pageCount: 3,
       });
 
@@ -82,6 +83,7 @@ describe('PdfController', () => {
       );
       expect(result).toEqual({
         imageUrl: 'http://storage/page-1.png',
+        signedImageUrl: 'http://storage/page-1.png?sig',
         pageCount: 3,
       });
     });

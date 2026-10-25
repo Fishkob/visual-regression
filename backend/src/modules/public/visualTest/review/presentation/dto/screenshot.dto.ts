@@ -22,11 +22,23 @@ export class ScreenshotDto {
   @Expose()
   visualTestId?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description:
+      'Canonical storage URL (identity; not fetchable when the bucket is private)',
+  })
   @IsOptional()
   @IsString()
   @Expose()
   imageUrl?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Time-limited presigned URL for browser rendering of the same object',
+  })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  signedImageUrl?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

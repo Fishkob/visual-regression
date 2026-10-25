@@ -20,7 +20,6 @@ import { ComparisonRetirementService } from '@public/visualTest/core/application
 import { CandidateReclamationService } from '@public/visualTest/core/application/services/candidate-reclamation.service';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
-import { ComparisonStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { change } from '@public/visualTest/core/application/services/state-change-options';
 import {
@@ -229,7 +228,7 @@ export class ComparisonJobProcessor {
           testKind: data.testKind,
           visualTestId: data.testId,
           comparisonId: undefined,
-          newStatus: ComparisonStatus.UNCHANGED,
+          outcome: 'unchanged',
           diffMetric: 0,
         },
       ],
@@ -269,7 +268,7 @@ export class ComparisonJobProcessor {
               testKind: data.testKind,
               visualTestId: data.testId,
               comparisonId: persisted.comparisonId,
-              newStatus: ComparisonStatus.PENDING_APPROVAL,
+              outcome: 'changed',
               diffMetric: mismatchCount(result),
             },
           ],

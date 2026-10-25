@@ -4,6 +4,7 @@ import {
   Allow,
   IsDate,
   IsDefined,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsNotIn,
@@ -20,12 +21,29 @@ import { TestStatus } from '@public/visualTest/core/domain/types/visual-test.typ
 import { VisualTestDto } from '@public/visualTest/review/presentation/dto/visual-test.dto';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import { PaginationDto } from '@common/dto/pagination.dto';
+import { PaginationMetaDto } from '@common/dto/paginated-response.dto';
+import { TEST_KINDS } from '@common/domain/test-kind';
+import { UNASSIGNED_GROUP_FILTER } from '@common/domain/group-filter';
 import {
   NAME_REGEXP,
   MAX_NAME_LENGTH,
   PROJECT_RESERVED_NAMES,
 } from '@common/http/pipes/name-validation.util';
 import { MAX_BRANCH_NAME_LENGTH } from '@public/visualTest/core/domain/constants/branch.constants';
+
+export class ProjectFilterOptionsDto {
+  @ApiProperty({ type: String, isArray: true })
+  @Expose()
+  viewports!: string[];
+
+  @ApiProperty({ type: String, isArray: true })
+  @Expose()
+  browsers!: string[];
+
+  @ApiProperty({ type: String, isArray: true })
+  @Expose()
+  environments!: string[];
+}
 
 export class ProjectDto {
   @ApiPropertyOptional({ example: 'project_123' })
@@ -95,6 +113,26 @@ export class ProjectDto {
   @IsOptional()
   @Expose()
   pending?: boolean;
+
+  @ApiPropertyOptional({
+    type: () => PaginationMetaDto,
+    description:
+      'Pagination meta for visualTests (the project payload carries its own page meta)',
+  })
+  @IsOptional()
+  @Type(() => PaginationMetaDto)
+  @Expose()
+  meta?: PaginationMetaDto;
+
+  @ApiPropertyOptional({
+    type: () => ProjectFilterOptionsDto,
+    description:
+      'Filter values for the branch, derived from the whole effective set (not the page)',
+  })
+  @IsOptional()
+  @Type(() => ProjectFilterOptionsDto)
+  @Expose()
+  filterOptions?: ProjectFilterOptionsDto;
 }
 
 export class ProjectTestDto {
@@ -188,8 +226,76 @@ export class UpdateThresholdDto {
 }
 
 // The whole query object is validated as one DTO so whitelist/forbidNonWhitelisted
-// can reject genuinely unknown params without rejecting the endpoint's own
-// extra params (kind) as if they were stray.
+// can reject genuinely unknown params without rejecting the endpoint's own// extra params (kind) as if they were stray.
+// The project list's query: pagination plus the server-side search and group
+// filter the list UI drives. Filtering belongs on the server because the view
+// only loads one page.
+export class ProjectsListQueryDto extends PaginationDto {
+  @ApiPropertyOptional({
+    description: 'Case-insensitive project-name search',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_NAME_LENGTH)
+  q?: string;
+
+  @ApiPropertyOptional({
+    description: `Group id, or "${UNASSIGNED_GROUP_FILTER}" for projects without a group`,
+  })
+  @IsOptional()
+  @IsString()
+  groupId?: string;
+}
+
+// The project overview query: one page of variant rows plus the filters the
+// table drives. Every filter applies to the variant row, so page and total stay
+// consistent.
+export class ProjectDetailQueryDto extends PaginationDto {
+  @ApiPropertyOptional({
+    description: 'Branch to read (defaults to the project default branch)',
+  })
+  @IsOptional()
+  @Allow()
+  branch?: string;
+
+  @ApiPropertyOptional({ description: 'Case-insensitive test-name search' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_NAME_LENGTH)
+  q?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by test kind', enum: TEST_KINDS })
+  @IsOptional()
+  @IsIn(TEST_KINDS as string[])
+  kind?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by review status',
+    enum: ['pending', 'ok'],
+  })
+  @IsOptional()
+  @IsIn(['pending', 'ok'])
+  status?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_NAME_LENGTH)
+  viewport?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_NAME_LENGTH)
+  browser?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_NAME_LENGTH)
+  environment?: string;
+}
+
 export class TestNamesQueryDto extends PaginationDto {
   @ApiPropertyOptional({
     description: 'Filter by test kind (image or pdf)',

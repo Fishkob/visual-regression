@@ -8,6 +8,7 @@ const project: Project = {
   name: "checkout",
   hasPendingTests: true,
   testCount: 3,
+  pendingCount: 2,
   createdAt: "2025-01-01",
   visualTests: [
     {

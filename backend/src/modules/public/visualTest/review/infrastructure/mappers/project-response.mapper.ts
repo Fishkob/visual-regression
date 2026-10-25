@@ -5,6 +5,7 @@ import type {
   ProjectWithVariants,
 } from '@public/visualTest/review/infrastructure/repositories/project-read.repository';
 import type { ProjectData } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import type { PaginationMetaDto } from '@common/dto/paginated-response.dto';
 
 export function mapProjectSummaryToDto(
   project: ProjectPendingFlag,
@@ -40,6 +41,7 @@ export function mapProjectToDto(project: ProjectData): ProjectDto {
 
 export function mapProjectDetailToDto(
   project: ProjectWithVariants,
+  meta: PaginationMetaDto,
 ): ProjectDto {
   return plainToInstance(
     ProjectDto,
@@ -63,6 +65,10 @@ export function mapProjectDetailToDto(
         origin: variant.origin,
         inheritedFrom: variant.inheritedFrom,
       })),
+      pendingCount: project.filterOptions.pendingCount,
+      testCount: project.filterOptions.testCount,
+      meta,
+      filterOptions: project.filterOptions,
     },
     { excludeExtraneousValues: true },
   );

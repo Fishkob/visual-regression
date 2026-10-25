@@ -12,9 +12,63 @@ import {
   ComparisonStatus,
   LATEST_REVIEWABLE_COMPARISON_QUERY,
   LATEST_REVIEWABLE_COMPARISON_SUMMARY_QUERY,
+  TestStatus,
 } from '@public/visualTest/core/domain/types/visual-test.types';
+import { resolveVariantStatusFromComparison } from '@public/visualTest/core/domain/policies/test-status.policy';
+import { RANKED_CTE } from '@public/visualTest/core/infrastructure/repositories/branch-chain.sql';
 import { isString } from '@common/utils/is-string';
-import type { Prisma } from '@/prisma/client';
+import { Prisma, type TestKind } from '@/prisma/client';
+
+export interface ProjectVariantPageFilters {
+  q?: string;
+  kind?: TestKind;
+  status?: 'pending' | 'ok';
+  viewport?: string;
+  browser?: string;
+  environment?: string;
+}
+
+export interface ProjectVariantStatusRow {
+  testName: string;
+  kind: string;
+  viewport: string;
+  browser: string;
+  environment: string;
+  status: TestStatus;
+  origin: 'branch' | 'inherited';
+  inheritedFrom: string | null;
+}
+
+export interface ProjectVariantFilterOptions {
+  viewports: string[];
+  browsers: string[];
+  environments: string[];
+  testCount: number;
+  pendingCount: number;
+}
+
+interface ProjectVariantPageRow {
+  testName: string;
+  kind: string;
+  viewport: string;
+  browser: string;
+  environment: string;
+  hasBaseline: boolean;
+  hasPending: boolean;
+  isOwn: boolean;
+  branchName: string;
+  total?: bigint;
+}
+
+// "This variant has a comparison awaiting review". The write side enforces at
+// most one PENDING_APPROVAL comparison per variant, so an EXISTS is equivalent
+// to asking whether the latest reviewable comparison is pending — and it keeps
+// the whole page query in one statement without re-encoding the read model's
+// ordering tie-break.
+const PENDING_COMPARISON_EXISTS = Prisma.sql`EXISTS (
+  SELECT 1 FROM "UnifiedComparison" c
+  WHERE c."baselineId" = v."baselineId" AND c.status = 'PENDING_APPROVAL'
+)`;
 
 export interface VariantStatusSignal {
   hasBaseline: boolean;
@@ -307,6 +361,136 @@ export class VariantStore extends BaseRepository {
       hasBaseline: v.baseline != null,
       latestComparisonStatus: v.baseline?.asBaselineComp[0]?.status ?? null,
     }));
+  }
+
+  // The project overview's paginated read: one row per variant of the branch's
+  // effective tests, filtered and counted in the same statement. This is the
+  // variant-level sibling of findEffectiveTests — the overview table's unit is
+  // a variant row, and every filter (test name, kind, status, viewport/browser/
+  // environment) applies to that row, so paginating by variant keeps page and
+  // total consistent.
+  async findProjectVariantPage(
+    branchId: string,
+    filters: ProjectVariantPageFilters,
+    pagination: { skip: number; take: number },
+  ): Promise<{ data: ProjectVariantStatusRow[]; total: number }> {
+    const where = this.projectVariantWhere(filters);
+
+    const rows = await this.client.$queryRaw<
+      ProjectVariantPageRow[]
+    >(Prisma.sql`
+      ${RANKED_CTE(branchId)}
+      SELECT r."name" AS "testName", r."kind",
+             v."viewport", v."browser", v."environment",
+             (v."baselineId" IS NOT NULL) AS "hasBaseline",
+             ${PENDING_COMPARISON_EXISTS} AS "hasPending",
+             (r."depth" = 0) AS "isOwn",
+             b."name" AS "branchName",
+             COUNT(*) OVER() AS "total"
+      FROM ranked r
+      JOIN "Branch" b ON b."id" = r."branchId"
+      JOIN "UnifiedVariant" v ON v."testId" = r."id"
+      WHERE ${where}
+      ORDER BY r."name" ASC, v."viewport" ASC, v."browser" ASC, v."environment" ASC
+      OFFSET ${pagination.skip} LIMIT ${pagination.take}
+    `);
+
+    const total =
+      rows.length > 0
+        ? Number(rows[0].total ?? 0)
+        : await this.countProjectVariantPage(branchId, where);
+
+    return {
+      data: rows.map((row) => ({
+        testName: row.testName,
+        kind: row.kind,
+        viewport: row.viewport,
+        browser: row.browser,
+        environment: row.environment,
+        status: resolveVariantStatusFromComparison(
+          row.hasPending ? ComparisonStatus.PENDING_APPROVAL : undefined,
+          row.hasBaseline,
+        ),
+        origin: row.isOwn ? 'branch' : 'inherited',
+        inheritedFrom: row.isOwn ? null : row.branchName,
+      })),
+      total,
+    };
+  }
+
+  // The filter dropdown values for the branch. Derived from the whole effective
+  // set (not the page), so paginating cannot hide a viewport/browser/environment.
+  async findProjectVariantFilterOptions(
+    branchId: string,
+  ): Promise<ProjectVariantFilterOptions> {
+    const rows = await this.client.$queryRaw<
+      {
+        testCount: bigint;
+        pendingCount: bigint;
+        viewports: string[] | null;
+        browsers: string[] | null;
+        environments: string[] | null;
+      }[]
+    >(Prisma.sql`
+      ${RANKED_CTE(branchId)}
+      SELECT COUNT(DISTINCT r."id") AS "testCount",
+             COUNT(*) FILTER (
+               WHERE v."baselineId" IS NOT NULL AND ${PENDING_COMPARISON_EXISTS}
+             ) AS "pendingCount",
+             ARRAY_AGG(DISTINCT v."viewport") AS viewports,
+             ARRAY_AGG(DISTINCT v."browser") AS browsers,
+             ARRAY_AGG(DISTINCT v."environment") AS environments
+      FROM ranked r
+      JOIN "UnifiedVariant" v ON v."testId" = r."id"
+      WHERE r."rn" = 1
+    `);
+    const row = rows[0];
+    return {
+      viewports: (row?.viewports ?? []).filter(isString).sort(),
+      browsers: (row?.browsers ?? []).filter(isString).sort(),
+      environments: (row?.environments ?? []).filter(isString).sort(),
+      testCount: Number(row?.testCount ?? 0),
+      pendingCount: Number(row?.pendingCount ?? 0),
+    };
+  }
+
+  private async countProjectVariantPage(
+    branchId: string,
+    where: Prisma.Sql,
+  ): Promise<number> {
+    const rows = await this.client.$queryRaw<{ total: bigint }[]>(Prisma.sql`
+      ${RANKED_CTE(branchId)}
+      SELECT COUNT(*) AS "total"
+      FROM ranked r
+      JOIN "UnifiedVariant" v ON v."testId" = r."id"
+      WHERE ${where}
+    `);
+    return Number(rows[0]?.total ?? 0);
+  }
+
+  private projectVariantWhere(filters: ProjectVariantPageFilters): Prisma.Sql {
+    const conditions: Prisma.Sql[] = [Prisma.sql`r."rn" = 1`];
+    if (filters.kind) conditions.push(Prisma.sql`r."kind" = ${filters.kind}`);
+    if (filters.q) {
+      conditions.push(Prisma.sql`r."name" ILIKE ${`%${filters.q}%`}`);
+    }
+    if (filters.viewport) {
+      conditions.push(Prisma.sql`v."viewport" = ${filters.viewport}`);
+    }
+    if (filters.browser) {
+      conditions.push(Prisma.sql`v."browser" = ${filters.browser}`);
+    }
+    if (filters.environment) {
+      conditions.push(Prisma.sql`v."environment" = ${filters.environment}`);
+    }
+    if (filters.status === 'pending') {
+      conditions.push(PENDING_COMPARISON_EXISTS);
+    } else if (filters.status === 'ok') {
+      // Parity with the table's client-side rule: "ok" is everything that is
+      // not awaiting review, including a variant with no baseline yet.
+      conditions.push(Prisma.sql`NOT ${PENDING_COMPARISON_EXISTS}`);
+    }
+    return Prisma.join(conditions, ' AND ');
   }
 
   // The variant gallery's read: every variant of one test with the image that

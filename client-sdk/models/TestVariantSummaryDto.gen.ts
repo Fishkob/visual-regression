@@ -10,11 +10,22 @@ export type TestVariantSummaryDto = {
      * Per-variant status, derived like the project overview
      */
     status: TestStatus;
+    /**
+     * Canonical storage URL of the baseline (identity)
+     */
     baselineUrl: string | null;
+    /**
+     * Time-limited presigned URL for rendering the baseline
+     */
+    signedBaselineUrl: string | null;
     /**
      * Candidate image of the pending comparison, if the variant has one
      */
     candidateUrl: string | null;
+    /**
+     * Time-limited presigned URL for rendering the candidate
+     */
+    signedCandidateUrl: string | null;
     mismatchPixelCount: number | null;
     /**
      * True while the variant's baseline is an inherited clone that follows the target branch

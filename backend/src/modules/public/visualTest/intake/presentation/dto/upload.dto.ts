@@ -55,9 +55,17 @@ export class BaselineCreatedResultDto extends UploadResultDto {
   @Expose()
   testId!: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Canonical storage URL of the new baseline (identity)',
+  })
   @Expose()
   fileUrl!: string;
+
+  @ApiProperty({
+    description: 'Time-limited presigned URL for fetching the new baseline',
+  })
+  @Expose()
+  signedFileUrl!: string;
 }
 
 export class IdenticalResultDto extends UploadResultDto {

@@ -208,7 +208,7 @@ For Docker deployments, Compose reads the root `.env` automatically. Set the **p
 | `LOGIN_RATE_LIMIT_PER_MINUTE`                         | Max login attempts per minute per IP. `0` disables (default: `5`)                                                                                                                     |
 | `LOG_RATE_LIMIT_PER_MINUTE`                           | Max log-ingestion requests per minute per IP. `0` disables (default: `100`)                                                                                                           |
 
-The backend creates the storage bucket on startup and, by default, marks it **public-read** (the browser loads screenshots directly from RustFS). Set `RUSTFS_ENSURE_PUBLIC_BUCKET=false` when using a strict S3 provider (e.g. AWS S3 with a public-access block) and configure the bucket policy out-of-band.
+The backend creates the storage bucket on startup. Screenshots and rendered PDF pages are delivered as **time-limited presigned URLs** (`RUSTFS_SIGNED_URL_TTL_SECONDS`, default `3600`), so the bucket is private by default — no anonymous-read policy is applied. `RUSTFS_PUBLIC_URL` must be the base the **browser** can reach, because it is the host of every presigned URL. Set `RUSTFS_ENSURE_PUBLIC_BUCKET=true` only if an external consumer (e.g. a report exporter) fetches objects without credentials.
 
 ---
 
@@ -392,6 +392,6 @@ This platform is designed to run in a **private/trusted network**:
 - **Public by design** — Health, metrics, and log-ingestion endpoints are public; everything else is protected by the global authentication guard.
 - **CORS defaults to wildcard** — Configure `CORS_ORIGIN` explicitly in production.
 - **Helm chart secrets** — Create `deploy/charts/vrt/values.local.yaml` (gitignored) for local credentials. Use external secrets management (SealedSecrets, External Secrets Operator, SOPS) for production.
-- **RustFS bucket is publicly readable** — Screenshots are served with anonymous download access. Anyone who can reach RustFS can list and download all screenshots.
+- **Storage access is presigned** — The API returns time-limited presigned URLs for screenshots and rendered PDF pages; the bucket needs no anonymous access. Keep `RUSTFS_SIGNED_URL_TTL_SECONDS` short and serve the stack over HTTPS so the signed query string is not exposed in transit. Enabling `RUSTFS_ENSURE_PUBLIC_BUCKET` restores anonymous reads for everyone who can reach RustFS.
 
 See [docs/deployment.md](docs/deployment.md) for production deployment guidance.

@@ -89,7 +89,7 @@ describe('CandidateReclamationService', () => {
             testKind: 'image',
             visualTestId: 'test-1',
             comparisonId: undefined,
-            newStatus: 'UNCHANGED',
+            outcome: 'unchanged',
             diffMetric: 0,
           },
         ],

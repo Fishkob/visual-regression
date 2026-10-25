@@ -15,4 +15,8 @@ export interface ReviewInboxItem {
   mismatchPixelCount: number;
   mismatchPageCount?: number | null;
   createdAt: string;
+  // Pending comparisons in the item's project on its branch, across all tests —
+  // the set the project's review pass walks, independent of inbox filters.
+  projectPendingCount?: number;
+  projectBranchCount?: number;
 }

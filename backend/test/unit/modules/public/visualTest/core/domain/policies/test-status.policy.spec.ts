@@ -63,10 +63,7 @@ describe('resolveVariantStatusFromComparison', () => {
     ).toBe(TestStatus.PENDING_APPROVAL);
   });
 
-  it('reports UNCHANGED when the latest comparison is unchanged or approved', () => {
-    expect(
-      resolveVariantStatusFromComparison(ComparisonStatus.UNCHANGED, true),
-    ).toBe(TestStatus.UNCHANGED);
+  it('reports UNCHANGED when the latest comparison is approved', () => {
     expect(
       resolveVariantStatusFromComparison(ComparisonStatus.APPROVED, true),
     ).toBe(TestStatus.UNCHANGED);

@@ -48,6 +48,7 @@ describe('ReviewInboxRepository', () => {
   beforeEach(() => {
     mockClient = {
       unifiedComparison: { findMany: vi.fn(), count: vi.fn() },
+      $queryRaw: vi.fn().mockResolvedValue([]),
     };
     connection = createMock<PrismaConnection>();
     Object.defineProperty(connection, 'client', { get: () => mockClient });
@@ -61,6 +62,9 @@ describe('ReviewInboxRepository', () => {
   it('maps rows with their owning branch and default flag', async () => {
     mockClient.unifiedComparison.findMany.mockResolvedValue([row()]);
     mockClient.unifiedComparison.count.mockResolvedValue(1);
+    mockClient.$queryRaw.mockResolvedValue([
+      { projectName: 'checkout-ui', branchName: 'feature/x', count: 2n },
+    ]);
 
     const result = await repository.findPending();
 
@@ -82,6 +86,8 @@ describe('ReviewInboxRepository', () => {
       mismatchPixelCount: 12,
       mismatchPageCount: null,
       createdAt,
+      projectPendingCount: 2,
+      projectBranchCount: 1,
     });
   });
 
@@ -104,6 +110,9 @@ describe('ReviewInboxRepository', () => {
       }),
     ]);
     mockClient.unifiedComparison.count.mockResolvedValue(1);
+    mockClient.$queryRaw.mockResolvedValue([
+      { projectName: 'checkout-ui', branchName: 'main', count: 1n },
+    ]);
 
     const result = await repository.findPending();
 
@@ -112,6 +121,8 @@ describe('ReviewInboxRepository', () => {
       isDefaultBranch: true,
       groupId: null,
       groupName: null,
+      projectPendingCount: 1,
+      projectBranchCount: 1,
     });
   });
 
@@ -147,6 +158,51 @@ describe('ReviewInboxRepository', () => {
         },
       }),
     );
+  });
+
+  it('applies the kind, group and search filters to the same query', async () => {
+    mockClient.unifiedComparison.findMany.mockResolvedValue([]);
+    mockClient.unifiedComparison.count.mockResolvedValue(0);
+
+    await repository.findPending(undefined, {
+      kind: 'pdf',
+      groupId: 'unassigned',
+      q: 'login',
+    });
+
+    expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: 'PENDING_APPROVAL',
+          test: {
+            branch: { isArchived: false, project: { groupId: null } },
+            kind: 'pdf',
+            OR: [
+              { name: { contains: 'login', mode: 'insensitive' } },
+              {
+                branch: {
+                  project: {
+                    name: { contains: 'login', mode: 'insensitive' },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      }),
+    );
+  });
+
+  it('lists the distinct pending branch names', async () => {
+    mockClient.$queryRaw.mockResolvedValue([
+      { name: 'feature/x' },
+      { name: 'main' },
+    ]);
+
+    await expect(repository.findPendingBranchNames()).resolves.toEqual([
+      'feature/x',
+      'main',
+    ]);
   });
 
   it('applies pagination', async () => {

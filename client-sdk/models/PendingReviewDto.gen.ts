@@ -14,5 +14,13 @@ export type PendingReviewDto = {
     variant: VariantDto;
     mismatchPixelCount: number;
     mismatchPageCount?: number | null;
+    /**
+     * Pending comparisons in this project on this branch, across every test (the set the review pass walks, independent of inbox filters)
+     */
+    projectPendingCount: number;
+    /**
+     * Number of branches in this project that currently have pending comparisons
+     */
+    projectBranchCount: number;
     createdAt: string;
 };

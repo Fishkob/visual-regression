@@ -75,7 +75,7 @@ src/
 
 - Schema: `prisma/schema.prisma` — unified model (UnifiedTest, UnifiedVariant, UnifiedScreenshot, UnifiedComparison)
 - Management: `prisma migrate` — dev: `db:migrate` (`migrate dev`), CI/prod: `migrate deploy`. See ADR-024.
-- Enums: `TestKind` (image/pdf), `ScreenshotType` (BASELINE/CURRENT), `ComparisonStatus` (UNCHANGED/PENDING_APPROVAL/APPROVED), `TestStatus` (PENDING/UNCHANGED/PENDING_APPROVAL)
+- Enums: `TestKind` (image/pdf), `ScreenshotType` (BASELINE/CURRENT), `ComparisonStatus` (PENDING_APPROVAL/APPROVED), `TestStatus` (PENDING/UNCHANGED/PENDING_APPROVAL)
 - Client re-exported from `src/prisma/client.ts`
 - Repositories extend `BaseRepository`, use `PrismaUnitOfWork.execute()`
 

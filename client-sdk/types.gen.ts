@@ -8,11 +8,7 @@ export const ComparisonOutcome = {
 
 export const ComparisonErrorCode = { IMAGE_DIFFERENCE: 'image_difference', PDF_DIFFERENCE: 'pdf_difference' } as const;
 
-export const ComparisonStatus = {
-    UNCHANGED: 'UNCHANGED',
-    PENDING_APPROVAL: 'PENDING_APPROVAL',
-    APPROVED: 'APPROVED'
-} as const;
+export const ComparisonStatus = { PENDING_APPROVAL: 'PENDING_APPROVAL', APPROVED: 'APPROVED' } as const;
 
 /**
  * Latest status of the test variant

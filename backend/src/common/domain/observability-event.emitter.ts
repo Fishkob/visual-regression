@@ -1,15 +1,25 @@
-import { ComparisonStatus } from '@/prisma/client';
 import { assertNever } from '@common/utils/assert-never';
 import { METRICS } from '@common/domain/metrics-catalog';
 import type { AppLoggerService } from '@common/logging/app-logger.service';
 import type { IMetricsRecorder } from '@common/domain/metrics-recorder.interface';
-import type { ObservabilityEvent } from '@common/domain/observability-event.type';
+import type {
+  ComparisonCompletionOutcome,
+  ObservabilityEvent,
+} from '@common/domain/observability-event.type';
 
 // The log + metric shape for each observability event kind, living beside the
 // type that declares the kinds. The StateChangeWorkflow delegates emission here
 // so adding a new kind edits one directory (the type + this emitter) instead of
 // growing the transaction orchestrator's switch.
 export const EVENT_COUNTER = METRICS.domainEventsTotal;
+
+// The metric label for a completed comparison. The vocabulary is the one
+// dashboards already query, but it is derived from the outcome — no
+// ComparisonStatus value is read here.
+const COMPLETION_METRIC_STATUS: Record<ComparisonCompletionOutcome, string> = {
+  unchanged: 'UNCHANGED',
+  changed: 'PENDING_APPROVAL',
+};
 
 export interface EmitObservabilityDeps {
   logger: Pick<AppLoggerService, 'log' | 'warn' | 'error'>;
@@ -33,15 +43,16 @@ export function emitObservabilityEvent(
         status: '',
       });
       break;
-    case 'comparison_completed':
+    case 'comparison_completed': {
+      const metricStatus = COMPLETION_METRIC_STATUS[event.outcome];
       logger.log('Comparison completed', {
         testKind: event.testKind,
         visualTestId: event.visualTestId,
         comparisonId: event.comparisonId,
-        status: event.newStatus,
+        status: metricStatus,
         diffMetric: event.diffMetric,
       });
-      if (event.newStatus === ComparisonStatus.PENDING_APPROVAL) {
+      if (event.outcome === 'changed') {
         logger.warn('Difference detected — pending review', {
           testKind: event.testKind,
           visualTestId: event.visualTestId,
@@ -52,7 +63,7 @@ export function emitObservabilityEvent(
       metrics.incrementCounter(EVENT_COUNTER, {
         event: 'comparison_completed',
         type: '',
-        status: event.newStatus,
+        status: metricStatus,
       });
       metrics.observeHistogram(
         event.testKind === 'pdf'
@@ -61,6 +72,7 @@ export function emitObservabilityEvent(
         event.diffMetric,
       );
       break;
+    }
     case 'comparison_approved':
       logger.log('Comparison approved', {
         baselineId: event.baselineId,

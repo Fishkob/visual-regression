@@ -18,6 +18,10 @@ import {
 } from '@common/domain/pdf-sidecar.interface';
 import { ComparisonStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { TRACKED_OPERATIONS } from '@common/domain/metrics-catalog';
+import {
+  STORAGE_PROVIDER,
+  IStorageProvider,
+} from '@common/domain/storage-provider.interface';
 
 @Injectable()
 export class ApprovalService {
@@ -80,6 +84,7 @@ export class ApprovalService {
     private readonly retirement: ComparisonRetirementService,
     @Inject(PDF_RENDER_CACHE)
     private readonly pdfRenderCache: IPdfRenderCache,
+    @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
   ) {}
 
   async approveImage(
@@ -87,7 +92,11 @@ export class ApprovalService {
     testName: string,
     comparisonId: string,
     branchName?: string,
-  ): Promise<{ approved: true; newBaselineUrl: string }> {
+  ): Promise<{
+    approved: true;
+    newBaselineUrl: string;
+    signedNewBaselineUrl: string;
+  }> {
     return this.executeApproval(
       'image',
       projectName,
@@ -102,7 +111,11 @@ export class ApprovalService {
     testName: string,
     comparisonId: string,
     branchName?: string,
-  ): Promise<{ approved: true; newBaselineUrl: string }> {
+  ): Promise<{
+    approved: true;
+    newBaselineUrl: string;
+    signedNewBaselineUrl: string;
+  }> {
     return this.executeApproval(
       'pdf',
       projectName,
@@ -118,7 +131,11 @@ export class ApprovalService {
     testName: string,
     comparisonId: string,
     branchName?: string,
-  ): Promise<{ approved: true; newBaselineUrl: string }> {
+  ): Promise<{
+    approved: true;
+    newBaselineUrl: string;
+    signedNewBaselineUrl: string;
+  }> {
     return this.tracker.track(TRACKED_OPERATIONS.approval[kind], async () => {
       const test = await this.resolveTestOfKind(
         projectName,
@@ -173,7 +190,13 @@ export class ApprovalService {
         },
       );
 
-      return { approved: true, newBaselineUrl: result.result.newBaselineUrl };
+      return {
+        approved: true,
+        newBaselineUrl: result.result.newBaselineUrl,
+        signedNewBaselineUrl: this.storage.signUrl(
+          result.result.newBaselineUrl,
+        ),
+      };
     });
   }
 

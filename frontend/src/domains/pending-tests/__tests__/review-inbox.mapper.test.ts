@@ -19,6 +19,8 @@ const dto = (overrides: Partial<PendingReviewDto> = {}): PendingReviewDto => ({
   mismatchPixelCount: 42,
   mismatchPageCount: 2,
   createdAt: "2026-10-20T10:00:00.000Z",
+  projectPendingCount: 3,
+  projectBranchCount: 1,
   ...overrides,
 });
 
@@ -39,6 +41,8 @@ describe("mapReviewInboxItem", () => {
       mismatchPixelCount: 42,
       mismatchPageCount: 2,
       createdAt: "2026-10-20T10:00:00.000Z",
+      projectPendingCount: 3,
+      projectBranchCount: 1,
     });
   });
 
