@@ -38,6 +38,9 @@ import { TrendsService } from '@public/visualTest/review/application/trends.serv
 import { BulkActionService } from '@public/visualTest/review/application/bulk-action.service';
 import { TestLifecycleService } from '@public/visualTest/review/application/test-lifecycle.service';
 import { TestLifecycleController } from '@public/visualTest/review/presentation/controllers/test-lifecycle.controller';
+import { SearchController } from '@public/visualTest/review/presentation/controllers/search.controller';
+import { SearchService } from '@public/visualTest/review/application/search.service';
+import { SearchRepository } from '@public/visualTest/review/infrastructure/repositories/search.repository';
 import {
   BulkActionsController,
   ProjectsBulkController,
@@ -70,6 +73,7 @@ import {
     BulkActionsController,
     ProjectsBulkController,
     TestLifecycleController,
+    SearchController,
   ],
   providers: [
     TestQueryService,
@@ -90,6 +94,8 @@ import {
     TrendsService,
     BulkActionService,
     TestLifecycleService,
+    SearchService,
+    SearchRepository,
   ],
 })
 export class ReviewModule {}

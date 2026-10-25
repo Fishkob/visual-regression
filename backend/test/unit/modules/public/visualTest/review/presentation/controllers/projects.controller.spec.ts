@@ -121,7 +121,9 @@ describe('ProjectsController', () => {
       };
       projectService.updateProjectGroup.mockResolvedValue(expected);
 
-      const result = await controller.updateProject('checkout-ui', dto);
+      const result = await controller.updateProject('checkout-ui', dto, {
+        auth: { username: 'ada' },
+      } as never);
 
       expect(result).toEqual(expected);
       expect(projectService.updateProjectGroup).toHaveBeenCalledWith(

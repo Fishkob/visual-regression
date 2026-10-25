@@ -16,6 +16,7 @@ function detail(): RunDetail {
     status: {
       state: 'pending',
       pendingComparisons: 1,
+      mutedPending: 0,
       pendingJobs: 0,
       failedJobs: 0,
       approved: 1,

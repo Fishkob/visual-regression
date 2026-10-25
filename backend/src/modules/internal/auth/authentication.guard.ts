@@ -121,7 +121,9 @@ export class AuthenticationGuard implements CanActivate {
     // Project-spanning reads cannot be safely filtered for a scoped key; a key
     // with an allowlist is confined to project-scoped routes.
     if (
-      /^\/api\/v1\/(projects|inbox|audit|users)(\/|$)/.test(request.path ?? '')
+      /^\/api\/v1\/(projects|inbox|audit|users|search)(\/|$)/.test(
+        request.path ?? '',
+      )
     ) {
       throw new ForbiddenException(
         'This API key is restricted to specific projects',

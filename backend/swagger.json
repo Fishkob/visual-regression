@@ -3336,6 +3336,50 @@
         ]
       }
     },
+    "/search": {
+      "get": {
+        "operationId": "SearchController_query",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 20,
+              "default": 8,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResultsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Search projects, tests and branches (server-paginated groups)",
+        "tags": [
+          "Search"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -6620,6 +6664,99 @@
             "maxLength": 500
           }
         }
+      },
+      "SearchProjectDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "SearchTestDto": {
+        "type": "object",
+        "properties": {
+          "projectName": {
+            "type": "string"
+          },
+          "branchName": {
+            "type": "string"
+          },
+          "testName": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image",
+              "pdf"
+            ]
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectName",
+          "branchName",
+          "testName",
+          "kind",
+          "status"
+        ]
+      },
+      "SearchBranchDto": {
+        "type": "object",
+        "properties": {
+          "projectName": {
+            "type": "string"
+          },
+          "branchName": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "projectName",
+          "branchName",
+          "isDefault"
+        ]
+      },
+      "SearchResultsDto": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchProjectDto"
+            }
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchTestDto"
+            }
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchBranchDto"
+            }
+          }
+        },
+        "required": [
+          "query",
+          "projects",
+          "tests",
+          "branches"
+        ]
       },
       "DetailedHealthDto": {
         "type": "object",

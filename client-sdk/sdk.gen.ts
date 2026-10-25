@@ -145,6 +145,8 @@ import type { RunsControllerListData } from './models/RunsControllerListData.gen
 import type { RunsControllerListResponses } from './models/RunsControllerListResponses.gen';
 import type { RunsControllerStatusData } from './models/RunsControllerStatusData.gen';
 import type { RunsControllerStatusResponses } from './models/RunsControllerStatusResponses.gen';
+import type { SearchControllerQueryData } from './models/SearchControllerQueryData.gen';
+import type { SearchControllerQueryResponses } from './models/SearchControllerQueryResponses.gen';
 import type { TestCommandsControllerDeleteVisualTestData } from './models/TestCommandsControllerDeleteVisualTestData.gen';
 import type { TestCommandsControllerDeleteVisualTestResponses } from './models/TestCommandsControllerDeleteVisualTestResponses.gen';
 import type { TestCommandsControllerUpdateThresholdData } from './models/TestCommandsControllerUpdateThresholdData.gen';
@@ -790,6 +792,15 @@ export const testLifecycleControllerUpdate = <ThrowOnError extends boolean = fal
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * Search projects, tests and branches (server-paginated groups)
+ */
+export const searchControllerQuery = <ThrowOnError extends boolean = false>(options: Options<SearchControllerQueryData, ThrowOnError>): RequestResult<SearchControllerQueryResponses, unknown, ThrowOnError> => (options.client ?? client).get<SearchControllerQueryResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/search',
+    ...options
 });
 
 export const healthControllerCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckData, ThrowOnError>): RequestResult<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError>({ url: '/health', ...options });
