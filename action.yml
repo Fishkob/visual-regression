@@ -1,5 +1,5 @@
 name: Visual Regression
-description: Upload a screenshot or PDF, wait for the comparison, and fail when the change needs review or the CI run is not green.
+description: Upload a screenshot, PDF or manifest of captures, wait for the comparisons, and fail when the change needs review or the CI run is not green.
 author: Visual Regression Platform
 
 branding:
@@ -14,33 +14,43 @@ inputs:
     description: API key sent as the x-api-key header. Store it as a repository secret.
     required: true
   project:
-    description: Project name.
-    required: true
+    description: Project name. Required without manifest; captures fall back to it.
+    required: false
+    default: ""
   test:
-    description: Test name.
-    required: true
+    description: Test name. Required without manifest; captures set their own.
+    required: false
+    default: ""
   file:
-    description: Path to the screenshot (PNG) or PDF to upload.
-    required: true
+    description: Path to the screenshot (PNG) or PDF. Required without manifest; captures set their own.
+    required: false
+    default: ""
   kind:
     description: Test kind, image or pdf.
     required: false
     default: image
   viewport:
-    description: Viewport the capture was taken at, e.g. 1920x1080.
-    required: true
+    description: Viewport the capture was taken at, e.g. 1920x1080. Required without manifest.
+    required: false
+    default: ""
   browser:
-    description: Browser the capture was taken in, e.g. Chromium.
-    required: true
+    description: Browser the capture was taken in, e.g. Chromium. Required without manifest.
+    required: false
+    default: ""
   environment:
-    description: Environment the capture was taken in, e.g. staging.
-    required: true
+    description: Environment the capture was taken in, e.g. staging. Required without manifest.
+    required: false
+    default: ""
+  manifest:
+    description: Path to a JSON manifest of captures. Uploads every capture into one run and requires a run key; file/test/kind/viewport/browser/environment are then ignored.
+    required: false
+    default: ""
   branch:
     description: Branch that produced the upload. Defaults to the project default branch.
     required: false
     default: ""
   run-key:
-    description: CI run key that groups uploads into one run. Omit for the single-comparison behavior.
+    description: CI run key that groups uploads into one run. Required with manifest unless the manifest sets runKey.
     required: false
     default: ""
   commit:
@@ -56,11 +66,15 @@ inputs:
     required: false
     default: ""
   finish-run:
-    description: Finish the run after the upload and gate the step on the run status. Ignored without run-key.
+    description: Finish the run after the upload(s) and gate the step on the run status. Ignored without a run key.
     required: false
     default: "true"
+  concurrency:
+    description: Maximum number of manifest uploads in flight, 1-16.
+    required: false
+    default: "4"
   wait-seconds:
-    description: Overall budget in seconds for the job wait and the run status poll.
+    description: Overall budget in seconds for the uploads, the job wait and the run status poll.
     required: false
     default: "30"
   fail-on-pending:
@@ -70,7 +84,7 @@ inputs:
 
 outputs:
   status:
-    description: Upload status (identical, baseline_created, comparison_queued), the per-upload outcome (pending_approval, approved, unchanged) or failed.
+    description: Upload status (identical, baseline_created, comparison_queued), the per-upload outcome (pending_approval, approved, unchanged), failed, or batch_completed/batch_failed with a manifest.
     value: ${{ steps.run.outputs.status }}
   job-id:
     description: Comparison job id for a queued comparison.
@@ -90,6 +104,12 @@ outputs:
   run-pending-count:
     description: Comparisons awaiting review in the run (status.pendingComparisons).
     value: ${{ steps.run.outputs.run-pending-count }}
+  upload-count:
+    description: Captures uploaded successfully in manifest mode.
+    value: ${{ steps.run.outputs.upload-count }}
+  upload-failed-count:
+    description: Captures that failed to upload in manifest mode.
+    value: ${{ steps.run.outputs.upload-failed-count }}
 
 runs:
   using: composite
@@ -107,12 +127,14 @@ runs:
         INPUT_VIEWPORT: ${{ inputs.viewport }}
         INPUT_BROWSER: ${{ inputs.browser }}
         INPUT_ENVIRONMENT: ${{ inputs.environment }}
+        INPUT_MANIFEST: ${{ inputs.manifest }}
         INPUT_BRANCH: ${{ inputs.branch }}
         INPUT_RUN_KEY: ${{ inputs.run-key }}
         INPUT_COMMIT: ${{ inputs.commit }}
         INPUT_COMMIT_MESSAGE: ${{ inputs.commit-message }}
         INPUT_CI_URL: ${{ inputs.ci-url }}
         INPUT_FINISH_RUN: ${{ inputs.finish-run }}
+        INPUT_CONCURRENCY: ${{ inputs.concurrency }}
         INPUT_WAIT_SECONDS: ${{ inputs.wait-seconds }}
         INPUT_FAIL_ON_PENDING: ${{ inputs.fail-on-pending }}
       run: bash "${{ github.action_path }}/scripts/ci/github-action.sh"

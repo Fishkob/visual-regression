@@ -118,7 +118,7 @@ jobs:
           fail-on-pending: "true"
 ```
 
-The action uploads once, waits for a queued job, and exits non-zero when:
+Without a `manifest`, the action uploads once, waits for a queued job, and exits non-zero when:
 
 - the job fails,
 - the comparison still needs review and `fail-on-pending` is `true` (default),
@@ -126,14 +126,14 @@ The action uploads once, waits for a queued job, and exits non-zero when:
 
 It exits zero for `identical`, `baseline_created`, a completed comparison without a reviewable change, and an already `APPROVED` comparison.
 
-Outputs: `status`, `job-id`, `comparison-id`, `comparison-status`. In run mode it also sets `run-key`, `run-state` and `run-pending-count` (see [Runs](#runs)). Use them in later steps:
+Outputs: `status`, `job-id`, `comparison-id`, `comparison-status`. In run mode it also sets `run-key`, `run-state` and `run-pending-count`, and a manifest adds `upload-count` and `upload-failed-count` (see [Runs](#runs)). Use them in later steps:
 
 ```yaml
 - if: always()
   run: echo "comparison=${{ steps.visual.outputs.comparison-id }}"
 ```
 
-The action needs `curl` and `jq`; GitHub-hosted runners include both. `wait-seconds` is the overall budget; the action makes one request per up-to-15s wait, so a longer budget does not mean one long-held connection.
+The action needs `curl` and `jq`; GitHub-hosted runners include both. `wait-seconds` is the overall budget; the action makes one request per up-to-15s wait, so a longer budget does not mean one long-held connection. In manifest mode it also bounds the uploads.
 
 ### Runs
 
@@ -145,7 +145,9 @@ Set `run-key` to group the uploads of one pipeline into a run and gate the step 
 | `commit`         | `""`     | Commit SHA tested by the run. Sent as `commitSha`.                      |
 | `commit-message` | `""`     | Commit message. Sent as `commitMessage`.                                |
 | `ci-url`         | `""`     | Link back to the CI build. Sent as `ciUrl`.                             |
-| `finish-run`     | `"true"` | Finish the run after the upload, then gate on the run status.           |
+| `finish-run`     | `"true"` | Finish the run after the upload(s), then gate on the run status.        |
+| `manifest`       | `""`     | JSON manifest of captures to upload into the run (see below).           |
+| `concurrency`    | `"4"`    | Maximum parallel manifest uploads, 1-16.                                |
 
 ```yaml
 - uses: Fishkob/visual-regression@v1
@@ -187,14 +189,74 @@ Run-mode outputs are `run-key`, `run-state` and `run-pending-count` (comparisons
 https://vrt.example.com/projects/checkout/runs/12345?branch=feature%2Fx
 ```
 
-**One upload per step.** Until the batch/manifest upload in R7 the action uploads exactly one file, so it cannot populate a whole run by itself: a multi-capture run means uploading the other captures through the API with the same `runKey` and letting one action step (for the last capture) finish and gate the run, or finishing the run explicitly and gating with `finish-run: "false"` while another process closes it within `wait-seconds`. `finish-run: "false"` is not an "upload only" mode — a run still `open` at the deadline fails by design. A run groups and gates; it does not isolate candidates — two uploads for the same variant still follow latest-wins, so parallel jobs for the same test can supersede each other.
+#### Batch upload (manifest)
+
+`manifest` uploads many captures into one run in a single step, which is what you want for a pipeline that produces more than one screenshot. It requires a run key: set `run-key` or a top-level `runKey` in the manifest.
+
+```json
+{
+  "runKey": "ci-12345",
+  "branch": "feature/x",
+  "commitSha": "9fceb02",
+  "commitMessage": "feat: checkout v2",
+  "ciUrl": "https://github.com/org/repo/actions/runs/1",
+  "captures": [
+    {
+      "project": "checkout",
+      "test": "login",
+      "file": "artifacts/login.png",
+      "kind": "image",
+      "viewport": "1920x1080",
+      "browser": "chromium",
+      "environment": "staging"
+    },
+    {
+      "test": "cart",
+      "file": "artifacts/cart.pdf",
+      "kind": "pdf",
+      "viewport": "1024x768",
+      "browser": "chromium",
+      "environment": "staging"
+    }
+  ]
+}
+```
+
+```yaml
+- uses: Fishkob/visual-regression@v1
+  with:
+    api-url: https://vrt.example.com
+    api-key: ${{ secrets.VRT_API_KEY }}
+    project: checkout
+    manifest: artifacts/visual-regression.json
+    run-key: ${{ github.run_id }}-${{ github.run_attempt }}
+    commit: ${{ github.sha }}
+    commit-message: ${{ github.event.head_commit.message }}
+    ci-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    concurrency: "4"
+    wait-seconds: "120"
+```
+
+Rules:
+
+- `project` per capture falls back to the `project` input, and every capture must resolve to the same project: a run belongs to one project. `test`, `file`, `viewport`, `browser` and `environment` are required per capture; `kind` defaults to `image`.
+- `runKey`, `branch`, `commitSha`, `commitMessage` and `ciUrl` come from the manifest when present and otherwise from the matching action input. `file` paths are relative to `GITHUB_WORKSPACE`; absolute paths are used as-is.
+- When `manifest` is set the single-file inputs (`file`, `test`, `kind`, `viewport`, `browser`, `environment`) are ignored. The manifest is validated before anything is uploaded: valid JSON, a non-empty `captures` array, every required field, one project, and every file present.
+- Up to `concurrency` captures upload in parallel (default 4, range 1-16). Each upload is the request from section 2 with the run fields added. A `429`, a `5xx` or a network error is retried up to three attempts, honouring a numeric `Retry-After` and backing off 1 s then 2 s otherwise.
+- `wait-seconds` is one budget for the uploads, the retries and the run gate. When it is exhausted the action stops launching uploads, marks the rest failed, writes the summary and fails the step.
+
+If any capture fails the step fails with the run link, the number of failures and the first three errors, and the run is left unfinished for inspection. Once every capture uploads, the action finishes the run (when `finish-run` is `true`) and gates on the run status exactly as described above.
+
+Manifest outputs: `upload-count` (successful uploads), `upload-failed-count`, `status` (`batch_completed` or `batch_failed`), `run-key`, and (after a successful batch) `run-state` and `run-pending-count`. The step summary lists the capture count, uploaded/failed counts, the failures and the run state.
+
+**Single file or manifest.** Uploading one file per step is still supported and behaves exactly as described above. Use the manifest for multi-capture runs. A run groups and gates; it does not isolate candidates — two uploads for the same variant still follow latest-wins, so parallel jobs for the same test can supersede each other.
 
 ## 4. Notes and limits
 
 - **Branch:** omit `branch` to use the project default; a new branch inherits the target branch's baseline. Pass the branch that produced the capture.
 - **Wait cap:** the API accepts `wait` up to 30 seconds per request. Loop for longer budgets (the action does).
 - **Idempotency:** uploads are content-addressed per test/variant; an identical capture short-circuits as `identical`. A retried job-status request is safe.
-- **Runs:** `runKey` groups uploads and adds commit metadata; finish the run explicitly (idempotent) and gate on the run status. Runs do not isolate candidates — latest-wins still applies per variant. See [Runs](#runs).
+- **Runs:** `runKey` groups uploads and adds commit metadata; `manifest` uploads many captures into one run. Finish the run explicitly (idempotent) and gate on the run status. Runs do not isolate candidates — latest-wins still applies per variant. See [Runs](#runs).
 - **Threshold:** an image diff at or below the baseline's `pixelDiffThreshold` is auto-accepted — the candidate is discarded, the baseline is kept, and the job completes with `comparison: null` (the action passes). A threshold of 0, the default, keeps every non-zero diff reviewable. The threshold is per variant and image-only; PDF comparisons always need review.
 - **Webhooks:** project endpoints can subscribe to `review.requested` and `comparison.approved` (dashboard → project → Webhooks). Deliveries are signed with `X-VRT-Timestamp` + `X-VRT-Signature: sha256=<hmac(secret, timestamp.body)>`, retried with backoff, and identified by `X-VRT-Delivery-Id` (at-least-once). The payload carries a dashboard link, not a presigned storage URL. Pipelines can still use the wait endpoint or the action.
 - **Rate limit:** uploads are capped per API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default 60). The status endpoint is not upload-rate-limited.
