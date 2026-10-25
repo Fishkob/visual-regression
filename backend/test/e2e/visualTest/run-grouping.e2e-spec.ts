@@ -3,14 +3,20 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { TestApp } from '../_support/utils/test-app';
 import { authRequest } from '../_support/utils/authenticated-request';
+import { PrismaConnection } from '@/prisma/prisma-connection';
 
 describe('Run grouping (e2e)', () => {
   let app: INestApplication;
+  let prisma: {
+    run: { count: (args?: unknown) => Promise<number> };
+    runUpload: { count: (args?: unknown) => Promise<number> };
+  };
 
   const baseline = path.join(__dirname, 'fixtures', 'baseline_black.png');
 
   beforeAll(async () => {
     app = await TestApp.init();
+    prisma = app.get(PrismaConnection).client as never;
   });
 
   beforeEach(async () => {
@@ -100,6 +106,18 @@ describe('Run grouping (e2e)', () => {
       .get('/api/v1/projects/checkout-ui/runs?branch=main')
       .expect(200);
     expect(list.body.meta.total).toBe(0);
+  });
+
+  it('cascades runs and their uploads when the project is deleted', async () => {
+    await uploadTest('login-form', 'ci-1');
+    await uploadTest('signup-form', 'ci-1');
+    expect(await prisma.run.count()).toBe(1);
+    expect(await prisma.runUpload.count()).toBe(2);
+
+    await authRequest(app).delete('/api/v1/projects/checkout-ui').expect(200);
+
+    expect(await prisma.run.count()).toBe(0);
+    expect(await prisma.runUpload.count()).toBe(0);
   });
 
   it('returns 404 for an unknown run', async () => {

@@ -402,12 +402,16 @@ deeper rework), merge queues, GitHub App/check-runs, cross-project runs.
 
 **Acceptance.**
 
-- [ ] Two uploads with the same `runKey` appear under one run
-- [ ] Run status returns counts and a terminal state after `finish`
+- [x] Two uploads with the same `runKey` appear under one run
+- [x] Run status returns counts and a terminal state after `finish`
 - [ ] Action fails once for the run when any comparison is pending, not per file
-- [ ] Uploads without `runKey` behave exactly as today
-- [ ] Deleting a branch/project leaves no orphan run rows
+- [x] Uploads without `runKey` behave exactly as today
+- [x] Deleting a branch/project leaves no orphan run rows
 - [ ] Run page paginated; inbox run filter combines with existing filters
+
+**Verification.** `run-grouping.e2e-spec.ts` covers the grouping, status/finish,
+no-run-key and project-cascade paths against Postgres. The UI and action
+acceptance lines are checked when those land.
 
 **Size / dependencies.** XL · ADR-030 first; touches upload, job, review reads,
 SDK, action.

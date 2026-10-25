@@ -35,6 +35,7 @@ describe('ReviewInboxService', () => {
           testName: 'login',
           kind: 'image',
           branchName: 'feature/x',
+          runKey: null,
           isDefaultBranch: false,
           variant: {
             viewport: '1920x1080',
@@ -59,6 +60,7 @@ describe('ReviewInboxService', () => {
       groupName: 'Checkout',
       testName: 'login',
       branchName: 'feature/x',
+      runKey: null,
       isDefaultBranch: false,
       mismatchPixelCount: 12,
       projectPendingCount: 2,
