@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PNG } from 'pngjs';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { DomainError } from '@common/domain/domain-error';
+import { MAX_IMAGE_PIXELS } from '@config/upload-limits';
+import { isPngSignature, readPngDimensions } from '@common/utils/png-header';
 import {
   ComparisonResult,
   IComparisonEngine,
@@ -33,8 +35,15 @@ export class PixelmatchComparisonService implements IComparisonEngine {
 
   async compare(expected: Buffer, actual: Buffer): Promise<ComparisonResult> {
     const pm = await ensurePixelmatch();
-    const imgA = PNG.sync.read(expected);
-    const imgB = PNG.sync.read(actual);
+
+    // Validate the headers before decoding either buffer: a tiny PNG can
+    // declare huge dimensions and decode into gigabytes, and legacy oversized
+    // baselines must be rejected without ever being decoded.
+    this.assertWithinPixelLimit(expected);
+    this.assertWithinPixelLimit(actual);
+
+    const imgA = this.decode(expected);
+    const imgB = this.decode(actual);
 
     if (imgA.width !== imgB.width || imgA.height !== imgB.height) {
       throw new DomainError(
@@ -62,5 +71,29 @@ export class PixelmatchComparisonService implements IComparisonEngine {
       mismatchPixelCount,
       diffOutput: diffBuffer,
     };
+  }
+
+  private assertWithinPixelLimit(image: Buffer): void {
+    if (!isPngSignature(image)) {
+      throw new DomainError('Invalid PNG image', 'BAD_REQUEST');
+    }
+    const dimensions = readPngDimensions(image);
+    if (dimensions === null) {
+      throw new DomainError('Invalid PNG image', 'BAD_REQUEST');
+    }
+    if (dimensions.width > MAX_IMAGE_PIXELS / dimensions.height) {
+      throw new DomainError(
+        `Image too large: ${String(dimensions.width)}x${String(dimensions.height)}`,
+        'BAD_REQUEST',
+      );
+    }
+  }
+
+  private decode(image: Buffer): PNG {
+    try {
+      return PNG.sync.read(image);
+    } catch {
+      throw new DomainError('Invalid PNG image', 'BAD_REQUEST');
+    }
   }
 }

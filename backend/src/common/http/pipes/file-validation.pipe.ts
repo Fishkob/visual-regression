@@ -6,9 +6,12 @@ import {
   PipeTransform,
 } from '@nestjs/common';
 import { AppConfigService } from '@config/app-config.service';
+import { MAX_IMAGE_PIXELS } from '@config/upload-limits';
 import { KIND_MIME_TYPES } from '@common/domain/test-kind';
+import { isPngSignature, readPngDimensions } from '@common/utils/png-header';
 
 const ALLOWED_UPLOAD_MIME_TYPES = Object.values(KIND_MIME_TYPES);
+const PNG_HEADER_BYTES = 24;
 
 @Injectable()
 export class FileValidationPipe implements PipeTransform {
@@ -34,16 +37,20 @@ export class FileValidationPipe implements PipeTransform {
 
     if (value.mimetype === KIND_MIME_TYPES.image) {
       const buf = value.buffer;
-      if (buf.length < 8) {
+      if (buf.length < PNG_HEADER_BYTES) {
         throw new BadRequestException('Invalid PNG: buffer too small');
       }
-      const PNG_SIG = Buffer.from([
-        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-      ]);
-      const header = buf.subarray(0, 8);
-      const isPng = PNG_SIG.equals(header);
-      if (!isPng) {
+      if (!isPngSignature(buf)) {
         throw new BadRequestException('Invalid PNG signature');
+      }
+      const dimensions = readPngDimensions(buf);
+      if (!dimensions) {
+        throw new BadRequestException('Invalid PNG: missing or invalid IHDR');
+      }
+      if (dimensions.width > MAX_IMAGE_PIXELS / dimensions.height) {
+        throw new BadRequestException(
+          `Image too large: ${String(dimensions.width)}x${String(dimensions.height)}. Maximum is ${String(MAX_IMAGE_PIXELS)} pixels`,
+        );
       }
     }
 

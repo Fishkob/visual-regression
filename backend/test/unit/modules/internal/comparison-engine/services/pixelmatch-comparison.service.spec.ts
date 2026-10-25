@@ -23,6 +23,21 @@ describe('PixelmatchComparisonService', () => {
     return PNG.sync.write(png);
   };
 
+  // Signature + IHDR header only: enough to declare dimensions, not enough to
+  // decode. The service must bound the dimensions before it ever decodes.
+  const createPngHeader = (width: number, height: number): Buffer => {
+    const header = Buffer.alloc(24);
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(
+      header,
+      0,
+    );
+    header.writeUInt32BE(13, 8);
+    header.write('IHDR', 12, 'ascii');
+    header.writeUInt32BE(width, 16);
+    header.writeUInt32BE(height, 20);
+    return header;
+  };
+
   it('returns 0 mismatched pixels for identical images', async () => {
     const buffer = createPngBuffer(10, 10, 255);
 
@@ -58,5 +73,28 @@ describe('PixelmatchComparisonService', () => {
     await expect(
       service.compare(Buffer.from('not-a-png'), Buffer.from('not-a-png')),
     ).rejects.toThrow();
+  });
+
+  it('rejects an oversized image header before decoding it', async () => {
+    const oversized = createPngHeader(10_000, 10_000);
+
+    await expect(service.compare(oversized, oversized)).rejects.toThrow(
+      /Image too large: 10000x10000/,
+    );
+    await expect(service.compare(oversized, oversized)).rejects.toMatchObject({
+      name: 'DomainError',
+      code: 'BAD_REQUEST',
+    });
+  });
+
+  it('rejects a header-only PNG that cannot be decoded', async () => {
+    const headerOnly = createPngHeader(10, 10);
+
+    await expect(service.compare(headerOnly, headerOnly)).rejects.toThrow(
+      'Invalid PNG image',
+    );
+    await expect(
+      service.compare(headerOnly, headerOnly),
+    ).rejects.toBeInstanceOf(DomainError);
   });
 });

@@ -33,6 +33,7 @@ import {
   PDF_PAGE_COUNTER,
   IPdfPageCounter,
 } from '@common/domain/pdf-sidecar.interface';
+import { MAX_PDF_PAGES } from '@config/upload-limits';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { AppLoggerService } from '@common/logging/app-logger.service';
@@ -58,6 +59,7 @@ describe('UploadIntake (pdf kind)', () => {
   let comparisons: Mocked<UnifiedComparisonsRepository>;
   let retirement: Mocked<ComparisonRetirementService>;
   let metrics: Mocked<IMetricsRecorder>;
+  let module: TestingModule;
 
   const testPdfBuffer = Buffer.from('test-pdf-content');
   const testPdfHash = createHash('sha256').update(testPdfBuffer).digest('hex');
@@ -156,7 +158,7 @@ describe('UploadIntake (pdf kind)', () => {
       count: vi.fn().mockResolvedValue(3),
     } as unknown as Mocked<IPdfPageCounter>;
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         UploadIntake,
         UploadDecisionResolver,
@@ -275,6 +277,24 @@ describe('UploadIntake (pdf kind)', () => {
       }),
     );
     expect(statusService.recomputeStatus).toHaveBeenCalledWith('pdf-test-1');
+  });
+
+  it('rejects a PDF with too many pages before storing it', async () => {
+    tests.ensureTest.mockResolvedValue({ testId: 'pdf-test-1' });
+    screenshots.findBaselineByVariant.mockResolvedValue(null);
+    const pageCounter = module.get<Mocked<IPdfPageCounter>>(PDF_PAGE_COUNTER);
+    pageCounter.count.mockResolvedValue(MAX_PDF_PAGES + 1);
+
+    await expect(uploadIntake.upload(baseParams, 'pdf')).rejects.toThrow(
+      /too many pages/,
+    );
+    await expect(uploadIntake.upload(baseParams, 'pdf')).rejects.toMatchObject({
+      name: 'DomainError',
+      code: 'BAD_REQUEST',
+    });
+
+    expect(storage.putObject).not.toHaveBeenCalled();
+    expect(workflow.executeWithStoredFile).not.toHaveBeenCalled();
   });
 
   it('queues pdf comparison when hash differs and no stale pending', async () => {

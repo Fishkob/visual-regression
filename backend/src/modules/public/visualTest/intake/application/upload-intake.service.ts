@@ -44,6 +44,7 @@ import {
   PDF_PAGE_COUNTER,
   IPdfPageCounter,
 } from '@common/domain/pdf-sidecar.interface';
+import { MAX_PDF_PAGES } from '@config/upload-limits';
 
 interface UploadKindConfig {
   trackerSpanName: string;
@@ -117,6 +118,15 @@ export class UploadIntake {
           kind === 'pdf'
             ? await this.pageCounter.count(params.file.buffer)
             : undefined;
+
+        // Reject before storing: an over-limit document must not leave an
+        // object behind (or a test/variant row) after the upload fails.
+        if (pageCount !== undefined && pageCount > MAX_PDF_PAGES) {
+          throw new DomainError(
+            `PDF has too many pages (${String(pageCount)}); maximum is ${String(MAX_PDF_PAGES)}`,
+            'BAD_REQUEST',
+          );
+        }
 
         const stored = await this.workflow.executeWithStoredFile({
           store: () => this.storeUpload(kind, fileHash, params),
