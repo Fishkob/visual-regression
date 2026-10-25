@@ -12,4 +12,5 @@ export type UpdateTestMetadataDto = {
      */
     mutedUntil?: string | null;
     muteReason?: string | null;
+    sizePolicy?: 'FAIL' | 'PAD' | 'CROP' | 'RESIZE';
 };

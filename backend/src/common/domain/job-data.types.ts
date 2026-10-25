@@ -9,6 +9,7 @@ export interface JobData {
   testKind: TestKind;
   testId: string;
   testName?: string;
+  sizePolicy?: 'FAIL' | 'PAD' | 'CROP' | 'RESIZE';
   runId?: string;
   runKey?: string;
   candidateHash: string;

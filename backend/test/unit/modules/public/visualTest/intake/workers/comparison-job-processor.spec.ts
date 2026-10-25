@@ -215,6 +215,7 @@ describe('ComparisonJobProcessor', () => {
       expect(imageEngine.compare).toHaveBeenCalledWith(
         Buffer.from('file-data'),
         Buffer.from('file-data'),
+        { sizePolicy: 'FAIL' },
       );
     });
 
@@ -262,6 +263,7 @@ describe('ComparisonJobProcessor', () => {
       expect(pdfEngine.compare).toHaveBeenCalledWith(
         Buffer.from('file-data'),
         Buffer.from('file-data'),
+        { sizePolicy: 'FAIL' },
       );
     });
 

@@ -39,7 +39,17 @@ export type ComparisonEngines = Record<TestKind, IComparisonEngine>;
 // never reaches the comparison engine.
 export const ENGINE_TOLERANCE = 0;
 
+export type ImageSizePolicy = 'FAIL' | 'PAD' | 'CROP' | 'RESIZE';
+
+export interface ImageComparisonOptions {
+  sizePolicy?: ImageSizePolicy;
+}
+
 export interface IComparisonEngine {
   readonly kind: TestKind;
-  compare(expected: Buffer, actual: Buffer): Promise<ComparisonResult>;
+  compare(
+    expected: Buffer,
+    actual: Buffer,
+    options?: ImageComparisonOptions,
+  ): Promise<ComparisonResult>;
 }

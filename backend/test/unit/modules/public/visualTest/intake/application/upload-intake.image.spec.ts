@@ -34,6 +34,7 @@ import {
 import { PDF_PAGE_COUNTER } from '@common/domain/pdf-sidecar.interface';
 import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
+import { ImageNormalizer } from '@public/visualTest/core/application/services/image-normalizer.service';
 import { createMock } from '@test/utils/create-mock';
 import {
   createMockStorage,
@@ -120,6 +121,7 @@ describe('UploadIntake (image kind)', () => {
         screenshots.findBaselineByVariant(testId, variant),
     );
     tests = createMock<UnifiedTestRepository>();
+    tests.findSizePolicy.mockResolvedValue('FAIL');
     tests.findByBranchAndTestName.mockResolvedValue({
       id: 'test-1',
       name: 'test-name',
@@ -176,6 +178,7 @@ describe('UploadIntake (image kind)', () => {
           provide: StorageUsageService,
           useValue: { assertWithinQuota: vi.fn().mockResolvedValue(undefined) },
         },
+        { provide: ImageNormalizer, useValue: { toPng: vi.fn() } },
       ],
     }).compile();
 

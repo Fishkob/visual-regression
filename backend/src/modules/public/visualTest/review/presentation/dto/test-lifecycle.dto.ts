@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 import {
   ArrayMaxSize,
+  IsIn,
   IsArray,
   IsDateString,
   IsOptional,
@@ -52,6 +53,11 @@ export class UpdateTestMetadataDto {
   @IsString()
   @MaxLength(500)
   muteReason?: string | null;
+
+  @ApiPropertyOptional({ enum: ['FAIL', 'PAD', 'CROP', 'RESIZE'] })
+  @IsOptional()
+  @IsIn(['FAIL', 'PAD', 'CROP', 'RESIZE'])
+  sizePolicy?: 'FAIL' | 'PAD' | 'CROP' | 'RESIZE';
 }
 
 export class TestFlakeDto {
@@ -96,6 +102,10 @@ export class TestMetadataDto {
   @ApiProperty()
   @Expose()
   isMuted!: boolean;
+
+  @ApiProperty({ enum: ['FAIL', 'PAD', 'CROP', 'RESIZE'] })
+  @Expose()
+  sizePolicy!: string;
 
   @ApiProperty({ type: TestFlakeDto })
   @Expose()

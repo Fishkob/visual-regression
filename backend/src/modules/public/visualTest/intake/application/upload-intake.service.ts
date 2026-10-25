@@ -34,6 +34,8 @@ import { UploadDecisionResolver } from '@public/visualTest/intake/application/up
 import type { JobData } from '@common/domain/job-data.types';
 import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
+import { ImageNormalizer } from '@public/visualTest/core/application/services/image-normalizer.service';
+import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import type { ResolvedBranch } from '@public/visualTest/core/application/services/branch-resolver.service';
 import type { Run } from '@/prisma/client';
 import type { AnyUploadResult } from '@common/domain/unified-upload-result.type';
@@ -91,10 +93,25 @@ export class UploadIntake {
     @Inject(PDF_PAGE_COUNTER) private readonly pageCounter: IPdfPageCounter,
     private readonly runs: RunResolver,
     private readonly storageUsage: StorageUsageService,
+    private readonly images: ImageNormalizer,
+    private readonly tests: UnifiedTestRepository,
   ) {}
 
-  async upload(params: UploadParams, kind: TestKind): Promise<AnyUploadResult> {
-    assertKindMatchesMime(kind, params.file.mimetype);
+  async upload(input: UploadParams, kind: TestKind): Promise<AnyUploadResult> {
+    assertKindMatchesMime(kind, input.file.mimetype);
+    let params = input;
+    if (kind === 'image' && params.file.mimetype !== 'image/png') {
+      const png = await this.images.toPng(params.file.buffer);
+      params = {
+        ...params,
+        file: {
+          ...params.file,
+          buffer: png,
+          mimetype: 'image/png',
+          size: png.length,
+        },
+      };
+    }
     return this.tracker.track(
       UPLOAD_KIND_CONFIG[kind].trackerSpanName,
       async () => {
@@ -448,6 +465,7 @@ export class UploadIntake {
   ): Promise<PreparedComparison> {
     const { testId, contentHash, baseline } = decision;
     const variant = toVariant(params);
+    const sizePolicy = await this.tests.findSizePolicy(testId);
     const candidate = await this.createCandidate(
       decision,
       params,
@@ -462,6 +480,7 @@ export class UploadIntake {
       candidate: { id: candidate.id, url: fileUrl },
       baseline: { id: baseline.id, url: baseline.fileUrl },
       variant: variant.toRecord(),
+      ...(sizePolicy ? { sizePolicy } : {}),
       ...(run ? { runId: run.id, runKey: run.key } : {}),
     };
     // The replaced candidate URL funnels through the same "safe to reclaim"
@@ -477,7 +496,22 @@ export class UploadIntake {
   }
 }
 
+const IMAGE_UPLOAD_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+]);
+
 function assertKindMatchesMime(kind: TestKind, mimetype: string): void {
+  if (kind === 'image') {
+    if (!IMAGE_UPLOAD_MIME_TYPES.has(mimetype)) {
+      throw new DomainError(
+        `MIME type "${mimetype}" does not match test kind "image" (PNG, JPEG or WebP required)`,
+        'BAD_REQUEST',
+      );
+    }
+    return;
+  }
   const expected = KIND_MIME_TYPES[kind];
   if (mimetype !== expected) {
     throw new DomainError(

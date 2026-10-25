@@ -98,7 +98,9 @@ export class ComparisonJobProcessor {
       const baselineBuffer = await this.getBaselineOrDetectSupersession(data);
 
       const engine = this.getEngine(data.testKind);
-      const result = await engine.compare(baselineBuffer, candidateBuffer);
+      const result = await engine.compare(baselineBuffer, candidateBuffer, {
+        sizePolicy: data.sizePolicy ?? 'FAIL',
+      });
       const mismatch = mismatchCount(result);
       if (mismatch === 0) {
         await this.handleUnchanged(data);

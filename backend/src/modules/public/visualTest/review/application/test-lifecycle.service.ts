@@ -14,6 +14,7 @@ export interface TestMetadataView {
   mutedUntil: Date | null;
   muteReason: string | null;
   isMuted: boolean;
+  sizePolicy: 'FAIL' | 'PAD' | 'CROP' | 'RESIZE';
   flake: { transitions: number; changed: number; clean: number };
 }
 
@@ -51,6 +52,7 @@ export class TestLifecycleService {
       tags?: string[];
       mutedUntil?: string | null;
       muteReason?: string | null;
+      sizePolicy?: 'FAIL' | 'PAD' | 'CROP' | 'RESIZE';
     },
     actor?: string,
     branchName?: string,
@@ -98,6 +100,9 @@ export class TestLifecycleService {
         ...(tags !== undefined ? { tags } : {}),
         ...(mutedUntil !== undefined ? { mutedUntil } : {}),
         ...(muteReason !== undefined ? { muteReason } : {}),
+        ...(changes.sizePolicy !== undefined
+          ? { sizePolicy: changes.sizePolicy }
+          : {}),
       });
       await this.audit.record({
         actor: actor ?? null,
@@ -138,6 +143,7 @@ export class TestLifecycleService {
       mutedUntil: row.mutedUntil,
       muteReason: row.muteReason,
       isMuted: row.mutedUntil !== null && row.mutedUntil.getTime() > Date.now(),
+      sizePolicy: row.sizePolicy,
       flake,
     };
   }

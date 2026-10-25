@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PNG } from 'pngjs';
+import sharp from 'sharp';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { DomainError } from '@common/domain/domain-error';
 import { MAX_IMAGE_PIXELS } from '@config/upload-limits';
@@ -8,6 +9,8 @@ import {
   ComparisonResult,
   IComparisonEngine,
   ENGINE_TOLERANCE,
+  type ImageComparisonOptions,
+  type ImageSizePolicy,
 } from '@common/domain/comparison-engine.interface';
 type Pixelmatch = (
   img1: Buffer,
@@ -33,7 +36,11 @@ export class PixelmatchComparisonService implements IComparisonEngine {
 
   constructor(private readonly logger: AppLoggerService) {}
 
-  async compare(expected: Buffer, actual: Buffer): Promise<ComparisonResult> {
+  async compare(
+    expected: Buffer,
+    actual: Buffer,
+    options: ImageComparisonOptions = {},
+  ): Promise<ComparisonResult> {
     const pm = await ensurePixelmatch();
 
     // Validate the headers before decoding either buffer: a tiny PNG can
@@ -43,7 +50,24 @@ export class PixelmatchComparisonService implements IComparisonEngine {
     this.assertWithinPixelLimit(actual);
 
     const imgA = this.decode(expected);
-    const imgB = this.decode(actual);
+    let candidate = actual;
+    const expectedDimensions = readPngDimensions(expected);
+    const actualDimensions = readPngDimensions(actual);
+    if (
+      expectedDimensions &&
+      actualDimensions &&
+      (expectedDimensions.width !== actualDimensions.width ||
+        expectedDimensions.height !== actualDimensions.height)
+    ) {
+      candidate = await this.applySizePolicy(
+        actual,
+        options.sizePolicy ?? 'FAIL',
+        expectedDimensions.width,
+        expectedDimensions.height,
+        actualDimensions,
+      );
+    }
+    const imgB = this.decode(candidate);
 
     if (imgA.width !== imgB.width || imgA.height !== imgB.height) {
       throw new DomainError(
@@ -71,6 +95,36 @@ export class PixelmatchComparisonService implements IComparisonEngine {
       mismatchPixelCount,
       diffOutput: diffBuffer,
     };
+  }
+
+  private async applySizePolicy(
+    image: Buffer,
+    policy: ImageSizePolicy,
+    width: number,
+    height: number,
+    actual: { width: number; height: number },
+  ): Promise<Buffer> {
+    if (policy === 'FAIL') {
+      throw new DomainError(
+        `Image dimensions do not match: ${String(width)}x${String(height)} vs ${String(actual.width)}x${String(actual.height)}`,
+        'BAD_REQUEST',
+      );
+    }
+    const fit =
+      policy === 'PAD' ? 'contain' : policy === 'CROP' ? 'cover' : 'fill';
+    try {
+      return await sharp(image)
+        .resize(width, height, {
+          fit,
+          position: 'centre',
+          background:
+            policy === 'PAD' ? { r: 0, g: 0, b: 0, alpha: 1 } : undefined,
+        })
+        .png()
+        .toBuffer();
+    } catch {
+      throw new DomainError('Invalid image file', 'BAD_REQUEST');
+    }
   }
 
   private assertWithinPixelLimit(image: Buffer): void {

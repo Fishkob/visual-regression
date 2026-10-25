@@ -61,22 +61,22 @@ describe('FileValidationPipe', () => {
     expect(() => pipe.transform(file)).toThrow(/Invalid mime type/);
   });
 
-  it('rejects image/jpeg even though a valid image type', () => {
+  it('accepts image/jpeg (normalized later in intake)', () => {
     const file = {
       mimetype: 'image/jpeg',
       size: 1000,
       buffer: Buffer.alloc(100),
     } as unknown as Express.Multer.File;
-    expect(() => pipe.transform(file)).toThrow(/Invalid mime type/);
+    expect(pipe.transform(file)).toBe(file);
   });
 
-  it('rejects image/webp even though a valid image type', () => {
+  it('accepts image/webp (normalized later in intake)', () => {
     const file = {
       mimetype: 'image/webp',
       size: 1000,
       buffer: Buffer.alloc(100),
     } as unknown as Express.Multer.File;
-    expect(() => pipe.transform(file)).toThrow(/Invalid mime type/);
+    expect(pipe.transform(file)).toBe(file);
   });
 
   it('rejects file too large', () => {

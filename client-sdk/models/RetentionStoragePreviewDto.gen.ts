@@ -2,7 +2,7 @@
 
 export type RetentionStoragePreviewDto = {
     usageBytes: string;
-    quotaBytes?: string | null;
+    quotaBytes: string | null;
     percent: number;
     warning: boolean;
 };

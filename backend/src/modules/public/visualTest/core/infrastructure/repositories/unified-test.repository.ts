@@ -32,6 +32,14 @@ export class UnifiedTestRepository extends BaseRepository {
     });
   }
 
+  async findSizePolicy(testId: string) {
+    const row = await this.client.unifiedTest.findUnique({
+      where: { id: testId },
+      select: { sizePolicy: true },
+    });
+    return row?.sizePolicy ?? null;
+  }
+
   async findMetadata(testId: string) {
     return this.client.unifiedTest.findUnique({
       where: { id: testId },
@@ -42,6 +50,7 @@ export class UnifiedTestRepository extends BaseRepository {
         tags: true,
         mutedUntil: true,
         muteReason: true,
+        sizePolicy: true,
       },
     });
   }
@@ -54,6 +63,7 @@ export class UnifiedTestRepository extends BaseRepository {
       tags?: string[];
       mutedUntil?: Date | null;
       muteReason?: string | null;
+      sizePolicy?: 'FAIL' | 'PAD' | 'CROP' | 'RESIZE';
     },
   ) {
     // Metadata does not change test status, so it is a standalone write (the
@@ -68,6 +78,7 @@ export class UnifiedTestRepository extends BaseRepository {
         tags: true,
         mutedUntil: true,
         muteReason: true,
+        sizePolicy: true,
       },
     });
   }

@@ -6718,6 +6718,15 @@
           "isMuted": {
             "type": "boolean"
           },
+          "sizePolicy": {
+            "type": "string",
+            "enum": [
+              "FAIL",
+              "PAD",
+              "CROP",
+              "RESIZE"
+            ]
+          },
           "flake": {
             "$ref": "#/components/schemas/TestFlakeDto"
           }
@@ -6730,6 +6739,7 @@
           "mutedUntil",
           "muteReason",
           "isMuted",
+          "sizePolicy",
           "flake"
         ]
       },
@@ -6763,6 +6773,15 @@
             "type": "string",
             "nullable": true,
             "maxLength": 500
+          },
+          "sizePolicy": {
+            "type": "string",
+            "enum": [
+              "FAIL",
+              "PAD",
+              "CROP",
+              "RESIZE"
+            ]
           }
         }
       },
@@ -6962,6 +6981,7 @@
         },
         "required": [
           "usageBytes",
+          "quotaBytes",
           "percent",
           "warning"
         ]

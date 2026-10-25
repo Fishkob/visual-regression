@@ -57,6 +57,7 @@ model UnifiedTest {
   tags        String[]   @default([])
   mutedUntil  DateTime?
   muteReason  String?
+  sizePolicy  ImageSizePolicy @default(FAIL)
   createdAt   DateTime   @default(now())
 
   variants     UnifiedVariant[]
@@ -368,6 +369,13 @@ model ComparisonJob {
   @@index([createdAt])
   @@index([runId])
   @@index([runKey])
+}
+
+enum ImageSizePolicy {
+  FAIL
+  PAD
+  CROP
+  RESIZE
 }
 
 enum UserRole {

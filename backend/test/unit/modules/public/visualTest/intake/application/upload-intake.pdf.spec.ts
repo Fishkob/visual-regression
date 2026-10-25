@@ -36,6 +36,7 @@ import {
 import { MAX_PDF_PAGES } from '@config/upload-limits';
 import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
+import { ImageNormalizer } from '@public/visualTest/core/application/services/image-normalizer.service';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { AppLoggerService } from '@common/logging/app-logger.service';
@@ -132,6 +133,7 @@ describe('UploadIntake (pdf kind)', () => {
         screenshots.findBaselineByVariant(testId, variant),
     );
     tests = createMock<UnifiedTestRepository>();
+    tests.findSizePolicy.mockResolvedValue('FAIL');
     tests.findByBranchAndTestName.mockResolvedValue({
       id: 'pdf-test-1',
       name: 'test-name',
@@ -192,6 +194,7 @@ describe('UploadIntake (pdf kind)', () => {
           provide: StorageUsageService,
           useValue: { assertWithinQuota: vi.fn().mockResolvedValue(undefined) },
         },
+        { provide: ImageNormalizer, useValue: { toPng: vi.fn() } },
       ],
     }).compile();
 

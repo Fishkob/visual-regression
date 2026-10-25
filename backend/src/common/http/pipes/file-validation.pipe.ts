@@ -10,7 +10,12 @@ import { MAX_IMAGE_PIXELS } from '@config/upload-limits';
 import { KIND_MIME_TYPES } from '@common/domain/test-kind';
 import { isPngSignature, readPngDimensions } from '@common/utils/png-header';
 
-const ALLOWED_UPLOAD_MIME_TYPES = Object.values(KIND_MIME_TYPES);
+const ALLOWED_UPLOAD_MIME_TYPES = [
+  KIND_MIME_TYPES.image,
+  'image/jpeg',
+  'image/webp',
+  KIND_MIME_TYPES.pdf,
+];
 const PNG_HEADER_BYTES = 24;
 
 @Injectable()
@@ -36,6 +41,8 @@ export class FileValidationPipe implements PipeTransform {
     }
 
     if (value.mimetype === KIND_MIME_TYPES.image) {
+      // JPEG/WebP are decoded+normalized asynchronously in the intake; the pipe
+      // only enforces the PNG fast path and the shared size ceiling.
       const buf = value.buffer;
       if (buf.length < PNG_HEADER_BYTES) {
         throw new BadRequestException('Invalid PNG: buffer too small');

@@ -60,6 +60,39 @@ describe('PixelmatchComparisonService', () => {
     );
   });
 
+  it('resizes the candidate when the policy is RESIZE', async () => {
+    const expected = createPngBuffer(10, 10, 255);
+    const actual = createPngBuffer(14, 8, 255);
+
+    const result = await service.compare(expected, actual, {
+      sizePolicy: 'RESIZE',
+    });
+
+    expect(result.mismatchPixelCount).toBe(0);
+  });
+
+  it('crops the candidate when the policy is CROP', async () => {
+    const expected = createPngBuffer(10, 10, 255);
+    const actual = createPngBuffer(20, 20, 255);
+
+    const result = await service.compare(expected, actual, {
+      sizePolicy: 'CROP',
+    });
+
+    expect(result.mismatchPixelCount).toBe(0);
+  });
+
+  it('pads the candidate when the policy is PAD', async () => {
+    const expected = createPngBuffer(10, 10, 255);
+    const actual = createPngBuffer(4, 8, 255);
+
+    const result = await service.compare(expected, actual, {
+      sizePolicy: 'PAD',
+    });
+
+    expect(result.mismatchPixelCount).toBeGreaterThan(0);
+  });
+
   it('throws a DomainError for different dimensions', async () => {
     const imgA = createPngBuffer(10, 10, 255);
     const imgB = createPngBuffer(12, 12, 255);

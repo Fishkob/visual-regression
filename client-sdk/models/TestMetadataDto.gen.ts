@@ -10,5 +10,6 @@ export type TestMetadataDto = {
     mutedUntil: string | null;
     muteReason: string | null;
     isMuted: boolean;
+    sizePolicy: 'FAIL' | 'PAD' | 'CROP' | 'RESIZE';
     flake: TestFlakeDto;
 };
