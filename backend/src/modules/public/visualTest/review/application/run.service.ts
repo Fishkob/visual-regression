@@ -49,6 +49,7 @@ export interface RunDetail {
 
 export interface RunApproveAllResult {
   approved: number;
+  pending: { comparisonId: string; votes: number; required: number }[];
   failed: { comparisonId: string; error: string }[];
 }
 
@@ -167,27 +168,38 @@ export class RunService {
   ): Promise<RunApproveAllResult> {
     const run = await this.requireRun(projectName, runKey, branchName);
     const pending = await this.runs.pendingComparisonsForRun(run.id, 500);
-    const result: RunApproveAllResult = { approved: 0, failed: [] };
+    const result: RunApproveAllResult = {
+      approved: 0,
+      pending: [],
+      failed: [],
+    };
     for (const row of pending) {
       try {
-        if (row.test.kind === 'image') {
-          await this.approvals.approveImage(
-            projectName,
-            row.test.name,
-            row.id,
-            actor,
-            row.test.branch.name,
-          );
+        const outcome =
+          row.test.kind === 'image'
+            ? await this.approvals.approveImage(
+                projectName,
+                row.test.name,
+                row.id,
+                actor,
+                row.test.branch.name,
+              )
+            : await this.approvals.approvePdf(
+                projectName,
+                row.test.name,
+                row.id,
+                actor,
+                row.test.branch.name,
+              );
+        if (!outcome.approved) {
+          result.pending.push({
+            comparisonId: row.id,
+            votes: outcome.votes,
+            required: outcome.required,
+          });
         } else {
-          await this.approvals.approvePdf(
-            projectName,
-            row.test.name,
-            row.id,
-            actor,
-            row.test.branch.name,
-          );
+          result.approved += 1;
         }
-        result.approved += 1;
       } catch (error) {
         result.failed.push({
           comparisonId: row.id,

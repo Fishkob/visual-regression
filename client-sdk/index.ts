@@ -133,6 +133,7 @@ export type { BulkDeleteTestsDto } from './models/BulkDeleteTestsDto.gen';
 export type { BulkItemResultDto } from './models/BulkItemResultDto.gen';
 export type { BulkMoveProjectsDto } from './models/BulkMoveProjectsDto.gen';
 export type { BulkMoveResultDto } from './models/BulkMoveResultDto.gen';
+export type { BulkPendingVoteDto } from './models/BulkPendingVoteDto.gen';
 export type { ChangePasswordDto } from './models/ChangePasswordDto.gen';
 export type { ClientOptions } from './models/ClientOptions.gen';
 export type { ComparisonDto } from './models/ComparisonDto.gen';

@@ -12,8 +12,15 @@ export interface BulkItemResult {
   error?: string;
 }
 
+export interface BulkPendingVote {
+  id: string;
+  votes: number;
+  required: number;
+}
+
 export interface BulkApprovalResult {
   approved: BulkItemResult[];
+  pending: BulkPendingVote[];
   failed: BulkItemResult[];
 }
 
@@ -38,6 +45,7 @@ export class BulkActionService {
     actor: string,
   ): Promise<BulkApprovalResult> {
     const approved: BulkItemResult[] = [];
+    const pendingVotes: BulkPendingVote[] = [];
     const failed: BulkItemResult[] = [];
     for (const comparisonId of comparisonIds) {
       try {
@@ -48,24 +56,31 @@ export class BulkActionService {
         if (!test) {
           throw new Error('Comparison not found in this project');
         }
-        if (test.kind === 'image') {
-          await this.approvals.approveImage(
-            projectName,
-            test.name,
-            comparisonId,
-            actor,
-            test.branch.name,
-          );
+        const outcome =
+          test.kind === 'image'
+            ? await this.approvals.approveImage(
+                projectName,
+                test.name,
+                comparisonId,
+                actor,
+                test.branch.name,
+              )
+            : await this.approvals.approvePdf(
+                projectName,
+                test.name,
+                comparisonId,
+                actor,
+                test.branch.name,
+              );
+        if (!outcome.approved) {
+          pendingVotes.push({
+            id: comparisonId,
+            votes: outcome.votes,
+            required: outcome.required,
+          });
         } else {
-          await this.approvals.approvePdf(
-            projectName,
-            test.name,
-            comparisonId,
-            actor,
-            test.branch.name,
-          );
+          approved.push({ id: comparisonId, success: true });
         }
-        approved.push({ id: comparisonId, success: true });
       } catch (error) {
         failed.push({
           id: comparisonId,
@@ -74,7 +89,7 @@ export class BulkActionService {
         });
       }
     }
-    return { approved, failed };
+    return { approved, pending: pendingVotes, failed };
   }
 
   async deleteTests(

@@ -6764,6 +6764,12 @@
           "approved": {
             "type": "number"
           },
+          "pending": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
           "failed": {
             "type": "array",
             "items": {
@@ -6773,6 +6779,7 @@
         },
         "required": [
           "approved",
+          "pending",
           "failed"
         ]
       },
@@ -6924,6 +6931,25 @@
           "success"
         ]
       },
+      "BulkPendingVoteDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "votes": {
+            "type": "number"
+          },
+          "required": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "votes",
+          "required"
+        ]
+      },
       "BulkApprovalResultDto": {
         "type": "object",
         "properties": {
@@ -6931,6 +6957,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          },
+          "pending": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkPendingVoteDto"
             }
           },
           "failed": {
@@ -6942,6 +6974,7 @@
         },
         "required": [
           "approved",
+          "pending",
           "failed"
         ]
       },

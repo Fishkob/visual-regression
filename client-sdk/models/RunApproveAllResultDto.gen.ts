@@ -2,6 +2,9 @@
 
 export type RunApproveAllResultDto = {
     approved: number;
+    pending: Array<{
+        [key: string]: unknown;
+    }>;
     failed: Array<{
         [key: string]: unknown;
     }>;
