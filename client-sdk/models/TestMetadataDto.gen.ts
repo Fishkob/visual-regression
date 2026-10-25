@@ -5,10 +5,10 @@ import type { TestFlakeDto } from './TestFlakeDto.gen';
 export type TestMetadataDto = {
     id: string;
     name: string;
-    description?: string | null;
+    description: string | null;
     tags: Array<Array<string>>;
-    mutedUntil?: string | null;
-    muteReason?: string | null;
+    mutedUntil: string | null;
+    muteReason: string | null;
     isMuted: boolean;
     flake: TestFlakeDto;
 };

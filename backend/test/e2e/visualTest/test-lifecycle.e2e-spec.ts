@@ -113,6 +113,21 @@ describe('Test lifecycle (e2e)', () => {
     expect(after.body.data).toHaveLength(1);
   });
 
+  it('renames a project and rejects a duplicate name', async () => {
+    await TestApp.createProject('other');
+    await authRequest(app)
+      .patch('/api/v1/projects/shop')
+      .send({ name: 'store' })
+      .expect(200);
+    await authRequest(app).get('/api/v1/projects/store').expect(200);
+    await authRequest(app).get('/api/v1/projects/shop').expect(404);
+
+    await authRequest(app)
+      .patch('/api/v1/projects/store')
+      .send({ name: 'other' })
+      .expect(409);
+  });
+
   it('reports the outcome history as a flake signal', async () => {
     await upload('login', baseline).expect(201);
     await upload('login', mismatch).expect(201);

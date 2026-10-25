@@ -74,6 +74,15 @@ export class ProjectRepository extends BaseRepository {
     });
   }
 
+  // Standalone write: renaming does not mutate test state. Historical audit and
+  // approval rows keep the old name; the project row is the identity.
+  async rename(name: string, newName: string): Promise<ProjectData> {
+    return this.client.project.update({
+      where: { name },
+      data: { name: newName },
+    });
+  }
+
   async getOrCreate(name: string): Promise<ProjectData> {
     this.assertWritable();
     return this.client.project.upsert({

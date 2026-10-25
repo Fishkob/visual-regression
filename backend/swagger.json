@@ -86,6 +86,7 @@
                 "test.delete",
                 "variant.delete",
                 "project.delete",
+                "project.rename",
                 "test.update",
                 "branch.delete",
                 "webhook.create",
@@ -171,6 +172,7 @@
                 "test.delete",
                 "variant.delete",
                 "project.delete",
+                "project.rename",
                 "test.update",
                 "branch.delete",
                 "webhook.create",
@@ -4716,6 +4718,12 @@
       "UpdateProjectDto": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "string",
+            "description": "New project name (unique); omitted keeps the current name",
+            "minLength": 1,
+            "maxLength": 100
+          },
           "groupId": {
             "type": "string",
             "description": "Group id, or null to move the project to Unassigned",
@@ -6571,7 +6579,10 @@
         "required": [
           "id",
           "name",
+          "description",
           "tags",
+          "mutedUntil",
+          "muteReason",
           "isMuted",
           "flake"
         ]

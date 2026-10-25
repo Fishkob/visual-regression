@@ -5,6 +5,8 @@ import { ProjectGroupRepository } from '@public/visualTest/review/infrastructure
 import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { DomainError } from '@common/domain/domain-error';
+import { AuditService } from '@internal/audit/audit.service';
+import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { paginatedQuery } from '@common/utils/paginated-query';
 import { createPaginatedResponse } from '@common/dto/paginated-response.dto';
@@ -27,6 +29,7 @@ export class ProjectService {
     private readonly testDeletion: TestDeletionService,
     private readonly groups: ProjectGroupRepository,
     private readonly branchCommands: BranchCommandService,
+    private readonly audit: AuditService,
   ) {}
 
   async getAllWithPendingFlag(
@@ -105,15 +108,44 @@ export class ProjectService {
     });
   }
 
+  async rename(
+    projectName: string,
+    newName: string,
+    actor?: string,
+  ): Promise<void> {
+    const trimmed = newName.trim();
+    if (trimmed === projectName) return;
+    const existing = await this.projects.findByName(projectName);
+    if (!existing) {
+      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
+    }
+    try {
+      await this.projects.rename(projectName, trimmed);
+    } catch (error) {
+      if ((error as { code?: string }).code === 'P2002') {
+        throw new DomainError(
+          `Project "${trimmed}" already exists`,
+          'CONFLICT',
+        );
+      }
+      throw error;
+    }
+    await this.audit.record({
+      actor: actor ?? null,
+      action: AUDIT_ACTIONS.projectRename,
+      projectName: trimmed,
+      targetType: 'project',
+      targetId: existing.id,
+      metadata: { renamedFrom: projectName },
+    });
+  }
+
   async updateProjectGroup(
     projectName: string,
     dto: UpdateProjectDto,
   ): Promise<ProjectDto> {
     if (dto.groupId === undefined && dto.defaultBranchName === undefined) {
-      throw new DomainError(
-        'groupId or defaultBranchName is required',
-        'BAD_REQUEST',
-      );
+      return this.getWithLatestVariantStatuses(projectName);
     }
     if (dto.defaultBranchName !== undefined) {
       await this.branchCommands.setDefault(projectName, dto.defaultBranchName);

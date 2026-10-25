@@ -132,8 +132,16 @@ export class ProjectsController {
   async updateProject(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Body() dto: UpdateProjectDto,
+    @Req() req: AuthenticatedRequest,
   ): Promise<ProjectDto> {
-    return this.projectService.updateProjectGroup(projectName, dto);
+    if (dto.name !== undefined) {
+      await this.projectService.rename(
+        projectName,
+        dto.name,
+        req.auth?.username,
+      );
+    }
+    return this.projectService.updateProjectGroup(dto.name ?? projectName, dto);
   }
 
   @Get()

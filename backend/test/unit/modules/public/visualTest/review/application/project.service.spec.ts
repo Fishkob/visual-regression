@@ -7,6 +7,7 @@ import { ProjectGroupRepository } from '@public/visualTest/review/infrastructure
 import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { DomainError } from '@common/domain/domain-error';
+import { AuditService } from '@internal/audit/audit.service';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { TestStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { createMock } from '@test/utils/create-mock';
@@ -18,6 +19,7 @@ describe('ProjectService', () => {
   let testDeletion: Mocked<TestDeletionService>;
   let groups: Mocked<ProjectGroupRepository>;
   let branchCommands: Mocked<BranchCommandService>;
+  let audit: Mocked<AuditService>;
 
   beforeEach(async () => {
     projects = createMock<ProjectRepository>();
@@ -25,6 +27,7 @@ describe('ProjectService', () => {
     testDeletion = createMock<TestDeletionService>();
     groups = createMock<ProjectGroupRepository>();
     branchCommands = createMock<BranchCommandService>();
+    audit = createMock<AuditService>();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -34,6 +37,7 @@ describe('ProjectService', () => {
         { provide: TestDeletionService, useValue: testDeletion },
         { provide: ProjectGroupRepository, useValue: groups },
         { provide: BranchCommandService, useValue: branchCommands },
+        { provide: AuditService, useValue: audit },
       ],
     }).compile();
 
@@ -218,11 +222,14 @@ describe('ProjectService', () => {
       });
     });
 
-    it('rejects an undefined groupId', async () => {
+    it('returns the project when only the name changes', async () => {
+      vi.spyOn(service, 'getWithLatestVariantStatuses').mockResolvedValue(
+        {} as never,
+      );
+
       await expect(
         service.updateProjectGroup('my-project', { groupId: undefined }),
-      ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
-      expect(projects.findByName).not.toHaveBeenCalled();
+      ).resolves.toEqual({});
     });
 
     it('rejects a missing project', async () => {

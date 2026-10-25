@@ -193,6 +193,17 @@ export class CreateProjectDto {
 
 export class UpdateProjectDto {
   @ApiPropertyOptional({
+    description: 'New project name (unique); omitted keeps the current name',
+    minLength: 1,
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  name?: string;
+
+  @ApiPropertyOptional({
     description: 'Group id, or null to move the project to Unassigned',
     nullable: true,
     type: String,

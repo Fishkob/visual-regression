@@ -9,6 +9,7 @@ export const AUDIT_ACTIONS = {
   testDelete: 'test.delete',
   variantDelete: 'variant.delete',
   projectDelete: 'project.delete',
+  projectRename: 'project.rename',
   testUpdate: 'test.update',
   branchDelete: 'branch.delete',
   webhookCreate: 'webhook.create',

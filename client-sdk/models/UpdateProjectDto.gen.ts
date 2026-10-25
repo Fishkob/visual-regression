@@ -2,6 +2,10 @@
 
 export type UpdateProjectDto = {
     /**
+     * New project name (unique); omitted keeps the current name
+     */
+    name?: string;
+    /**
      * Group id, or null to move the project to Unassigned
      */
     groupId?: string | null;
