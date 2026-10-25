@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import request from 'supertest';
 import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
@@ -105,6 +106,70 @@ describe('Auth hardening (e2e)', () => {
         code: recoveryCodes[0],
       })
       .expect(401);
+  });
+
+  it('changing the password revokes every other session', async () => {
+    await seedAdmin();
+    const first = await login();
+    const second = await login();
+    const firstCookie = cookieOf(first);
+    const secondCookie = cookieOf(second);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/change-password')
+      .set('Cookie', firstCookie)
+      .send({ currentPassword: 'secret', newPassword: 'new-secret' })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/projects')
+      .set('Cookie', secondCookie)
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ username: 'admin', password: 'secret' })
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ username: 'admin', password: 'new-secret' })
+      .expect(200);
+  });
+
+  it('rate-limits two-factor verification per IP', async () => {
+    await seedAdmin();
+    const first = await login();
+    const cookie = cookieOf(first);
+    await enableTwoFactor(cookie);
+    const challenged = await login();
+    await db.rateLimitBucket.deleteMany();
+    const config = app.get(ConfigService);
+    config.set('LOGIN_RATE_LIMIT_PER_MINUTE', '2');
+
+    try {
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/2fa/verify')
+        .send({
+          challengeToken: challenged.body.challengeToken,
+          code: '000000',
+        })
+        .expect(401);
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/2fa/verify')
+        .send({
+          challengeToken: challenged.body.challengeToken,
+          code: '000000',
+        })
+        .expect(401);
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/2fa/verify')
+        .send({
+          challengeToken: challenged.body.challengeToken,
+          code: '000000',
+        })
+        .expect(429);
+    } finally {
+      config.set('LOGIN_RATE_LIMIT_PER_MINUTE', '1000');
+    }
   });
 
   it('lists sessions, revokes one and keeps the current on revoke-all', async () => {

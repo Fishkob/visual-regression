@@ -128,6 +128,8 @@ helm upgrade --install vrt deploy/charts/vrt --namespace vrt --create-namespace 
 
 The bootstrap runs only when **both** `secrets.bootstrap_admin_username` and `secrets.bootstrap_admin_password` are non-empty, and creates that user as `ADMIN`. Log in, open **Users** to create the team (roles ADMIN/MEMBER/VIEWER), then remove both values and roll the backend so the credentials no longer live in the release. An upgraded installation promotes its oldest existing user to `ADMIN` once.
 
+Set `AUTH_COOKIE_SECURE=true` in every production deployment served over TLS (the production env example already does); the session cookie is then HTTPS-only. Session cookies are `HttpOnly` + `SameSite=Lax`, and the auth guard rejects cross-site writes whose `Origin` does not match `Host`.
+
 `admin_api_key` and `metrics_api_key` are optional: set them to enable the DLQ admin and metrics endpoints, leave them empty to keep those endpoints disabled.
 
 ---
