@@ -217,6 +217,25 @@ export class UnifiedComparisonsRepository extends BaseRepository {
     return comparison.diffImageUrl ? [comparison.diffImageUrl] : [];
   }
 
+  async findMissingDiffSizes(projectName: string, limit: number) {
+    return this.client.unifiedComparison.findMany({
+      where: {
+        diffSizeBytes: 0n,
+        test: { branch: { project: { name: projectName } } },
+        OR: [{ diffImageUrl: { not: null } }, { diffPdfUrl: { not: null } }],
+      },
+      select: { id: true, diffImageUrl: true, diffPdfUrl: true },
+      take: limit,
+    });
+  }
+
+  async setDiffSizeBytes(id: string, bytes: number): Promise<void> {
+    await this.client.unifiedComparison.update({
+      where: { id },
+      data: { diffSizeBytes: BigInt(bytes) },
+    });
+  }
+
   async sumDiffSizeForProject(projectName: string): Promise<{
     bytes: bigint;
     count: number;

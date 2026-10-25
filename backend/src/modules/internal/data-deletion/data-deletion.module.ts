@@ -17,6 +17,7 @@ import { RateLimitBucketCleanupTask } from '@internal/data-deletion/tasks/rate-l
 import { SessionCleanupTask } from '@internal/data-deletion/tasks/session-cleanup.task';
 import { RunAutoFinishTask } from '@internal/data-deletion/tasks/run-auto-finish.task';
 import { RunHistoryCleanupTask } from '@internal/data-deletion/tasks/run-history-cleanup.task';
+import { StorageSizeBackfillTask } from '@internal/data-deletion/tasks/storage-size-backfill.task';
 import { OrphanCleanupService } from './services/orphan-cleanup.service';
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
     SessionCleanupTask,
     RunAutoFinishTask,
     RunHistoryCleanupTask,
+    StorageSizeBackfillTask,
     {
       provide: MAINTENANCE_TASKS,
       useFactory: (
@@ -48,6 +50,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         sessionCleanupTask: SessionCleanupTask,
         runAutoFinishTask: RunAutoFinishTask,
         runHistoryCleanupTask: RunHistoryCleanupTask,
+        storageSizeBackfillTask: StorageSizeBackfillTask,
       ) =>
         [
           orphanCleanupService,
@@ -58,6 +61,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
           sessionCleanupTask,
           runAutoFinishTask,
           runHistoryCleanupTask,
+          storageSizeBackfillTask,
         ] as MaintenanceTask[],
       inject: [
         OrphanCleanupService,
@@ -68,6 +72,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         SessionCleanupTask,
         RunAutoFinishTask,
         RunHistoryCleanupTask,
+        StorageSizeBackfillTask,
       ],
     },
   ],

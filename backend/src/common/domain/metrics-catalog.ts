@@ -49,6 +49,7 @@ export const METRICS = {
   cleanupSessionsLastRun: 'cleanup_sessions_last_run',
   cleanupRunsAutoFinished: 'cleanup_runs_auto_finished',
   cleanupRunsRetained: 'cleanup_runs_retained_total',
+  storageSizeBackfilled: 'storage_size_backfilled_total',
 } as const;
 
 // The domain histograms' bucket config, keyed by catalog name so the buckets

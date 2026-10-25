@@ -200,6 +200,24 @@ export class UnifiedScreenshotRepository extends BaseRepository {
     await this.variants.setInherited(variantId, false);
   }
 
+  async findMissingSizes(projectName: string, limit: number) {
+    return this.client.unifiedScreenshot.findMany({
+      where: {
+        sizeBytes: 0n,
+        test: { branch: { project: { name: projectName } } },
+      },
+      select: { id: true, imageUrl: true },
+      take: limit,
+    });
+  }
+
+  async setSizeBytes(id: string, bytes: number): Promise<void> {
+    await this.client.unifiedScreenshot.update({
+      where: { id },
+      data: { sizeBytes: BigInt(bytes) },
+    });
+  }
+
   async sumSizeForProject(projectName: string): Promise<{
     bytes: bigint;
     count: number;

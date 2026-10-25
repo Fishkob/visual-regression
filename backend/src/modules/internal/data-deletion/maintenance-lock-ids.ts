@@ -12,4 +12,5 @@ export const MAINTENANCE_LOCK_IDS = {
   sessionCleanup: 1006,
   runAutoFinish: 1007,
   runHistoryCleanup: 1008,
+  storageSizeBackfill: 1009,
 } as const;
