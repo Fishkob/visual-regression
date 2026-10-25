@@ -13,6 +13,9 @@ const { mockUseQuery, queryOptions } = vi.hoisted(() => {
     current?: {
       queryKey: { value: unknown };
       queryFn: () => Promise<unknown>;
+      staleTime?: number;
+      refetchInterval?: number | false;
+      refetchOnWindowFocus?: boolean | "always";
     };
   } = {};
   const mockUseQuery = vi.fn(
@@ -59,6 +62,14 @@ describe("useReviewInboxCountQuery", () => {
       query: { skip: 0, take: 1 },
     });
     expect(result).toBe(7);
+  });
+
+  it("polls the live count and refetches when the tab regains focus", () => {
+    useReviewInboxCountQuery();
+
+    expect(queryOptions.current!.staleTime).toBe(0);
+    expect(queryOptions.current!.refetchInterval).toBe(30_000);
+    expect(queryOptions.current!.refetchOnWindowFocus).toBe("always");
   });
 });
 

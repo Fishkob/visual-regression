@@ -203,6 +203,24 @@ describe("retry option", () => {
   });
 });
 
+describe("useDomainQuery live options", () => {
+  it("forwards staleTime, polling and focus refetch to TanStack", () => {
+    useDomainQuery({
+      queryKey: ["inbox"],
+      queryFn: () => Promise.resolve([] as unknown[]),
+      staleTime: 0,
+      refetchInterval: 30_000,
+      refetchOnWindowFocus: "always",
+    });
+
+    expect(queryOptions.current).toMatchObject({
+      staleTime: 0,
+      refetchInterval: 30_000,
+      refetchOnWindowFocus: "always",
+    });
+  });
+});
+
 describe("previewSdkRead", () => {
   it("unwraps the data payload like the query seam", async () => {
     const result = await previewSdkRead<{ autoAcceptedCount: number }>(() =>

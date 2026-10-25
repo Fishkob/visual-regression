@@ -24,6 +24,36 @@ export interface DomainQueryOptions<T> {
   queryFn: () => Promise<T>;
   placeholderData?: unknown;
   retry?: number | boolean;
+  staleTime?: number;
+  refetchInterval?: number | false;
+  refetchIntervalInBackground?: boolean;
+  refetchOnWindowFocus?: boolean | "always";
+}
+
+// The freshness knobs a live view needs. Kept as one shape so every wrapper
+// forwards the same set instead of each one re-declaring a partial copy.
+export interface LiveQueryOptions {
+  staleTime?: number;
+  refetchInterval?: number | false;
+  refetchIntervalInBackground?: boolean;
+  refetchOnWindowFocus?: boolean | "always";
+}
+
+function liveOptions(options: LiveQueryOptions) {
+  return {
+    ...(options.staleTime !== undefined
+      ? { staleTime: options.staleTime }
+      : {}),
+    ...(options.refetchInterval !== undefined
+      ? { refetchInterval: options.refetchInterval }
+      : {}),
+    ...(options.refetchIntervalInBackground !== undefined
+      ? { refetchIntervalInBackground: options.refetchIntervalInBackground }
+      : {}),
+    ...(options.refetchOnWindowFocus !== undefined
+      ? { refetchOnWindowFocus: options.refetchOnWindowFocus }
+      : {}),
+  };
 }
 
 // Deep module over the TanStack query ceremony: unwraps a reactive queryKey,
@@ -46,6 +76,7 @@ export function useDomainQuery<T>(
     ...(options.placeholderData !== undefined
       ? { placeholderData: options.placeholderData }
       : {}),
+    ...liveOptions(options),
   } as UndefinedInitialQueryOptions<T, Error, T, QueryKey>);
 }
 
@@ -84,16 +115,18 @@ export function useSdkQuery<
   TDto,
   TModel,
   K extends keyof TArgs,
->(options: {
-  args: { [P in keyof TArgs]: MaybeRef<TArgs[P]> };
-  required: readonly K[];
-  keyOf: (args: ReadyArgs<TArgs, K>) => QueryKey;
-  sdkFn: (args: ReadyArgs<TArgs, K>) => Promise<unknown>;
-  map: (data: TDto | undefined) => TModel;
-  enabled?: MaybeRef<boolean>;
-  placeholderData?: unknown;
-  retry?: number | boolean;
-}): UseQueryReturnType<TModel, Error> {
+>(
+  options: {
+    args: { [P in keyof TArgs]: MaybeRef<TArgs[P]> };
+    required: readonly K[];
+    keyOf: (args: ReadyArgs<TArgs, K>) => QueryKey;
+    sdkFn: (args: ReadyArgs<TArgs, K>) => Promise<unknown>;
+    map: (data: TDto | undefined) => TModel;
+    enabled?: MaybeRef<boolean>;
+    placeholderData?: unknown;
+    retry?: number | boolean;
+  } & LiveQueryOptions,
+): UseQueryReturnType<TModel, Error> {
   const argsRef = computed(() => {
     const unwrapped = {} as TArgs;
     for (const key of Object.keys(options.args) as (keyof TArgs)[]) {
@@ -114,6 +147,7 @@ export function useSdkQuery<
     enabled: options.enabled,
     ...(options.retry !== undefined ? { retry: options.retry } : {}),
     placeholderData: options.placeholderData,
+    ...liveOptions(options),
     queryFn: async () => {
       const response = await options.sdkFn(readyArgs.value);
       return options.map(unwrapSdkData<TDto>(response));
@@ -131,22 +165,25 @@ export interface PagedList<TModel> {
   pageSize: number;
 }
 
-export function usePagedListQuery<TDto, TModel>(options: {
-  queryKey: MaybeRef<QueryKey>;
-  page: MaybeRef<number>;
-  pageSize: number;
-  enabled?: MaybeRef<boolean>;
-  retry?: number | boolean;
-  placeholderData?: unknown;
-  fetchPage: (skip: number, take: number) => Promise<unknown>;
-  map: (items: TDto[]) => TModel[];
-}): UseQueryReturnType<PagedList<TModel>, Error> {
+export function usePagedListQuery<TDto, TModel>(
+  options: {
+    queryKey: MaybeRef<QueryKey>;
+    page: MaybeRef<number>;
+    pageSize: number;
+    enabled?: MaybeRef<boolean>;
+    retry?: number | boolean;
+    placeholderData?: unknown;
+    fetchPage: (skip: number, take: number) => Promise<unknown>;
+    map: (items: TDto[]) => TModel[];
+  } & LiveQueryOptions,
+): UseQueryReturnType<PagedList<TModel>, Error> {
   const pageRef = computed(() => Math.max(1, unref(options.page) || 1));
   return useDomainQuery<PagedList<TModel>>({
     queryKey: options.queryKey,
     enabled: options.enabled,
     ...(options.retry !== undefined ? { retry: options.retry } : {}),
     placeholderData: options.placeholderData,
+    ...liveOptions(options),
     queryFn: async () => {
       const page = pageRef.value;
       const response = await options.fetchPage(
@@ -169,19 +206,22 @@ export function usePagedListQuery<TDto, TModel>(options: {
 // a declaration — key + page fetch (skip/take already unwrapped by the adapter)
 // + mapper — instead of re-typing fetchAllPages + getData<PaginatedDto> +
 // page.data ?? [] + meta?.total at every list call site.
-export function usePaginatedListQuery<TDto, TModel>(options: {
-  queryKey: MaybeRef<QueryKey>;
-  enabled?: MaybeRef<boolean>;
-  retry?: number | boolean;
-  placeholderData?: unknown;
-  fetchPage: (skip: number, take: number) => Promise<unknown>;
-  map: (items: TDto[]) => TModel[];
-}): UseQueryReturnType<TModel[], Error> {
+export function usePaginatedListQuery<TDto, TModel>(
+  options: {
+    queryKey: MaybeRef<QueryKey>;
+    enabled?: MaybeRef<boolean>;
+    retry?: number | boolean;
+    placeholderData?: unknown;
+    fetchPage: (skip: number, take: number) => Promise<unknown>;
+    map: (items: TDto[]) => TModel[];
+  } & LiveQueryOptions,
+): UseQueryReturnType<TModel[], Error> {
   return useDomainQuery<TModel[]>({
     queryKey: options.queryKey,
     enabled: options.enabled,
     ...(options.retry !== undefined ? { retry: options.retry } : {}),
     placeholderData: options.placeholderData,
+    ...liveOptions(options),
     queryFn: async () => {
       const dtos = await fetchAllPages<TDto>(async (skip) => {
         const response = await options.fetchPage(skip, DEFAULT_PAGE_SIZE);
