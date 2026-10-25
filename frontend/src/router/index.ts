@@ -5,70 +5,61 @@ import {
 } from "vue-router";
 
 import { focusRouteContent } from "@/lib/route-focus";
-import InboxView from "@/views/InboxView.vue";
-import ProjectsView from "@/views/ProjectsView.vue";
-import GroupsView from "@/views/GroupsView.vue";
-import ApiKeysView from "@/views/ApiKeysView.vue";
-import ProjectDetailView from "@/views/ProjectDetailView.vue";
-import ApprovalDoneView from "@/views/ApprovalDoneView.vue";
-import TestDetailDispatcher from "@/components/TestDetailDispatcher.vue";
-import TestOverviewView from "@/views/TestOverviewView.vue";
-import LoginView from "@/views/LoginView.vue";
 import { authGuard } from "@/lib/auth-guard";
 
 const routes: RouteRecordRaw[] = [
   {
     path: "/login",
     name: "login",
-    component: LoginView,
+    component: () => import("@/views/LoginView.vue"),
     meta: { requiresAuth: false },
   },
   {
     path: "/",
     name: "review-inbox",
-    component: InboxView,
+    component: () => import("@/views/InboxView.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/projects",
     name: "project-list",
-    component: ProjectsView,
+    component: () => import("@/views/ProjectsView.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/groups",
     name: "groups",
-    component: GroupsView,
+    component: () => import("@/views/GroupsView.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/api-keys",
     name: "api-keys",
-    component: ApiKeysView,
+    component: () => import("@/views/ApiKeysView.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/projects/:projectName",
     name: "project-detail",
-    component: ProjectDetailView,
+    component: () => import("@/views/ProjectDetailView.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/projects/:projectName/tests/:testName",
     name: "test-detail",
-    component: TestDetailDispatcher,
+    component: () => import("@/components/TestDetailDispatcher.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/projects/:projectName/tests/:testName/overview",
     name: "test-overview",
-    component: TestOverviewView,
+    component: () => import("@/views/TestOverviewView.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/projects/:projectName/done",
     name: "approval-done",
-    component: ApprovalDoneView,
+    component: () => import("@/views/ApprovalDoneView.vue"),
     meta: { requiresAuth: true },
   },
   {

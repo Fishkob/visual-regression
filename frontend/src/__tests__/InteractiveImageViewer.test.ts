@@ -118,6 +118,51 @@ describe("InteractiveImageViewer", () => {
     );
   });
 
+  it("keeps the zoomed content inside an overflowing scroll container", async () => {
+    const wrapper = mount(InteractiveImageViewer, {
+      props: defaultProps,
+    });
+
+    await wrapper.find('[data-testid="zoom-in"]').trigger("click");
+
+    const scrollContainer = wrapper.find('[data-testid="panel-baseline-zoom"]');
+    expect(scrollContainer.classes()).toContain("overflow-auto");
+    expect(scrollContainer.classes()).toContain("max-h-[70vh]");
+    expect(scrollContainer.find('[style*="scale(1.5)"]').exists()).toBe(true);
+  });
+
+  it("shows a fallback when a panel image fails to load", async () => {
+    const wrapper = mount(InteractiveImageViewer, {
+      props: defaultProps,
+    });
+
+    await wrapper.find('[data-testid="panel-baseline"] img').trigger("error");
+
+    const panel = wrapper.find('[data-testid="panel-baseline"]');
+    expect(panel.find("img").exists()).toBe(false);
+    expect(panel.text()).toContain("Image unavailable");
+    expect(panel.find('[data-testid="panel-baseline-retry"]').exists()).toBe(
+      true,
+    );
+  });
+
+  it("remounts the failed image on retry", async () => {
+    const wrapper = mount(InteractiveImageViewer, {
+      props: defaultProps,
+    });
+    const imageBeforeFailure = wrapper.find(
+      '[data-testid="panel-baseline"] img',
+    ).element;
+
+    await wrapper.find('[data-testid="panel-baseline"] img').trigger("error");
+    await wrapper.find('[data-testid="panel-baseline-retry"]').trigger("click");
+
+    const panel = wrapper.find('[data-testid="panel-baseline"]');
+    expect(panel.text()).not.toContain("Image unavailable");
+    expect(panel.find("img").attributes("src")).toBe("/images/baseline.png");
+    expect(panel.find("img").element).not.toBe(imageBeforeFailure);
+  });
+
   it("hides the diff panel and Diff Only mode when no diffUrl", () => {
     const wrapper = mount(InteractiveImageViewer, {
       props: {

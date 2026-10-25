@@ -81,6 +81,34 @@ describe("useRouteParams", () => {
     });
   });
 
+  it("narrows repeated query values to undefined", () => {
+    mockRoute.query = {
+      viewport: ["1920x1080", "1280x720"],
+      browser: ["chrome"],
+      environment: ["staging"],
+    };
+
+    const { filters } = useRouteParams();
+
+    expect(filters.value).toEqual({
+      viewport: undefined,
+      browser: undefined,
+      environment: undefined,
+    });
+  });
+
+  it("narrows null query values to undefined", () => {
+    mockRoute.query = { viewport: null, browser: null, environment: null };
+
+    const { filters } = useRouteParams();
+
+    expect(filters.value).toEqual({
+      viewport: undefined,
+      browser: undefined,
+      environment: undefined,
+    });
+  });
+
   it("exposes fromInbox when the review was opened from the inbox", () => {
     mockRoute.query = { from: "inbox" };
 

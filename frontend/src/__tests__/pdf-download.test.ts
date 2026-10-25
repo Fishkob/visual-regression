@@ -1,32 +1,48 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ref } from "vue";
 import { pdfControllerDownloadPdf } from "@sdk";
+import { toast } from "vue-sonner";
 import { downloadPdfFile } from "@/lib/pdf-download";
 
 vi.mock("@sdk", () => ({
   pdfControllerDownloadPdf: vi.fn(),
 }));
 
+vi.mock("vue-sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
+
 const mockPdfControllerDownloadPdf = pdfControllerDownloadPdf as ReturnType<
   typeof vi.fn
 >;
+const mockToastError = vi.mocked(toast.error);
+
+const flushTimers = () =>
+  new Promise((resolve) => window.setTimeout(resolve, 0));
 
 describe("downloadPdfFile", () => {
   let createSpy: ReturnType<typeof vi.spyOn>;
   let revokeSpy: ReturnType<typeof vi.spyOn>;
   let clickSpy: ReturnType<typeof vi.spyOn>;
+  let anchorsInDocumentAtClick: number[];
 
   beforeEach(() => {
+    anchorsInDocumentAtClick = [];
     createSpy = vi
       .spyOn(URL, "createObjectURL")
       .mockReturnValue("blob:mock-url");
     revokeSpy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
     clickSpy = vi
       .spyOn(HTMLAnchorElement.prototype, "click")
-      .mockImplementation(() => {});
+      .mockImplementation(() => {
+        anchorsInDocumentAtClick.push(
+          document.body.querySelectorAll("a[download]").length,
+        );
+      });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await flushTimers();
     vi.restoreAllMocks();
   });
 
@@ -50,9 +66,26 @@ describe("downloadPdfFile", () => {
         environment: "staging",
       },
     });
-    expect(createSpy).toHaveBeenCalled();
+    expect(createSpy).toHaveBeenCalledWith(expect.any(Blob));
     expect(clickSpy).toHaveBeenCalled();
-    expect(revokeSpy).toHaveBeenCalled();
+    expect(mockToastError).not.toHaveBeenCalled();
+  });
+
+  it("attaches the anchor while clicking and revokes on the next tick", async () => {
+    mockPdfControllerDownloadPdf.mockResolvedValue({
+      data: new Blob(["pdf"]),
+    });
+
+    await downloadPdfFile(ref("my-project"), ref("login-form"), "baseline");
+
+    expect(anchorsInDocumentAtClick).toEqual([1]);
+    expect(document.body.querySelector("a[download]")).toBeNull();
+    expect(revokeSpy).not.toHaveBeenCalled();
+
+    await flushTimers();
+
+    expect(revokeSpy).toHaveBeenCalledTimes(1);
+    expect(revokeSpy).toHaveBeenCalledWith("blob:mock-url");
   });
 
   it("passes the requested type through to the SDK", async () => {
@@ -123,5 +156,26 @@ describe("downloadPdfFile", () => {
 
     expect(createSpy).not.toHaveBeenCalled();
     expect(clickSpy).not.toHaveBeenCalled();
+  });
+
+  it("reports an SDK error payload instead of failing silently", async () => {
+    mockPdfControllerDownloadPdf.mockResolvedValue({
+      error: { message: "Not found" },
+    });
+
+    await downloadPdfFile(ref("my-project"), ref("login-form"), "baseline");
+
+    expect(mockToastError).toHaveBeenCalledWith("PDF download failed");
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(clickSpy).not.toHaveBeenCalled();
+  });
+
+  it("reports a rejected SDK call instead of failing silently", async () => {
+    mockPdfControllerDownloadPdf.mockRejectedValue(new Error("network error"));
+
+    await downloadPdfFile(ref("my-project"), ref("login-form"), "baseline");
+
+    expect(mockToastError).toHaveBeenCalledWith("PDF download failed");
+    expect(createSpy).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
+import { Button } from "@/components/ui/button";
 
 const props = withDefaults(
   defineProps<{
@@ -22,6 +23,22 @@ const dotColor = computed(() => {
     } as const
   )[props.border];
 });
+
+const failed = ref(false);
+const attempt = ref(0);
+
+const retry = () => {
+  failed.value = false;
+  attempt.value += 1;
+};
+
+watch(
+  () => props.url,
+  () => {
+    failed.value = false;
+    attempt.value += 1;
+  },
+);
 </script>
 
 <template>
@@ -40,11 +57,21 @@ const dotColor = computed(() => {
       class="flex items-center justify-center min-h-[300px] overflow-hidden bg-image-canvas rounded-2xl"
     >
       <img
+        v-if="!failed"
+        :key="attempt"
         :src="url"
         :alt="label"
         loading="lazy"
         class="max-h-[70vh] max-w-full object-contain select-none"
+        @error="failed = true"
       />
+      <div
+        v-else
+        class="flex flex-col items-center justify-center gap-2 p-4 text-center"
+      >
+        <span class="text-sm text-status-danger">Image unavailable</span>
+        <Button variant="outline" size="sm" @click="retry">Retry</Button>
+      </div>
     </div>
   </div>
 </template>

@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ref } from "vue";
 import {
+  useDomainQuery,
   useSdkQuery,
+  usePagedListQuery,
   usePaginatedListQuery,
   previewSdkRead,
 } from "@/composables/useDomainQuery";
@@ -131,6 +133,73 @@ describe("usePaginatedListQuery", () => {
     });
 
     await expect(queryOptions.current!.queryFn()).resolves.toEqual([]);
+  });
+});
+
+describe("retry option", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    queryOptions.current = undefined;
+  });
+
+  const noRetry = () =>
+    expect(queryOptions.current).not.toHaveProperty("retry");
+
+  it("omits retry for useDomainQuery when the caller does not set it", () => {
+    useDomainQuery({
+      queryKey: ["projects"],
+      queryFn: () => Promise.resolve([] as unknown[]),
+    });
+
+    noRetry();
+  });
+
+  it("omits retry for useSdkQuery when the caller does not set it", () => {
+    useSdkQuery({
+      args: { projectName: ref("my-project") },
+      required: ["projectName"],
+      keyOf: ({ projectName }) => ["detail", projectName],
+      sdkFn: () => Promise.resolve({ data: {} }),
+      map: (data: unknown) => data,
+    });
+
+    noRetry();
+  });
+
+  it("omits retry for usePagedListQuery when the caller does not set it", () => {
+    usePagedListQuery({
+      queryKey: ["projects", 1],
+      page: 1,
+      pageSize: 20,
+      fetchPage: () =>
+        Promise.resolve({ data: { data: [], meta: { total: 0 } } }),
+      map: (items: unknown[]) => items,
+    });
+
+    noRetry();
+  });
+
+  it("omits retry for usePaginatedListQuery when the caller does not set it", () => {
+    usePaginatedListQuery({
+      queryKey: ["projects"],
+      fetchPage: () =>
+        Promise.resolve({ data: { data: [], meta: { total: 0 } } }),
+      map: (items: unknown[]) => items,
+    });
+
+    noRetry();
+  });
+
+  it("passes an explicit caller retry through", () => {
+    usePaginatedListQuery({
+      queryKey: ["projects"],
+      retry: false,
+      fetchPage: () =>
+        Promise.resolve({ data: { data: [], meta: { total: 0 } } }),
+      map: (items: unknown[]) => items,
+    });
+
+    expect(queryOptions.current!.retry).toBe(false);
   });
 });
 

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, reactive, watch } from "vue";
 import {
   ViewModeToggle,
   type ViewMode,
 } from "@/components/ui/view-mode-toggle";
+import { Button } from "@/components/ui/button";
 import { TEST_ID } from "@/lib/test-ids";
 
 const props = withDefaults(
@@ -23,6 +24,38 @@ const viewMode = ref<ViewMode>("side-by-side");
 const zoomLevel = ref(100);
 
 const ZOOM_STEPS = [50, 75, 100, 150, 200];
+
+const failed = reactive<Record<string, boolean>>({});
+const attempts = reactive<Record<string, number>>({});
+const sizes = reactive<Record<string, { width: number; height: number }>>({});
+
+const isFailed = (key: string) => failed[key] === true;
+
+const markFailed = (key: string) => {
+  failed[key] = true;
+};
+
+const retry = (key: string) => {
+  failed[key] = false;
+  attempts[key] = (attempts[key] ?? 0) + 1;
+};
+
+const imageKey = (key: string) => `${key}-${attempts[key] ?? 0}`;
+
+const onImageLoad = (key: string, event: Event) => {
+  const img = event.target as HTMLImageElement;
+  if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+    sizes[key] = { width: img.naturalWidth, height: img.naturalHeight };
+  }
+};
+
+watch(
+  () => [props.baselineUrl, props.candidateUrl, props.diffUrl],
+  () => {
+    for (const key of Object.keys(failed)) delete failed[key];
+    for (const key of Object.keys(sizes)) delete sizes[key];
+  },
+);
 
 const zoomIn = () => {
   const idx = ZOOM_STEPS.indexOf(zoomLevel.value);
@@ -178,19 +211,43 @@ const panels = computed(() => {
           <span>{{ panel.label }}</span>
         </div>
         <div
-          class="flex items-center justify-center min-h-[300px] max-h-[70vh] overflow-hidden bg-image-canvas rounded-2xl"
-          :style="{
-            transform: `scale(${zoomLevel / 100})`,
-            transformOrigin: 'top left',
-          }"
+          :data-testid="`${panel.testId}-zoom`"
+          class="min-h-[300px] max-h-[70vh] overflow-auto bg-image-canvas rounded-2xl"
         >
-          <img
-            v-if="panel.url"
-            :src="panel.url"
-            :alt="panel.label"
-            loading="lazy"
-            class="max-h-full max-w-full object-contain select-none"
-          />
+          <div
+            v-if="isFailed(panel.key)"
+            class="flex flex-col items-center justify-center gap-2 min-h-[300px] p-4 text-center"
+          >
+            <span class="text-sm text-status-danger">Image unavailable</span>
+            <Button
+              variant="outline"
+              size="sm"
+              :data-testid="`${panel.testId}-retry`"
+              @click="retry(panel.key)"
+            >
+              Retry
+            </Button>
+          </div>
+          <div
+            v-else
+            class="flex items-center justify-center min-h-[300px] w-full"
+            :style="{
+              transform: `scale(${zoomLevel / 100})`,
+              transformOrigin: 'top left',
+            }"
+          >
+            <img
+              :key="imageKey(panel.key)"
+              :src="panel.url"
+              :alt="panel.label"
+              :width="sizes[panel.key]?.width"
+              :height="sizes[panel.key]?.height"
+              loading="lazy"
+              class="block max-w-full h-auto object-contain select-none"
+              @load="onImageLoad(panel.key, $event)"
+              @error="markFailed(panel.key)"
+            />
+          </div>
         </div>
       </div>
     </div>

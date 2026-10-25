@@ -42,7 +42,7 @@ export function useDomainQuery<T>(
     queryKey: keyRef,
     queryFn: options.queryFn,
     enabled: enabledRef,
-    retry: options.retry,
+    ...(options.retry !== undefined ? { retry: options.retry } : {}),
     ...(options.placeholderData !== undefined
       ? { placeholderData: options.placeholderData }
       : {}),
@@ -112,7 +112,7 @@ export function useSdkQuery<
       readyRef.value ? options.keyOf(readyArgs.value) : [],
     ),
     enabled: options.enabled,
-    retry: options.retry,
+    ...(options.retry !== undefined ? { retry: options.retry } : {}),
     placeholderData: options.placeholderData,
     queryFn: async () => {
       const response = await options.sdkFn(readyArgs.value);
@@ -145,7 +145,7 @@ export function usePagedListQuery<TDto, TModel>(options: {
   return useDomainQuery<PagedList<TModel>>({
     queryKey: options.queryKey,
     enabled: options.enabled,
-    retry: options.retry,
+    ...(options.retry !== undefined ? { retry: options.retry } : {}),
     placeholderData: options.placeholderData,
     queryFn: async () => {
       const page = pageRef.value;
@@ -180,7 +180,7 @@ export function usePaginatedListQuery<TDto, TModel>(options: {
   return useDomainQuery<TModel[]>({
     queryKey: options.queryKey,
     enabled: options.enabled,
-    retry: options.retry,
+    ...(options.retry !== undefined ? { retry: options.retry } : {}),
     placeholderData: options.placeholderData,
     queryFn: async () => {
       const dtos = await fetchAllPages<TDto>(async (skip) => {
