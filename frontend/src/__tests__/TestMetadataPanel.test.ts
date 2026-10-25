@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import TestMetadataPanel from "@/components/test-lifecycle/TestMetadataPanel.vue";
+import { Select } from "@/components/ui/select";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { mockGet, mockUpdate, mockReplace, canWriteRef } = vi.hoisted(() => ({
@@ -42,6 +43,7 @@ function metadataDto(overrides: Record<string, unknown> = {}) {
     mutedUntil: null,
     muteReason: null,
     isMuted: false,
+    sizePolicy: "FAIL",
     flake: { transitions: 3, changed: 2, clean: 1 },
     ...overrides,
   };
@@ -163,6 +165,7 @@ describe("TestMetadataPanel", () => {
           name: "checkout-v2",
           description: "Login flow",
           tags: ["smoke", "auth"],
+          sizePolicy: "FAIL",
         },
       }),
     );
@@ -196,6 +199,7 @@ describe("TestMetadataPanel", () => {
           name: "login",
           description: "Updated description",
           tags: ["smoke", "critical"],
+          sizePolicy: "FAIL",
         },
       }),
     );
@@ -224,8 +228,39 @@ describe("TestMetadataPanel", () => {
           name: "login",
           description: "Login flow",
           tags: ["smoke", "auth"],
+          sizePolicy: "FAIL",
           mutedUntil: expectedIso,
           muteReason: "flaky fixture",
+        },
+      }),
+    );
+  });
+
+  it("saves the selected size policy", async () => {
+    const wrapper = mountPanel();
+    await waitForPanel(wrapper);
+    await openEditor(wrapper);
+
+    const policySelect = wrapper
+      .findAllComponents(Select)
+      .find((component) =>
+        component
+          .find(`[data-testid="${TEST_ID.testSizePolicySelect}"]`)
+          .exists(),
+      );
+    if (!policySelect) throw new Error("size policy select not found");
+    policySelect.vm.$emit("update:modelValue", "RESIZE");
+    await wrapper.find("form").trigger("submit");
+
+    await vi.waitFor(() =>
+      expect(mockUpdate).toHaveBeenCalledWith({
+        path: { projectName: "checkout", testName: "login" },
+        query: { branch: "main" },
+        body: {
+          name: "login",
+          description: "Login flow",
+          tags: ["smoke", "auth"],
+          sizePolicy: "RESIZE",
         },
       }),
     );

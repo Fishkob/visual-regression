@@ -59,7 +59,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 · R8 · ADR-036             | Shipped     |
 | R14 | Search & discovery                       | 5     | M    | —                             | Shipped     |
 | R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Shipped     |
-| R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Planned     |
+| R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Shipped     |
 | R17 | Internationalization                     | 5     | M    | —                             | Planned     |
 | R18 | Share links                              | 5     | M    | R9                            | Planned     |
 | R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4                        | Planned     |
@@ -764,6 +764,21 @@ use the overrides.
 **Scope.** Accept JPEG/WebP (decode to RGBA for comparison or convert on ingest);
 per-test size policy: fail (default) / pad / crop / resize; clearer limit errors;
 action docs. Dependency choice (sharp vs. pure JS) in ADR-032.
+
+**Delivered.** JPEG/WebP are accepted at the edge and normalized to PNG with
+`sharp` before hashing/storage; PNG stays untouched. `UnifiedTest.sizePolicy`
+(`FAIL` default, `PAD`, `CROP`, `RESIZE`) is applied by the image engine to the
+candidate only; the diff stays baseline-sized. The upload pipe, `sharp` decode
+and engine header check all enforce the pixel/byte limits with named errors. The
+size policy is editable in the test dialog and shown as a badge.
+
+**Verification.** E2E covers JPEG/WebP uploads, the unsupported MIME rejection
+and the metadata round-trip; unit tests cover JPEG/WebP normalization, all four
+engine policies and the metadata/lifecycle mapping. Decision: ADR-032.
+
+**Known limitation.** The policy is test-level (not per variant) and image-only;
+PAD letterboxes with black bars that count as mismatches unless the baseline has
+the same bars.
 
 **Size.** M · independent.
 

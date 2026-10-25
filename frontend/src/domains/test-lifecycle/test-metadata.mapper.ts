@@ -1,5 +1,11 @@
 import type { TestMetadataDto } from "@sdk";
-import type { TestFlake, TestMetadata } from "./test-metadata.model";
+import {
+  DEFAULT_SIZE_POLICY,
+  isSizePolicy,
+  type SizePolicy,
+  type TestFlake,
+  type TestMetadata,
+} from "./test-metadata.model";
 
 // The generated spec double-nests tags (`Array<Array<string>>`, the same Swagger
 // `type: [String], isArray: true` quirk as recovery codes) while the backend
@@ -7,13 +13,21 @@ import type { TestFlake, TestMetadata } from "./test-metadata.model";
 // flattens/normalizes them into the model.
 export type TestMetadataSource = Omit<
   TestMetadataDto,
-  "tags" | "description" | "mutedUntil" | "muteReason"
+  "tags" | "description" | "mutedUntil" | "muteReason" | "sizePolicy"
 > & {
   tags?: unknown;
   description?: unknown;
   mutedUntil?: unknown;
   muteReason?: unknown;
+  sizePolicy?: unknown;
 };
+
+// An unknown policy from a newer backend must not break the page: FAIL is the
+// safe, visible behavior (a dimension mismatch is reported instead of being
+// silently transformed).
+function presentSizePolicy(value: unknown): SizePolicy {
+  return isSizePolicy(value) ? value : DEFAULT_SIZE_POLICY;
+}
 
 function presentString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
@@ -70,6 +84,7 @@ export function mapTestMetadata(
     mutedUntil: presentIso(dto.mutedUntil),
     muteReason: presentString(dto.muteReason),
     isMuted: dto.isMuted === true,
+    sizePolicy: presentSizePolicy(dto.sizePolicy),
     flake: mapFlake(dto.flake),
   };
 }

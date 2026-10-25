@@ -2,10 +2,22 @@
 import { computed, ref, watch } from "vue";
 import FormDialog from "@/components/FormDialog.vue";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { sdkErrorMessage } from "@/lib/sdk";
 import {
+  DEFAULT_SIZE_POLICY,
+  SIZE_POLICIES,
+  SIZE_POLICY_DESCRIPTION,
+  SIZE_POLICY_LABEL,
   formatTags,
   parseTags,
+  type SizePolicy,
   type UpdateTestMetadataInput,
 } from "@/domains/test-lifecycle/test-metadata.model";
 import { TEST_ID } from "@/lib/test-ids";
@@ -18,6 +30,7 @@ const props = defineProps<{
   mutedUntil: string | null;
   muteReason: string | null;
   isMuted: boolean;
+  sizePolicy: SizePolicy;
   pending?: boolean;
   error?: unknown;
 }>();
@@ -33,6 +46,7 @@ const description = ref("");
 const tags = ref("");
 const mutedUntil = ref("");
 const muteReason = ref("");
+const sizePolicy = ref<SizePolicy>(DEFAULT_SIZE_POLICY);
 
 // ISO in, local datetime-local out; vice versa on submit. The input is local
 // time, so the round-trip keeps what the operator typed.
@@ -61,6 +75,7 @@ watch(
     tags.value = formatTags(props.tags);
     mutedUntil.value = toLocalInput(props.mutedUntil);
     muteReason.value = props.muteReason ?? "";
+    sizePolicy.value = props.sizePolicy;
   },
 );
 
@@ -83,6 +98,7 @@ function submit() {
     name: name.value.trim(),
     description: description.value.trim() ? description.value.trim() : null,
     tags: parsedTags,
+    sizePolicy: sizePolicy.value,
     ...(includesMute
       ? {
           mutedUntil: nextMutedUntil.value,
@@ -97,7 +113,7 @@ function submit() {
   <FormDialog
     :open="open"
     title="Edit test"
-    description="Rename the test, describe it, tag it, or mute it. A muted test leaves the review inbox until the mute expires."
+    description="Rename the test, describe it, tag it, choose how a size mismatch is handled, or mute it. A muted test leaves the review inbox until the mute expires."
     confirm-text="Save changes"
     :pending="pending"
     :submit-disabled="invalid"
@@ -134,6 +150,27 @@ function submit() {
         />
         <span class="block text-xs text-muted-foreground">
           Comma-separated; stored lowercase.
+        </span>
+      </label>
+
+      <label class="block space-y-1 text-sm">
+        <span>Size policy</span>
+        <Select v-model="sizePolicy">
+          <SelectTrigger :data-testid="TEST_ID.testSizePolicySelect">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem
+              v-for="policy in SIZE_POLICIES"
+              :key="policy"
+              :value="policy"
+            >
+              {{ SIZE_POLICY_LABEL[policy] }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <span class="block text-xs text-muted-foreground">
+          {{ SIZE_POLICY_DESCRIPTION[sizePolicy] }}
         </span>
       </label>
 

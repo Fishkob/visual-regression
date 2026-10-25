@@ -1,3 +1,28 @@
+// What to do when a candidate's dimensions differ from the baseline's.
+export const SIZE_POLICIES = ["FAIL", "PAD", "CROP", "RESIZE"] as const;
+
+export type SizePolicy = (typeof SIZE_POLICIES)[number];
+
+export const DEFAULT_SIZE_POLICY: SizePolicy = "FAIL";
+
+export const SIZE_POLICY_LABEL: Record<SizePolicy, string> = {
+  FAIL: "Fail",
+  PAD: "Pad",
+  CROP: "Crop",
+  RESIZE: "Resize",
+};
+
+export const SIZE_POLICY_DESCRIPTION: Record<SizePolicy, string> = {
+  FAIL: "Report a dimension mismatch (default).",
+  PAD: "Pad the candidate to the baseline size.",
+  CROP: "Crop the candidate to the baseline size.",
+  RESIZE: "Resize the candidate to the baseline size.",
+};
+
+export function isSizePolicy(value: unknown): value is SizePolicy {
+  return SIZE_POLICIES.some((policy) => policy === value);
+}
+
 export interface TestFlake {
   transitions: number;
   changed: number;
@@ -15,6 +40,7 @@ export interface TestMetadata {
   mutedUntil: string | null;
   muteReason: string | null;
   isMuted: boolean;
+  sizePolicy: SizePolicy;
   flake: TestFlake;
 }
 
@@ -26,6 +52,7 @@ export interface UpdateTestMetadataInput {
   tags?: string[];
   mutedUntil?: string | null;
   muteReason?: string | null;
+  sizePolicy?: SizePolicy;
 }
 
 export const EMPTY_TEST_FLAKE: TestFlake = {

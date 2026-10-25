@@ -11,6 +11,7 @@ import {
   useUpdateTestMetadata,
 } from "@/composables/useTestLifecycle";
 import {
+  SIZE_POLICY_LABEL,
   testFlakeLabel,
   type UpdateTestMetadataInput,
 } from "@/domains/test-lifecycle/test-metadata.model";
@@ -91,6 +92,14 @@ function unmute() {
       {{ testFlakeLabel(metadata.flake) }}
     </Badge>
 
+    <Badge
+      variant="outline"
+      class="text-xs"
+      :data-testid="TEST_ID.testSizePolicy"
+    >
+      Size policy: {{ SIZE_POLICY_LABEL[metadata.sizePolicy] }}
+    </Badge>
+
     <div
       v-if="metadata.tags.length > 0"
       class="flex flex-wrap items-center gap-1"
@@ -134,6 +143,7 @@ function unmute() {
       :muted-until="metadata.mutedUntil"
       :mute-reason="metadata.muteReason"
       :is-muted="metadata.isMuted"
+      :size-policy="metadata.sizePolicy"
       :pending="update.isPending.value"
       :error="update.error.value"
       @update:open="dialogOpen = $event"

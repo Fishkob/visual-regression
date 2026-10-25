@@ -313,6 +313,7 @@ The dashboard shows these on the project's Trends page. The underlying `Comparis
 
 ## 5. Notes and limits
 
+- **Formats:** image uploads accept PNG, JPEG and WebP; JPEG/WebP are normalized to PNG at intake. A dimension mismatch follows the test's size policy (`FAIL` default, `PAD`, `CROP`, `RESIZE`).
 - **Branch:** omit `branch` to use the project default; a new branch inherits the target branch's baseline. Pass the branch that produced the capture.
 - **Wait cap:** the API accepts `wait` up to 30 seconds per request. Loop for longer budgets (the action does).
 - **Idempotency:** uploads are content-addressed per test/variant; an identical capture short-circuits as `identical`. A retried job-status request is safe.

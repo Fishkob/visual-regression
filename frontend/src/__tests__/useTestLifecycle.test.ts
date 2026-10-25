@@ -31,6 +31,7 @@ const metadataDto = (overrides: Record<string, unknown> = {}) => ({
   mutedUntil: null,
   muteReason: null,
   isMuted: false,
+  sizePolicy: "FAIL",
   flake: { transitions: 1, changed: 1, clean: 0 },
   ...overrides,
 });
@@ -113,6 +114,7 @@ describe("useUpdateTestMetadata", () => {
         mutedUntil,
         muteReason: "flaky",
         isMuted: true,
+        sizePolicy: "RESIZE",
       }),
     });
 
@@ -125,6 +127,7 @@ describe("useUpdateTestMetadata", () => {
       tags: ["smoke", "ci"],
       mutedUntil,
       muteReason: "flaky",
+      sizePolicy: "RESIZE",
     });
 
     expect(mockUpdate).toHaveBeenCalledWith({
@@ -135,10 +138,12 @@ describe("useUpdateTestMetadata", () => {
         tags: ["smoke", "ci"],
         mutedUntil,
         muteReason: "flaky",
+        sizePolicy: "RESIZE",
       },
     });
     expect(saved.name).toBe("renamed");
     expect(saved.tags).toEqual(["smoke", "ci"]);
+    expect(saved.sizePolicy).toBe("RESIZE");
     expect(mockUpdate.mock.calls[0]?.[0]).not.toHaveProperty(
       "body.description",
     );

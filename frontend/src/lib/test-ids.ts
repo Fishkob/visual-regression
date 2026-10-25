@@ -86,6 +86,8 @@ export const TEST_ID = {
   testEditName: "test-edit-name",
   testEditDescription: "test-edit-description",
   testEditTags: "test-edit-tags",
+  testSizePolicy: "test-size-policy",
+  testSizePolicySelect: "test-size-policy-select",
   testMuteUntil: "test-mute-until",
   testMuteReason: "test-mute-reason",
   testMuteSubmit: "test-mute-submit",

@@ -44,11 +44,10 @@ function toUpdateBody(input: UpdateTestMetadataInput) {
     ...(input.description === undefined
       ? {}
       : { description: input.description }),
-    ...(input.tags === undefined
-      ? {}
-      : { tags: input.tags }),
+    ...(input.tags === undefined ? {} : { tags: input.tags }),
     ...(input.mutedUntil === undefined ? {} : { mutedUntil: input.mutedUntil }),
     ...(input.muteReason === undefined ? {} : { muteReason: input.muteReason }),
+    ...(input.sizePolicy === undefined ? {} : { sizePolicy: input.sizePolicy }),
   };
 }
 

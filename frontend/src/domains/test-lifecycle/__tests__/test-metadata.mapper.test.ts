@@ -16,6 +16,7 @@ const metadataDto = (
   mutedUntil: "2026-11-01T10:00:00.000Z",
   muteReason: "flaky fixture",
   isMuted: true,
+  sizePolicy: "PAD",
   flake: { transitions: 4, changed: 3, clean: 1 },
   ...overrides,
 });
@@ -30,6 +31,7 @@ describe("mapTestMetadata", () => {
       mutedUntil: "2026-11-01T10:00:00.000Z",
       muteReason: "flaky fixture",
       isMuted: true,
+      sizePolicy: "PAD",
       flake: { transitions: 4, changed: 3, clean: 1 },
     });
   });
@@ -50,6 +52,7 @@ describe("mapTestMetadata", () => {
       mutedUntil: null,
       muteReason: null,
       isMuted: false,
+      sizePolicy: "FAIL",
       flake: { transitions: 0, changed: 0, clean: 0 },
     });
   });
@@ -83,6 +86,27 @@ describe("mapTestMetadata", () => {
     );
 
     expect(metadata?.mutedUntil).toBe("2026-11-01T10:00:00.000Z");
+  });
+
+  it("maps a known size policy", () => {
+    expect(
+      mapTestMetadata(metadataDto({ sizePolicy: "RESIZE" }))?.sizePolicy,
+    ).toBe("RESIZE");
+  });
+
+  it("defaults an unknown or missing size policy to FAIL", () => {
+    expect(
+      mapTestMetadata(metadataDto({ sizePolicy: "STRETCH" }))?.sizePolicy,
+    ).toBe("FAIL");
+    const withoutPolicy = {
+      id: "t-3",
+      name: "login",
+      tags: [],
+      isMuted: false,
+      flake: { transitions: 0, changed: 0, clean: 0 },
+    } as unknown as TestMetadataDto;
+
+    expect(mapTestMetadata(withoutPolicy)?.sizePolicy).toBe("FAIL");
   });
 
   it("keeps 'not loaded' distinct from empty metadata", () => {
