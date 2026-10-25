@@ -90,7 +90,7 @@ const pending = computed(() => pendingCount.value ?? 0);
         </span>
         <span
           v-if="pending > 0"
-          class="ml-auto rounded-full bg-status-warning/15 px-1.5 py-0.5 text-xs text-status-warning"
+          class="ml-auto rounded-full bg-status-warning/15 px-1.5 py-0.5 text-xs text-foreground"
           :class="collapsed ? 'md:hidden' : ''"
           :data-testid="TEST_ID.inboxBadge"
         >

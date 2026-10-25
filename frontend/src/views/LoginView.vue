@@ -2,22 +2,28 @@
   <div class="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
     <h1 class="text-2xl font-semibold">Sign in</h1>
     <form class="w-80 space-y-4" @submit.prevent="submit">
-      <Input
-        v-model="username"
-        type="text"
-        placeholder="Username"
-        autocomplete="username"
-        :data-testid="TEST_ID.loginUsername"
-        class="w-full"
-      />
-      <Input
-        v-model="password"
-        type="password"
-        placeholder="Password"
-        autocomplete="current-password"
-        :data-testid="TEST_ID.loginPassword"
-        class="w-full"
-      />
+      <div class="space-y-1">
+        <label for="login-username" class="block text-sm">Username</label>
+        <Input
+          id="login-username"
+          v-model="username"
+          type="text"
+          autocomplete="username"
+          :data-testid="TEST_ID.loginUsername"
+          class="w-full"
+        />
+      </div>
+      <div class="space-y-1">
+        <label for="login-password" class="block text-sm">Password</label>
+        <Input
+          id="login-password"
+          v-model="password"
+          type="password"
+          autocomplete="current-password"
+          :data-testid="TEST_ID.loginPassword"
+          class="w-full"
+        />
+      </div>
       <Button
         type="submit"
         :data-testid="TEST_ID.loginSubmit"

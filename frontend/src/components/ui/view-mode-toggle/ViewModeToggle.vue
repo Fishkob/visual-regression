@@ -30,11 +30,16 @@ const visibleModes = () => (props.showDiff ? modes : [modes[0]]);
 </script>
 
 <template>
-  <div class="flex gap-1 p-1 bg-muted rounded-lg">
+  <div
+    class="flex gap-1 p-1 bg-muted rounded-lg"
+    role="group"
+    aria-label="View mode"
+  >
     <button
       v-for="mode in visibleModes()"
       :key="mode.key"
       :data-testid="mode.testId"
+      :aria-pressed="modelValue === mode.key"
       class="px-3 py-1.5 text-sm rounded-md transition-colors"
       :class="
         modelValue === mode.key

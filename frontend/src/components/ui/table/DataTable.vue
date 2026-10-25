@@ -71,6 +71,21 @@ function onRowClick(row: TData) {
   emit("rowClick", row);
 }
 
+function onRowKeydown(ev: KeyboardEvent, row: TData) {
+  if (ev.target !== ev.currentTarget) return;
+  if (ev.key === " " || ev.key === "Spacebar") ev.preventDefault();
+  onRowClick(row);
+}
+
+type AriaSort = "ascending" | "descending" | "none";
+
+function ariaSort(column: Column<AppTableFeatures, TData, unknown>): AriaSort {
+  const direction = column.getIsSorted();
+  if (direction === "asc") return "ascending";
+  if (direction === "desc") return "descending";
+  return "none";
+}
+
 function getColumnId(
   col: ColumnDef<AppTableFeatures, TData>,
   index: number,
@@ -103,10 +118,18 @@ function isActionsColumn(col: ColumnDef<AppTableFeatures, TData>): boolean {
             v-for="header in headerGroup.headers"
             :key="header.id"
             :data-testid="TEST_ID.tableHeaderCell"
-            class="select-none text-left px-4 py-2 font-medium text-sm text-muted-foreground hover:bg-muted/50 rounded-sm transition-colors"
-            @click="onSort(header.column, $event)"
+            :aria-sort="
+              header.column.getCanSort() ? ariaSort(header.column) : undefined
+            "
+            class="select-none text-left px-4 py-2 font-medium text-sm text-muted-foreground rounded-sm transition-colors"
+            :class="header.column.getCanSort() ? 'hover:bg-muted/50' : ''"
           >
-            <div class="flex items-center gap-2">
+            <button
+              v-if="header.column.getCanSort()"
+              type="button"
+              class="flex w-full cursor-pointer items-center gap-2 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              @click="onSort(header.column, $event)"
+            >
               <FlexRender
                 :render="header.column.columnDef.header"
                 :props="header.getContext()"
@@ -119,6 +142,12 @@ function isActionsColumn(col: ColumnDef<AppTableFeatures, TData>): boolean {
                 class="text-xs"
                 >▼</span
               >
+            </button>
+            <div v-else class="flex items-center gap-2">
+              <FlexRender
+                :render="header.column.columnDef.header"
+                :props="header.getContext()"
+              />
             </div>
           </TableHead>
         </TableRow>
@@ -153,11 +182,16 @@ function isActionsColumn(col: ColumnDef<AppTableFeatures, TData>): boolean {
             v-for="row in table.getRowModel().rows"
             :key="row.id"
             :data-testid="TEST_ID.tableRow"
+            :tabindex="props.clickableRows ? 0 : undefined"
             :class="[
               'group transition-colors',
-              props.clickableRows ? 'cursor-pointer hover:bg-muted/50' : '',
+              props.clickableRows
+                ? 'cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring focus-visible:-outline-offset-2'
+                : '',
             ]"
             @click="onRowClick(row.original)"
+            @keydown.enter="onRowKeydown($event, row.original)"
+            @keydown.space="onRowKeydown($event, row.original)"
           >
             <TableCell
               class="w-1 p-0 bg-transparent group-hover:bg-primary/60 transition-all duration-150 rounded-l-md"

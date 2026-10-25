@@ -59,6 +59,20 @@ describe("LoginView", () => {
     expect(push).toHaveBeenCalledWith({ name: "review-inbox" });
   });
 
+  it("labels the credential inputs", () => {
+    const wrapper = mount(LoginView);
+
+    for (const [testId, labelText] of [
+      [TEST_ID.loginUsername, "Username"],
+      [TEST_ID.loginPassword, "Password"],
+    ] as const) {
+      const input = wrapper.get(`[data-testid="${testId}"]`);
+      const id = input.attributes("id");
+      expect(id).toBeTruthy();
+      expect(wrapper.get(`label[for="${id}"]`).text()).toBe(labelText);
+    }
+  });
+
   it("surfaces an error message when login fails", async () => {
     mockLogin.mockResolvedValue({
       error: { message: "Invalid username or password" },
