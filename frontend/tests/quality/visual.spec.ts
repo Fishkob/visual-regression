@@ -19,8 +19,11 @@ for (const qualityCase of QUALITY_CASES) {
         ).toBeVisible();
       }
 
+      const mask = qualityCase.maskTestIds?.map((id) => page.getByTestId(id));
+
       await expect(page).toHaveScreenshot(`${qualityCase.name}-${theme}.png`, {
         fullPage: true,
+        ...(mask && mask.length > 0 ? { mask } : {}),
       });
     });
   }

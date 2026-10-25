@@ -30,6 +30,8 @@ export interface QualityCase {
   routes?: MockRoute[];
   readyTestId: string;
   readyAlsoTestId?: string;
+  // Dynamic content (counts, avatars) that must not make screenshots flaky.
+  maskTestIds?: string[];
 }
 
 const PROJECTS_GLOB = "**/api/v1/projects/pending*";
@@ -100,6 +102,7 @@ export const QUALITY_CASES: QualityCase[] = [
     story: "views/InboxView/Inbox",
     routes: [["**/api/v1/review/pending*", REVIEW_INBOX_RESPONSE]],
     readyTestId: TEST_ID.inboxItem,
+    maskTestIds: [TEST_ID.inboxBadge],
   },
   {
     name: "groups",
@@ -133,5 +136,6 @@ export const QUALITY_CASES: QualityCase[] = [
       ["**/api/v1/review/pending*", REVIEW_INBOX_RESPONSE],
     ],
     readyTestId: TEST_ID.tableRow,
+    maskTestIds: [TEST_ID.inboxBadge],
   },
 ];

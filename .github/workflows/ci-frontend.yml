@@ -134,9 +134,9 @@ jobs:
 
   frontend-quality:
     name: Frontend Theme Quality
-    # The committed baselines are Linux arm64. This must stay a native arm64
-    # runner: Chromium crashes when the amd64 image is emulated via QEMU on arm64.
-    runs-on: ubuntu-24.04-arm
+    # The committed baselines are Linux amd64, produced by the pinned quality
+    # image so local x86_64 machines and CI render identically.
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
@@ -146,8 +146,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Verify arm64 runner
-        run: test "$(uname -m)" = "aarch64"
+      - name: Verify x86_64 runner
+        run: test "$(uname -m)" = "x86_64"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -155,7 +155,7 @@ jobs:
       - name: Build quality image
         run: >
           docker buildx build --load
-          --platform linux/arm64
+          --platform linux/amd64
           --cache-from type=gha,scope=frontend-quality
           --cache-to type=gha,mode=max,scope=frontend-quality
           -f frontend/Dockerfile.quality
@@ -163,13 +163,13 @@ jobs:
 
       - name: Verify image architecture
         run: |
-          test "$(docker image inspect --format '{{.Architecture}}' visual-regression-frontend-quality:ci)" = "arm64"
+          test "$(docker image inspect --format '{{.Architecture}}' visual-regression-frontend-quality:ci)" = "amd64"
 
       - name: Visual regression (light + dark)
         run: ./scripts/quality.sh visual --no-build
         env:
           QUALITY_IMAGE: visual-regression-frontend-quality:ci
-          QUALITY_PLATFORM: linux/arm64
+          QUALITY_PLATFORM: linux/amd64
 
       - name: Accessibility (light + dark)
         run: ./scripts/quality.sh a11y --no-build

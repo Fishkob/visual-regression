@@ -38,7 +38,7 @@ Walkthrough: `docs/local-development.md`
 | `pnpm run e2eTest`                     | Backend E2E tests (auto-starts Docker)                      |
 | `cd frontend && pnpm test`             | Frontend unit tests (vitest + jsdom)                        |
 | `cd frontend && pnpm test-e2e`         | Frontend E2E (requires frontend running)                    |
-| `./scripts/quality.sh visual`          | Dark/light screenshot suite (Docker, Linux arm64 baselines) |
+| `./scripts/quality.sh visual`          | Dark/light screenshot suite (Docker, Linux amd64 baselines) |
 | `./scripts/quality.sh a11y`            | Axe WCAG A/AA scan in both themes                           |
 | `./scripts/quality.sh visual --update` | Regenerate visual baselines                                 |
 

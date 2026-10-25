@@ -39,8 +39,8 @@ if [ "$UPDATE" -eq 1 ] && [ "$MODE" != "visual" ]; then
 fi
 
 IMAGE="${QUALITY_IMAGE:-visual-regression-frontend-quality:local}"
-# Committed baselines are Linux arm64 and CI runs on an arm64 runner.
-PLATFORM="${QUALITY_PLATFORM:-linux/arm64}"
+# Committed baselines are Linux amd64 and CI runs on an x86_64 runner.
+PLATFORM="${QUALITY_PLATFORM:-linux/amd64}"
 
 if [ "$NO_BUILD" -eq 0 ]; then
     docker build --platform "$PLATFORM" -f frontend/Dockerfile.quality -t "$IMAGE" .
@@ -57,13 +57,17 @@ DOCKER_ARGS=(
     -v "$PROJECT_ROOT/frontend/playwright-report:/app/frontend/playwright-report"
 )
 
+mkdir -p frontend/tests/quality/__screenshots__
+
 if [ "$UPDATE" -eq 1 ]; then
-    mkdir -p frontend/tests/quality/__screenshots__
     chmod -R a+rwX frontend/tests/quality/__screenshots__
     DOCKER_ARGS+=(
         -v "$PROJECT_ROOT/frontend/tests/quality/__screenshots__:/app/frontend/tests/quality/__screenshots__"
     )
     docker run "${DOCKER_ARGS[@]}" "$IMAGE" pnpm "test-$MODE" --update-snapshots=all
 else
+    DOCKER_ARGS+=(
+        -v "$PROJECT_ROOT/frontend/tests/quality/__screenshots__:/app/frontend/tests/quality/__screenshots__:ro"
+    )
     docker run "${DOCKER_ARGS[@]}" "$IMAGE" pnpm "test-$MODE"
 fi
