@@ -29,6 +29,10 @@ Notes:
 - Sessions are revoked on deactivation and password reset; changing a password
   revokes every session and issues a fresh one.
 
+Security settings (`/settings/security`) are available to every authenticated
+user: 2FA enrollment/disable and the user's own session list. Admins cannot see
+or revoke another user's sessions; they use a password reset instead.
+
 Enforcement points:
 
 - Backend: `AuthenticationGuard` (role resolution, `@Roles('ADMIN')`,

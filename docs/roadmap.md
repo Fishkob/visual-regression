@@ -53,7 +53,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Shipped     |
 | R8  | Reporting & exports                      | 3     | M–L  | R6 · ADR-033                  | Shipped     |
 | R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Shipped     |
-| R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9                            | Planned     |
+| R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9 · ADR-034                  | Shipped     |
 | R11 | API key scopes & ownership               | 4     | S–M  | R9                            | Planned     |
 | R12 | Bulk actions                             | 5     | M    | —                             | Planned     |
 | R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 (actor), R8 (outcomes)     | Planned     |
@@ -594,10 +594,19 @@ OIDC is deferred, but the basics should not be.
 
 **Acceptance.**
 
-- [ ] Password change requires the current password and revokes other sessions
-- [ ] 2FA enroll/verify/recovery works and is enforced on login
-- [ ] Session revoke takes effect on the next request
-- [ ] Login/2FA endpoints respect the rate limiter
+- [x] Password change requires the current password and revokes other sessions
+- [x] 2FA enroll/verify/recovery works and is enforced on login
+- [x] Session revoke takes effect on the next request
+- [x] Login/2FA endpoints respect the rate limiter
+
+**Verification.** `auth-hardening.e2e-spec.ts` covers TOTP enrollment +
+challenge + recovery-code replay, password-change session revocation, session
+list/revoke/revoke-all, 2FA disable, and the per-IP rate limit. The TOTP
+implementation is checked against RFC 6238 SHA-1 vectors. The security page and
+two-step login are covered by frontend tests. CSRF/Origin checks and the
+five-minute session-metadata throttle are guard unit tests. Decision:
+ADR-034. `AUTH_COOKIE_SECURE=true` is required in production (documented in
+`docs/deployment.md`).
 
 **Size / dependencies.** M · depends on R9 for roles (admin reset).
 
