@@ -2,7 +2,11 @@
   "name": "client-sdk",
   "license": "MIT",
   "type": "module",
-  "exports": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./upload-many": "./src/upload-many.ts",
+    "./playwright": "./src/playwright-reporter.ts"
+  },
   "types": "./index.ts",
   "scripts": {
     "prebuild": "rm -rf dist",

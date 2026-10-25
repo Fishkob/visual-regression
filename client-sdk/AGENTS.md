@@ -24,7 +24,8 @@ client-sdk/
   client/               # Generated HTTP client (fetch-based, zero deps)
   core/                 # Runtime utilities (serializers, auth, SSE)
   models/               # One file per DTO
-  src/__tests__/        # Manual smoke tests
+  src/                 # Manual helpers: upload-many.ts, playwright-reporter.ts
+  src/__tests__/        # Manual tests (smoke, upload-many, playwright-reporter)
   dist/                 # tsc output for external consumers
 ```
 
@@ -38,6 +39,7 @@ client-sdk/
 ## Conventions
 
 - Generated files have `.gen.ts` suffix — never edit these
-- Only manual files: `package.json`, `tsconfig.json`, `vitest.config.ts`, `src/__tests__/smoke.test.ts`
+- Only manual files: `package.json`, `tsconfig.json`, `vitest.config.ts`, `README.md`, `src/upload-many.ts`, `src/playwright-reporter.ts`, and the specs under `src/__tests__/`
+- Manual helpers are exposed as subpath exports: `client-sdk/upload-many`, `client-sdk/playwright`
 - Frontend wraps SDK responses with `getData()` helper (unwraps `{ data, error }` shape)
 - Regenerate whenever Prisma schema or controller DTOs change
