@@ -1,22 +1,30 @@
 import { describe, expect, it } from "vitest";
 import type { MeDto } from "@sdk";
-import { mapMe } from "../auth.mapper";
+import { mapLoginResult, mapMe } from "../auth.mapper";
 import { canWriteRole, isAdminRole } from "../auth.model";
 
 const meDto = (overrides: Partial<MeDto> = {}): MeDto => ({
   username: "alice",
   role: "ADMIN",
   mustChangePassword: false,
+  totpEnabled: false,
   ...overrides,
 });
 
 describe("mapMe", () => {
-  it("maps the username, role and forced-change flag", () => {
-    expect(mapMe(meDto())).toEqual({
+  it("maps the username, role, forced-change flag and 2FA state", () => {
+    expect(mapMe(meDto({ totpEnabled: true }))).toEqual({
       username: "alice",
       role: "ADMIN",
       mustChangePassword: false,
+      totpEnabled: true,
     });
+  });
+
+  it("defaults missing totpEnabled to false", () => {
+    const dto = { username: "alice", role: "VIEWER" } as unknown as MeDto;
+    expect(mapMe(dto)?.totpEnabled).toBe(false);
+    expect(mapMe(meDto({ totpEnabled: true }))?.totpEnabled).toBe(true);
   });
 
   it("maps the forced password change", () => {
@@ -44,6 +52,39 @@ describe("mapMe", () => {
   it("maps a missing payload or username to null", () => {
     expect(mapMe(undefined)).toBeNull();
     expect(mapMe({} as MeDto)).toBeNull();
+  });
+});
+
+describe("mapLoginResult", () => {
+  it("maps a session payload", () => {
+    expect(mapLoginResult(meDto({ totpEnabled: true }))).toEqual({
+      kind: "session",
+      user: {
+        username: "alice",
+        role: "ADMIN",
+        mustChangePassword: false,
+        totpEnabled: true,
+      },
+    });
+  });
+
+  it("maps a two-factor challenge", () => {
+    expect(
+      mapLoginResult({
+        twoFactorRequired: true,
+        challengeToken: "challenge-1",
+      }),
+    ).toEqual({ kind: "challenge", challengeToken: "challenge-1" });
+  });
+
+  it("refuses to invent a session for an unusable payload", () => {
+    expect(mapLoginResult(undefined)).toBeNull();
+    expect(mapLoginResult(null)).toBeNull();
+    expect(mapLoginResult({})).toBeNull();
+    expect(mapLoginResult({ twoFactorRequired: true })).toBeNull();
+    expect(
+      mapLoginResult({ twoFactorRequired: true, challengeToken: "" }),
+    ).toBeNull();
   });
 });
 

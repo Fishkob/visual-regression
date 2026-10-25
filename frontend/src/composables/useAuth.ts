@@ -6,13 +6,14 @@ import {
   authControllerMe,
   authControllerLogin,
   authControllerLogout,
+  authControllerVerifyTwoFactor,
 } from "@sdk";
 import type { MeDto } from "@sdk";
 import { useRouter } from "vue-router";
 import { useDomainQuery } from "@/composables/useDomainQuery";
 import { unwrapSdkData } from "@/lib/sdk";
 import { authQueryKeys } from "@/domains/auth/query-keys";
-import { mapMe } from "@/domains/auth/auth.mapper";
+import { mapLoginResult, mapMe } from "@/domains/auth/auth.mapper";
 import {
   DEFAULT_ROLE,
   canWriteRole,
@@ -28,6 +29,11 @@ export interface LoginCredentials {
 export interface ChangePasswordInput {
   currentPassword: string;
   newPassword: string;
+}
+
+export interface VerifyTwoFactorInput {
+  challengeToken: string;
+  code: string;
 }
 
 // Single home of the "what is the current session" read. Both the router guard
@@ -55,27 +61,61 @@ export function useCurrentRole() {
   return { role, isAdmin, canWrite };
 }
 
-export function useLogin() {
+// Both login paths (password-only and 2FA verify) end the same way: cache the
+// fresh session so the guard can release the next navigation, then route past
+// the forced password change when the backend demands one.
+function useSessionEntry() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  return async (user: CurrentUser) => {
+    queryClient.setQueryData(authQueryKeys.me(), user);
+    await queryClient.invalidateQueries({ queryKey: authQueryKeys.me() });
+    router.push(
+      user.mustChangePassword
+        ? { name: "change-password" }
+        : { name: "review-inbox" },
+    );
+  };
+}
+
+export function useLogin() {
+  const enterSession = useSessionEntry();
+
   return useMutation({
+    // The response is a session OR a 2FA challenge. A challenge must not be
+    // cached as a session: no /me write, no navigation — the login view holds
+    // the token and swaps to its code step.
     mutationFn: async (credentials: LoginCredentials) => {
       const response = await authControllerLogin({ body: credentials });
-      return unwrapSdkData<MeDto>(response, "Invalid username or password");
-    },
-    onSuccess: async (me) => {
-      const user = mapMe(me);
-      if (user) queryClient.setQueryData(authQueryKeys.me(), user);
-      await queryClient.invalidateQueries({ queryKey: authQueryKeys.me() });
-      // A forced first-login change comes before every other destination: the
-      // backend rejects every non-auth route until it is done.
-      router.push(
-        me?.mustChangePassword
-          ? { name: "change-password" }
-          : { name: "review-inbox" },
+      const result = mapLoginResult(
+        unwrapSdkData<unknown>(response, "Invalid username or password"),
       );
+      if (!result) throw new Error("Invalid username or password");
+      return result;
     },
+    onSuccess: async (result) => {
+      if (result.kind === "challenge") return;
+      await enterSession(result.user);
+    },
+  });
+}
+
+export function useVerifyTwoFactor() {
+  const enterSession = useSessionEntry();
+
+  return useMutation({
+    mutationFn: async (input: VerifyTwoFactorInput) => {
+      const response = await authControllerVerifyTwoFactor({
+        body: { challengeToken: input.challengeToken, code: input.code },
+      });
+      const user = mapMe(
+        unwrapSdkData<MeDto>(response, "Invalid two-factor code"),
+      );
+      if (!user) throw new Error("Invalid two-factor code");
+      return user;
+    },
+    onSuccess: enterSession,
   });
 }
 

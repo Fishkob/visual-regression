@@ -5,6 +5,7 @@ import {
   useCurrentRole,
   useLogin,
   useMeQuery,
+  useVerifyTwoFactor,
 } from "@/composables/useAuth";
 import { authQueryKeys } from "@/domains/auth/query-keys";
 import type { CurrentUser } from "@/domains/auth/auth.model";
@@ -34,6 +35,7 @@ const mockUseMutation = vi.hoisted(() =>
       mutateAsync: vi.fn(async (v: unknown) => {
         const data = await c.mutationFn(v);
         c.onSuccess?.(data);
+        return data;
       }),
       isPending: false,
     };
@@ -55,20 +57,28 @@ vi.mock("@tanstack/vue-query", () => ({
   QueryClient: class QueryClient {},
 }));
 
-const { mockMe, mockLogin, mockLogout, mockChangePassword, mockToast } =
-  vi.hoisted(() => ({
-    mockMe: vi.fn(),
-    mockLogin: vi.fn(),
-    mockLogout: vi.fn(),
-    mockChangePassword: vi.fn(),
-    mockToast: { success: vi.fn(), error: vi.fn() },
-  }));
+const {
+  mockMe,
+  mockLogin,
+  mockLogout,
+  mockChangePassword,
+  mockVerifyTwoFactor,
+  mockToast,
+} = vi.hoisted(() => ({
+  mockMe: vi.fn(),
+  mockLogin: vi.fn(),
+  mockLogout: vi.fn(),
+  mockChangePassword: vi.fn(),
+  mockVerifyTwoFactor: vi.fn(),
+  mockToast: { success: vi.fn(), error: vi.fn() },
+}));
 
 vi.mock("@sdk", () => ({
   authControllerMe: (...a: unknown[]) => mockMe(...a),
   authControllerLogin: (...a: unknown[]) => mockLogin(...a),
   authControllerLogout: (...a: unknown[]) => mockLogout(...a),
   authControllerChangePassword: (...a: unknown[]) => mockChangePassword(...a),
+  authControllerVerifyTwoFactor: (...a: unknown[]) => mockVerifyTwoFactor(...a),
 }));
 
 vi.mock("vue-sonner", () => ({ toast: mockToast }));
@@ -82,6 +92,7 @@ const user = (overrides: Partial<CurrentUser> = {}): CurrentUser => ({
   username: "alice",
   role: "MEMBER",
   mustChangePassword: false,
+  totpEnabled: false,
   ...overrides,
 });
 
@@ -107,7 +118,12 @@ describe("useMeQuery", () => {
 
   it("maps the me payload to the current user", async () => {
     mockMe.mockResolvedValue({
-      data: { username: "alice", role: "ADMIN", mustChangePassword: true },
+      data: {
+        username: "alice",
+        role: "ADMIN",
+        mustChangePassword: true,
+        totpEnabled: true,
+      },
     });
     useMeQuery();
     const result = await queryOptions.current!.queryFn();
@@ -115,6 +131,7 @@ describe("useMeQuery", () => {
       username: "alice",
       role: "ADMIN",
       mustChangePassword: true,
+      totpEnabled: true,
     });
   });
 
@@ -172,11 +189,42 @@ describe("useLogin", () => {
       data: { username: "alice", role: "MEMBER", mustChangePassword: false },
     });
     const { mutateAsync } = useLogin();
-    await mutateAsync({ username: "alice", password: "secret" });
+    const result = await mutateAsync({
+      username: "alice",
+      password: "secret",
+    });
     expect(mockLogin).toHaveBeenCalledWith({
       body: { username: "alice", password: "secret" },
     });
+    expect(result).toEqual({
+      kind: "session",
+      user: {
+        username: "alice",
+        role: "MEMBER",
+        mustChangePassword: false,
+        totpEnabled: false,
+      },
+    });
     expect(push).toHaveBeenCalledWith({ name: "review-inbox" });
+  });
+
+  it("returns the 2FA challenge without caching a session or navigating", async () => {
+    mockLogin.mockResolvedValue({
+      data: { twoFactorRequired: true, challengeToken: "challenge-1" },
+    });
+    const { mutateAsync } = useLogin();
+    const result = await mutateAsync({
+      username: "alice",
+      password: "secret",
+    });
+
+    expect(result).toEqual({
+      kind: "challenge",
+      challengeToken: "challenge-1",
+    });
+    expect(mockQueryClient.setQueryData).not.toHaveBeenCalled();
+    expect(mockQueryClient.invalidateQueries).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("routes a forced password change to the change-password page", async () => {
@@ -213,6 +261,69 @@ describe("useLogin", () => {
   });
 });
 
+describe("useVerifyTwoFactor", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("exchanges the challenge for a session and routes to the inbox", async () => {
+    mockVerifyTwoFactor.mockResolvedValue({
+      data: {
+        username: "alice",
+        role: "ADMIN",
+        mustChangePassword: false,
+        totpEnabled: true,
+      },
+    });
+    const { mutateAsync } = useVerifyTwoFactor();
+
+    await mutateAsync({ challengeToken: "challenge-1", code: "123456" });
+
+    expect(mockVerifyTwoFactor).toHaveBeenCalledWith({
+      body: { challengeToken: "challenge-1", code: "123456" },
+    });
+    expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(
+      authQueryKeys.me(),
+      {
+        username: "alice",
+        role: "ADMIN",
+        mustChangePassword: false,
+        totpEnabled: true,
+      },
+    );
+    expect(push).toHaveBeenCalledWith({ name: "review-inbox" });
+  });
+
+  it("routes a forced password change after verifying", async () => {
+    mockVerifyTwoFactor.mockResolvedValue({
+      data: {
+        username: "alice",
+        role: "MEMBER",
+        mustChangePassword: true,
+        totpEnabled: true,
+      },
+    });
+    const { mutateAsync } = useVerifyTwoFactor();
+
+    await mutateAsync({ challengeToken: "challenge-1", code: "XXXX-XXXX" });
+
+    expect(push).toHaveBeenCalledWith({ name: "change-password" });
+  });
+
+  it("rejects an invalid code without entering a session", async () => {
+    mockVerifyTwoFactor.mockResolvedValue({
+      error: { message: "Invalid two-factor code" },
+    });
+    const { mutateAsync } = useVerifyTwoFactor();
+
+    await expect(
+      mutateAsync({ challengeToken: "challenge-1", code: "000000" }),
+    ).rejects.toThrow("Invalid two-factor code");
+    expect(mockQueryClient.setQueryData).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+});
+
 describe("useChangePassword", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -238,6 +349,7 @@ describe("useChangePassword", () => {
         username: "alice",
         role: "MEMBER",
         mustChangePassword: false,
+        totpEnabled: false,
       },
     );
     expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({

@@ -73,6 +73,17 @@ describe("useSdkMutation", () => {
     );
   });
 
+  it("accepts a 204-style empty response when allowEmptyResponse is set", async () => {
+    useSdkMutation({
+      mutationFn: async () => ({}),
+      allowEmptyResponse: true,
+    });
+
+    await expect(mutationOptions.current!.mutationFn({})).resolves.toBe(
+      undefined,
+    );
+  });
+
   it("fires a success toast and invalidation on success", () => {
     const invalidate = vi.fn();
     useSdkMutation({

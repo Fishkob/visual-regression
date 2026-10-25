@@ -61,6 +61,8 @@ describe("AppSidebar role visibility", () => {
     expect(has(wrapper, TEST_ID.navInbox)).toBe(true);
     expect(has(wrapper, TEST_ID.navProjects)).toBe(true);
     expect(has(wrapper, TEST_ID.navGroups)).toBe(true);
+    // Security is available to every signed-in role.
+    expect(has(wrapper, TEST_ID.securityNavLink)).toBe(true);
   });
 
   it("hides the admin links from a member", () => {
@@ -70,6 +72,7 @@ describe("AppSidebar role visibility", () => {
     expect(has(wrapper, TEST_ID.navApiKeys)).toBe(false);
     expect(has(wrapper, TEST_ID.auditNavLink)).toBe(false);
     expect(has(wrapper, TEST_ID.navInbox)).toBe(true);
+    expect(has(wrapper, TEST_ID.securityNavLink)).toBe(true);
   });
 
   it("hides the admin links from a viewer", () => {
@@ -79,5 +82,6 @@ describe("AppSidebar role visibility", () => {
     expect(has(wrapper, TEST_ID.navApiKeys)).toBe(false);
     expect(has(wrapper, TEST_ID.auditNavLink)).toBe(false);
     expect(has(wrapper, TEST_ID.navProjects)).toBe(true);
+    expect(has(wrapper, TEST_ID.securityNavLink)).toBe(true);
   });
 });

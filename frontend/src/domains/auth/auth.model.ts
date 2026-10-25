@@ -36,4 +36,19 @@ export interface CurrentUser {
   username: string;
   role: UserRole;
   mustChangePassword: boolean;
+  totpEnabled: boolean;
 }
+
+/** The 200 body of /auth/login when the account has 2FA enabled. */
+export interface TwoFactorChallenge {
+  twoFactorRequired: true;
+  challengeToken: string;
+}
+
+// The login answer is one of two things: an authenticated session, or a
+// challenge that must be exchanged for one. Keeping the union in the model is
+// what stops callers from assuming a MeDto and caching a session that does not
+// exist yet.
+export type LoginResult =
+  | { kind: "session"; user: CurrentUser }
+  | { kind: "challenge"; challengeToken: string };

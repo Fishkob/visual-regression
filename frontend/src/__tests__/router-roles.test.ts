@@ -25,6 +25,7 @@ describe("route role declarations", () => {
       "project-runs",
       "run-detail",
       "project-trends",
+      "security",
     ]) {
       expect(metaOf(name)?.requiresAuth).toBe(true);
       expect(metaOf(name)?.requiresRole).toBeUndefined();

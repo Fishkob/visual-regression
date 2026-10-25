@@ -49,6 +49,7 @@ queryClient.setQueryData(authQueryKeys.me(), {
   username: "gallery-user",
   role: "ADMIN",
   mustChangePassword: false,
+  totpEnabled: false,
 });
 
 async function mountNext({

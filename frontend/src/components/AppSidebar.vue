@@ -6,6 +6,7 @@ import {
   KeyRound,
   LayoutGrid,
   ScrollText,
+  ShieldCheck,
   UserCog,
   Users,
   PanelLeftClose,
@@ -34,6 +35,7 @@ const onGroups = computed(
 const onApiKeys = computed(() => route.path === "/api-keys");
 const onAudit = computed(() => route.path === "/audit");
 const onUsers = computed(() => route.path === "/users");
+const onSecurity = computed(() => route.path === "/settings/security");
 const pending = computed(() => pendingCount.value ?? 0);
 </script>
 
@@ -192,6 +194,22 @@ const pending = computed(() => pendingCount.value ?? 0);
       >
         <ScrollText class="h-4 w-4 shrink-0" />
         <span :class="collapsed ? 'md:hidden' : ''">Audit</span>
+      </RouterLink>
+
+      <RouterLink
+        to="/settings/security"
+        class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+        :class="[
+          { 'bg-muted text-foreground': onSecurity },
+          collapsed ? 'md:justify-center md:px-0' : '',
+        ]"
+        :aria-current="onSecurity ? 'page' : undefined"
+        :aria-label="collapsed ? 'Security' : undefined"
+        :title="collapsed ? 'Security' : undefined"
+        :data-testid="TEST_ID.securityNavLink"
+      >
+        <ShieldCheck class="h-4 w-4 shrink-0" />
+        <span :class="collapsed ? 'md:hidden' : ''">Security</span>
       </RouterLink>
     </nav>
   </aside>

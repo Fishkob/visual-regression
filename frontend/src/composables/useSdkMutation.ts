@@ -6,6 +6,12 @@ import { unwrapSdkData } from "@/lib/sdk";
 interface SdkMutationOptions<TData, TVariables, TContext> {
   /** The raw SDK call — returns the SDK response object, unwrapped inside. */
   mutationFn: (variables: TVariables) => Promise<unknown>;
+  /**
+   * Accept a response with no body (HTTP 204). Only for endpoints whose contract
+   * is "no content" — everything else should keep failing loudly on an empty
+   * payload, which is why this is opt-in.
+   */
+  allowEmptyResponse?: boolean;
   successMessage?:
     | string
     | ((
@@ -59,7 +65,7 @@ export function useSdkMutation<TData, TVariables, TContext = undefined>(
     mutationFn: async (variables) => {
       const response = await config.mutationFn(variables);
       const data = unwrapSdkData<TData>(response);
-      if (data === undefined) {
+      if (data === undefined && !config.allowEmptyResponse) {
         throw new Error("Empty response from endpoint");
       }
       return data as TData;
