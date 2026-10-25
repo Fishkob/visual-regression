@@ -111,7 +111,11 @@ export class UploadIntake {
           fileHash,
         );
         if (identicalDecision !== null) {
-          const identicalResult = await this.tryIdentical(params, fileHash);
+          const identicalResult = await this.tryIdentical(
+            kind,
+            params,
+            fileHash,
+          );
           if (identicalResult !== null) return identicalResult;
         }
 
@@ -147,6 +151,7 @@ export class UploadIntake {
               params,
               fileUrl,
               pageCount,
+              fileHash,
             );
           },
         });
@@ -157,6 +162,7 @@ export class UploadIntake {
   }
 
   private async tryIdentical(
+    kind: TestKind,
     params: UploadParams,
     fileHash: string,
   ): Promise<AnyUploadResult | null> {
@@ -174,6 +180,16 @@ export class UploadIntake {
         return { change: noop(), result: { superseded: false } };
       }
       const run = await this.resolveRun(fresh.branch, params);
+      if (run) {
+        await this.recordRunUpload(
+          run.id,
+          fresh.testId,
+          kind,
+          params,
+          fileHash,
+          'identical',
+        );
+      }
       const superseded = await this.supersedeIdentical(fresh.testId, params);
       return {
         change: superseded,
@@ -219,8 +235,19 @@ export class UploadIntake {
     params: UploadParams,
     fileUrl: string,
     pageCount?: number,
+    fileHash?: string,
   ): Promise<StateChangeOutcome<AnyUploadResult>> {
     const run = await this.resolveRun(branch, params);
+    if (run && fileHash) {
+      await this.recordRunUpload(
+        run.id,
+        fresh.testId,
+        kind,
+        params,
+        fileHash,
+        fresh.status,
+      );
+    }
     switch (fresh.status) {
       case ComparisonOutcome.IDENTICAL: {
         const identical = await this.supersedeIdentical(fresh.testId, params);
@@ -312,6 +339,26 @@ export class UploadIntake {
       jobId,
       ...(runKey ? { runKey } : {}),
     };
+  }
+
+  private recordRunUpload(
+    runId: string,
+    testId: string,
+    kind: TestKind,
+    params: UploadParams,
+    contentHash: string,
+    outcome: string,
+  ): Promise<void> {
+    return this.runs.recordUpload({
+      runId,
+      testId,
+      kind,
+      viewport: params.viewport,
+      browser: params.browser,
+      environment: params.environment,
+      contentHash,
+      outcome,
+    });
   }
 
   private resolveRun(

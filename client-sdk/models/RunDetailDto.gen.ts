@@ -4,10 +4,12 @@ import type { RunApprovalDto } from './RunApprovalDto.gen';
 import type { RunDto } from './RunDto.gen';
 import type { RunPendingDto } from './RunPendingDto.gen';
 import type { RunStatusDto } from './RunStatusDto.gen';
+import type { RunUploadDto } from './RunUploadDto.gen';
 
 export type RunDetailDto = {
     run: RunDto;
     status: RunStatusDto;
     pending: Array<RunPendingDto>;
     approvals: Array<RunApprovalDto>;
+    uploads: Array<RunUploadDto>;
 };

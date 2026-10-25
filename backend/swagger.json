@@ -5305,6 +5305,34 @@
           "approvedAt"
         ]
       },
+      "RunUploadDto": {
+        "type": "object",
+        "properties": {
+          "testName": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "variant": {
+            "type": "object"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "testName",
+          "kind",
+          "variant",
+          "outcome",
+          "createdAt"
+        ]
+      },
       "RunDetailDto": {
         "type": "object",
         "properties": {
@@ -5325,13 +5353,20 @@
             "items": {
               "$ref": "#/components/schemas/RunApprovalDto"
             }
+          },
+          "uploads": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunUploadDto"
+            }
           }
         },
         "required": [
           "run",
           "status",
           "pending",
-          "approvals"
+          "approvals",
+          "uploads"
         ]
       },
       "RunStatusResultDto": {

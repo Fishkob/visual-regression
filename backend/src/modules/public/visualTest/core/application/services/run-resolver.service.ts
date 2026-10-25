@@ -29,4 +29,20 @@ export class RunResolver {
       ciUrl: input.ciUrl ?? null,
     });
   }
+
+  // The durable "this run touched that test/variant" record. Baseline-only
+  // uploads have no job/comparison, and approvals delete comparisons, so the
+  // upload row is what makes run grouping survive.
+  async recordUpload(input: {
+    runId: string;
+    testId: string;
+    kind: 'image' | 'pdf';
+    viewport: string;
+    browser: string;
+    environment: string;
+    contentHash: string;
+    outcome: string;
+  }): Promise<void> {
+    await this.runs.recordUpload(input);
+  }
 }

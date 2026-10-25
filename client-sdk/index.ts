@@ -205,6 +205,7 @@ export type { RunsControllerStatusResponse } from './models/RunsControllerStatus
 export type { RunsControllerStatusResponses } from './models/RunsControllerStatusResponses.gen';
 export type { RunStatusDto } from './models/RunStatusDto.gen';
 export type { RunStatusResultDto } from './models/RunStatusResultDto.gen';
+export type { RunUploadDto } from './models/RunUploadDto.gen';
 export type { ScreenshotDto } from './models/ScreenshotDto.gen';
 export type { TestCommandsControllerDeleteVisualTestData } from './models/TestCommandsControllerDeleteVisualTestData.gen';
 export type { TestCommandsControllerDeleteVisualTestResponses } from './models/TestCommandsControllerDeleteVisualTestResponses.gen';

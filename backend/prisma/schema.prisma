@@ -54,6 +54,7 @@ model UnifiedTest {
   screenshots  UnifiedScreenshot[]
   comparisons  UnifiedComparison[]
   baselineRevisions BaselineRevision[]
+  runUploads   RunUpload[]
 
   @@unique([branchId, name])
   @@map("UnifiedTest")
@@ -269,11 +270,35 @@ model Run {
   lastActivityAt DateTime  @default(now())
   finishedAt     DateTime?
   finishedBy     String?
+  uploads        RunUpload[]
 
   @@unique([branchId, key])
   @@index([projectId, createdAt])
   @@index([finishedAt, lastActivityAt])
   @@map("Run")
+}
+
+// One row per upload that carried a run key. Jobs/comparisons are deleted or
+// retired over time, so the upload itself is the durable "this run touched that
+// test/variant" record — run grouping must survive baseline-only uploads and
+// approvals.
+model RunUpload {
+  id          String    @id @default(cuid())
+  run         Run       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  runId       String
+  test        UnifiedTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  testId      String
+  kind        TestKind
+  viewport    String
+  browser     String
+  environment String
+  contentHash String
+  outcome     String
+  createdAt   DateTime  @default(now())
+
+  @@index([runId, testId])
+  @@index([testId])
+  @@map("RunUpload")
 }
 
 model ComparisonJob {

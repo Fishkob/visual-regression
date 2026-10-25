@@ -96,6 +96,28 @@ export class RunApprovalDto {
   approvedAt!: Date;
 }
 
+export class RunUploadDto {
+  @ApiProperty()
+  @Expose()
+  testName!: string;
+
+  @ApiProperty()
+  @Expose()
+  kind!: string;
+
+  @ApiProperty({ type: Object })
+  @Expose()
+  variant!: { viewport: string; browser: string; environment: string };
+
+  @ApiProperty()
+  @Expose()
+  outcome!: string;
+
+  @ApiProperty()
+  @Expose()
+  createdAt!: Date;
+}
+
 export class RunStatusDto {
   @ApiProperty({ enum: ['open', 'pending', 'failed', 'passed'] })
   @Expose()
@@ -142,6 +164,11 @@ export class RunDetailDto {
   @Expose()
   @Type(() => RunApprovalDto)
   approvals!: RunApprovalDto[];
+
+  @ApiProperty({ type: RunUploadDto, isArray: true })
+  @Expose()
+  @Type(() => RunUploadDto)
+  uploads!: RunUploadDto[];
 }
 
 export class RunStatusResultDto {

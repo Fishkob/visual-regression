@@ -31,6 +31,13 @@ export interface RunDetail {
     approvedBy: string;
     approvedAt: Date;
   }[];
+  uploads: {
+    testName: string;
+    kind: string;
+    variant: { viewport: string; browser: string; environment: string };
+    outcome: string;
+    createdAt: Date;
+  }[];
 }
 
 export interface RunApproveAllResult {
@@ -79,9 +86,10 @@ export class RunService {
   ): Promise<RunDetail> {
     const run = await this.requireRun(projectName, runKey, branchName);
     const status = await this.computeStatus(run);
-    const [pendingRows, approvals] = await Promise.all([
-      this.runs.pendingComparisonsForRun(run.key, 200),
-      this.runs.approvalsForRun(run.key, 100),
+    const [pendingRows, approvals, uploadRows] = await Promise.all([
+      this.runs.pendingComparisonsForRun(run.id, 200),
+      this.runs.approvalsForRun(run.id, 100),
+      this.runs.uploadsForRun(run.id, 200),
     ]);
     return {
       run,
@@ -105,6 +113,17 @@ export class RunService {
         testName: row.testName,
         approvedBy: row.approvedBy,
         approvedAt: row.approvedAt,
+      })),
+      uploads: uploadRows.map((row) => ({
+        testName: row.test.name,
+        kind: row.kind,
+        variant: {
+          viewport: row.viewport,
+          browser: row.browser,
+          environment: row.environment,
+        },
+        outcome: row.outcome,
+        createdAt: row.createdAt,
       })),
     };
   }
@@ -131,7 +150,7 @@ export class RunService {
     branchName?: string,
   ): Promise<RunApproveAllResult> {
     const run = await this.requireRun(projectName, runKey, branchName);
-    const pending = await this.runs.pendingComparisonsForRun(run.key, 500);
+    const pending = await this.runs.pendingComparisonsForRun(run.id, 500);
     const result: RunApproveAllResult = { approved: 0, failed: [] };
     for (const row of pending) {
       try {
@@ -180,7 +199,7 @@ export class RunService {
   }
 
   private async computeStatus(run: RunWithBranch): Promise<RunStatus> {
-    const counts = await this.runs.statusCounts(run.key);
+    const counts = await this.runs.statusCounts(run.id);
     return { ...counts, state: this.stateOf(run, counts) };
   }
 

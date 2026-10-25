@@ -111,56 +111,55 @@ export class RunRepository extends BaseRepository {
     return result.count;
   }
 
-  async statusCounts(runKey: string): Promise<RunStatusCounts> {
+  async recordUpload(input: {
+    runId: string;
+    testId: string;
+    kind: 'image' | 'pdf';
+    viewport: string;
+    browser: string;
+    environment: string;
+    contentHash: string;
+    outcome: string;
+  }): Promise<void> {
+    this.assertWritable();
+    await this.client.runUpload.create({ data: input });
+  }
+
+  async statusCounts(runId: string): Promise<RunStatusCounts> {
     const [pendingComparisons, pendingJobs, failedJobs, approved] =
       await Promise.all([
         this.client.unifiedComparison.count({
-          where: { runKey, status: 'PENDING_APPROVAL' },
+          where: { runId, status: 'PENDING_APPROVAL' },
         }),
         this.client.comparisonJob.count({
-          where: { runKey, status: { in: ['PENDING', 'PROCESSING'] } },
+          where: { runId, status: { in: ['PENDING', 'PROCESSING'] } },
         }),
         this.client.comparisonJob.count({
-          where: { runKey, status: 'FAILED' },
+          where: { runId, status: 'FAILED' },
         }),
-        this.client.approval.count({ where: { runKey } }),
+        this.client.approval.count({ where: { runId } }),
       ]);
 
-    const [jobTests, approvalTests, comparisonTests] = await Promise.all([
-      this.client.comparisonJob.findMany({
-        where: { runKey },
-        distinct: ['testId'],
-        select: { testId: true },
-      }),
-      this.client.approval.findMany({
-        where: { runKey },
-        distinct: ['testId'],
-        select: { testId: true },
-      }),
-      this.client.unifiedComparison.findMany({
-        where: { runKey },
-        distinct: ['testId'],
-        select: { testId: true },
-      }),
-    ]);
-    const testIds = new Set([
-      ...jobTests.map((row) => row.testId),
-      ...approvalTests.map((row) => row.testId),
-      ...comparisonTests.map((row) => row.testId),
-    ]);
+    // RunUpload is the durable "this run touched that test" record: baseline
+    // uploads have no job/comparison, and approvals delete comparisons.
+    const uploads = await this.client.runUpload.findMany({
+      where: { runId },
+      distinct: ['testId'],
+      select: { testId: true },
+    });
 
     return {
       pendingComparisons,
       pendingJobs,
       failedJobs,
       approved,
-      testCount: testIds.size,
+      testCount: uploads.length,
     };
   }
 
-  async pendingComparisonsForRun(runKey: string, take: number) {
+  async pendingComparisonsForRun(runId: string, take: number) {
     return this.client.unifiedComparison.findMany({
-      where: { runKey, status: 'PENDING_APPROVAL' },
+      where: { runId, status: 'PENDING_APPROVAL' },
       include: {
         test: {
           select: {
@@ -188,10 +187,27 @@ export class RunRepository extends BaseRepository {
     });
   }
 
-  async approvalsForRun(runKey: string, take: number) {
+  async approvalsForRun(runId: string, take: number) {
     return this.client.approval.findMany({
-      where: { runKey },
+      where: { runId },
       orderBy: { approvedAt: 'desc' },
+      take,
+    });
+  }
+
+  async uploadsForRun(runId: string, take: number) {
+    return this.client.runUpload.findMany({
+      where: { runId },
+      include: {
+        test: {
+          select: {
+            name: true,
+            kind: true,
+            branch: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take,
     });
   }
