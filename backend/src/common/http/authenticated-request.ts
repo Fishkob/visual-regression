@@ -6,8 +6,10 @@ export interface AuthenticatedRequest extends Request {
   auth?: {
     username: string;
     userId?: string;
+    sessionId?: string;
     role: 'ADMIN' | 'MEMBER' | 'VIEWER';
     mustChangePassword?: boolean;
+    totpEnabled?: boolean;
     apiKeyId?: string;
   };
 }

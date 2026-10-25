@@ -37,7 +37,11 @@ export class AuthenticationGuard implements CanActivate {
 
     if (cookie) {
       const session = await this.repo.findSessionByTokenHash(hashToken(cookie));
-      if (session && session.expiresAt.getTime() > Date.now()) {
+      if (
+        session &&
+        !session.revokedAt &&
+        session.expiresAt.getTime() > Date.now()
+      ) {
         const user = await this.repo.findUserById(session.userId);
         if (!user?.isActive) {
           // Session outlived its user (deleted/deactivated account) — do not
@@ -48,10 +52,14 @@ export class AuthenticationGuard implements CanActivate {
         request.auth = {
           username: user.username,
           userId: user.id,
+          sessionId: session.id,
           role: user.role,
           mustChangePassword: user.mustChangePassword,
+          totpEnabled: user.totpEnabledAt !== null,
         };
+        this.enforceSameOrigin(request);
         this.enforceAccess(context, request);
+        await this.touchSession(session, request);
         await this.slideSessionExpiry(session.tokenHash, session.expiresAt);
         return true;
       }
@@ -80,6 +88,54 @@ export class AuthenticationGuard implements CanActivate {
     }
 
     throw new UnauthorizedException('Authentication required');
+  }
+
+  // Session cookies are SameSite=Lax, which already blocks most cross-site
+  // form posts. This is the second line: an unsafe request that a browser marks
+  // cross-site, or whose Origin does not match the Host, is rejected even if a
+  // future cookie policy loosens.
+  private enforceSameOrigin(request: AuthenticatedRequest): void {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return;
+    const fetchSite = request.headers['sec-fetch-site'];
+    if (fetchSite === 'cross-site') {
+      throw new ForbiddenException('Cross-site request rejected');
+    }
+    const origin = request.headers.origin;
+    if (!origin) return;
+    let originHost: string;
+    try {
+      originHost = new URL(origin).host;
+    } catch {
+      throw new ForbiddenException('Invalid Origin header');
+    }
+    if (originHost !== request.headers.host) {
+      throw new ForbiddenException('Cross-origin request rejected');
+    }
+  }
+
+  // Session metadata is for the user's session list, not security; a five
+  // minute write throttle keeps the per-request cost bounded.
+  private async touchSession(
+    session: {
+      id: string;
+      lastSeenAt: Date | null;
+      ip: string | null;
+      userAgent: string | null;
+    },
+    request: AuthenticatedRequest,
+  ): Promise<void> {
+    const now = Date.now();
+    if (
+      session.lastSeenAt &&
+      now - session.lastSeenAt.getTime() < 5 * 60 * 1000
+    ) {
+      return;
+    }
+    await this.repo.touchSession(session.id, {
+      lastSeenAt: new Date(now),
+      ip: request.ip ?? null,
+      userAgent: request.headers['user-agent'] ?? null,
+    });
   }
 
   // Role policy lives with the authentication gate: every authenticated route

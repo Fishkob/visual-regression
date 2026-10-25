@@ -46,6 +46,11 @@ describe('AuthenticationGuard', () => {
     tokenHash: 'hash',
     userId: 'u1',
     expiresAt,
+    revokedAt: null,
+    lastSeenAt: null,
+    ip: null,
+    userAgent: null,
+    createdAt: new Date(),
   });
 
   beforeEach(async () => {
@@ -100,6 +105,8 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
+      totpSecret: null,
+      totpEnabledAt: null,
       createdAt: new Date(),
     });
 
@@ -124,6 +131,8 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
+      totpSecret: null,
+      totpEnabledAt: null,
       createdAt: new Date(),
     });
 
@@ -139,9 +148,130 @@ describe('AuthenticationGuard', () => {
     expect((request as { auth?: { username: string } }).auth).toEqual({
       username: 'alice',
       userId: 'u1',
+      sessionId: 's1',
       role: 'MEMBER',
       mustChangePassword: false,
+      totpEnabled: false,
     });
+  });
+
+  it('rejects a revoked session', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue({
+      ...mockSession(new Date(Date.now() + 60_000)),
+      revokedAt: new Date(),
+    });
+
+    await expect(
+      guard.canActivate(mockContext({ cookie: 'vrt_session=tok' })),
+    ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('records session metadata at most once per five minutes', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue(
+      mockSession(new Date(Date.now() + 60_000)),
+    );
+    mockRepository.findUserById.mockResolvedValue({
+      id: 'u1',
+      username: 'alice',
+      passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      totpSecret: null,
+      totpEnabledAt: null,
+      createdAt: new Date(),
+    });
+    mockRepository.touchSession.mockResolvedValue(undefined);
+
+    const request = {
+      headers: { cookie: 'vrt_session=tok', 'user-agent': 'test-agent' },
+      method: 'GET',
+      path: '/api/v1/projects',
+      ip: '10.0.0.1',
+    };
+    const ctx = {
+      getClass: () => TestController,
+      getHandler: () => testHandler,
+      switchToHttp: () => ({ getRequest: () => request }),
+    } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
+
+    await guard.canActivate(ctx);
+    expect(mockRepository.touchSession).toHaveBeenCalledWith('s1', {
+      lastSeenAt: expect.any(Date),
+      ip: '10.0.0.1',
+      userAgent: 'test-agent',
+    });
+  });
+
+  it('rejects a cross-site session write', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue(
+      mockSession(new Date(Date.now() + 60_000)),
+    );
+    mockRepository.findUserById.mockResolvedValue({
+      id: 'u1',
+      username: 'alice',
+      passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      totpSecret: null,
+      totpEnabledAt: null,
+      createdAt: new Date(),
+    });
+    const request = {
+      headers: {
+        cookie: 'vrt_session=tok',
+        'sec-fetch-site': 'cross-site',
+      },
+      method: 'POST',
+      path: '/api/v1/projects',
+    };
+    const ctx = {
+      getClass: () => TestController,
+      getHandler: () => testHandler,
+      switchToHttp: () => ({ getRequest: () => request }),
+    } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
+
+    await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects a session write whose Origin does not match Host', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue(
+      mockSession(new Date(Date.now() + 60_000)),
+    );
+    mockRepository.findUserById.mockResolvedValue({
+      id: 'u1',
+      username: 'alice',
+      passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      totpSecret: null,
+      totpEnabledAt: null,
+      createdAt: new Date(),
+    });
+    const request = {
+      headers: {
+        cookie: 'vrt_session=tok',
+        origin: 'https://evil.test',
+        host: 'vrt.test',
+      },
+      method: 'POST',
+      path: '/api/v1/projects',
+    };
+    const ctx = {
+      getClass: () => TestController,
+      getHandler: () => testHandler,
+      switchToHttp: () => ({ getRequest: () => request }),
+    } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
+
+    await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
   });
 
   it('rejects an expired session', async () => {
@@ -178,6 +308,8 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
+      totpSecret: null,
+      totpEnabledAt: null,
       createdAt: new Date(),
     });
     mockRepository.extendSessionExpiry.mockResolvedValue(undefined);
@@ -201,6 +333,8 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
+      totpSecret: null,
+      totpEnabledAt: null,
       createdAt: new Date(),
     });
 
@@ -246,6 +380,8 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
+      totpSecret: null,
+      totpEnabledAt: null,
       createdAt: new Date(),
     });
     const adminHandler = () => {};
@@ -271,6 +407,8 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
+      totpSecret: null,
+      totpEnabledAt: null,
       createdAt: new Date(),
     });
     const request = {
@@ -303,6 +441,8 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: true,
       deactivatedAt: null,
       createdBy: null,
+      totpSecret: null,
+      totpEnabledAt: null,
       createdAt: new Date(),
     });
     const request = {
@@ -396,6 +536,8 @@ describe('AuthenticationGuard', () => {
         mustChangePassword: false,
         deactivatedAt: null,
         createdBy: null,
+        totpSecret: null,
+        totpEnabledAt: null,
         createdAt: new Date(),
       });
 

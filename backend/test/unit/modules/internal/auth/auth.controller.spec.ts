@@ -38,12 +38,13 @@ describe('AuthController', () => {
       username: 'alice',
       role: 'MEMBER',
       mustChangePassword: false,
+      totpEnabled: false,
     });
     const res = { cookie: vi.fn(), clearCookie: vi.fn() };
 
     const result = await controller.login(
       { username: 'alice', password: 'secret' },
-      { secure: false } as never,
+      { secure: false, ip: '127.0.0.1', headers: {} } as never,
       res as never,
     );
 
@@ -61,6 +62,7 @@ describe('AuthController', () => {
       username: 'alice',
       role: 'MEMBER',
       mustChangePassword: false,
+      totpEnabled: false,
     });
   });
 
@@ -75,7 +77,7 @@ describe('AuthController', () => {
 
     await controller.login(
       { username: 'alice', password: 'secret' },
-      { secure: true } as never,
+      { secure: true, ip: '127.0.0.1', headers: {} } as never,
       res as never,
     );
 
@@ -98,7 +100,7 @@ describe('AuthController', () => {
 
     await controller.login(
       { username: 'alice', password: 'secret' },
-      { secure: false } as never,
+      { secure: false, ip: '127.0.0.1', headers: {} } as never,
       res as never,
     );
 
@@ -121,7 +123,12 @@ describe('AuthController', () => {
 
   it('returns the current user for me', () => {
     const req = {
-      auth: { username: 'alice', role: 'MEMBER', mustChangePassword: false },
+      auth: {
+        username: 'alice',
+        role: 'MEMBER',
+        mustChangePassword: false,
+        totpEnabled: false,
+      },
     };
 
     const result = controller.me(req as never);
@@ -130,6 +137,7 @@ describe('AuthController', () => {
       username: 'alice',
       role: 'MEMBER',
       mustChangePassword: false,
+      totpEnabled: false,
     });
   });
 });

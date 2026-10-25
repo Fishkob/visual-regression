@@ -138,19 +138,33 @@ describe('AuthRepository', () => {
       tokenHash: 'tokenhash',
       userId: 'u1',
       expiresAt,
+      revokedAt: null,
+      lastSeenAt: new Date(),
+      ip: null,
+      userAgent: null,
+      createdAt: new Date(),
     });
 
     const result = await repository.createSession('u1', 'tokenhash', expiresAt);
 
     expect(mockClient.session.create).toHaveBeenCalledWith({
-      data: { userId: 'u1', tokenHash: 'tokenhash', expiresAt },
+      data: {
+        userId: 'u1',
+        tokenHash: 'tokenhash',
+        expiresAt,
+        lastSeenAt: expect.any(Date),
+        ip: null,
+        userAgent: null,
+      },
     });
-    expect(result).toEqual({
-      id: 's1',
-      tokenHash: 'tokenhash',
-      userId: 'u1',
-      expiresAt,
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 's1',
+        tokenHash: 'tokenhash',
+        userId: 'u1',
+        expiresAt,
+      }),
+    );
   });
 
   it('finds a session by token hash', async () => {

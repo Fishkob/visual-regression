@@ -37,6 +37,12 @@ import type { AuditControllerListResponses } from './models/AuditControllerListR
 import type { AuthControllerChangePasswordData } from './models/AuthControllerChangePasswordData.gen';
 import type { AuthControllerChangePasswordErrors } from './models/AuthControllerChangePasswordErrors.gen';
 import type { AuthControllerChangePasswordResponses } from './models/AuthControllerChangePasswordResponses.gen';
+import type { AuthControllerDisableTwoFactorData } from './models/AuthControllerDisableTwoFactorData.gen';
+import type { AuthControllerDisableTwoFactorResponses } from './models/AuthControllerDisableTwoFactorResponses.gen';
+import type { AuthControllerEnableTwoFactorData } from './models/AuthControllerEnableTwoFactorData.gen';
+import type { AuthControllerEnableTwoFactorResponses } from './models/AuthControllerEnableTwoFactorResponses.gen';
+import type { AuthControllerListSessionsData } from './models/AuthControllerListSessionsData.gen';
+import type { AuthControllerListSessionsResponses } from './models/AuthControllerListSessionsResponses.gen';
 import type { AuthControllerLoginData } from './models/AuthControllerLoginData.gen';
 import type { AuthControllerLoginErrors } from './models/AuthControllerLoginErrors.gen';
 import type { AuthControllerLoginResponses } from './models/AuthControllerLoginResponses.gen';
@@ -44,6 +50,15 @@ import type { AuthControllerLogoutData } from './models/AuthControllerLogoutData
 import type { AuthControllerLogoutResponses } from './models/AuthControllerLogoutResponses.gen';
 import type { AuthControllerMeData } from './models/AuthControllerMeData.gen';
 import type { AuthControllerMeResponses } from './models/AuthControllerMeResponses.gen';
+import type { AuthControllerRevokeAllSessionsData } from './models/AuthControllerRevokeAllSessionsData.gen';
+import type { AuthControllerRevokeAllSessionsResponses } from './models/AuthControllerRevokeAllSessionsResponses.gen';
+import type { AuthControllerRevokeSessionData } from './models/AuthControllerRevokeSessionData.gen';
+import type { AuthControllerRevokeSessionResponses } from './models/AuthControllerRevokeSessionResponses.gen';
+import type { AuthControllerSetupTwoFactorData } from './models/AuthControllerSetupTwoFactorData.gen';
+import type { AuthControllerSetupTwoFactorResponses } from './models/AuthControllerSetupTwoFactorResponses.gen';
+import type { AuthControllerVerifyTwoFactorData } from './models/AuthControllerVerifyTwoFactorData.gen';
+import type { AuthControllerVerifyTwoFactorErrors } from './models/AuthControllerVerifyTwoFactorErrors.gen';
+import type { AuthControllerVerifyTwoFactorResponses } from './models/AuthControllerVerifyTwoFactorResponses.gen';
 import type { BaselineHistoryControllerListData } from './models/BaselineHistoryControllerListData.gen';
 import type { BaselineHistoryControllerListResponses } from './models/BaselineHistoryControllerListResponses.gen';
 import type { BaselineHistoryControllerRestoreData } from './models/BaselineHistoryControllerRestoreData.gen';
@@ -721,6 +736,83 @@ export const authControllerLogin = <ThrowOnError extends boolean = false>(option
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+export const authControllerVerifyTwoFactor = <ThrowOnError extends boolean = false>(options: Options<AuthControllerVerifyTwoFactorData, ThrowOnError>): RequestResult<AuthControllerVerifyTwoFactorResponses, AuthControllerVerifyTwoFactorErrors, ThrowOnError> => (options.client ?? client).post<AuthControllerVerifyTwoFactorResponses, AuthControllerVerifyTwoFactorErrors, ThrowOnError>({
+    url: '/auth/2fa/verify',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const authControllerSetupTwoFactor = <ThrowOnError extends boolean = false>(options?: Options<AuthControllerSetupTwoFactorData, ThrowOnError>): RequestResult<AuthControllerSetupTwoFactorResponses, unknown, ThrowOnError> => (options?.client ?? client).post<AuthControllerSetupTwoFactorResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/auth/2fa/setup',
+    ...options
+});
+
+export const authControllerEnableTwoFactor = <ThrowOnError extends boolean = false>(options: Options<AuthControllerEnableTwoFactorData, ThrowOnError>): RequestResult<AuthControllerEnableTwoFactorResponses, unknown, ThrowOnError> => (options.client ?? client).post<AuthControllerEnableTwoFactorResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/auth/2fa/enable',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const authControllerDisableTwoFactor = <ThrowOnError extends boolean = false>(options: Options<AuthControllerDisableTwoFactorData, ThrowOnError>): RequestResult<AuthControllerDisableTwoFactorResponses, unknown, ThrowOnError> => (options.client ?? client).post<AuthControllerDisableTwoFactorResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/auth/2fa/disable',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const authControllerListSessions = <ThrowOnError extends boolean = false>(options?: Options<AuthControllerListSessionsData, ThrowOnError>): RequestResult<AuthControllerListSessionsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<AuthControllerListSessionsResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/auth/sessions',
+    ...options
+});
+
+export const authControllerRevokeSession = <ThrowOnError extends boolean = false>(options: Options<AuthControllerRevokeSessionData, ThrowOnError>): RequestResult<AuthControllerRevokeSessionResponses, unknown, ThrowOnError> => (options.client ?? client).delete<AuthControllerRevokeSessionResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/auth/sessions/{id}',
+    ...options
+});
+
+export const authControllerRevokeAllSessions = <ThrowOnError extends boolean = false>(options?: Options<AuthControllerRevokeAllSessionsData, ThrowOnError>): RequestResult<AuthControllerRevokeAllSessionsResponses, unknown, ThrowOnError> => (options?.client ?? client).post<AuthControllerRevokeAllSessionsResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/auth/sessions/revoke-all',
+    ...options
 });
 
 export const authControllerLogout = <ThrowOnError extends boolean = false>(options?: Options<AuthControllerLogoutData, ThrowOnError>): RequestResult<AuthControllerLogoutResponses, unknown, ThrowOnError> => (options?.client ?? client).post<AuthControllerLogoutResponses, unknown, ThrowOnError>({

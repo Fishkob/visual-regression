@@ -11,6 +11,8 @@ export interface AuthUserRow {
   mustChangePassword: boolean;
   deactivatedAt: Date | null;
   createdBy: string | null;
+  totpSecret: string | null;
+  totpEnabledAt: Date | null;
   createdAt: Date;
 }
 
@@ -19,6 +21,11 @@ export interface SessionRow {
   tokenHash: string;
   userId: string;
   expiresAt: Date;
+  revokedAt: Date | null;
+  lastSeenAt: Date | null;
+  ip: string | null;
+  userAgent: string | null;
+  createdAt: Date;
 }
 
 export interface ApiKeyRow {
@@ -135,9 +142,17 @@ export class AuthRepository {
     userId: string,
     tokenHash: string,
     expiresAt: Date,
+    context: { ip?: string | null; userAgent?: string | null } = {},
   ): Promise<SessionRow> {
     return this.client.session.create({
-      data: { userId, tokenHash, expiresAt },
+      data: {
+        userId,
+        tokenHash,
+        expiresAt,
+        lastSeenAt: new Date(),
+        ip: context.ip ?? null,
+        userAgent: context.userAgent ?? null,
+      },
     });
   }
 
@@ -147,6 +162,119 @@ export class AuthRepository {
 
   async deleteSessionByTokenHash(tokenHash: string): Promise<void> {
     await this.client.session.deleteMany({ where: { tokenHash } });
+  }
+
+  async listSessions(userId: string): Promise<SessionRow[]> {
+    return this.client.session.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+  }
+
+  async revokeSession(id: string, userId: string): Promise<boolean> {
+    const result = await this.client.session.updateMany({
+      where: { id, userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return result.count > 0;
+  }
+
+  async revokeAllSessions(
+    userId: string,
+    exceptSessionId?: string,
+  ): Promise<number> {
+    const result = await this.client.session.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+        ...(exceptSessionId ? { id: { not: exceptSessionId } } : {}),
+      },
+      data: { revokedAt: new Date() },
+    });
+    return result.count;
+  }
+
+  async touchSession(
+    id: string,
+    data: { lastSeenAt: Date; ip: string | null; userAgent: string | null },
+  ): Promise<void> {
+    await this.client.session.update({ where: { id }, data });
+  }
+
+  async createTwoFactorChallenge(
+    userId: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.client.twoFactorChallenge.create({
+      data: { userId, tokenHash, expiresAt },
+    });
+  }
+
+  async findTwoFactorChallengeByTokenHash(tokenHash: string) {
+    return this.client.twoFactorChallenge.findUnique({
+      where: { tokenHash },
+    });
+  }
+
+  async incrementTwoFactorChallengeAttempts(id: string): Promise<void> {
+    await this.client.twoFactorChallenge.update({
+      where: { id },
+      data: { attempts: { increment: 1 } },
+    });
+  }
+
+  async deleteTwoFactorChallenge(id: string): Promise<void> {
+    await this.client.twoFactorChallenge.delete({ where: { id } });
+  }
+
+  async setTotpSecret(userId: string, secret: string): Promise<void> {
+    await this.client.user.update({
+      where: { id: userId },
+      data: { totpSecret: secret, totpEnabledAt: null },
+    });
+  }
+
+  async enableTotp(userId: string): Promise<void> {
+    await this.client.user.update({
+      where: { id: userId },
+      data: { totpEnabledAt: new Date() },
+    });
+  }
+
+  async disableTotp(userId: string): Promise<void> {
+    await this.client.$transaction([
+      this.client.user.update({
+        where: { id: userId },
+        data: { totpSecret: null, totpEnabledAt: null },
+      }),
+      this.client.recoveryCode.deleteMany({ where: { userId } }),
+    ]);
+  }
+
+  async createRecoveryCodes(
+    userId: string,
+    codeHashes: string[],
+  ): Promise<void> {
+    await this.client.$transaction([
+      this.client.recoveryCode.deleteMany({ where: { userId } }),
+      this.client.recoveryCode.createMany({
+        data: codeHashes.map((codeHash) => ({ userId, codeHash })),
+      }),
+    ]);
+  }
+
+  async findUnusedRecoveryCode(userId: string, codeHash: string) {
+    return this.client.recoveryCode.findFirst({
+      where: { userId, codeHash, usedAt: null },
+    });
+  }
+
+  async markRecoveryCodeUsed(id: string): Promise<void> {
+    await this.client.recoveryCode.update({
+      where: { id },
+      data: { usedAt: new Date() },
+    });
   }
 
   async extendSessionExpiry(tokenHash: string, expiresAt: Date): Promise<void> {

@@ -3,5 +3,8 @@
 import type { MeDto } from './MeDto.gen';
 
 export type AuthControllerLoginResponses = {
-    200: MeDto;
+    /**
+     * A session user, or a two-factor challenge when 2FA is enabled
+     */
+    200: MeDto | unknown;
 };

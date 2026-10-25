@@ -1,6 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { createHash } from 'node:crypto';
+import { totpCode } from '@internal/auth/totp';
 import type { Mocked } from 'vitest';
 import {
   PASSWORD_HASHER,
@@ -28,6 +29,8 @@ describe('AuthService', () => {
     mustChangePassword: false,
     deactivatedAt: null,
     createdBy: null,
+    totpSecret: null,
+    totpEnabledAt: null,
     createdAt: new Date('2026-01-01'),
     ...overrides,
   });
@@ -64,9 +67,19 @@ describe('AuthService', () => {
       tokenHash: 'tokhash',
       userId: 'u1',
       expiresAt: new Date(Date.now() + 60_000),
+      revokedAt: null,
+      lastSeenAt: new Date(),
+      ip: null,
+      userAgent: null,
+      createdAt: new Date(),
     });
 
-    const result = await service.login('alice', 'secret');
+    const result = (await service.login('alice', 'secret')) as {
+      token: string;
+      username: string;
+      role: string;
+      mustChangePassword: boolean;
+    };
 
     expect(result.username).toBe('alice');
     expect(result.role).toBe('MEMBER');
@@ -137,6 +150,155 @@ describe('AuthService', () => {
     expect(mockRepository.deleteSessionsForUser).toHaveBeenCalledWith('u1');
     expect(mockRepository.createSession).toHaveBeenCalledTimes(1);
     expect(result.token.length).toBeGreaterThan(0);
+  });
+
+  it('returns a two-factor challenge instead of a session when TOTP is enabled', async () => {
+    mockRepository.findUserByUsername.mockResolvedValue(
+      authUser({
+        totpEnabledAt: new Date(),
+        totpSecret: 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ',
+      }),
+    );
+    mockHasher.verifyPassword.mockResolvedValue(true);
+
+    const result = await service.login('alice', 'secret');
+
+    expect(result).toEqual(
+      expect.objectContaining({ twoFactorRequired: true }),
+    );
+    expect(mockRepository.createTwoFactorChallenge).toHaveBeenCalled();
+    expect(mockRepository.createSession).not.toHaveBeenCalled();
+  });
+
+  it('verifies a TOTP challenge and issues a session', async () => {
+    const secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
+    mockRepository.findTwoFactorChallengeByTokenHash.mockResolvedValue({
+      id: 'c1',
+      userId: 'u1',
+      attempts: 0,
+      expiresAt: new Date(Date.now() + 60_000),
+      createdAt: new Date(),
+    } as never);
+    mockRepository.findUserById.mockResolvedValue(
+      authUser({ totpEnabledAt: new Date(), totpSecret: secret }),
+    );
+
+    const result = await service.verifyTwoFactor(
+      'challenge-token',
+      totpCode(secret),
+    );
+
+    expect(result.username).toBe('alice');
+    expect(mockRepository.deleteTwoFactorChallenge).toHaveBeenCalledWith('c1');
+    expect(mockRepository.createSession).toHaveBeenCalled();
+  });
+
+  it('accepts a recovery code once and marks it used', async () => {
+    mockRepository.findTwoFactorChallengeByTokenHash.mockResolvedValue({
+      id: 'c1',
+      userId: 'u1',
+      attempts: 0,
+      expiresAt: new Date(Date.now() + 60_000),
+      createdAt: new Date(),
+    } as never);
+    mockRepository.findUserById.mockResolvedValue(
+      authUser({
+        totpEnabledAt: new Date(),
+        totpSecret: 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ',
+      }),
+    );
+    mockRepository.findUnusedRecoveryCode.mockResolvedValue({
+      id: 'r1',
+    } as never);
+
+    const result = await service.verifyTwoFactor(
+      'challenge-token',
+      'ABCD-EFGH',
+    );
+
+    expect(result.username).toBe('alice');
+    expect(mockRepository.markRecoveryCodeUsed).toHaveBeenCalledWith('r1');
+  });
+
+  it('counts a failed two-factor attempt', async () => {
+    mockRepository.findTwoFactorChallengeByTokenHash.mockResolvedValue({
+      id: 'c1',
+      userId: 'u1',
+      attempts: 1,
+      expiresAt: new Date(Date.now() + 60_000),
+      createdAt: new Date(),
+    } as never);
+    mockRepository.findUserById.mockResolvedValue(
+      authUser({
+        totpEnabledAt: new Date(),
+        totpSecret: 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ',
+      }),
+    );
+
+    await expect(
+      service.verifyTwoFactor('challenge-token', '000000'),
+    ).rejects.toThrow(UnauthorizedException);
+    expect(
+      mockRepository.incrementTwoFactorChallengeAttempts,
+    ).toHaveBeenCalledWith('c1');
+  });
+
+  it('sets up, enables and disables TOTP', async () => {
+    mockRepository.findUserById.mockResolvedValue(authUser());
+    mockRepository.setTotpSecret.mockResolvedValue(undefined);
+    mockRepository.enableTotp.mockResolvedValue(undefined);
+    mockRepository.createRecoveryCodes.mockResolvedValue(undefined);
+    mockRepository.disableTotp.mockResolvedValue(undefined);
+    mockHasher.verifyPassword.mockResolvedValue(true);
+
+    const setup = await service.startTotpSetup('u1');
+    expect(setup.secret).toMatch(/^[A-Z2-7]+$/);
+    expect(setup.otpauthUrl).toContain('otpauth://totp/');
+
+    mockRepository.findUserById.mockResolvedValue(
+      authUser({ totpSecret: setup.secret }),
+    );
+    const codes = await service.enableTotp('u1', totpCode(setup.secret));
+    expect(codes).toHaveLength(10);
+    expect(mockRepository.createRecoveryCodes).toHaveBeenCalledWith(
+      'u1',
+      expect.any(Array),
+    );
+
+    await service.disableTotp('u1', 'secret');
+    expect(mockRepository.disableTotp).toHaveBeenCalledWith('u1');
+  });
+
+  it('lists sessions, marks the current one and revokes others', async () => {
+    mockRepository.listSessions.mockResolvedValue([
+      {
+        id: 's1',
+        createdAt: new Date(),
+        lastSeenAt: null,
+        expiresAt: new Date(),
+        ip: null,
+        userAgent: null,
+      },
+      {
+        id: 's2',
+        createdAt: new Date(),
+        lastSeenAt: null,
+        expiresAt: new Date(),
+        ip: null,
+        userAgent: null,
+      },
+    ] as never);
+    mockRepository.revokeAllSessions.mockResolvedValue(1);
+    mockRepository.revokeSession.mockResolvedValue(true);
+
+    const sessions = await service.listSessions('u1', 's1');
+    expect(sessions[0]?.isCurrent).toBe(true);
+    expect(sessions[1]?.isCurrent).toBe(false);
+
+    await service.revokeSession('u1', 's2');
+    expect(mockRepository.revokeSession).toHaveBeenCalledWith('s2', 'u1');
+
+    await expect(service.revokeOtherSessions('u1', 's1')).resolves.toBe(1);
   });
 
   it('logs out by deleting the session for the hashed token', async () => {
