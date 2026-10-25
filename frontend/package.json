@@ -18,7 +18,8 @@
     "test-ct": "playwright test -c playwright-ct.config.ts",
     "test-e2e": "playwright test -c playwright-e2e.config.ts",
     "test-visual": "playwright test -c playwright-quality.config.ts visual.spec.ts",
-    "test-a11y": "playwright test -c playwright-quality.config.ts a11y.spec.ts"
+    "test-a11y": "playwright test -c playwright-quality.config.ts a11y.spec.ts",
+    "i18n:check": "node scripts/i18n-check.mjs"
   },
   "dependencies": {
     "@lucide/vue": "1.58.0",
@@ -31,6 +32,7 @@
     "reka-ui": "^2.11.0",
     "tailwind-merge": "^3.7.0",
     "vue": "^3.5.44",
+    "vue-i18n": "11.4.16",
     "vue-router": "^5.4.0",
     "vue-sonner": "^2.0.9"
   },

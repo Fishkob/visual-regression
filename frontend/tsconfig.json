@@ -1,27 +1,51 @@
 {
   "compilerOptions": {
     "target": "ES2021",
-    "lib": ["ES2021", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2021",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["node", "vite/client"],
+    "types": [
+      "node",
+      "vite/client"
+    ],
     "allowImportingTsExtensions": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@sdk": ["../client-sdk"],
-      "@sdk/*": ["../client-sdk/*"]
+      "@/*": [
+        "src/*"
+      ],
+      "@sdk": [
+        "../client-sdk"
+      ],
+      "@sdk/*": [
+        "../client-sdk/*"
+      ]
     },
     "strict": true,
     "skipLibCheck": true,
     "noUnusedParameters": true,
     "noImplicitAny": true,
     "noEmit": true,
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "6.0",
+    "resolveJsonModule": true
   },
-  "include": ["env.d.ts", "src/**/*.ts", "src/**/*.vue"],
-  "exclude": ["node_modules", "dist", "playwright"],
+  "include": [
+    "env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.vue"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "playwright"
+  ],
   "vueCompilerOptions": {
-    "extensions": [".vue"]
+    "extensions": [
+      ".vue"
+    ]
   }
 }

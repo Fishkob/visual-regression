@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ref } from "vue";
 import { mount } from "@vue/test-utils";
+import { i18n } from "@/i18n";
 import AppHeader from "@/components/AppHeader.vue";
 import { TEST_ID } from "@/lib/test-ids";
 import type { CurrentUser } from "@/domains/auth/auth.model";
@@ -19,7 +20,7 @@ vi.mock("@/composables/useTheme", () => ({
 }));
 
 function mountHeader() {
-  return mount(AppHeader);
+  return mount(AppHeader, { global: { plugins: [i18n] } });
 }
 
 beforeEach(() => {

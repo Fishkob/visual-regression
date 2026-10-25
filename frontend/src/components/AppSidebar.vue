@@ -17,8 +17,10 @@ import { useReviewInboxCountQuery } from "@/composables/useReviewInbox";
 import { useCurrentRole } from "@/composables/useAuth";
 import { Button } from "@/components/ui/button";
 import { TEST_ID } from "@/lib/test-ids";
+import { useI18n } from "vue-i18n";
 
 const route = useRoute();
+const { t } = useI18n();
 const { collapsed, toggle: toggleSidebar } = useSidebar();
 const { data: pendingCount } = useReviewInboxCountQuery();
 // The admin-only pages are hidden, not just guarded: a member/viewer has no use
@@ -64,8 +66,8 @@ const pending = computed(() => pendingCount.value ?? 0);
         class="hidden md:inline-flex"
         :aria-expanded="!collapsed"
         aria-controls="app-sidebar-nav"
-        :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-        :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        :aria-label="collapsed ? t('nav.expand') : t('nav.collapse')"
+        :title="collapsed ? t('nav.expand') : t('nav.collapse')"
         :data-testid="TEST_ID.sidebarToggle"
         @click="toggleSidebar"
       >
@@ -77,7 +79,7 @@ const pending = computed(() => pendingCount.value ?? 0);
     <nav
       id="app-sidebar-nav"
       class="flex gap-1 overflow-x-auto px-2 pb-2 md:flex-col md:px-3 md:pb-0"
-      aria-label="Main"
+      :aria-label="t('nav.main')"
     >
       <RouterLink
         to="/"
@@ -87,8 +89,8 @@ const pending = computed(() => pendingCount.value ?? 0);
           collapsed ? 'md:justify-center md:px-0' : '',
         ]"
         :aria-current="onInbox ? 'page' : undefined"
-        :aria-label="collapsed ? 'Inbox' : undefined"
-        :title="collapsed ? 'Inbox' : undefined"
+        :aria-label="collapsed ? t('nav.inbox') : undefined"
+        :title="collapsed ? t('nav.inbox') : undefined"
         :data-testid="TEST_ID.navInbox"
       >
         <Inbox class="h-4 w-4 shrink-0" />
@@ -96,7 +98,7 @@ const pending = computed(() => pendingCount.value ?? 0);
           :class="collapsed ? 'md:hidden' : ''"
           :data-testid="TEST_ID.navInboxLabel"
         >
-          Inbox
+          {{ t('nav.inbox') }}
         </span>
         <span
           v-if="pending > 0"
@@ -121,8 +123,8 @@ const pending = computed(() => pendingCount.value ?? 0);
           collapsed ? 'md:justify-center md:px-0' : '',
         ]"
         :aria-current="onProjects ? 'page' : undefined"
-        :aria-label="collapsed ? 'Projects' : undefined"
-        :title="collapsed ? 'Projects' : undefined"
+        :aria-label="collapsed ? t('nav.projects') : undefined"
+        :title="collapsed ? t('nav.projects') : undefined"
         :data-testid="TEST_ID.navProjects"
       >
         <LayoutGrid class="h-4 w-4 shrink-0" />
@@ -137,8 +139,8 @@ const pending = computed(() => pendingCount.value ?? 0);
           collapsed ? 'md:justify-center md:px-0' : '',
         ]"
         :aria-current="onGroups ? 'page' : undefined"
-        :aria-label="collapsed ? 'Groups' : undefined"
-        :title="collapsed ? 'Groups' : undefined"
+        :aria-label="collapsed ? t('nav.groups') : undefined"
+        :title="collapsed ? t('nav.groups') : undefined"
         :data-testid="TEST_ID.navGroups"
       >
         <Users class="h-4 w-4 shrink-0" />
@@ -154,8 +156,8 @@ const pending = computed(() => pendingCount.value ?? 0);
           collapsed ? 'md:justify-center md:px-0' : '',
         ]"
         :aria-current="onApiKeys ? 'page' : undefined"
-        :aria-label="collapsed ? 'API keys' : undefined"
-        :title="collapsed ? 'API keys' : undefined"
+        :aria-label="collapsed ? t('nav.apiKeys') : undefined"
+        :title="collapsed ? t('nav.apiKeys') : undefined"
         :data-testid="TEST_ID.navApiKeys"
       >
         <KeyRound class="h-4 w-4 shrink-0" />
@@ -171,8 +173,8 @@ const pending = computed(() => pendingCount.value ?? 0);
           collapsed ? 'md:justify-center md:px-0' : '',
         ]"
         :aria-current="onUsers ? 'page' : undefined"
-        :aria-label="collapsed ? 'Users' : undefined"
-        :title="collapsed ? 'Users' : undefined"
+        :aria-label="collapsed ? t('nav.users') : undefined"
+        :title="collapsed ? t('nav.users') : undefined"
         :data-testid="TEST_ID.usersNavLink"
       >
         <UserCog class="h-4 w-4 shrink-0" />
@@ -188,8 +190,8 @@ const pending = computed(() => pendingCount.value ?? 0);
           collapsed ? 'md:justify-center md:px-0' : '',
         ]"
         :aria-current="onAudit ? 'page' : undefined"
-        :aria-label="collapsed ? 'Audit' : undefined"
-        :title="collapsed ? 'Audit' : undefined"
+        :aria-label="collapsed ? t('nav.audit') : undefined"
+        :title="collapsed ? t('nav.audit') : undefined"
         :data-testid="TEST_ID.auditNavLink"
       >
         <ScrollText class="h-4 w-4 shrink-0" />
@@ -204,8 +206,8 @@ const pending = computed(() => pendingCount.value ?? 0);
           collapsed ? 'md:justify-center md:px-0' : '',
         ]"
         :aria-current="onSecurity ? 'page' : undefined"
-        :aria-label="collapsed ? 'Security' : undefined"
-        :title="collapsed ? 'Security' : undefined"
+        :aria-label="collapsed ? t('nav.security') : undefined"
+        :title="collapsed ? t('nav.security') : undefined"
         :data-testid="TEST_ID.securityNavLink"
       >
         <ShieldCheck class="h-4 w-4 shrink-0" />

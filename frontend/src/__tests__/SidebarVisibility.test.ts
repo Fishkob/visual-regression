@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ref } from "vue";
 import { mount } from "@vue/test-utils";
+import { i18n } from "@/i18n";
 import AppSidebar from "@/components/AppSidebar.vue";
 import { TEST_ID } from "@/lib/test-ids";
 import type { UserRole } from "@/domains/auth/auth.model";
@@ -33,7 +34,7 @@ const mounted: { unmount: () => void }[] = [];
 
 function mountSidebar(role: UserRole) {
   roleRef.value = role;
-  const wrapper = mount(AppSidebar);
+  const wrapper = mount(AppSidebar, { global: { plugins: [i18n] } });
   mounted.push(wrapper);
   return wrapper;
 }

@@ -4,6 +4,7 @@ export const TEST_ID = {
   appHeader: "app-header",
   sidebarToggle: "sidebar-toggle",
   appShell: "app-shell",
+  localeSwitcher: "locale-switcher",
   searchTrigger: "search-trigger",
   globalSearchDialog: "global-search-dialog",
   globalSearchInput: "global-search-input",

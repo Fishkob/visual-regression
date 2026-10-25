@@ -7,8 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ROLE_BADGE_VARIANT } from "@/domains/auth/auth.model";
 import { TEST_ID } from "@/lib/test-ids";
+import { useI18n } from "vue-i18n";
+import LocaleSwitcher from "@/components/LocaleSwitcher.vue";
 
 const { theme, toggle } = useTheme();
+const { t } = useI18n();
 const { data: user } = useMeQuery();
 const { mutate: logout } = useLogout();
 const { openPalette } = useGlobalSearchPalette();
@@ -23,12 +26,12 @@ const { openPalette } = useGlobalSearchPalette();
       type="button"
       variant="ghost"
       size="sm"
-      aria-label="Search projects, tests and branches (Ctrl+K)"
+      :aria-label="t('header.searchLabel')"
       :data-testid="TEST_ID.searchTrigger"
       @click="openPalette"
     >
       <Search class="h-4 w-4" />
-      <span class="hidden sm:inline">Search</span>
+      <span class="hidden sm:inline">{{ t('header.search') }}</span>
       <kbd
         class="hidden rounded border px-1 text-[10px] text-muted-foreground md:inline"
       >
@@ -50,12 +53,13 @@ const { openPalette } = useGlobalSearchPalette();
     >
       {{ user.role }}
     </Badge>
+    <LocaleSwitcher />
     <Button
       type="button"
       variant="ghost"
       size="icon"
       :aria-label="
-        theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'
+        theme === 'dark' ? t('header.themeLight') : t('header.themeDark')
       "
       :data-testid="TEST_ID.themeToggle"
       @click="toggle"
@@ -67,12 +71,12 @@ const { openPalette } = useGlobalSearchPalette();
       type="button"
       variant="ghost"
       size="sm"
-      aria-label="Log out"
+      :aria-label="t('header.logout')"
       :data-testid="TEST_ID.logout"
       @click="logout"
     >
       <LogOut class="h-4 w-4" />
-      <span class="hidden sm:inline">Log out</span>
+      <span class="hidden sm:inline">{{ t('header.logout') }}</span>
     </Button>
   </header>
 </template>

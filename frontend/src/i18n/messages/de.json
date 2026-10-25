@@ -1,0 +1,34 @@
+{
+  "nav": {
+    "inbox": "Posteingang",
+    "projects": "Projekte",
+    "groups": "Gruppen",
+    "apiKeys": "API-Schlüssel",
+    "users": "Benutzer",
+    "audit": "Audit",
+    "security": "Sicherheit",
+    "expand": "Seitenleiste erweitern",
+    "collapse": "Seitenleiste einklappen",
+    "main": "Hauptnavigation"
+  },
+  "header": {
+    "search": "Suchen",
+    "searchLabel": "Projekte, Tests und Branches durchsuchen (Strg+K)",
+    "themeLight": "Zum hellen Modus wechseln",
+    "themeDark": "Zum dunklen Modus wechseln",
+    "logout": "Abmelden",
+    "language": "Sprache"
+  },
+  "login": {
+    "signIn": "Anmelden",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "signingIn": "Anmeldung läuft…",
+    "twoFactorTitle": "Zwei-Faktor-Authentifizierung",
+    "twoFactorHelp": "Gib den 6-stelligen Code aus deiner Authenticator-App oder einen deiner Recovery-Codes ein.",
+    "code": "Code",
+    "verify": "Bestätigen",
+    "verifying": "Wird geprüft…",
+    "back": "Zurück zur Anmeldung"
+  }
+}

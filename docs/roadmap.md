@@ -60,7 +60,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R14 | Search & discovery                       | 5     | M    | —                             | Shipped     |
 | R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Shipped     |
 | R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Shipped     |
-| R17 | Internationalization                     | 5     | M    | —                             | Planned     |
+| R17 | Internationalization                     | 5     | M    | ADR-037                       | In progress |
 | R18 | Share links                              | 5     | M    | R9                            | Planned     |
 | R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4                        | Planned     |
 | R20 | Review comments & decision notes         | 5     | M    | R9                            | Planned     |
@@ -789,6 +789,15 @@ the same bars.
 **Scope.** `vue-i18n` (new dependency — confirm against ADR-001 and
 `package.json` first), extract strings, German + English, persisted locale,
 date/number formatting, translated a11y labels, CI check for missing keys.
+
+**Delivered so far.** `vue-i18n` v11 (ADR-037), `en`/`de` message files, a
+persisted locale with a header switcher and `document.lang`, translated shell
+navigation/header/login (including a11y labels), and a key-parity CI script
+(`frontend i18n:check`, 26 keys). English remains the fallback.
+
+**Remaining.** Extract the domain pages (inbox, projects, runs, storage, users,
+security, audit, webhooks), switch date/number rendering to `d()`/`n()` and
+extend the check to detect untranslated literals.
 
 **Size.** M · independent.
 

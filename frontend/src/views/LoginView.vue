@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
     <h1 class="text-2xl font-semibold">
-      {{ step === "password" ? "Sign in" : "Two-factor authentication" }}
+      {{ step === "password" ? t("login.signIn") : t("login.twoFactorTitle") }}
     </h1>
 
     <form
@@ -10,7 +10,7 @@
       @submit.prevent="submit"
     >
       <div class="space-y-1">
-        <label for="login-username" class="block text-sm">Username</label>
+        <label for="login-username" class="block text-sm">{{ t("login.username") }}</label>
         <Input
           id="login-username"
           v-model="username"
@@ -21,7 +21,7 @@
         />
       </div>
       <div class="space-y-1">
-        <label for="login-password" class="block text-sm">Password</label>
+        <label for="login-password" class="block text-sm">{{ t("login.password") }}</label>
         <Input
           id="login-password"
           v-model="password"
@@ -37,18 +37,17 @@
         :disabled="pending"
         class="w-full"
       >
-        {{ pending ? "Signing in…" : "Sign in" }}
+        {{ pending ? t("login.signingIn") : t("login.signIn") }}
       </Button>
       <p v-if="errorText" class="text-sm text-destructive">{{ errorText }}</p>
     </form>
 
     <form v-else class="w-80 space-y-4" @submit.prevent="verify">
       <p class="text-sm text-muted-foreground">
-        Enter the 6-digit code from your authenticator app, or one of your
-        recovery codes.
+        {{ t("login.twoFactorHelp") }}
       </p>
       <div class="space-y-1">
-        <label for="login-two-factor-code" class="block text-sm">Code</label>
+        <label for="login-two-factor-code" class="block text-sm">{{ t("login.code") }}</label>
         <Input
           id="login-two-factor-code"
           v-model="code"
@@ -67,7 +66,7 @@
         :disabled="verifying || !code.trim()"
         class="w-full"
       >
-        {{ verifying ? "Verifying…" : "Verify" }}
+        {{ verifying ? t("login.verifying") : t("login.verify") }}
       </Button>
       <p
         v-if="twoFactorError"
@@ -83,7 +82,7 @@
         :data-testid="TEST_ID.loginTwoFactorBack"
         @click="backToPassword"
       >
-        Back to sign in
+        {{ t("login.back") }}
       </Button>
     </form>
   </div>
@@ -96,7 +95,9 @@ import { Input } from "@/components/ui/input";
 import { useLogin, useVerifyTwoFactor } from "@/composables/useAuth";
 import { sdkErrorMessage } from "@/lib/sdk";
 import { TEST_ID } from "@/lib/test-ids";
+import { useI18n } from "vue-i18n";
 
+const { t } = useI18n();
 const username = ref("");
 const password = ref("");
 const errorText = ref("");
