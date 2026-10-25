@@ -222,6 +222,28 @@ model WebhookDelivery {
   @@map("WebhookDelivery")
 }
 
+// Durable audit trail. Deliberately no foreign keys: the actions it records
+// (approval, restore, deletion, settings changes) outlive the rows they name,
+// so project/test/branch names and target ids are denormalized at write time.
+model AuditEvent {
+  id          String   @id @default(cuid())
+  actor       String?
+  action      String
+  projectName String?
+  testName    String?
+  branchName  String?
+  targetType  String?
+  targetId    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([projectName, createdAt])
+  @@index([actor, createdAt])
+  @@index([action, createdAt])
+  @@map("AuditEvent")
+}
+
 model ComparisonJob {
   id                  String        @id @default(cuid())
   testId              String

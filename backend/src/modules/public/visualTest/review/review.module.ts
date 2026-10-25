@@ -27,6 +27,7 @@ import { ReviewInboxService } from '@public/visualTest/review/application/review
 import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
 import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
 import { WebhooksModule } from '@internal/webhooks/webhooks.module';
+import { AuditModule } from '@internal/audit/audit.module';
 import { WebhooksController } from '@public/visualTest/review/presentation/controllers/webhooks.controller';
 import { WebhookSettingsService } from '@public/visualTest/review/application/webhook-settings.service';
 
@@ -38,6 +39,7 @@ import { WebhookSettingsService } from '@public/visualTest/review/application/we
     VisualTestApplicationModule,
     PdfSidecarModule,
     WebhooksModule,
+    AuditModule,
   ],
   controllers: [
     ProjectsController,

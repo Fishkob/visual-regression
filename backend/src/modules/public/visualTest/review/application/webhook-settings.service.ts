@@ -6,6 +6,8 @@ import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.serv
 import { WebhookEndpointRepository } from '@internal/webhooks/webhook-endpoint.repository';
 import { assertSafeWebhookUrl } from '@internal/webhooks/webhook-url';
 import { generateWebhookSecret } from '@internal/webhooks/webhook-secret';
+import { AuditService } from '@internal/audit/audit.service';
+import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import type {
   WebhookDeliveryRow,
   WebhookEndpointRow,
@@ -56,6 +58,7 @@ export class WebhookSettingsService {
     private readonly endpoints: WebhookEndpointRepository,
     private readonly deliveries: WebhookDeliveryRepository,
     private readonly dispatch: WebhookDispatchService,
+    private readonly audit: AuditService,
   ) {}
 
   async list(projectName: string): Promise<WebhookEndpointView[]> {
@@ -67,6 +70,7 @@ export class WebhookSettingsService {
   async create(
     projectName: string,
     dto: CreateWebhookDto,
+    actor?: string,
   ): Promise<WebhookEndpointWithSecret> {
     const project = await this.requireProject(projectName);
     assertSafeWebhookUrl(dto.url);
@@ -78,6 +82,18 @@ export class WebhookSettingsService {
       events: dto.events,
       format: dto.format ?? 'json',
     });
+    await this.audit.record({
+      actor: actor ?? null,
+      action: AUDIT_ACTIONS.webhookCreate,
+      projectName,
+      targetType: 'webhook',
+      targetId: created.id,
+      metadata: {
+        url: created.url,
+        events: created.events,
+        format: created.format,
+      },
+    });
     return { ...toView(created), secret: created.secret };
   }
 
@@ -85,6 +101,7 @@ export class WebhookSettingsService {
     projectName: string,
     id: string,
     dto: UpdateWebhookDto,
+    actor?: string,
   ): Promise<WebhookEndpointView & { secret?: string }> {
     const project = await this.requireProject(projectName);
     const endpoint = await this.requireEndpoint(project.id, id);
@@ -96,16 +113,38 @@ export class WebhookSettingsService {
       ...(dto.active !== undefined ? { active: dto.active } : {}),
       ...(dto.secret ? { secret: dto.secret } : {}),
     });
+    await this.audit.record({
+      actor: actor ?? null,
+      action: AUDIT_ACTIONS.webhookUpdate,
+      projectName,
+      targetType: 'webhook',
+      targetId: updated.id,
+      metadata: {
+        url: updated.url,
+        events: updated.events,
+        format: updated.format,
+        active: updated.active,
+        secretRotated: Boolean(dto.secret),
+      },
+    });
     return {
       ...toView(updated),
       ...(dto.secret ? { secret: updated.secret } : {}),
     };
   }
 
-  async remove(projectName: string, id: string): Promise<void> {
+  async remove(projectName: string, id: string, actor?: string): Promise<void> {
     const project = await this.requireProject(projectName);
     const endpoint = await this.requireEndpoint(project.id, id);
     await this.endpoints.remove(endpoint.id);
+    await this.audit.record({
+      actor: actor ?? null,
+      action: AUDIT_ACTIONS.webhookDelete,
+      projectName,
+      targetType: 'webhook',
+      targetId: endpoint.id,
+      metadata: { url: endpoint.url },
+    });
   }
 
   async listDeliveries(

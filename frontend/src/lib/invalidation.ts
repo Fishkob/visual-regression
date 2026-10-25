@@ -10,6 +10,7 @@ import { visualTestQueryKeys } from "@/domains/visual-test/query-keys";
 import { pdfTestQueryKeys } from "@/domains/pdf-test/query-keys";
 import { approvalQueryKeys } from "@/domains/approvals/query-keys";
 import { baselineHistoryQueryKeys } from "@/domains/baseline-history/query-keys";
+import { webhookQueryKeys } from "@/domains/webhooks/query-keys";
 import type { TestDetailsArgs } from "@/lib/variant-key";
 
 export function invalidateProjectDetail(
@@ -92,4 +93,26 @@ export function invalidateReviewInbox(client: QueryClient) {
 export function invalidateProjectsForGroupChange(client: QueryClient) {
   client.invalidateQueries({ queryKey: groupQueryKeys.all() });
   invalidateProjectList(client);
+}
+
+// An endpoint write (create/update/delete) changes the row list, and a test or
+// rotated secret changes what the delivery log will show next — so both reads
+// age out together. The per-endpoint delivery prefix covers every endpoint.
+export function invalidateWebhooks(client: QueryClient, projectName: string) {
+  client.invalidateQueries({ queryKey: webhookQueryKeys.list(projectName) });
+  client.invalidateQueries({
+    queryKey: webhookQueryKeys.deliveriesAll(projectName),
+  });
+}
+
+// A replay requeues one row: the log of that endpoint is the only read that
+// moves, so the list is left alone.
+export function invalidateWebhookDeliveries(
+  client: QueryClient,
+  projectName: string,
+  endpointId: string,
+) {
+  client.invalidateQueries({
+    queryKey: webhookQueryKeys.deliveries(projectName, endpointId),
+  });
 }

@@ -28,6 +28,7 @@ import { ApprovalAuditRepository } from '@public/visualTest/core/infrastructure/
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
 import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
+import { AuditService } from '@internal/audit/audit.service';
 import {
   PDF_RENDER_CACHE,
   IPdfRenderCache,
@@ -52,6 +53,7 @@ describe('ApprovalService', () => {
   let retirement: Mocked<ComparisonRetirementService>;
   let baselineHistory: Mocked<BaselineHistoryService>;
   let webhooks: Mocked<WebhookDispatchService>;
+  let audit: Mocked<AuditService>;
   let pdfRenderCache: Mocked<IPdfRenderCache>;
   let approvalAudit: Mocked<ApprovalAuditRepository>;
 
@@ -162,6 +164,8 @@ describe('ApprovalService', () => {
     baselineHistory.recordOutgoingBaseline.mockResolvedValue([]);
     webhooks = createMock<WebhookDispatchService>();
     webhooks.enqueueComparisonApproved.mockResolvedValue(0);
+    audit = createMock<AuditService>();
+    audit.record.mockResolvedValue(undefined);
     pdfRenderCache = createMock<IPdfRenderCache>();
     approvalAudit = createMock<ApprovalAuditRepository>();
     approvalAudit.record.mockResolvedValue(undefined);
@@ -188,6 +192,7 @@ describe('ApprovalService', () => {
         { provide: ComparisonRetirementService, useValue: retirement },
         { provide: BaselineHistoryService, useValue: baselineHistory },
         { provide: WebhookDispatchService, useValue: webhooks },
+        { provide: AuditService, useValue: audit },
         { provide: PDF_RENDER_CACHE, useValue: pdfRenderCache },
         { provide: ApprovalAuditRepository, useValue: approvalAudit },
         { provide: AppLoggerService, useValue: createMockLogger() },
@@ -261,6 +266,16 @@ describe('ApprovalService', () => {
           kind: 'image',
           comparisonId: 'comp-1',
           approvedBy: 'reviewer',
+        }),
+      );
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actor: 'reviewer',
+          action: 'approval',
+          projectName: 'my-project',
+          testName: 'my-test',
+          targetType: 'test',
+          targetId: 'test-1',
         }),
       );
 

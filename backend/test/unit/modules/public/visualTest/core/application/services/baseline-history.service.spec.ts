@@ -26,6 +26,7 @@ import {
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { AppConfigService } from '@config/app-config.service';
+import { AuditService } from '@internal/audit/audit.service';
 import { createMock } from '@test/utils/create-mock';
 import {
   createMockLogger,
@@ -42,6 +43,7 @@ describe('BaselineHistoryService', () => {
   let testResolver: Mocked<TestResolver>;
   let statusService: Mocked<TestStatusService>;
   let storage: Mocked<IStorageProvider>;
+  let audit: Mocked<AuditService>;
 
   const test = { id: 'test-1', name: 'checkout', kind: 'image' as const };
   const variant = Variant.fromStrings('1920x1080', 'chrome', 'staging');
@@ -97,6 +99,8 @@ describe('BaselineHistoryService', () => {
     statusService = createMock<TestStatusService>();
     statusService.recomputeStatus.mockResolvedValue(undefined);
     storage = createMockStorage() as unknown as Mocked<IStorageProvider>;
+    audit = createMock<AuditService>();
+    audit.record.mockResolvedValue(undefined);
     const uow = createMockUoW() as unknown as Mocked<PrismaUnitOfWork>;
     const metrics = createMock<IMetricsRecorder>();
 
@@ -113,6 +117,7 @@ describe('BaselineHistoryService', () => {
           useValue: { baselineHistory: { limit: 10 } },
         },
         { provide: STORAGE_PROVIDER, useValue: storage },
+        { provide: AuditService, useValue: audit },
         { provide: PrismaUnitOfWork, useValue: uow },
         { provide: TestStatusService, useValue: statusService },
         { provide: AppLoggerService, useValue: createMockLogger() },
@@ -234,6 +239,15 @@ describe('BaselineHistoryService', () => {
         expect.any(Variant),
       );
       expect(statusService.recomputeStatus).toHaveBeenCalledWith('test-1');
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actor: 'reviewer',
+          action: 'baseline.restore',
+          projectName: 'shop',
+          testName: 'checkout',
+          metadata: expect.objectContaining({ revisionId: 'revision-1' }),
+        }),
+      );
       expect(result).toEqual({
         baselineUrl: 'http://storage/old.png',
         signedBaselineUrl: 'http://storage/old.png',

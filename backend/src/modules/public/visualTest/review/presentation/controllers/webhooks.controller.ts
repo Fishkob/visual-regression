@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -19,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { SessionOnlyGuard } from '@common/http/session-only.guard';
+import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { WebhookSettingsService } from '@public/visualTest/review/application/webhook-settings.service';
 import {
@@ -62,8 +64,13 @@ export class WebhooksController {
   async create(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Body() dto: CreateWebhookDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const created = await this.webhooks.create(projectName, dto);
+    const created = await this.webhooks.create(
+      projectName,
+      dto,
+      req.auth?.username,
+    );
     return plainToInstance(CreatedWebhookEndpointDto, created, {
       excludeExtraneousValues: true,
     });
@@ -79,8 +86,14 @@ export class WebhooksController {
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('id') id: string,
     @Body() dto: UpdateWebhookDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const updated = await this.webhooks.update(projectName, id, dto);
+    const updated = await this.webhooks.update(
+      projectName,
+      id,
+      dto,
+      req.auth?.username,
+    );
     const dtoClass = updated.secret
       ? CreatedWebhookEndpointDto
       : WebhookEndpointDto;
@@ -96,8 +109,9 @@ export class WebhooksController {
   async remove(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
   ): Promise<void> {
-    await this.webhooks.remove(projectName, id);
+    await this.webhooks.remove(projectName, id, req.auth?.username);
   }
 
   @Get(':id/deliveries')

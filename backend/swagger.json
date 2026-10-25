@@ -18,6 +18,208 @@
         ]
       }
     },
+    "/audit": {
+      "get": {
+        "operationId": "AuditController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "description": "Record offset (0-based), alternative to page",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Page size, alternative to limit",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          },
+          {
+            "name": "actor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "approval",
+                "baseline.restore",
+                "test.delete",
+                "project.delete",
+                "branch.delete",
+                "webhook.create",
+                "webhook.update",
+                "webhook.delete",
+                "api-key.create",
+                "api-key.revoke",
+                "api-key.rotate",
+                "api-key.delete"
+              ]
+            }
+          },
+          {
+            "name": "projectName",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEventDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List audit events (newest first, paginated)",
+        "tags": [
+          "Audit"
+        ]
+      }
+    },
+    "/audit/export": {
+      "get": {
+        "operationId": "AuditController_export",
+        "parameters": [
+          {
+            "name": "actor",
+            "required": false,
+            "in": "query",
+            "description": "Filter by actor username",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "approval",
+                "baseline.restore",
+                "test.delete",
+                "project.delete",
+                "branch.delete",
+                "webhook.create",
+                "webhook.update",
+                "webhook.delete",
+                "api-key.create",
+                "api-key.revoke",
+                "api-key.rotate",
+                "api-key.delete"
+              ]
+            }
+          },
+          {
+            "name": "projectName",
+            "required": false,
+            "in": "query",
+            "description": "Filter by project name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive ISO start date",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Inclusive ISO end date",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV document"
+          }
+        },
+        "summary": "Export the filtered audit trail as CSV",
+        "tags": [
+          "Audit"
+        ]
+      }
+    },
     "/projects/{projectName}/tests/{testName}/upload": {
       "post": {
         "operationId": "UploadController_upload",
@@ -2855,6 +3057,54 @@
       }
     },
     "schemas": {
+      "AuditEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "object",
+            "nullable": true
+          },
+          "action": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "object",
+            "nullable": true
+          },
+          "testName": {
+            "type": "object",
+            "nullable": true
+          },
+          "branchName": {
+            "type": "object",
+            "nullable": true
+          },
+          "targetType": {
+            "type": "object",
+            "nullable": true
+          },
+          "targetId": {
+            "type": "object",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "createdAt"
+        ]
+      },
       "ComparisonOutcome": {
         "type": "string",
         "enum": [

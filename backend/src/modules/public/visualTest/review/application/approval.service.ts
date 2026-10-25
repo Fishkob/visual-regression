@@ -18,6 +18,8 @@ import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastruct
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
 import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
+import { AuditService } from '@internal/audit/audit.service';
+import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import {
   PDF_RENDER_CACHE,
   IPdfRenderCache,
@@ -90,6 +92,7 @@ export class ApprovalService {
     private readonly retirement: ComparisonRetirementService,
     private readonly baselineHistory: BaselineHistoryService,
     private readonly webhooks: WebhookDispatchService,
+    private readonly audit: AuditService,
     @Inject(PDF_RENDER_CACHE)
     private readonly pdfRenderCache: IPdfRenderCache,
     @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
@@ -210,6 +213,23 @@ export class ApprovalService {
             pageCount:
               comparison.pageCount ?? decision.newBaseline.pageCount ?? null,
             approvedBy,
+          });
+          await this.audit.record({
+            actor: approvedBy,
+            action: AUDIT_ACTIONS.approval,
+            projectName,
+            testName,
+            branchName: branchName ?? null,
+            targetType: 'test',
+            targetId: test.id,
+            metadata: {
+              comparisonId: comparison.id,
+              testKind: kind,
+              viewport: decision.newBaseline.variant.viewport,
+              browser: decision.newBaseline.variant.browser,
+              environment: decision.newBaseline.variant.environment,
+              mismatchPixelCount: comparison.mismatchPixelCount,
+            },
           });
           // Notify subscribed webhook endpoints in the same transaction: an
           // approval never commits without its review notifications. The

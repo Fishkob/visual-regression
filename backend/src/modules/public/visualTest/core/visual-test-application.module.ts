@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@prisma/prisma.module';
 import { AppConfigModule } from '@config/app-config.module';
+import { AuditModule } from '@internal/audit/audit.module';
 import { StorageModule } from '@internal/storage/storage.module';
 import { JobQueueModule } from '@internal/job-queue/job-queue.module';
 import { VisualTestInfraModule } from '@public/visualTest/core/visual-test-infra.module';
@@ -23,6 +24,7 @@ import { BaselineHistoryService } from '@public/visualTest/core/application/serv
     StorageModule,
     JobQueueModule,
     AppConfigModule,
+    AuditModule,
   ],
   providers: [
     BranchBaselineResolver,

@@ -21,6 +21,8 @@ import {
 } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import type { BaselineRevisionReason } from '@public/visualTest/core/domain/types/visual-test.types';
 import type { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
+import { AuditService } from '@internal/audit/audit.service';
+import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 
 export interface BaselineRevisionView extends BaselineRevisionRow {
   signedImageUrl: string;
@@ -56,6 +58,7 @@ export class BaselineHistoryService {
     private readonly workflow: StateChangeWorkflow,
     private readonly testResolver: TestResolver,
     private readonly config: AppConfigService,
+    private readonly audit: AuditService,
     @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
   ) {}
 
@@ -191,6 +194,23 @@ export class BaselineHistoryService {
         imageUrl: revision.imageUrl,
         pageCount: revision.pageCount,
         pixelDiffThreshold: revision.pixelDiffThreshold,
+      });
+
+      await this.audit.record({
+        actor: input.restoredBy,
+        action: AUDIT_ACTIONS.baselineRestore,
+        projectName: input.projectName,
+        testName: input.testName,
+        branchName: input.branchName ?? null,
+        targetType: 'test',
+        targetId: test.id,
+        metadata: {
+          revisionId: revision.id,
+          viewport: revision.viewport,
+          browser: revision.browser,
+          environment: revision.environment,
+          imageHash: revision.imageHash,
+        },
       });
 
       // Any pending comparison was computed against the replaced baseline, and

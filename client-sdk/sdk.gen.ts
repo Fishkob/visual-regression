@@ -30,6 +30,10 @@ import type { ApprovalsControllerApproveVisualTestErrors } from './models/Approv
 import type { ApprovalsControllerApproveVisualTestResponses } from './models/ApprovalsControllerApproveVisualTestResponses.gen';
 import type { ApprovalsControllerListApprovalsData } from './models/ApprovalsControllerListApprovalsData.gen';
 import type { ApprovalsControllerListApprovalsResponses } from './models/ApprovalsControllerListApprovalsResponses.gen';
+import type { AuditControllerExportData } from './models/AuditControllerExportData.gen';
+import type { AuditControllerExportResponses } from './models/AuditControllerExportResponses.gen';
+import type { AuditControllerListData } from './models/AuditControllerListData.gen';
+import type { AuditControllerListResponses } from './models/AuditControllerListResponses.gen';
 import type { AuthControllerLoginData } from './models/AuthControllerLoginData.gen';
 import type { AuthControllerLoginErrors } from './models/AuthControllerLoginErrors.gen';
 import type { AuthControllerLoginResponses } from './models/AuthControllerLoginResponses.gen';
@@ -136,6 +140,24 @@ import type { WebhooksControllerUpdateData } from './models/WebhooksControllerUp
 import type { WebhooksControllerUpdateResponses } from './models/WebhooksControllerUpdateResponses.gen';
 
 export const metricsControllerGetMetrics = <ThrowOnError extends boolean = false>(options?: Options<MetricsControllerGetMetricsData, ThrowOnError>): RequestResult<MetricsControllerGetMetricsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<MetricsControllerGetMetricsResponses, unknown, ThrowOnError>({ url: '/metrics', ...options });
+
+/**
+ * List audit events (newest first, paginated)
+ */
+export const auditControllerList = <ThrowOnError extends boolean = false>(options?: Options<AuditControllerListData, ThrowOnError>): RequestResult<AuditControllerListResponses, unknown, ThrowOnError> => (options?.client ?? client).get<AuditControllerListResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/audit',
+    ...options
+});
+
+/**
+ * Export the filtered audit trail as CSV
+ */
+export const auditControllerExport = <ThrowOnError extends boolean = false>(options?: Options<AuditControllerExportData, ThrowOnError>): RequestResult<AuditControllerExportResponses, unknown, ThrowOnError> => (options?.client ?? client).get<AuditControllerExportResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/audit/export',
+    ...options
+});
 
 /**
  * Upload a file (image or PDF) and compare with the baseline

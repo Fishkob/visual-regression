@@ -5,6 +5,7 @@ import { WebhookDeliveryRepository } from '@internal/webhooks/webhook-delivery.r
 import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
 import { WebhookEndpointRepository } from '@internal/webhooks/webhook-endpoint.repository';
 import { WebhookSettingsService } from '@public/visualTest/review/application/webhook-settings.service';
+import { AuditService } from '@internal/audit/audit.service';
 import type { WebhookEndpointRow } from '@internal/webhooks/webhook.types';
 import { createMock } from '@test/utils/create-mock';
 
@@ -14,6 +15,7 @@ describe('WebhookSettingsService', () => {
   let endpoints: Mocked<WebhookEndpointRepository>;
   let deliveries: Mocked<WebhookDeliveryRepository>;
   let dispatch: Mocked<WebhookDispatchService>;
+  let audit: Mocked<AuditService>;
 
   const endpoint = {
     id: 'wh-1',
@@ -58,12 +60,15 @@ describe('WebhookSettingsService', () => {
     });
     dispatch = createMock<WebhookDispatchService>();
     dispatch.enqueueTestEvent.mockResolvedValue(undefined);
+    audit = createMock<AuditService>();
+    audit.record.mockResolvedValue(undefined);
 
     service = new WebhookSettingsService(
       projects,
       endpoints,
       deliveries,
       dispatch,
+      audit,
     );
   });
 
