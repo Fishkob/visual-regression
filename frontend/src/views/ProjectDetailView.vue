@@ -124,6 +124,8 @@
       </div>
     </div>
 
+    <ProjectStoragePanel :project-name="projectName" />
+
     <AsyncState
       :is-loading="activeTabState.isLoading"
       :error="activeTabState.error"
@@ -174,6 +176,7 @@ import { ListChecks, TrendingUp, Webhook } from "@lucide/vue";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import SkeletonAccordionGroups from "@/components/cards/SkeletonAccordionGroups.vue";
+import ProjectStoragePanel from "@/components/storage/ProjectStoragePanel.vue";
 import MoveProjectDialog from "@/components/projects/MoveProjectDialog.vue";
 import VisualTestsTable from "@/components/tables/VisualTestsTable.vue";
 import PaginationBar from "@/components/PaginationBar.vue";

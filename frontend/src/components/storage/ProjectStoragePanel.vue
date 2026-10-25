@@ -1,0 +1,181 @@
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import AsyncState from "@/components/AsyncState.vue";
+import EditStorageRetentionDialog from "@/components/storage/EditStorageRetentionDialog.vue";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useCurrentRole } from "@/composables/useAuth";
+import {
+  useProjectStorage,
+  useUpdateProjectStorage,
+} from "@/composables/useProjectStorage";
+import {
+  formatBytes,
+  formatPercent,
+  retentionLabel,
+  type UpdateProjectStorageInput,
+} from "@/domains/storage/storage.model";
+import { TEST_ID } from "@/lib/test-ids";
+
+const props = defineProps<{ projectName: string }>();
+
+const {
+  data: storage,
+  isLoading,
+  error,
+  refetch,
+} = useProjectStorage(props.projectName);
+const update = useUpdateProjectStorage(props.projectName);
+// Retention/quota changes are writes; a VIEWER sees the panel read-only.
+const { canWrite } = useCurrentRole();
+
+const dialogOpen = ref(false);
+
+const quotaLabel = computed(() =>
+  storage.value?.quotaBytes == null
+    ? "No quota"
+    : formatBytes(storage.value.quotaBytes),
+);
+const progressPercent = computed(() =>
+  Math.min(100, Math.max(0, storage.value?.percent ?? 0)),
+);
+
+function openDialog() {
+  update.reset();
+  dialogOpen.value = true;
+}
+
+function submit(payload: UpdateProjectStorageInput) {
+  update.mutate(payload, {
+    onSuccess: () => {
+      dialogOpen.value = false;
+    },
+  });
+}
+</script>
+
+<template>
+  <section
+    class="rounded-xl border bg-card p-4 shadow-sm"
+    :data-testid="TEST_ID.storagePanel"
+  >
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h2 class="font-medium">Storage</h2>
+        <p class="text-sm text-muted-foreground">
+          Screenshots and diffs stored for this project, its quota and its
+          retention limits.
+        </p>
+      </div>
+      <Button
+        v-if="canWrite && storage"
+        type="button"
+        variant="outline"
+        size="sm"
+        :data-testid="TEST_ID.storageEditAction"
+        @click="openDialog"
+      >
+        Edit retention
+      </Button>
+    </div>
+
+    <AsyncState
+      :is-loading="isLoading"
+      :error="error"
+      error-title="Failed to load storage usage"
+      :retry="refetch"
+      :empty="!storage"
+    >
+      <template #loading>
+        <div class="mt-3 space-y-2" aria-hidden="true">
+          <div class="h-5 w-48 animate-pulse rounded bg-muted" />
+          <div class="h-2 w-full animate-pulse rounded-full bg-muted" />
+          <div class="h-4 w-64 animate-pulse rounded bg-muted" />
+        </div>
+      </template>
+
+      <template #empty>
+        <p class="mt-3 text-sm text-muted-foreground">
+          No storage data available for this project yet.
+        </p>
+      </template>
+
+      <div v-if="storage" class="mt-3 space-y-3">
+        <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <p class="text-lg font-semibold" :data-testid="TEST_ID.storageUsage">
+            {{ formatBytes(storage.usageBytes) }} used
+          </p>
+          <span class="text-sm text-muted-foreground">
+            of
+            <span :data-testid="TEST_ID.storageQuota">{{ quotaLabel }}</span>
+          </span>
+          <span
+            v-if="storage.quotaBytes != null"
+            class="text-sm text-muted-foreground"
+          >
+            ({{ formatPercent(storage.percent) }})
+          </span>
+          <Badge
+            v-if="storage.warning"
+            variant="destructive"
+            :data-testid="TEST_ID.storageWarning"
+          >
+            Above {{ storage.softPercent }}% of quota
+          </Badge>
+        </div>
+
+        <div
+          class="h-2 w-full overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-label="Storage usage"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          :aria-valuenow="progressPercent"
+          :data-testid="TEST_ID.storageProgress"
+        >
+          <div
+            class="h-full rounded-full transition-[width]"
+            :class="storage.warning ? 'bg-destructive' : 'bg-primary'"
+            :style="{ width: `${progressPercent}%` }"
+          />
+        </div>
+
+        <p class="text-sm text-muted-foreground">
+          {{ storage.fileCount }}
+          {{ storage.fileCount === 1 ? "file" : "files" }} ·
+          {{ storage.diffCount }}
+          {{ storage.diffCount === 1 ? "diff" : "diffs" }}
+        </p>
+
+        <p class="text-sm" :data-testid="TEST_ID.storageRetention">
+          Baseline revisions:
+          <span class="font-medium">
+            {{ retentionLabel(storage.baselineRevisionLimit, "revisions") }}
+          </span>
+          · Run history:
+          <span class="font-medium">
+            {{ retentionLabel(storage.runHistoryDays, "days") }}
+          </span>
+          · Orphan grace:
+          <span class="font-medium">
+            {{ retentionLabel(storage.orphanGraceHours, "hours") }}
+          </span>
+        </p>
+
+        <p class="text-xs text-muted-foreground">
+          These limits are stored per project. Enforcement currently uses the
+          global defaults; per-project enforcement ships separately.
+        </p>
+      </div>
+    </AsyncState>
+
+    <EditStorageRetentionDialog
+      :open="dialogOpen"
+      :storage="storage"
+      :pending="update.isPending.value"
+      :error="update.error.value"
+      @update:open="dialogOpen = $event"
+      @submit="submit"
+    />
+  </section>
+</template>

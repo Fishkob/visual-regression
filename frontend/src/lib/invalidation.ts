@@ -13,6 +13,7 @@ import { baselineHistoryQueryKeys } from "@/domains/baseline-history/query-keys"
 import { webhookQueryKeys } from "@/domains/webhooks/query-keys";
 import { runsQueryKeys } from "@/domains/runs/query-keys";
 import { testMetadataQueryKeys } from "@/domains/test-lifecycle/query-keys";
+import { storageQueryKeys } from "@/domains/storage/query-keys";
 import type { TestDetailsArgs } from "@/lib/variant-key";
 
 export function invalidateProjectDetail(
@@ -189,4 +190,13 @@ export function invalidateAfterTestMetadataChange(client: QueryClient) {
   client.invalidateQueries({ queryKey: projectQueryKeys.all() });
   client.invalidateQueries({ queryKey: projectQueryKeys.withPending() });
   client.invalidateQueries({ queryKey: branchQueryKeys.all() });
+}
+
+// A retention/quota update changes the storage read (the server echoes the
+// normalized values) and nothing else.
+export function invalidateProjectStorage(
+  client: QueryClient,
+  projectName: string,
+) {
+  client.invalidateQueries({ queryKey: storageQueryKeys.detail(projectName) });
 }
