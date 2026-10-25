@@ -42,28 +42,28 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 
 ## At a glance
 
-| ID  | Item                                     | Phase | Size | Depends on                    | Status      |
-| --- | ---------------------------------------- | ----- | ---- | ----------------------------- | ----------- |
-| R1  | Threshold auto-accept at diff time       | 1     | S    | —                             | Shipped     |
-| R2  | Diff UX v1                               | 1     | M    | —                             | Shipped     |
-| R3  | Baseline history & restore               | 2     | L    | —                             | In progress |
-| R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | Shipped     |
-| R5  | Global audit log                         | 2     | M    | —                             | Shipped     |
-| R6  | Run grouping                             | 3     | XL   | ADR-030                       | Shipped     |
-| R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Shipped     |
-| R8  | Reporting & exports                      | 3     | M–L  | R6 · ADR-033                  | Shipped     |
-| R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Shipped     |
-| R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9 · ADR-034                  | Shipped     |
-| R11 | API key scopes & ownership               | 4     | S–M  | R9 · ADR-035                  | Shipped     |
-| R12 | Bulk actions                             | 5     | M    | R9 (role gate)                | Shipped     |
-| R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 · R8 · ADR-036             | Shipped     |
-| R14 | Search & discovery                       | 5     | M    | —                             | Shipped     |
-| R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Shipped     |
-| R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Shipped     |
-| R17 | Internationalization                     | 5     | M    | ADR-037                       | Shipped     |
-| R18 | Share links                              | 5     | M    | R9 · ADR-038                  | Shipped     |
-| R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4 · ADR-039              | Shipped     |
-| R20 | Review comments & decision notes         | 5     | M    | R9 · ADR-040                  | Shipped     |
+| ID  | Item                                     | Phase | Size | Depends on                    | Status  |
+| --- | ---------------------------------------- | ----- | ---- | ----------------------------- | ------- |
+| R1  | Threshold auto-accept at diff time       | 1     | S    | —                             | Shipped |
+| R2  | Diff UX v1                               | 1     | M    | —                             | Shipped |
+| R3  | Baseline history & restore               | 2     | L    | ADR-028                       | Shipped |
+| R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | Shipped |
+| R5  | Global audit log                         | 2     | M    | —                             | Shipped |
+| R6  | Run grouping                             | 3     | XL   | ADR-030                       | Shipped |
+| R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Shipped |
+| R8  | Reporting & exports                      | 3     | M–L  | R6 · ADR-033                  | Shipped |
+| R9  | Users, roles & permissions               | 4     | L    | ADR-031                       | Shipped |
+| R10 | Auth hardening (password, sessions, 2FA) | 4     | M    | R9 · ADR-034                  | Shipped |
+| R11 | API key scopes & ownership               | 4     | S–M  | R9 · ADR-035                  | Shipped |
+| R12 | Bulk actions                             | 5     | M    | R9 (role gate)                | Shipped |
+| R13 | Test lifecycle (rename, tags, mute)      | 5     | M–L  | R9 · R8 · ADR-036             | Shipped |
+| R14 | Search & discovery                       | 5     | M    | —                             | Shipped |
+| R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Shipped |
+| R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Shipped |
+| R17 | Internationalization                     | 5     | M    | ADR-037                       | Shipped |
+| R18 | Share links                              | 5     | M    | R9 · ADR-038                  | Shipped |
+| R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4 · ADR-039              | Shipped |
+| R20 | Review comments & decision notes         | 5     | M    | R9 · ADR-040                  | Shipped |
 
 Status is `Planned`, `In progress` or `Shipped`; a shipped item keeps its
 section and checked acceptance criteria so the history stays readable.
@@ -243,18 +243,20 @@ baseline (candidate: separate item), annotations.
 
 **Acceptance.**
 
-- [ ] Approving twice leaves two revisions, both files still readable
+- [x] Approving twice leaves two revisions, both files still readable
 - [x] Restoring revision 1 makes its hash the baseline and retires pendings
-- [ ] Old files survive the daily orphan/unreferenced sweeps
-- [ ] Cleanup keeps the newest N and reclaims the rest
+- [x] Old files survive the daily orphan/unreferenced sweeps
+- [x] Cleanup keeps the newest N and reclaims the rest
 - [x] Inherited variant restore returns `409`; the revision records actor and reason
 - [x] Storage growth visible in the API/UI
 
-**Verification.** Unit (history service, reclaim chain, approval ordering) and
-frontend CT/axe are green. The three unchecked lines are DB-backed behaviors;
-they need an e2e spec (approve twice, sweep, retention) before R3 can be called
-fully shipped. The visual screenshot baselines for both detail views need
-`./scripts/quality.sh visual --update` because the panel adds a section.
+**Verification.** Unit (history service, reclaim chain, approval ordering),
+frontend CT/axe and `baseline-history.e2e-spec.ts` are green: two approvals leave
+two `storage.get`-readable revisions, `baselineRevisionLimit=1` prunes to the
+newest row (the older files become reclaimable), and the orphan/unreferenced
+sweeps leave revision-referenced files intact. The visual screenshot baselines
+for both detail views still need `./scripts/quality.sh visual --update` because
+the panel adds a section (tracked as a quality follow-up, not a behavior gap).
 
 **Size / dependencies.** L · independent; grows R15.
 
