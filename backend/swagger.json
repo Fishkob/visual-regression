@@ -98,7 +98,10 @@
                 "api-key.delete",
                 "user.create",
                 "user.update",
-                "user.reset-password"
+                "user.reset-password",
+                "share.create",
+                "share.revoke",
+                "share.access"
               ]
             }
           },
@@ -184,7 +187,10 @@
                 "api-key.delete",
                 "user.create",
                 "user.update",
-                "user.reset-password"
+                "user.reset-password",
+                "share.create",
+                "share.revoke",
+                "share.access"
               ]
             }
           },
@@ -3481,61 +3487,155 @@
         ]
       }
     },
-    "/health": {
+    "/projects/{projectName}/share-links": {
       "get": {
-        "operationId": "HealthController_check",
-        "parameters": [],
+        "operationId": "ShareLinksController_list",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "All systems operational",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DetailedHealthDto"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "One or more systems are unhealthy",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DetailedHealthDto"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ShareLinkDto"
+                  }
                 }
               }
             }
           }
         },
         "security": [
-          {}
+          {
+            "sessionCookie": []
+          }
         ],
+        "summary": "List share links for a project",
         "tags": [
-          "Health"
+          "Share links"
+        ]
+      },
+      "post": {
+        "operationId": "ShareLinksController_create",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShareLinkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedShareLinkDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Create a read-only, expiring share link",
+        "tags": [
+          "Share links"
         ]
       }
     },
-    "/health/ready": {
-      "get": {
-        "operationId": "HealthController_readiness",
-        "parameters": [],
+    "/share-links/{id}": {
+      "delete": {
+        "operationId": "ShareLinkRevokeController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Application ready to serve traffic",
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DetailedHealthDto"
+                  "$ref": "#/components/schemas/ShareLinkDto"
                 }
               }
             }
-          },
-          "503": {
-            "description": "Application not ready",
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Revoke a share link",
+        "tags": [
+          "Share links"
+        ]
+      }
+    },
+    "/public/shares/{token}": {
+      "post": {
+        "operationId": "PublicShareController_resolve",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveShareDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DetailedHealthDto"
+                  "$ref": "#/components/schemas/PublicShareDto"
                 }
               }
             }
@@ -3544,48 +3644,9 @@
         "security": [
           {}
         ],
+        "summary": "Resolve a share token (optional passphrase) to a read-only view",
         "tags": [
-          "Health"
-        ]
-      }
-    },
-    "/health/db": {
-      "get": {
-        "operationId": "HealthController_checkDatabase",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Database connection is healthy"
-          },
-          "503": {
-            "description": "Database unavailable"
-          }
-        },
-        "security": [
-          {}
-        ],
-        "tags": [
-          "Health"
-        ]
-      }
-    },
-    "/health/storage": {
-      "get": {
-        "operationId": "HealthController_checkStorage",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "RustFS storage is available"
-          },
-          "503": {
-            "description": "RustFS unavailable"
-          }
-        },
-        "security": [
-          {}
-        ],
-        "tags": [
-          "Health"
+          "Share links"
         ]
       }
     },
@@ -3927,6 +3988,114 @@
         ],
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "All systems operational",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailedHealthDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "One or more systems are unhealthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailedHealthDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {}
+        ],
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthController_readiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Application ready to serve traffic",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailedHealthDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Application not ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailedHealthDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {}
+        ],
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/db": {
+      "get": {
+        "operationId": "HealthController_checkDatabase",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Database connection is healthy"
+          },
+          "503": {
+            "description": "Database unavailable"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/storage": {
+      "get": {
+        "operationId": "HealthController_checkStorage",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "RustFS storage is available"
+          },
+          "503": {
+            "description": "RustFS unavailable"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "tags": [
+          "Health"
         ]
       }
     },
@@ -7036,57 +7205,192 @@
           }
         }
       },
-      "DetailedHealthDto": {
+      "ShareLinkDto": {
         "type": "object",
         "properties": {
-          "status": {
+          "id": {
+            "type": "string"
+          },
+          "scope": {
             "type": "string",
             "enum": [
-              "ok",
-              "degraded",
-              "unhealthy"
+              "PROJECT",
+              "TEST",
+              "RUN"
             ]
           },
-          "results": {
-            "type": "object"
-          },
-          "warnings": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "errors": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "timestamp": {
+          "projectName": {
             "type": "string"
           },
-          "version": {
+          "testName": {
+            "type": "string",
+            "nullable": true
+          },
+          "branchName": {
+            "type": "string",
+            "nullable": true
+          },
+          "runKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
             "type": "string"
           },
-          "buildInfo": {
-            "type": "object",
-            "description": "Build metadata"
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
           },
-          "uptime": {
+          "revokedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastAccessedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "accessCount": {
             "type": "number"
           },
-          "checks": {
-            "type": "object"
+          "hasPassphrase": {
+            "type": "boolean"
           }
         },
         "required": [
-          "status",
-          "results",
-          "timestamp",
-          "version",
-          "buildInfo",
-          "uptime",
-          "checks"
+          "id",
+          "scope",
+          "projectName",
+          "testName",
+          "branchName",
+          "runKey",
+          "createdBy",
+          "createdAt",
+          "expiresAt",
+          "revokedAt",
+          "lastAccessedAt",
+          "accessCount",
+          "hasPassphrase"
+        ]
+      },
+      "CreateShareLinkDto": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "PROJECT",
+              "TEST",
+              "RUN"
+            ]
+          },
+          "testName": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "runKey": {
+            "type": "string"
+          },
+          "expiresInDays": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 365,
+            "default": 7
+          },
+          "passphrase": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "scope"
+        ]
+      },
+      "CreatedShareLinkDto": {
+        "type": "object",
+        "properties": {
+          "link": {
+            "$ref": "#/components/schemas/ShareLinkDto"
+          },
+          "token": {
+            "type": "string",
+            "description": "Opaque bearer token for /share/<token>"
+          }
+        },
+        "required": [
+          "link",
+          "token"
+        ]
+      },
+      "ResolveShareDto": {
+        "type": "object",
+        "properties": {
+          "passphrase": {
+            "type": "string"
+          }
+        }
+      },
+      "PublicShareDto": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "PROJECT",
+              "TEST",
+              "RUN"
+            ]
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "testName": {
+            "type": "string",
+            "nullable": true
+          },
+          "branchName": {
+            "type": "string",
+            "nullable": true
+          },
+          "runKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "project": {
+            "type": "object"
+          },
+          "test": {
+            "type": "object"
+          },
+          "run": {
+            "type": "object"
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "scope",
+          "projectName",
+          "testName",
+          "branchName",
+          "runKey",
+          "expiresAt",
+          "project"
         ]
       },
       "LoginDto": {
@@ -7260,6 +7564,59 @@
         "required": [
           "currentPassword",
           "newPassword"
+        ]
+      },
+      "DetailedHealthDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded",
+              "unhealthy"
+            ]
+          },
+          "results": {
+            "type": "object"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "buildInfo": {
+            "type": "object",
+            "description": "Build metadata"
+          },
+          "uptime": {
+            "type": "number"
+          },
+          "checks": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "status",
+          "results",
+          "timestamp",
+          "version",
+          "buildInfo",
+          "uptime",
+          "checks"
         ]
       },
       "CreateApiKeyDto": {

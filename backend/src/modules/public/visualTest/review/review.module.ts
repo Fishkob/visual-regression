@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '@prisma/prisma.module';
 import { AppConfigModule } from '@config/app-config.module';
+import { AuthModule } from '@internal/auth/auth.module';
 import { StorageModule } from '@internal/storage/storage.module';
 import { VisualTestInfraModule } from '@public/visualTest/core/visual-test-infra.module';
 import { VisualTestApplicationModule } from '@public/visualTest/core/visual-test-application.module';
@@ -43,6 +44,13 @@ import { SearchService } from '@public/visualTest/review/application/search.serv
 import { SearchRepository } from '@public/visualTest/review/infrastructure/repositories/search.repository';
 import { StorageController } from '@public/visualTest/review/presentation/controllers/storage.controller';
 import { RetentionPreviewService } from '@public/visualTest/review/application/retention-preview.service';
+import { ShareLinkService } from '@public/visualTest/review/application/share-link.service';
+import { ShareLinkRepository } from '@public/visualTest/review/infrastructure/repositories/share-link.repository';
+import {
+  PublicShareController,
+  ShareLinkRevokeController,
+  ShareLinksController,
+} from '@public/visualTest/review/presentation/controllers/share-link.controller';
 import {
   BulkActionsController,
   ProjectsBulkController,
@@ -52,6 +60,7 @@ import {
   imports: [
     PrismaModule,
     AppConfigModule,
+    AuthModule,
     StorageModule,
     VisualTestInfraModule,
     VisualTestApplicationModule,
@@ -77,6 +86,9 @@ import {
     TestLifecycleController,
     SearchController,
     StorageController,
+    ShareLinksController,
+    ShareLinkRevokeController,
+    PublicShareController,
   ],
   providers: [
     TestQueryService,
@@ -100,6 +112,8 @@ import {
     SearchService,
     SearchRepository,
     RetentionPreviewService,
+    ShareLinkService,
+    ShareLinkRepository,
   ],
 })
 export class ReviewModule {}

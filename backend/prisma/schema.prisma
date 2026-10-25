@@ -371,6 +371,12 @@ model ComparisonJob {
   @@index([runKey])
 }
 
+enum ShareScope {
+  PROJECT
+  TEST
+  RUN
+}
+
 enum ImageSizePolicy {
   FAIL
   PAD
@@ -476,6 +482,27 @@ model ApiKey {
 
   @@index([ownerId])
   @@map("ApiKey")
+}
+
+model ShareLink {
+  id             String     @id @default(cuid())
+  tokenHash      String     @unique
+  scope          ShareScope
+  projectName    String
+  testName       String?
+  branchName     String?
+  runKey         String?
+  createdBy      String?
+  passphraseHash String?
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  lastAccessedAt DateTime?
+  accessCount    Int        @default(0)
+  createdAt      DateTime   @default(now())
+
+  @@index([projectName])
+  @@index([expiresAt])
+  @@map("ShareLink")
 }
 
 model RateLimitBucket {

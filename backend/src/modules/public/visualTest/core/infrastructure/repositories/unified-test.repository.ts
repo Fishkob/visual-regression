@@ -40,6 +40,23 @@ export class UnifiedTestRepository extends BaseRepository {
     return row?.sizePolicy ?? null;
   }
 
+  async listForProject(projectName: string) {
+    return this.client.unifiedTest.findMany({
+      where: { branch: { project: { name: projectName } } },
+      select: {
+        name: true,
+        kind: true,
+        status: true,
+        branch: { select: { name: true } },
+      },
+      orderBy: [{ name: 'asc' }],
+    });
+  }
+
+  async countVariants(testId: string): Promise<number> {
+    return this.client.unifiedVariant.count({ where: { testId } });
+  }
+
   async findMetadata(testId: string) {
     return this.client.unifiedTest.findUnique({
       where: { id: testId },

@@ -5,10 +5,12 @@ export {
   ScreenshotType,
   TestKind,
   UserRole,
+  ShareScope,
   TestStatus,
   JobStatus,
   type User,
   type Session,
   type ApiKey,
   type Run,
+  type ShareLink,
 } from '../../prisma/generated/client';

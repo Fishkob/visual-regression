@@ -22,6 +22,9 @@ export const AUDIT_ACTIONS = {
   userCreate: 'user.create',
   userUpdate: 'user.update',
   userResetPassword: 'user.reset-password',
+  shareCreate: 'share.create',
+  shareRevoke: 'share.revoke',
+  shareAccess: 'share.access',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

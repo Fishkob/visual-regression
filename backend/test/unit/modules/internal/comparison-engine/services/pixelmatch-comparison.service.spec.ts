@@ -68,7 +68,7 @@ describe('PixelmatchComparisonService', () => {
       sizePolicy: 'RESIZE',
     });
 
-    expect(result.mismatchPixelCount).toBe(0);
+    expect(result).toMatchObject({ kind: 'image', mismatchPixelCount: 0 });
   });
 
   it('crops the candidate when the policy is CROP', async () => {
@@ -79,7 +79,7 @@ describe('PixelmatchComparisonService', () => {
       sizePolicy: 'CROP',
     });
 
-    expect(result.mismatchPixelCount).toBe(0);
+    expect(result).toMatchObject({ kind: 'image', mismatchPixelCount: 0 });
   });
 
   it('pads the candidate when the policy is PAD', async () => {
@@ -90,7 +90,8 @@ describe('PixelmatchComparisonService', () => {
       sizePolicy: 'PAD',
     });
 
-    expect(result.mismatchPixelCount).toBeGreaterThan(0);
+    expect(result).toMatchObject({ kind: 'image' });
+    expect((result as { mismatchPixelCount: number }).mismatchPixelCount).toBeGreaterThan(0);
   });
 
   it('throws a DomainError for different dimensions', async () => {

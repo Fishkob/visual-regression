@@ -125,6 +125,8 @@ import type { ProjectsControllerGetProjectsWithPendingFlagData } from './models/
 import type { ProjectsControllerGetProjectsWithPendingFlagResponses } from './models/ProjectsControllerGetProjectsWithPendingFlagResponses.gen';
 import type { ProjectsControllerUpdateProjectData } from './models/ProjectsControllerUpdateProjectData.gen';
 import type { ProjectsControllerUpdateProjectResponses } from './models/ProjectsControllerUpdateProjectResponses.gen';
+import type { PublicShareControllerResolveData } from './models/PublicShareControllerResolveData.gen';
+import type { PublicShareControllerResolveResponses } from './models/PublicShareControllerResolveResponses.gen';
 import type { ReviewInboxControllerGetBranchesData } from './models/ReviewInboxControllerGetBranchesData.gen';
 import type { ReviewInboxControllerGetBranchesResponses } from './models/ReviewInboxControllerGetBranchesResponses.gen';
 import type { ReviewInboxControllerGetPendingData } from './models/ReviewInboxControllerGetPendingData.gen';
@@ -147,6 +149,12 @@ import type { RunsControllerStatusData } from './models/RunsControllerStatusData
 import type { RunsControllerStatusResponses } from './models/RunsControllerStatusResponses.gen';
 import type { SearchControllerQueryData } from './models/SearchControllerQueryData.gen';
 import type { SearchControllerQueryResponses } from './models/SearchControllerQueryResponses.gen';
+import type { ShareLinkRevokeControllerRevokeData } from './models/ShareLinkRevokeControllerRevokeData.gen';
+import type { ShareLinkRevokeControllerRevokeResponses } from './models/ShareLinkRevokeControllerRevokeResponses.gen';
+import type { ShareLinksControllerCreateData } from './models/ShareLinksControllerCreateData.gen';
+import type { ShareLinksControllerCreateResponses } from './models/ShareLinksControllerCreateResponses.gen';
+import type { ShareLinksControllerListData } from './models/ShareLinksControllerListData.gen';
+import type { ShareLinksControllerListResponses } from './models/ShareLinksControllerListResponses.gen';
 import type { StorageControllerGetData } from './models/StorageControllerGetData.gen';
 import type { StorageControllerGetResponses } from './models/StorageControllerGetResponses.gen';
 import type { StorageControllerPreviewRetentionData } from './models/StorageControllerPreviewRetentionData.gen';
@@ -840,13 +848,60 @@ export const storageControllerPreviewRetention = <ThrowOnError extends boolean =
     ...options
 });
 
-export const healthControllerCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckData, ThrowOnError>): RequestResult<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError>({ url: '/health', ...options });
+/**
+ * List share links for a project
+ */
+export const shareLinksControllerList = <ThrowOnError extends boolean = false>(options: Options<ShareLinksControllerListData, ThrowOnError>): RequestResult<ShareLinksControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<ShareLinksControllerListResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/share-links',
+    ...options
+});
 
-export const healthControllerReadiness = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerReadinessData, ThrowOnError>): RequestResult<HealthControllerReadinessResponses, HealthControllerReadinessErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerReadinessResponses, HealthControllerReadinessErrors, ThrowOnError>({ url: '/health/ready', ...options });
+/**
+ * Create a read-only, expiring share link
+ */
+export const shareLinksControllerCreate = <ThrowOnError extends boolean = false>(options: Options<ShareLinksControllerCreateData, ThrowOnError>): RequestResult<ShareLinksControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<ShareLinksControllerCreateResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/share-links',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
-export const healthControllerCheckDatabase = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckDatabaseData, ThrowOnError>): RequestResult<HealthControllerCheckDatabaseResponses, HealthControllerCheckDatabaseErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckDatabaseResponses, HealthControllerCheckDatabaseErrors, ThrowOnError>({ url: '/health/db', ...options });
+/**
+ * Revoke a share link
+ */
+export const shareLinkRevokeControllerRevoke = <ThrowOnError extends boolean = false>(options: Options<ShareLinkRevokeControllerRevokeData, ThrowOnError>): RequestResult<ShareLinkRevokeControllerRevokeResponses, unknown, ThrowOnError> => (options.client ?? client).delete<ShareLinkRevokeControllerRevokeResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/share-links/{id}',
+    ...options
+});
 
-export const healthControllerCheckStorage = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckStorageData, ThrowOnError>): RequestResult<HealthControllerCheckStorageResponses, HealthControllerCheckStorageErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckStorageResponses, HealthControllerCheckStorageErrors, ThrowOnError>({ url: '/health/storage', ...options });
+/**
+ * Resolve a share token (optional passphrase) to a read-only view
+ */
+export const publicShareControllerResolve = <ThrowOnError extends boolean = false>(options: Options<PublicShareControllerResolveData, ThrowOnError>): RequestResult<PublicShareControllerResolveResponses, unknown, ThrowOnError> => (options.client ?? client).post<PublicShareControllerResolveResponses, unknown, ThrowOnError>({
+    url: '/public/shares/{token}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 export const authControllerLogin = <ThrowOnError extends boolean = false>(options: Options<AuthControllerLoginData, ThrowOnError>): RequestResult<AuthControllerLoginResponses, AuthControllerLoginErrors, ThrowOnError> => (options.client ?? client).post<AuthControllerLoginResponses, AuthControllerLoginErrors, ThrowOnError>({
     url: '/auth/login',
@@ -959,6 +1014,14 @@ export const authControllerChangePassword = <ThrowOnError extends boolean = fals
         ...options.headers
     }
 });
+
+export const healthControllerCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckData, ThrowOnError>): RequestResult<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError>({ url: '/health', ...options });
+
+export const healthControllerReadiness = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerReadinessData, ThrowOnError>): RequestResult<HealthControllerReadinessResponses, HealthControllerReadinessErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerReadinessResponses, HealthControllerReadinessErrors, ThrowOnError>({ url: '/health/ready', ...options });
+
+export const healthControllerCheckDatabase = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckDatabaseData, ThrowOnError>): RequestResult<HealthControllerCheckDatabaseResponses, HealthControllerCheckDatabaseErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckDatabaseResponses, HealthControllerCheckDatabaseErrors, ThrowOnError>({ url: '/health/db', ...options });
+
+export const healthControllerCheckStorage = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckStorageData, ThrowOnError>): RequestResult<HealthControllerCheckStorageResponses, HealthControllerCheckStorageErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckStorageResponses, HealthControllerCheckStorageErrors, ThrowOnError>({ url: '/health/storage', ...options });
 
 export const adminApiKeysControllerCreate = <ThrowOnError extends boolean = false>(options: Options<AdminApiKeysControllerCreateData, ThrowOnError>): RequestResult<AdminApiKeysControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<AdminApiKeysControllerCreateResponses, unknown, ThrowOnError>({
     url: '/admin/api-keys',
