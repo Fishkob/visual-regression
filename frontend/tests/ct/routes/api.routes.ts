@@ -19,9 +19,25 @@ export async function mockApi(
   page: Page,
   routes: Array<[string, FulfillResponse]>,
 ) {
+  await mockBaselineHistory(page);
   for (const [glob, res] of routes) {
     await mockGet(page, glob, res);
   }
+}
+
+// Every detail view reads the baseline history of its resolved variant. Specs
+// that assert the history register their own route afterwards (Playwright
+// matches the most recently added handler first); every other spec gets an
+// empty history instead of an unmocked request escaping to the dev server.
+export async function mockBaselineHistory(
+  page: Page,
+  body: unknown = [],
+): Promise<void> {
+  await mockGet(page, "**/api/v1/projects/*/tests/*/baseline-history*", {
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify(body),
+  });
 }
 
 // The threshold endpoint is one route with two modes split by the `preview`
@@ -94,6 +110,10 @@ export async function mockReviewBackend(
     approved: true,
     newBaselineUrl: "http://localhost:9000/vrt/new-baseline.png",
   });
+
+  // The review views all render the baseline history panel; an empty history
+  // keeps that read off the dev server without a per-spec route.
+  await mockBaselineHistory(page);
 
   await page.route(`**/api/v1/projects/${projectName}/**`, async (route) => {
     const url = new URL(route.request().url());

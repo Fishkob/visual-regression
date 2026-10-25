@@ -10,6 +10,7 @@ import { isApproved } from "@/domains/test-status";
 import { Badge } from "@/components/ui/badge";
 import PdfComparisonView from "@/components/pdf/PdfComparisonView.vue";
 import PdfBaselineView from "@/components/pdf/PdfBaselineView.vue";
+import BaselineHistoryPanel from "@/components/detail-panels/BaselineHistoryPanel.vue";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
 import AsyncState from "@/components/AsyncState.vue";
@@ -52,9 +53,10 @@ const hasPendingComparison = computed(
   () => data.value?.comparison?.status === "PENDING_APPROVAL",
 );
 
-// The badge is per variant: resolve the variant the details actually show, with
-// the route filter as the fallback when the payload has not landed yet.
-const approvalVariant = computed(() => {
+// The approval badge and the baseline history are per variant: resolve the
+// variant the details actually show, with the route filter as the fallback when
+// the payload has not landed yet.
+const resolvedVariant = computed(() => {
   const source = data.value?.comparison?.candidate ?? data.value?.baseline;
   return {
     viewport: source?.viewport ?? filters.value.viewport,
@@ -118,7 +120,7 @@ useReviewShortcuts({
         :project-name="projectName"
         :test-name="testName"
         :branch="branch"
-        :variant="approvalVariant"
+        :variant="resolvedVariant"
       />
       <BulkApproveButton
         v-if="hasPendingComparison && !isInherited"
@@ -202,5 +204,23 @@ useReviewShortcuts({
     >
       Press A to approve, S to skip, Esc to go back.
     </p>
+
+    <!-- Restoring replaces the baseline of the resolved variant and retires its
+         pending comparison, so the panel needs the same read-only flag as the
+         approve actions. Hidden for an inherited test (the read answers 409 —
+         the history lives on the branch that owns it) and read-only while the
+         baseline is still an inherited clone. The page count of each revision
+         travels in the DTO. -->
+    <BaselineHistoryPanel
+      v-if="data?.baseline && !isInherited"
+      class="mt-6"
+      kind="pdf"
+      :project-name="projectName"
+      :test-name="testName"
+      :branch="branch"
+      :variant="resolvedVariant"
+      :current-hash="data?.baseline?.imageHash"
+      :read-only="isInherited || !!data?.baselineInherited"
+    />
   </div>
 </template>

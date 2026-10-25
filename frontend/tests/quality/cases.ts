@@ -9,6 +9,10 @@ import {
 import { GROUPS_RESPONSE } from "../ct/mocks/groups.mocks";
 import { API_KEYS_RESPONSE } from "../ct/mocks/apiKeys.mocks";
 import { PDF_TEST_DETAILS_BASELINE_NO_PAGE_COUNT } from "../ct/mocks/pdfTest.mocks";
+import {
+  PDF_BASELINE_HISTORY,
+  VISUAL_BASELINE_HISTORY,
+} from "../ct/mocks/baselineHistory.mocks";
 import { makeReviewableDetails } from "../ct/mocks/reviewLoop.mocks";
 import { CHROME_1920_1080_STAGING } from "../ct/mocks/variants";
 import {
@@ -51,6 +55,10 @@ const VISUAL_VARIANTS_GLOB =
 const PDF_DETAILS_ROUTE = `/projects/checkout-ui/tests/invoice?${CHROME_1920_1080_STAGING}`;
 const PDF_DETAILS_GLOB =
   "**/api/v1/projects/checkout-ui/tests/invoice/pdf-details?*";
+const VISUAL_BASELINE_HISTORY_GLOB =
+  "**/api/v1/projects/checkout-ui/tests/checkout-flow/baseline-history*";
+const PDF_BASELINE_HISTORY_GLOB =
+  "**/api/v1/projects/checkout-ui/tests/invoice/baseline-history*";
 
 export const QUALITY_CASES: QualityCase[] = [
   {
@@ -82,6 +90,9 @@ export const QUALITY_CASES: QualityCase[] = [
       [VISUAL_DETAILS_GLOB, makeReviewableDetails("checkout-flow")],
       [VISUAL_PENDING_GLOB, VISUAL_TEST_PENDING_META],
       [VISUAL_VARIANTS_GLOB, VISUAL_TEST_VARIANTS_SINGLE],
+      // Registered last so it wins over mockApi's empty default: the quality
+      // and axe gates then see the history rows, not just the empty state.
+      [VISUAL_BASELINE_HISTORY_GLOB, VISUAL_BASELINE_HISTORY],
     ],
     readyTestId: TEST_ID.comparisonView,
     readyAlsoTestId: TEST_ID.breadcrumbGroup,
@@ -93,6 +104,7 @@ export const QUALITY_CASES: QualityCase[] = [
     routes: [
       [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
       [PDF_DETAILS_GLOB, PDF_TEST_DETAILS_BASELINE_NO_PAGE_COUNT],
+      [PDF_BASELINE_HISTORY_GLOB, PDF_BASELINE_HISTORY],
     ],
     readyTestId: TEST_ID.pdfPageCountUnknown,
     readyAlsoTestId: TEST_ID.breadcrumbGroup,

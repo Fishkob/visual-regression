@@ -1,5 +1,6 @@
 export interface Screenshot {
   imageUrl: string;
+  imageHash?: string;
   pixelDiffThreshold?: number;
   viewport?: string;
   browser?: string;

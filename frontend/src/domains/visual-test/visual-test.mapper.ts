@@ -25,6 +25,9 @@ function mapScreenshot(dto: ScreenshotDto | undefined): Screenshot | undefined {
   if (!dto) return undefined;
   return {
     imageUrl: renderableUrl(dto.signedImageUrl, dto.imageUrl),
+    // The baseline hash identifies the image the history panel compares a
+    // revision against: an older mock payload may not carry one.
+    ...(dto.imageHash ? { imageHash: dto.imageHash } : {}),
     pixelDiffThreshold: dto.pixelDiffThreshold,
     ...(dto.variant ?? {}),
   };

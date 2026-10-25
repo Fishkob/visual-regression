@@ -177,7 +177,7 @@ pixel ruler, color-blind simulation.
 - [x] Zoom is anchored at the cursor; fit recalculates on resize
 - [x] Wipe works with mouse and keyboard (left/right arrows when focused)
 - [x] Percentage matches the pixel count for a known fixture
-- [ ] Works in light and dark theme; a11y scan clean
+- [x] Works in light and dark theme; a11y scan clean (detail views, light+dark)
 
 **Decision.** Overlay and wipe are hidden for PDF comparisons (layering rendered
 pages does not make sense), so the shared toggle takes `showLayered`. Touch drag
@@ -244,11 +244,17 @@ baseline (candidate: separate item), annotations.
 **Acceptance.**
 
 - [ ] Approving twice leaves two revisions, both files still readable
-- [ ] Restoring revision 1 makes its hash the baseline and retires pendings
+- [x] Restoring revision 1 makes its hash the baseline and retires pendings
 - [ ] Old files survive the daily orphan/unreferenced sweeps
 - [ ] Cleanup keeps the newest N and reclaims the rest
-- [ ] Inherited variant restore returns `409`; audit records actor and reason
-- [ ] Storage growth visible in the API/UI
+- [x] Inherited variant restore returns `409`; the revision records actor and reason
+- [x] Storage growth visible in the API/UI
+
+**Verification.** Unit (history service, reclaim chain, approval ordering) and
+frontend CT/axe are green. The three unchecked lines are DB-backed behaviors;
+they need an e2e spec (approve twice, sweep, retention) before R3 can be called
+fully shipped. The visual screenshot baselines for both detail views need
+`./scripts/quality.sh visual --update` because the panel adds a section.
 
 **Size / dependencies.** L · independent; grows R15.
 
@@ -728,24 +734,25 @@ deferred; record the distinction in ADR-030.
 
 ## Decisions to make (ADRs)
 
-| ADR     | Topic                                            | Needed before |
-| ------- | ------------------------------------------------ | ------------- |
-| ADR-028 | Baseline revisions, retention, restore semantics | R3            |
-| ADR-029 | Webhook outbox & delivery (complements ADR-004)  | R4            |
-| ADR-030 | Run model, finish semantics, commit metadata     | R6            |
-| ADR-031 | Roles & permission matrix                        | R9            |
-| ADR-032 | Image decoding & size/resize policy              | R16           |
-| ADR-033 | Share-link security (tokens, expiry, audit)      | R18           |
+| ADR                                          | Topic                                            | Status   |
+| -------------------------------------------- | ------------------------------------------------ | -------- |
+| [ADR-028](adr/ADR-028-baseline-revisions.md) | Baseline revisions, retention, restore semantics | Accepted |
+| [ADR-029](adr/ADR-029-webhook-delivery.md)   | Webhook outbox & delivery (complements ADR-004)  | Accepted |
+| ADR-030                                      | Run model, finish semantics, commit metadata     | Planned  |
+| ADR-031                                      | Roles & permission matrix                        | Planned  |
+| ADR-032                                      | Image decoding & size/resize policy              | Planned  |
+| ADR-033                                      | Share-link security (tokens, expiry, audit)      | Planned  |
 
 Numbering starts after ADR-027. Each ADR follows the existing template
 (context, decision, rationale, alternatives, consequences).
 
 ## Open questions
 
-1. **R1 semantics** — keep the baseline on auto-accept (recommended) or promote
-   silently?
-2. **R3 inherited variants** — is restore on a feature branch allowed (pinning
-   ownership) or `409` until the variant is owned?
+1. ~~**R1 semantics** — keep the baseline on auto-accept (recommended) or promote
+   silently?~~ Resolved: keep the baseline (implemented in R1).
+2. ~~**R3 inherited variants** — is restore on a feature branch allowed (pinning
+   ownership) or `409` until the variant is owned?~~ Resolved: `409`, no
+   pin-on-restore (ADR-028).
 3. **R6 run finish** — explicit `finish` only, or also a quiet-period heuristic
    for callers that forget it?
 4. **R4 transport** — outbox dispatcher in the worker vs. a second job type in

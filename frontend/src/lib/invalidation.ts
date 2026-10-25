@@ -9,6 +9,7 @@ import {
 import { visualTestQueryKeys } from "@/domains/visual-test/query-keys";
 import { pdfTestQueryKeys } from "@/domains/pdf-test/query-keys";
 import { approvalQueryKeys } from "@/domains/approvals/query-keys";
+import { baselineHistoryQueryKeys } from "@/domains/baseline-history/query-keys";
 import type { TestDetailsArgs } from "@/lib/variant-key";
 
 export function invalidateProjectDetail(
@@ -57,6 +58,25 @@ export function invalidatePdfTestDetails(
   args: TestDetailsArgs,
 ) {
   invalidateTestDetails(client, args, pdfTestQueryKeys.details);
+}
+
+export function invalidateBaselineHistory(client: QueryClient) {
+  client.invalidateQueries({ queryKey: baselineHistoryQueryKeys.all() });
+}
+
+// A restore is a baseline write on whichever kind owns the test. The history
+// panel and its mutation do not know the kind, so both details namespaces are
+// refreshed (the non-owning one has no matching key); each of them already
+// fans out to the project, pending, branch, approval and inbox keys a baseline
+// write touches. The history read is refreshed too: the restore itself records
+// the replaced baseline as a new revision.
+export function invalidateAfterBaselineRestore(
+  client: QueryClient,
+  args: TestDetailsArgs,
+) {
+  invalidateVisualTestDetails(client, args);
+  invalidatePdfTestDetails(client, args);
+  invalidateBaselineHistory(client);
 }
 
 export function invalidateProjectList(client: QueryClient) {

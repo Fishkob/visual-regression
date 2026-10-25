@@ -100,6 +100,14 @@ export const TEST_ID = {
   approvalBadge: "approval-badge",
   bulkApprove: "bulk-approve",
 
+  baselineHistorySection: "baseline-history-section",
+  baselineHistoryToggle: "baseline-history-toggle",
+  baselineHistoryEmpty: "baseline-history-empty",
+  baselineHistoryRow: "baseline-history-row",
+  baselineHistoryRestore: "baseline-history-restore",
+  baselineHistoryReason: "baseline-history-reason",
+  baselineHistoryThumb: "baseline-history-thumb",
+
   reviewProgress: "review-progress",
   shortcutsHint: "shortcuts-hint",
   skip: "skip",

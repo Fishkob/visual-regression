@@ -14,6 +14,7 @@ import { passMarkState } from "@/lib/review-pass";
 import { Badge } from "@/components/ui/badge";
 import TestComparisonView from "@/components/detail-panels/TestComparisonView.vue";
 import TestBaselineView from "@/components/detail-panels/TestBaselineView.vue";
+import BaselineHistoryPanel from "@/components/detail-panels/BaselineHistoryPanel.vue";
 import TestVariantGallery from "@/components/detail-panels/TestVariantGallery.vue";
 import TestComparisonInfo from "@/components/TestComparisonInfo.vue";
 import BulkApproveButton from "@/components/BulkApproveButton.vue";
@@ -227,5 +228,21 @@ useReviewShortcuts({
     >
       Press A to approve, S to skip, Esc to go back.
     </p>
+
+    <!-- The history belongs to the variant the details resolved, not to the
+         route filter: a partial filter still resolves to exactly one variant
+         server-side. Hidden for an inherited test — the history lives on the
+         branch that owns it, and the read answers 409 here (ADR-028) — and
+         read-only while the baseline is still an inherited clone. -->
+    <BaselineHistoryPanel
+      v-if="data?.baseline && !isInherited"
+      class="mt-6"
+      :project-name="projectName"
+      :test-name="testName"
+      :branch="branch"
+      :variant="activeVariant"
+      :current-hash="data?.baseline?.imageHash"
+      :read-only="isInherited || !!data?.baselineInherited"
+    />
   </div>
 </template>
