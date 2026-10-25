@@ -30,7 +30,7 @@ import { TEST_ID } from "@/lib/test-ids";
 
 // Login and the forced password change are pre-shell pages: there is nothing to
 // navigate to yet, and a header full of admin-only links would be noise.
-const BARE_ROUTES = new Set(["login", "change-password"]);
+const BARE_ROUTES = new Set(["login", "change-password", "share"]);
 
 const route = useRoute();
 const isBare = computed(() => BARE_ROUTES.has(String(route.name)));

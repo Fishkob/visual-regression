@@ -61,7 +61,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R15 | Retention, quotas & storage visibility   | 5     | M    | R3, R6                        | Shipped     |
 | R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Shipped     |
 | R17 | Internationalization                     | 5     | M    | ADR-037                       | Shipped     |
-| R18 | Share links                              | 5     | M    | R9                            | Planned     |
+| R18 | Share links                              | 5     | M    | R9 · ADR-038                  | Shipped     |
 | R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4                        | Planned     |
 | R20 | Review comments & decision notes         | 5     | M    | R9                            | Planned     |
 
@@ -817,7 +817,24 @@ keeps "." decimals.
 read-only page (never approve); optional passphrase; access audit; rate limit;
 hashing at rest.
 
-**Size.** M · depends on R9 for creation permissions.
+**Delivered.** Opaque 256-bit tokens stored as SHA-256 hashes, scoped to
+PROJECT/TEST/RUN, mandatory expiry (1–365 days, default 7), explicit revocation,
+optional scrypt passphrase, and `share.create`/`share.revoke`/`share.access`
+audit rows (access count + last access on the link). Public resolve is a
+rate-limited POST so a passphrase never enters a URL; the payload is a narrow
+read-only view (identity/status/counts, no screenshots or actions). The
+`/share/:token` page renders outside the shell with a passphrase step and
+PROJECT/TEST/RUN read-only layouts; the project detail has a writer-only Share
+dialog for create/list/revoke/copy. Custom 404 for expired/revoked/target-gone.
+
+**Verification.** `share-links.e2e-spec.ts` covers project resolve + access
+audit, passphrase enforcement, and revocation/expiry; frontend tests cover the
+public page (passphrase/404/scopes), dialog create/list/revoke and the public
+route. Decision: ADR-038.
+
+**Known limitation.** The public payload intentionally has no screenshots (only
+status/counts); access rows are not yet retention-bounded; target renames/deletes
+break the link with 404.
 
 ### R19 — Review assignment, SLA & 4-eyes
 

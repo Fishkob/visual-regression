@@ -100,6 +100,16 @@
         >
           {{ t("projectDetail.moveToGroup") }}
         </Button>
+        <Button
+          v-if="project && canWrite"
+          type="button"
+          variant="outline"
+          :data-testid="TEST_ID.shareAction"
+          @click="shareOpen = true"
+        >
+          <Share2 class="h-4 w-4" />
+          {{ t("share.action") }}
+        </Button>
         <RouterLink
           v-if="project"
           :to="{ name: 'project-runs', params: { projectName } }"
@@ -163,6 +173,13 @@
     </AsyncState>
   </div>
 
+  <ShareLinksDialog
+    v-if="shareOpen"
+    :open="shareOpen"
+    :project-name="projectName"
+    @update:open="shareOpen = $event"
+  />
+
   <MoveProjectDialog
     :open="moveOpen"
     :groups="groups ?? []"
@@ -178,12 +195,13 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import { ListChecks, TrendingUp, Webhook } from "@lucide/vue";
+import { ListChecks, Share2, TrendingUp, Webhook } from "@lucide/vue";
 
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import SkeletonAccordionGroups from "@/components/cards/SkeletonAccordionGroups.vue";
 import ProjectStoragePanel from "@/components/storage/ProjectStoragePanel.vue";
+import ShareLinksDialog from "@/components/share/ShareLinksDialog.vue";
 import MoveProjectDialog from "@/components/projects/MoveProjectDialog.vue";
 import VisualTestsTable from "@/components/tables/VisualTestsTable.vue";
 import PaginationBar from "@/components/PaginationBar.vue";
@@ -215,7 +233,7 @@ const { projectName } = useRouteParams();
 const { t } = useI18n();
 // Webhooks are admin-only (route meta enforces it too); Runs and Trends stay
 // available to every role.
-const { isAdmin } = useCurrentRole();
+const { isAdmin, canWrite } = useCurrentRole();
 const route = useRoute();
 const router = useRouter();
 
@@ -479,6 +497,7 @@ function handleDelete() {
 
 const { data: groups } = useGroupsQuery();
 const moveMutation = useProjectGroupAssignment();
+const shareOpen = ref(false);
 const moveOpen = ref(false);
 const movePending = computed(() => moveMutation.isPending.value);
 const moveError = computed(() => moveMutation.error.value);

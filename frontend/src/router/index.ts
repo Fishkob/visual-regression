@@ -69,6 +69,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, requiresRole: "ADMIN" },
   },
   {
+    path: "/share/:token",
+    name: "share",
+    component: () => import("@/views/ShareView.vue"),
+    meta: { requiresAuth: false },
+  },
+  {
     path: "/projects/:projectName",
     name: "project-detail",
     component: () => import("@/views/ProjectDetailView.vue"),
