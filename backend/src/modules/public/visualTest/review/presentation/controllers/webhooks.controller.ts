@@ -8,7 +8,6 @@ import {
   Patch,
   Post,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBody,
@@ -19,7 +18,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
-import { SessionOnlyGuard } from '@common/http/session-only.guard';
+import { SessionOnly } from '@common/http/session-only.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { WebhookSettingsService } from '@public/visualTest/review/application/webhook-settings.service';
@@ -39,7 +38,7 @@ import {
 // then every logged-in operator is effectively an admin.
 @ApiTags('Webhooks')
 @Controller('projects/:projectName/webhooks')
-@UseGuards(SessionOnlyGuard)
+@SessionOnly()
 export class WebhooksController {
   constructor(private readonly webhooks: WebhookSettingsService) {}
 

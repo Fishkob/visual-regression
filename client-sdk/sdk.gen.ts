@@ -501,7 +501,11 @@ export const baselineHistoryControllerRestore = <ThrowOnError extends boolean = 
  * List the project webhook endpoints
  */
 export const webhooksControllerList = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerListData, ThrowOnError>): RequestResult<WebhooksControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<WebhooksControllerListResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
     url: '/projects/{projectName}/webhooks',
     ...options
 });
@@ -510,7 +514,11 @@ export const webhooksControllerList = <ThrowOnError extends boolean = false>(opt
  * Create a webhook endpoint and reveal its signing secret once
  */
 export const webhooksControllerCreate = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerCreateData, ThrowOnError>): RequestResult<WebhooksControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<WebhooksControllerCreateResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
     url: '/projects/{projectName}/webhooks',
     ...options,
     headers: {
@@ -523,7 +531,11 @@ export const webhooksControllerCreate = <ThrowOnError extends boolean = false>(o
  * Delete a webhook endpoint and its delivery log
  */
 export const webhooksControllerRemove = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerRemoveData, ThrowOnError>): RequestResult<WebhooksControllerRemoveResponses, unknown, ThrowOnError> => (options.client ?? client).delete<WebhooksControllerRemoveResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
     url: '/projects/{projectName}/webhooks/{id}',
     ...options
 });
@@ -532,7 +544,11 @@ export const webhooksControllerRemove = <ThrowOnError extends boolean = false>(o
  * Update, disable or rotate the secret of a webhook endpoint
  */
 export const webhooksControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerUpdateData, ThrowOnError>): RequestResult<WebhooksControllerUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<WebhooksControllerUpdateResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
     url: '/projects/{projectName}/webhooks/{id}',
     ...options,
     headers: {
@@ -545,7 +561,11 @@ export const webhooksControllerUpdate = <ThrowOnError extends boolean = false>(o
  * List the recent deliveries of an endpoint
  */
 export const webhooksControllerDeliveries = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerDeliveriesData, ThrowOnError>): RequestResult<WebhooksControllerDeliveriesResponses, unknown, ThrowOnError> => (options.client ?? client).get<WebhooksControllerDeliveriesResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
     url: '/projects/{projectName}/webhooks/{id}/deliveries',
     ...options
 });
@@ -554,7 +574,11 @@ export const webhooksControllerDeliveries = <ThrowOnError extends boolean = fals
  * Requeue a delivery for the dispatcher
  */
 export const webhooksControllerReplay = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerReplayData, ThrowOnError>): RequestResult<WebhooksControllerReplayResponses, unknown, ThrowOnError> => (options.client ?? client).post<WebhooksControllerReplayResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
     url: '/projects/{projectName}/webhooks/{id}/deliveries/{deliveryId}/replay',
     ...options
 });
@@ -563,7 +587,11 @@ export const webhooksControllerReplay = <ThrowOnError extends boolean = false>(o
  * Queue a synthetic test delivery
  */
 export const webhooksControllerTest = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerTestData, ThrowOnError>): RequestResult<WebhooksControllerTestResponses, unknown, ThrowOnError> => (options.client ?? client).post<WebhooksControllerTestResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
     url: '/projects/{projectName}/webhooks/{id}/test',
     ...options
 });

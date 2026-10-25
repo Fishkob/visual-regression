@@ -8,7 +8,7 @@ export type AuditControllerExportData = {
          * Filter by actor username
          */
         actor?: string;
-        action?: 'approval' | 'baseline.restore' | 'test.delete' | 'project.delete' | 'branch.delete' | 'webhook.create' | 'webhook.update' | 'webhook.delete' | 'api-key.create' | 'api-key.revoke' | 'api-key.rotate' | 'api-key.delete';
+        action?: 'approval' | 'baseline.restore' | 'test.delete' | 'variant.delete' | 'project.delete' | 'branch.delete' | 'webhook.create' | 'webhook.update' | 'webhook.delete' | 'api-key.create' | 'api-key.revoke' | 'api-key.rotate' | 'api-key.delete';
         /**
          * Filter by project name
          */

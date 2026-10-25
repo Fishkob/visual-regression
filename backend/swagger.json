@@ -84,6 +84,7 @@
                 "approval",
                 "baseline.restore",
                 "test.delete",
+                "variant.delete",
                 "project.delete",
                 "branch.delete",
                 "webhook.create",
@@ -167,6 +168,7 @@
                 "approval",
                 "baseline.restore",
                 "test.delete",
+                "variant.delete",
                 "project.delete",
                 "branch.delete",
                 "webhook.create",
@@ -2351,6 +2353,11 @@
             }
           }
         },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "summary": "List the project webhook endpoints",
         "tags": [
           "Webhooks"
@@ -2390,6 +2397,11 @@
             }
           }
         },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "summary": "Create a webhook endpoint and reveal its signing secret once",
         "tags": [
           "Webhooks"
@@ -2439,6 +2451,11 @@
             }
           }
         },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "summary": "Update, disable or rotate the secret of a webhook endpoint",
         "tags": [
           "Webhooks"
@@ -2469,6 +2486,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "summary": "Delete a webhook endpoint and its delivery log",
         "tags": [
           "Webhooks"
@@ -2511,6 +2533,11 @@
             }
           }
         },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "summary": "List the recent deliveries of an endpoint",
         "tags": [
           "Webhooks"
@@ -2558,6 +2585,11 @@
             }
           }
         },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "summary": "Requeue a delivery for the dispatcher",
         "tags": [
           "Webhooks"
@@ -2597,6 +2629,11 @@
             }
           }
         },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "summary": "Queue a synthetic test delivery",
         "tags": [
           "Webhooks"
