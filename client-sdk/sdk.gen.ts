@@ -120,6 +120,20 @@ import type { TestsQueriesControllerGetVisualTestDetailsResponses } from './mode
 import type { UploadControllerUploadData } from './models/UploadControllerUploadData.gen';
 import type { UploadControllerUploadErrors } from './models/UploadControllerUploadErrors.gen';
 import type { UploadControllerUploadResponses } from './models/UploadControllerUploadResponses.gen';
+import type { WebhooksControllerCreateData } from './models/WebhooksControllerCreateData.gen';
+import type { WebhooksControllerCreateResponses } from './models/WebhooksControllerCreateResponses.gen';
+import type { WebhooksControllerDeliveriesData } from './models/WebhooksControllerDeliveriesData.gen';
+import type { WebhooksControllerDeliveriesResponses } from './models/WebhooksControllerDeliveriesResponses.gen';
+import type { WebhooksControllerListData } from './models/WebhooksControllerListData.gen';
+import type { WebhooksControllerListResponses } from './models/WebhooksControllerListResponses.gen';
+import type { WebhooksControllerRemoveData } from './models/WebhooksControllerRemoveData.gen';
+import type { WebhooksControllerRemoveResponses } from './models/WebhooksControllerRemoveResponses.gen';
+import type { WebhooksControllerReplayData } from './models/WebhooksControllerReplayData.gen';
+import type { WebhooksControllerReplayResponses } from './models/WebhooksControllerReplayResponses.gen';
+import type { WebhooksControllerTestData } from './models/WebhooksControllerTestData.gen';
+import type { WebhooksControllerTestResponses } from './models/WebhooksControllerTestResponses.gen';
+import type { WebhooksControllerUpdateData } from './models/WebhooksControllerUpdateData.gen';
+import type { WebhooksControllerUpdateResponses } from './models/WebhooksControllerUpdateResponses.gen';
 
 export const metricsControllerGetMetrics = <ThrowOnError extends boolean = false>(options?: Options<MetricsControllerGetMetricsData, ThrowOnError>): RequestResult<MetricsControllerGetMetricsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<MetricsControllerGetMetricsResponses, unknown, ThrowOnError>({ url: '/metrics', ...options });
 
@@ -459,6 +473,77 @@ export const baselineHistoryControllerRestore = <ThrowOnError extends boolean = 
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * List the project webhook endpoints
+ */
+export const webhooksControllerList = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerListData, ThrowOnError>): RequestResult<WebhooksControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<WebhooksControllerListResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/webhooks',
+    ...options
+});
+
+/**
+ * Create a webhook endpoint and reveal its signing secret once
+ */
+export const webhooksControllerCreate = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerCreateData, ThrowOnError>): RequestResult<WebhooksControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<WebhooksControllerCreateResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/webhooks',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete a webhook endpoint and its delivery log
+ */
+export const webhooksControllerRemove = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerRemoveData, ThrowOnError>): RequestResult<WebhooksControllerRemoveResponses, unknown, ThrowOnError> => (options.client ?? client).delete<WebhooksControllerRemoveResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/webhooks/{id}',
+    ...options
+});
+
+/**
+ * Update, disable or rotate the secret of a webhook endpoint
+ */
+export const webhooksControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerUpdateData, ThrowOnError>): RequestResult<WebhooksControllerUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<WebhooksControllerUpdateResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/webhooks/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List the recent deliveries of an endpoint
+ */
+export const webhooksControllerDeliveries = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerDeliveriesData, ThrowOnError>): RequestResult<WebhooksControllerDeliveriesResponses, unknown, ThrowOnError> => (options.client ?? client).get<WebhooksControllerDeliveriesResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/webhooks/{id}/deliveries',
+    ...options
+});
+
+/**
+ * Requeue a delivery for the dispatcher
+ */
+export const webhooksControllerReplay = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerReplayData, ThrowOnError>): RequestResult<WebhooksControllerReplayResponses, unknown, ThrowOnError> => (options.client ?? client).post<WebhooksControllerReplayResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/webhooks/{id}/deliveries/{deliveryId}/replay',
+    ...options
+});
+
+/**
+ * Queue a synthetic test delivery
+ */
+export const webhooksControllerTest = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerTestData, ThrowOnError>): RequestResult<WebhooksControllerTestResponses, unknown, ThrowOnError> => (options.client ?? client).post<WebhooksControllerTestResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/webhooks/{id}/test',
+    ...options
 });
 
 export const healthControllerCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckData, ThrowOnError>): RequestResult<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError>({ url: '/health', ...options });

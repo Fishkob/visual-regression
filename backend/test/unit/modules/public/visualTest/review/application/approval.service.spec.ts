@@ -27,6 +27,7 @@ import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastruc
 import { ApprovalAuditRepository } from '@public/visualTest/core/infrastructure/repositories/approval-audit.repository';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
+import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
 import {
   PDF_RENDER_CACHE,
   IPdfRenderCache,
@@ -50,6 +51,7 @@ describe('ApprovalService', () => {
   let comparisons: Mocked<UnifiedComparisonsRepository>;
   let retirement: Mocked<ComparisonRetirementService>;
   let baselineHistory: Mocked<BaselineHistoryService>;
+  let webhooks: Mocked<WebhookDispatchService>;
   let pdfRenderCache: Mocked<IPdfRenderCache>;
   let approvalAudit: Mocked<ApprovalAuditRepository>;
 
@@ -158,6 +160,8 @@ describe('ApprovalService', () => {
     retirement.retireSiblingsAndDeleteCandidate.mockResolvedValue([]);
     baselineHistory = createMock<BaselineHistoryService>();
     baselineHistory.recordOutgoingBaseline.mockResolvedValue([]);
+    webhooks = createMock<WebhookDispatchService>();
+    webhooks.enqueueComparisonApproved.mockResolvedValue(0);
     pdfRenderCache = createMock<IPdfRenderCache>();
     approvalAudit = createMock<ApprovalAuditRepository>();
     approvalAudit.record.mockResolvedValue(undefined);
@@ -183,6 +187,7 @@ describe('ApprovalService', () => {
         { provide: UnifiedComparisonsRepository, useValue: comparisons },
         { provide: ComparisonRetirementService, useValue: retirement },
         { provide: BaselineHistoryService, useValue: baselineHistory },
+        { provide: WebhookDispatchService, useValue: webhooks },
         { provide: PDF_RENDER_CACHE, useValue: pdfRenderCache },
         { provide: ApprovalAuditRepository, useValue: approvalAudit },
         { provide: AppLoggerService, useValue: createMockLogger() },
@@ -248,6 +253,15 @@ describe('ApprovalService', () => {
       expect(metrics.incrementCounter).toHaveBeenCalledWith(
         'domain_events_total',
         expect.objectContaining({ event: 'baseline_updated' }),
+      );
+      expect(webhooks.enqueueComparisonApproved).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectName: 'my-project',
+          testName: 'my-test',
+          kind: 'image',
+          comparisonId: 'comp-1',
+          approvedBy: 'reviewer',
+        }),
       );
 
       expect(result).toEqual({
@@ -547,6 +561,13 @@ describe('ApprovalService', () => {
       expect(metrics.incrementCounter).toHaveBeenCalledWith(
         'domain_events_total',
         expect.objectContaining({ event: 'baseline_updated' }),
+      );
+      expect(webhooks.enqueueComparisonApproved).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'pdf',
+          comparisonId: 'pdf-comp-1',
+          approvedBy: 'reviewer',
+        }),
       );
 
       expect(result).toEqual({

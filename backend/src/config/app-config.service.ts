@@ -24,6 +24,7 @@ interface AppConfigSnapshot {
   pdfSidecar: { url: string; timeout: number; healthUrl: string | undefined };
   jobRetention: { days: number };
   baselineHistory: { limit: number };
+  appPublicUrl: string;
   workerHealth: { url: string | undefined; port: number };
   metrics: { enabled: boolean; apiKey: string };
   admin: { apiKey: string };
@@ -92,6 +93,10 @@ export class AppConfigService {
 
   get jobRetention() {
     return this.s.jobRetention;
+  }
+
+  get appPublicUrl() {
+    return this.s.appPublicUrl;
   }
 
   get baselineHistory() {
@@ -210,6 +215,8 @@ export class AppConfigService {
         // other non-critical settings.
         limit: this.config.get<number>('BASELINE_HISTORY_LIMIT') ?? 10,
       },
+      appPublicUrl:
+        this.config.get<string>('APP_PUBLIC_URL') ?? 'http://localhost',
       workerHealth: {
         url: this.config.get<string>('WORKER_HEALTH_URL'),
         port: Number(this.config.getOrThrow<string>('WORKER_HEALTH_PORT')),

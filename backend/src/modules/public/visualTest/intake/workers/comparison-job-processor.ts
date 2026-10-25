@@ -20,6 +20,7 @@ import { ComparisonRetirementService } from '@public/visualTest/core/application
 import { CandidateReclamationService } from '@public/visualTest/core/application/services/candidate-reclamation.service';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
+import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { isThresholdExceeded } from '@public/visualTest/core/domain/policies/threshold-policy';
 import type { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
@@ -46,6 +47,7 @@ export class ComparisonJobProcessor {
     private readonly retirement: ComparisonRetirementService,
     private readonly reclamation: CandidateReclamationService,
     private readonly screenshots: UnifiedScreenshotRepository,
+    private readonly webhooks: WebhookDispatchService,
     @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
     @Inject(COMPARISON_ENGINES) private readonly engines: ComparisonEngines,
   ) {}
@@ -313,6 +315,15 @@ export class ComparisonJobProcessor {
           diffUrl,
           current.id,
         );
+        // Outbox write in the same transaction as the comparison: a pending
+        // review never commits without its notification rows.
+        await this.webhooks.enqueueReviewRequested({
+          testId: data.testId,
+          comparisonId: persisted.comparisonId,
+          kind: data.testKind,
+          variant: data.variant,
+          mismatchPixelCount: mismatchCount(result),
+        });
         return change([data.testId], {
           staleUrls: persisted.staleDiffUrls,
           events: [

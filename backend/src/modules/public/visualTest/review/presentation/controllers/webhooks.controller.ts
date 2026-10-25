@@ -1,0 +1,140 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBody,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
+import { SessionOnlyGuard } from '@common/http/session-only.guard';
+import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { WebhookSettingsService } from '@public/visualTest/review/application/webhook-settings.service';
+import {
+  CreateWebhookDto,
+  CreatedWebhookEndpointDto,
+  UpdateWebhookDto,
+  WebhookDeliveryDto,
+  WebhookEndpointDto,
+  WebhookReplayResultDto,
+  WebhookTestResultDto,
+} from '@public/visualTest/review/presentation/dto/webhook.dto';
+
+// Project-scoped webhook administration. Session-only: an API key (the CI
+// credential) cannot read or edit endpoints, so a leaked pipeline key cannot
+// exfiltrate review notifications. Roles (R9) will narrow this to ADMIN; until
+// then every logged-in operator is effectively an admin.
+@ApiTags('Webhooks')
+@Controller('projects/:projectName/webhooks')
+@UseGuards(SessionOnlyGuard)
+export class WebhooksController {
+  constructor(private readonly webhooks: WebhookSettingsService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'List the project webhook endpoints' })
+  @ApiOkResponse({ type: [WebhookEndpointDto] })
+  async list(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+  ) {
+    const rows = await this.webhooks.list(projectName);
+    return plainToInstance(WebhookEndpointDto, rows, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Post()
+  @ApiOperation({
+    summary: 'Create a webhook endpoint and reveal its signing secret once',
+  })
+  @ApiBody({ type: CreateWebhookDto })
+  @ApiCreatedResponse({ type: CreatedWebhookEndpointDto })
+  async create(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Body() dto: CreateWebhookDto,
+  ) {
+    const created = await this.webhooks.create(projectName, dto);
+    return plainToInstance(CreatedWebhookEndpointDto, created, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update, disable or rotate the secret of a webhook endpoint',
+  })
+  @ApiBody({ type: UpdateWebhookDto })
+  @ApiOkResponse({ type: WebhookEndpointDto })
+  async update(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateWebhookDto,
+  ) {
+    const updated = await this.webhooks.update(projectName, id, dto);
+    const dtoClass = updated.secret
+      ? CreatedWebhookEndpointDto
+      : WebhookEndpointDto;
+    return plainToInstance(dtoClass, updated, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Delete a webhook endpoint and its delivery log' })
+  @ApiNoContentResponse()
+  async remove(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('id') id: string,
+  ): Promise<void> {
+    await this.webhooks.remove(projectName, id);
+  }
+
+  @Get(':id/deliveries')
+  @ApiOperation({ summary: 'List the recent deliveries of an endpoint' })
+  @ApiOkResponse({ type: [WebhookDeliveryDto] })
+  async deliveries(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('id') id: string,
+  ) {
+    const rows = await this.webhooks.listDeliveries(projectName, id);
+    return plainToInstance(WebhookDeliveryDto, rows, {
+      excludeExtraneousValues: true,
+    });
+  }
+
+  @Post(':id/deliveries/:deliveryId/replay')
+  @HttpCode(202)
+  @ApiOperation({ summary: 'Requeue a delivery for the dispatcher' })
+  @ApiOkResponse({ type: WebhookReplayResultDto })
+  async replay(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('id') id: string,
+    @Param('deliveryId') deliveryId: string,
+  ) {
+    await this.webhooks.replay(projectName, id, deliveryId);
+    return { queued: true };
+  }
+
+  @Post(':id/test')
+  @HttpCode(202)
+  @ApiOperation({ summary: 'Queue a synthetic test delivery' })
+  @ApiOkResponse({ type: WebhookTestResultDto })
+  async test(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Param('id') id: string,
+  ) {
+    await this.webhooks.sendTest(projectName, id);
+    return { queued: true };
+  }
+}

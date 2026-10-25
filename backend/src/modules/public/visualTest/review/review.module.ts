@@ -26,6 +26,9 @@ import { PdfAccessService } from '@public/visualTest/review/application/pdf-acce
 import { ReviewInboxService } from '@public/visualTest/review/application/review-inbox.service';
 import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
 import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
+import { WebhooksModule } from '@internal/webhooks/webhooks.module';
+import { WebhooksController } from '@public/visualTest/review/presentation/controllers/webhooks.controller';
+import { WebhookSettingsService } from '@public/visualTest/review/application/webhook-settings.service';
 
 @Module({
   imports: [
@@ -34,6 +37,7 @@ import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
     VisualTestInfraModule,
     VisualTestApplicationModule,
     PdfSidecarModule,
+    WebhooksModule,
   ],
   controllers: [
     ProjectsController,
@@ -45,6 +49,7 @@ import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
     ReviewInboxController,
     BranchesController,
     BaselineHistoryController,
+    WebhooksController,
   ],
   providers: [
     TestQueryService,
@@ -60,6 +65,7 @@ import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
     ReviewInboxRepository,
     BranchReadRepository,
     BranchCommandService,
+    WebhookSettingsService,
   ],
 })
 export class ReviewModule {}

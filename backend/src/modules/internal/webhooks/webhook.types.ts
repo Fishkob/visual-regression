@@ -1,0 +1,59 @@
+export const WEBHOOK_SUBSCRIPTION_EVENTS = [
+  'review.requested',
+  'comparison.approved',
+] as const;
+
+export type WebhookSubscriptionEvent =
+  (typeof WEBHOOK_SUBSCRIPTION_EVENTS)[number];
+
+// `test` is a synthetic delivery the settings UI triggers; it is never part of
+// an endpoint's subscription list.
+export type WebhookEvent = WebhookSubscriptionEvent | 'test';
+
+export interface WebhookVariant {
+  viewport: string;
+  browser: string;
+  environment: string;
+}
+
+export interface WebhookPayload {
+  event: WebhookEvent;
+  occurredAt: string;
+  project: { name: string };
+  test?: { name: string; kind: string };
+  branch: string | null;
+  variant?: WebhookVariant;
+  comparison?: {
+    id: string;
+    mismatchPixelCount: number;
+    kind: string;
+  };
+  approvedBy?: string;
+  links: { review: string };
+}
+
+export interface WebhookEndpointRow {
+  id: string;
+  projectId: string;
+  url: string;
+  secret: string;
+  events: string[];
+  format: 'json' | 'slack';
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WebhookDeliveryRow {
+  id: string;
+  endpointId: string;
+  event: string;
+  payload: unknown;
+  status: 'PENDING' | 'PROCESSING' | 'DELIVERED' | 'FAILED';
+  attempts: number;
+  nextAttemptAt: Date | null;
+  responseStatus: number | null;
+  lastError: string | null;
+  createdAt: Date;
+  deliveredAt: Date | null;
+}

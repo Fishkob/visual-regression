@@ -17,6 +17,7 @@ import {
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
+import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
 import {
   PDF_RENDER_CACHE,
   IPdfRenderCache,
@@ -88,6 +89,7 @@ export class ApprovalService {
     private readonly comparisons: UnifiedComparisonsRepository,
     private readonly retirement: ComparisonRetirementService,
     private readonly baselineHistory: BaselineHistoryService,
+    private readonly webhooks: WebhookDispatchService,
     @Inject(PDF_RENDER_CACHE)
     private readonly pdfRenderCache: IPdfRenderCache,
     @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
@@ -207,6 +209,23 @@ export class ApprovalService {
             mismatchPageCount: comparison.mismatchPageCount ?? null,
             pageCount:
               comparison.pageCount ?? decision.newBaseline.pageCount ?? null,
+            approvedBy,
+          });
+          // Notify subscribed webhook endpoints in the same transaction: an
+          // approval never commits without its review notifications. The
+          // dispatcher runs in the worker; the API only writes the outbox.
+          await this.webhooks.enqueueComparisonApproved({
+            projectName,
+            testName,
+            branchName: branchName ?? null,
+            kind,
+            variant: {
+              viewport: decision.newBaseline.variant.viewport,
+              browser: decision.newBaseline.variant.browser,
+              environment: decision.newBaseline.variant.environment,
+            },
+            comparisonId: comparison.id,
+            mismatchPixelCount: comparison.mismatchPixelCount,
             approvedBy,
           });
           return {

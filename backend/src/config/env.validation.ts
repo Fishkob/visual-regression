@@ -76,6 +76,12 @@ export const envValidationSchema = Joi.object({
       'How many replaced baselines to keep per test variant (newest first).',
     ),
 
+  // Public frontend base used to build dashboard links in webhook payloads.
+  APP_PUBLIC_URL: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .default('http://localhost')
+    .description('Browser-reachable base URL of the dashboard.'),
+
   // App
   PORT: Joi.number().default(3000),
 

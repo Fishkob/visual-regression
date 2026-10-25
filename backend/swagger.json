@@ -2121,6 +2121,286 @@
         ]
       }
     },
+    "/projects/{projectName}/webhooks": {
+      "get": {
+        "operationId": "WebhooksController_list",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebhookEndpointDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List the project webhook endpoints",
+        "tags": [
+          "Webhooks"
+        ]
+      },
+      "post": {
+        "operationId": "WebhooksController_create",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWebhookDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedWebhookEndpointDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a webhook endpoint and reveal its signing secret once",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{projectName}/webhooks/{id}": {
+      "patch": {
+        "operationId": "WebhooksController_update",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWebhookDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update, disable or rotate the secret of a webhook endpoint",
+        "tags": [
+          "Webhooks"
+        ]
+      },
+      "delete": {
+        "operationId": "WebhooksController_remove",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a webhook endpoint and its delivery log",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{projectName}/webhooks/{id}/deliveries": {
+      "get": {
+        "operationId": "WebhooksController_deliveries",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebhookDeliveryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List the recent deliveries of an endpoint",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{projectName}/webhooks/{id}/deliveries/{deliveryId}/replay": {
+      "post": {
+        "operationId": "WebhooksController_replay",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deliveryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookReplayResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Requeue a delivery for the dispatcher",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{projectName}/webhooks/{id}/test": {
+      "post": {
+        "operationId": "WebhooksController_test",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookTestResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Queue a synthetic test delivery",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "HealthController_check",
@@ -4019,6 +4299,248 @@
         "required": [
           "baselineUrl",
           "signedBaselineUrl"
+        ]
+      },
+      "WebhookEndpointDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "slack"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "secretPreview": {
+            "type": "string",
+            "description": "Last four characters of the secret; the full secret is only returned on create/rotate."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "events",
+          "format",
+          "active",
+          "secretPreview",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateWebhookDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "example": "https://hooks.slack.com/services/..."
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "review.requested",
+                "comparison.approved"
+              ]
+            }
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "slack"
+            ],
+            "default": "json"
+          },
+          "secret": {
+            "type": "string",
+            "description": "Custom signing secret (min 16 chars). Generated and returned once when omitted."
+          }
+        },
+        "required": [
+          "url",
+          "events"
+        ]
+      },
+      "CreatedWebhookEndpointDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "slack"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "secretPreview": {
+            "type": "string",
+            "description": "Last four characters of the secret; the full secret is only returned on create/rotate."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "secret": {
+            "type": "string",
+            "description": "Full signing secret — shown exactly once."
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "events",
+          "format",
+          "active",
+          "secretPreview",
+          "createdAt",
+          "updatedAt",
+          "secret"
+        ]
+      },
+      "UpdateWebhookDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "review.requested",
+                "comparison.approved"
+              ]
+            }
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "slack"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "secret": {
+            "type": "string",
+            "description": "Rotate the signing secret (min 16 chars)."
+          }
+        }
+      },
+      "WebhookDeliveryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "DELIVERED",
+              "FAILED"
+            ]
+          },
+          "attempts": {
+            "type": "number"
+          },
+          "responseStatus": {
+            "type": "object",
+            "nullable": true
+          },
+          "lastError": {
+            "type": "object",
+            "nullable": true
+          },
+          "nextAttemptAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deliveredAt": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "event",
+          "status",
+          "attempts",
+          "createdAt"
+        ]
+      },
+      "WebhookReplayResultDto": {
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "queued"
+        ]
+      },
+      "WebhookTestResultDto": {
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "queued"
         ]
       },
       "DetailedHealthDto": {

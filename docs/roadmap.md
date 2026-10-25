@@ -47,7 +47,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R1  | Threshold auto-accept at diff time       | 1     | S    | —                             | Shipped     |
 | R2  | Diff UX v1                               | 1     | M    | —                             | Shipped     |
 | R3  | Baseline history & restore               | 2     | L    | —                             | In progress |
-| R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | Planned     |
+| R4  | Webhooks & notifications                 | 2     | L    | R6 (optional, `run.finished`) | In progress |
 | R5  | Global audit log                         | 2     | M    | —                             | Planned     |
 | R6  | Run grouping                             | 3     | XL   | ADR-030                       | Planned     |
 | R7  | Batch upload & capture integrations      | 3     | L    | R6                            | Planned     |

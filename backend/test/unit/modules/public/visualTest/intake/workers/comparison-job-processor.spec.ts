@@ -12,6 +12,7 @@ import {
 import { Tracker } from '@common/tracker/tracker.service';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { CandidateReclamationService } from '@public/visualTest/core/application/services/candidate-reclamation.service';
+import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
@@ -37,6 +38,7 @@ describe('ComparisonJobProcessor', () => {
   let storage: Mocked<IStorageProvider>;
   let retirement: Mocked<ComparisonRetirementService>;
   let reclamation: Mocked<CandidateReclamationService>;
+  let webhooks: Mocked<WebhookDispatchService>;
   let screenshots: Mocked<UnifiedScreenshotRepository>;
   let metrics: Mocked<IMetricsRecorder>;
   let uow: Mocked<PrismaUnitOfWork>;
@@ -112,6 +114,8 @@ describe('ComparisonJobProcessor', () => {
     storage = createMock<IStorageProvider>();
     retirement = createMock<ComparisonRetirementService>();
     reclamation = createMock<CandidateReclamationService>();
+    webhooks = createMock<WebhookDispatchService>();
+    webhooks.enqueueReviewRequested.mockResolvedValue(0);
     screenshots = createMock<UnifiedScreenshotRepository>();
     metrics = createMock<IMetricsRecorder>();
     metrics.incrementCounter.mockReturnValue(undefined);
@@ -157,6 +161,7 @@ describe('ComparisonJobProcessor', () => {
         ComparisonJobProcessor,
         { provide: ComparisonRetirementService, useValue: retirement },
         { provide: CandidateReclamationService, useValue: reclamation },
+        { provide: WebhookDispatchService, useValue: webhooks },
         {
           provide: COMPARISON_ENGINES,
           useValue: { image: imageEngine, pdf: pdfEngine },
@@ -268,6 +273,7 @@ describe('ComparisonJobProcessor', () => {
           ComparisonJobProcessor,
           { provide: ComparisonRetirementService, useValue: retirement },
           { provide: CandidateReclamationService, useValue: reclamation },
+          { provide: WebhookDispatchService, useValue: webhooks },
           { provide: COMPARISON_ENGINES, useValue: {} },
           { provide: STORAGE_PROVIDER, useValue: storage },
           { provide: Tracker, useValue: tracker2 },
@@ -541,6 +547,13 @@ describe('ComparisonJobProcessor', () => {
       expect(completedEventLabels()).toContainEqual(
         expect.objectContaining({ event: 'comparison_completed' }),
       );
+      expect(webhooks.enqueueReviewRequested).toHaveBeenCalledWith({
+        testId: 'test-1',
+        comparisonId: 'comp-1',
+        kind: 'image',
+        variant: imageJobData.variant,
+        mismatchPixelCount: 15,
+      });
     });
 
     it('cleans up the diff file when persisting the comparison fails', async () => {

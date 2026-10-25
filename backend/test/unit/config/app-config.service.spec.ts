@@ -24,6 +24,7 @@ describe('AppConfigService', () => {
     PDF_SIDECAR_TIMEOUT: 30_000,
     JOB_RETENTION_DAYS: 7,
     BASELINE_HISTORY_LIMIT: 10,
+    APP_PUBLIC_URL: 'https://vrt.example.com',
     WORKER_HEALTH_URL: 'http://worker:3002',
     WORKER_HEALTH_PORT: 3003,
     METRICS_ENABLED: true,
@@ -92,6 +93,18 @@ describe('AppConfigService', () => {
     const config = buildAppConfig(baseValues);
     expect(config.jobRetention.days).toBe(7);
     expect(config.baselineHistory.limit).toBe(10);
+  });
+
+  it('exposes the public dashboard URL used in webhook links', () => {
+    expect(buildAppConfig(baseValues).appPublicUrl).toBe(
+      'https://vrt.example.com',
+    );
+  });
+
+  it('falls back to localhost when APP_PUBLIC_URL is omitted', () => {
+    const values = { ...baseValues };
+    delete values.APP_PUBLIC_URL;
+    expect(buildAppConfig(values).appPublicUrl).toBe('http://localhost');
   });
 
   it('defaults the baseline history limit when the pre-Joi path omits it', () => {

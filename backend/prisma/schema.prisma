@@ -16,6 +16,7 @@ model Project {
   defaultBranchId String?       @unique
   defaultBranch   Branch?       @relation("DefaultBranch", fields: [defaultBranchId], references: [id], onDelete: SetNull)
   branches        Branch[]      @relation("ProjectBranches")
+  webhooks        WebhookEndpoint[]
 
   @@index([groupId])
 }
@@ -179,6 +180,48 @@ model BaselineRevision {
   @@map("BaselineRevision")
 }
 
+// One outbound webhook target per project. The secret is stored readable
+// because the dispatcher must sign every delivery (unlike API keys, which are
+// hashed); the database is the trusted secret store in this self-hosted
+// product. Events is the subscription list; format selects the JSON envelope.
+model WebhookEndpoint {
+  id         String            @id @default(cuid())
+  project    Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId  String
+  url        String
+  secret     String
+  events     String[]
+  format     WebhookFormat     @default(json)
+  active     Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  deliveries WebhookDelivery[]
+
+  @@index([projectId])
+  @@map("WebhookEndpoint")
+}
+
+// Outbox row: written in the same transaction as the domain change, claimed by
+// the worker-side dispatcher, retried with backoff. at-least-once.
+model WebhookDelivery {
+  id             String                @id @default(cuid())
+  endpoint       WebhookEndpoint       @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  endpointId     String
+  event          String
+  payload        Json
+  status         WebhookDeliveryStatus @default(PENDING)
+  attempts       Int                   @default(0)
+  nextAttemptAt  DateTime?
+  responseStatus Int?
+  lastError      String?
+  createdAt      DateTime              @default(now())
+  deliveredAt    DateTime?
+
+  @@index([status, nextAttemptAt])
+  @@index([endpointId, createdAt])
+  @@map("WebhookDelivery")
+}
+
 model ComparisonJob {
   id                  String        @id @default(cuid())
   testId              String
@@ -291,6 +334,18 @@ enum BaselineRevisionReason {
   approval
   restore
   import
+}
+
+enum WebhookFormat {
+  json
+  slack
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
 }
 
 datasource db {
