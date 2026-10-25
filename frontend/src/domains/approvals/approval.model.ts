@@ -1,4 +1,5 @@
 import type { TestKind } from "@/domains/test-kind";
+import type { ApprovalReason } from "./approval-reason";
 import type { VariantParams } from "@/lib/variant-key";
 
 // One row of the durable approval trail, as the review header consumes it. The
@@ -13,6 +14,8 @@ export interface Approval {
   testKind: TestKind;
   branchName?: string;
   variant: VariantParams;
+  reason?: ApprovalReason;
+  note?: string;
   candidateHash: string;
   baselineHash?: string;
   mismatchPixelCount?: number;

@@ -23,6 +23,7 @@ import {
 } from "@/lib/invalidation";
 import { useSdkQuery } from "@/composables/useDomainQuery";
 import { useReviewSession } from "@/composables/useReviewSession";
+import type { ApprovalDecision } from "@/domains/approvals/approval-reason";
 import { usePendingTestsQuery } from "@/composables/usePendingTests";
 
 // The reviewable-details query surface both kinds share: the detail query plus
@@ -52,7 +53,8 @@ interface TestDetailsAdapter<
     projectName: string,
     testName: string,
     comparisonId: string,
-    branchName?: string,
+    branchName: string | undefined,
+    decision?: ApprovalDecision,
   ) => Promise<unknown>;
   invalidateDetails: (client: QueryClient, args: TestDetailsArgs) => void;
   // The kind-specific artifact that forces a fresh comparison panel when it
@@ -113,11 +115,15 @@ export function usePdfDetailsQuery(
 
 const IMAGE_ADAPTER: TestDetailsAdapter<VisualTestDetails> = {
   useDetailsQuery: useVisualDetailsQuery,
-  approve: (projectName, testName, comparisonId, branchName) =>
+  approve: (projectName, testName, comparisonId, branchName, decision) =>
     approvalsControllerApproveVisualTest({
       path: { projectName, testName },
       ...(branchName ? { query: { branch: branchName } } : {}),
-      body: { comparisonId },
+      body: {
+        comparisonId,
+        ...(decision?.reason ? { reason: decision.reason } : {}),
+        ...(decision?.note ? { note: decision.note } : {}),
+      },
     }),
   invalidateDetails: invalidateVisualTestDetails,
   // Strip the presign query so the remount key stays stable across refetches;
@@ -127,11 +133,15 @@ const IMAGE_ADAPTER: TestDetailsAdapter<VisualTestDetails> = {
 
 const PDF_ADAPTER: TestDetailsAdapter<PdfTestDetails> = {
   useDetailsQuery: usePdfDetailsQuery,
-  approve: (projectName, testName, comparisonId, branchName) =>
+  approve: (projectName, testName, comparisonId, branchName, decision) =>
     approvalsControllerApprovePdfTest({
       path: { projectName, testName },
       ...(branchName ? { query: { branch: branchName } } : {}),
-      body: { comparisonId },
+      body: {
+        comparisonId,
+        ...(decision?.reason ? { reason: decision.reason } : {}),
+        ...(decision?.note ? { note: decision.note } : {}),
+      },
     }),
   invalidateDetails: invalidatePdfTestDetails,
   viewKeyOf: (comparison) => comparison?.diffPdfUrl ?? "",
@@ -184,13 +194,21 @@ export function useKindDetailsPage<
       filters,
       pendingTests,
       currentComparisonId,
-      approve: (comparisonId) =>
-        adapter.approve(
-          projectName.value,
-          testName.value,
-          comparisonId,
-          branchName.value,
-        ),
+      approve: (comparisonId, decision) =>
+        decision
+          ? adapter.approve(
+              projectName.value,
+              testName.value,
+              comparisonId,
+              branchName.value,
+              decision,
+            )
+          : adapter.approve(
+              projectName.value,
+              testName.value,
+              comparisonId,
+              branchName.value,
+            ),
       invalidateDetails: adapter.invalidateDetails,
       returnToInbox: args.returnToInbox,
     },

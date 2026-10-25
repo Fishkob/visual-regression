@@ -91,11 +91,18 @@ describe("usePdfTestDetailsPage (pdf)", () => {
 
     const options = mockUseReviewSession.mock.calls[0][0];
     expect(options.currentComparisonId.value).toBe("pdf-comp-1");
-    await options.approve("pdf-comp-1");
+    await options.approve("pdf-comp-1", {
+      reason: "INTENDED_CHANGE",
+      note: "Copy updated in the new design",
+    });
 
     expect(mockApprovePdfTest).toHaveBeenCalledWith({
       path: { projectName: "test-project", testName: "my-pdf-test" },
-      body: { comparisonId: "pdf-comp-1" },
+      body: {
+        comparisonId: "pdf-comp-1",
+        reason: "INTENDED_CHANGE",
+        note: "Copy updated in the new design",
+      },
     });
   });
 

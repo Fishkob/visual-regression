@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { ref, computed } from "vue";
+import ApprovalDecisionDialog from "@/components/approvals/ApprovalDecisionDialog.vue";
 import { Badge } from "@/components/ui/badge";
 import {
   ViewModeToggle,
@@ -16,6 +17,7 @@ import type {
   PdfComparison,
   PdfScreenshot,
 } from "@/domains/pdf-test/pdf-test.model";
+import type { ApprovalDecision } from "@/domains/approvals/approval-reason";
 
 const { t } = useI18n();
 
@@ -32,10 +34,11 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  approve: [];
+  approve: [decision: ApprovalDecision];
   skip: [];
 }>();
 
+const decisionOpen = ref(false);
 const viewMode = ref<ViewMode>("side-by-side");
 const currentPage = ref(1);
 
@@ -187,7 +190,13 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
       :approved="isApproved(comparison.status)"
       :is-approving="props.isApproving"
       @skip="emit('skip')"
-      @approve="emit('approve')"
+      @approve="decisionOpen = true"
+    />
+
+    <ApprovalDecisionDialog
+      :open="decisionOpen"
+      @update:open="decisionOpen = $event"
+      @confirm="emit('approve', $event)"
     />
   </div>
 </template>

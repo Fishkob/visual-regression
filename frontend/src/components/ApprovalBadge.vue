@@ -4,6 +4,8 @@ import { useI18n } from "vue-i18n";
 import { formatDateTime } from "@/lib/format-date";
 import { useTestApprovalsQuery } from "@/composables/useTestApprovals";
 import { formatRelativeAge } from "@/lib/format-date";
+import { Badge } from "@/components/ui/badge";
+import { approvalReasonKey } from "@/domains/approvals/approval-reason";
 import { TEST_ID } from "@/lib/test-ids";
 import type { VariantParams } from "@/lib/variant-key";
 
@@ -60,15 +62,33 @@ const approvedAtTitle = computed(() =>
 <template>
   <span
     v-if="newest"
-    class="text-xs text-muted-foreground"
+    class="inline-flex flex-wrap items-center gap-1 text-xs text-muted-foreground"
     :title="approvedAtTitle"
     :data-testid="TEST_ID.approvalBadge"
   >
-    {{
-      t("approval.approvedBy", {
-        user: newest.approvedBy,
-        age: approvedAgo,
-      })
-    }}
+    <span>
+      {{
+        t("approval.approvedBy", {
+          user: newest.approvedBy,
+          age: approvedAgo,
+        })
+      }}
+    </span>
+    <Badge
+      v-if="newest.reason"
+      variant="outline"
+      class="text-[10px]"
+      :data-testid="TEST_ID.approvalReason"
+    >
+      {{ t(approvalReasonKey(newest.reason)) }}
+    </Badge>
+    <span
+      v-if="newest.note"
+      class="max-w-64 truncate"
+      :title="newest.note"
+      :data-testid="TEST_ID.approvalNote"
+    >
+      {{ t("approval.noteLabel") }} {{ newest.note }}
+    </span>
   </span>
 </template>

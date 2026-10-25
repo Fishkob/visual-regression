@@ -15,11 +15,13 @@ import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import { useBaselineHistory } from "@/composables/useBaselineHistory";
 import { useRestoreBaseline } from "@/composables/useRestoreBaseline";
+import { useTestApprovalsQuery } from "@/composables/useTestApprovals";
 import { useCurrentRole } from "@/composables/useAuth";
 import type {
   BaselineRevision,
   BaselineRevisionReason,
 } from "@/domains/baseline-history/baseline-history.model";
+import { approvalReasonKey } from "@/domains/approvals/approval-reason";
 import { formatRelativeAge } from "@/lib/format-date";
 import { TEST_ID } from "@/lib/test-ids";
 import type { VariantParams } from "@/lib/variant-key";
@@ -58,6 +60,12 @@ const {
   variant: toRef(props, "variant"),
 });
 
+const { data: approvals } = useTestApprovalsQuery(
+  toRef(props, "projectName"),
+  toRef(props, "testName"),
+  toRef(props, "branch"),
+);
+
 const { restore, isPending } = useRestoreBaseline({
   projectName: toRef(props, "projectName"),
   testName: toRef(props, "testName"),
@@ -70,6 +78,7 @@ const { restore, isPending } = useRestoreBaseline({
 const { canWrite } = useCurrentRole();
 
 const rows = computed(() => revisions.value ?? []);
+const approvalRows = computed(() => approvals.value ?? []);
 
 // The reason names the overwrite that retired the recorded baseline, so the
 // badge reads as "what happened to it", not as a status of the image.
@@ -113,7 +122,7 @@ const confirmDescription = computed(() => {
 
 <template>
   <div :data-testid="TEST_ID.baselineHistorySection">
-    <Accordion type="single" collapsible default-value="history">
+    <Accordion type="multiple" :default-value="['history', 'approvals']">
       <AccordionItem
         value="history"
         class="rounded-xl border bg-card shadow-sm"
@@ -234,6 +243,56 @@ const confirmDescription = computed(() => {
               >
                 {{ t("baseline.restore") }}
               </Button>
+            </li>
+          </ul>
+        </AccordionContent>
+      </AccordionItem>
+
+      <AccordionItem
+        value="approvals"
+        class="rounded-xl border bg-card shadow-sm"
+      >
+        <AccordionTrigger
+          class="px-4 py-3 hover:no-underline"
+          :data-testid="TEST_ID.approvalHistoryToggle"
+        >
+          <span class="text-sm font-semibold">
+            {{ t("approval.historyTitle", { count: approvalRows.length }) }}
+          </span>
+        </AccordionTrigger>
+        <AccordionContent class="px-4">
+          <p
+            v-if="approvalRows.length === 0"
+            class="py-4 text-sm text-muted-foreground"
+          >
+            {{ t("approval.historyEmpty") }}
+          </p>
+          <ul v-else class="divide-y">
+            <li
+              v-for="approval in approvalRows"
+              :key="approval.id"
+              class="flex flex-wrap items-center gap-2 py-3 text-sm"
+              :data-testid="TEST_ID.approvalHistoryRow"
+            >
+              <span class="font-medium">{{ approval.approvedBy }}</span>
+              <span class="text-xs text-muted-foreground">
+                {{ formatRelativeAge(approval.approvedAt.toISOString()) }}
+              </span>
+              <Badge
+                v-if="approval.reason"
+                variant="outline"
+                class="text-[10px]"
+                :data-testid="TEST_ID.approvalReason"
+              >
+                {{ t(approvalReasonKey(approval.reason)) }}
+              </Badge>
+              <span
+                v-if="approval.note"
+                class="w-full text-xs text-muted-foreground"
+                :data-testid="TEST_ID.approvalNote"
+              >
+                {{ approval.note }}
+              </span>
             </li>
           </ul>
         </AccordionContent>

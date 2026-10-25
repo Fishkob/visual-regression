@@ -63,7 +63,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R17 | Internationalization                     | 5     | M    | ADR-037                       | Shipped     |
 | R18 | Share links                              | 5     | M    | R9 · ADR-038                  | Shipped     |
 | R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4 · ADR-039              | Shipped     |
-| R20 | Review comments & decision notes         | 5     | M    | R9                            | Planned     |
+| R20 | Review comments & decision notes         | 5     | M    | R9 · ADR-040                  | Shipped     |
 
 Status is `Planned`, `In progress` or `Shipped`; a shipped item keeps its
 section and checked acceptance criteria so the history stays readable.
@@ -871,6 +871,21 @@ inbox; there is no background SLA notifier (overdue is computed at read time).
 **Scope.** Comment thread per comparison/test (markdown-lite), resolve, mentions
 later; structured approval reason (`intended change` / `flake` / `infra`) stored
 in `Approval`; optional image pins in a later v2. Notifications via R4.
+
+**Delivered.** `ReviewComment` (test + optional comparison, plain-text body,
+author, resolve) with list/create/resolve endpoints, comparison ownership
+checks, `review.comment` webhook and audit rows. Approval endpoints accept an
+optional `reason` (`INTENDED_CHANGE`/`FLAKE`/`INFRA`) + `note`, stored on
+`Approval` and exposed in the approval history, audit metadata and webhook.
+UI: comment thread on image/PDF test detail (comparison filter, resolve, no
+v-html), approval reason/note selection on the single-approve path, reason badge
+
+- note in the approval history. E2E covers threading/resolve/audit and the
+  structured reason round-trip; frontend tests cover the thread and payload.
+
+**Known limitation.** Mentions, comment editing/deletion, image pins and
+unread/in-app notifications are v2; comments are not yet retention-bounded and
+survive test deletion as orphan rows. Decision: ADR-040.
 
 **Size.** M · depends on R9.
 

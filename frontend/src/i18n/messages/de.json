@@ -946,7 +946,24 @@
     "alreadyVoted": "Du hast diesen Vergleich bereits genehmigt",
     "awaitingCount": "{count} warten auf weitere Genehmigung",
     "voteDetail": "{votes} von {required} Stimmen",
-    "pendingTitle": "Warten auf weitere Genehmigung"
+    "pendingTitle": "Warten auf weitere Genehmigung",
+    "reason": {
+      "INTENDED_CHANGE": "Beabsichtigte Änderung",
+      "FLAKE": "Flaky",
+      "INFRA": "Infrastruktur"
+    },
+    "noReason": "Kein Grund",
+    "noteLabel": "Notiz:",
+    "decisionTitle": "Mit Grund genehmigen",
+    "decisionDescription": "Klassifiziere optional, warum diese Änderung beabsichtigt ist. Der Grund erscheint im Genehmigungsverlauf.",
+    "reasonField": "Grund",
+    "noteField": "Notiz (optional)",
+    "notePlaceholder": "Was die genehmigende Person wissen sollte…",
+    "noteCounter": "{count}/2000",
+    "noteTooLong": "Die Notiz darf höchstens 2000 Zeichen lang sein.",
+    "noteTitle": "Genehmigungsnotiz",
+    "historyTitle": "Genehmigungen ({count})",
+    "historyEmpty": "Noch keine Genehmigungen."
   },
   "toast": {
     "operationFailed": "Vorgang fehlgeschlagen",
@@ -1154,5 +1171,27 @@
     "pendingBody": "Diese Änderungen bleiben ausstehend, bis genügend Prüfende zugestimmt haben.",
     "pendingSection": "Warten auf weitere Genehmigung",
     "pendingRow": "{votes} von {required} Prüfenden haben zugestimmt"
+  },
+  "comments": {
+    "title": "Kommentare",
+    "count": "{count}",
+    "toggle": "Kommentare ein-/ausblenden",
+    "onlyComparison": "Nur dieser Vergleich",
+    "emptyTitle": "Noch keine Kommentare",
+    "emptyDescription": "Beginne die Diskussion mit der prüfenden Person dieses Vergleichs.",
+    "errorTitle": "Kommentare konnten nicht geladen werden",
+    "placeholder": "Kommentar schreiben…",
+    "submit": "Kommentieren",
+    "saving": "Speichern…",
+    "created": "Kommentar hinzugefügt",
+    "createError": "Kommentar konnte nicht hinzugefügt werden",
+    "required": "Schreibe zuerst einen Kommentar.",
+    "tooLong": "Ein Kommentar darf höchstens 4000 Zeichen lang sein.",
+    "counter": "{count}/4000",
+    "resolve": "Erledigen",
+    "resolvedBadge": "Erledigt",
+    "resolvedToast": "Kommentar erledigt",
+    "resolveError": "Kommentar konnte nicht erledigt werden",
+    "resolvedBy": "Erledigt von {user}"
   }
 }

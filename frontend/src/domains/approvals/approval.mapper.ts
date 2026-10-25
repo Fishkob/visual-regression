@@ -1,4 +1,5 @@
 import type { ApprovalDto } from "@sdk";
+import { isApprovalReason } from "./approval-reason";
 import type { Approval } from "./approval.model";
 
 // The endpoint marks the provenance fields optional AND nullable (`?: T | null`)
@@ -22,6 +23,10 @@ export function mapApproval(dto: ApprovalDto): Approval {
       browser: dto.variant.browser,
       environment: dto.variant.environment,
     },
+    ...(isApprovalReason(dto.reason) ? { reason: dto.reason } : {}),
+    ...(typeof dto.note === "string" && dto.note.length > 0
+      ? { note: dto.note }
+      : {}),
     candidateHash: dto.candidateHash,
     ...(present(dto.baselineHash) ? { baselineHash: dto.baselineHash } : {}),
     ...(present(dto.mismatchPixelCount)

@@ -46,6 +46,23 @@ export const TEST_ID = {
   moveProjectSelect: "move-project-select",
   moveProjectSubmit: "move-project-submit",
 
+  approvalHistoryToggle: "approval-history-toggle",
+  approvalHistoryRow: "approval-history-row",
+  approvalReason: "approval-reason",
+  approvalNote: "approval-note",
+  approveReason: "approve-reason",
+  approveNote: "approve-note",
+  approveConfirm: "approve-confirm",
+
+  commentsPanel: "comments-panel",
+  commentsToggle: "comments-toggle",
+  commentsOnlyComparison: "comments-only-comparison",
+  commentsBody: "comments-body",
+  commentsSubmit: "comments-submit",
+  commentRow: "comment-row",
+  commentResolve: "comment-resolve",
+  commentResolved: "comment-resolved",
+
   reviewSettingsAction: "review-settings-action",
   reviewSettingsDialog: "review-settings-dialog",
   reviewRequiredApprovals: "review-required-approvals",

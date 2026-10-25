@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { ref } from "vue";
+import ApprovalDecisionDialog from "@/components/approvals/ApprovalDecisionDialog.vue";
 import InteractiveImageViewer from "@/components/detail-panels/InteractiveImageViewer.vue";
 import ApproveSkipFooter from "@/components/ApproveSkipFooter.vue";
 import { isApproved } from "@/domains/test-status";
 import { TEST_ID } from "@/lib/test-ids";
 import type { Comparison } from "@/domains/visual-test/visual-test.model";
+import type { ApprovalDecision } from "@/domains/approvals/approval-reason";
 
 const props = defineProps<{
   comparison: Comparison;
@@ -15,8 +18,10 @@ const props = defineProps<{
 
 defineEmits<{
   skip: [];
-  approve: [];
+  approve: [decision: ApprovalDecision];
 }>();
+
+const decisionOpen = ref(false);
 </script>
 
 <template>
@@ -40,7 +45,13 @@ defineEmits<{
         :approved="isApproved(props.comparison.status)"
         :is-approving="props.isApproving"
         @skip="$emit('skip')"
-        @approve="$emit('approve')"
+        @approve="decisionOpen = true"
+      />
+
+      <ApprovalDecisionDialog
+        :open="decisionOpen"
+        @update:open="decisionOpen = $event"
+        @confirm="$emit('approve', $event)"
       />
     </div>
   </Transition>

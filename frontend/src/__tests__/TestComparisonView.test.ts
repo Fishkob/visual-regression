@@ -49,12 +49,14 @@ describe("TestComparisonView", () => {
     expect(wrapper.emitted("skip")).toBeTruthy();
   });
 
-  it("emits approve on approve button click", async () => {
+  it("collects an optional reason before emitting approve", async () => {
     const wrapper = mount(TestComparisonView, {
       props: { comparison: mockComparison },
+      global: { stubs: { DialogPortal: { template: "<slot />" } } },
     });
     await wrapper.find('[data-testid="approve-changes"]').trigger("click");
-    expect(wrapper.emitted("approve")).toBeTruthy();
+    await wrapper.find("form").trigger("submit");
+    expect(wrapper.emitted("approve")).toContainEqual([{}]);
   });
 
   it("handles missing baseline gracefully", () => {

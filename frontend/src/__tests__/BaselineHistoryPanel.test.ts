@@ -5,9 +5,10 @@ import { toast } from "vue-sonner";
 import BaselineHistoryPanel from "@/components/detail-panels/BaselineHistoryPanel.vue";
 import { TEST_ID } from "@/lib/test-ids";
 
-const { mockList, mockRestore, roleRef } = vi.hoisted(() => ({
+const { mockList, mockRestore, mockApprovals, roleRef } = vi.hoisted(() => ({
   mockList: vi.fn(),
   mockRestore: vi.fn(),
+  mockApprovals: vi.fn(),
   roleRef: { value: "MEMBER" as "ADMIN" | "MEMBER" | "VIEWER" },
 }));
 
@@ -19,6 +20,8 @@ vi.mock("@sdk", () => ({
   baselineHistoryControllerList: (...args: unknown[]) => mockList(...args),
   baselineHistoryControllerRestore: (...args: unknown[]) =>
     mockRestore(...args),
+  approvalsControllerListApprovals: (...args: unknown[]) =>
+    mockApprovals(...args),
 }));
 
 vi.mock("vue-sonner", () => ({
@@ -113,6 +116,7 @@ async function waitForHistory(
 }
 
 beforeEach(() => {
+  mockApprovals.mockResolvedValue({ data: [] });
   vi.clearAllMocks();
   roleRef.value = "MEMBER";
   mockRestore.mockResolvedValue({
@@ -362,5 +366,51 @@ describe("BaselineHistoryPanel", () => {
     await wrapper.get(`[data-testid="${TEST_ID.retry}"]`).trigger("click");
 
     await waitForHistory(wrapper, 1);
+  });
+});
+
+describe("BaselineHistoryPanel approvals", () => {
+  it("shows the structured reason and note in the approval history", async () => {
+    mockApprovals.mockResolvedValue({
+      data: [
+        {
+          id: "ap-1",
+          approvedBy: "alice",
+          approvedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+          comparisonId: "cmp-1",
+          testKind: "image",
+          reason: "INTENDED_CHANGE",
+          note: "New design approved",
+          branchName: "feature/x",
+          variant: {
+            viewport: "1920x1080",
+            browser: "Chrome",
+            environment: "staging",
+          },
+          candidateHash: "abc",
+          baselineHash: null,
+          mismatchPixelCount: 12,
+          mismatchPageCount: null,
+          pageCount: null,
+        },
+      ],
+    });
+
+    const wrapper = mountPanel();
+    await vi.waitFor(() => expect(wrapper.text()).toContain("Approvals (1)"));
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.approvalHistoryToggle}"]`)
+      .trigger("click");
+
+    await vi.waitFor(() =>
+      expect(
+        wrapper.findAll(`[data-testid="${TEST_ID.approvalHistoryRow}"]`),
+      ).toHaveLength(1),
+    );
+    const row = wrapper.get(`[data-testid="${TEST_ID.approvalHistoryRow}"]`);
+    expect(row.text()).toContain("alice");
+    expect(row.text()).toContain("Intended change");
+    expect(row.text()).toContain("New design approved");
   });
 });

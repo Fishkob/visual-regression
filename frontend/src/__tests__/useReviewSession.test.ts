@@ -88,7 +88,7 @@ describe("useReviewSession", () => {
     handleApprove();
 
     expect(mockMutate).toHaveBeenCalledOnce();
-    expect(mockMutate).toHaveBeenCalledWith("comp-1");
+    expect(mockMutate).toHaveBeenCalledWith({ comparisonId: "comp-1" });
   });
 
   it("handleApprove skips when no comparison is loaded", () => {

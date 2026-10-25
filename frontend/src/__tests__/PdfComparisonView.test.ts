@@ -136,15 +136,21 @@ describe("PdfComparisonView", () => {
     expect(wrapper.text()).not.toContain("Approve changes");
   });
 
-  it("emits approve when Approve changes button is clicked", async () => {
+  it("collects an optional reason before emitting approve", async () => {
     const wrapper = mount(PdfComparisonView, {
       props: { projectName: "proj", testName: "test", baseline, comparison },
-      global: { stubs },
+      global: {
+        stubs: {
+          ...stubs,
+          DialogPortal: { template: "<slot />" },
+        },
+      },
     });
 
     await wrapper.find('[data-testid="approve-changes"]').trigger("click");
+    await wrapper.find("form").trigger("submit");
 
-    expect(wrapper.emitted("approve")).toBeTruthy();
+    expect(wrapper.emitted("approve")).toContainEqual([{}]);
   });
 
   it("emits skip when Skip button is clicked", async () => {

@@ -40,7 +40,9 @@ describe("useBulkApprove", () => {
   });
 
   it("approves all pending variants of the branch", async () => {
-    mockApproveAll.mockResolvedValue({ data: { approved: 2, pending: [], failed: [] } });
+    mockApproveAll.mockResolvedValue({
+      data: { approved: 2, pending: [], failed: [] },
+    });
     useBulkApprove(ref("checkout"), ref("login"), ref("feature/x"));
 
     await configs.current!.mutationFn();
@@ -52,7 +54,9 @@ describe("useBulkApprove", () => {
   });
 
   it("omits the branch query for the default branch", async () => {
-    mockApproveAll.mockResolvedValue({ data: { approved: 1, pending: [], failed: [] } });
+    mockApproveAll.mockResolvedValue({
+      data: { approved: 1, pending: [], failed: [] },
+    });
     useBulkApprove(ref("checkout"), ref("login"), ref(undefined));
 
     await configs.current!.mutationFn();
@@ -65,15 +69,15 @@ describe("useBulkApprove", () => {
   it("formats the no-op, success and partial-failure messages", () => {
     useBulkApprove(ref("checkout"), ref("login"));
 
-    expect(configs.current!.successMessage({ approved: 0, pending: [], failed: [] })).toBe(
-      "No pending variants",
-    );
-    expect(configs.current!.successMessage({ approved: 1, pending: [], failed: [] })).toBe(
-      "Approved 1 variant",
-    );
-    expect(configs.current!.successMessage({ approved: 3, pending: [], failed: [] })).toBe(
-      "Approved 3 variants",
-    );
+    expect(
+      configs.current!.successMessage({ approved: 0, pending: [], failed: [] }),
+    ).toBe("No pending variants");
+    expect(
+      configs.current!.successMessage({ approved: 1, pending: [], failed: [] }),
+    ).toBe("Approved 1 variant");
+    expect(
+      configs.current!.successMessage({ approved: 3, pending: [], failed: [] }),
+    ).toBe("Approved 3 variants");
     expect(
       configs.current!.successMessage({
         approved: 2,

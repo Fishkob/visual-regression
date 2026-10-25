@@ -946,7 +946,24 @@
     "alreadyVoted": "You have already approved this comparison",
     "awaitingCount": "{count} awaiting additional approval",
     "voteDetail": "{votes} of {required} votes",
-    "pendingTitle": "Waiting for additional approval"
+    "pendingTitle": "Waiting for additional approval",
+    "reason": {
+      "INTENDED_CHANGE": "Intended change",
+      "FLAKE": "Flake",
+      "INFRA": "Infra"
+    },
+    "noReason": "No reason",
+    "noteLabel": "Note:",
+    "decisionTitle": "Approve with a reason",
+    "decisionDescription": "Optionally classify why this change is intended. The reason appears in the approval history.",
+    "reasonField": "Reason",
+    "noteField": "Note (optional)",
+    "notePlaceholder": "Anything the approver should know…",
+    "noteCounter": "{count}/2000",
+    "noteTooLong": "The note can be at most 2000 characters.",
+    "noteTitle": "Approval note",
+    "historyTitle": "Approvals ({count})",
+    "historyEmpty": "No approvals yet."
   },
   "toast": {
     "operationFailed": "Operation failed",
@@ -1154,5 +1171,27 @@
     "pendingBody": "These changes stay pending until enough reviewers approve them.",
     "pendingSection": "Waiting for additional approval",
     "pendingRow": "{votes} of {required} reviewers approved"
+  },
+  "comments": {
+    "title": "Comments",
+    "count": "{count}",
+    "toggle": "Toggle comments",
+    "onlyComparison": "Only this comparison",
+    "emptyTitle": "No comments yet",
+    "emptyDescription": "Start the discussion with the reviewer of this comparison.",
+    "errorTitle": "Failed to load comments",
+    "placeholder": "Leave a comment…",
+    "submit": "Comment",
+    "saving": "Saving…",
+    "created": "Comment added",
+    "createError": "Could not add the comment",
+    "required": "Write a comment first.",
+    "tooLong": "A comment can be at most 4000 characters.",
+    "counter": "{count}/4000",
+    "resolve": "Resolve",
+    "resolvedBadge": "Resolved",
+    "resolvedToast": "Comment resolved",
+    "resolveError": "Could not resolve the comment",
+    "resolvedBy": "Resolved by {user}"
   }
 }

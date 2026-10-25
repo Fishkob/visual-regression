@@ -262,3 +262,30 @@ describe("ApprovalBadge", () => {
     ).toBe(false);
   });
 });
+
+describe("ApprovalBadge reasons", () => {
+  it("shows the structured reason and note of the newest approval", async () => {
+    mockListApprovals.mockResolvedValue({
+      data: [
+        approvalDto({
+          reason: "INTENDED_CHANGE",
+          note: "Redesign approved by design",
+        }),
+      ],
+    });
+
+    const wrapper = mountBadge({ projectName: "checkout", testName: "login" });
+    await vi.waitFor(() =>
+      expect(
+        wrapper.find(`[data-testid="${TEST_ID.approvalBadge}"]`).exists(),
+      ).toBe(true),
+    );
+
+    expect(
+      wrapper.get(`[data-testid="${TEST_ID.approvalReason}"]`).text(),
+    ).toBe("Intended change");
+    expect(
+      wrapper.get(`[data-testid="${TEST_ID.approvalNote}"]`).text(),
+    ).toContain("Redesign approved by design");
+  });
+});

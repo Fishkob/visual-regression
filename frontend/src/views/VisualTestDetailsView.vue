@@ -21,6 +21,7 @@ import TestComparisonInfo from "@/components/TestComparisonInfo.vue";
 import BulkApproveButton from "@/components/BulkApproveButton.vue";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
+import CommentsPanel from "@/components/comments/CommentsPanel.vue";
 import TestMetadataPanel from "@/components/test-lifecycle/TestMetadataPanel.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import { TEST_ID } from "@/lib/test-ids";
@@ -203,6 +204,14 @@ useReviewShortcuts({
   </div>
 
   <TestMetadataPanel class="px-6 pb-1" />
+
+  <CommentsPanel
+    class="mx-6"
+    :project-name="projectName"
+    :test-name="testName"
+    :branch="branch"
+    :comparison-id="data?.comparison?.id"
+  />
 
   <div class="p-6 pt-0">
     <TestVariantGallery
