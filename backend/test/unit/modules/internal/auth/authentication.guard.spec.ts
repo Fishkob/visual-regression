@@ -705,6 +705,37 @@ describe('AuthenticationGuard', () => {
     ).rejects.toThrow(/restricted to specific projects/);
   });
 
+  it('keeps an allowlisted key out of the cross-project review inbox', async () => {
+    mockApiKeyService.resolveApiKey.mockResolvedValue({
+      id: 'k1',
+      name: 'ci',
+      ownerId: 'u1',
+      scopes: ['read'],
+      projectNames: ['allowed'],
+    });
+
+    // Neither route names a project, so an allowlist cannot filter them: they
+    // used to return every project's pending work and group list.
+    await expect(
+      guard.canActivate(
+        apiKeyContext({
+          method: 'GET',
+          path: '/api/v1/review/pending',
+          scope: ['read'],
+        }),
+      ),
+    ).rejects.toThrow(/restricted to specific projects/);
+    await expect(
+      guard.canActivate(
+        apiKeyContext({
+          method: 'GET',
+          path: '/api/v1/groups',
+          scope: ['read'],
+        }),
+      ),
+    ).rejects.toThrow(/restricted to specific projects/);
+  });
+
   it('grants the admin role to a key with the admin scope', async () => {
     mockApiKeyService.resolveApiKey.mockResolvedValue({
       id: 'k1',

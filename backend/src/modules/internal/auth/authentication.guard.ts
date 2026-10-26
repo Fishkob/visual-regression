@@ -140,9 +140,11 @@ export class AuthenticationGuard implements CanActivate {
       return;
     }
     // Project-spanning reads cannot be safely filtered for a scoped key; a key
-    // with an allowlist is confined to project-scoped routes.
+    // with an allowlist is confined to project-scoped routes. `review` (the
+    // cross-project inbox) and `groups` belong in this list: neither names a
+    // project, and both returned every project's rows to an allowlisted key.
     if (
-      /^\/api\/v1\/(projects|inbox|audit|users|search)(\/|$)/.test(
+      /^\/api\/v1\/(projects|review|groups|inbox|audit|users|search)(\/|$)/.test(
         request.path ?? '',
       )
     ) {
