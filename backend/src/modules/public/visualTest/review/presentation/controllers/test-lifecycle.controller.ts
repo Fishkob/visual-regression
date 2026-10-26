@@ -5,6 +5,7 @@ import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { TestLifecycleService } from '@public/visualTest/review/application/test-lifecycle.service';
 import {
   TestMetadataDto,
@@ -16,6 +17,7 @@ import {
 export class TestLifecycleController {
   constructor(private readonly lifecycle: TestLifecycleService) {}
 
+  @Scope('read')
   @Get()
   @ApiOperation({
     summary: 'Read rename/tags/mute metadata and the 30-day flake signal',
@@ -32,6 +34,7 @@ export class TestLifecycleController {
     });
   }
 
+  @Scope('admin')
   @Patch()
   @ApiOperation({
     summary: 'Rename a test, edit description/tags or mute it until a date',

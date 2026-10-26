@@ -22,6 +22,7 @@ import { SessionOnly } from '@common/http/session-only.decorator';
 import { Roles } from '@common/http/roles.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { WebhookSettingsService } from '@public/visualTest/review/application/webhook-settings.service';
 import {
   CreateWebhookDto,
@@ -43,6 +44,7 @@ import {
 export class WebhooksController {
   constructor(private readonly webhooks: WebhookSettingsService) {}
 
+  @Scope('read')
   @Get()
   @ApiOperation({ summary: 'List the project webhook endpoints' })
   @ApiOkResponse({ type: [WebhookEndpointDto] })
@@ -55,6 +57,7 @@ export class WebhooksController {
     });
   }
 
+  @Scope('admin')
   @Post()
   @ApiOperation({
     summary: 'Create a webhook endpoint and reveal its signing secret once',
@@ -76,6 +79,7 @@ export class WebhooksController {
     });
   }
 
+  @Scope('admin')
   @Patch(':id')
   @ApiOperation({
     summary: 'Update, disable or rotate the secret of a webhook endpoint',
@@ -102,6 +106,7 @@ export class WebhooksController {
     });
   }
 
+  @Scope('admin')
   @Delete(':id')
   @HttpCode(204)
   @ApiOperation({ summary: 'Delete a webhook endpoint and its delivery log' })
@@ -114,6 +119,7 @@ export class WebhooksController {
     await this.webhooks.remove(projectName, id, req.auth?.username);
   }
 
+  @Scope('read')
   @Get(':id/deliveries')
   @ApiOperation({ summary: 'List the recent deliveries of an endpoint' })
   @ApiOkResponse({ type: [WebhookDeliveryDto] })
@@ -127,6 +133,7 @@ export class WebhooksController {
     });
   }
 
+  @Scope('admin')
   @Post(':id/deliveries/:deliveryId/replay')
   @HttpCode(202)
   @ApiOperation({ summary: 'Requeue a delivery for the dispatcher' })
@@ -140,6 +147,7 @@ export class WebhooksController {
     return { queued: true };
   }
 
+  @Scope('admin')
   @Post(':id/test')
   @HttpCode(202)
   @ApiOperation({ summary: 'Queue a synthetic test delivery' })

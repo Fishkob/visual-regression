@@ -5,6 +5,7 @@ import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { requireActor } from '@common/http/authenticated-principal';
 import { requireAuthenticatedPrincipal } from '@common/http/authenticated-principal';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { BulkActionService } from '@public/visualTest/review/application/bulk-action.service';
 import {
   BulkApprovalDto,
@@ -20,6 +21,7 @@ import {
 export class BulkActionsController {
   constructor(private readonly bulk: BulkActionService) {}
 
+  @Scope('approve')
   @Post('approvals')
   @ApiOperation({
     summary: 'Approve up to 100 comparisons, returning per-item results',
@@ -42,6 +44,7 @@ export class BulkActionsController {
     });
   }
 
+  @Scope('admin')
   @Post('test-deletions')
   @ApiOperation({
     summary: 'Delete up to 100 tests, returning per-item results',
@@ -69,6 +72,7 @@ export class BulkActionsController {
 export class ProjectsBulkController {
   constructor(private readonly bulk: BulkActionService) {}
 
+  @Scope('admin')
   @Patch('bulk/group')
   @ApiOperation({
     summary: 'Move up to 100 projects into a group (null clears the group)',

@@ -9,6 +9,7 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import { RetentionPreviewService } from '@public/visualTest/review/application/retention-preview.service';
 import { RetentionPreviewDto } from '@public/visualTest/review/presentation/dto/retention-preview.dto';
@@ -27,6 +28,7 @@ export class StorageController {
     private readonly preview: RetentionPreviewService,
   ) {}
 
+  @Scope('read')
   @Get()
   @ApiOperation({
     summary: 'Current storage usage, quota and retention settings',
@@ -41,6 +43,7 @@ export class StorageController {
     });
   }
 
+  @Scope('read')
   @Get('preview')
   @ApiOperation({
     summary: 'Dry-run: what retention would reclaim without deleting anything',
@@ -55,6 +58,7 @@ export class StorageController {
     });
   }
 
+  @Scope('admin')
   @Patch()
   // Retention decides which evidence survives, so it is a policy surface like
   // the review policy and the pixel threshold: ADMIN-owned and audited.

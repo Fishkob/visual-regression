@@ -10,6 +10,10 @@ import { IS_PUBLIC_KEY } from '@common/http/public.decorator';
 import { IS_SESSION_ONLY_KEY } from '@common/http/session-only.decorator';
 import { ROLES_KEY, type AppRole } from '@common/http/roles.decorator';
 import { ACCOUNT_LIFECYCLE_KEY } from '@common/http/account-lifecycle.decorator';
+import {
+  API_KEY_SCOPE_KEY,
+  type ApiKeyScope,
+} from '@common/http/api-key-scope.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { readSessionToken } from '@common/http/session-cookie';
 import { AppConfigService } from '@config/app-config.service';
@@ -86,7 +90,7 @@ export class AuthenticationGuard implements CanActivate {
           projectNames: resolved.projectNames,
         };
         this.enforceAccess(context, request);
-        this.enforceApiKeyAccess(request);
+        this.enforceApiKeyAccess(context, request);
         return true;
       }
     }
@@ -96,15 +100,31 @@ export class AuthenticationGuard implements CanActivate {
 
   // API keys carry explicit scopes and an optional project allowlist. Sessions
   // are governed by the R9 role matrix; keys never inherit the owner's role.
-  private enforceApiKeyAccess(request: AuthenticatedRequest): void {
+  private enforceApiKeyAccess(
+    context: ExecutionContext,
+    request: AuthenticatedRequest,
+  ): void {
     const auth = request.auth;
     if (!auth?.apiKeyId) return;
     const scopes = auth.scopes ?? [];
     const isAdmin = scopes.includes('admin');
-    const required = this.requiredApiKeyScope(request, scopes);
-    if (required && !isAdmin && !scopes.includes(required)) {
+    // The scope is the route's own declaration (see api-key-scope.decorator.ts),
+    // not a guess from its path. A route without one is not callable by a key at
+    // all: the old fallthrough quietly granted `admin`, so a new write inherited
+    // the widest scope by accident.
+    const required =
+      this.reflector.getAllAndOverride<ApiKeyScope[]>(API_KEY_SCOPE_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? null;
+    if (!required) {
       throw new ForbiddenException(
-        `API key is missing the "${required}" scope`,
+        'This endpoint is not available to API keys',
+      );
+    }
+    if (!isAdmin && !required.some((scope) => scopes.includes(scope))) {
+      throw new ForbiddenException(
+        `API key is missing the "${required.join('" or "')}" scope`,
       );
     }
     const allowlist = auth.projectNames ?? [];
@@ -130,27 +150,6 @@ export class AuthenticationGuard implements CanActivate {
         'This API key is restricted to specific projects',
       );
     }
-  }
-
-  private requiredApiKeyScope(
-    request: AuthenticatedRequest,
-    scopes: string[],
-  ): 'upload' | 'read' | 'approve' | 'admin' | null {
-    const path = request.path ?? '';
-    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
-      if (
-        path.includes('/jobs/') &&
-        (scopes.includes('upload') || scopes.includes('read'))
-      ) {
-        return null;
-      }
-      return 'read';
-    }
-    if (path.endsWith('/upload')) return 'upload';
-    if (path.includes('/approval') || path.includes('/baseline-restore')) {
-      return 'approve';
-    }
-    return 'admin';
   }
 
   // Session cookies are SameSite=Lax, which already blocks most cross-site

@@ -9,6 +9,7 @@ import {
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { BranchQuery } from '@common/http/branch-query.decorator';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { JobStatusService } from '@public/visualTest/intake/application/job-status.service';
 import { DEFAULT_JOB_STATUS_POLLING } from '@public/visualTest/intake/application/job-status-polling';
 import {
@@ -21,6 +22,7 @@ import {
 export class JobStatusController {
   constructor(private readonly jobStatus: JobStatusService) {}
 
+  @Scope('read', 'upload')
   @Get(':testName/jobs/:jobId')
   @ApiOperation({
     summary: 'Read the status of a queued comparison job (optionally wait)',

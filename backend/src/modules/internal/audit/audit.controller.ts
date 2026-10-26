@@ -7,6 +7,7 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { Roles } from '@common/http/roles.decorator';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import {
   createPaginatedResponse,
   PaginatedResponseDto,
@@ -27,6 +28,7 @@ import {
 export class AuditController {
   constructor(private readonly audit: AuditService) {}
 
+  @Scope('read')
   @Get()
   @ApiOperation({ summary: 'List audit events (newest first, paginated)' })
   @ApiOkResponse({ type: PaginatedResponseDto(AuditEventDto) })
@@ -57,6 +59,7 @@ export class AuditController {
     };
   }
 
+  @Scope('read')
   @Get('export')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @Header('Content-Disposition', 'attachment; filename="audit.csv"')

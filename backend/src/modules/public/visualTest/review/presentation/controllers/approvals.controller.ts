@@ -13,6 +13,7 @@ import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { requireAuthenticatedPrincipal } from '@common/http/authenticated-principal';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import {
   ApprovalPendingDto,
   ApproveComparisonBodyDto,
@@ -27,6 +28,7 @@ import { mapApprovalToDto } from '@public/visualTest/review/infrastructure/mappe
 export class ApprovalsController {
   constructor(private readonly approvals: ApprovalService) {}
 
+  @Scope('approve')
   @Post('approval')
   @ApiOperation({
     summary: 'Approve a pending visual comparison',
@@ -53,6 +55,7 @@ export class ApprovalsController {
     );
   }
 
+  @Scope('approve')
   @Post('pdf-approval')
   @ApiOperation({ summary: 'Approve a pending PDF comparison' })
   @ApiOkResponse({ type: ApproveResultDto })
@@ -77,6 +80,7 @@ export class ApprovalsController {
     );
   }
 
+  @Scope('approve')
   @Post('approvals/all')
   @ApiOperation({
     summary: 'Approve every pending comparison of a test on a branch',
@@ -103,6 +107,7 @@ export class ApprovalsController {
     );
   }
 
+  @Scope('read')
   @Get('approvals')
   @ApiOperation({
     summary: 'List the most recent approvals of a test, newest first',

@@ -15,12 +15,14 @@ import {
   validateName,
 } from '@common/http/pipes/name-validation.util';
 import { BranchQuery } from '@common/http/branch-query.decorator';
+import { Scope } from '@common/http/api-key-scope.decorator';
 
 @ApiTags('Review')
 @Controller('review')
 export class ReviewInboxController {
   constructor(private readonly inbox: ReviewInboxService) {}
 
+  @Scope('read')
   @Get('pending')
   @ApiOperation({ summary: 'List pending reviews across all projects' })
   @ApiOkResponse({ type: PaginatedResponseDto(PendingReviewDto) })
@@ -52,6 +54,7 @@ export class ReviewInboxController {
 
   // The inbox filter's branch choices. A separate read because they must cover
   // every pending branch, not just the branches on the current page.
+  @Scope('read')
   @Get('branches')
   @ApiOperation({
     summary: 'List branches that currently have pending reviews',

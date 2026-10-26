@@ -20,6 +20,7 @@ import { PdfTestDetailsDto } from '@public/visualTest/review/presentation/dto/pd
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { BranchQuery } from '@common/http/branch-query.decorator';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import type { Response } from 'express';
 
 @ApiTags('Tests')
@@ -30,6 +31,7 @@ export class PdfController {
     private readonly pdfAccess: PdfAccessService,
   ) {}
 
+  @Scope('read')
   @Get(':testName/pdf-details')
   @ApiOperation({
     summary: 'Get PDF test details including baseline and comparison',
@@ -66,6 +68,7 @@ export class PdfController {
     );
   }
 
+  @Scope('read')
   @Get(':testName/pdf-render')
   @ApiOperation({
     summary: 'Render a single PDF page as PNG (cached in RustFS)',
@@ -92,6 +95,7 @@ export class PdfController {
     );
   }
 
+  @Scope('read')
   @Get(':testName/pdf-download')
   @ApiOperation({
     summary: 'Download baseline, candidate, or diff PDF for a test',

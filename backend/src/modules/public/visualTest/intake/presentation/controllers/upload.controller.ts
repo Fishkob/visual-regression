@@ -37,6 +37,7 @@ import {
 } from '@public/visualTest/intake/presentation/dto/upload.dto';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import type { AnyUploadResult } from '@common/domain/unified-upload-result.type';
 import { ComparisonOutcome } from '@common/domain/upload-outcome';
 import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
@@ -52,6 +53,7 @@ import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 export class UploadController {
   constructor(private readonly uploadIntake: UploadIntake) {}
 
+  @Scope('upload')
   @Post(':testName/upload')
   @UseInterceptors(FileInterceptor('file'))
   @ApiSecurity('apiKeyAuth')

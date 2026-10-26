@@ -21,6 +21,7 @@ import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-valid
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { Roles } from '@common/http/roles.decorator';
 import { BranchQuery } from '@common/http/branch-query.decorator';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { BranchReadRepository } from '@public/visualTest/review/infrastructure/repositories/branch-read.repository';
 import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
 import {
@@ -37,6 +38,7 @@ export class BranchesController {
     private readonly commands: BranchCommandService,
   ) {}
 
+  @Scope('read')
   @Get()
   @ApiOperation({ summary: 'List the branches of a project' })
   @ApiOkResponse({ type: BranchSummaryDto, isArray: true })
@@ -51,6 +53,7 @@ export class BranchesController {
     return this.read.list(projectName, parseIncludeArchived(includeArchived));
   }
 
+  @Scope('admin')
   @Patch()
   @ApiOperation({ summary: 'Archive/unarchive a branch or change its target' })
   @ApiOkResponse({ type: BranchCommandResultDto })
@@ -65,6 +68,7 @@ export class BranchesController {
   }
 
   @Roles('ADMIN')
+  @Scope('admin')
   @Delete()
   @ApiOperation({ summary: 'Delete a feature branch and reclaim its files' })
   @ApiOkResponse({ type: BranchCommandResultDto })

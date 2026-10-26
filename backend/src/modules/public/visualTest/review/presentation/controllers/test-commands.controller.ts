@@ -27,6 +27,7 @@ import { Roles } from '@common/http/roles.decorator';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
+import { Scope } from '@common/http/api-key-scope.decorator';
 
 @ApiTags('Tests')
 @Controller('projects/:projectName/tests')
@@ -34,6 +35,7 @@ export class TestCommandsController {
   constructor(private readonly testCommand: TestCommandService) {}
 
   @Roles('ADMIN')
+  @Scope('admin')
   @Patch(':testName/threshold')
   @ApiOperation({ summary: 'Update pixelDiffThreshold for a specific variant' })
   @ApiQuery({ name: 'viewport', required: false })
@@ -69,6 +71,7 @@ export class TestCommandsController {
     });
   }
 
+  @Scope('admin')
   @Delete(':testName')
   @ApiOperation({
     summary:

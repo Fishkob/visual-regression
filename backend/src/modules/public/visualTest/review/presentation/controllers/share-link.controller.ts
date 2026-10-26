@@ -20,6 +20,7 @@ import { requireActor } from '@common/http/authenticated-principal';
 import { PublicEndpoint } from '@common/http/public.decorator';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 import { ShareLinkService } from '@public/visualTest/review/application/share-link.service';
 import {
@@ -36,6 +37,7 @@ import {
 export class ShareLinksController {
   constructor(private readonly shares: ShareLinkService) {}
 
+  @Scope('read')
   @Get()
   @ApiOperation({ summary: 'List share links for a project' })
   @ApiOkResponse({ type: [ShareLinkDto] })
@@ -48,6 +50,7 @@ export class ShareLinksController {
     });
   }
 
+  @Scope('admin')
   @Post()
   @ApiOperation({ summary: 'Create a read-only, expiring share link' })
   @ApiCreatedResponse({ type: CreatedShareLinkDto })
@@ -78,6 +81,7 @@ export class ShareLinksController {
 export class ShareLinkRevokeController {
   constructor(private readonly shares: ShareLinkService) {}
 
+  @Scope('admin')
   @Delete(':id')
   @ApiOperation({ summary: 'Revoke a share link' })
   @ApiOkResponse({ type: ShareLinkDto })

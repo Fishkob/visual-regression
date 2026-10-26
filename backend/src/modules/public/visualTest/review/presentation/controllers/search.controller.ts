@@ -1,4 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { SearchService } from '@public/visualTest/review/application/search.service';
@@ -12,6 +13,7 @@ import {
 export class SearchController {
   constructor(private readonly search: SearchService) {}
 
+  @Scope('read')
   @Get()
   @ApiOperation({
     summary: 'Search projects, tests and branches (server-paginated groups)',

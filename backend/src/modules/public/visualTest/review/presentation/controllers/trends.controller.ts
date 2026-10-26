@@ -2,6 +2,7 @@ import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { TrendsService } from '@public/visualTest/review/application/trends.service';
 import {
   TrendsDto,
@@ -13,6 +14,7 @@ import {
 export class TrendsController {
   constructor(private readonly trends: TrendsService) {}
 
+  @Scope('read')
   @Get()
   @ApiOperation({
     summary:

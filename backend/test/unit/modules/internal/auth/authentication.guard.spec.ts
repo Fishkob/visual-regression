@@ -5,6 +5,7 @@ import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Mocked } from 'vitest';
 import { ACCOUNT_LIFECYCLE_KEY } from '@common/http/account-lifecycle.decorator';
+import { API_KEY_SCOPE_KEY } from '@common/http/api-key-scope.decorator';
 import { IS_PUBLIC_KEY } from '@common/http/public.decorator';
 import { IS_SESSION_ONLY_KEY } from '@common/http/session-only.decorator';
 import { ROLES_KEY } from '@common/http/roles.decorator';
@@ -29,6 +30,10 @@ describe('AuthenticationGuard', () => {
 
   class TestController {}
   const testHandler = () => {};
+  // A GET route that declares the read scope, for the tests that build their
+  // own context instead of using apiKeyContext.
+  const readScopedHandler = () => {};
+  Reflect.defineMetadata(API_KEY_SCOPE_KEY, ['read'], readScopedHandler);
 
   const mockContext = (
     headers: Record<string, unknown> = {},
@@ -364,7 +369,7 @@ describe('AuthenticationGuard', () => {
     };
     const ctx = {
       getClass: () => TestController,
-      getHandler: () => testHandler,
+      getHandler: () => readScopedHandler,
       switchToHttp: () => ({ getRequest: () => request }),
     } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
 
@@ -520,6 +525,7 @@ describe('AuthenticationGuard', () => {
     method: string;
     path: string;
     params?: Record<string, string>;
+    scope?: string[];
   }) {
     const request = {
       headers: { 'x-api-key': 'rawkey' },
@@ -527,9 +533,15 @@ describe('AuthenticationGuard', () => {
       path: options.path,
       params: options.params ?? {},
     };
+    // The scope is route metadata now; a route that declares none is not
+    // callable by a key at all.
+    const handler = () => {};
+    if (options.scope) {
+      Reflect.defineMetadata(API_KEY_SCOPE_KEY, options.scope, handler);
+    }
     return {
       getClass: () => TestController,
-      getHandler: () => testHandler,
+      getHandler: () => handler,
       switchToHttp: () => ({ getRequest: () => request }),
     } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
   }
@@ -545,7 +557,11 @@ describe('AuthenticationGuard', () => {
 
     await expect(
       guard.canActivate(
-        apiKeyContext({ method: 'GET', path: '/api/v1/projects/p' }),
+        apiKeyContext({
+          method: 'GET',
+          path: '/api/v1/projects/p',
+          scope: ['read'],
+        }),
       ),
     ).rejects.toThrow(/missing the "read" scope/);
   });
@@ -564,6 +580,7 @@ describe('AuthenticationGuard', () => {
         apiKeyContext({
           method: 'POST',
           path: '/api/v1/projects/p/tests/t/upload',
+          scope: ['upload'],
         }),
       ),
     ).resolves.toBe(true);
@@ -572,6 +589,7 @@ describe('AuthenticationGuard', () => {
         apiKeyContext({
           method: 'GET',
           path: '/api/v1/projects/p/tests/t/jobs/j1',
+          scope: ['read', 'upload'],
         }),
       ),
     ).resolves.toBe(true);
@@ -591,6 +609,7 @@ describe('AuthenticationGuard', () => {
         apiKeyContext({
           method: 'POST',
           path: '/api/v1/projects/p/tests/t/approval',
+          scope: ['approve'],
         }),
       ),
     ).rejects.toThrow(/missing the "approve" scope/);
@@ -599,9 +618,51 @@ describe('AuthenticationGuard', () => {
         apiKeyContext({
           method: 'DELETE',
           path: '/api/v1/projects/p',
+          scope: ['admin'],
         }),
       ),
     ).rejects.toThrow(/missing the "admin" scope/);
+  });
+
+  it('accepts an approve key on the PDF approval route', async () => {
+    mockApiKeyService.resolveApiKey.mockResolvedValue({
+      id: 'k1',
+      name: 'ci',
+      ownerId: 'u1',
+      scopes: ['approve'],
+      projectNames: [],
+    });
+
+    // The old path table matched '/approval' only, so the hyphenated
+    // '/pdf-approval' fell through to admin — a PDF approval was not possible
+    // with an approve-scoped key, against ADR-035.
+    await expect(
+      guard.canActivate(
+        apiKeyContext({
+          method: 'POST',
+          path: '/api/v1/projects/p/tests/t/pdf-approval',
+          scope: ['approve'],
+        }),
+      ),
+    ).resolves.toBe(true);
+  });
+
+  it('refuses an api key on a route that declares no scope', async () => {
+    mockApiKeyService.resolveApiKey.mockResolvedValue({
+      id: 'k1',
+      name: 'ci',
+      ownerId: 'u1',
+      scopes: ['read', 'upload', 'approve', 'admin'],
+      projectNames: [],
+    });
+
+    // Fail closed: the old table defaulted an unannotated write to admin, so a
+    // new endpoint inherited the widest scope by accident.
+    await expect(
+      guard.canActivate(
+        apiKeyContext({ method: 'POST', path: '/api/v1/new/route' }),
+      ),
+    ).rejects.toThrow(/not available to API keys/);
   });
 
   it('confines a key with a project allowlist', async () => {
@@ -619,6 +680,7 @@ describe('AuthenticationGuard', () => {
           method: 'GET',
           path: '/api/v1/projects/other/runs',
           params: { projectName: 'other' },
+          scope: ['read'],
         }),
       ),
     ).rejects.toThrow(/not allowed to access project "other"/);
@@ -628,12 +690,17 @@ describe('AuthenticationGuard', () => {
           method: 'GET',
           path: '/api/v1/projects/allowed/runs',
           params: { projectName: 'allowed' },
+          scope: ['read'],
         }),
       ),
     ).resolves.toBe(true);
     await expect(
       guard.canActivate(
-        apiKeyContext({ method: 'GET', path: '/api/v1/projects' }),
+        apiKeyContext({
+          method: 'GET',
+          path: '/api/v1/projects',
+          scope: ['read'],
+        }),
       ),
     ).rejects.toThrow(/restricted to specific projects/);
   });
@@ -649,7 +716,11 @@ describe('AuthenticationGuard', () => {
 
     await expect(
       guard.canActivate(
-        apiKeyContext({ method: 'DELETE', path: '/api/v1/projects/p' }),
+        apiKeyContext({
+          method: 'DELETE',
+          path: '/api/v1/projects/p',
+          scope: ['admin'],
+        }),
       ),
     ).resolves.toBe(true);
   });
@@ -675,7 +746,9 @@ describe('AuthenticationGuard', () => {
     });
 
     await expect(
-      guard.canActivate(mockContext({ 'x-api-key': 'rawkey' })),
+      guard.canActivate(
+        mockContext({ 'x-api-key': 'rawkey' }, readScopedHandler),
+      ),
     ).resolves.toBe(true);
     expect(mockApiKeyService.resolveApiKey).toHaveBeenCalledWith('rawkey');
 

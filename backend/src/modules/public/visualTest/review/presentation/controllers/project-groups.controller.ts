@@ -14,6 +14,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { ProjectGroupService } from '@public/visualTest/review/application/project-group.service';
 import {
   CreateProjectGroupDto,
@@ -26,6 +27,7 @@ import {
 export class ProjectGroupsController {
   constructor(private readonly groups: ProjectGroupService) {}
 
+  @Scope('read')
   @Get()
   @ApiOperation({ summary: 'List project groups' })
   @ApiOkResponse({ type: [ProjectGroupDto] })
@@ -36,6 +38,7 @@ export class ProjectGroupsController {
     );
   }
 
+  @Scope('admin')
   @Post()
   @ApiOperation({ summary: 'Create a project group' })
   @ApiCreatedResponse({ type: ProjectGroupDto })
@@ -46,6 +49,7 @@ export class ProjectGroupsController {
     });
   }
 
+  @Scope('admin')
   @Patch(':id')
   @ApiOperation({ summary: 'Rename a project group' })
   @ApiOkResponse({ type: ProjectGroupDto })
@@ -59,6 +63,7 @@ export class ProjectGroupsController {
     });
   }
 
+  @Scope('admin')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a project group' })
   @ApiOkResponse({ description: 'Projects move to Unassigned' })

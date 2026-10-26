@@ -38,6 +38,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 042 | [Review Artifact Lifecycle](./ADR-042-review-artifact-lifecycle.md)             | Accepted          |
 | 043 | [Storage Quota Enforcement](./ADR-043-storage-quota-enforcement.md)             | Accepted          |
 | 044 | [A Failed Job Owns Its Candidate](./ADR-044-failed-job-candidate-ownership.md)  | Accepted          |
+| 045 | [API-Key Scopes on the Route](./ADR-045-api-key-scopes-on-the-route.md)         | Accepted          |
 
 ## Numbering
 

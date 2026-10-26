@@ -37,6 +37,7 @@ import {
 import type { TestKind } from '@common/domain/test-kind';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { BranchQuery } from '@common/http/branch-query.decorator';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { PaginationDto } from '@common/dto/pagination.dto';
 export class ComparisonStatusWrapper {
   @ApiProperty({
@@ -55,6 +56,7 @@ export class ProjectsController {
   // NOTE: @Get(':projectName/tests') is handled by TestsQueriesController.getTestsForProject
   //       to avoid route conflict. This controller owns higher-level project routes.
 
+  @Scope('read')
   @Get('/pending')
   @ApiOperation({ summary: 'Get all projects with pending flag' })
   @ApiOkResponse({
@@ -88,6 +90,7 @@ export class ProjectsController {
   }
 
   @Roles('ADMIN')
+  @Scope('admin')
   @Delete(':projectName')
   @ApiOperation({ summary: 'Delete a project and its related data' })
   @ApiParam({
@@ -109,6 +112,7 @@ export class ProjectsController {
     return { success: true };
   }
 
+  @Scope('admin')
   @Post()
   @ApiOperation({ summary: 'Create a new project' })
   @ApiBody({ type: CreateProjectDto })
@@ -128,6 +132,7 @@ export class ProjectsController {
     return this.projectService.create(dto.name, dto.groupId);
   }
 
+  @Scope('admin')
   @Patch(':projectName')
   @ApiOperation({ summary: 'Move a project to another group' })
   @ApiOkResponse({ type: ProjectDto })
@@ -147,6 +152,7 @@ export class ProjectsController {
   }
 
   @Roles('ADMIN')
+  @Scope('admin')
   @Patch(':projectName/review-policy')
   @ApiOperation({
     summary: 'Update how many approvals a comparison needs in a project',
@@ -175,6 +181,7 @@ export class ProjectsController {
     );
   }
 
+  @Scope('read')
   @Get()
   @ApiOperation({ summary: 'Get all projects' })
   @ApiOkResponse({
@@ -184,6 +191,7 @@ export class ProjectsController {
     return this.projectService.findAll(pagination);
   }
 
+  @Scope('read')
   @Get(':projectName')
   @ApiOperation({
     summary: 'Get a specific project with its latest test statuses',

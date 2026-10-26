@@ -12,6 +12,7 @@ import { requireActor } from '@common/http/authenticated-principal';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import {
@@ -29,6 +30,7 @@ import {
 export class BaselineHistoryController {
   constructor(private readonly history: BaselineHistoryService) {}
 
+  @Scope('read')
   @Get(':testName/baseline-history')
   @ApiOperation({
     summary: 'List replaced baselines for a test (newest first)',
@@ -54,6 +56,7 @@ export class BaselineHistoryController {
     });
   }
 
+  @Scope('approve')
   @Post(':testName/baseline-restore')
   @ApiOperation({ summary: 'Restore a previously replaced baseline' })
   @ApiBody({ type: RestoreBaselineDto })

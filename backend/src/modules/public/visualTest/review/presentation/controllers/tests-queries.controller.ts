@@ -22,6 +22,7 @@ import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testna
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { BranchQuery } from '@common/http/branch-query.decorator';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import { PaginatedResponseDto } from '@common/dto/paginated-response.dto';
 
 @ApiTags('Tests')
@@ -29,6 +30,7 @@ import { PaginatedResponseDto } from '@common/dto/paginated-response.dto';
 export class TestsQueriesController {
   constructor(private readonly testQuery: TestQueryService) {}
 
+  @Scope('read')
   @Get()
   @ApiOperation({ summary: 'List all tests for a specific project' })
   @ApiOkResponse({ type: PaginatedResponseDto(ProjectTestDto) })
@@ -45,6 +47,7 @@ export class TestsQueriesController {
     return this.testQuery.getTestNames(projectName, query, query.kind, branch);
   }
 
+  @Scope('read')
   @Get(':testName/kind')
   @ApiOperation({ summary: 'Get the test kind (pdf or visual)' })
   @ApiOkResponse({ description: 'Test kind (pdf or visual)' })
@@ -56,6 +59,7 @@ export class TestsQueriesController {
     return this.testQuery.getKind(projectName, testName, branch);
   }
 
+  @Scope('read')
   @Get(':testName/variants')
   @ApiOperation({
     summary: 'List the variants of an image test with status and thumbnails',
@@ -70,6 +74,7 @@ export class TestsQueriesController {
     return this.testQuery.getTestVariants(projectName, testName, branch);
   }
 
+  @Scope('read')
   @Get('meta/pending')
   @ApiOperation({ summary: 'List tests with pending approvals in project' })
   @ApiOkResponse({ type: PaginatedResponseDto(PendingTestDto) })
@@ -87,6 +92,7 @@ export class TestsQueriesController {
     );
   }
 
+  @Scope('read')
   @Get(':testName')
   @ApiOperation({
     summary:

@@ -20,6 +20,7 @@ import { requireAuthenticatedPrincipal } from '@common/http/authenticated-princi
 import { AppConfigService } from '@config/app-config.service';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import {
   createPaginatedResponse,
   PaginatedResponseDto,
@@ -62,6 +63,7 @@ export class RunsController {
     private readonly config: AppConfigService,
   ) {}
 
+  @Scope('read')
   @Get()
   @ApiOperation({ summary: 'List CI runs of a project (newest first)' })
   @ApiQuery({ name: 'branch', required: false })
@@ -85,6 +87,7 @@ export class RunsController {
     };
   }
 
+  @Scope('read')
   @Get(':runKey/report/junit')
   @Header('Content-Type', 'application/xml; charset=utf-8')
   @Header('Content-Disposition', 'attachment; filename="vrt-run.xml"')
@@ -101,6 +104,7 @@ export class RunsController {
     return buildRunJUnit(detail, projectName, runKey, this.config.appPublicUrl);
   }
 
+  @Scope('read')
   @Get(':runKey/report/html')
   @Header('Content-Type', 'text/html; charset=utf-8')
   @Header('Content-Disposition', 'attachment; filename="vrt-run.html"')
@@ -115,6 +119,7 @@ export class RunsController {
     return buildRunHtml(detail, projectName, this.config.appPublicUrl);
   }
 
+  @Scope('read')
   @Get(':runKey/report/csv')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @Header('Content-Disposition', 'attachment; filename="vrt-run.csv"')
@@ -129,6 +134,7 @@ export class RunsController {
     return buildRunCsv(detail, projectName);
   }
 
+  @Scope('read')
   @Get(':runKey')
   @ApiOperation({ summary: 'Read a run with its pending and approved work' })
   @ApiOkResponse({ type: RunDetailDto })
@@ -148,6 +154,7 @@ export class RunsController {
     );
   }
 
+  @Scope('read')
   @Get(':runKey/status')
   @ApiOperation({
     summary: 'Read the CI gate status of a run (pending/failed/passed/open)',
@@ -169,6 +176,7 @@ export class RunsController {
     );
   }
 
+  @Scope('admin')
   @Post(':runKey/finish')
   @HttpCode(200)
   @ApiOperation({ summary: 'Finish a run (idempotent)' })
@@ -192,6 +200,7 @@ export class RunsController {
     );
   }
 
+  @Scope('admin')
   @Post(':runKey/approve-all')
   @HttpCode(200)
   @ApiOperation({ summary: 'Approve every pending comparison of a run' })

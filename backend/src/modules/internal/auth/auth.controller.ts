@@ -25,6 +25,7 @@ import { AccountLifecycle } from '@common/http/account-lifecycle.decorator';
 import { PublicEndpoint } from '@common/http/public.decorator';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { Scope } from '@common/http/api-key-scope.decorator';
 import {
   readSessionToken,
   SESSION_COOKIE,
@@ -132,6 +133,7 @@ export class AuthController {
   }
 
   @SessionOnly()
+  @Scope('admin')
   @Post('2fa/setup')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: TwoFactorSetupDto })
@@ -148,6 +150,7 @@ export class AuthController {
   }
 
   @SessionOnly()
+  @Scope('admin')
   @Post('2fa/enable')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: RecoveryCodesDto })
@@ -170,6 +173,7 @@ export class AuthController {
   }
 
   @SessionOnly()
+  @Scope('admin')
   @Post('2fa/disable')
   @RateLimit('login')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -185,6 +189,7 @@ export class AuthController {
   }
 
   @SessionOnly()
+  @Scope('read')
   @Get('sessions')
   @ApiOkResponse({ type: [SessionDto] })
   async listSessions(@Req() req: AuthenticatedRequest): Promise<SessionDto[]> {
@@ -201,6 +206,7 @@ export class AuthController {
   }
 
   @SessionOnly()
+  @Scope('admin')
   @Delete('sessions/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse({ description: 'Session revoked' })
@@ -215,6 +221,7 @@ export class AuthController {
   }
 
   @SessionOnly()
+  @Scope('admin')
   @Post('sessions/revoke-all')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ schema: { example: { revoked: 2 } } })
@@ -231,6 +238,7 @@ export class AuthController {
     return { revoked };
   }
 
+  @Scope('admin')
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiSecurity('apiKeyAuth')
@@ -249,6 +257,7 @@ export class AuthController {
     res.clearCookie(SESSION_COOKIE, { path: '/' });
   }
 
+  @Scope('read')
   @Get('me')
   @ApiSecurity('apiKeyAuth')
   @ApiOkResponse({ type: MeDto })
@@ -267,6 +276,7 @@ export class AuthController {
   }
 
   @SessionOnly()
+  @Scope('admin')
   @Post('change-password')
   @RateLimit('login')
   @HttpCode(HttpStatus.OK)
