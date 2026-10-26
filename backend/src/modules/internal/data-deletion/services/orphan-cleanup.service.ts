@@ -74,22 +74,17 @@ export class OrphanCleanupService implements MaintenanceTask {
       );
     }
 
+    // The two sweeps differ in deletion order, and that order is the
+    // data-loss-relevant decision: CURRENT rows are storage-first, BASELINE rows
+    // are row-first. Calling the owner of each order directly means the choice
+    // cannot be passed in by mistake (it used to be a `type: string` argument,
+    // where `cleanupOrphans(baselineRows, 'current')` compiled and deleted live
+    // baseline content first).
     const deleted =
-      (await this.cleanupOrphans(currentScan.screenshots, 'current')) +
-      (await this.cleanupOrphans(baselineOrphans, 'baseline'));
+      (await this.cleanupCurrentOrphans(currentScan.screenshots)) +
+      (await this.cleanupBaselineOrphans(baselineOrphans));
 
     return { deleted };
-  }
-
-  private async cleanupOrphans(
-    screenshots: { id: string; imageUrl: string }[],
-    type: string,
-  ): Promise<number> {
-    if (screenshots.length === 0) return 0;
-    if (type === 'baseline') {
-      return this.cleanupBaselineOrphans(screenshots);
-    }
-    return this.cleanupCurrentOrphans(screenshots);
   }
 
   // CURRENT orphans stay storage-first: the deleted object is the stale
@@ -103,6 +98,7 @@ export class OrphanCleanupService implements MaintenanceTask {
   private async cleanupCurrentOrphans(
     screenshots: { id: string; imageUrl: string }[],
   ): Promise<number> {
+    if (screenshots.length === 0) return 0;
     const records = await buildDeletionRecords(
       screenshots.map((s) => ({ id: s.id, url: s.imageUrl })),
       true,
@@ -149,6 +145,7 @@ export class OrphanCleanupService implements MaintenanceTask {
   private async cleanupBaselineOrphans(
     screenshots: { id: string; imageUrl: string }[],
   ): Promise<number> {
+    if (screenshots.length === 0) return 0;
     const idByUrl = new Map(
       screenshots.map((s) => [s.imageUrl, s.id] as const),
     );
