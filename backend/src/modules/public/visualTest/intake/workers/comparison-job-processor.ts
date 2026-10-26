@@ -23,7 +23,7 @@ import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastruct
 import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
 import { ComparisonOutcomeService } from '@public/visualTest/core/application/services/comparison-outcome.service';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
-import { isThresholdExceeded } from '@public/visualTest/core/domain/policies/threshold-policy';
+import { isWithinThreshold } from '@public/visualTest/core/domain/policies/threshold-policy';
 import type { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 import { change } from '@public/visualTest/core/application/services/state-change-options';
 import {
@@ -105,7 +105,9 @@ export class ComparisonJobProcessor {
       if (mismatch === 0) {
         await this.handleUnchanged(data);
         await this.recordOutcome(data, 'unchanged', 0);
-      } else if (this.isWithinThreshold(data.testKind, mismatch, baseline)) {
+      } else if (
+        isWithinThreshold(data.testKind, mismatch, baseline.pixelDiffThreshold)
+      ) {
         await this.handleWithinThreshold(data, mismatch);
         await this.recordOutcome(data, 'within_threshold', mismatch);
       } else {
@@ -124,16 +126,6 @@ export class ComparisonJobProcessor {
   // Threshold is an image-only concept, and a missing value (legacy rows or a
   // partial test double) means "no tolerance" — the same 0 default the schema
   // uses, so the comparison stays a reviewable diff.
-  private isWithinThreshold(
-    testKind: TestKind,
-    mismatch: number,
-    baseline: ScreenshotEntity,
-  ): boolean {
-    return (
-      testKind === 'image' &&
-      !isThresholdExceeded(mismatch, baseline.pixelDiffThreshold ?? 0)
-    );
-  }
 
   // A missing candidate object means the diff is moot (the candidate was
   // retired by a newer upload or approval) — retire it through the single
