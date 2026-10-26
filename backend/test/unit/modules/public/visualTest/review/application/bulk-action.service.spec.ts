@@ -19,11 +19,6 @@ describe('BulkActionService', () => {
 
   beforeEach(() => {
     approvals = createMock<ApprovalService>();
-    approvals.approveImage.mockResolvedValue({
-      approved: true,
-      newBaselineUrl: 'url',
-      signedNewBaselineUrl: 'url',
-    });
     deletion = createMock<TestDeletionService>();
     deletion.deleteTest.mockResolvedValue(undefined);
     comparisons = createMock<UnifiedComparisonsRepository>();
@@ -52,7 +47,7 @@ describe('BulkActionService', () => {
     vi.restoreAllMocks();
   });
 
-  it('approves each comparison and reports failures per item', async () => {
+  it('pairs each selection with its owning test and reports missing ones', async () => {
     comparisons.findTestOfComparisonById
       .mockResolvedValueOnce({
         id: 't1',
@@ -61,6 +56,11 @@ describe('BulkActionService', () => {
         branch: { name: 'main' },
       } as never)
       .mockResolvedValueOnce(null);
+    approvals.approveMany.mockResolvedValue({
+      approved: ['c1'],
+      pending: [],
+      failed: [],
+    });
 
     const principal = {
       principalType: 'user' as const,
@@ -81,12 +81,17 @@ describe('BulkActionService', () => {
         error: 'Comparison not found in this project',
       },
     ]);
-    expect(approvals.approveImage).toHaveBeenCalledWith(
+    expect(approvals.approveMany).toHaveBeenCalledWith(
       'shop',
-      'login',
-      'c1',
+      [
+        {
+          comparisonId: 'c1',
+          testName: 'login',
+          kind: 'image',
+          branchName: 'main',
+        },
+      ],
       'ada',
-      'main',
       principal,
     );
   });

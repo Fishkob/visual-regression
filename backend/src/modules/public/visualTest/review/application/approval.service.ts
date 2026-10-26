@@ -408,10 +408,12 @@ export class ApprovalService {
     });
   }
 
-  // Bulk approval of every comparison still pending for the test on the branch.
-  // The owner test is resolved up front (an inherited test is a CONFLICT, an
-  // unknown one NOT_FOUND), so the kind is known and the batch can only ever
-  // mutate this branch's own rows.
+  // One entry point for "approve these comparisons", addressed by comparison id
+  // with the owning test already resolved by the caller — a run's pending row, a
+  // bulk selection, a test's pending list. The kind dispatch and the batch's
+  // failure policy live here rather than at every call site: of the three loops
+  // this replaces, two shipped raw internal error text to the browser because
+  // the policy had been re-written per loop.
   //
   // The batch deliberately does NOT share one transaction: each comparison goes
   // through the single approval recipe (executeApproval), which keeps its own
@@ -419,6 +421,51 @@ export class ApprovalService {
   // mid-loop therefore fails alone and is reported, while the remaining ids
   // still get their chance — the reviewer's "approve all" never silently loses
   // approvals to one stale row.
+  async approveMany(
+    projectName: string,
+    targets: readonly ApproveTarget[],
+    approvedBy: string,
+    principal: ApprovalPrincipal,
+  ): Promise<ApprovalBatchResult> {
+    const result: ApprovalBatchResult = {
+      approved: [],
+      pending: [],
+      failed: [],
+    };
+    for (const target of targets) {
+      try {
+        const outcome = await this.executeApproval(
+          target.kind,
+          projectName,
+          target.testName,
+          target.comparisonId,
+          approvedBy,
+          target.branchName,
+          principal,
+        );
+        if (!outcome.approved) {
+          result.pending.push({
+            comparisonId: target.comparisonId,
+            votes: outcome.votes,
+            required: outcome.required,
+          });
+        } else {
+          result.approved.push(target.comparisonId);
+        }
+      } catch (error) {
+        result.failed.push({
+          comparisonId: target.comparisonId,
+          error: bulkFailureMessage(error),
+        });
+      }
+    }
+    return result;
+  }
+
+  // Bulk approval of every comparison still pending for the test on the branch.
+  // The owner test is resolved up front (an inherited test is a CONFLICT, an
+  // unknown one NOT_FOUND), so the batch can only ever mutate this branch's own
+  // rows.
   async approveAllPending(
     projectName: string,
     testName: string,
@@ -434,39 +481,22 @@ export class ApprovalService {
     const comparisonIds =
       await this.comparisons.findPendingComparisonIdsForTest(test.id);
 
-    const result: BulkApprovalResult = {
-      approved: 0,
-      pending: [],
-      failed: [],
+    const batch = await this.approveMany(
+      projectName,
+      comparisonIds.map((comparisonId) => ({
+        comparisonId,
+        testName,
+        kind: test.kind,
+        branchName,
+      })),
+      approvedBy,
+      principal,
+    );
+    return {
+      approved: batch.approved.length,
+      pending: batch.pending,
+      failed: batch.failed,
     };
-    for (const comparisonId of comparisonIds) {
-      try {
-        const outcome = await this.executeApproval(
-          test.kind,
-          projectName,
-          testName,
-          comparisonId,
-          approvedBy,
-          branchName,
-          principal,
-        );
-        if (!outcome.approved) {
-          result.pending.push({
-            comparisonId,
-            votes: outcome.votes,
-            required: outcome.required,
-          });
-        } else {
-          result.approved += 1;
-        }
-      } catch (error) {
-        result.failed.push({
-          comparisonId,
-          error: bulkFailureMessage(error),
-        });
-      }
-    }
-    return result;
   }
 
   // The audit trail read for the UI: the most recent approvals of a test,
@@ -608,8 +638,28 @@ interface ApprovalKindConfig {
   cleanupAfterCommit?(decision: ApprovalDecision): Promise<void>;
 }
 
-// A bulk approval's outcome: how many comparisons were approved, plus one entry
-// per comparison that failed (the batch continues past failures).
+// One comparison a batch should approve, with the owning test already resolved
+// by the caller. Carrying the kind lets the batch dispatch without a second
+// lookup, and it is the caller's own row, so a stale kind can only mean the test
+// was re-kinded mid-batch — which the in-transaction resolution rejects.
+export interface ApproveTarget {
+  comparisonId: string;
+  testName: string;
+  kind: TestKind;
+  branchName?: string;
+}
+
+// The batch's single result shape. Callers map it to their own wire shape (a run
+// reports a count, a bulk selection reports per-item rows), but the failure
+// policy and the vote bookkeeping are decided once, here.
+export interface ApprovalBatchResult {
+  approved: string[];
+  pending: { comparisonId: string; votes: number; required: number }[];
+  failed: { comparisonId: string; error: string }[];
+}
+
+// The test-scoped endpoint's shape: how many comparisons were approved, plus one
+// entry per comparison that failed (the batch continues past failures).
 export interface BulkApprovalResult {
   approved: number;
   pending: { comparisonId: string; votes: number; required: number }[];

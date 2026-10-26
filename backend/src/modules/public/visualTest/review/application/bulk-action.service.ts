@@ -4,7 +4,10 @@ import { BranchResolver } from '@public/visualTest/core/application/services/bra
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
-import { ApprovalService } from '@public/visualTest/review/application/approval.service';
+import {
+  ApprovalService,
+  type ApproveTarget,
+} from '@public/visualTest/review/application/approval.service';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
 
 export interface BulkItemResult {
@@ -46,54 +49,54 @@ export class BulkActionService {
     actor: string,
     principal: ApprovalPrincipal,
   ): Promise<BulkApprovalResult> {
-    const approved: BulkItemResult[] = [];
-    const pendingVotes: BulkPendingVote[] = [];
+    // The selection may span tests and kinds, so each id is paired with its
+    // owning test here; the approval itself (kind dispatch, failure policy, vote
+    // bookkeeping) belongs to ApprovalService.approveMany.
+    const targets: ApproveTarget[] = [];
     const failed: BulkItemResult[] = [];
     for (const comparisonId of comparisonIds) {
-      try {
-        const test = await this.comparisons.findTestOfComparisonById(
-          projectName,
-          comparisonId,
-        );
-        if (!test) {
-          throw new Error('Comparison not found in this project');
-        }
-        const outcome =
-          test.kind === 'image'
-            ? await this.approvals.approveImage(
-                projectName,
-                test.name,
-                comparisonId,
-                actor,
-                test.branch.name,
-                principal,
-              )
-            : await this.approvals.approvePdf(
-                projectName,
-                test.name,
-                comparisonId,
-                actor,
-                test.branch.name,
-                principal,
-              );
-        if (!outcome.approved) {
-          pendingVotes.push({
-            id: comparisonId,
-            votes: outcome.votes,
-            required: outcome.required,
-          });
-        } else {
-          approved.push({ id: comparisonId, success: true });
-        }
-      } catch (error) {
+      const test = await this.comparisons.findTestOfComparisonById(
+        projectName,
+        comparisonId,
+      );
+      if (!test) {
         failed.push({
           id: comparisonId,
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: 'Comparison not found in this project',
         });
+        continue;
       }
+      targets.push({
+        comparisonId,
+        testName: test.name,
+        kind: test.kind,
+        branchName: test.branch.name,
+      });
     }
-    return { approved, pending: pendingVotes, failed };
+
+    const batch = await this.approvals.approveMany(
+      projectName,
+      targets,
+      actor,
+      principal,
+    );
+    return {
+      approved: batch.approved.map((id) => ({ id, success: true })),
+      pending: batch.pending.map((vote) => ({
+        id: vote.comparisonId,
+        votes: vote.votes,
+        required: vote.required,
+      })),
+      failed: [
+        ...failed,
+        ...batch.failed.map((item) => ({
+          id: item.comparisonId,
+          success: false,
+          error: item.error,
+        })),
+      ],
+    };
   }
 
   async deleteTests(
