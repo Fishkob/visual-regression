@@ -1,5 +1,12 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Req } from '@nestjs/common';
+import type { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { Roles } from '@common/http/roles.decorator';
+import {
+  ApiForbiddenResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
@@ -49,26 +56,30 @@ export class StorageController {
   }
 
   @Patch()
+  // Retention decides which evidence survives, so it is a policy surface like
+  // the review policy and the pixel threshold: ADMIN-owned and audited.
+  @Roles('ADMIN')
   @ApiOperation({
     summary: 'Update per-project retention and quota settings',
   })
+  @ApiForbiddenResponse({ description: 'Requires the ADMIN role' })
   @ApiOkResponse({ type: StorageUsageDto })
   async update(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Body() dto: UpdateRetentionDto,
+    @Req() req: AuthenticatedRequest,
   ): Promise<StorageUsageDto> {
-    await this.projects.updateRetention(projectName, {
-      baselineRevisionLimit: dto.baselineRevisionLimit,
-      runHistoryDays: dto.runHistoryDays,
-      orphanGraceHours: dto.orphanGraceHours,
-      storageQuotaBytes:
-        dto.storageQuotaBytes === undefined
-          ? undefined
-          : dto.storageQuotaBytes === null
-            ? null
-            : BigInt(dto.storageQuotaBytes),
-      quotaSoftPercent: dto.quotaSoftPercent,
-    });
+    await this.projects.updateRetention(
+      projectName,
+      {
+        baselineRevisionLimit: dto.baselineRevisionLimit,
+        runHistoryDays: dto.runHistoryDays,
+        orphanGraceHours: dto.orphanGraceHours,
+        storageQuotaBytes: dto.storageQuotaBytes,
+        quotaSoftPercent: dto.quotaSoftPercent,
+      },
+      req.auth?.username,
+    );
     const usage = await this.storage.get(projectName);
     return plainToInstance(StorageUsageDto, usage, {
       excludeExtraneousValues: true,

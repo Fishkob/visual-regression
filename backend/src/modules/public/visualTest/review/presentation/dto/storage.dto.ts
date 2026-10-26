@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Matches, Min } from 'class-validator';
 
 export class StorageUsageDto {
   @ApiProperty({ description: 'Current stored bytes (screenshots + diffs)' })
@@ -74,10 +74,18 @@ export class UpdateRetentionDto {
   @ApiPropertyOptional({
     type: String,
     nullable: true,
-    description: 'Hard storage quota in bytes; null disables the quota',
+    description:
+      'Hard storage quota in bytes: a positive whole number, or null for unlimited. ' +
+      'Zero, negative and non-numeric values are rejected — an ambiguous value must ' +
+      'not silently disable the quota.',
+    example: '10737418240',
   })
   @IsOptional()
   @IsString()
+  @Matches(/^[1-9]\d*$/, {
+    message:
+      'storageQuotaBytes must be a positive whole number of bytes; send null for unlimited',
+  })
   storageQuotaBytes?: string | null;
 
   @ApiPropertyOptional({ type: Number, nullable: true })

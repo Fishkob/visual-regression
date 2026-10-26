@@ -8,7 +8,7 @@ export type UpdateRetentionDto = {
     runHistoryDays?: number | null;
     orphanGraceHours?: number | null;
     /**
-     * Hard storage quota in bytes; null disables the quota
+     * Hard storage quota in bytes: a positive whole number, or null for unlimited. Zero, negative and non-numeric values are rejected — an ambiguous value must not silently disable the quota.
      */
     storageQuotaBytes?: string | null;
     quotaSoftPercent?: number | null;

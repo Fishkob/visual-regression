@@ -177,6 +177,7 @@ import type { StorageControllerGetResponses } from './models/StorageControllerGe
 import type { StorageControllerPreviewRetentionData } from './models/StorageControllerPreviewRetentionData.gen';
 import type { StorageControllerPreviewRetentionResponses } from './models/StorageControllerPreviewRetentionResponses.gen';
 import type { StorageControllerUpdateData } from './models/StorageControllerUpdateData.gen';
+import type { StorageControllerUpdateErrors } from './models/StorageControllerUpdateErrors.gen';
 import type { StorageControllerUpdateResponses } from './models/StorageControllerUpdateResponses.gen';
 import type { TestCommandsControllerDeleteVisualTestData } from './models/TestCommandsControllerDeleteVisualTestData.gen';
 import type { TestCommandsControllerDeleteVisualTestResponses } from './models/TestCommandsControllerDeleteVisualTestResponses.gen';
@@ -859,7 +860,7 @@ export const storageControllerGet = <ThrowOnError extends boolean = false>(optio
 /**
  * Update per-project retention and quota settings
  */
-export const storageControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<StorageControllerUpdateData, ThrowOnError>): RequestResult<StorageControllerUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<StorageControllerUpdateResponses, unknown, ThrowOnError>({
+export const storageControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<StorageControllerUpdateData, ThrowOnError>): RequestResult<StorageControllerUpdateResponses, StorageControllerUpdateErrors, ThrowOnError> => (options.client ?? client).patch<StorageControllerUpdateResponses, StorageControllerUpdateErrors, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/projects/{projectName}/storage',
     ...options,

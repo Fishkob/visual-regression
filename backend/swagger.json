@@ -105,6 +105,7 @@
                 "review.assign",
                 "review.vote",
                 "project.review-policy",
+                "storage.retention",
                 "test.threshold",
                 "review.complete",
                 "review.comment",
@@ -201,6 +202,7 @@
                 "review.assign",
                 "review.vote",
                 "project.review-policy",
+                "storage.retention",
                 "test.threshold",
                 "review.complete",
                 "review.comment",
@@ -3526,6 +3528,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Requires the ADMIN role"
           }
         },
         "summary": "Update per-project retention and quota settings",
@@ -7717,7 +7722,8 @@
           "storageQuotaBytes": {
             "type": "string",
             "nullable": true,
-            "description": "Hard storage quota in bytes; null disables the quota"
+            "description": "Hard storage quota in bytes: a positive whole number, or null for unlimited. Zero, negative and non-numeric values are rejected — an ambiguous value must not silently disable the quota.",
+            "example": "10737418240"
           },
           "quotaSoftPercent": {
             "type": "number",

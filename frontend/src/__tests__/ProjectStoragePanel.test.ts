@@ -6,12 +6,14 @@ import ProjectStoragePanel from "@/components/storage/ProjectStoragePanel.vue";
 import { storageQueryKeys } from "@/domains/storage/query-keys";
 import { TEST_ID } from "@/lib/test-ids";
 
-const { mockGet, mockUpdate, mockPreview, canWriteRef } = vi.hoisted(() => ({
-  mockGet: vi.fn(),
-  mockUpdate: vi.fn(),
-  mockPreview: vi.fn(),
-  canWriteRef: { value: true },
-}));
+const { mockGet, mockUpdate, mockPreview, canWriteRef, isAdminRef } =
+  vi.hoisted(() => ({
+    mockGet: vi.fn(),
+    mockUpdate: vi.fn(),
+    mockPreview: vi.fn(),
+    canWriteRef: { value: true },
+    isAdminRef: { value: true },
+  }));
 
 vi.mock("@sdk", () => ({
   storageControllerGet: (...args: unknown[]) => mockGet(...args),
@@ -21,7 +23,10 @@ vi.mock("@sdk", () => ({
 }));
 
 vi.mock("@/composables/useAuth", () => ({
-  useCurrentRole: () => ({ canWrite: canWriteRef.value }),
+  useCurrentRole: () => ({
+    canWrite: canWriteRef.value,
+    isAdmin: isAdminRef.value,
+  }),
 }));
 
 vi.mock("vue-sonner", () => ({
@@ -106,6 +111,7 @@ async function openDialog(wrapper: ReturnType<typeof mountPanel>) {
 beforeEach(() => {
   vi.clearAllMocks();
   canWriteRef.value = true;
+  isAdminRef.value = true;
   mockGet.mockResolvedValue({ data: storageDto() });
   mockUpdate.mockResolvedValue({ data: storageDto() });
   mockPreview.mockResolvedValue({ data: previewDto() });
@@ -281,8 +287,9 @@ describe("ProjectStoragePanel", () => {
     );
   });
 
-  it("hides the edit action from a read-only viewer", async () => {
-    canWriteRef.value = false;
+  it("hides the edit action from a member who is not an admin", async () => {
+    canWriteRef.value = true;
+    isAdminRef.value = false;
 
     const wrapper = mountPanel();
     await waitForPanel(wrapper);
@@ -291,7 +298,7 @@ describe("ProjectStoragePanel", () => {
       wrapper.find(`[data-testid="${TEST_ID.storageEditAction}"]`).exists(),
     ).toBe(false);
     // The panel itself stays readable, and the dry run deletes nothing so it
-    // stays available.
+    // stays available to everyone.
     expect(
       wrapper.find(`[data-testid="${TEST_ID.storageRetention}"]`).exists(),
     ).toBe(true);

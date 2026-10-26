@@ -114,15 +114,36 @@ export class ProjectService {
       baselineRevisionLimit?: number | null;
       runHistoryDays?: number | null;
       orphanGraceHours?: number | null;
-      storageQuotaBytes?: bigint | null;
+      // A validated positive-integer string or null; parsing lives here so the
+      // controller stops coercing transport values into the domain type.
+      storageQuotaBytes?: string | null;
       quotaSoftPercent?: number | null;
     },
+    actor?: string,
   ): Promise<void> {
     const project = await this.projects.findByName(projectName);
     if (!project) {
       throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
     }
-    await this.projects.updateRetention(projectName, data);
+    const quotaBytes =
+      data.storageQuotaBytes === undefined || data.storageQuotaBytes === null
+        ? data.storageQuotaBytes
+        : BigInt(data.storageQuotaBytes);
+    await this.projects.updateRetention(projectName, {
+      ...data,
+      storageQuotaBytes: quotaBytes,
+    });
+    // Retention decides which evidence survives (undo history, run history), so
+    // the change is a policy decision and leaves the same kind of trail as the
+    // review policy and the pixel threshold do.
+    await this.audit.record({
+      actor: actor ?? null,
+      action: AUDIT_ACTIONS.storageRetention,
+      projectName,
+      targetType: 'project',
+      targetId: project.id,
+      metadata: { ...retentionDiff(project, data) },
+    });
   }
 
   async rename(
@@ -216,4 +237,44 @@ export class ProjectService {
     // transaction — TestDeletionService owns the single read of the project.
     await this.testDeletion.deleteProject(projectName, actor);
   }
+}
+
+// The audit row reads as a diff: `to` carries only the keys the patch touched,
+// and `from` mirrors exactly those keys so a reader sees the previous value of
+// what changed rather than a full settings dump. BigInt is stringified because
+// audit metadata is JSON.
+const RETENTION_KEYS = [
+  'baselineRevisionLimit',
+  'runHistoryDays',
+  'orphanGraceHours',
+  'storageQuotaBytes',
+  'quotaSoftPercent',
+] as const;
+
+type RetentionKey = (typeof RETENTION_KEYS)[number];
+
+function retentionDiff(
+  from: Partial<Record<RetentionKey, unknown>>,
+  to: Partial<Record<RetentionKey, unknown>>,
+): RetentionDiff {
+  const before: Record<string, AuditValue> = {};
+  const after: Record<string, AuditValue> = {};
+  for (const key of RETENTION_KEYS) {
+    if (to[key] === undefined) continue;
+    before[key] = auditValue(from[key]);
+    after[key] = auditValue(to[key]);
+  }
+  return { from: before, to: after };
+}
+
+type AuditValue = number | string | null;
+
+interface RetentionDiff {
+  from: Record<string, AuditValue>;
+  to: Record<string, AuditValue>;
+}
+
+function auditValue(value: unknown): AuditValue {
+  if (value === undefined || value === null) return null;
+  return typeof value === 'bigint' ? value.toString() : (value as number);
 }

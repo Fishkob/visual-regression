@@ -42,8 +42,10 @@ const {
   props.projectName,
   computed(() => previewOpen.value),
 );
-// Retention/quota changes are writes; a VIEWER sees the panel read-only.
-const { canWrite } = useCurrentRole();
+// Retention decides which evidence survives, so editing it is an ADMIN surface
+// (like the review policy and the pixel threshold) — the API enforces the same
+// rule and audits every change.
+const { isAdmin } = useCurrentRole();
 
 const dialogOpen = ref(false);
 
@@ -102,7 +104,7 @@ function submit(payload: UpdateProjectStorageInput) {
           {{ t("storage.previewAction") }}
         </Button>
         <Button
-          v-if="canWrite && storage"
+          v-if="isAdmin && storage"
           type="button"
           variant="outline"
           size="sm"

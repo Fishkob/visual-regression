@@ -270,6 +270,81 @@ describe('ProjectService', () => {
     });
   });
 
+  describe('updateRetention', () => {
+    it('parses the quota, writes the settings and audits the changed keys only', async () => {
+      projects.findByName.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt: new Date('2024-01-01'),
+        baselineRevisionLimit: 10,
+        runHistoryDays: 30,
+        orphanGraceHours: 24,
+        storageQuotaBytes: 1024n,
+        quotaSoftPercent: 80,
+      });
+
+      await service.updateRetention(
+        'my-project',
+        { storageQuotaBytes: '4096', baselineRevisionLimit: 0 },
+        'jane',
+      );
+
+      expect(projects.updateRetention).toHaveBeenCalledWith('my-project', {
+        storageQuotaBytes: 4096n,
+        baselineRevisionLimit: 0,
+      });
+      expect(audit.record).toHaveBeenCalledWith({
+        actor: 'jane',
+        action: AUDIT_ACTIONS.storageRetention,
+        projectName: 'my-project',
+        targetType: 'project',
+        targetId: 'proj-1',
+        metadata: {
+          from: { storageQuotaBytes: '1024', baselineRevisionLimit: 10 },
+          to: { storageQuotaBytes: '4096', baselineRevisionLimit: 0 },
+        },
+      });
+    });
+
+    it('clears the quota with an explicit null and records it as a change', async () => {
+      projects.findByName.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt: new Date('2024-01-01'),
+        storageQuotaBytes: 1024n,
+      });
+
+      await service.updateRetention(
+        'my-project',
+        { storageQuotaBytes: null },
+        'jane',
+      );
+
+      expect(projects.updateRetention).toHaveBeenCalledWith('my-project', {
+        storageQuotaBytes: null,
+      });
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: {
+            from: { storageQuotaBytes: '1024' },
+            to: { storageQuotaBytes: null },
+          },
+        }),
+      );
+    });
+
+    it('rejects an unknown project without writing or auditing', async () => {
+      projects.findByName.mockResolvedValue(null);
+
+      await expect(
+        service.updateRetention('missing', { runHistoryDays: 7 }),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+
+      expect(projects.updateRetention).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
+    });
+  });
+
   describe('updateReviewPolicy', () => {
     it('loads the old value, updates the project and audits from/to', async () => {
       projects.findByName.mockResolvedValue({

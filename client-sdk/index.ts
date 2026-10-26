@@ -337,6 +337,7 @@ export type { StorageControllerPreviewRetentionData } from './models/StorageCont
 export type { StorageControllerPreviewRetentionResponse } from './models/StorageControllerPreviewRetentionResponse.gen';
 export type { StorageControllerPreviewRetentionResponses } from './models/StorageControllerPreviewRetentionResponses.gen';
 export type { StorageControllerUpdateData } from './models/StorageControllerUpdateData.gen';
+export type { StorageControllerUpdateErrors } from './models/StorageControllerUpdateErrors.gen';
 export type { StorageControllerUpdateResponse } from './models/StorageControllerUpdateResponse.gen';
 export type { StorageControllerUpdateResponses } from './models/StorageControllerUpdateResponses.gen';
 export type { StorageUsageDto } from './models/StorageUsageDto.gen';
