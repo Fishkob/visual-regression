@@ -113,4 +113,57 @@ describe('OrphanCleanupService (integration)', () => {
     expect(remainingUrls).not.toContain('http://rustfs/orphan.png');
     expect(remainingUrls).toContain('http://rustfs/baseline.png');
   });
+
+  it('honours each project own orphan grace for orphaned baselines', async () => {
+    vi.spyOn(RustFsStorageService.prototype, 'delete').mockResolvedValue();
+    vi.spyOn(RustFsStorageService.prototype, 'deleteAll').mockResolvedValue({
+      deleted: [],
+      failed: [],
+    } as never);
+
+    const fast = await TestApp.createProject('grace-fast');
+    const slow = await TestApp.createProject('grace-slow');
+    await prisma.project.update({
+      where: { id: fast.projectId },
+      data: { orphanGraceHours: 1 },
+    });
+    await prisma.project.update({
+      where: { id: slow.projectId },
+      data: { orphanGraceHours: 100 },
+    });
+
+    // Both orphans are 30 hours old: past the 1h grace, inside the 100h one.
+    const thirtyHoursAgo = new Date(Date.now() - 30 * 60 * 60 * 1000);
+    for (const { branchId } of [fast, slow]) {
+      const test = await prisma.unifiedTest.create({
+        data: {
+          name: 'OrphanBaseline',
+          branchId,
+          kind: 'image',
+          status: 'PENDING',
+        },
+      });
+      const baseline = await prisma.unifiedScreenshot.create({
+        data: {
+          testId: test.id,
+          type: 'BASELINE',
+          imageHash: 'hash-baseline',
+          imageUrl: 'http://rustfs/orphan-baseline.png',
+        },
+      });
+      await prisma.unifiedScreenshot.update({
+        where: { id: baseline.id },
+        data: { createdAt: thirtyHoursAgo },
+      });
+    }
+
+    await cleanupService.deleteOrphanedScreenshots();
+
+    const remaining = await prisma.unifiedScreenshot.findMany({
+      where: { type: 'BASELINE' },
+      select: { test: { select: { branch: { select: { projectId: true } } } } },
+    });
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].test.branch.projectId).toBe(slow.projectId);
+  });
 });

@@ -102,7 +102,7 @@ describe('OrphanCleanupService', () => {
       ).toHaveBeenCalledTimes(1);
       expect(
         orphaned.deleteBaselineOrphansByIdsReturningUrls,
-      ).toHaveBeenCalledWith(['ss-3'], expect.any(Number));
+      ).toHaveBeenCalledWith(['ss-3'], { defaultGraceHours: 24 });
       expect(storage.deleteAll).toHaveBeenCalledTimes(2);
     });
 
@@ -276,7 +276,7 @@ describe('OrphanCleanupService', () => {
       expect(result).toEqual({ deleted: 2 });
       expect(
         orphaned.deleteBaselineOrphansByIdsReturningUrls,
-      ).toHaveBeenCalledWith(['ss-1', 'ss-2'], expect.any(Number));
+      ).toHaveBeenCalledWith(['ss-1', 'ss-2'], { defaultGraceHours: 24 });
       // Baseline reclaim is row-first: the file is deleted only for the rows
       // the guarded DELETE actually removed — never before the row survives.
       expect(storage.deleteAll).toHaveBeenCalledWith([

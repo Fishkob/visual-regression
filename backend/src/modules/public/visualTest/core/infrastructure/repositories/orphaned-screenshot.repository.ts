@@ -6,7 +6,24 @@ import type {
   IOrphanSweep,
   OrphanBaselineCriteria,
 } from '@common/domain/orphan-sweep.interface';
-import { DEFAULT_ORPHAN_BASELINE_MAX_AGE_MS } from '@common/domain/orphan-sweep.interface';
+
+// The project's own grace, falling back to the caller's default. One fragment
+// for the find and the guarded delete: the two predicates used to be a
+// hand-copied `createdAt < now - maxAge` with a single global age, so they could
+// only agree by inspection. Here they cannot diverge — both statements embed the
+// same expression, which now reads the owning project's `orphanGraceHours`.
+//
+// Aliases are part of the contract: `s` = UnifiedScreenshot, `p` = Project.
+const ORPHAN_GRACE_ELAPSED = (defaultGraceHours: number) => Prisma.sql`
+  s."createdAt" < now() - make_interval(hours => COALESCE(p."orphanGraceHours", ${defaultGraceHours}))
+`;
+
+// Joins from a screenshot row to its project, shared by both statements.
+const SCREENSHOT_PROJECT_JOINS = Prisma.sql`
+  JOIN "UnifiedTest" t ON t."id" = s."testId"
+  JOIN "Branch" b ON b."id" = t."branchId"
+  JOIN "Project" p ON p."id" = b."projectId"
+`;
 
 @Injectable()
 export class OrphanedScreenshotRepository
@@ -99,13 +116,18 @@ export class OrphanedScreenshotRepository
   // leaks to the unreferenced-object sweep instead of stranding a live row.
   async deleteBaselineOrphansByIdsReturningUrls(
     ids: string[],
-    maxAgeMs: number,
+    criteria: OrphanBaselineCriteria,
   ): Promise<string[]> {
     if (ids.length === 0) return [];
-    const threshold = new Date(Date.now() - maxAgeMs);
-    const deleted = await this.client.$queryRaw<{ imageUrl: string }[]>`
+    const deleted = await this.client.$queryRaw<
+      { imageUrl: string }[]
+    >(Prisma.sql`
       DELETE FROM "UnifiedScreenshot" s
-      WHERE s.id IN (${Prisma.join(ids)})
+      USING "UnifiedTest" t, "Branch" b, "Project" p
+      WHERE t."id" = s."testId"
+        AND b."id" = t."branchId"
+        AND p."id" = b."projectId"
+        AND s.id IN (${Prisma.join(ids)})
         AND s.type = 'BASELINE'
         AND NOT EXISTS (
           SELECT 1 FROM "UnifiedVariant" v
@@ -115,27 +137,31 @@ export class OrphanedScreenshotRepository
           SELECT 1 FROM "UnifiedComparison" c
           WHERE c."baselineId" = s.id
         )
-        AND s."createdAt" < ${threshold}
+        AND ${ORPHAN_GRACE_ELAPSED(criteria.defaultGraceHours)}
       RETURNING s."imageUrl"
-    `;
+    `);
     return deleted.map((row) => row.imageUrl);
   }
 
+  // The find and the delete share the grace expression *and* the orphan guards,
+  // so a row the find hands over is still the row the guarded delete removes.
   async findOrphanedBaseline(
-    criteria?: OrphanBaselineCriteria,
+    criteria: OrphanBaselineCriteria,
   ): Promise<{ id: string; imageUrl: string }[]> {
-    const maxAge = criteria?.maxAgeMs ?? DEFAULT_ORPHAN_BASELINE_MAX_AGE_MS;
-    const threshold = new Date(Date.now() - maxAge);
-    return this.client.unifiedScreenshot.findMany({
-      where: {
-        type: 'BASELINE',
-        asBaseline: { is: null },
-        // Same guard as deleteBaselineOrphansByIdsReturningUrls so the find
-        // and delete predicates can never diverge on what counts as deletable.
-        asBaselineComp: { none: {} },
-        createdAt: { lt: threshold },
-      },
-      select: { id: true, imageUrl: true },
-    });
+    return this.client.$queryRaw<{ id: string; imageUrl: string }[]>(Prisma.sql`
+      SELECT s."id", s."imageUrl"
+      FROM "UnifiedScreenshot" s
+      ${SCREENSHOT_PROJECT_JOINS}
+      WHERE s.type = 'BASELINE'
+        AND NOT EXISTS (
+          SELECT 1 FROM "UnifiedVariant" v
+          WHERE v."baselineId" = s.id
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM "UnifiedComparison" c
+          WHERE c."baselineId" = s.id
+        )
+        AND ${ORPHAN_GRACE_ELAPSED(criteria.defaultGraceHours)}
+    `);
   }
 }

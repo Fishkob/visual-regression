@@ -15,11 +15,17 @@ import {
   STORAGE_OBJECT_REFERENCEDNESS,
   IStorageObjectReferencedness,
 } from '@common/domain/storage-referencedness.interface';
+import {
+  DEFAULT_ORPHAN_GRACE_HOURS,
+  HOUR_MS,
+} from '@common/domain/orphan-sweep.interface';
 
-// A store→commit orphan window lasts milliseconds, so a 24h floor (matching the
-// orphan-baseline convention) leaves crashed in-flight stores/uploads ample
-// margin while still reclaiming objects the DB will never reference again.
-const UNREFERENCED_OBJECT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+// A store→commit orphan window lasts milliseconds, so the default grace leaves
+// crashed in-flight stores/uploads ample margin while still reclaiming objects
+// the DB will never reference again. A per-project `orphanGraceHours` cannot
+// apply here: an object with no row has no project to read it from, so this
+// window stays global and the per-project knob governs row-level orphans.
+const UNREFERENCED_OBJECT_MAX_AGE_MS = DEFAULT_ORPHAN_GRACE_HOURS * HOUR_MS;
 
 // The sweep lists the ENTIRE bucket (empty prefix), which can exceed the 30s
 // per-operation cap on a realistically large bucket. Give the listing a

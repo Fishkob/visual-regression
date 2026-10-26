@@ -5,6 +5,7 @@ import { ProjectRepository } from '@public/visualTest/core/infrastructure/reposi
 import { BaselineRevisionRepository } from '@public/visualTest/core/infrastructure/repositories/baseline-revision.repository';
 import { RunRepository } from '@public/visualTest/core/infrastructure/repositories/run.repository';
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
+import { DEFAULT_ORPHAN_GRACE_HOURS } from '@common/domain/orphan-sweep.interface';
 
 export interface RetentionPreview {
   baselineRevisions: { limit: number; overflow: number };
@@ -45,7 +46,7 @@ export class RetentionPreviewService {
     return {
       baselineRevisions: { limit, overflow },
       runs: { days, eligible },
-      orphanGraceHours: project.orphanGraceHours ?? 24,
+      orphanGraceHours: project.orphanGraceHours ?? DEFAULT_ORPHAN_GRACE_HOURS,
       storage: {
         usageBytes: usage.usageBytes,
         quotaBytes: usage.quotaBytes,

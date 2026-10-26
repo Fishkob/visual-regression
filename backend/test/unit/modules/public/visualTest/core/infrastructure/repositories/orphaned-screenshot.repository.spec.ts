@@ -4,6 +4,13 @@ import { TransactionContext } from '@/prisma/transaction-context';
 import { OrphanedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/orphaned-screenshot.repository';
 import { createMock } from '@test/utils/create-mock';
 
+// `$queryRaw(Prisma.sql`…`)` hands the mock one Sql object; a tagged template
+// hands it the strings array plus values. Read whichever arrived.
+function sqlText(call: unknown[]): string {
+  const first = call[0] as { sql?: string };
+  return typeof first?.sql === 'string' ? first.sql : String(first);
+}
+
 describe('OrphanedScreenshotRepository', () => {
   let repository: OrphanedScreenshotRepository;
   let mockTxCtx: Mocked<TransactionContext>;
@@ -128,42 +135,34 @@ describe('OrphanedScreenshotRepository', () => {
   });
 
   describe('findOrphanedBaseline', () => {
-    it('returns baselines older than default max age with no variant link', async () => {
+    it('selects orphaned baselines whose project grace has elapsed', async () => {
       const screenshots = [
         { id: 'ss-1', imageUrl: 'http://example.com/img.png' },
       ];
-      mockClient.unifiedScreenshot.findMany.mockResolvedValue(screenshots);
+      mockClient.$queryRaw.mockResolvedValue(screenshots);
 
-      const result = await repository.findOrphanedBaseline();
+      const result = await repository.findOrphanedBaseline({
+        defaultGraceHours: 24,
+      });
 
       expect(result).toEqual([
         { id: 'ss-1', imageUrl: 'http://example.com/img.png' },
       ]);
-      expect(mockClient.unifiedScreenshot.findMany).toHaveBeenCalledWith({
-        where: {
-          type: 'BASELINE',
-          asBaseline: { is: null },
-          asBaselineComp: { none: {} },
-          createdAt: { lt: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
-        },
-        select: { id: true, imageUrl: true },
-      });
+      const sql = sqlText(mockClient.$queryRaw.mock.calls[0] as unknown[]);
+      // The grace is the project's own, with the caller's default as fallback.
+      expect(sql).toContain('"orphanGraceHours"');
+      expect(sql).toContain('make_interval');
+      expect(sql).toContain('"UnifiedVariant" v');
+      expect(sql).toContain('"UnifiedComparison" c');
     });
 
-    it('uses custom max age when provided', async () => {
-      mockClient.unifiedScreenshot.findMany.mockResolvedValue([]);
+    it('passes the default grace as a bound parameter', async () => {
+      mockClient.$queryRaw.mockResolvedValue([]);
 
-      await repository.findOrphanedBaseline({ maxAgeMs: 60 * 60 * 1000 });
+      await repository.findOrphanedBaseline({ defaultGraceHours: 6 });
 
-      expect(mockClient.unifiedScreenshot.findMany).toHaveBeenCalledWith({
-        where: {
-          type: 'BASELINE',
-          asBaseline: { is: null },
-          asBaselineComp: { none: {} },
-          createdAt: { lt: new Date(now.getTime() - 60 * 60 * 1000) },
-        },
-        select: { id: true, imageUrl: true },
-      });
+      const sql = sqlText(mockClient.$queryRaw.mock.calls[0] as unknown[]);
+      expect(sql).toContain('COALESCE(p."orphanGraceHours", ?)');
     });
   });
 
@@ -176,7 +175,7 @@ describe('OrphanedScreenshotRepository', () => {
 
       const result = await repository.deleteBaselineOrphansByIdsReturningUrls(
         ['ss-1', 'ss-2'],
-        24 * 60 * 60 * 1000,
+        { defaultGraceHours: 24 },
       );
 
       expect(result).toEqual([
@@ -184,18 +183,19 @@ describe('OrphanedScreenshotRepository', () => {
         'http://storage/ss-2.png',
       ]);
       expect(mockClient.$queryRaw).toHaveBeenCalledTimes(1);
-      const call = mockClient.$queryRaw.mock.calls[0] as unknown[];
-      const sql = String(call[0]);
+      const sql = sqlText(mockClient.$queryRaw.mock.calls[0] as unknown[]);
       expect(sql).toContain('"UnifiedScreenshot" s');
       expect(sql).toContain('"UnifiedVariant" v');
       expect(sql).toContain('"UnifiedComparison" c');
       expect(sql).toContain('RETURNING s."imageUrl"');
+      // Same grace predicate as the find, so the two cannot diverge.
+      expect(sql).toContain('COALESCE(p."orphanGraceHours", ?)');
     });
 
     it('does nothing for an empty id list', async () => {
       const result = await repository.deleteBaselineOrphansByIdsReturningUrls(
         [],
-        24 * 60 * 60 * 1000,
+        { defaultGraceHours: 24 },
       );
 
       expect(result).toEqual([]);

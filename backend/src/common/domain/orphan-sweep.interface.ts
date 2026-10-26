@@ -5,10 +5,16 @@
 // pattern of STORAGE_OBJECT_REFERENCEDNESS / STORAGE_PROVIDER / JOB_PRODUCER.
 export const ORPHAN_SWEEP = 'ORPHAN_SWEEP';
 
-export const DEFAULT_ORPHAN_BASELINE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+// A project can override the grace per project (`Project.orphanGraceHours`);
+// this is the fallback when it does not. Hours because that is the unit the
+// setting, the preview and the UI all speak.
+export const DEFAULT_ORPHAN_GRACE_HOURS = 24;
+
+export const HOUR_MS = 60 * 60 * 1000;
 
 export interface OrphanBaselineCriteria {
-  maxAgeMs: number;
+  // Used for a screenshot whose project has no override.
+  defaultGraceHours: number;
 }
 
 export interface OrphanScreenshotRow {
@@ -35,10 +41,10 @@ export interface IOrphanSweep {
   // so files are reclaimed only for rows actually deleted.
   deleteBaselineOrphansByIdsReturningUrls(
     ids: string[],
-    maxAgeMs: number,
+    criteria: OrphanBaselineCriteria,
   ): Promise<string[]>;
 
   findOrphanedBaseline(
-    criteria?: OrphanBaselineCriteria,
+    criteria: OrphanBaselineCriteria,
   ): Promise<OrphanScreenshotRow[]>;
 }

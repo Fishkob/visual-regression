@@ -12,7 +12,7 @@ import {
 import {
   ORPHAN_SWEEP,
   IOrphanSweep,
-  DEFAULT_ORPHAN_BASELINE_MAX_AGE_MS,
+  DEFAULT_ORPHAN_GRACE_HOURS,
 } from '@common/domain/orphan-sweep.interface';
 import type {
   MaintenanceTask,
@@ -61,8 +61,10 @@ export class OrphanCleanupService implements MaintenanceTask {
   async deleteOrphanedScreenshots(): Promise<{ deleted: number }> {
     const [currentScan, baselineOrphans] = await Promise.all([
       this.orphanSweep.findOrphanedCurrent(),
+      // The project's own grace applies per row; this is only the fallback for
+      // a project without an override (see ADR-042/`orphanGraceHours`).
       this.orphanSweep.findOrphanedBaseline({
-        maxAgeMs: DEFAULT_ORPHAN_BASELINE_MAX_AGE_MS,
+        defaultGraceHours: DEFAULT_ORPHAN_GRACE_HOURS,
       }),
     ]);
 
@@ -155,7 +157,7 @@ export class OrphanCleanupService implements MaintenanceTask {
           const deletedUrls =
             await this.orphanSweep.deleteBaselineOrphansByIdsReturningUrls(
               ids,
-              DEFAULT_ORPHAN_BASELINE_MAX_AGE_MS,
+              { defaultGraceHours: DEFAULT_ORPHAN_GRACE_HOURS },
             );
           return deletedUrls.map((url) => idByUrl.get(url)).filter(isString);
         },
