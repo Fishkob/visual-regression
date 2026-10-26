@@ -111,7 +111,9 @@ const emit = defineEmits<{
             </dt>
             <dd>
               {{
-                t("storagePreview.hours", { count: preview.orphanGraceHours })
+                t("storagePreview.hours", {
+                  count: preview.effectiveOrphanGraceHours,
+                })
               }}
             </dd>
           </div>

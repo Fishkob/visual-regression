@@ -48,9 +48,15 @@ export class RetentionPreviewDto {
   @Expose()
   runs!: RunRetentionPreviewDto;
 
-  @ApiProperty()
+  // Named for what it is. `/storage` reports the same setting as the *stored
+  // override* (null = "use the default"), which is what an edit form needs; this
+  // endpoint is a dry run, so it reports the value the sweeps will actually use.
+  @ApiProperty({
+    description:
+      'The grace the orphan sweeps will apply, with the global default resolved',
+  })
   @Expose()
-  orphanGraceHours!: number;
+  effectiveOrphanGraceHours!: number;
 
   @ApiProperty({ type: RetentionStoragePreviewDto })
   @Expose()

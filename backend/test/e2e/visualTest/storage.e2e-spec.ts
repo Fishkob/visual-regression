@@ -88,7 +88,7 @@ describe('Storage visibility and quota (e2e)', () => {
       expect.objectContaining({
         baselineRevisions: { limit: 3, overflow: 0 },
         runs: { days: 14, eligible: 0 },
-        orphanGraceHours: 12,
+        effectiveOrphanGraceHours: 12,
       }),
     );
   });

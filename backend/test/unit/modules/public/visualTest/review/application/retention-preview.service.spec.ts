@@ -6,6 +6,7 @@ import { RunRepository } from '@public/visualTest/core/infrastructure/repositori
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import type { AppConfigService } from '@config/app-config.service';
 import { createMock } from '@test/utils/create-mock';
+import { createMockProjectRepository } from '@test/utils/mocks';
 
 describe('RetentionPreviewService', () => {
   let service: RetentionPreviewService;
@@ -15,7 +16,7 @@ describe('RetentionPreviewService', () => {
   let storage: Mocked<StorageUsageService>;
 
   beforeEach(() => {
-    projects = createMock<ProjectRepository>();
+    projects = createMockProjectRepository();
     projects.findByName.mockResolvedValue({
       id: 'p1',
       name: 'shop',
@@ -57,7 +58,7 @@ describe('RetentionPreviewService', () => {
     expect(preview.baselineRevisions).toEqual({ limit: 3, overflow: 4 });
     expect(preview.runs.days).toBe(365);
     expect(preview.runs.eligible).toBe(2);
-    expect(preview.orphanGraceHours).toBe(12);
+    expect(preview.effectiveOrphanGraceHours).toBe(12);
     expect(preview.storage.percent).toBe(10);
   });
 });

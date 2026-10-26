@@ -76,7 +76,7 @@ export function mapRetentionPreview(
       days: toCount(dto.runs?.days),
       eligible: toCount(dto.runs?.eligible),
     },
-    orphanGraceHours: toCount(dto.orphanGraceHours),
+    effectiveOrphanGraceHours: toCount(dto.effectiveOrphanGraceHours),
     storage: {
       usageBytes: toBytes(dto.storage?.usageBytes) ?? 0,
       quotaBytes: toBytes(dto.storage?.quotaBytes),

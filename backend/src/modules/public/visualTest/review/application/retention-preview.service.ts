@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { AppConfigService } from '@config/app-config.service';
-import { DomainError } from '@common/domain/domain-error';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { BaselineRevisionRepository } from '@public/visualTest/core/infrastructure/repositories/baseline-revision.repository';
 import { RunRepository } from '@public/visualTest/core/infrastructure/repositories/run.repository';
@@ -11,7 +10,7 @@ import { resolveRetention } from '@public/visualTest/core/domain/policies/retent
 export interface RetentionPreview {
   baselineRevisions: { limit: number; overflow: number };
   runs: { days: number; eligible: number };
-  orphanGraceHours: number;
+  effectiveOrphanGraceHours: number;
   storage: {
     usageBytes: string;
     quotaBytes: string | null;
@@ -31,10 +30,7 @@ export class RetentionPreviewService {
   ) {}
 
   async get(projectName: string): Promise<RetentionPreview> {
-    const project = await this.projects.findByName(projectName);
-    if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
+    const project = await this.projects.requireByName(projectName);
     const effective = resolveRetention(project, {
       baselineRevisionLimit: this.config.baselineHistory.limit,
       runHistoryDays: this.config.retention.runHistoryDays,
@@ -54,7 +50,7 @@ export class RetentionPreviewService {
     return {
       baselineRevisions: { limit: effective.baselineRevisionLimit, overflow },
       runs: { days: effective.runHistoryDays, eligible },
-      orphanGraceHours: effective.orphanGraceHours,
+      effectiveOrphanGraceHours: effective.orphanGraceHours,
       storage: {
         usageBytes: usage.usageBytes,
         quotaBytes: usage.quotaBytes,

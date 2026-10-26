@@ -146,7 +146,7 @@ const previewDto = (
 ): RetentionPreviewSource => ({
   baselineRevisions: { limit: 5, overflow: 2 },
   runs: { days: 30, eligible: 1 },
-  orphanGraceHours: 24,
+  effectiveOrphanGraceHours: 24,
   storage: {
     usageBytes: "1572864",
     quotaBytes: "10485760",
@@ -161,7 +161,7 @@ describe("mapRetentionPreview", () => {
     expect(mapRetentionPreview(previewDto())).toEqual({
       baselineRevisions: { limit: 5, overflow: 2 },
       runs: { days: 30, eligible: 1 },
-      orphanGraceHours: 24,
+      effectiveOrphanGraceHours: 24,
       storage: {
         usageBytes: 1_572_864,
         quotaBytes: 10_485_760,
@@ -194,7 +194,7 @@ describe("mapRetentionPreview", () => {
     expect(mapRetentionPreview(dto)).toEqual({
       baselineRevisions: { limit: 0, overflow: 0 },
       runs: { days: 0, eligible: 0 },
-      orphanGraceHours: 0,
+      effectiveOrphanGraceHours: 0,
       storage: { usageBytes: 0, quotaBytes: null, percent: 0, warning: false },
     });
   });

@@ -37,7 +37,7 @@ function previewDto(overrides: Record<string, unknown> = {}) {
   return {
     baselineRevisions: { limit: 5, overflow: 2 },
     runs: { days: 30, eligible: 1 },
-    orphanGraceHours: 24,
+    effectiveOrphanGraceHours: 24,
     storage: {
       usageBytes: "1572864",
       quotaBytes: "10485760",

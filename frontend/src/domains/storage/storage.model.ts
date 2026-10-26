@@ -19,6 +19,10 @@ export interface ProjectStorage {
 
 // The dry-run answer: what retention would delete right now. Read-only — the
 // endpoint never deletes anything, and the dialog says so.
+//
+// `effectiveOrphanGraceHours` is the value the sweeps will apply, with the global
+// default resolved. `ProjectStorage.orphanGraceHours` is the *stored* setting
+// (null = "no override"), which is what the edit form prefills.
 export interface RetentionPreview {
   baselineRevisions: {
     limit: number;
@@ -28,7 +32,7 @@ export interface RetentionPreview {
     days: number;
     eligible: number;
   };
-  orphanGraceHours: number;
+  effectiveOrphanGraceHours: number;
   storage: {
     usageBytes: number;
     quotaBytes: number | null;

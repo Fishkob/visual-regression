@@ -39,7 +39,13 @@ export class StorageUsageDto {
   @Expose()
   runHistoryDays!: number | null;
 
-  @ApiProperty({ type: Number, nullable: true })
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description:
+      'The setting as stored: null means this project uses the global default. ' +
+      'The value the sweeps apply is `effectiveOrphanGraceHours` on /storage/preview.',
+  })
   @Expose()
   orphanGraceHours!: number | null;
 }
