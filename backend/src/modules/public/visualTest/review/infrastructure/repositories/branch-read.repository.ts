@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
-import { PENDING_APPROVAL_STATUS_FILTER } from '@public/visualTest/core/domain/types/visual-test.types';
+import { REVIEWABLE_PENDING_SQL } from '@public/visualTest/review/infrastructure/repositories/reviewable-pending.sql';
 
 export interface BranchSummary {
   name: string;
@@ -61,7 +61,7 @@ export class BranchReadRepository {
       FROM "UnifiedComparison" c
       JOIN "UnifiedTest" t ON c."testId" = t.id
       JOIN "Branch" b ON t."branchId" = b.id
-      WHERE c.status = ${PENDING_APPROVAL_STATUS_FILTER.status} AND b."projectId" = ${projectId}
+      WHERE ${REVIEWABLE_PENDING_SQL} AND b."projectId" = ${projectId}
       GROUP BY t."branchId"
     `;
     return new Map(rows.map((row) => [row.branchId, Number(row.pendingCount)]));

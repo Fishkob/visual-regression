@@ -5,6 +5,10 @@ import { Prisma } from '@/prisma/client';
 import type { TestKind } from '@common/domain/test-kind';
 import { UNASSIGNED_GROUP_FILTER } from '@common/domain/group-filter';
 import { PENDING_APPROVAL_STATUS_FILTER } from '@public/visualTest/core/domain/types/visual-test.types';
+import {
+  REVIEWABLE_PENDING_SQL,
+  reviewablePendingWhere,
+} from '@public/visualTest/review/infrastructure/repositories/reviewable-pending.sql';
 import { COMPARISON_INCLUDE } from '@public/visualTest/core/infrastructure/mappers/comparison.mapper';
 import { variantFromRow } from '@public/visualTest/core/infrastructure/mappers/variant-row.mapper';
 
@@ -102,12 +106,10 @@ export class ReviewInboxRepository {
       };
     }
     // Muted tests stay out of the review queue until their mute expires; the
-    // comparison is still created, so unmuting makes it visible again.
-    testWhere.AND = [
-      {
-        OR: [{ mutedUntil: null }, { mutedUntil: { lte: new Date() } }],
-      },
-    ];
+    // comparison is still created, so unmuting makes it visible again. The
+    // predicate is shared with every reviewer-facing count so the badge and the
+    // queue cannot disagree about what is reviewable.
+    testWhere.AND = [reviewablePendingWhere()];
     if (filters?.q) {
       testWhere.OR = [
         { name: { contains: filters.q, mode: 'insensitive' } },
@@ -184,7 +186,7 @@ export class ReviewInboxRepository {
       FROM "UnifiedComparison" c
       JOIN "UnifiedTest" t ON t.id = c."testId"
       JOIN "Branch" b ON b.id = t."branchId"
-      WHERE c.status = 'PENDING_APPROVAL' AND b."isArchived" = false
+      WHERE ${REVIEWABLE_PENDING_SQL} AND b."isArchived" = false
       ORDER BY b.name ASC
     `);
     return rows.map((row) => row.name);
@@ -203,7 +205,7 @@ export class ReviewInboxRepository {
       JOIN "UnifiedTest" t ON t.id = c."testId"
       JOIN "Branch" b ON b.id = t."branchId"
       JOIN "Project" p ON p.id = b."projectId"
-      WHERE c.status = 'PENDING_APPROVAL'
+      WHERE ${REVIEWABLE_PENDING_SQL}
         AND b."isArchived" = false
         AND p.name IN (${Prisma.join(projectNames)})
       GROUP BY p.name, b.name

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { Prisma } from '@/prisma/client';
-import { PENDING_APPROVAL_STATUS_FILTER } from '@public/visualTest/core/domain/types/visual-test.types';
+import { REVIEWABLE_PENDING_SQL } from '@public/visualTest/review/infrastructure/repositories/reviewable-pending.sql';
 import {
   VariantStore,
   type ProjectVariantFilterOptions,
@@ -216,11 +216,11 @@ export class ProjectReadRepository {
     const result = await this.client.$queryRaw<
       { projectId: string; pendingCount: bigint }[]
     >`
-      SELECT b."projectId" as "projectId", COUNT(uc.id) as "pendingCount"
-      FROM "UnifiedComparison" uc
-      JOIN "UnifiedTest" ut ON uc."testId" = ut.id
-      JOIN "Branch" b ON b."id" = ut."branchId"
-      WHERE uc.status = ${PENDING_APPROVAL_STATUS_FILTER.status}
+      SELECT b."projectId" as "projectId", COUNT(c.id) as "pendingCount"
+      FROM "UnifiedComparison" c
+      JOIN "UnifiedTest" t ON c."testId" = t.id
+      JOIN "Branch" b ON b."id" = t."branchId"
+      WHERE ${REVIEWABLE_PENDING_SQL}
         AND b."isArchived" = false
         ${
           projectIds && projectIds.length > 0
