@@ -2,6 +2,12 @@ import type { Buffer } from 'node:buffer';
 
 export const STORAGE_PROVIDER = 'STORAGE_PROVIDER';
 
+// The per-operation cap a whole-bucket listing needs. It is a property of the
+// listing, not of an adapter: the default 30s is sized for a single object, and
+// every caller that walks the bucket wants the same larger bound. Two maintenance
+// tasks used to hard-code this literal with the same rationale copied next to it.
+export const BUCKET_LIST_TIMEOUT_MS = 10 * 60 * 1000;
+
 export interface StorageUploadResult {
   deleted: string[];
   failed: { url: string; error: string }[];

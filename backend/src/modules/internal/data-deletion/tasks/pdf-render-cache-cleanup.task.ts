@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   STORAGE_PROVIDER,
   IStorageProvider,
+  BUCKET_LIST_TIMEOUT_MS,
 } from '@common/domain/storage-provider.interface';
 import {
   PDF_RENDER_CACHE,
@@ -33,7 +34,6 @@ import { MAINTENANCE_LOCK_IDS } from '@internal/data-deletion/maintenance-lock-i
 // the listing a maintenance-scale budget so the task sweeps instead of dying on
 // the 30s per-operation cap; the per-page streaming stays bounded for the other
 // callers that list a single namespace.
-const PDF_RENDER_CACHE_LIST_TIMEOUT_MS = 10 * 60 * 1000;
 
 @Injectable()
 export class PdfRenderCacheCleanupTask implements MaintenanceTask {
@@ -49,7 +49,7 @@ export class PdfRenderCacheCleanupTask implements MaintenanceTask {
   async execute(): Promise<MaintenanceResult> {
     const objects = await this.storage.listObjectsWithLastModified(
       `${PDF_RENDER_PREFIX}/`,
-      PDF_RENDER_CACHE_LIST_TIMEOUT_MS,
+      BUCKET_LIST_TIMEOUT_MS,
     );
     const baseNames = new Set(
       objects

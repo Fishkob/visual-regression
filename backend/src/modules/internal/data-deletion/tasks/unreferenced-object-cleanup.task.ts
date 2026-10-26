@@ -3,6 +3,7 @@ import { isPdfRenderObject } from '@internal/pdf-sidecar/pdf-render-path';
 import {
   STORAGE_PROVIDER,
   IStorageProvider,
+  BUCKET_LIST_TIMEOUT_MS,
 } from '@common/domain/storage-provider.interface';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import type {
@@ -32,7 +33,6 @@ const UNREFERENCED_OBJECT_MAX_AGE_MS = DEFAULT_ORPHAN_GRACE_HOURS * HOUR_MS;
 // maintenance-scale budget so the task reclaims orphans instead of dying before
 // deleting anything. The per-page streaming is still bounded by the 30s cap for
 // the other callers that list a single namespace.
-const UNREFERENCED_OBJECT_LIST_TIMEOUT_MS = 10 * 60 * 1000;
 
 @Injectable()
 export class UnreferencedObjectCleanupTask implements MaintenanceTask {
@@ -49,7 +49,7 @@ export class UnreferencedObjectCleanupTask implements MaintenanceTask {
   async execute(): Promise<MaintenanceResult> {
     const objects = await this.storage.listObjectsWithLastModified(
       '',
-      UNREFERENCED_OBJECT_LIST_TIMEOUT_MS,
+      BUCKET_LIST_TIMEOUT_MS,
     );
     const ageThreshold = new Date(Date.now() - UNREFERENCED_OBJECT_MAX_AGE_MS);
 
