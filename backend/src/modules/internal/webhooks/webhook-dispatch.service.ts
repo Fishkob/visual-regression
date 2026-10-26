@@ -39,6 +39,49 @@ export class WebhookDispatchService {
     );
   }
 
+  // One payload skeleton for every event: the four builders used to repeat the
+  // same eight fields (and the event name three times each), which is why a new
+  // event cost a copy-paste instead of a variant. The event-specific fields are
+  // the extra; everything else is the base every delivery shares.
+  private buildPayload(
+    event: WebhookSubscriptionEvent,
+    base: {
+      projectName: string;
+      testName: string;
+      kind: string;
+      branchName: string | null;
+    },
+    extra: Partial<
+      Pick<
+        WebhookPayload,
+        | 'variant'
+        | 'comparison'
+        | 'approvedBy'
+        | 'reason'
+        | 'note'
+        | 'assignee'
+        | 'dueAt'
+        | 'comment'
+      >
+    > = {},
+  ): WebhookPayload {
+    return {
+      event,
+      occurredAt: new Date().toISOString(),
+      project: { name: base.projectName },
+      test: { name: base.testName, kind: base.kind },
+      branch: base.branchName,
+      ...extra,
+      links: {
+        review: this.reviewLink(
+          base.projectName,
+          base.testName,
+          base.branchName,
+        ),
+      },
+    };
+  }
+
   async enqueueReviewRequested(input: {
     testId: string;
     comparisonId: string;
@@ -48,26 +91,27 @@ export class WebhookDispatchService {
   }): Promise<number> {
     const context = await this.context.findTestContext(input.testId);
     if (!context) return 0;
-    return this.enqueueForProject(context.projectId, 'review.requested', {
-      event: 'review.requested',
-      occurredAt: new Date().toISOString(),
-      project: { name: context.projectName },
-      test: { name: context.testName, kind: context.kind },
-      branch: context.branchName,
-      variant: input.variant,
-      comparison: {
-        id: input.comparisonId,
-        mismatchPixelCount: input.mismatchPixelCount,
-        kind: input.kind,
-      },
-      links: {
-        review: this.reviewLink(
-          context.projectName,
-          context.testName,
-          context.branchName,
-        ),
-      },
-    });
+    return this.enqueueForProject(
+      context.projectId,
+      'review.requested',
+      this.buildPayload(
+        'review.requested',
+        {
+          projectName: context.projectName,
+          testName: context.testName,
+          kind: context.kind,
+          branchName: context.branchName,
+        },
+        {
+          variant: input.variant,
+          comparison: {
+            id: input.comparisonId,
+            mismatchPixelCount: input.mismatchPixelCount,
+            kind: input.kind,
+          },
+        },
+      ),
+    );
   }
 
   async enqueueReviewAssigned(input: {
@@ -80,18 +124,20 @@ export class WebhookDispatchService {
   }): Promise<number> {
     const project = await this.context.findProjectByName(input.projectName);
     if (!project) return 0;
-    return this.enqueueForProject(project.id, 'review.assigned', {
-      event: 'review.assigned',
-      occurredAt: new Date().toISOString(),
-      project: { name: project.name },
-      test: { name: input.testName, kind: input.kind },
-      branch: input.branchName,
-      assignee: input.assignee,
-      dueAt: input.dueAt,
-      links: {
-        review: this.reviewLink(project.name, input.testName, input.branchName),
-      },
-    });
+    return this.enqueueForProject(
+      project.id,
+      'review.assigned',
+      this.buildPayload(
+        'review.assigned',
+        {
+          projectName: project.name,
+          testName: input.testName,
+          kind: input.kind,
+          branchName: input.branchName,
+        },
+        { assignee: input.assignee, dueAt: input.dueAt },
+      ),
+    );
   }
 
   async enqueueReviewComment(input: {
@@ -105,25 +151,26 @@ export class WebhookDispatchService {
   }): Promise<number> {
     const project = await this.context.findProjectByName(input.projectName);
     if (!project) return 0;
-    return this.enqueueForProject(project.id, 'review.comment', {
-      event: 'review.comment',
-      occurredAt: new Date().toISOString(),
-      project: { name: project.name },
-      test: { name: input.testName, kind: input.kind },
-      branch: input.branchName,
-      comment: {
-        author: input.author,
-        body: input.body,
-        comparisonId: input.comparisonId,
-      },
-      links: {
-        review: this.reviewLink(
-          project.name,
-          input.testName,
-          input.branchName ?? undefined,
-        ),
-      },
-    });
+    return this.enqueueForProject(
+      project.id,
+      'review.comment',
+      this.buildPayload(
+        'review.comment',
+        {
+          projectName: project.name,
+          testName: input.testName,
+          kind: input.kind,
+          branchName: input.branchName,
+        },
+        {
+          comment: {
+            author: input.author,
+            body: input.body,
+            comparisonId: input.comparisonId,
+          },
+        },
+      ),
+    );
   }
 
   async enqueueComparisonApproved(input: {
@@ -140,31 +187,32 @@ export class WebhookDispatchService {
   }): Promise<number> {
     const project = await this.context.findProjectByName(input.projectName);
     if (!project) return 0;
-    return this.enqueueForProject(project.id, 'comparison.approved', {
-      event: 'comparison.approved',
-      occurredAt: new Date().toISOString(),
-      project: { name: project.name },
-      test: { name: input.testName, kind: input.kind },
-      branch: input.branchName ?? null,
-      variant: input.variant,
-      comparison: {
-        id: input.comparisonId,
-        mismatchPixelCount: input.mismatchPixelCount,
-        kind: input.kind,
-      },
-      approvedBy: input.approvedBy,
-      // The reviewer's decision context is optional: an approval without a
-      // reason/note keeps the pre-existing payload shape.
-      ...(input.reason ? { reason: input.reason } : {}),
-      ...(input.note ? { note: input.note } : {}),
-      links: {
-        review: this.reviewLink(
-          project.name,
-          input.testName,
-          input.branchName ?? undefined,
-        ),
-      },
-    });
+    return this.enqueueForProject(
+      project.id,
+      'comparison.approved',
+      this.buildPayload(
+        'comparison.approved',
+        {
+          projectName: project.name,
+          testName: input.testName,
+          kind: input.kind,
+          branchName: input.branchName ?? null,
+        },
+        {
+          variant: input.variant,
+          comparison: {
+            id: input.comparisonId,
+            mismatchPixelCount: input.mismatchPixelCount,
+            kind: input.kind,
+          },
+          approvedBy: input.approvedBy,
+          // The decision context is optional: an approval without a reason/note
+          // keeps the pre-existing payload shape (JSON drops undefined).
+          ...(input.reason ? { reason: input.reason } : {}),
+          ...(input.note ? { note: input.note } : {}),
+        },
+      ),
+    );
   }
 
   // Synthetic delivery for the endpoint test button: one row for one endpoint.

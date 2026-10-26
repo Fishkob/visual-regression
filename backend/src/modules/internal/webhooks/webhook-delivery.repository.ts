@@ -14,14 +14,16 @@ export const WEBHOOK_PROCESSING_LEASE_MINUTES = 10;
 
 @Injectable()
 export class WebhookDeliveryRepository extends BaseRepository {
-  // Outbox write: one row per subscribed endpoint, in the caller's transaction
-  // when the event comes from a StateChangeWorkflow.
+  // Outbox write: one row per subscribed endpoint, always inside the
+  // StateChangeWorkflow transaction of the change it announces — `assertWritable`
+  // makes that a guarantee instead of a comment.
   async createMany(
     endpointIds: string[],
     event: string,
     payload: WebhookPayload,
   ): Promise<number> {
     if (endpointIds.length === 0) return 0;
+    this.assertWritable();
     const result = await this.client.webhookDelivery.createMany({
       data: endpointIds.map((endpointId) => ({
         endpointId,
@@ -32,6 +34,8 @@ export class WebhookDeliveryRepository extends BaseRepository {
     return result.count;
   }
 
+  // The endpoint test button writes one row with no domain change to ride, so
+  // this one deliberately does NOT assert a transaction.
   async create(
     endpointId: string,
     event: string,
