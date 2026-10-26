@@ -33,3 +33,26 @@ export function requireAuthenticatedPrincipal(
   }
   throw new UnauthorizedException('Authentication required');
 }
+
+// The caller's display name, for audit trails and actor columns. There is no
+// fallback on purpose: an audit row that names someone who did not act is worse
+// than a 401, and every route that reaches this helper is already authenticated
+// by the global guard — a missing principal means the guard did not run, which
+// is exactly the bug a fabricated `'unknown'` used to hide.
+export function requireActor(req: AuthenticatedRequest): string {
+  return requireAuthenticatedPrincipal(req).username;
+}
+
+// The signed-in user's stable id, for routes that act *as* a person (my
+// assignments, comment authorship, account administration). An API key is a
+// credential, not a user, so it cannot stand in for one here.
+export function requireUserActor(req: AuthenticatedRequest): {
+  id: string;
+  username: string;
+} {
+  const principal = requireAuthenticatedPrincipal(req);
+  if (principal.principalType !== 'user') {
+    throw new UnauthorizedException('This action requires a signed-in user');
+  }
+  return { id: principal.principalId, username: principal.username };
+}

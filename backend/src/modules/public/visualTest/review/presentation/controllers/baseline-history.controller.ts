@@ -8,6 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { requireActor } from '@common/http/authenticated-principal';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
@@ -69,7 +70,7 @@ export class BaselineHistoryController {
       testName,
       revisionId: body.revisionId,
       branchName: branch,
-      restoredBy: req.auth?.username ?? 'unknown',
+      restoredBy: requireActor(req),
     });
     return plainToInstance(RestoreBaselineResultDto, result, {
       excludeExtraneousValues: true,

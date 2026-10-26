@@ -16,6 +16,7 @@ import {
 import { plainToInstance } from 'class-transformer';
 import type { Request } from 'express';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { requireActor } from '@common/http/authenticated-principal';
 import { PublicEndpoint } from '@common/http/public.decorator';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
@@ -58,7 +59,7 @@ export class ShareLinksController {
     const created = await this.shares.create(
       projectName,
       dto,
-      req.auth?.username ?? 'unknown',
+      requireActor(req),
     );
     return plainToInstance(
       CreatedShareLinkDto,
@@ -84,10 +85,7 @@ export class ShareLinkRevokeController {
     @Param('id') id: string,
     @Req() req: AuthenticatedRequest,
   ): Promise<ShareLinkDto> {
-    const revoked = await this.shares.revoke(
-      id,
-      req.auth?.username ?? 'unknown',
-    );
+    const revoked = await this.shares.revoke(id, requireActor(req));
     return plainToInstance(ShareLinkDto, revoked, {
       excludeExtraneousValues: true,
     });

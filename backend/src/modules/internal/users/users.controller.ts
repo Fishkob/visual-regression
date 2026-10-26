@@ -18,6 +18,10 @@ import { plainToInstance } from 'class-transformer';
 import { Roles } from '@common/http/roles.decorator';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import {
+  requireActor,
+  requireUserActor,
+} from '@common/http/authenticated-principal';
 import { UsersService } from '@internal/users/users.service';
 import {
   CreateUserDto,
@@ -50,7 +54,7 @@ export class UsersController {
     @Req() req: AuthenticatedRequest,
   ): Promise<CreatedUserDto> {
     const created = await this.users.create(
-      { id: req.auth?.userId, username: req.auth?.username ?? 'admin' },
+      requireUserActor(req),
       dto.username,
       dto.role,
     );
@@ -69,11 +73,7 @@ export class UsersController {
     @Body() dto: UpdateUserDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<UserDto> {
-    const updated = await this.users.update(
-      { id: req.auth?.userId, username: req.auth?.username ?? 'admin' },
-      id,
-      dto,
-    );
+    const updated = await this.users.update(requireUserActor(req), id, dto);
     return plainToInstance(UserDto, updated, {
       excludeExtraneousValues: true,
     });
@@ -91,7 +91,7 @@ export class UsersController {
     @Req() req: AuthenticatedRequest,
   ): Promise<ResetPasswordResultDto> {
     const result = await this.users.resetPassword(
-      { username: req.auth?.username ?? 'admin' },
+      { username: requireActor(req) },
       id,
     );
     return plainToInstance(ResetPasswordResultDto, result, {

@@ -4,6 +4,7 @@ import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Mocked } from 'vitest';
+import { ACCOUNT_LIFECYCLE_KEY } from '@common/http/account-lifecycle.decorator';
 import { IS_PUBLIC_KEY } from '@common/http/public.decorator';
 import { IS_SESSION_ONLY_KEY } from '@common/http/session-only.decorator';
 import { ROLES_KEY } from '@common/http/roles.decorator';
@@ -441,7 +442,7 @@ describe('AuthenticationGuard', () => {
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
   });
 
-  it('blocks non-auth routes until a forced password change', async () => {
+  it('blocks every route until a forced password change, except account lifecycle', async () => {
     mockRepository.findSessionByTokenHash.mockResolvedValue(
       mockSession(new Date(Date.now() + 60_000)),
     );
@@ -471,8 +472,48 @@ describe('AuthenticationGuard', () => {
 
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
 
-    request.path = '/api/v1/auth/me';
+    // The exemption is route metadata, not a path substring: the auth
+    // controller carries @AccountLifecycle so the screen that clears the flag
+    // stays reachable.
+    Reflect.defineMetadata(ACCOUNT_LIFECYCLE_KEY, true, TestController);
+    request.path = '/api/v1/projects';
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
+    Reflect.deleteMetadata(ACCOUNT_LIFECYCLE_KEY, TestController);
+  });
+
+  it('does not exempt a project named auth from the viewer write ban', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue(
+      mockSession(new Date(Date.now() + 60_000)),
+    );
+    mockRepository.findUserById.mockResolvedValue({
+      id: 'u1',
+      username: 'alice',
+      passwordHash: 'salt:hash',
+      role: 'VIEWER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      totpSecret: null,
+      totpEnabledAt: null,
+      createdAt: new Date(),
+    });
+    const request = {
+      headers: { cookie: 'vrt_session=tok' },
+      method: 'PATCH',
+      // Contains '/auth/' but is a project route: the old substring check let a
+      // viewer write here.
+      path: '/api/v1/projects/auth/branches',
+    };
+    const ctx = {
+      getClass: () => TestController,
+      getHandler: () => testHandler,
+      switchToHttp: () => ({ getRequest: () => request }),
+    } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
+
+    await expect(guard.canActivate(ctx)).rejects.toThrow(
+      'Viewers have read-only access',
+    );
   });
 
   function apiKeyContext(options: {

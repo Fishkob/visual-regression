@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-  Req,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiOkResponse,
@@ -16,6 +7,10 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import {
+  requireActor,
+  requireUserActor,
+} from '@common/http/authenticated-principal';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { ReviewAssignmentService } from '@public/visualTest/review/application/review-assignment.service';
@@ -42,7 +37,7 @@ export class AssignmentController {
     const assignment = await this.assignments.create(
       projectName,
       dto,
-      req.auth?.username ?? 'unknown',
+      requireActor(req),
     );
     return plainToInstance(AssignmentDto, assignment, {
       excludeExtraneousValues: true,
@@ -56,8 +51,7 @@ export class AssignmentController {
     @Query() query: AssignmentListQueryDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<AssignmentDto[]> {
-    const userId = req.auth?.userId;
-    if (!userId) throw new UnauthorizedException('Authentication required');
+    const { id: userId } = requireUserActor(req);
     const rows = await this.assignments.mine(
       userId,
       query.includeCompleted ?? false,
@@ -71,8 +65,7 @@ export class AssignmentController {
   @ApiOperation({ summary: 'List my overdue review assignments' })
   @ApiOkResponse({ type: [AssignmentDto] })
   async overdue(@Req() req: AuthenticatedRequest): Promise<AssignmentDto[]> {
-    const userId = req.auth?.userId;
-    if (!userId) throw new UnauthorizedException('Authentication required');
+    const { id: userId } = requireUserActor(req);
     const rows = await this.assignments.overdue(userId);
     return plainToInstance(AssignmentDto, rows, {
       excludeExtraneousValues: true,
@@ -86,13 +79,8 @@ export class AssignmentController {
     @Param('id') id: string,
     @Req() req: AuthenticatedRequest,
   ): Promise<AssignmentDto> {
-    const userId = req.auth?.userId;
-    if (!userId) throw new UnauthorizedException('Authentication required');
-    const row = await this.assignments.complete(
-      userId,
-      id,
-      req.auth?.username ?? 'unknown',
-    );
+    const actor = requireUserActor(req);
+    const row = await this.assignments.complete(actor.id, id, actor.username);
     return plainToInstance(AssignmentDto, row, {
       excludeExtraneousValues: true,
     });

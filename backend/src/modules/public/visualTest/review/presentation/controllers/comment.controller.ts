@@ -16,6 +16,10 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import {
+  requireActor,
+  requireUserActor,
+} from '@common/http/authenticated-principal';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
@@ -64,10 +68,7 @@ export class ReviewCommentController {
       projectName,
       testName,
       { body: dto.body, comparisonId: dto.comparisonId, branch: dto.branch },
-      {
-        id: req.auth?.userId ?? null,
-        username: req.auth?.username ?? 'unknown',
-      },
+      requireUserActor(req),
     );
     return plainToInstance(CommentDto, row, {
       excludeExtraneousValues: true,
@@ -88,7 +89,7 @@ export class ReviewCommentController {
       projectName,
       testName,
       id,
-      req.auth?.username ?? 'unknown',
+      requireActor(req),
       branch,
     );
     return plainToInstance(CommentDto, row, {

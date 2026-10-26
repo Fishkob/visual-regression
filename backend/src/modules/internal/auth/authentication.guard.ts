@@ -9,6 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '@common/http/public.decorator';
 import { IS_SESSION_ONLY_KEY } from '@common/http/session-only.decorator';
 import { ROLES_KEY, type AppRole } from '@common/http/roles.decorator';
+import { ACCOUNT_LIFECYCLE_KEY } from '@common/http/account-lifecycle.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { readSessionToken } from '@common/http/session-cookie';
 import { AppConfigService } from '@config/app-config.service';
@@ -220,10 +221,20 @@ export class AuthenticationGuard implements CanActivate {
     // A VIEWER is read-only: the UI hides write actions, and the API enforces
     // the same rule so a crafted request cannot mutate anything.
     const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
-    if (auth.role === 'VIEWER' && isWrite && !request.path.includes('/auth/')) {
+    // The account-lifecycle surface (@AccountLifecycle on the auth controller)
+    // is exempt: a VIEWER must still be able to sign out, and the screen that
+    // clears `mustChangePassword` has to stay reachable. This used to key off
+    // `path.includes('/auth/')`, which also matched a project, test or run
+    // literally named `auth` — handing a VIEWER write access to that project.
+    const isAccountLifecycle =
+      this.reflector.getAllAndOverride<boolean>(ACCOUNT_LIFECYCLE_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? false;
+    if (auth.role === 'VIEWER' && isWrite && !isAccountLifecycle) {
       throw new ForbiddenException('Viewers have read-only access');
     }
-    if (auth.mustChangePassword && !request.path.includes('/auth/')) {
+    if (auth.mustChangePassword && !isAccountLifecycle) {
       throw new ForbiddenException('Password change required');
     }
   }

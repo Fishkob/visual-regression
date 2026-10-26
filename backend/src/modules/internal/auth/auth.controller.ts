@@ -21,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { plainToInstance } from 'class-transformer';
+import { AccountLifecycle } from '@common/http/account-lifecycle.decorator';
 import { PublicEndpoint } from '@common/http/public.decorator';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
@@ -45,7 +46,12 @@ import {
   VerifyTwoFactorDto,
 } from './dto/two-factor.dto';
 
+// The whole controller is the account-lifecycle surface: reaching it must not
+// require a usable account, otherwise a caller who is forced to change the
+// password (or a VIEWER who wants to sign out) is locked out of the one screen
+// that would fix it. `@Public` handlers inside still short-circuit earlier.
 @ApiTags('Auth')
+@AccountLifecycle()
 @Controller('auth')
 export class AuthController {
   constructor(
