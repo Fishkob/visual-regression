@@ -32,13 +32,21 @@ allowlist is unchanged.
 
 The 89 annotated routes reproduce the old table exactly, verified route by route
 and key-scope combination against the previous implementation, with two deliberate
-differences:
+repairs:
 
 - `POST .../pdf-approval` now requires `approve`, matching ADR-035 and the image
-  approval it sits beside (it required `admin` only because of the hyphen).
-- `POST .../runs/:runKey/approve-all` keeps `admin`. A run-wide approve is still
-  the one bulk operation whose authority is an open product question, and this
-  refactor does not widen a permission while it moves one.
+  approval it sits beside (it required `admin` only because the old substring
+  matched `-approval` but not `/approval`).
+- `POST .../runs/:runKey/approve-all` now requires `approve` too. Approving one
+  comparison, every comparison of a test (`.../approvals/all`) and every pending
+  comparison of a run are the same authority at three scopes; leaving the widest
+  one at `admin` made an approve-scoped CI key unable to finish a run it could
+  approve test by test.
+
+The project allowlist stays a separate rule, and it now names the routes that
+cannot be filtered at all: `review` (the cross-project inbox) and `groups` join the
+list, because neither names a project and both returned every project's rows to an
+allowlisted key.
 
 ## Alternatives considered
 
