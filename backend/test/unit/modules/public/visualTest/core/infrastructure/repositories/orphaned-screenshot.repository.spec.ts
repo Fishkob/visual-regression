@@ -73,7 +73,7 @@ describe('OrphanedScreenshotRepository', () => {
       });
     });
 
-    it('excludes current screenshots referenced by an active comparison job', async () => {
+    it('excludes current screenshots a pending, processing or failed job still owns', async () => {
       mockClient.comparisonJob.findMany.mockResolvedValue([
         { candidateId: 'ss-inflight' },
         { candidateId: 'ss-inflight-2' },
@@ -89,7 +89,7 @@ describe('OrphanedScreenshotRepository', () => {
         screenshots: [{ id: 'ss-1', imageUrl: 'http://example.com/img.png' }],
       });
       expect(mockClient.comparisonJob.findMany).toHaveBeenCalledWith({
-        where: { status: { in: ['PENDING', 'PROCESSING'] } },
+        where: { status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } },
         select: { candidateId: true },
       });
       expect(mockClient.unifiedScreenshot.findMany).toHaveBeenCalledWith({
@@ -125,7 +125,7 @@ describe('OrphanedScreenshotRepository', () => {
       expect(result).toEqual({ skipped: true, screenshots: [] });
       expect(mockClient.comparisonJob.findFirst).toHaveBeenCalledWith({
         where: {
-          status: { in: ['PENDING', 'PROCESSING'] },
+          status: { in: ['PENDING', 'PROCESSING', 'FAILED'] },
           candidateId: null,
         },
         select: { id: true },

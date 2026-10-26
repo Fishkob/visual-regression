@@ -25,6 +25,19 @@ const SCREENSHOT_PROJECT_JOINS = Prisma.sql`
   JOIN "Project" p ON p."id" = b."projectId"
 `;
 
+// The job statuses that still own their candidate row: in flight (PENDING,
+// PROCESSING) and failed-awaiting-retry (FAILED). A FAILED job's candidate is
+// evidence, not garbage — the DLQ retry flips the row back to PENDING and
+// re-downloads the payload's candidate URL, and `FailedJobCleanupTask` owns its
+// retention (row first, then the file, after the retention window). Leaving
+// FAILED out made the daily sweep destroy that object up to a week before the
+// cleanup was allowed to, so an operator's retry turned into a silent moot.
+const CANDIDATE_OWNING_JOB_STATUSES = [
+  JobStatus.PENDING,
+  JobStatus.PROCESSING,
+  JobStatus.FAILED,
+] as const;
+
 @Injectable()
 export class OrphanedScreenshotRepository
   extends BaseRepository
@@ -34,12 +47,12 @@ export class OrphanedScreenshotRepository
     skipped: boolean;
     screenshots: { id: string; imageUrl: string }[];
   }> {
-    // A PENDING/PROCESSING job with NULL candidateId (pre-backfill legacy row)
+    // A candidate-owning job with NULL candidateId (pre-backfill legacy row)
     // protects an unknown candidate — the sweep cannot prove that candidate is
-    // not in flight. Storage-first deletion would destroy that candidate's
-    // object before the guarded DELETE could refuse the row, so the sweep is
-    // skipped entirely rather than risking a live upload. The skip is reported
-    // so the caller can surface it instead of reporting a silent 0.
+    // not in flight or not awaiting a retry. Storage-first deletion would
+    // destroy that candidate's object before the guarded DELETE could refuse the
+    // row, so the sweep is skipped entirely rather than risking live evidence.
+    // The skip is reported so the caller can surface it instead of a silent 0.
     if (await this.hasUnknownCandidateJob()) {
       return { skipped: true, screenshots: [] };
     }
@@ -79,7 +92,7 @@ export class OrphanedScreenshotRepository
         )
         AND NOT EXISTS (
           SELECT 1 FROM "ComparisonJob" j
-          WHERE j.status IN ('PENDING', 'PROCESSING')
+          WHERE j.status IN (${Prisma.join(CANDIDATE_OWNING_JOB_STATUSES)})
             AND (j."candidateId" = s.id OR j."candidateId" IS NULL)
         )
     `;
@@ -91,7 +104,7 @@ export class OrphanedScreenshotRepository
   private async hasUnknownCandidateJob(): Promise<boolean> {
     const unknown = await this.client.comparisonJob.findFirst({
       where: {
-        status: { in: [JobStatus.PENDING, JobStatus.PROCESSING] },
+        status: { in: [...CANDIDATE_OWNING_JOB_STATUSES] },
         candidateId: null,
       },
       select: { id: true },
@@ -101,7 +114,7 @@ export class OrphanedScreenshotRepository
 
   private async activeCandidateIds(): Promise<string[]> {
     const activeJobs = await this.client.comparisonJob.findMany({
-      where: { status: { in: [JobStatus.PENDING, JobStatus.PROCESSING] } },
+      where: { status: { in: [...CANDIDATE_OWNING_JOB_STATUSES] } },
       select: { candidateId: true },
     });
     return activeJobs.map((job) => job.candidateId).filter(isString);

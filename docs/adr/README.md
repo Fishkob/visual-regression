@@ -37,6 +37,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 041 | [Review Governance & Human 4-Eyes](./ADR-041-review-governance-human-4-eyes.md) | Accepted          |
 | 042 | [Review Artifact Lifecycle](./ADR-042-review-artifact-lifecycle.md)             | Accepted          |
 | 043 | [Storage Quota Enforcement](./ADR-043-storage-quota-enforcement.md)             | Accepted          |
+| 044 | [A Failed Job Owns Its Candidate](./ADR-044-failed-job-candidate-ownership.md)  | Accepted          |
 
 ## Numbering
 

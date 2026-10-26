@@ -23,17 +23,19 @@ export interface OrphanScreenshotRow {
 }
 
 export interface IOrphanSweep {
-  // CURRENT screenshot rows with no comparison candidate and no active job.
-  // Returns skipped=true when an active job has NULL candidateId (pre-backfill
+  // CURRENT screenshot rows with no comparison candidate and no job that still
+  // owns them: pending, processing, or failed-but-retryable. A FAILED job's
+  // candidate is evidence for the operator's DLQ retry, never orphan garbage.
+  // Returns skipped=true when such a job has NULL candidateId (pre-backfill
   // legacy row) — the sweep cannot prove that candidate is not in flight.
   findOrphanedCurrent(): Promise<{
     skipped: boolean;
     screenshots: OrphanScreenshotRow[];
   }>;
 
-  // Guarded delete of CURRENT orphans: re-checks the comparison + active-job
-  // guards in the SAME DELETE statement so a concurrent re-adopted row is never
-  // destroyed. Returns the number of rows deleted.
+  // Guarded delete of CURRENT orphans: re-checks the comparison + candidate-
+  // owning-job guards in the SAME DELETE statement so a concurrent re-adopted
+  // row is never destroyed. Returns the number of rows deleted.
   deleteCurrentOrphansByIds(ids: string[]): Promise<number>;
 
   // Row-first twin of the storage-first flow: deletes the orphaned BASELINE

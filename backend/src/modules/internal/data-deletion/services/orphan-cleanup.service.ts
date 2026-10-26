@@ -70,7 +70,7 @@ export class OrphanCleanupService implements MaintenanceTask {
 
     if (currentScan.skipped) {
       this.logger.warn(
-        'Current-orphan sweep skipped: an active comparison job has NULL candidateId (legacy pre-backfill row) — cannot prove which candidate is in flight',
+        'Current-orphan sweep skipped: a candidate-owning comparison job has NULL candidateId (legacy pre-backfill row) — cannot prove which candidate is in flight or awaiting a retry',
       );
     }
 
@@ -97,7 +97,9 @@ export class OrphanCleanupService implements MaintenanceTask {
   // place is protected by the guarded DELETE. The row whose storage delete
   // failed is retained so the next run retries it. This is the only
   // storage-first maintenance deletion, so the ordering lives inline rather
-  // than as a shared helper.
+  // than as a shared helper. A candidate a FAILED job still owns never arrives
+  // here: its file is the operator's retry input, so `FailedJobCleanupTask`
+  // reclaims it after the failed-job retention window instead.
   private async cleanupCurrentOrphans(
     screenshots: { id: string; imageUrl: string }[],
   ): Promise<number> {
