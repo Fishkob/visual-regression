@@ -17,6 +17,7 @@ import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo
 import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
+import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import { TestResolver } from '@public/visualTest/core/application/services/test-resolver.service';
 import { TestStatusService } from '@public/visualTest/core/application/services/test-status.service';
 import {
@@ -128,6 +129,10 @@ describe('BaselineHistoryService', () => {
         { provide: AppLoggerService, useValue: createMockLogger() },
         { provide: METRICS_RECORDER, useValue: metrics },
         StateChangeWorkflow,
+        {
+          provide: StorageUsageService,
+          useValue: createMock<StorageUsageService>(),
+        },
       ],
     }).compile();
 

@@ -9,6 +9,9 @@ export interface JobData {
   testKind: TestKind;
   testId: string;
   testName?: string;
+  // Denormalized at enqueue so the worker can charge the diff artifact it is
+  // about to store without resolving test -> branch -> project (ADR-043).
+  projectName: string;
   sizePolicy?: 'FAIL' | 'PAD' | 'CROP' | 'RESIZE';
   runId?: string;
   runKey?: string;

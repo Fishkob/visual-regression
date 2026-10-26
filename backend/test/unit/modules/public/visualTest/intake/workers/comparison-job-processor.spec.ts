@@ -15,6 +15,7 @@ import { CandidateReclamationService } from '@public/visualTest/core/application
 import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
 import { ComparisonOutcomeService } from '@public/visualTest/core/application/services/comparison-outcome.service';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
+import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import type { QueuedJob } from '@common/domain/job-queue.interface';
@@ -44,9 +45,11 @@ describe('ComparisonJobProcessor', () => {
   let screenshots: Mocked<UnifiedScreenshotRepository>;
   let metrics: Mocked<IMetricsRecorder>;
   let uow: Mocked<PrismaUnitOfWork>;
+  let storageUsage: Mocked<StorageUsageService>;
 
   const imageJobData: JobData = {
     testKind: 'image',
+    projectName: 'shop',
     testId: 'test-1',
     testName: 'checkout',
     runId: 'run-1',
@@ -69,6 +72,7 @@ describe('ComparisonJobProcessor', () => {
 
   const pdfJobData: JobData = {
     testKind: 'pdf',
+    projectName: 'shop',
     testId: 'test-1',
     candidateHash: 'hash-from-upload',
     candidate: { id: 'candidate-1', url: 'http://storage/candidate.pdf' },
@@ -163,6 +167,9 @@ describe('ComparisonJobProcessor', () => {
       staleUrls: [],
     });
 
+    storageUsage = createMock<StorageUsageService>();
+    storageUsage.assertWithinQuota.mockResolvedValue(undefined);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ComparisonJobProcessor,
@@ -182,6 +189,7 @@ describe('ComparisonJobProcessor', () => {
         { provide: TestStatusService, useValue: statusService },
         { provide: METRICS_RECORDER, useValue: metrics },
         StateChangeWorkflow,
+        { provide: StorageUsageService, useValue: storageUsage },
       ],
     }).compile();
 
@@ -299,6 +307,10 @@ describe('ComparisonJobProcessor', () => {
           },
           { provide: METRICS_RECORDER, useValue: metrics },
           StateChangeWorkflow,
+          {
+            provide: StorageUsageService,
+            useValue: createMock<StorageUsageService>(),
+          },
         ],
       }).compile();
       const p = module2.get(ComparisonJobProcessor);
@@ -584,6 +596,32 @@ describe('ComparisonJobProcessor', () => {
           testName: 'checkout',
         }),
       );
+    });
+
+    it('fails the diff without storing an artifact when the quota rejects it', async () => {
+      screenshots.findCurrentByVariant.mockResolvedValue({
+        id: 'candidate-1',
+        imageHash: 'hash-from-upload',
+      });
+      imageEngine.compare.mockResolvedValue(imageDiff);
+      storageUsage.assertWithinQuota.mockRejectedValue(
+        new DomainError(
+          'Storage quota exceeded for project "shop"',
+          'QUOTA_EXCEEDED',
+        ),
+      );
+
+      await expect(
+        processor.processJob(makeJob(imageJobData)),
+      ).rejects.toMatchObject({ code: 'QUOTA_EXCEEDED' });
+
+      expect(storageUsage.assertWithinQuota).toHaveBeenCalledWith(
+        'shop',
+        imageDiff.diffOutput.length,
+      );
+      expect(storage.putObject).not.toHaveBeenCalled();
+      expect(storage.deleteQuietly).not.toHaveBeenCalled();
+      expect(retirement.createPendingForVariant).not.toHaveBeenCalled();
     });
 
     it('cleans up the diff file when persisting the comparison fails', async () => {

@@ -30,6 +30,7 @@ import {
   IMetricsRecorder,
 } from '@common/domain/metrics-recorder.interface';
 import { TestStatusService } from '@public/visualTest/core/application/services/test-status.service';
+import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 
 // Transactional state-change orchestration: runs the caller's change inside a
 // retried Serializable transaction, recomputes the affected test statuses in
@@ -52,6 +53,7 @@ export class StateChangeWorkflow {
     private readonly logger: AppLoggerService,
     @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
     private readonly statusService: TestStatusService,
+    private readonly storageUsage: StorageUsageService,
     @Inject(METRICS_RECORDER) private readonly metrics: IMetricsRecorder,
   ) {}
 
@@ -143,6 +145,16 @@ export class StateChangeWorkflow {
   async executeWithStoredFile<R>(
     options: StoredFileChangeOptions<R>,
   ): Promise<StoredFileChangeResult<R>> {
+    // The quota is checked before the bytes exist, so a rejected write leaves
+    // no object behind (and nothing to compensate). Checking it here rather
+    // than in the storage adapter keeps `putObject` policy-free and exempts the
+    // pdf-render cache by construction: it never crosses this convention.
+    // Best-effort by design — the aggregates are read outside the transaction,
+    // so concurrent writes can overshoot by about one object (ADR-043).
+    await this.storageUsage.assertWithinQuota(
+      options.charge.projectName,
+      options.charge.bytes,
+    );
     const fileUrl = await options.store();
     try {
       const outcome = await this.executeStateChange(

@@ -313,6 +313,14 @@ describe('isRetryableError', () => {
     }
   });
 
+  it('does not retry a full storage quota', () => {
+    expect(
+      isRetryableError(
+        new DomainError('Storage quota exceeded', 'QUOTA_EXCEEDED'),
+      ),
+    ).toBe(false);
+  });
+
   it('returns false for FORBIDDEN and E_UNIQUE_CONSTRAINT DomainError codes', () => {
     for (const code of ['FORBIDDEN', 'E_UNIQUE_CONSTRAINT'] as const) {
       expect(isRetryableError(new DomainError(`msg: ${code}`, code))).toBe(

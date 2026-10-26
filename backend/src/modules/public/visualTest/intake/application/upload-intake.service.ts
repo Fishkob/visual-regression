@@ -33,7 +33,6 @@ import {
 import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
 import type { JobData } from '@common/domain/job-data.types';
 import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
-import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import { ImageNormalizer } from '@public/visualTest/core/application/services/image-normalizer.service';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import type { ResolvedBranch } from '@public/visualTest/core/application/services/branch-resolver.service';
@@ -92,7 +91,6 @@ export class UploadIntake {
     @Inject(JOB_PRODUCER) private readonly jobQueue: IJobProducer,
     @Inject(PDF_PAGE_COUNTER) private readonly pageCounter: IPdfPageCounter,
     private readonly runs: RunResolver,
-    private readonly storageUsage: StorageUsageService,
     private readonly images: ImageNormalizer,
     private readonly tests: UnifiedTestRepository,
   ) {}
@@ -155,12 +153,11 @@ export class UploadIntake {
           );
         }
 
-        await this.storageUsage.assertWithinQuota(
-          params.projectName,
-          params.file.size,
-        );
-
         const stored = await this.workflow.executeWithStoredFile({
+          // The quota rides the stored write (ADR-043): the workflow rejects a
+          // projected overrun before this object exists, so a failed upload
+          // leaves neither a file nor a row behind.
+          charge: { projectName: params.projectName, bytes: params.file.size },
           store: () => this.storeUpload(kind, fileHash, params),
           change: async (fileUrl) => {
             const fresh = await this.decisions.resolveStored(
@@ -476,6 +473,9 @@ export class UploadIntake {
       testKind: kind,
       testId,
       testName: params.testName,
+      // Denormalized so the worker can charge its diff artifact without a
+      // test->branch->project query per comparison (ADR-043).
+      projectName: params.projectName,
       candidateHash: contentHash,
       candidate: { id: candidate.id, url: fileUrl },
       baseline: { id: baseline.id, url: baseline.fileUrl },

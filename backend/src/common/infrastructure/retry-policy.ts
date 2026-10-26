@@ -84,6 +84,9 @@ const NON_RETRYABLE_CODES: ReadonlySet<DomainErrorCode> = new Set([
   'FORBIDDEN',
   'NOT_FOUND',
   'INVALID_STATE',
+  // A full quota is a verdict, not a hiccup: retrying a diff that cannot be
+  // stored just burns the backoff budget before the job fails anyway (ADR-043).
+  'QUOTA_EXCEEDED',
 ]);
 
 export function isRetryableError(err: unknown): boolean {

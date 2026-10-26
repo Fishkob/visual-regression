@@ -25,6 +25,7 @@ export function decodeJobData(value: unknown): JobData {
   }
   if (
     typeof value.testId !== 'string' ||
+    typeof value.projectName !== 'string' ||
     typeof value.candidateHash !== 'string' ||
     !isRecord(value.baseline) ||
     typeof value.baseline.id !== 'string' ||

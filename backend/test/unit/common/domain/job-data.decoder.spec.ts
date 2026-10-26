@@ -11,6 +11,7 @@ describe('decodeJobData', () => {
     const data = decodeJobData({
       testKind: 'image',
       testId: 'test-1',
+      projectName: 'shop',
       candidateHash: 'hash-from-upload',
       candidate: { id: 'c1', url: 'http://s/c.png' },
       baseline: { id: 'b1', url: 'http://s/b.png' },
@@ -19,6 +20,7 @@ describe('decodeJobData', () => {
     expect(data).toEqual({
       testKind: 'image',
       testId: 'test-1',
+      projectName: 'shop',
       candidateHash: 'hash-from-upload',
       candidate: { id: 'c1', url: 'http://s/c.png' },
       baseline: { id: 'b1', url: 'http://s/b.png' },
@@ -30,6 +32,7 @@ describe('decodeJobData', () => {
     const data = decodeJobData({
       testKind: 'pdf',
       testId: 'test-1',
+      projectName: 'shop',
       candidateHash: 'hash-from-upload',
       candidate: { id: 'c1', url: 'http://s/c.pdf' },
       baseline: { id: 'b1', url: 'http://s/b.pdf' },
@@ -42,6 +45,7 @@ describe('decodeJobData', () => {
     const data = decodeJobData({
       testKind: 'image',
       testId: 'test-1',
+      projectName: 'shop',
       candidateHash: 'hash-from-upload',
       candidate: { id: 'c1', url: 'u' },
       baseline: { id: 'b1', url: 'u' },
@@ -56,6 +60,7 @@ describe('decodeJobData', () => {
       decodeJobData({
         testKind: 'image',
         testId: 'test-1',
+        projectName: 'shop',
         candidateHash: 'hash-from-upload',
         candidate: { id: 'c1', url: 'u' },
         baseline: { id: 'b1', url: 'u' },
@@ -67,6 +72,7 @@ describe('decodeJobData', () => {
       decodeJobData({
         testKind: 'image',
         testId: 'test-1',
+        projectName: 'shop',
         candidateHash: 'hash-from-upload',
         candidate: { id: 'c1', url: 'u' },
         baseline: { id: 'b1', url: 'u' },
@@ -88,11 +94,25 @@ describe('decodeJobData', () => {
     ).toThrow(DomainError);
   });
 
+  it('throws INVALID_STATE when the project name is missing', () => {
+    expect(() =>
+      decodeJobData({
+        testKind: 'image',
+        testId: 't',
+        candidateHash: 'h',
+        candidate: { id: 'c1', url: 'u' },
+        baseline: { id: 'b1', url: 'u' },
+        variant: { viewport: '1', browser: 'b', environment: 'e' },
+      }),
+    ).toThrow(DomainError);
+  });
+
   it('throws INVALID_STATE when a required field is missing or mistyped', () => {
     expect(() =>
       decodeJobData({
         testKind: 'image',
         testId: 't',
+        projectName: 'shop',
         candidate: { id: 'c1' },
         baseline: { id: 'b', url: 'u' },
         variant: { viewport: '1', browser: 'b', environment: 'e' },

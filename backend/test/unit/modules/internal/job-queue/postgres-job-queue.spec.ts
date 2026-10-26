@@ -15,6 +15,7 @@ import { createMockLogger } from '@test/utils/mocks';
 function imageJobData(testId: string): JobData {
   return {
     testKind: 'image',
+    projectName: 'shop',
     testId,
     candidateHash: 'hash-from-upload',
     candidate: {
@@ -29,6 +30,7 @@ function imageJobData(testId: string): JobData {
 function pdfJobData(testId: string): JobData {
   return {
     testKind: 'pdf',
+    projectName: 'shop',
     testId,
     candidateHash: 'hash-from-upload',
     candidate: {
@@ -42,6 +44,7 @@ function pdfJobData(testId: string): JobData {
 
 const jobPayload: JobData = {
   testKind: 'image',
+  projectName: 'shop',
   testId: 'test-1',
   candidateHash: 'hash-from-upload',
   candidate: { id: 'candidate-1', url: 'http://storage/candidate.png' },
@@ -201,6 +204,7 @@ describe('PostgresJobQueue', () => {
           maxAttempts: 3,
           payload: expect.objectContaining({
             testKind: 'image',
+            projectName: 'shop',
             testId: 'vt-1',
           }),
         }),

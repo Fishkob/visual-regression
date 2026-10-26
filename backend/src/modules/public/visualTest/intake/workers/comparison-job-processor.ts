@@ -309,6 +309,13 @@ export class ComparisonJobProcessor {
     const diffName = this.diffName(data);
     return this.workflow
       .executeWithStoredFile<{ comparisonId: string }>({
+        // The diff artifact is evidence, so it is charged like the upload's
+        // candidate: an over-quota project fails this job (non-retryable) rather
+        // than storing a diff nobody can review (ADR-043).
+        charge: {
+          projectName: data.projectName,
+          bytes: result.diffOutput.length,
+        },
         store: () =>
           this.storage.putObject(
             diffName,

@@ -8,6 +8,7 @@ import {
 import { Tracker } from '@common/tracker/tracker.service';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
+import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import { TestResolver } from '@public/visualTest/core/application/services/test-resolver.service';
 import { TestStatusService } from '@public/visualTest/core/application/services/test-status.service';
 import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
@@ -208,6 +209,10 @@ describe('ApprovalService', () => {
         { provide: TestStatusService, useValue: statusService },
         { provide: PrismaUnitOfWork, useValue: uowLocal },
         StateChangeWorkflow,
+        {
+          provide: StorageUsageService,
+          useValue: createMock<StorageUsageService>(),
+        },
         { provide: STORAGE_PROVIDER, useValue: storage },
         { provide: Tracker, useValue: tracker },
         { provide: UnifiedScreenshotRepository, useValue: screenshots },

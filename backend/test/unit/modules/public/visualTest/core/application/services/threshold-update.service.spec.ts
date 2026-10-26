@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DomainError } from '@common/domain/domain-error';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
+import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import { ThresholdUpdateService } from '@public/visualTest/core/application/services/threshold-update.service';
 import { TestStatusService } from '@public/visualTest/core/application/services/test-status.service';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
@@ -64,6 +65,10 @@ describe('ThresholdUpdateService', () => {
       providers: [
         ThresholdUpdateService,
         StateChangeWorkflow,
+        {
+          provide: StorageUsageService,
+          useValue: createMock<StorageUsageService>(),
+        },
         { provide: PrismaUnitOfWork, useValue: uow },
         { provide: TestStatusService, useValue: statusService },
         { provide: STORAGE_PROVIDER, useValue: storage },

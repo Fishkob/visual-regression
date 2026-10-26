@@ -14,6 +14,7 @@ import type { JobData } from '@common/domain/job-data.types';
 
 const jobPayload: JobData = {
   testKind: 'image',
+  projectName: 'shop',
   testId: 'test-1',
   candidateHash: 'hash-from-upload',
   candidate: { id: 'candidate-1', url: 'http://storage/candidate.png' },

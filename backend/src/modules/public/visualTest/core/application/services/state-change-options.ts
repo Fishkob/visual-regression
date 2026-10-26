@@ -97,6 +97,11 @@ export interface StateChangeOptions<R> {
 }
 
 export interface StoredFileChangeOptions<R> extends StateChangeOptions<R> {
+  // The quota is a precondition of the stored write, not a duty of the caller:
+  // a stored write that does not name its charge does not compile (ADR-043).
+  // Only evidence crosses this convention — the pdf-render cache never does, so
+  // it is exempt by construction rather than by a flag.
+  charge: { projectName: string; bytes: number };
   store: () => Promise<string>;
   change: (fileUrl: string) => Promise<StateChangeResult<R>>;
 }

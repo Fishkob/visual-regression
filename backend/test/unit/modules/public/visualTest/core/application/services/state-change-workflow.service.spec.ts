@@ -7,6 +7,8 @@ import {
   IStorageProvider,
 } from '@common/domain/storage-provider.interface';
 import { TestStatusService } from '@public/visualTest/core/application/services/test-status.service';
+import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
+import { DomainError } from '@common/domain/domain-error';
 import {
   METRICS_RECORDER,
   IMetricsRecorder,
@@ -46,6 +48,7 @@ function deleted(
 
 describe('StateChangeWorkflow', () => {
   let workflow: StateChangeWorkflow;
+  let storageUsage: Mocked<StorageUsageService>;
   let uow: Mocked<PrismaUnitOfWork>;
   let storage: Mocked<IStorageProvider>;
   let statusService: Mocked<TestStatusService>;
@@ -57,6 +60,8 @@ describe('StateChangeWorkflow', () => {
     storage = createMock<IStorageProvider>();
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
     storage.deleteQuietly.mockResolvedValue(undefined);
+    storageUsage = createMock<StorageUsageService>();
+    storageUsage.assertWithinQuota.mockResolvedValue(undefined);
     statusService = createMock<TestStatusService>();
     statusService.recomputeStatus.mockResolvedValue(undefined);
     logger = createMockLogger();
@@ -68,6 +73,7 @@ describe('StateChangeWorkflow', () => {
         { provide: PrismaUnitOfWork, useValue: uow },
         { provide: STORAGE_PROVIDER, useValue: storage },
         { provide: TestStatusService, useValue: statusService },
+        { provide: StorageUsageService, useValue: storageUsage },
         { provide: AppLoggerService, useValue: logger },
         { provide: METRICS_RECORDER, useValue: metrics },
       ],
@@ -398,8 +404,42 @@ describe('StateChangeWorkflow', () => {
   });
 
   describe('executeWithStoredFile', () => {
+    it('charges the project and byte count the caller named, before storing', async () => {
+      const store = vi.fn(() => Promise.resolve('https://storage/new.png'));
+
+      await workflow.executeWithStoredFile({
+        charge: { projectName: 'shop', bytes: 2048 },
+        store,
+        change: () => Promise.resolve(noop()),
+      });
+
+      expect(storageUsage.assertWithinQuota).toHaveBeenCalledWith('shop', 2048);
+      expect(
+        storageUsage.assertWithinQuota.mock.invocationCallOrder[0],
+      ).toBeLessThan(store.mock.invocationCallOrder[0] ?? 0);
+    });
+
+    it('leaves no object behind when the quota rejects the write', async () => {
+      storageUsage.assertWithinQuota.mockRejectedValue(
+        new DomainError('Storage quota exceeded', 'QUOTA_EXCEEDED'),
+      );
+      const store = vi.fn(() => Promise.resolve('https://storage/new.png'));
+
+      await expect(
+        workflow.executeWithStoredFile({
+          charge: { projectName: 'shop', bytes: 10 },
+          store,
+          change: () => Promise.resolve(noop()),
+        }),
+      ).rejects.toMatchObject({ code: 'QUOTA_EXCEEDED' });
+
+      expect(store).not.toHaveBeenCalled();
+      expect(storage.deleteQuietly).not.toHaveBeenCalled();
+    });
+
     it('stores the file, runs the change, and returns fileUrl + result', async () => {
       const result = await workflow.executeWithStoredFile({
+        charge: { projectName: 'shop', bytes: 1024 },
         store: () => Promise.resolve('https://storage/new.png'),
         change: () => Promise.resolve(change({ staleUrls: [], events: [] })),
       });
@@ -416,6 +456,7 @@ describe('StateChangeWorkflow', () => {
 
     it('emits events returned by the change into the state change', async () => {
       await workflow.executeWithStoredFile({
+        charge: { projectName: 'shop', bytes: 1024 },
         store: () => Promise.resolve('https://storage/new.png'),
         change: () => Promise.resolve(change({ events: [screenshotEvent()] })),
       });
@@ -425,6 +466,7 @@ describe('StateChangeWorkflow', () => {
 
     it('recomputes statuses from the affected testIds on the change result', async () => {
       await workflow.executeWithStoredFile({
+        charge: { projectName: 'shop', bytes: 1024 },
         store: () => Promise.resolve('https://storage/new.png'),
         change: () => Promise.resolve(change({ affectedTestIds: ['test-1'] })),
       });
@@ -434,6 +476,7 @@ describe('StateChangeWorkflow', () => {
 
     it('deletes stale urls reported by the change after commit', async () => {
       await workflow.executeWithStoredFile({
+        charge: { projectName: 'shop', bytes: 1024 },
         store: () => Promise.resolve('https://storage/new.png'),
         change: () =>
           Promise.resolve(change({ staleUrls: ['https://storage/old-1.png'] })),
@@ -447,6 +490,7 @@ describe('StateChangeWorkflow', () => {
     it('deletes the stored file when the change fails', async () => {
       await expect(
         workflow.executeWithStoredFile({
+          charge: { projectName: 'shop', bytes: 1024 },
           store: () => Promise.resolve('https://storage/new.png'),
           change: () => Promise.reject(new Error('boom')),
         }),
@@ -460,6 +504,7 @@ describe('StateChangeWorkflow', () => {
     it('does not compensate when no file was stored', async () => {
       await expect(
         workflow.executeWithStoredFile({
+          charge: { projectName: 'shop', bytes: 1024 },
           store: () => Promise.reject(new Error('upload boom')),
           change: () => Promise.resolve(noop()),
         }),
