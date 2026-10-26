@@ -32,6 +32,30 @@ export class ComparisonRetirementService {
     private readonly txCtx: TransactionContext,
   ) {}
 
+  // The variant-scoped recipes below all retire the same thing and differ only
+  // in which candidate rows they additionally reclaim, so the body lives once.
+  // The near-synonyms used to be three copies, and picking the wrong one was
+  // silent: an identical upload that ran the plain supersede left the CURRENT
+  // row behind, and a PROCESSING job then committed a stale comparison.
+  //
+  // Transaction-riding: call inside a StateChangeWorkflow change.
+  private async retireVariant(
+    testId: string,
+    variant: Variant,
+    extraCandidateIds: readonly string[] = [],
+  ): Promise<string[]> {
+    this.txCtx.assertInTransaction();
+    const retired = await this.comparisons.retirePendingForVariant(
+      testId,
+      variant,
+    );
+    await this.jobQueue.cancelPendingForVariant(testId, variant.toRecord());
+    return this.collectReclaimable(retired.staleDiffUrls, [
+      ...retired.candidateIds,
+      ...extraCandidateIds,
+    ]);
+  }
+
   // Upload path: a new upload supersedes the pending change for the variant.
   // Retires every pending comparison (nothing to keep) and cancels queued diff
   // jobs eagerly — the new job is enqueued after this call, so it is safe.
@@ -40,13 +64,7 @@ export class ComparisonRetirementService {
     testId: string,
     variant: Variant,
   ): Promise<string[]> {
-    this.txCtx.assertInTransaction();
-    const retired = await this.comparisons.retirePendingForVariant(
-      testId,
-      variant,
-    );
-    await this.jobQueue.cancelPendingForVariant(testId, variant.toRecord());
-    return this.collectReclaimable(retired.staleDiffUrls, retired.candidateIds);
+    return this.retireVariant(testId, variant);
   }
 
   // Identical upload: supersede the variant's pending comparisons (cancel
@@ -61,19 +79,11 @@ export class ComparisonRetirementService {
     variant: Variant,
   ): Promise<string[]> {
     this.txCtx.assertInTransaction();
-    const retired = await this.comparisons.retirePendingForVariant(
-      testId,
-      variant,
-    );
-    await this.jobQueue.cancelPendingForVariant(testId, variant.toRecord());
     const current = await this.screenshots.findCurrentByVariant(
       testId,
       variant,
     );
-    const candidateIds = current
-      ? [...retired.candidateIds, current.id]
-      : retired.candidateIds;
-    return this.collectReclaimable(retired.staleDiffUrls, candidateIds);
+    return this.retireVariant(testId, variant, current ? [current.id] : []);
   }
 
   // Approval path: retire sibling pending comparisons, delete the approved
@@ -88,16 +98,7 @@ export class ComparisonRetirementService {
     variant: Variant,
     candidateId: string,
   ): Promise<string[]> {
-    this.txCtx.assertInTransaction();
-    const retired = await this.comparisons.retirePendingForVariant(
-      testId,
-      variant,
-    );
-    await this.jobQueue.cancelPendingForVariant(testId, variant.toRecord());
-    return this.collectReclaimable(retired.staleDiffUrls, [
-      ...retired.candidateIds,
-      candidateId,
-    ]);
+    return this.retireVariant(testId, variant, [candidateId]);
   }
 
   // Worker path: persist a fresh pending comparison and retire its siblings
