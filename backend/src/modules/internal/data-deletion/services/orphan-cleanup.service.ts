@@ -101,7 +101,6 @@ export class OrphanCleanupService implements MaintenanceTask {
     if (screenshots.length === 0) return 0;
     const records = await buildDeletionRecords(
       screenshots.map((s) => ({ id: s.id, url: s.imageUrl })),
-      true,
       (urls) => this.referencedness.filterReclaimableUrls(urls),
     );
 

@@ -10,7 +10,6 @@ describe('buildDeletionRecords', () => {
         { id: '1', url: 'a' },
         { id: '2', url: 'b' },
       ],
-      true,
       async (urls) => urls.filter((u) => u !== 'b'),
     );
 
@@ -20,11 +19,10 @@ describe('buildDeletionRecords', () => {
     ]);
   });
 
-  it('keeps every url when no baseline filter is requested', async () => {
+  it('keeps every url when the filter reclaims them', async () => {
     const records = await buildDeletionRecords(
       [{ id: '1', url: 'a' }],
-      false,
-      async () => [],
+      async (urls) => urls,
     );
 
     expect(records).toEqual([{ id: '1', url: 'a' }]);
@@ -33,7 +31,6 @@ describe('buildDeletionRecords', () => {
   it('drops items without a url entirely', async () => {
     const records = await buildDeletionRecords(
       [{ id: '1', url: undefined }],
-      false,
       async () => [],
     );
 

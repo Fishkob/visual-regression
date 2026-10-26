@@ -58,7 +58,6 @@ export class FailedJobCleanupTask implements MaintenanceTask {
         id: job.id,
         url: job.payload?.candidate?.url,
       })),
-      true,
       (urls) => this.referencedness.filterReclaimableUrls(urls),
     );
 

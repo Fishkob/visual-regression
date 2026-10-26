@@ -13,20 +13,16 @@ export interface DeletableItem {
 
 /**
  * Shapes items (DB rows that may own a storage object) into
- * StorageDeletionRecord[] — a record's url is kept only when it is safe to
- * delete. When filterBaselineShared is set, URLs still referenced by a
- * baseline are marked undefined so the caller deletes the row but keeps the
- * shared object.
+ * StorageDeletionRecord[] — a record's url is kept only when `isReclaimable`
+ * says it is safe to delete, so a URL still shared with a baseline is dropped
+ * while the row itself is still deleted.
  */
 export async function buildDeletionRecords(
   items: DeletableItem[],
-  filterBaselineShared: boolean,
-  filterBaselineSharedUrls: (urls: string[]) => Promise<string[]>,
+  isReclaimable: (urls: string[]) => Promise<string[]>,
 ): Promise<StorageDeletionRecord[]> {
   const urls = items.map((item) => item.url).filter(isString);
-  const deletableUrls = new Set(
-    filterBaselineShared ? await filterBaselineSharedUrls(urls) : urls,
-  );
+  const deletableUrls = new Set(await isReclaimable(urls));
   return items.map((item) => ({
     id: item.id,
     url: item.url && deletableUrls.has(item.url) ? item.url : undefined,
