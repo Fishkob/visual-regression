@@ -90,6 +90,26 @@ describe('RunService', () => {
     expect((await service.status('shop', 'ci-1')).status.state).toBe('failed');
   });
 
+  it('reports passed when only muted comparisons remain', async () => {
+    runs.findByBranchKey.mockResolvedValue({
+      ...run,
+      finishedAt: new Date('2026-01-02'),
+    });
+    runs.statusCounts.mockResolvedValue({
+      ...baseCounts,
+      pendingComparisons: 1,
+      mutedPending: 1,
+    });
+
+    const result = await service.status('shop', 'ci-1');
+
+    // A muted test does not hold the gate (docs/ci-integration.md); the count
+    // stays in the payload so the consumer can explain the gap.
+    expect(result.status.state).toBe('passed');
+    expect(result.status.pendingComparisons).toBe(1);
+    expect(result.status.mutedPending).toBe(1);
+  });
+
   it('reports passed only for a finished run', async () => {
     runs.findByBranchKey.mockResolvedValue({
       ...run,
@@ -124,7 +144,7 @@ describe('RunService', () => {
     expect(result.status.state).toBe('passed');
   });
 
-  it('approves each pending comparison and reports partial failures', async () => {
+  it('sends every pending comparison to the approval batch', async () => {
     runs.pendingComparisonsForRun.mockResolvedValue([
       {
         id: 'cmp-1',
@@ -163,24 +183,34 @@ describe('RunService', () => {
         },
       },
     ] as never);
-    approvals.approveImage.mockResolvedValue({
-      approved: true,
-      newBaselineUrl: 'url',
-      signedNewBaselineUrl: 'url',
+    approvals.approveMany.mockResolvedValue({
+      approved: ['cmp-1'],
+      pending: [],
+      failed: [{ comparisonId: 'cmp-2', error: 'stale' }],
     });
-    approvals.approvePdf.mockRejectedValue(new Error('stale'));
 
     const principal = { principalType: 'user' as const, principalId: 'user-1' };
     const result = await service.approveAll('shop', 'ci-1', 'jane', principal);
 
     expect(result.approved).toBe(1);
     expect(result.failed).toEqual([{ comparisonId: 'cmp-2', error: 'stale' }]);
-    expect(approvals.approveImage).toHaveBeenCalledWith(
+    expect(approvals.approveMany).toHaveBeenCalledWith(
       'shop',
-      'checkout',
-      'cmp-1',
+      [
+        {
+          comparisonId: 'cmp-1',
+          testName: 'checkout',
+          kind: 'image',
+          branchName: 'main',
+        },
+        {
+          comparisonId: 'cmp-2',
+          testName: 'invoice',
+          kind: 'pdf',
+          branchName: 'main',
+        },
+      ],
       'jane',
-      'main',
       principal,
     );
   });

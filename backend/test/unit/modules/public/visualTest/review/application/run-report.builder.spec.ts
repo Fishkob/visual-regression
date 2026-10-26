@@ -5,7 +5,7 @@ import {
 } from '@public/visualTest/review/application/run-report.builder';
 import type { RunDetail } from '@public/visualTest/review/application/run.service';
 
-function detail(): RunDetail {
+function detail(muted = false): RunDetail {
   return {
     run: {
       id: 'run-1',
@@ -35,6 +35,7 @@ function detail(): RunDetail {
         },
         mismatchPixelCount: 12,
         mismatchPageCount: null,
+        muted,
         createdAt: new Date('2026-01-01'),
       },
     ],
@@ -109,6 +110,24 @@ describe('run report builders', () => {
     expect(lines[1]).toContain('"pending"');
     expect(lines[2]).toContain('"approved"');
     expect(lines[3]).toContain('"failed"');
+  });
+
+  it('reports a muted pending comparison without failing the run', () => {
+    const xml = buildRunJUnit(
+      detail(true),
+      'checkout',
+      'ci-1',
+      'https://vrt.test',
+    );
+
+    // Only the failed job is a failure: the muted comparison does not hold the
+    // gate, so the JUnit document must not contradict the gate that produced it.
+    expect(xml).toContain('<testsuites tests="3" failures="1">');
+    expect(xml).not.toContain('12 px mismatch');
+
+    const csv = buildRunCsv(detail(true), 'checkout');
+    expect(csv).toContain('"muted"');
+    expect(csv).toContain('muted, does not hold the gate');
   });
 
   it('builds a self-contained HTML report with links and counts', () => {

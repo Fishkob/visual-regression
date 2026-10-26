@@ -8,10 +8,11 @@ import {
   type RunWithBranch,
 } from '@public/visualTest/core/infrastructure/repositories/run.repository';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
-import type {
-  RunState,
-  RunStatus,
-} from '@public/visualTest/core/domain/types/run.types';
+import type { RunStatus } from '@public/visualTest/core/domain/types/run.types';
+import {
+  decideRunState,
+  isMutedNow,
+} from '@public/visualTest/core/domain/policies/run-state.policy';
 
 export interface RunDetail {
   run: RunWithBranch;
@@ -24,6 +25,10 @@ export interface RunDetail {
     variant: { viewport: string; browser: string; environment: string };
     mismatchPixelCount: number;
     mismatchPageCount: number | null;
+    // A muted test does not hold the gate (docs/ci-integration.md), so a
+    // report that lists this comparison must be able to say so instead of
+    // turning it into a failure.
+    muted: boolean;
     createdAt: Date;
   }[];
   approvals: {
@@ -117,6 +122,7 @@ export class RunService {
         },
         mismatchPixelCount: row.mismatchPixelCount,
         mismatchPageCount: row.mismatchPageCount ?? null,
+        muted: isMutedNow(row.test.mutedUntil),
         createdAt: row.createdAt,
       })),
       approvals: approvals.map((row) => ({
@@ -158,8 +164,8 @@ export class RunService {
     return { run: refreshed, status: await this.computeStatus(refreshed) };
   }
 
-  // A run-level approve-all is a loop over the run's pending comparisons, not
-  // a transaction: each approval keeps its own audit/retirement/audit row and a
+  // A run-level approve-all is the same batch every other "approve many" uses:
+  // the run only supplies the ids. Each approval keeps its own transaction, so a
   // stale one fails alone while the rest still get their chance.
   async approveAll(
     projectName: string,
@@ -170,48 +176,22 @@ export class RunService {
   ): Promise<RunApproveAllResult> {
     const run = await this.requireRun(projectName, runKey, branchName);
     const pending = await this.runs.pendingComparisonsForRun(run.id, 500);
-    const result: RunApproveAllResult = {
-      approved: 0,
-      pending: [],
-      failed: [],
+    const batch = await this.approvals.approveMany(
+      projectName,
+      pending.map((row) => ({
+        comparisonId: row.id,
+        testName: row.test.name,
+        kind: row.test.kind,
+        branchName: row.test.branch.name,
+      })),
+      actor,
+      principal,
+    );
+    return {
+      approved: batch.approved.length,
+      pending: batch.pending,
+      failed: batch.failed,
     };
-    for (const row of pending) {
-      try {
-        const outcome =
-          row.test.kind === 'image'
-            ? await this.approvals.approveImage(
-                projectName,
-                row.test.name,
-                row.id,
-                actor,
-                row.test.branch.name,
-                principal,
-              )
-            : await this.approvals.approvePdf(
-                projectName,
-                row.test.name,
-                row.id,
-                actor,
-                row.test.branch.name,
-                principal,
-              );
-        if (!outcome.approved) {
-          result.pending.push({
-            comparisonId: row.id,
-            votes: outcome.votes,
-            required: outcome.required,
-          });
-        } else {
-          result.approved += 1;
-        }
-      } catch (error) {
-        result.failed.push({
-          comparisonId: row.id,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-    return result;
   }
 
   private async requireRun(
@@ -232,21 +212,8 @@ export class RunService {
 
   private async computeStatus(run: RunWithBranch): Promise<RunStatus> {
     const counts = await this.runs.statusCounts(run.id);
-    return { ...counts, state: this.stateOf(run, counts) };
-  }
-
-  private stateOf(
-    run: RunWithBranch,
-    counts: {
-      pendingComparisons: number;
-      pendingJobs: number;
-      failedJobs: number;
-    },
-  ): RunState {
-    if (counts.failedJobs > 0) return 'failed';
-    if (counts.pendingComparisons > 0 || counts.pendingJobs > 0) {
-      return 'pending';
-    }
-    return run.finishedAt ? 'passed' : 'open';
+    // The gate rule lives in run-state.policy.ts so the share page, the report
+    // and this reader cannot answer "is it done?" differently.
+    return { ...counts, state: decideRunState(counts, run) };
   }
 }

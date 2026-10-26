@@ -5,7 +5,7 @@ interface ReportRow {
   kind: string;
   branchName: string;
   variant: string;
-  outcome: 'pending' | 'failed' | 'approved' | 'unchanged';
+  outcome: 'pending' | 'muted' | 'failed' | 'approved' | 'unchanged';
   mismatch: number;
   detail: string;
 }
@@ -18,6 +18,25 @@ function variantLabel(variant: {
   return [variant.viewport, variant.browser, variant.environment]
     .filter((part) => part.length > 0)
     .join(' / ');
+}
+
+// A muted test does not hold the run gate (run-state.policy.ts,
+// docs/ci-integration.md), so its comparison is reported but never as a
+// failure. Reported at all because the reader of a report must still see that
+// something exists and was deferred.
+function pendingOutcome(row: { muted: boolean; mismatchPixelCount: number }): {
+  outcome: 'pending' | 'muted';
+  detail: string;
+} {
+  return row.muted
+    ? {
+        outcome: 'muted',
+        detail: `${String(row.mismatchPixelCount)} px mismatch — muted, does not hold the gate`,
+      }
+    : {
+        outcome: 'pending',
+        detail: `${String(row.mismatchPixelCount)} px mismatch — needs review`,
+      };
 }
 
 function rows(detail: RunDetail): ReportRow[] {
@@ -38,15 +57,16 @@ function rows(detail: RunDetail): ReportRow[] {
     seen.add(key);
     const pendingRow = pending.get(key);
     const isApproved = approvedTests.has(upload.testName);
+    const review = pendingRow ? pendingOutcome(pendingRow) : null;
     result.push({
       testName: upload.testName,
       kind: upload.kind,
       branchName: detail.run.branch.name,
       variant,
-      outcome: pendingRow ? 'pending' : isApproved ? 'approved' : 'unchanged',
+      outcome: review ? review.outcome : isApproved ? 'approved' : 'unchanged',
       mismatch: pendingRow?.mismatchPixelCount ?? 0,
-      detail: pendingRow
-        ? `${String(pendingRow.mismatchPixelCount)} px mismatch — needs review`
+      detail: review
+        ? review.detail
         : isApproved
           ? 'Approved in this run'
           : 'Unchanged',
@@ -73,14 +93,15 @@ function rows(detail: RunDetail): ReportRow[] {
     const key = `${row.testName}|${variantLabel(row.variant)}`;
     if (seen.has(key)) continue;
     seen.add(key);
+    const review = pendingOutcome(row);
     result.push({
       testName: row.testName,
       kind: row.kind,
       branchName: row.branchName,
       variant: variantLabel(row.variant),
-      outcome: 'pending',
+      outcome: review.outcome,
       mismatch: row.mismatchPixelCount,
-      detail: `${String(row.mismatchPixelCount)} px mismatch — needs review`,
+      detail: review.detail,
     });
   }
   return result;
@@ -194,7 +215,7 @@ export function buildRunHtml(
 body{font-family:system-ui,sans-serif;margin:2rem;color:#111}
 table{border-collapse:collapse;width:100%}
 th,td{border-bottom:1px solid #ddd;padding:.5rem;text-align:left;font-size:.875rem}
-.pending{color:#b91c1c;font-weight:600}.approved{color:#15803d}.unchanged{color:#4b5563}
+.pending{color:#b91c1c;font-weight:600}.muted{color:#b45309}.approved{color:#15803d}.unchanged{color:#4b5563}
 .summary{display:flex;gap:1.5rem;margin:1rem 0;flex-wrap:wrap}
 </style>
 </head>
@@ -204,6 +225,7 @@ th,td{border-bottom:1px solid #ddd;padding:.5rem;text-align:left;font-size:.875r
 <div class="summary">
 <span>${String(status.testCount)} tests</span>
 <span>${String(status.pendingComparisons)} pending</span>
+<span>${String(status.mutedPending)} muted</span>
 <span>${String(status.approved)} approved</span>
 <span>${String(status.failedJobs)} failed jobs</span>
 </div>

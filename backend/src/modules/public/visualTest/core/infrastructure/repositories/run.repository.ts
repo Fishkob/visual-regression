@@ -199,6 +199,10 @@ export class RunRepository extends BaseRepository {
           select: {
             name: true,
             kind: true,
+            // The gate rule is run-state.policy.ts; a reader that wants to tell
+            // a muted pending comparison from a reviewable one needs the mute
+            // timestamp, not a second count query.
+            mutedUntil: true,
             branch: {
               select: { name: true, project: { select: { name: true } } },
             },

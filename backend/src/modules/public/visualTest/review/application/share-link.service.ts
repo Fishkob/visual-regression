@@ -12,6 +12,8 @@ import { BranchResolver } from '@public/visualTest/core/application/services/bra
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { RunRepository } from '@public/visualTest/core/infrastructure/repositories/run.repository';
+import { decideRunState } from '@public/visualTest/core/domain/policies/run-state.policy';
+import type { RunState } from '@public/visualTest/core/domain/types/run.types';
 import {
   ShareLinkRepository,
   type CreateShareLinkInput,
@@ -54,7 +56,7 @@ export interface SharePayload {
   run?: {
     key: string;
     branchName: string;
-    state: 'open' | 'pending' | 'failed' | 'passed';
+    state: RunState;
     finishedAt: Date | null;
     counts: {
       pendingComparisons: number;
@@ -279,15 +281,7 @@ export class ShareLinkService {
     );
     if (!run) throw new DomainError('Share link target not found', 'NOT_FOUND');
     const counts = await this.runs.statusCounts(run.id);
-    const state =
-      counts.failedJobs > 0
-        ? 'failed'
-        : counts.pendingComparisons - counts.mutedPending > 0 ||
-            counts.pendingJobs > 0
-          ? 'pending'
-          : run.finishedAt
-            ? 'passed'
-            : 'open';
+    const state = decideRunState(counts, run);
     return {
       ...base,
       run: {
