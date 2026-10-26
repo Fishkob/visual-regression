@@ -1,3 +1,4 @@
+import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectService } from '@public/visualTest/review/application/project.service';
@@ -12,7 +13,7 @@ import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { TestStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { createMock } from '@test/utils/create-mock';
-import { createMockProjectRepository } from '@test/utils/mocks';
+import { createMockProjectRepository, createMockUoW } from '@test/utils/mocks';
 
 function missingProject(name: string): DomainError {
   return new DomainError(`Project "${name}" not found`, 'NOT_FOUND');
@@ -44,6 +45,7 @@ describe('ProjectService', () => {
         { provide: ProjectGroupRepository, useValue: groups },
         { provide: BranchCommandService, useValue: branchCommands },
         { provide: AuditService, useValue: audit },
+        { provide: PrismaUnitOfWork, useValue: createMockUoW() },
       ],
     }).compile();
 

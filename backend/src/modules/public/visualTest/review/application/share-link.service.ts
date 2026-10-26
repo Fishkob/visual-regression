@@ -1,4 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
+
 import { randomBytes } from 'node:crypto';
 import { DomainError } from '@common/domain/domain-error';
 import {
@@ -89,6 +91,7 @@ export class ShareLinkService {
     private readonly runs: RunRepository,
     private readonly audit: AuditService,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasherPort,
+    private readonly uow: PrismaUnitOfWork,
   ) {}
 
   async create(
@@ -145,28 +148,35 @@ export class ShareLinkService {
     const passphraseHash = input.passphrase
       ? await this.hasher.hashPassword(input.passphrase)
       : null;
-    const row = await this.links.create({
-      tokenHash: hashToken(token),
-      scope: input.scope,
-      projectName,
-      testName: input.testName ?? null,
-      branchName,
-      runKey: input.runKey ?? null,
-      createdBy: actor,
-      passphraseHash,
-      expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000),
-    } satisfies CreateShareLinkInput);
-    await this.audit.record({
-      actor,
-      action: AUDIT_ACTIONS.shareCreate,
-      projectName,
-      testName: input.testName ?? null,
-      branchName,
-      targetType: 'share-link',
-      targetId: row.id,
-      metadata: { scope: input.scope, expiresAt: row.expiresAt.toISOString() },
+    // The link and its trail commit together: a link that hands out evidence
+    // without a record of who minted it is exactly what sharing must not do.
+    return this.uow.execute(async () => {
+      const row = await this.links.create({
+        tokenHash: hashToken(token),
+        scope: input.scope,
+        projectName,
+        testName: input.testName ?? null,
+        branchName,
+        runKey: input.runKey ?? null,
+        createdBy: actor,
+        passphraseHash,
+        expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000),
+      } satisfies CreateShareLinkInput);
+      await this.audit.record({
+        actor,
+        action: AUDIT_ACTIONS.shareCreate,
+        projectName,
+        testName: input.testName ?? null,
+        branchName,
+        targetType: 'share-link',
+        targetId: row.id,
+        metadata: {
+          scope: input.scope,
+          expiresAt: row.expiresAt.toISOString(),
+        },
+      });
+      return { link: this.toView(row), token };
     });
-    return { link: this.toView(row), token };
   }
 
   async list(projectName: string): Promise<ShareLinkView[]> {
@@ -178,17 +188,19 @@ export class ShareLinkService {
   async revoke(id: string, actor: string): Promise<ShareLinkView> {
     const row = await this.links.findById(id);
     if (!row) throw new DomainError('Share link not found', 'NOT_FOUND');
-    const revoked = row.revokedAt ? row : await this.links.revoke(id);
-    await this.audit.record({
-      actor,
-      action: AUDIT_ACTIONS.shareRevoke,
-      projectName: row.projectName,
-      testName: row.testName,
-      branchName: row.branchName,
-      targetType: 'share-link',
-      targetId: id,
+    return this.uow.execute(async () => {
+      const revoked = row.revokedAt ? row : await this.links.revoke(id);
+      await this.audit.record({
+        actor,
+        action: AUDIT_ACTIONS.shareRevoke,
+        projectName: row.projectName,
+        testName: row.testName,
+        branchName: row.branchName,
+        targetType: 'share-link',
+        targetId: id,
+      });
+      return this.toView(revoked);
     });
-    return this.toView(revoked);
   }
 
   async resolve(

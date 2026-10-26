@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
+import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import {
   PASSWORD_HASHER,
   type PasswordHasherPort,
@@ -55,6 +56,7 @@ export class UsersService {
     private readonly repo: AuthRepository,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasherPort,
     private readonly audit: AuditService,
+    private readonly uow: PrismaUnitOfWork,
   ) {}
 
   async list(): Promise<UserView[]> {
@@ -72,19 +74,23 @@ export class UsersService {
     }
     const temporaryPassword = this.tempPassword();
     const passwordHash = await this.hasher.hashPassword(temporaryPassword);
-    const user = await this.repo.createUser(username, passwordHash, {
-      role,
-      mustChangePassword: true,
-      createdBy: actor.username,
+    // The row and its trail commit together: an account created without a record
+    // of who created it is the one thing user administration must never produce.
+    return this.uow.execute(async () => {
+      const user = await this.repo.createUser(username, passwordHash, {
+        role,
+        mustChangePassword: true,
+        createdBy: actor.username,
+      });
+      await this.audit.record({
+        actor: actor.username,
+        action: AUDIT_ACTIONS.userCreate,
+        targetType: 'user',
+        targetId: user.id,
+        metadata: { username, role },
+      });
+      return { user: toView(user), temporaryPassword };
     });
-    await this.audit.record({
-      actor: actor.username,
-      action: AUDIT_ACTIONS.userCreate,
-      targetType: 'user',
-      targetId: user.id,
-      metadata: { username, role },
-    });
-    return { user: toView(user), temporaryPassword };
   }
 
   async update(
@@ -109,32 +115,36 @@ export class UsersService {
     if (id === actor.id && changes.isActive === false) {
       throw new BadRequestException('You cannot deactivate your own account');
     }
-    const updated = await this.repo.updateUser(id, {
-      ...(changes.role !== undefined ? { role: changes.role } : {}),
-      ...(changes.isActive !== undefined
-        ? {
-            isActive: changes.isActive,
-            deactivatedAt: changes.isActive ? null : new Date(),
-          }
-        : {}),
-    });
-    if (changes.isActive === false) {
-      await this.repo.deleteSessionsForUser(id);
-    }
-    await this.audit.record({
-      actor: actor.username,
-      action: AUDIT_ACTIONS.userUpdate,
-      targetType: 'user',
-      targetId: id,
-      metadata: {
-        username: target.username,
+    // Deactivation also revokes the sessions, and all three commit together —
+    // otherwise a failed audit write leaves a deactivated user still signed in.
+    return this.uow.execute(async () => {
+      const updated = await this.repo.updateUser(id, {
         ...(changes.role !== undefined ? { role: changes.role } : {}),
         ...(changes.isActive !== undefined
-          ? { isActive: changes.isActive }
+          ? {
+              isActive: changes.isActive,
+              deactivatedAt: changes.isActive ? null : new Date(),
+            }
           : {}),
-      },
+      });
+      if (changes.isActive === false) {
+        await this.repo.deleteSessionsForUser(id);
+      }
+      await this.audit.record({
+        actor: actor.username,
+        action: AUDIT_ACTIONS.userUpdate,
+        targetType: 'user',
+        targetId: id,
+        metadata: {
+          username: target.username,
+          ...(changes.role !== undefined ? { role: changes.role } : {}),
+          ...(changes.isActive !== undefined
+            ? { isActive: changes.isActive }
+            : {}),
+        },
+      });
+      return toView(updated);
     });
-    return toView(updated);
   }
 
   async resetPassword(
@@ -145,14 +155,18 @@ export class UsersService {
     if (!target) throw new NotFoundException('User not found');
     const temporaryPassword = this.tempPassword();
     const passwordHash = await this.hasher.hashPassword(temporaryPassword);
-    await this.repo.updatePassword(id, passwordHash, true);
-    await this.repo.deleteSessionsForUser(id);
-    await this.audit.record({
-      actor: actor.username,
-      action: AUDIT_ACTIONS.userResetPassword,
-      targetType: 'user',
-      targetId: id,
-      metadata: { username: target.username },
+    // Password, session revocation and trail are one change: a reset that fails
+    // to revoke the old sessions, or to record itself, is a half-done reset.
+    await this.uow.execute(async () => {
+      await this.repo.updatePassword(id, passwordHash, true);
+      await this.repo.deleteSessionsForUser(id);
+      await this.audit.record({
+        actor: actor.username,
+        action: AUDIT_ACTIONS.userResetPassword,
+        targetType: 'user',
+        targetId: id,
+        metadata: { username: target.username },
+      });
     });
     return { temporaryPassword };
   }

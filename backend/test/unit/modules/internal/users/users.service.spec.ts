@@ -5,6 +5,7 @@ import { AuthRepository } from '@internal/auth/auth.repository';
 import { AuditService } from '@internal/audit/audit.service';
 import type { PasswordHasherPort } from '@common/domain/password-hasher.interface';
 import { createMock } from '@test/utils/create-mock';
+import { createMockUoW } from '@test/utils/mocks';
 
 function user(overrides: Record<string, unknown> = {}) {
   return {
@@ -33,7 +34,7 @@ describe('UsersService', () => {
     audit.record.mockResolvedValue(undefined);
     hasher = createMock<PasswordHasherPort>();
     hasher.hashPassword.mockResolvedValue('new-hash');
-    service = new UsersService(repo, hasher, audit);
+    service = new UsersService(repo, hasher, audit, createMockUoW() as never);
   });
 
   afterEach(() => {

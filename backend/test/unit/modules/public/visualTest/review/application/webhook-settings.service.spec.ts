@@ -8,7 +8,7 @@ import { WebhookSettingsService } from '@public/visualTest/review/application/we
 import { AuditService } from '@internal/audit/audit.service';
 import type { WebhookEndpointRow } from '@internal/webhooks/webhook.types';
 import { createMock } from '@test/utils/create-mock';
-import { createMockProjectRepository } from '@test/utils/mocks';
+import { createMockProjectRepository, createMockUoW } from '@test/utils/mocks';
 
 function missingProject(name: string): DomainError {
   return new DomainError(`Project "${name}" not found`, 'NOT_FOUND');
@@ -75,6 +75,7 @@ describe('WebhookSettingsService', () => {
       deliveries,
       dispatch,
       audit,
+      createMockUoW() as never,
     );
   });
 

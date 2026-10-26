@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
+
 import { DomainError } from '@common/domain/domain-error';
 import { AuditService } from '@internal/audit/audit.service';
 import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
@@ -31,6 +33,7 @@ export class ReviewCommentService {
     private readonly comparisons: UnifiedComparisonsRepository,
     private readonly webhooks: WebhookDispatchService,
     private readonly audit: AuditService,
+    private readonly uow: PrismaUnitOfWork,
   ) {}
 
   async create(
@@ -65,35 +68,40 @@ export class ReviewCommentService {
         throw new DomainError('Comparison not found', 'NOT_FOUND');
       }
     }
-    const row = await this.comments.create({
-      projectName,
-      branchName: input.branch ?? null,
-      testId: test.id,
-      comparisonId: input.comparisonId ?? null,
-      body,
-      authorId: actor.id,
-      author: actor.username,
+    // The comment, its notification and its trail commit together: a comment that
+    // nobody was told about, or one with no record of who wrote it, is exactly the
+    // silent loss the approval path already refuses.
+    return this.uow.execute(async () => {
+      const row = await this.comments.create({
+        projectName,
+        branchName: input.branch ?? null,
+        testId: test.id,
+        comparisonId: input.comparisonId ?? null,
+        body,
+        authorId: actor.id,
+        author: actor.username,
+      });
+      await this.webhooks.enqueueReviewComment({
+        projectName,
+        testName,
+        branchName: input.branch ?? null,
+        kind: test.kind,
+        author: actor.username,
+        body,
+        comparisonId: input.comparisonId ?? null,
+      });
+      await this.audit.record({
+        actor: actor.username,
+        action: AUDIT_ACTIONS.reviewComment,
+        projectName,
+        testName,
+        branchName: input.branch ?? null,
+        targetType: 'comment',
+        targetId: row.id,
+        metadata: { comparisonId: input.comparisonId ?? null },
+      });
+      return this.toView(row);
     });
-    await this.webhooks.enqueueReviewComment({
-      projectName,
-      testName,
-      branchName: input.branch ?? null,
-      kind: test.kind,
-      author: actor.username,
-      body,
-      comparisonId: input.comparisonId ?? null,
-    });
-    await this.audit.record({
-      actor: actor.username,
-      action: AUDIT_ACTIONS.reviewComment,
-      projectName,
-      testName,
-      branchName: input.branch ?? null,
-      targetType: 'comment',
-      targetId: row.id,
-      metadata: { comparisonId: input.comparisonId ?? null },
-    });
-    return this.toView(row);
   }
 
   async list(
@@ -129,19 +137,21 @@ export class ReviewCommentService {
     if (row?.testId !== test.id) {
       throw new DomainError('Comment not found', 'NOT_FOUND');
     }
-    const resolved = row.resolvedAt
-      ? row
-      : await this.comments.resolve(id, actor);
-    await this.audit.record({
-      actor,
-      action: AUDIT_ACTIONS.reviewCommentResolve,
-      projectName,
-      testName,
-      branchName: branch ?? null,
-      targetType: 'comment',
-      targetId: id,
+    return this.uow.execute(async () => {
+      const resolved = row.resolvedAt
+        ? row
+        : await this.comments.resolve(id, actor);
+      await this.audit.record({
+        actor,
+        action: AUDIT_ACTIONS.reviewCommentResolve,
+        projectName,
+        testName,
+        branchName: branch ?? null,
+        targetType: 'comment',
+        targetId: id,
+      });
+      return this.toView(resolved);
     });
-    return this.toView(resolved);
   }
 
   private toView(row: {

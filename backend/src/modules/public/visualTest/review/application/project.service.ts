@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
+
 import {
   ProjectRepository,
   projectNotFound,
@@ -33,6 +35,7 @@ export class ProjectService {
     private readonly groups: ProjectGroupRepository,
     private readonly branchCommands: BranchCommandService,
     private readonly audit: AuditService,
+    private readonly uow: PrismaUnitOfWork,
   ) {}
 
   async getAllWithPendingFlag(
@@ -129,20 +132,22 @@ export class ProjectService {
       data.storageQuotaBytes === undefined || data.storageQuotaBytes === null
         ? data.storageQuotaBytes
         : BigInt(data.storageQuotaBytes);
-    await this.projects.updateRetention(projectName, {
-      ...data,
-      storageQuotaBytes: quotaBytes,
-    });
-    // Retention decides which evidence survives (undo history, run history), so
-    // the change is a policy decision and leaves the same kind of trail as the
-    // review policy and the pixel threshold do.
-    await this.audit.record({
-      actor: actor ?? null,
-      action: AUDIT_ACTIONS.storageRetention,
-      projectName,
-      targetType: 'project',
-      targetId: project.id,
-      metadata: { ...retentionDiff(project, data) },
+    // The settings write and its trail commit together: retention decides which
+    // evidence survives, so a change without the row that says who made it is a
+    // policy decision nobody can audit.
+    await this.uow.execute(async () => {
+      await this.projects.updateRetention(projectName, {
+        ...data,
+        storageQuotaBytes: quotaBytes,
+      });
+      await this.audit.record({
+        actor: actor ?? null,
+        action: AUDIT_ACTIONS.storageRetention,
+        projectName,
+        targetType: 'project',
+        targetId: project.id,
+        metadata: { ...retentionDiff(project, data) },
+      });
     });
   }
 
@@ -154,25 +159,27 @@ export class ProjectService {
     const trimmed = newName.trim();
     if (trimmed === projectName) return;
     const existing = await this.projects.requireByName(projectName);
-    try {
-      await this.projects.rename(projectName, trimmed);
-    } catch (error) {
-      if ((error as { code?: string }).code === 'P2002') {
-        throw new DomainError(
-          `Project "${trimmed}" already exists`,
-          'CONFLICT',
-        );
-      }
-      throw error;
-    }
-    await this.audit.record({
-      actor: actor ?? null,
-      action: AUDIT_ACTIONS.projectRename,
-      projectName: trimmed,
-      targetType: 'project',
-      targetId: existing.id,
-      metadata: { renamedFrom: projectName },
-    });
+    await this.uow
+      .execute(async () => {
+        await this.projects.rename(projectName, trimmed);
+        await this.audit.record({
+          actor: actor ?? null,
+          action: AUDIT_ACTIONS.projectRename,
+          projectName: trimmed,
+          targetType: 'project',
+          targetId: existing.id,
+          metadata: { renamedFrom: projectName },
+        });
+      })
+      .catch((error: unknown) => {
+        if ((error as { code?: string }).code === 'P2002') {
+          throw new DomainError(
+            `Project "${trimmed}" already exists`,
+            'CONFLICT',
+          );
+        }
+        throw error;
+      });
   }
 
   async updateReviewPolicy(
@@ -182,14 +189,19 @@ export class ProjectService {
   ): Promise<{ requiredApprovals: number }> {
     const project = await this.projects.requireByName(projectName);
     const from = project.requiredApprovals ?? 1;
-    await this.projects.updateRequiredApprovals(projectName, requiredApprovals);
-    await this.audit.record({
-      actor: actor ?? null,
-      action: AUDIT_ACTIONS.projectReviewPolicy,
-      projectName,
-      targetType: 'project',
-      targetId: project.id,
-      metadata: { from, to: requiredApprovals },
+    await this.uow.execute(async () => {
+      await this.projects.updateRequiredApprovals(
+        projectName,
+        requiredApprovals,
+      );
+      await this.audit.record({
+        actor: actor ?? null,
+        action: AUDIT_ACTIONS.projectReviewPolicy,
+        projectName,
+        targetType: 'project',
+        targetId: project.id,
+        metadata: { from, to: requiredApprovals },
+      });
     });
     return { requiredApprovals };
   }

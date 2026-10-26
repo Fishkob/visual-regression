@@ -1,3 +1,4 @@
+import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReviewCommentService } from '@public/visualTest/review/application/review-comment.service';
@@ -8,6 +9,7 @@ import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.serv
 import { AuditService } from '@internal/audit/audit.service';
 import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
+import { createMockUoW } from '@test/utils/mocks';
 
 describe('ReviewCommentService', () => {
   let service: ReviewCommentService;
@@ -67,6 +69,7 @@ describe('ReviewCommentService', () => {
         { provide: UnifiedComparisonsRepository, useValue: comparisons },
         { provide: WebhookDispatchService, useValue: webhooks },
         { provide: AuditService, useValue: audit },
+        { provide: PrismaUnitOfWork, useValue: createMockUoW() },
       ],
     }).compile();
 
