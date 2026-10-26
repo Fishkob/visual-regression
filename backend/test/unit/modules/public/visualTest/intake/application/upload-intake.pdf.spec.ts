@@ -46,6 +46,7 @@ import {
   createMockUoW,
   createMockLogger,
 } from '@test/utils/mocks';
+import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referencedness.interface';
 
 describe('UploadIntake (pdf kind)', () => {
   let uploadIntake: UploadIntake;
@@ -175,6 +176,13 @@ describe('UploadIntake (pdf kind)', () => {
         { provide: UnifiedComparisonsRepository, useValue: comparisons },
         { provide: ComparisonRetirementService, useValue: retirement },
         StateChangeWorkflow,
+        {
+          provide: STORAGE_OBJECT_REFERENCEDNESS,
+          useValue: {
+            filterReclaimableUrls: (urls: string[]) => Promise.resolve(urls),
+          },
+        },
+
         {
           provide: PrismaUnitOfWork,
           useValue: createMockUoW() as unknown as Mocked<PrismaUnitOfWork>,

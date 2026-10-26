@@ -35,6 +35,7 @@ import {
   createMockStorage,
   createMockUoW,
 } from '@test/utils/mocks';
+import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referencedness.interface';
 
 describe('BaselineHistoryService', () => {
   let service: BaselineHistoryService;
@@ -129,6 +130,13 @@ describe('BaselineHistoryService', () => {
         { provide: AppLoggerService, useValue: createMockLogger() },
         { provide: METRICS_RECORDER, useValue: metrics },
         StateChangeWorkflow,
+        {
+          provide: STORAGE_OBJECT_REFERENCEDNESS,
+          useValue: {
+            filterReclaimableUrls: (urls: string[]) => Promise.resolve(urls),
+          },
+        },
+
         {
           provide: StorageUsageService,
           useValue: createMock<StorageUsageService>(),

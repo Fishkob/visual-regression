@@ -6,6 +6,10 @@ import {
   STORAGE_PROVIDER,
   IStorageProvider,
 } from '@common/domain/storage-provider.interface';
+import {
+  STORAGE_OBJECT_REFERENCEDNESS,
+  IStorageObjectReferencedness,
+} from '@common/domain/storage-referencedness.interface';
 import { TestStatusService } from '@public/visualTest/core/application/services/test-status.service';
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import { DomainError } from '@common/domain/domain-error';
@@ -54,6 +58,7 @@ describe('StateChangeWorkflow', () => {
   let statusService: Mocked<TestStatusService>;
   let logger: Mocked<AppLoggerService>;
   let metrics: Mocked<IMetricsRecorder>;
+  let referencedness: Mocked<IStorageObjectReferencedness>;
 
   beforeEach(async () => {
     uow = createMockUoW() as unknown as Mocked<PrismaUnitOfWork>;
@@ -66,6 +71,10 @@ describe('StateChangeWorkflow', () => {
     statusService.recomputeStatus.mockResolvedValue(undefined);
     logger = createMockLogger();
     metrics = createMock<IMetricsRecorder>();
+    referencedness = createMock<IStorageObjectReferencedness>();
+    referencedness.filterReclaimableUrls.mockImplementation((urls: string[]) =>
+      Promise.resolve(urls),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -76,6 +85,7 @@ describe('StateChangeWorkflow', () => {
         { provide: StorageUsageService, useValue: storageUsage },
         { provide: AppLoggerService, useValue: logger },
         { provide: METRICS_RECORDER, useValue: metrics },
+        { provide: STORAGE_OBJECT_REFERENCEDNESS, useValue: referencedness },
       ],
     }).compile();
 
@@ -196,6 +206,40 @@ describe('StateChangeWorkflow', () => {
   it('does not delete stale files when none are reported', async () => {
     await workflow.executeStateChange(() =>
       Promise.resolve(change({ staleUrls: [] })),
+    );
+
+    expect(storage.deleteAll).not.toHaveBeenCalled();
+  });
+
+  it('deletes only the URLs nothing references any more', async () => {
+    // The collection sites already filter, but the deleter asks again: a caller
+    // that forgot cannot destroy an object a surviving row still points at.
+    referencedness.filterReclaimableUrls.mockResolvedValue([
+      'http://storage/stale.png',
+    ]);
+
+    await workflow.executeStateChange(() =>
+      Promise.resolve(
+        change({
+          staleUrls: ['http://storage/stale.png', 'http://storage/live.png'],
+        }),
+      ),
+    );
+
+    expect(referencedness.filterReclaimableUrls).toHaveBeenCalledWith([
+      'http://storage/stale.png',
+      'http://storage/live.png',
+    ]);
+    expect(storage.deleteAll).toHaveBeenCalledWith([
+      'http://storage/stale.png',
+    ]);
+  });
+
+  it('deletes nothing when every reported URL is still referenced', async () => {
+    referencedness.filterReclaimableUrls.mockResolvedValue([]);
+
+    await workflow.executeStateChange(() =>
+      Promise.resolve(change({ staleUrls: ['http://storage/live.png'] })),
     );
 
     expect(storage.deleteAll).not.toHaveBeenCalled();

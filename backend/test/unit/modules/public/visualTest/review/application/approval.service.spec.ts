@@ -46,6 +46,7 @@ import {
   createMockLogger,
 } from '@test/utils/mocks';
 import { AppLoggerService } from '@common/logging/app-logger.service';
+import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referencedness.interface';
 
 describe('ApprovalService', () => {
   let service: ApprovalService;
@@ -209,6 +210,13 @@ describe('ApprovalService', () => {
         { provide: TestStatusService, useValue: statusService },
         { provide: PrismaUnitOfWork, useValue: uowLocal },
         StateChangeWorkflow,
+        {
+          provide: STORAGE_OBJECT_REFERENCEDNESS,
+          useValue: {
+            filterReclaimableUrls: (urls: string[]) => Promise.resolve(urls),
+          },
+        },
+
         {
           provide: StorageUsageService,
           useValue: createMock<StorageUsageService>(),

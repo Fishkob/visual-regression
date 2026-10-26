@@ -26,6 +26,7 @@ import {
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { AuditService } from '@internal/audit/audit.service';
 import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
+import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referencedness.interface';
 
 describe('ThresholdUpdateService', () => {
   let service: ThresholdUpdateService;
@@ -65,6 +66,13 @@ describe('ThresholdUpdateService', () => {
       providers: [
         ThresholdUpdateService,
         StateChangeWorkflow,
+        {
+          provide: STORAGE_OBJECT_REFERENCEDNESS,
+          useValue: {
+            filterReclaimableUrls: (urls: string[]) => Promise.resolve(urls),
+          },
+        },
+
         {
           provide: StorageUsageService,
           useValue: createMock<StorageUsageService>(),

@@ -32,6 +32,7 @@ import {
 } from '@common/domain/metrics-recorder.interface';
 import { DomainError } from '@common/domain/domain-error';
 import { context, propagation } from '@opentelemetry/api';
+import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referencedness.interface';
 
 describe('ComparisonJobProcessor', () => {
   let processor: ComparisonJobProcessor;
@@ -189,6 +190,13 @@ describe('ComparisonJobProcessor', () => {
         { provide: TestStatusService, useValue: statusService },
         { provide: METRICS_RECORDER, useValue: metrics },
         StateChangeWorkflow,
+        {
+          provide: STORAGE_OBJECT_REFERENCEDNESS,
+          useValue: {
+            filterReclaimableUrls: (urls: string[]) => Promise.resolve(urls),
+          },
+        },
+
         { provide: StorageUsageService, useValue: storageUsage },
       ],
     }).compile();
@@ -307,6 +315,13 @@ describe('ComparisonJobProcessor', () => {
           },
           { provide: METRICS_RECORDER, useValue: metrics },
           StateChangeWorkflow,
+          {
+            provide: STORAGE_OBJECT_REFERENCEDNESS,
+            useValue: {
+              filterReclaimableUrls: (urls: string[]) => Promise.resolve(urls),
+            },
+          },
+
           {
             provide: StorageUsageService,
             useValue: createMock<StorageUsageService>(),

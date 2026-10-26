@@ -26,6 +26,10 @@ import {
   IStorageProvider,
 } from '@common/domain/storage-provider.interface';
 import {
+  STORAGE_OBJECT_REFERENCEDNESS,
+  IStorageObjectReferencedness,
+} from '@common/domain/storage-referencedness.interface';
+import {
   METRICS_RECORDER,
   IMetricsRecorder,
 } from '@common/domain/metrics-recorder.interface';
@@ -55,6 +59,8 @@ export class StateChangeWorkflow {
     private readonly statusService: TestStatusService,
     private readonly storageUsage: StorageUsageService,
     @Inject(METRICS_RECORDER) private readonly metrics: IMetricsRecorder,
+    @Inject(STORAGE_OBJECT_REFERENCEDNESS)
+    private readonly referencedness: IStorageObjectReferencedness,
   ) {}
 
   async executeStateChange<R = void>(
@@ -182,12 +188,19 @@ export class StateChangeWorkflow {
 
   private async deleteStaleFiles(stale: string[]): Promise<void> {
     if (stale.length === 0) return;
+    // Safety net at the seam that actually deletes. Every collection site already
+    // funnels its URLs through the reclaimable filter, but a new one that forgets
+    // would otherwise destroy a live object with nothing to stop it. Asking the
+    // owner of "is anything still pointing at this?" again here is idempotent —
+    // the rows the change removed are gone by now, so a genuinely stale URL stays
+    // reclaimable — and it turns "did every caller remember?" into a guarantee.
+    let pending = await this.referencedness.filterReclaimableUrls(stale);
+    if (pending.length === 0) return;
     // Transient storage failures are retried with backoff so a stale diff
     // artifact isn't leaked on a single hiccup. Each attempt retries only the
     // URLs that failed the previous one (a thrown deleteAll fails everything).
     // A persistent failure is logged — it never propagates, so onSuccess still
     // runs.
-    let pending = stale;
     for (
       let attempt = 1;
       attempt <= STALE_FILE_DELETE_MAX_ATTEMPTS;
