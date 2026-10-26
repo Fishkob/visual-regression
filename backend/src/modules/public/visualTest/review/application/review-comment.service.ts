@@ -47,7 +47,11 @@ export class ReviewCommentService {
         'BAD_REQUEST',
       );
     }
-    const test = await this.testResolver.findTest(
+    // A comment is a write: it belongs to the branch that owns the test. An
+    // inherited test resolves to its ancestor, and writing there would store a
+    // row whose branchName names a branch that does not own it — the same 409
+    // every other mutation on an inherited test already answers.
+    const test = await this.testResolver.findOwnTest(
       projectName,
       testName,
       input.branch,
@@ -114,7 +118,9 @@ export class ReviewCommentService {
     actor: string,
     branch?: string,
   ): Promise<CommentView> {
-    const test = await this.testResolver.findTest(
+    // Resolving closes the thread, so it is a write like create(): only the
+    // branch that owns the test may close its discussion.
+    const test = await this.testResolver.findOwnTest(
       projectName,
       testName,
       branch,

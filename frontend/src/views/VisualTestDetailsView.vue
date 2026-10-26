@@ -263,6 +263,7 @@ useReviewShortcuts({
       :test-name="testName"
       :branch="branch"
       :comparison-id="data?.comparison?.id"
+      :read-only="isInherited"
     />
 
     <!-- The history belongs to the variant the details resolved, not to the

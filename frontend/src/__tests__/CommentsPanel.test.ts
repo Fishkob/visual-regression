@@ -39,7 +39,7 @@ function commentDto(overrides: Record<string, unknown> = {}) {
 
 const mounted: { unmount: () => void }[] = [];
 
-function mountPanel() {
+function mountPanel(extraProps: Record<string, unknown> = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -49,6 +49,7 @@ function mountPanel() {
       testName: "login",
       branch: "main",
       comparisonId: "cmp-1",
+      ...extraProps,
     },
     global: {
       plugins: [[VueQueryPlugin, { queryClient }]],
@@ -182,6 +183,23 @@ describe("CommentsPanel", () => {
         query: { branch: "main", comparisonId: "cmp-1" },
       }),
     );
+  });
+
+  it("hides the composer and resolve action on an inherited test", async () => {
+    const wrapper = mountPanel({ readOnly: true });
+    await waitForComments(wrapper, 2);
+
+    // The thread stays readable — it belongs to the ancestor's review.
+    expect(wrapper.text()).toContain("The spacing changed here.");
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.commentsBody}"]`).exists(),
+    ).toBe(false);
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.commentsSubmit}"]`).exists(),
+    ).toBe(false);
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.commentResolve}"]`).exists(),
+    ).toBe(false);
   });
 
   it("shows the empty state when there are no comments", async () => {

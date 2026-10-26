@@ -239,6 +239,7 @@ useReviewShortcuts({
       :test-name="testName"
       :branch="branch"
       :comparison-id="data?.comparison?.id"
+      :read-only="isInherited"
     />
 
     <!-- Restoring replaces the baseline of the resolved variant and retires its

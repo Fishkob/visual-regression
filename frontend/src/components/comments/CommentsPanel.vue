@@ -15,6 +15,9 @@ const props = defineProps<{
   testName: string;
   branch?: string;
   comparisonId?: string;
+  // An inherited test is read-only in this branch: the thread is visible (it
+  // belongs to the ancestor's review), but posting and resolving are not.
+  readOnly?: boolean;
 }>();
 
 const { t } = useI18n();
@@ -153,7 +156,7 @@ function submit() {
             </div>
             <p class="whitespace-pre-wrap break-words">{{ comment.body }}</p>
             <Button
-              v-if="!comment.resolvedAt"
+              v-if="!comment.resolvedAt && !readOnly"
               type="button"
               variant="outline"
               size="sm"
@@ -166,7 +169,7 @@ function submit() {
         </ul>
       </AsyncState>
 
-      <form class="space-y-2" @submit.prevent="submit">
+      <form v-if="!readOnly" class="space-y-2" @submit.prevent="submit">
         <textarea
           v-model="body"
           rows="3"
