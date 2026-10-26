@@ -232,7 +232,7 @@ describe('Multi-variant screenshots (e2e)', () => {
         '/api/v1/projects/checkout-ui/tests/BulkApproval/approvals/all?branch=main',
       )
       .expect(201);
-    expect(approved.body).toEqual({ approved: 3, failed: [] });
+    expect(approved.body).toEqual({ approved: 3, pending: [], failed: [] });
 
     // Every approved variant promoted its candidate to the baseline and the
     // image kind completes an approval by deleting the comparison row.
@@ -296,7 +296,7 @@ describe('Multi-variant screenshots (e2e)', () => {
     const empty = await authRequest(app)
       .post('/api/v1/projects/checkout-ui/tests/NothingPending/approvals/all')
       .expect(201);
-    expect(empty.body).toEqual({ approved: 0, failed: [] });
+    expect(empty.body).toEqual({ approved: 0, pending: [], failed: [] });
 
     await authRequest(app)
       .post('/api/v1/projects/checkout-ui/tests/NoSuchTest/approvals/all')

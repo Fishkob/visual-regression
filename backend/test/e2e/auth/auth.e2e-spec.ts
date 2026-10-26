@@ -157,7 +157,14 @@ describe('Auth (e2e)', () => {
       .set('Cookie', cookie)
       .expect(200);
 
-    expect(res.body).toEqual({ username: 'admin' });
+    // The read carries the caller's role and the two states the UI gates on
+    // (R9 auth hardening); a user created without a role is a MEMBER.
+    expect(res.body).toEqual({
+      username: 'admin',
+      role: 'MEMBER',
+      mustChangePassword: false,
+      totpEnabled: false,
+    });
   });
 
   it('logs out and the session cookie stops working', async () => {
