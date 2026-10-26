@@ -91,6 +91,39 @@ describe('Review comments and decision reasons (e2e)', () => {
     ).toBe(true);
   });
 
+  it('refuses a comment on a test the branch only inherits', async () => {
+    await upload(baseline).expect(201);
+    const mainBranch = await db.branch.findFirstOrThrow({
+      where: { project: { name: 'shop' } },
+    });
+    // A branch that owns no test of its own: "login" is inherited from main.
+    await db.branch.create({
+      data: {
+        projectId: mainBranch.projectId,
+        name: 'feature/inherit',
+        targetBranchId: mainBranch.id,
+      },
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/projects/shop/tests/login/comments')
+      .set('Cookie', cookie)
+      .send({
+        body: 'Written from a branch that does not own the test',
+        branch: 'feature/inherit',
+      })
+      .expect(409);
+
+    const stored = await db.reviewComment.count();
+    expect(stored).toBe(0);
+
+    // Reading the inherited thread stays allowed.
+    await request(app.getHttpServer())
+      .get('/api/v1/projects/shop/tests/login/comments?branch=feature/inherit')
+      .set('Cookie', cookie)
+      .expect(200);
+  });
+
   it('stores a structured approval reason on the audit row', async () => {
     await upload(baseline).expect(201);
     await upload(mismatch).expect(201);
