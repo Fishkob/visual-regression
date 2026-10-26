@@ -6,6 +6,7 @@ import { BaselineRevisionRepository } from '@public/visualTest/core/infrastructu
 import { RunRepository } from '@public/visualTest/core/infrastructure/repositories/run.repository';
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import { DEFAULT_ORPHAN_GRACE_HOURS } from '@common/domain/orphan-sweep.interface';
+import { resolveRetention } from '@public/visualTest/core/domain/policies/retention-policy';
 
 export interface RetentionPreview {
   baselineRevisions: { limit: number; overflow: number };
@@ -34,19 +35,26 @@ export class RetentionPreviewService {
     if (!project) {
       throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
     }
-    const limit =
-      project.baselineRevisionLimit ?? this.config.baselineHistory.limit;
-    const days = project.runHistoryDays ?? this.config.retention.runHistoryDays;
-    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const effective = resolveRetention(project, {
+      baselineRevisionLimit: this.config.baselineHistory.limit,
+      runHistoryDays: this.config.retention.runHistoryDays,
+      orphanGraceHours: DEFAULT_ORPHAN_GRACE_HOURS,
+    });
+    const cutoff = new Date(
+      Date.now() - effective.runHistoryDays * 24 * 60 * 60 * 1000,
+    );
     const [overflow, eligible, usage] = await Promise.all([
-      this.revisions.countBeyondLimit(projectName, limit),
+      this.revisions.countBeyondLimit(
+        projectName,
+        effective.baselineRevisionLimit,
+      ),
       this.runs.countFinishedBefore(project.id, cutoff),
       this.storage.get(projectName),
     ]);
     return {
-      baselineRevisions: { limit, overflow },
-      runs: { days, eligible },
-      orphanGraceHours: project.orphanGraceHours ?? DEFAULT_ORPHAN_GRACE_HOURS,
+      baselineRevisions: { limit: effective.baselineRevisionLimit, overflow },
+      runs: { days: effective.runHistoryDays, eligible },
+      orphanGraceHours: effective.orphanGraceHours,
       storage: {
         usageBytes: usage.usageBytes,
         quotaBytes: usage.quotaBytes,
