@@ -10,6 +10,7 @@ describe('Global search (e2e)', () => {
   let app: INestApplication;
   let db: PrismaClient;
   const baseline = path.join(__dirname, 'fixtures', 'baseline_black.png');
+  const mismatch = path.join(__dirname, 'fixtures', 'baseline_blue.png');
 
   beforeAll(async () => {
     app = await TestApp.init();
@@ -88,6 +89,61 @@ describe('Global search (e2e)', () => {
           isDefault: false,
         }),
       ]),
+    );
+  });
+
+  it('keeps archived branches and their tests out of the results', async () => {
+    const project = await db.project.findUniqueOrThrow({
+      where: { name: 'checkout-ui' },
+    });
+    const archived = await db.branch.create({
+      data: {
+        name: 'legacy/archived',
+        projectId: project.id,
+        targetBranchId: project.defaultBranchId,
+        isArchived: true,
+      },
+    });
+    // A materialized test on the archived branch: a destination that no longer
+    // exists for the user.
+    await db.unifiedTest.create({
+      data: { name: 'archived-checkout', kind: 'image', branchId: archived.id },
+    });
+
+    const result = await authRequest(app)
+      .get('/api/v1/search?q=archived')
+      .expect(200);
+
+    expect(result.body.branches).toEqual([]);
+    expect(result.body.tests).toEqual([]);
+  });
+
+  it('returns one hit per materialized branch, not one per test name', async () => {
+    // The palette navigates with the hit's branch, so the same name on two
+    // branches is two destinations by design (see SearchRepository).
+    await authRequest(app)
+      // A different image: the identical fast path would leave the branch
+      // inheriting main's baseline and materialize no test of its own.
+      .post(
+        '/api/v1/projects/checkout-ui/tests/login-form/upload?testKind=image',
+      )
+      .field('branch', 'feature/checkout')
+      .field('viewport', '1920x1080')
+      .field('browser', 'Chrome')
+      .field('environment', 'staging')
+      .attach('file', fs.createReadStream(mismatch))
+      .expect(201);
+
+    const result = await authRequest(app)
+      .get('/api/v1/search?q=login-form')
+      .expect(200);
+
+    const branches = result.body.tests.map(
+      (hit: { branchName: string }) => hit.branchName,
+    );
+    expect(branches).toHaveLength(2);
+    expect(branches).toEqual(
+      expect.arrayContaining(['main', 'feature/checkout']),
     );
   });
 

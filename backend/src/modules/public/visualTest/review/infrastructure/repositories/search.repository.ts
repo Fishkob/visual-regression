@@ -26,6 +26,18 @@ export interface SearchResults {
   branches: SearchBranchHit[];
 }
 
+// Global search is a finder over *materialized* tests, not a branch-scoped
+// read: every test hit names the branch the test lives on, and the palette
+// navigates with that branch, so one name materialized on two branches returns
+// two destinations on purpose — resolving through the Branch View would either
+// multiply the hits by every branch that inherits the test or collapse them to
+// a branch the user did not ask for. ADR-027 names the inbox as such an
+// exception; this is the second one.
+//
+// Archived branches are not destinations: their tests and the branches
+// themselves stay out of the results. "Default branch" is read through the
+// project's `defaultBranch` relation — the same fact `BranchResolver` resolves —
+// rather than re-derived from the chain.
 @Injectable()
 export class SearchRepository {
   constructor(private readonly connection: PrismaConnection) {}
@@ -45,6 +57,7 @@ export class SearchRepository {
       }),
       this.client.unifiedTest.findMany({
         where: {
+          branch: { isArchived: false },
           OR: [
             { name: contains },
             { branch: { name: contains } },
@@ -67,12 +80,14 @@ export class SearchRepository {
       }),
       this.client.branch.findMany({
         where: {
+          isArchived: false,
           OR: [{ name: contains }, { project: { name: contains } }],
         },
         select: {
           name: true,
-          project: { select: { name: true, defaultBranchId: true } },
-          id: true,
+          project: {
+            select: { name: true, defaultBranch: { select: { name: true } } },
+          },
         },
         orderBy: [{ project: { name: 'asc' } }, { name: 'asc' }],
         take: limit,
@@ -91,7 +106,7 @@ export class SearchRepository {
       branches: branches.map((branch) => ({
         projectName: branch.project.name,
         branchName: branch.name,
-        isDefault: branch.project.defaultBranchId === branch.id,
+        isDefault: branch.name === branch.project.defaultBranch?.name,
       })),
     };
   }
