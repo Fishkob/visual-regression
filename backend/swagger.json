@@ -6911,6 +6911,10 @@
             "type": "object",
             "nullable": true
           },
+          "muted": {
+            "type": "boolean",
+            "description": "The test is muted, so this comparison does not hold the run gate"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -6923,6 +6927,7 @@
           "branchName",
           "variant",
           "mismatchPixelCount",
+          "muted",
           "createdAt"
         ]
       },
@@ -7610,7 +7615,8 @@
           },
           "orphanGraceHours": {
             "type": "number",
-            "nullable": true
+            "nullable": true,
+            "description": "The setting as stored: null means this project uses the global default. The value the sweeps apply is `effectiveOrphanGraceHours` on /storage/preview."
           }
         },
         "required": [
@@ -7689,8 +7695,9 @@
           "runs": {
             "$ref": "#/components/schemas/RunRetentionPreviewDto"
           },
-          "orphanGraceHours": {
-            "type": "number"
+          "effectiveOrphanGraceHours": {
+            "type": "number",
+            "description": "The grace the orphan sweeps will apply, with the global default resolved"
           },
           "storage": {
             "$ref": "#/components/schemas/RetentionStoragePreviewDto"
@@ -7699,7 +7706,7 @@
         "required": [
           "baselineRevisions",
           "runs",
-          "orphanGraceHours",
+          "effectiveOrphanGraceHours",
           "storage"
         ]
       },

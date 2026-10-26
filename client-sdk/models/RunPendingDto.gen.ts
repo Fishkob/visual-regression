@@ -12,5 +12,9 @@ export type RunPendingDto = {
     mismatchPageCount?: {
         [key: string]: unknown;
     } | null;
+    /**
+     * The test is muted, so this comparison does not hold the run gate
+     */
+    muted: boolean;
     createdAt: string;
 };

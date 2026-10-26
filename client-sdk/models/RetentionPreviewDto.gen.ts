@@ -7,6 +7,9 @@ import type { RunRetentionPreviewDto } from './RunRetentionPreviewDto.gen';
 export type RetentionPreviewDto = {
     baselineRevisions: BaselineRevisionPreviewDto;
     runs: RunRetentionPreviewDto;
-    orphanGraceHours: number;
+    /**
+     * The grace the orphan sweeps will apply, with the global default resolved
+     */
+    effectiveOrphanGraceHours: number;
     storage: RetentionStoragePreviewDto;
 };

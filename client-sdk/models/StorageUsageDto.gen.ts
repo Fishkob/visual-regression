@@ -19,5 +19,8 @@ export type StorageUsageDto = {
     diffCount: number;
     baselineRevisionLimit: number | null;
     runHistoryDays: number | null;
+    /**
+     * The setting as stored: null means this project uses the global default. The value the sweeps apply is `effectiveOrphanGraceHours` on /storage/preview.
+     */
     orphanGraceHours: number | null;
 };
