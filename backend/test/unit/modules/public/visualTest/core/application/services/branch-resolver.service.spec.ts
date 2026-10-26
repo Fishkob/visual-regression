@@ -1,9 +1,15 @@
+import { DomainError } from '@common/domain/domain-error';
 import type { Mocked } from 'vitest';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { BranchRepository } from '@public/visualTest/core/infrastructure/repositories/branch.repository';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { createMock } from '@test/utils/create-mock';
 import { MAX_BRANCH_CHAIN_DEPTH } from '@public/visualTest/core/domain/constants/branch.constants';
+import { createMockProjectRepository } from '@test/utils/mocks';
+
+function missingProject(name: string): DomainError {
+  return new DomainError(`Project "${name}" not found`, 'NOT_FOUND');
+}
 
 describe('BranchResolver', () => {
   let resolver: BranchResolver;
@@ -21,7 +27,7 @@ describe('BranchResolver', () => {
   };
 
   beforeEach(() => {
-    projects = createMock<ProjectRepository>();
+    projects = createMockProjectRepository();
     branches = createMock<BranchRepository>();
     // Default-branch resolution asks for the target chain once; tests that care
     // about depth override this.
@@ -66,7 +72,7 @@ describe('BranchResolver', () => {
     });
 
     it('throws NOT_FOUND for an unknown project', async () => {
-      projects.findByName.mockResolvedValue(null);
+      projects.requireByName.mockRejectedValue(missingProject('missing'));
 
       await expect(resolver.resolveRead('missing')).rejects.toMatchObject({
         code: 'NOT_FOUND',

@@ -5,6 +5,7 @@ import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/re
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import type { TestKind, TestStatus } from '@/prisma/client';
 import { createMock } from '@test/utils/create-mock';
+import { createMockProjectRepository } from '@test/utils/mocks';
 
 describe('UnifiedTestRepository', () => {
   let repository: UnifiedTestRepository;
@@ -33,7 +34,7 @@ describe('UnifiedTestRepository', () => {
     mockTxCtx = createMock<TransactionContext>();
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });
 
-    mockProjects = createMock<ProjectRepository>();
+    mockProjects = createMockProjectRepository();
     mockProjects.getOrCreate.mockResolvedValue({
       id: 'proj-1',
       name: 'my-project',

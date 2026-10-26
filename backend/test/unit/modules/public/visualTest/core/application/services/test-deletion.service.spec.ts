@@ -1,3 +1,4 @@
+import { DomainError } from '@common/domain/domain-error';
 import { beforeEach, describe, expect, it, type Mocked } from 'vitest';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
@@ -15,6 +16,11 @@ import { ComparisonRetirementService } from '@public/visualTest/core/application
 import { TestStatusService } from '@public/visualTest/core/application/services/test-status.service';
 import { createMock } from '@test/utils/create-mock';
 import { Prisma } from '@/prisma/client';
+import { createMockProjectRepository } from '@test/utils/mocks';
+
+function missingProject(name: string): DomainError {
+  return new DomainError(`Project "${name}" not found`, 'NOT_FOUND');
+}
 describe('TestDeletionService', () => {
   let tests: Mocked<UnifiedTestRepository>;
   let screenshots: Mocked<UnifiedScreenshotRepository>;
@@ -34,7 +40,7 @@ describe('TestDeletionService', () => {
     tests = createMock<UnifiedTestRepository>();
     screenshots = createMock<UnifiedScreenshotRepository>();
     comparisons = createMock<UnifiedComparisonsRepository>();
-    projects = createMock<ProjectRepository>();
+    projects = createMockProjectRepository();
     variants = createMock<VariantStore>();
     variants.findIdsByFilters.mockResolvedValue(['variant-1']);
     variants.deleteMany.mockResolvedValue(undefined);
@@ -490,7 +496,7 @@ describe('TestDeletionService', () => {
     });
 
     it('throws NOT_FOUND when the project does not exist', async () => {
-      projects.findByName.mockResolvedValue(null);
+      projects.requireByName.mockRejectedValue(missingProject('missing'));
 
       await expect(service.deleteProject('missing')).rejects.toThrow(
         'Project "missing" not found',

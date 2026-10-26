@@ -103,10 +103,6 @@ export class ShareLinkService {
     },
     actor: string,
   ): Promise<{ link: ShareLinkView; token: string }> {
-    const project = await this.projects.findByName(projectName);
-    if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
     let branchName: string | null = null;
     if (input.scope === 'TEST') {
       if (!input.testName) {

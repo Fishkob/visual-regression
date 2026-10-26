@@ -24,10 +24,7 @@ export class BranchResolver {
     projectName: string,
     branchName?: string,
   ): Promise<ResolvedBranch> {
-    const project = await this.projects.findByName(projectName);
-    if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
+    const project = await this.projects.requireByName(projectName);
     const defaultBranch = await this.branches.findDefault(project.id);
     if (!defaultBranch) {
       throw new DomainError(

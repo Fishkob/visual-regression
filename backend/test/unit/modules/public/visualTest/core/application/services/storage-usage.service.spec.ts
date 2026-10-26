@@ -5,6 +5,7 @@ import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastruct
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
+import { createMockProjectRepository } from '@test/utils/mocks';
 
 describe('StorageUsageService', () => {
   let service: StorageUsageService;
@@ -13,7 +14,7 @@ describe('StorageUsageService', () => {
   let comparisons: Mocked<UnifiedComparisonsRepository>;
 
   beforeEach(() => {
-    projects = createMock<ProjectRepository>();
+    projects = createMockProjectRepository();
     projects.findByName.mockResolvedValue({
       id: 'p1',
       name: 'shop',

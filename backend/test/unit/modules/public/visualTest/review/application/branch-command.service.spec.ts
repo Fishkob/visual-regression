@@ -6,6 +6,7 @@ import { BranchDeletionService } from '@public/visualTest/core/application/servi
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { createMock } from '@test/utils/create-mock';
+import { createMockProjectRepository } from '@test/utils/mocks';
 
 describe('BranchCommandService', () => {
   let service: BranchCommandService;
@@ -33,7 +34,7 @@ describe('BranchCommandService', () => {
   };
 
   beforeEach(() => {
-    projects = createMock<ProjectRepository>();
+    projects = createMockProjectRepository();
     branches = createMock<BranchRepository>();
     branchResolver = createMock<BranchResolver>();
     deletion = createMock<BranchDeletionService>();

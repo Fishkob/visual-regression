@@ -6,6 +6,7 @@ import { ProjectRepository } from '@public/visualTest/core/infrastructure/reposi
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
 import { createMock } from '@test/utils/create-mock';
+import { createMockProjectRepository } from '@test/utils/mocks';
 
 describe('TestResolver', () => {
   let service: TestResolver;
@@ -35,7 +36,7 @@ describe('TestResolver', () => {
   }
 
   beforeEach(async () => {
-    projects = createMock<ProjectRepository>();
+    projects = createMockProjectRepository();
     branches = createMock<BranchResolver>();
     branches.resolveRead.mockResolvedValue(branch);
     branchTests = createMock<BranchTestRepository>();

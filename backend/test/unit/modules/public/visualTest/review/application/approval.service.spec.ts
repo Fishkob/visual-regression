@@ -41,9 +41,10 @@ import {
 } from '@common/domain/pdf-sidecar.interface';
 import { createMock } from '@test/utils/create-mock';
 import {
-  createMockUoW,
-  createMockStorage,
   createMockLogger,
+  createMockProjectRepository,
+  createMockStorage,
+  createMockUoW,
 } from '@test/utils/mocks';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referencedness.interface';
@@ -167,7 +168,7 @@ describe('ApprovalService', () => {
   }
 
   beforeEach(async () => {
-    projects = createMock<ProjectRepository>();
+    projects = createMockProjectRepository();
     projects.findByName.mockResolvedValue({ requiredApprovals: 1 } as never);
     votes = createMock<ApprovalVoteRepository>();
     votes.hasVoted.mockResolvedValue(false);

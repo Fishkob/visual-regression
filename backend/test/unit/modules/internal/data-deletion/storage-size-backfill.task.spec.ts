@@ -6,7 +6,10 @@ import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastruc
 import type { IStorageProvider } from '@common/domain/storage-provider.interface';
 import type { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';
-import { createMockLogger } from '@test/utils/mocks';
+import {
+  createMockLogger,
+  createMockProjectRepository,
+} from '@test/utils/mocks';
 
 describe('StorageSizeBackfillTask', () => {
   let task: StorageSizeBackfillTask;
@@ -17,7 +20,7 @@ describe('StorageSizeBackfillTask', () => {
   let logger: Mocked<AppLoggerService>;
 
   beforeEach(() => {
-    projects = createMock<ProjectRepository>();
+    projects = createMockProjectRepository();
     projects.findAll.mockResolvedValue({
       data: [{ id: 'p1', name: 'shop', createdAt: new Date() }],
       total: 1,

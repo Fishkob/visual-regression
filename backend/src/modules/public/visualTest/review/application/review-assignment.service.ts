@@ -49,10 +49,7 @@ export class ReviewAssignmentService {
     },
     actor: string,
   ): Promise<AssignmentView> {
-    const project = await this.projects.findByName(projectName);
-    if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
+    const project = await this.projects.requireByName(projectName);
     const assignee = await this.users.findUserByUsername(input.assignee);
     if (!assignee) {
       throw new DomainError(`User "${input.assignee}" not found`, 'NOT_FOUND');

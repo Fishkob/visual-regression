@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { DomainError } from '@common/domain/domain-error';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ComparisonOutcomeService } from '@public/visualTest/core/application/services/comparison-outcome.service';
 import type { TrendWindow } from '@public/visualTest/core/infrastructure/repositories/comparison-outcome.repository';
@@ -18,10 +17,7 @@ export class TrendsService {
   ) {}
 
   async get(projectName: string, days = 30): Promise<ProjectTrends> {
-    const project = await this.projects.findByName(projectName);
-    if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
+    await this.projects.requireByName(projectName);
     const windowDays = Math.min(Math.max(days, 1), 365);
     const now = new Date();
     const trends = await this.outcomes.trends(projectName, windowDays, now);

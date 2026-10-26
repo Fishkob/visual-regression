@@ -26,10 +26,7 @@ export class StorageUsageService {
   ) {}
 
   async get(projectName: string): Promise<StorageUsageView> {
-    const project = await this.projects.findByName(projectName);
-    if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
+    const project = await this.projects.requireByName(projectName);
     const usage = await this.sumEvidence(projectName);
     const quota = project.storageQuotaBytes;
     const percent =

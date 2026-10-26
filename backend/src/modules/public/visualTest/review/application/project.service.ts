@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import {
+  ProjectRepository,
+  projectNotFound,
+} from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ProjectReadRepository } from '@public/visualTest/review/infrastructure/repositories/project-read.repository';
 import { ProjectGroupRepository } from '@public/visualTest/review/infrastructure/repositories/project-group.repository';
 import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
@@ -71,7 +74,7 @@ export class ProjectService {
       filters,
     );
     if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
+      throw projectNotFound(projectName);
     }
 
     // The project payload carries its own pagination meta instead of the
@@ -121,10 +124,7 @@ export class ProjectService {
     },
     actor?: string,
   ): Promise<void> {
-    const project = await this.projects.findByName(projectName);
-    if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
+    const project = await this.projects.requireByName(projectName);
     const quotaBytes =
       data.storageQuotaBytes === undefined || data.storageQuotaBytes === null
         ? data.storageQuotaBytes
@@ -153,10 +153,7 @@ export class ProjectService {
   ): Promise<void> {
     const trimmed = newName.trim();
     if (trimmed === projectName) return;
-    const existing = await this.projects.findByName(projectName);
-    if (!existing) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
+    const existing = await this.projects.requireByName(projectName);
     try {
       await this.projects.rename(projectName, trimmed);
     } catch (error) {
@@ -183,10 +180,7 @@ export class ProjectService {
     requiredApprovals: number,
     actor?: string,
   ): Promise<{ requiredApprovals: number }> {
-    const project = await this.projects.findByName(projectName);
-    if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
+    const project = await this.projects.requireByName(projectName);
     const from = project.requiredApprovals ?? 1;
     await this.projects.updateRequiredApprovals(projectName, requiredApprovals);
     await this.audit.record({
@@ -214,10 +208,6 @@ export class ProjectService {
       return this.getWithLatestVariantStatuses(projectName);
     }
     const groupId = dto.groupId;
-    const project = await this.projects.findByName(projectName);
-    if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
     if (groupId) {
       const group = await this.groups.findById(groupId);
       if (!group) {
@@ -227,7 +217,7 @@ export class ProjectService {
     await this.projects.updateGroupByName(projectName, groupId);
     const summary = await this.projectRead.getProjectSummary(projectName);
     if (!summary) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
+      throw projectNotFound(projectName);
     }
     return mapProjectSummaryToDto(summary);
   }

@@ -5,6 +5,13 @@ import { DomainError } from '@common/domain/domain-error';
 import { PrismaClient } from '@/prisma/client';
 import { DEFAULT_BRANCH_NAME } from '@public/visualTest/core/domain/constants/branch.constants';
 
+// The one wording for a missing project. Readers that resolve through a
+// different query (the paginated read models) use it too, so "not found" cannot
+// drift between endpoints.
+export function projectNotFound(projectName: string): DomainError {
+  return new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
+}
+
 export interface ProjectData {
   id: string;
   name: string;
@@ -31,6 +38,16 @@ export class ProjectRepository extends BaseRepository {
       where: { name: projectName },
     });
     return result ?? null;
+  }
+
+  // The 404-shaped lookup. Readers that need the project to exist call this
+  // instead of re-throwing the same DomainError: the message, the error code and
+  // the shape of the query live here, so a new caller cannot word "not found"
+  // differently or forget the null check.
+  async requireByName(projectName: string): Promise<ProjectData> {
+    const project = await this.findByName(projectName);
+    if (!project) throw projectNotFound(projectName);
+    return project;
   }
 
   async findAll(pagination?: {

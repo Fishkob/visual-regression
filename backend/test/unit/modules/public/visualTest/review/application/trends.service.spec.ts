@@ -4,6 +4,11 @@ import { TrendsService } from '@public/visualTest/review/application/trends.serv
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ComparisonOutcomeService } from '@public/visualTest/core/application/services/comparison-outcome.service';
 import { createMock } from '@test/utils/create-mock';
+import { createMockProjectRepository } from '@test/utils/mocks';
+
+function missingProject(name: string): DomainError {
+  return new DomainError(`Project "${name}" not found`, 'NOT_FOUND');
+}
 
 describe('TrendsService', () => {
   let service: TrendsService;
@@ -22,7 +27,7 @@ describe('TrendsService', () => {
   beforeEach(() => {
     outcomes = createMock<ComparisonOutcomeService>();
     outcomes.trends.mockResolvedValue(trends);
-    projects = createMock<ProjectRepository>();
+    projects = createMockProjectRepository();
     projects.findByName.mockResolvedValue({ id: 'p-1', name: 'shop' } as never);
     service = new TrendsService(outcomes, projects);
   });
@@ -63,7 +68,7 @@ describe('TrendsService', () => {
   });
 
   it('rejects an unknown project', async () => {
-    projects.findByName.mockResolvedValue(null);
+    projects.requireByName.mockRejectedValue(missingProject('missing'));
 
     await expect(service.get('missing')).rejects.toBeInstanceOf(DomainError);
     expect(outcomes.trends).not.toHaveBeenCalled();

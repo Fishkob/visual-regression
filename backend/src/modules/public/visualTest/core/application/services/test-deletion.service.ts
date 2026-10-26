@@ -210,13 +210,7 @@ export class TestDeletionService {
   async deleteProject(projectName: string, actor?: string): Promise<void> {
     await this.workflow.executeStateChange(
       async () => {
-        const project = await this.projects.findByName(projectName);
-        if (!project) {
-          throw new DomainError(
-            `Project "${projectName}" not found`,
-            'NOT_FOUND',
-          );
-        }
+        const project = await this.projects.requireByName(projectName);
         const testIds = await this.tests.findIdsByProjectId(project.id);
         await this.audit.record({
           actor: actor ?? null,

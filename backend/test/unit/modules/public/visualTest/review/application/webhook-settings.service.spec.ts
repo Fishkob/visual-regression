@@ -8,6 +8,11 @@ import { WebhookSettingsService } from '@public/visualTest/review/application/we
 import { AuditService } from '@internal/audit/audit.service';
 import type { WebhookEndpointRow } from '@internal/webhooks/webhook.types';
 import { createMock } from '@test/utils/create-mock';
+import { createMockProjectRepository } from '@test/utils/mocks';
+
+function missingProject(name: string): DomainError {
+  return new DomainError(`Project "${name}" not found`, 'NOT_FOUND');
+}
 
 describe('WebhookSettingsService', () => {
   let service: WebhookSettingsService;
@@ -30,7 +35,7 @@ describe('WebhookSettingsService', () => {
   } satisfies WebhookEndpointRow;
 
   beforeEach(() => {
-    projects = createMock<ProjectRepository>();
+    projects = createMockProjectRepository();
     projects.findByName.mockResolvedValue({
       id: 'project-1',
       name: 'shop',
@@ -143,7 +148,7 @@ describe('WebhookSettingsService', () => {
   });
 
   it('throws a 404 for an unknown project', async () => {
-    projects.findByName.mockResolvedValue(null);
+    projects.requireByName.mockRejectedValue(missingProject('missing'));
 
     await expect(service.list('missing')).rejects.toMatchObject({
       code: 'NOT_FOUND',

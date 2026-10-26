@@ -174,10 +174,7 @@ export class BranchCommandService {
   }
 
   private async resolveProject(projectName: string): Promise<{ id: string }> {
-    const project = await this.projects.findByName(projectName);
-    if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
+    const project = await this.projects.requireByName(projectName);
     return project;
   }
 

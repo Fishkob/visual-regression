@@ -12,6 +12,11 @@ import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { TestStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { createMock } from '@test/utils/create-mock';
+import { createMockProjectRepository } from '@test/utils/mocks';
+
+function missingProject(name: string): DomainError {
+  return new DomainError(`Project "${name}" not found`, 'NOT_FOUND');
+}
 
 describe('ProjectService', () => {
   let service: ProjectService;
@@ -23,7 +28,7 @@ describe('ProjectService', () => {
   let audit: Mocked<AuditService>;
 
   beforeEach(async () => {
-    projects = createMock<ProjectRepository>();
+    projects = createMockProjectRepository();
     projectRead = createMock<ProjectReadRepository>();
     testDeletion = createMock<TestDeletionService>();
     groups = createMock<ProjectGroupRepository>();
@@ -234,7 +239,7 @@ describe('ProjectService', () => {
     });
 
     it('rejects a missing project', async () => {
-      projects.findByName.mockResolvedValue(null);
+      projects.requireByName.mockRejectedValue(missingProject('missing'));
 
       await expect(
         service.updateProjectGroup('missing', { groupId: 'group-1' }),
@@ -334,7 +339,7 @@ describe('ProjectService', () => {
     });
 
     it('rejects an unknown project without writing or auditing', async () => {
-      projects.findByName.mockResolvedValue(null);
+      projects.requireByName.mockRejectedValue(missingProject('missing'));
 
       await expect(
         service.updateRetention('missing', { runHistoryDays: 7 }),
@@ -409,7 +414,7 @@ describe('ProjectService', () => {
     });
 
     it('rejects a missing project without writing or auditing', async () => {
-      projects.findByName.mockResolvedValue(null);
+      projects.requireByName.mockRejectedValue(missingProject('missing'));
 
       await expect(
         service.updateReviewPolicy('missing', 3),
