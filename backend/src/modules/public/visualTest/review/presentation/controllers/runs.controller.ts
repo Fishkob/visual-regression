@@ -200,7 +200,7 @@ export class RunsController {
     );
   }
 
-  @Scope('admin')
+  @Scope('approve')
   @Post(':runKey/approve-all')
   @HttpCode(200)
   @ApiOperation({ summary: 'Approve every pending comparison of a run' })

@@ -432,6 +432,8 @@
     "approveAllPending": "Approve all pending",
     "finishRun": "Finish run",
     "approveFailuresTitle": "Some comparisons could not be approved",
+    "muted": "Muted",
+    "mutedHint": "This test is muted, so it does not hold the run gate and is not approved in bulk.",
     "pendingComparisons": "Pending comparisons",
     "pendingJobs": "Pending jobs",
     "failedJobs": "Failed jobs",

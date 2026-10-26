@@ -432,6 +432,8 @@
     "approveAllPending": "Alle ausstehenden genehmigen",
     "finishRun": "Lauf abschließen",
     "approveFailuresTitle": "Einige Vergleiche konnten nicht genehmigt werden",
+    "muted": "Stumm",
+    "mutedHint": "Dieser Test ist stummgeschaltet: er hält das Run-Gate nicht auf und wird nicht in Sammelaktionen genehmigt.",
     "pendingComparisons": "Ausstehende Vergleiche",
     "pendingJobs": "Ausstehende Jobs",
     "failedJobs": "Fehlgeschlagene Jobs",

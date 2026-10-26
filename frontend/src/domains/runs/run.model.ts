@@ -82,6 +82,9 @@ export interface RunPending {
   environment?: string;
   mismatchPixelCount: number;
   mismatchPageCount: number | null;
+  // The test is muted, so this row does not hold the run gate and "approve all"
+  // deliberately leaves it pending.
+  muted: boolean;
   createdAt: string;
 }
 

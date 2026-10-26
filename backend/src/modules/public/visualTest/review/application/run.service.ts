@@ -74,10 +74,7 @@ export class RunService {
     skip: number,
     take: number,
   ): Promise<{ data: RunWithBranch[]; total: number }> {
-    const project = await this.projects.findByName(projectName);
-    if (!project) {
-      throw new DomainError(`Project "${projectName}" not found`, 'NOT_FOUND');
-    }
+    await this.projects.requireByName(projectName);
     const branch = branchName
       ? await this.branches.resolveRead(projectName, branchName)
       : undefined;
@@ -176,9 +173,15 @@ export class RunService {
   ): Promise<RunApproveAllResult> {
     const run = await this.requireRun(projectName, runKey, branchName);
     const pending = await this.runs.pendingComparisonsForRun(run.id, 500);
+    // A muted test does not hold the gate (run-state.policy.ts), so a bulk
+    // approval must not silently approve the work its owner deferred: those rows
+    // stay pending until the mute is lifted and a reviewer looks at them.
+    const reviewable = pending.filter(
+      (row) => !isMutedNow(row.test.mutedUntil),
+    );
     const batch = await this.approvals.approveMany(
       projectName,
-      pending.map((row) => ({
+      reviewable.map((row) => ({
         comparisonId: row.id,
         testName: row.test.name,
         kind: row.test.kind,

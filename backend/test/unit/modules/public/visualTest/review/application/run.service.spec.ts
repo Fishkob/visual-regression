@@ -6,6 +6,11 @@ import { BranchResolver } from '@public/visualTest/core/application/services/bra
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ApprovalService } from '@public/visualTest/review/application/approval.service';
 import { createMock } from '@test/utils/create-mock';
+import { createMockProjectRepository } from '@test/utils/mocks';
+
+function missingProject(name: string): DomainError {
+  return new DomainError(`Project "${name}" not found`, 'NOT_FOUND');
+}
 
 describe('RunService', () => {
   let service: RunService;
@@ -49,7 +54,7 @@ describe('RunService', () => {
       isDefault: true,
       isArchived: false,
     });
-    projects = createMock<ProjectRepository>();
+    projects = createMockProjectRepository();
     projects.findByName.mockResolvedValue({
       id: 'p-1',
       name: 'shop',
@@ -215,6 +220,62 @@ describe('RunService', () => {
     );
   });
 
+  it('leaves a muted comparison out of a bulk approval', async () => {
+    runs.pendingComparisonsForRun.mockResolvedValue([
+      {
+        id: 'cmp-muted',
+        mismatchPixelCount: 5,
+        mismatchPageCount: null,
+        createdAt: new Date(),
+        test: {
+          name: 'flaky',
+          kind: 'image',
+          mutedUntil: new Date(Date.now() + 60_000),
+          branch: { name: 'main' },
+        },
+        baseline: { variant: null },
+      },
+      {
+        id: 'cmp-live',
+        mismatchPixelCount: 9,
+        mismatchPageCount: null,
+        createdAt: new Date(),
+        test: {
+          name: 'checkout',
+          kind: 'image',
+          mutedUntil: null,
+          branch: { name: 'main' },
+        },
+        baseline: { variant: null },
+      },
+    ] as never);
+    approvals.approveMany.mockResolvedValue({
+      approved: ['cmp-live'],
+      pending: [],
+      failed: [],
+    });
+
+    const principal = { principalType: 'user' as const, principalId: 'user-1' };
+    const result = await service.approveAll('shop', 'ci-1', 'jane', principal);
+
+    // A muted test does not hold the gate, so "approve all" must not approve the
+    // work its owner deferred.
+    expect(approvals.approveMany).toHaveBeenCalledWith(
+      'shop',
+      [
+        {
+          comparisonId: 'cmp-live',
+          testName: 'checkout',
+          kind: 'image',
+          branchName: 'main',
+        },
+      ],
+      'jane',
+      principal,
+    );
+    expect(result.approved).toBe(1);
+  });
+
   it('lists runs only for an existing project', async () => {
     runs.listForProject.mockResolvedValue({ data: [run], total: 1 });
 
@@ -225,7 +286,7 @@ describe('RunService', () => {
   });
 
   it('rejects listing a missing project', async () => {
-    projects.findByName.mockResolvedValue(null);
+    projects.requireByName.mockRejectedValue(missingProject('missing'));
 
     await expect(
       service.list('missing', undefined, 0, 20),

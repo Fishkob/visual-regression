@@ -59,6 +59,7 @@ const pendingDto = (
   },
   mismatchPixelCount: 42,
   mismatchPageCount: null,
+  muted: false,
   createdAt: "2026-10-20T10:01:00.000Z",
   ...overrides,
 });
@@ -189,8 +190,13 @@ describe("mapRunPending", () => {
       environment: "staging",
       mismatchPixelCount: 42,
       mismatchPageCount: null,
+      muted: false,
       createdAt: "2026-10-20T10:01:00.000Z",
     });
+  });
+
+  it("keeps a muted row marked so the view can explain it", () => {
+    expect(mapRunPending(pendingDto({ muted: true })).muted).toBe(true);
   });
 
   it("maps a pdf row's page count", () => {

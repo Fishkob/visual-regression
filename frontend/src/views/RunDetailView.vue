@@ -401,6 +401,14 @@ function mismatchLabel(item: RunPending): string {
                     <Badge variant="destructive">
                       {{ mismatchLabel(item) }}
                     </Badge>
+                    <Badge
+                      v-if="item.muted"
+                      variant="outline"
+                      class="ml-1 align-middle"
+                      :title="t('runDetail.mutedHint')"
+                    >
+                      {{ t("runDetail.muted") }}
+                    </Badge>
                   </TableCell>
                   <TableCell class="whitespace-nowrap text-sm">
                     <span :title="absoluteTime(item.createdAt)">

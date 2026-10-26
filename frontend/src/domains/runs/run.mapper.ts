@@ -65,10 +65,11 @@ function presentRunState(value: string | undefined): RunState {
 // RunSource: the mapper accepts the generated type as-is and normalizes.
 export type RunPendingSource = Omit<
   RunPendingDto,
-  "variant" | "mismatchPageCount"
+  "variant" | "mismatchPageCount" | "muted"
 > & {
   variant?: { [key: string]: unknown };
   mismatchPageCount?: unknown;
+  muted?: unknown;
 };
 
 function toKind(kind: string | undefined): TestKind | undefined {
@@ -130,6 +131,7 @@ export function mapRunPending(dto: RunPendingSource): RunPending {
     ...variantParts(dto.variant),
     mismatchPixelCount: dto.mismatchPixelCount,
     mismatchPageCount: presentNumber(dto.mismatchPageCount),
+    muted: dto.muted === true,
     createdAt: presentIso(dto.createdAt) ?? "",
   };
 }

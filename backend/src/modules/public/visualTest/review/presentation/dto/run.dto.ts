@@ -73,6 +73,15 @@ export class RunPendingDto {
   @Expose()
   mismatchPageCount?: number | null;
 
+  // A muted test does not hold the gate, so "approve all pending" leaves it
+  // pending on purpose; the row says so instead of looking like an oversight.
+  @ApiProperty({
+    description:
+      'The test is muted, so this comparison does not hold the run gate',
+  })
+  @Expose()
+  muted!: boolean;
+
   @ApiProperty()
   @Expose()
   createdAt!: Date;
