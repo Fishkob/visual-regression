@@ -8,12 +8,50 @@ import {
 // reviewer-facing count, so this spec pins both shapes: a change here is a
 // change to what every reviewer surface calls reviewable.
 describe('reviewable pending predicate', () => {
-  describe('reviewablePendingWhere', () => {
-    it('accepts an unmuted test and a mute that has expired', () => {
-      const now = new Date('2026-10-26T10:00:00.000Z');
+  const now = new Date('2026-10-26T10:00:00.000Z');
+  const muteWindow = {
+    OR: [{ mutedUntil: null }, { mutedUntil: { lte: now } }],
+  };
 
-      expect(reviewablePendingWhere(now)).toEqual({
-        OR: [{ mutedUntil: null }, { mutedUntil: { lte: now } }],
+  describe('reviewablePendingWhere', () => {
+    it('carries the pending status and the mute window together', () => {
+      expect(reviewablePendingWhere({ now })).toEqual({
+        status: 'PENDING_APPROVAL',
+        test: { AND: [muteWindow] },
+      });
+    });
+
+    it('keeps the caller filters and appends the mute predicate', () => {
+      const where = reviewablePendingWhere({
+        now,
+        test: { kind: 'image', AND: [{ tags: { has: 'flaky' } }] },
+      });
+
+      expect(where.test).toEqual({
+        kind: 'image',
+        AND: [{ tags: { has: 'flaky' } }, muteWindow],
+      });
+    });
+
+    it('normalizes a single-object AND to a list', () => {
+      const where = reviewablePendingWhere({
+        now,
+        test: { AND: { name: 'checkout' } },
+      });
+
+      expect(where.test?.AND).toEqual([{ name: 'checkout' }, muteWindow]);
+    });
+
+    it('keeps the other caller filters untouched', () => {
+      const where = reviewablePendingWhere({
+        now,
+        test: { branch: { name: 'main' }, OR: [{ name: 'a' }] },
+      });
+
+      expect(where.test).toEqual({
+        branch: { name: 'main' },
+        OR: [{ name: 'a' }],
+        AND: [muteWindow],
       });
     });
 
@@ -22,13 +60,12 @@ describe('reviewable pending predicate', () => {
       const where = reviewablePendingWhere();
       const after = new Date();
 
-      const cutoff = where.OR?.[1] as { mutedUntil: { lte: Date } };
-      expect(cutoff.mutedUntil.lte.getTime()).toBeGreaterThanOrEqual(
-        before.getTime(),
-      );
-      expect(cutoff.mutedUntil.lte.getTime()).toBeLessThanOrEqual(
-        after.getTime(),
-      );
+      const and = (where.test?.AND ?? []) as {
+        OR: [{ mutedUntil: null }, { mutedUntil: { lte: Date } }];
+      }[];
+      const cutoff = and[0].OR[1].mutedUntil.lte;
+      expect(cutoff.getTime()).toBeGreaterThanOrEqual(before.getTime());
+      expect(cutoff.getTime()).toBeLessThanOrEqual(after.getTime());
     });
   });
 

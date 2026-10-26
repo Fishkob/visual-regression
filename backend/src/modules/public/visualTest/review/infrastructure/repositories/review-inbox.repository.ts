@@ -4,7 +4,6 @@ import { findManyWithCount } from '@/prisma/find-many-with-count';
 import { Prisma } from '@/prisma/client';
 import type { TestKind } from '@common/domain/test-kind';
 import { UNASSIGNED_GROUP_FILTER } from '@common/domain/group-filter';
-import { PENDING_APPROVAL_STATUS_FILTER } from '@public/visualTest/core/domain/types/visual-test.types';
 import {
   REVIEWABLE_PENDING_SQL,
   reviewablePendingWhere,
@@ -105,11 +104,6 @@ export class ReviewInboxRepository {
         some: { assigneeId: filters.assigneeId, completedAt: null },
       };
     }
-    // Muted tests stay out of the review queue until their mute expires; the
-    // comparison is still created, so unmuting makes it visible again. The
-    // predicate is shared with every reviewer-facing count so the badge and the
-    // queue cannot disagree about what is reviewable.
-    testWhere.AND = [reviewablePendingWhere()];
     if (filters?.q) {
       testWhere.OR = [
         { name: { contains: filters.q, mode: 'insensitive' } },
@@ -123,9 +117,12 @@ export class ReviewInboxRepository {
       ];
     }
 
+    // "Pending ∧ not muted" comes from the shared predicate, in its complete
+    // form: the status rides along, so this reader cannot forget it. Muted tests
+    // stay out of the queue until their mute expires; the comparison still
+    // exists, so unmuting makes it visible again.
     const where: Prisma.UnifiedComparisonWhereInput = {
-      ...PENDING_APPROVAL_STATUS_FILTER,
-      test: testWhere,
+      ...reviewablePendingWhere({ test: testWhere }),
       ...(filters?.runKey ? { runKey: filters.runKey } : {}),
     };
     const { data, total } = await findManyWithCount<InboxComparisonRow>(
