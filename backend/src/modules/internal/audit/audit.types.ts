@@ -39,7 +39,11 @@ export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];
 
 export interface AuditEntry {
   actor?: string | null;
-  action: string;
+  // The union, not `string`: a misspelled action used to compile and then
+  // disappear from the read filter, which is exactly the drift AUDIT_ACTIONS
+  // exists to prevent. The *filter* stays a plain string on purpose — it arrives
+  // from a query parameter.
+  action: AuditAction;
   projectName?: string | null;
   testName?: string | null;
   branchName?: string | null;
