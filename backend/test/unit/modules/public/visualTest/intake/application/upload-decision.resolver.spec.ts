@@ -97,7 +97,7 @@ describe('UploadDecisionResolver', () => {
     vi.restoreAllMocks();
   });
 
-  describe('resolveIdentical', () => {
+  describe('peekIdentical', () => {
     it('resolves the default branch when no branch is given', async () => {
       branches.findReadOrNull.mockResolvedValue(mainBranch);
       tests.findByBranchAndTestName.mockResolvedValue(makeTest());
@@ -106,7 +106,7 @@ describe('UploadDecisionResolver', () => {
         needsRefresh: false,
       });
 
-      const result = await resolver.resolveIdentical(params, 'same-hash');
+      const result = await resolver.peekIdentical(params, 'same-hash');
 
       expect(result).toEqual({ testId: 'test-1', branch: mainBranch });
       expect(branches.findReadOrNull).toHaveBeenCalledWith(
@@ -122,7 +122,7 @@ describe('UploadDecisionResolver', () => {
     it('returns null without writing when the branch does not exist yet', async () => {
       branches.findReadOrNull.mockResolvedValue(null);
 
-      const result = await resolver.resolveIdentical(params, 'hash');
+      const result = await resolver.peekIdentical(params, 'hash');
 
       expect(result).toBeNull();
       expect(tests.findByBranchAndTestName).not.toHaveBeenCalled();
@@ -133,7 +133,7 @@ describe('UploadDecisionResolver', () => {
       branches.findReadOrNull.mockResolvedValue(mainBranch);
       tests.findByBranchAndTestName.mockResolvedValue(null);
 
-      const result = await resolver.resolveIdentical(params, 'hash');
+      const result = await resolver.peekIdentical(params, 'hash');
 
       expect(result).toBeNull();
       expect(baselines.peekEffectiveBaseline).not.toHaveBeenCalled();
@@ -150,7 +150,7 @@ describe('UploadDecisionResolver', () => {
         needsRefresh: true,
       });
 
-      const result = await resolver.resolveIdentical(params, 'same-hash');
+      const result = await resolver.peekIdentical(params, 'same-hash');
 
       expect(result).toBeNull();
     });
@@ -163,7 +163,7 @@ describe('UploadDecisionResolver', () => {
         needsRefresh: false,
       });
 
-      const result = await resolver.resolveIdentical(params, 'hash');
+      const result = await resolver.peekIdentical(params, 'hash');
 
       expect(result).toBeNull();
     });
@@ -174,7 +174,7 @@ describe('UploadDecisionResolver', () => {
         isArchived: true,
       });
 
-      const result = await resolver.resolveIdentical(params, 'hash');
+      const result = await resolver.peekIdentical(params, 'hash');
 
       expect(result).toBeNull();
       expect(tests.findByBranchAndTestName).not.toHaveBeenCalled();

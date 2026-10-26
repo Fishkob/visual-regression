@@ -123,7 +123,7 @@ export class UploadIntake {
         // It re-resolves inside its own retried Serializable transaction; if a
         // concurrent approval replaced the baseline in between, it returns null
         // and the stored path below re-resolves atomically and wins.
-        const identicalDecision = await this.decisions.resolveIdentical(
+        const identicalDecision = await this.decisions.peekIdentical(
           params,
           fileHash,
         );
@@ -194,9 +194,9 @@ export class UploadIntake {
     }>(async () => {
       // Read-only re-resolution inside the transaction: the gate must not
       // ensureTest, otherwise a test deleted between the gate and here is
-      // resurrected and the noop commits its freshly created rows. resolveIdentical
+      // resurrected and the noop commits its freshly created rows. peekIdentical
       // is the side-effect-free resolution shape — it never ensures a row.
-      const fresh = await this.decisions.resolveIdentical(params, fileHash);
+      const fresh = await this.decisions.peekIdentical(params, fileHash);
       if (!fresh) {
         return { change: noop(), result: { superseded: false } };
       }

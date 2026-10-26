@@ -35,12 +35,13 @@ export class UploadDecisionResolver {
     private readonly branchTests: BranchTestRepository,
   ) {}
 
-  // Read-only gate resolution: finds the test without creating it and reports
-  // only when the upload is genuinely identical (hash === baseline hash). A
-  // concurrent approval that replaces the baseline between the gate and the
-  // caller's transaction resolves to null here, so the stored path re-resolves
-  // atomically and wins.
-  async resolveIdentical(
+  // Read-only *peek*, not a decision: it answers "does this look identical right
+  // now?" without creating a branch, test, variant or clone, and its answer is
+  // allowed to be stale. The authoritative answer comes from `resolveStored`
+  // inside the workflow transaction, which is why the upload path calls the peek
+  // once to decide whether to store at all and then re-resolves — the name says
+  // which of the two a reader is looking at.
+  async peekIdentical(
     params: UploadParams,
     fileHash: string,
   ): Promise<{ testId: string; branch: ResolvedBranch } | null> {
