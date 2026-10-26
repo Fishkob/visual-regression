@@ -39,17 +39,20 @@ export default defineConfig({
     env: {
       NODE_ENV: 'test',
       LOG_LEVEL: 'debug',
-      DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/vrt',
+      // A dedicated database and bucket: the suite truncates what it can see
+      // and the sweeps delete what they consider orphaned, so it must never
+      // share the dev stack's data.
+      DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/vrt_e2e',
       POSTGRES_HOST: 'localhost',
       POSTGRES_PORT: '5432',
       POSTGRES_USER: 'postgres',
       POSTGRES_PASSWORD: 'postgres',
-      POSTGRES_DB: 'vrt',
+      POSTGRES_DB: 'vrt_e2e',
       RUSTFS_ENDPOINT: 'localhost',
       RUSTFS_PORT: '9000',
       RUSTFS_ACCESS_KEY: 'rustfsadmin',
       RUSTFS_SECRET_KEY: 'rustfsadmin',
-      RUSTFS_BUCKET: 'vrt',
+      RUSTFS_BUCKET: 'vrt-e2e',
       RUSTFS_USE_SSL: 'false',
       RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       PDF_SIDECAR_URL: 'http://localhost:3001',
