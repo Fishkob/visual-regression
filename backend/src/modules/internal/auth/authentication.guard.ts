@@ -10,6 +10,7 @@ import { IS_PUBLIC_KEY } from '@common/http/public.decorator';
 import { IS_SESSION_ONLY_KEY } from '@common/http/session-only.decorator';
 import { ROLES_KEY, type AppRole } from '@common/http/roles.decorator';
 import { ACCOUNT_LIFECYCLE_KEY } from '@common/http/account-lifecycle.decorator';
+import { isCredentialLive } from './credential-liveness.policy';
 import {
   API_KEY_SCOPE_KEY,
   type ApiKeyScope,
@@ -42,11 +43,7 @@ export class AuthenticationGuard implements CanActivate {
 
     if (cookie) {
       const session = await this.repo.findSessionByTokenHash(hashToken(cookie));
-      if (
-        session &&
-        !session.revokedAt &&
-        session.expiresAt.getTime() > Date.now()
-      ) {
+      if (session && isCredentialLive(session)) {
         const user = await this.repo.findUserById(session.userId);
         if (!user?.isActive) {
           // Session outlived its user (deleted/deactivated account) — do not

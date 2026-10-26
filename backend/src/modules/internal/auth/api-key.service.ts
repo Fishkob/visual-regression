@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { DomainError } from '@common/domain/domain-error';
+import { isCredentialLive } from './credential-liveness.policy';
 import {
   AuthRepository,
   type ApiKeyRetirement,
@@ -149,7 +150,7 @@ export class ApiKeyService {
   ): Promise<RotatedApiKey> {
     const current = await this.findOrFail(id);
     const now = new Date();
-    if (!this.isActive(current, now.getTime())) {
+    if (!this.isActive(current, now)) {
       throw new DomainError(
         'Only an active API key can be rotated',
         'INVALID_STATE',
@@ -225,7 +226,7 @@ export class ApiKeyService {
     projectNames: string[];
   } | null> {
     const row = await this.repo.findApiKeyByHash(hashToken(rawKey));
-    if (!row || !this.isActive(row, Date.now())) return null;
+    if (!row || !this.isActive(row)) return null;
     await this.recordUsage(row);
     return {
       id: row.id,
@@ -269,9 +270,10 @@ export class ApiKeyService {
     return row;
   }
 
-  private isActive(row: ApiKeyRow, now: number): boolean {
-    if (row.revokedAt) return false;
-    return !row.expiresAt || row.expiresAt.getTime() > now;
+  // The liveness rule is shared with the session path (credential-liveness.policy);
+  // a key may be non-expiring, a session may not.
+  private isActive(row: ApiKeyRow, now = new Date()): boolean {
+    return isCredentialLive(row, now);
   }
 
   private toView(row: ApiKeyRow, now = Date.now()): ApiKeyView {
@@ -292,7 +294,7 @@ export class ApiKeyService {
       replacedById: row.replacedById,
       status: row.revokedAt
         ? 'revoked'
-        : this.isActive(row, now)
+        : this.isActive(row, new Date(now))
           ? 'active'
           : 'expired',
     };
