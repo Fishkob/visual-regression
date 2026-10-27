@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaConnection } from '@/prisma/prisma-connection';
+import { BaseRepository } from '@/prisma/base.repository';
 import { DomainError } from '@common/domain/domain-error';
 
 export interface ProjectGroupSummary {
@@ -25,14 +25,12 @@ function toSummary(row: GroupRow): ProjectGroupSummary {
   };
 }
 
+// Transaction-aware for consistency with every other repository: group writes
+// are standalone administration (no audit row rides them, so nothing asserts),
+// and BaseRepository resolves to the bare connection when no transaction is
+// open.
 @Injectable()
-export class ProjectGroupRepository {
-  constructor(private readonly connection: PrismaConnection) {}
-
-  private get client() {
-    return this.connection.client;
-  }
-
+export class ProjectGroupRepository extends BaseRepository {
   async findAll(): Promise<ProjectGroupSummary[]> {
     const rows = await this.client.projectGroup.findMany({
       orderBy: { name: 'asc' },

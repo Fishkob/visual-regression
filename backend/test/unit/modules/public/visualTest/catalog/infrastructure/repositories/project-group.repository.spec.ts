@@ -1,12 +1,12 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { PrismaConnection } from '@/prisma/prisma-connection';
+import { TransactionContext } from '@/prisma/transaction-context';
 import { ProjectGroupRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-group.repository';
 import { createMock } from '@test/utils/create-mock';
 
 describe('ProjectGroupRepository', () => {
   let repository: ProjectGroupRepository;
-  let mockConnection: Mocked<PrismaConnection>;
+  let txCtx: Mocked<TransactionContext>;
   let mockClient: any;
 
   beforeEach(async () => {
@@ -21,15 +21,17 @@ describe('ProjectGroupRepository', () => {
       },
     };
 
-    mockConnection = createMock<PrismaConnection>();
-    Object.defineProperty(mockConnection, 'client', {
+    // Transaction-aware: the repository asks the ambient context for its
+    // client, which is the bare connection when no transaction is open.
+    txCtx = createMock<TransactionContext>();
+    Object.defineProperty(txCtx, 'client', {
       get: () => mockClient,
     });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProjectGroupRepository,
-        { provide: PrismaConnection, useValue: mockConnection },
+        { provide: TransactionContext, useValue: txCtx },
       ],
     }).compile();
 

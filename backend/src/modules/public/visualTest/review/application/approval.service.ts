@@ -29,6 +29,7 @@ import {
   IPdfRenderCache,
 } from '@common/domain/pdf-sidecar.interface';
 import { ComparisonStatus } from '@public/visualTest/core/domain/types/visual-test.types';
+import { REQUIRED_APPROVALS_MIN } from '@public/visualTest/core/domain/constants/review-policy.constants';
 import { TRACKED_OPERATIONS } from '@common/domain/metrics-catalog';
 import {
   STORAGE_PROVIDER,
@@ -143,7 +144,10 @@ export class ApprovalService {
     principal: ApprovalPrincipal;
   }): Promise<{ partial: true; votes: number; required: number } | null> {
     const project = await this.projects.findByName(input.projectName);
-    const required = Math.max(1, project?.requiredApprovals ?? 1);
+    const required = Math.max(
+      REQUIRED_APPROVALS_MIN,
+      project?.requiredApprovals ?? REQUIRED_APPROVALS_MIN,
+    );
     if (required <= 1) return null;
     // A 4-eyes gate counts humans: a CI key is one credential a single operator
     // controls, so allowing it to vote would let that operator satisfy N>1.

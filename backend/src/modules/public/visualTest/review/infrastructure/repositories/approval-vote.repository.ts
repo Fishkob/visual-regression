@@ -33,12 +33,4 @@ export class ApprovalVoteRepository extends BaseRepository {
       },
     });
   }
-
-  async listForComparison(comparisonId: string) {
-    return this.client.approvalVote.findMany({
-      where: { comparisonId },
-      orderBy: { approvedAt: 'asc' },
-      select: { username: true, approvedAt: true },
-    });
-  }
 }

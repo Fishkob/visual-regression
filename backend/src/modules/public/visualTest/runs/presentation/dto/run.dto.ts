@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
+import { PaginationDto } from '@common/dto/pagination.dto';
 
 export class RunDto {
   @ApiProperty()
@@ -237,21 +238,11 @@ export class RunApproveAllResultDto {
   failed!: { comparisonId: string; error: string }[];
 }
 
-export class RunListQueryDto {
+// Page, limit, skip and take come from the shared pagination DTO — a run list is
+// not a special case, and re-deriving them here is how the two drift apart.
+export class RunListQueryDto extends PaginationDto {
   @ApiPropertyOptional({ description: 'Filter by branch (defaults to all)' })
   @IsOptional()
   @IsString()
   branch?: string;
-
-  @ApiPropertyOptional({ default: 1 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  page?: number;
-
-  @ApiPropertyOptional({ default: 20 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  limit?: number;
 }

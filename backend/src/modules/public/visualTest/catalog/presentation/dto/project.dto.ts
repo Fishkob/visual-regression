@@ -1,4 +1,8 @@
 import { Expose, Type } from 'class-transformer';
+import {
+  REQUIRED_APPROVALS_MAX,
+  REQUIRED_APPROVALS_MIN,
+} from '@public/visualTest/core/domain/constants/review-policy.constants';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Allow,
@@ -71,8 +75,8 @@ export class ProjectDto {
   })
   @IsOptional()
   @IsInt()
-  @Min(1)
-  @Max(10)
+  @Min(REQUIRED_APPROVALS_MIN)
+  @Max(REQUIRED_APPROVALS_MAX)
   @Expose()
   requiredApprovals?: number;
 
@@ -239,27 +243,27 @@ export class UpdateProjectDto {
 export class UpdateProjectReviewPolicyDto {
   @ApiProperty({
     description: 'Approvals needed to finalize a comparison',
-    minimum: 1,
-    maximum: 10,
+    minimum: REQUIRED_APPROVALS_MIN,
+    maximum: REQUIRED_APPROVALS_MAX,
     example: 2,
   })
   @Type(() => Number)
   @IsInt()
-  @Min(1)
-  @Max(10)
+  @Min(REQUIRED_APPROVALS_MIN)
+  @Max(REQUIRED_APPROVALS_MAX)
   requiredApprovals!: number;
 }
 
 export class ProjectReviewPolicyDto {
   @ApiProperty({
     description: 'Approvals needed to finalize a comparison',
-    minimum: 1,
-    maximum: 10,
+    minimum: REQUIRED_APPROVALS_MIN,
+    maximum: REQUIRED_APPROVALS_MAX,
     example: 2,
   })
   @IsInt()
-  @Min(1)
-  @Max(10)
+  @Min(REQUIRED_APPROVALS_MIN)
+  @Max(REQUIRED_APPROVALS_MAX)
   @Expose()
   requiredApprovals!: number;
 }

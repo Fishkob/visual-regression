@@ -115,7 +115,7 @@ Before starting any work:
 
 Full conventions in `backend/AGENTS.md`. The facts an agent needs before reaching it:
 
-- Feature modules under `src/modules/public/visualTest/` (core/ intake/ review/), internal under `src/modules/internal/`
+- Feature modules under `src/modules/public/visualTest/` (core/ intake/ review/ catalog/ runs/ access/ notifications/), internal under `src/modules/internal/`
 - Strategy pattern via multi-provider DI collections (`COMPARISON_ENGINES`, `MAINTENANCE_TASKS`); tokens as `export const TOKEN = 'TOKEN'` in `common/domain/`
 - Path aliases: `@common/*`, `@public/*`, `@internal/*`, `@config/*`, `@prisma/*`, `@/*`, `@test/*`
 
@@ -137,6 +137,6 @@ Full conventions in `client-sdk/AGENTS.md`. The facts an agent needs before reac
 
 ## Current State
 
-**lint ✓ | typecheck:all ✓ | format ✓ | backend unit 1735/1735 | backend e2e 195/195 | frontend tests 1041/1041** (last verified; re-run `unitTest`, `e2eTest` + frontend tests for current counts)
+**lint ✓ | typecheck:all ✓ | format ✓ | backend unit 1744/1744 | backend e2e 197/197 | frontend tests 1041/1041** (last verified; re-run `unitTest`, `e2eTest` + frontend tests for current counts)
 
 The upload → compare → review → approve pipeline is complete for both image and PDF kinds, including threshold auto-accept, per-variant status derivation, API-key CI authentication, and the self-hosting installer (`./install.sh`).

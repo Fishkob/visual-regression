@@ -57,16 +57,6 @@ export class RunRepository extends BaseRepository {
     });
   }
 
-  async findByProjectKey(
-    projectName: string,
-    runKey: string,
-  ): Promise<RunWithBranch | null> {
-    return this.client.run.findFirst({
-      where: { key: runKey, project: { name: projectName } },
-      include: { branch: { select: { name: true } } },
-    });
-  }
-
   async findByBranchKey(
     branchId: string,
     runKey: string,
@@ -270,32 +260,5 @@ export class RunRepository extends BaseRepository {
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take,
     });
-  }
-
-  async testsForRun(runKey: string): Promise<string[]> {
-    const [jobs, approvals, comparisons] = await Promise.all([
-      this.client.comparisonJob.findMany({
-        where: { runKey },
-        distinct: ['testId'],
-        select: { testId: true },
-      }),
-      this.client.approval.findMany({
-        where: { runKey },
-        distinct: ['testId'],
-        select: { testId: true },
-      }),
-      this.client.unifiedComparison.findMany({
-        where: { runKey },
-        distinct: ['testId'],
-        select: { testId: true },
-      }),
-    ]);
-    return [
-      ...new Set([
-        ...jobs.map((row) => row.testId),
-        ...approvals.map((row) => row.testId),
-        ...comparisons.map((row) => row.testId),
-      ]),
-    ];
   }
 }
