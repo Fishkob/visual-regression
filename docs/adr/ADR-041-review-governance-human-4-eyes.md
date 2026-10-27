@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-11-16
+Accepted — 2026-10-25
 
 ## Context
 
@@ -14,7 +14,10 @@ The R19 review found two governance gaps:
   record of who relaxed the gate.
 - 4-eyes votes were keyed on the username. An API key votes under its key name,
   and key names were not unique, so two CI keys could satisfy N=2 for a single
-  operator. Earlier voters' reasons were also lost.
+  operator. Earlier voters' reasons were also lost. Only the finalizing approval's
+  reason/note is the decision of record (`Approval.reason`/`note`), so a partial
+  vote deliberately carries none and `ApprovalVote` has no column for one (see
+  ADR-040).
 
 ## Decision
 

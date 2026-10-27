@@ -23,17 +23,26 @@ metadata at the run level instead.
 Introduce a `Run` as the CI grouping unit.
 
 - **Model.** A `Run` belongs to one project + branch. A client-supplied `runKey`
-  is unique per `(project, branch)` and makes uploads idempotent under a run.
-  Optional `commitSha`, `commitMessage`, `ciUrl` and `metadata` JSON are stored
-  verbatim. `finishedAt` is null while the run is open.
+  is unique per `(project, branch)` and upserts the run row, so the run is
+  idempotent (an upload is not: each one still records its own upload row).
+  Optional `commitSha`, `commitMessage` and `ciUrl` are stored verbatim; the
+  `metadata` column exists in the schema but nothing writes or reads it.
+  `finishedAt` is null while the run is open.
+- **Upload record.** `RunUpload` is one row per upload that carried a `runKey`
+  (with its own migrations, `20261102090000_run_uploads` and
+  `20261103090000_run_upload_test`). Jobs and comparisons are deleted or retired
+  over time, so this row is the durable run→test binding and the source of
+  `testCount` and the run detail's upload list.
 - **Upload contract.** The upload endpoint accepts optional `runKey`, `commitSha`,
   `commitMessage` and `ciUrl`. When `runKey` is present the run is upserted and
   the job, comparison and approval audit rows carry the `runId`. Omitting
   `runKey` keeps today's behavior exactly.
 - **Reads.** List runs, read one run (tests, variants, counts), and read a run
   status for CI. Status is derived from the linked jobs/comparisons, not stored
-  as an aggregate. The inbox gains a run filter/badge; the existing
-  project/group grouping stays.
+  as an aggregate; the gate counts only reviewable pending comparisons
+  (`pendingComparisons - mutedPending`, see ADR-036), so muted tests do not hold
+  a run. The inbox gains a run filter/badge; the existing project/group grouping
+  stays.
 - **Finish semantics.** An explicit `POST /projects/:projectName/runs/:runKey/finish`
   closes the run. A maintenance task auto-finishes runs idle for 24 hours so a
   pipeline that crashes does not leave a run open forever.
@@ -80,5 +89,8 @@ Introduce a `Run` as the CI grouping unit.
   to null, so in-flight jobs simply have no run.
 - Run status reads join the comparison/job tables; pagination and counts must
   come from one query per page, like the existing review reads.
-- Run history grows; retention becomes part of R15.
+- Run history grows, so retention is part of R15 (shipped):
+  `Project.runHistoryDays` overrides the global default and
+  `RunHistoryCleanupTask` deletes finished runs past the cutoff, keeping the
+  denormalized `runId`/`runKey` on comparisons and approvals readable.
 - The action's contract grows (run inputs) while single-file mode stays.

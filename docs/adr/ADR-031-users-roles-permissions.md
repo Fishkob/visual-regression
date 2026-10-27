@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted — 2026-11-06
+Accepted — 2026-10-25
+
+Amended — API-key permissions moved to scopes (ADR-035/045); account lifecycle
+is metadata-driven.
 
 ## Context
 
@@ -31,16 +34,22 @@ Introduce a **global role** on `User`:
 - The session path loads the user on every request and attaches
   `{ userId, username, role, mustChangePassword }`; a deactivated user is
   rejected and its sessions are deleted.
-- The API-key path attaches `role: 'MEMBER'` (never the creator's role, never
-  ADMIN). R11 replaces this with per-key scopes.
+- The API-key path attaches `role: 'MEMBER'`, or `'ADMIN'` when the key carries
+  the `admin` scope (ADR-035, ADR-045); it never inherits the creator's role.
+  What a key may actually do is decided by its scopes.
 - Admin-only routes declare `@Roles('ADMIN')`; the guard rejects any other role
   with 403. This is applied to users, API keys, audit, webhook settings and
   project/branch deletion.
 - A global write rule makes `VIEWER` read-only: every non-GET/HEAD/OPTIONS
-  request is rejected except under `/auth/` (logout, password change). The UI
-  mirrors this by hiding write controls, but the API is the authority.
-- `mustChangePassword` blocks every non-`/auth/` route with 403; a temporary
-  password can only be used to read `/auth/me` and change itself.
+  request is rejected except on the account-lifecycle routes, marked with
+  `@AccountLifecycle()` (sign-out, `/auth/me`, password change, own 2FA and
+  sessions). The exemption is decorator metadata rather than a path check,
+  because a project, test or run literally named `auth` matched the old
+  `path.includes('/auth/')`. The UI mirrors this by hiding write controls, but
+  the API is the authority.
+- `mustChangePassword` blocks every route outside the account-lifecycle surface
+  with 403; a temporary password can only be used to read `/auth/me` and change
+  itself.
 
 **Lifecycle.**
 
@@ -75,7 +84,8 @@ success.
   would silently grant a viewer write access. The default-deny global write
   rule fails closed; admin elevation stays explicit.
 - **API keys inherit the creator's role** (rejected): a leaked CI key would
-  become an admin credential. Keys stay `MEMBER` until R11 scopes exist.
+  become an admin credential. Keys stay `MEMBER` unless they are explicitly
+  given the `admin` scope (ADR-035/045).
 - **Deleting users** (rejected): audit rows and `createdBy` references must
   survive; deactivation is reversible and leaves the record.
 
@@ -87,5 +97,5 @@ success.
   self-hosted review tool and needed for immediate deactivation.
 - A VIEWER cannot perform bulk approval or mutation through a crafted request,
   not just through a hidden button.
-- R11 must replace the hard-coded API-key `MEMBER` role with key scopes without
-  weakening the admin-only routes.
+- R11 did replace the hard-coded API-key `MEMBER` role with key scopes without
+  weakening the admin-only routes (ADR-035/045).

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-11-15
+Accepted — 2026-10-25
 
 ## Context
 
@@ -38,7 +38,10 @@ reason, and notifications via the existing webhooks.
 - The reason is exposed on the approval history DTO and in the approval audit
   metadata, so reports/exports can group intended changes vs flakes vs infra.
 - The approval remains one row per finalized comparison; 4-eyes votes stay in
-  `ApprovalVote` and the final approver's reason is the decision of record.
+  `ApprovalVote` and the final approver's reason is the decision of record. A
+  partial vote deliberately carries none: `ApprovalVote` has no reason/note
+  column, and only the vote that crosses the threshold writes them onto the
+  `Approval` (see ADR-041).
 
 ## Alternatives considered
 
@@ -54,7 +57,8 @@ reason, and notifications via the existing webhooks.
 ## Consequences
 
 - Comments survive comparison deletion (denormalized, no FK); test/project
-  deletion leaves orphan comment rows until a retention/cleanup task exists.
+  deletion removes `ReviewComment`/`ApprovalVote` rows in the same transaction,
+  with `ReviewArtifactCleanupTask` as the bounded backstop (see ADR-042).
 - The approval history now carries reason/note; clients that assert the old
   exact DTO shape must tolerate the new nullable fields.
 - No comment notifications beyond the webhook event (in-app unread state is a

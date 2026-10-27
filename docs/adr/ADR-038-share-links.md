@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-11-12
+Accepted — 2026-10-25
 
 ## Context
 
@@ -20,12 +20,16 @@ protected and auditable, and they must never allow approval or deletion.
 - **Scope is one of `PROJECT`, `TEST`, `RUN`**, with the project name and the
   optional test/branch/run key denormalized onto the row. Names are validated at
   creation; a later rename/deletion makes the public read a `404` rather than
-  leaking a different target.
+  leaking a different target. `TEST`/`RUN` resolve the branch (and thereby the
+  project) on every read; `PROJECT` verifies the project still exists, so a
+  deleted project is a `404` instead of an empty list.
 - **Expiry** is mandatory (`expiresInDays` 1..365, default 7). **Revocation**
   sets `revokedAt`; both are checked on every resolve.
 - **Optional passphrase** is hashed with the existing scrypt password hasher and
-  verified on resolve; a missing/wrong passphrase is `403`, not a hint about
-  existence.
+  verified on resolve; a missing/wrong passphrase is `403` while an unknown token
+  is `404`, so the two codes do reveal that a token exists. Accepted trade-off:
+  the 256-bit token is the secret, and holding it without the passphrase still
+  yields no payload.
 - **Public resolve is a POST** (`/public/shares/:token`) so a passphrase never
   lands in a URL/cookie/access log. It is `@PublicEndpoint`, uses the login
   per-IP rate-limit bucket, and returns a deliberately narrow read-only payload:
@@ -53,7 +57,8 @@ protected and auditable, and they must never allow approval or deletion.
 
 - Anyone with the URL (and passphrase) can read the shared scope until expiry or
   revocation; treat the URL as a secret.
-- Access rows grow with views; retention/bounding is a follow-up (audit
-  retention is R15/R5-adjacent).
+- Access rows grow with views; bounding them is an open follow-up. R15 shipped
+  the storage/quota retention story without an audit or share-access sweep, so
+  this is not "already handled by R15".
 - No screenshots are embedded; stakeholders see status/counts, not pixels.
 - Target rename/delete intentionally breaks the link with `404`.

@@ -1,10 +1,12 @@
-# ADR 004: Infrastructure Patterns — Storage, Queue, and Event Bus
+# ADR 004: Infrastructure Patterns — Storage, Queue, and Observability Emission
 
 ## Status
 
 Accepted — 2026-04-12 (Storage), 2026-05-14 (Queue), 2026-05-23 (Event Bus)
 
-Supersedes: ADR-004 (Storage Abstraction), ADR-006 (Postgres Queue), ADR-014 (In-Process Event Bus)
+Consolidates: ADR-004 (Storage Abstraction), ADR-006 (Postgres Queue), ADR-014 (In-Process Event Bus)
+
+Amended 2026-10-27: title and §1 wording aligned with the code and with §3 (the event bus is gone; one storage adapter).
 
 ## Context
 
@@ -28,7 +30,7 @@ We use an S3-compatible object store as the storage backend — RustFS locally, 
 
 **Advantages:**
 
-- **S3 Compatibility**: Local development with RustFS, production can use AWS S3, GCS, Azure Blob
+- **S3 Compatibility**: Local development with RustFS, production can use AWS S3 or another S3-compatible provider
 - **Abstraction**: Interface enables swapping the storage backend without code changes
 - **Local Dev**: RustFS can be started via Docker Compose, no cloud account needed
 - **Standard**: S3 is an industry standard — easy integration with CI/CD, CDNs, etc.
@@ -48,7 +50,7 @@ We use an S3-compatible object store as the storage backend — RustFS locally, 
 
 - `IStorageProvider` interface defines `putObject`, `get`, `deleteQuietly`, `deletePrefix`, `deleteAll`, `listObjectsWithLastModified`, `exists`, `healthCheck`, `toPublicUrl`, `fromUrl`, `signUrl`. `putObject` is the single write method — it carries screenshots (image/PDF), diff artifacts, rendered page images, and the pdf-sidecar page-count blobs (renamed from `uploadImage` on 2026-08-09 because it stores non-image payloads too). URL round-tripping is exposed directly on the seam (`toPublicUrl`/`fromUrl`) and backed by the separately-injected `StorageObjectName` helper, so consumers never import the concrete helper. `signUrl` rewrites a stored URL into a time-limited SigV4 presigned URL so the browser can load screenshots without a public-read bucket; storage URLs that are fed back into `get` (the PDF render/download inputs) stay canonical. `deletePrefix` returns the number of objects actually reclaimed. `listObjectsWithLastModified` serves the maintenance sweeps: `PdfRenderCacheCleanupTask` (the `pdf-render/` namespace, which is not tracked in the DB) and `UnreferencedObjectCleanupTask`, which needs object age to apply the unreferenced-object floor.
 - RustFS implements the interface for local development (`RustFsStorageService`, using the `@aws-sdk/client-s3` library against the RustFS S3-compatible server). The backend creates the bucket on startup; the anonymous-read policy is opt-in (`RUSTFS_ENSURE_PUBLIC_BUCKET=true`) because read responses carry presigned URLs (`S3Presigner`, zero-dependency SigV4)
-- Switching to another S3-compatible provider (e.g., AWS S3, GCS) is possible by swapping the provider only
+- Switching to another S3-compatible provider (e.g., AWS S3) is possible, but the seam is real rather than turnkey: a provider swap also touches configuration (every storage setting is a `RUSTFS_*` env var) and the single adapter (`RustFsStorageService`)
 - All file operations go through the Storage Interface
 - The abstraction was questioned during an architecture review (hypothetical seam with only one adapter). However, the seam is real — the storage backend is reachable through the same S3 API across providers, so a future migration to AWS S3/GCS stays possible. The interface remains in place.
 

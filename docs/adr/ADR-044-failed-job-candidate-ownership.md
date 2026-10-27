@@ -32,6 +32,10 @@ the find, the delete-time guard and the NULL-`candidateId` skip. A candidate a
 `FAILED` job still names is never swept; its retention belongs to
 `FailedJobCleanupTask` alone.
 
+This records an invariant rather than a feature: the status list is the single
+source, so a job status added later cannot be classified differently by the find,
+the guard and the skip.
+
 ## Alternatives considered
 
 - **Extend `Project.orphanGraceHours` to `CURRENT` rows.** Rejected: it does not

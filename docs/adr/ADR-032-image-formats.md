@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-11-11
+Accepted — 2026-10-25
 
 ## Context
 
@@ -20,8 +20,11 @@ formats that the engine cannot decode.
 
 - **Normalize at intake.** PNG is stored as-is; JPEG and WebP are decoded and
   re-encoded to PNG by `ImageNormalizer` before hashing/storing. The comparison
-  engine, baselines, diffs and object names stay PNG-only, and the same image
-  submitted as JPEG and WebP dedupes to the same PNG hash.
+  engine, baselines, diffs and object names stay PNG-only. The hash covers the
+  stored PNG buffer (the normalized re-encode for JPEG/WebP, the raw upload for
+  PNG), so a JPEG and a WebP dedupe only when they decode to identical pixels,
+  and PNG uploads — never normalized — do not dedupe against a JPEG/WebP of the
+  same image.
 - **Dependency: `sharp` (libvips).** It decodes PNG/JPEG/WebP, enforces
   `limitInputPixels`, and provides the resize/contain/cover primitives the size
   policy needs. It is a native dependency with platform-specific binaries; the
@@ -36,10 +39,12 @@ formats that the engine cannot decode.
   - `RESIZE` — stretch the candidate to the baseline size.
     The policy is applied to the candidate only, before pixelmatch; the diff is
     always baseline-sized.
-- **Limits** are checked twice: the upload pipe caps bytes and validates the PNG
-  header fast path, `sharp` enforces `MAX_IMAGE_PIXELS` at decode, and the engine
-  re-checks PNG dimensions before decoding. Error messages name the format,
-  dimensions or byte limit.
+- **Limits** are enforced at three stages. The upload pipe caps bytes for every
+  format and validates signature, IHDR and dimensions on the PNG fast path only,
+  so JPEG/WebP dimensions are not checked there; `ImageNormalizer` rejects them
+  at decode (`sharp`'s `limitInputPixels` plus its own pixel-count check), and
+  the engine re-checks PNG dimensions before decoding. Error messages name the
+  format, dimensions or byte limit.
 
 ## Alternatives considered
 

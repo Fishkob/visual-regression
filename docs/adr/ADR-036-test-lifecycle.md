@@ -2,15 +2,15 @@
 
 ## Status
 
-Accepted — 2026-11-09
+Accepted — 2026-10-25
 
 ## Context
 
 Tests currently exist only because an upload created one. There is no way to
 rename a typo, document a test, group tests by tag, silence a known-broken test,
-or tell whether a test flips between pass and fail. Comparisons are deleted on
-approval, so flake signals must come from the R8 outcome history, not the live
-comparison table.
+or tell whether a test flips between pass and fail. Image comparisons are
+deleted on approval (a PDF approval keeps its APPROVED row as history), so flake
+signals must come from the R8 outcome history, not the live comparison table.
 
 Mute needs a precise meaning: the comparison still has to be produced and
 recorded (the history and the next approval depend on it), but it must not page a
@@ -20,8 +20,9 @@ reviewer or fail a CI run.
 
 - **Metadata on `UnifiedTest`:** `description`, `tags String[]`, `mutedUntil`,
   `muteReason`. Tags are lowercased, trimmed, deduped and bounded (20 × 40
-  chars). Metadata writes are standalone (no `StateChangeWorkflow`) because they
-  never change test status.
+  chars). Metadata writes skip `StateChangeWorkflow` because they never change
+  test status, but they run in an explicit `PrismaUnitOfWork` transaction so the
+  audit row commits with the patch.
 - **Rename:** unique per branch (`@@unique([branchId, name])`), `409` on
   collision, audit `test.update` keeps `renamedFrom`. Project rename is a
   separate audited `PATCH /projects/:name` (`project.rename`); historical audit
@@ -46,8 +47,9 @@ reviewer or fail a CI run.
 - **Delete muted comparisons / skip the job:** would lose history and make
   unmute unable to show the pending review; rejected.
 - **Global mute list in config:** not per test, not auditable, no expiry.
-- **Flake from live comparisons:** comparisons are deleted on approval; the
-  durable outcome history is the only correct source.
+- **Flake from live comparisons:** image comparisons are deleted on approval and
+  the table never holds a clean diff, so only the durable outcome history can
+  show an oscillation.
 - **Variant-level mute now:** more precise but the inbox/variant queries and the
   UI need a second dimension; test-level covers the common quarantine case.
 - **Project rename via recreate:** would break URLs/ids and split history;

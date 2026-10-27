@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-26
+Accepted — 2026-10-26; partially supersedes ADR-035.
 
 ## Context
 
@@ -22,16 +22,23 @@ PDF approval was **not** callable with an `approve`-scoped key.
 
 ## Decision
 
-Every non-public route declares its API-key capability with `@Scope(...)`
-(`common/http/api-key-scope.decorator.ts`); the value is a list, satisfied by any
-one of the declared scopes. `@Public` routes need none — the guard never reaches
-them. A route that declares nothing is **not callable by an API key at all**
-(`403`), so the fail-closed answer is visible in a test instead of a silent
-`admin` grant. Admin-scoped keys keep bypassing the requirement, and the project
-allowlist is unchanged.
+Every non-public route an API key can reach declares its API-key capability with
+`@Scope(...)` (`common/http/api-key-scope.decorator.ts`); the value is a list,
+satisfied by any one of the declared scopes. `@Public` routes need none — the
+guard never reaches them. A route that declares nothing is **not callable by an
+API key at all** (`403`), so the fail-closed answer is visible in a test instead
+of a silent `admin` grant. Admin-scoped keys keep bypassing the requirement, and
+the project allowlist stays a rule of its own (see below).
 
-The 89 annotated routes reproduce the old table exactly, verified route by route
-and key-scope combination against the previous implementation, with two deliberate
+Session-only routes declare no `@Scope` at all: the guard rejects the api key
+before it ever reads the metadata, so a declaration there would describe a check
+that never runs (`common/http/session-only.decorator.ts`). That is why the
+annotated set is smaller than the route count — the auth account routes (2FA,
+own sessions, change-password), key management, users, webhooks, audit, share-link
+administration, comments and assignments are session-only and carry no scope.
+
+The scoped routes reproduce the old table exactly, verified route by route and
+key-scope combination against the previous implementation, with two deliberate
 repairs:
 
 - `POST .../pdf-approval` now requires `approve`, matching ADR-035 and the image
@@ -43,9 +50,9 @@ repairs:
   one at `admin` made an approve-scoped CI key unable to finish a run it could
   approve test by test.
 
-The project allowlist stays a separate rule, and it now names the routes that
-cannot be filtered at all: `review` (the cross-project inbox) and `groups` join the
-list, because neither names a project and both returned every project's rows to an
+The allowlist itself is unchanged; it now names the routes that cannot be
+filtered at all: `review` (the cross-project inbox) and `groups` join the list,
+because neither names a project and both returned every project's rows to an
 allowlisted key.
 
 ## Alternatives considered
@@ -59,9 +66,11 @@ allowlisted key.
 
 ## Consequences
 
-- A route that forgets `@Scope` fails closed and its e2e/unit coverage fails with
-  `This endpoint is not available to API keys`, instead of quietly accepting the
-  widest key.
+- A route that forgets `@Scope` fails closed with
+  `This endpoint is not available to API keys` instead of quietly accepting the
+  widest key. Only the guard unit test pins that rule; nothing walks every
+  controller's metadata, so a forgotten decorator is caught only by that route's
+  own coverage. A metadata scan over all routes is the missing follow-up.
 - Adding a route now requires an explicit decision, at the route, next to
   `@Roles`.
 - The guard no longer guesses: `requiredApiKeyScope(request)` and its path

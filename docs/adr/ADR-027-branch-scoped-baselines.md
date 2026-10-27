@@ -19,11 +19,11 @@ The design spec is `docs/superpowers/specs/2026-10-24-branch-support-design.md`;
 Tests, baselines, comparisons, review status and thresholds are branch-scoped.
 
 - A `Branch` belongs to a `Project` and owns its `UnifiedTest` rows (`@@unique([branchId, name])`). The downstream chain (variant → screenshot → comparison → status) is branch-scoped by construction, because every test already owns exactly one branch.
-- Every project has exactly one default branch, created with the project and backfilled by the migration. Omitting `branch` in an API call means the default branch, so existing upload and read clients keep working.
+- Every project has exactly one default branch, created with the project and backfilled by the migration. That is an application invariant, not a schema one: `Project.defaultBranchId` is nullable (`ON DELETE SET NULL`) and `BranchResolver` rejects a project without one with `NOT_FOUND`. Omitting `branch` in an API call means the default branch, so existing upload and read clients keep working.
 - A feature branch has exactly one target (explicit, or `null` = "the project's current default branch").
 - `BranchBaselineResolver` is the single owner of baseline resolution for a `(branch, test, variant)`:
   - an owned baseline is used as-is;
-  - an inherited clone follows the target chain, refreshed lazily on upload while preserving the branch's threshold;
+  - an inherited clone follows the target chain, refreshed lazily on upload while preserving the branch's threshold — the refresh copies content only, while the first clone of a variant also takes the source's `pixelDiffThreshold`;
   - a variant without a baseline clones the nearest ancestor's baseline (`UnifiedVariant.isInherited = true`);
   - if the target chain loses its baseline, the clone is pinned (`isInherited = false`) instead of deleted, so a pending comparison never dangles.
 - Approval writes the approved candidate into the branch's own baseline and pins the variant. A feature-branch approval never touches the target branch.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-11-07
+Accepted — 2026-10-25
 
 ## Context
 
@@ -46,9 +46,15 @@ deployment; email delivery (for reset/OTP) does not exist yet.
   session-authenticated request is additionally rejected when
   `Sec-Fetch-Site: cross-site` or when `Origin` does not match `Host`.
   API-key callers are exempt (no ambient cookie).
-- Password/2FA endpoints use the existing per-IP login rate-limit bucket
-  (`@RateLimit('login')`), so brute force and recovery-code guessing are
-  bounded. `AUTH_COOKIE_SECURE` must be true in production.
+- Login, `2fa/verify`, `2fa/disable` and `change-password` use the existing
+  login rate-limit bucket (`@RateLimit('login')`), so brute force and
+  recovery-code guessing are bounded; `2fa/setup` and `2fa/enable` are
+  session-only and carry no limit of their own. `AUTH_COOKIE_SECURE` defaults to
+  `false` and is not enforced by `NODE_ENV`: the cookie is marked `Secure` when
+  the flag is set or the request itself arrived over TLS, so a TLS-terminating
+  proxy has to set it. A production boot with the flag unset logs a warning
+  instead of refusing to start — a plain-HTTP self-hosted deployment is a
+  supported topology.
 - TOTP secrets are stored in the database (not encrypted at rest in v1). The
   threat model is a database read; anyone with it already has password hashes
   and session tokens. Encrypting secrets would need a key-management story.

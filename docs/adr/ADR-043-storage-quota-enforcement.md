@@ -79,8 +79,8 @@ its keys (`pdf-render/<base PDF object name>/…`) carry no project at all.
 - Clients that send `"0"` expecting "unlimited" now get `422`. Deliberate: a
   value that silently disables the quota is worse than a rejected one. The
   dashboard needs no change — its dialog already refuses a `0` in the field and
-  sends `null` for "no quota". A stored `0` from before this rule keeps reading
-  as unlimited, so no existing project is bricked.
+  sends `null` for "no quota". A stored `0` (or a negative value) from before
+  this rule keeps reading as unlimited, so no existing project is bricked.
 - Deploy note: `JobData.projectName` is required, so an in-flight
   `ComparisonJob` enqueued before the deploy fails its decode (`INVALID_STATE`,
   non-retryable) and lands in the DLQ. Drain the comparison queue first, or
@@ -91,7 +91,3 @@ its keys (`pdf-render/<base PDF object name>/…`) carry no project at all.
   the quota.
 - Diff bytes for rows written before size tracking rely on the already-shipped
   backfill (`findMissingDiffSizes`, sentinel `0`), so no separate migration.
-- Adjacent gap, recorded but not changed here: `PATCH /projects/:p/storage` is
-  not `@Roles('ADMIN')`, so a MEMBER can raise a project's quota — unlike review
-  policy and pixel thresholds (ADR-041). The value of the gate depends on who
-  may move it.

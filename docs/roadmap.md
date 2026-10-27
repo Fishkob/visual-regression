@@ -62,7 +62,7 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R16 | Image formats & size policy              | 5     | M    | ADR-032                       | Shipped |
 | R17 | Internationalization                     | 5     | M    | ADR-037                       | Shipped |
 | R18 | Share links                              | 5     | M    | R9 · ADR-038                  | Shipped |
-| R19 | Review assignment, SLA & 4-eyes          | 5     | L    | R9, R4 · ADR-039              | Shipped |
+| R19 | Review assignment, due dates & 4-eyes    | 5     | L    | R9, R4 · ADR-039              | Shipped |
 | R20 | Review comments & decision notes         | 5     | M    | R9 · ADR-040                  | Shipped |
 
 Status is `Planned`, `In progress` or `Shipped`; a shipped item keeps its
@@ -840,7 +840,7 @@ route. Decision: ADR-038.
 status/counts); access rows are not yet retention-bounded; target renames/deletes
 break the link with 404.
 
-### R19 — Review assignment, SLA & 4-eyes
+### R19 — Review assignment, due dates & 4-eyes
 
 **Why.** The inbox is a shared queue with no ownership, due dates or
 multi-approval.
@@ -866,7 +866,7 @@ overdue banner. E2E: two distinct approvers finalize (repeat vote 409), the
 assignment lifecycle and assigned inbox filtering.
 
 **Known limitation.** Run assignments do not expand into their tests in the
-inbox; there is no background SLA notifier (overdue is computed at read time).
+inbox; there is no background due-date notifier (overdue is computed at read time).
 
 **Size.** L · depends on R9 + R4.
 

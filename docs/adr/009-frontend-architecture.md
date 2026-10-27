@@ -4,7 +4,9 @@
 
 Accepted — 2026-05-23 (all original decisions); Amended 2026-06-12 (services/ layer collapsed into composables/)
 
-Supersedes: ADR-009 (Composable State), ADR-010 (Variant Query Params), ADR-011 (Frontend Layered Architecture)
+Amended 2026-10-27: the three layers today comprise `domains/`, `composables/`, and `views/`+`components/`, plus the cross-cutting `lib/` support directory (`invalidation.ts`, `review-pass.ts`, `variant-key.ts`, `sdk.ts`).
+
+Consolidates: ADR-009 (Composable State), ADR-010 (Variant Query Params), ADR-011 (Frontend Layered Architecture)
 
 ## Context
 
@@ -29,7 +31,7 @@ We use TanStack Vue Query for all server state and module-level `ref()`/`reactiv
 **Considered Options:**
 
 - **Pinia** — Adds a dependency whose benefits (devtools, plugin ecosystem) we don't need at this scale. Module-level refs are simpler, testable without store setup, and already sufficient.
-- **TanStack Query alone** — Sufficient for server state but lacks a pattern for shared client state (the seenSet in the review flow), hence the module-level singletons.
+- **TanStack Query alone** — Sufficient for server state but lacks a pattern for shared client state (the `reviewSeenByProject` map in `lib/review-pass.ts`), hence the module-level singletons.
 - **Computed/Props drilling** — Works for small trees but breaks down for cross-page state like the review flow.
 
 ### Consequences
@@ -66,11 +68,12 @@ The frontend originally separated concerns into four distinct layers: **domains/
 
 ### Amended (2026-06-12)
 
-The **services/** layer was removed. In practice every service hook had exactly one consumer (a composable), and the hook's interface was nearly as wide as its implementation — a shallow module. Query and mutation setup is now inlined into the composable that owns the logic. The architecture is now three layers:
+The **services/** layer was removed. In practice every service hook had exactly one consumer (a composable), and the hook's interface was nearly as wide as its implementation — a shallow module. Query and mutation setup is now inlined into the composable that owns the logic. The architecture is now three layers, plus the cross-cutting `lib/` directory:
 
 - **domains/** — models, mappers, query keys, status config. Zero Vue imports.
 - **composables/** — query hooks (inlined), business logic orchestration, review session state.
 - **views/ + components/** — UI only. May import from composables but never from `@sdk`.
+- **lib/** — cross-cutting helpers the layers sit on (`invalidation.ts`, `review-pass.ts`, `variant-key.ts`, `sdk.ts`).
 
 Data flow remains unidirectional: SDK → domain mapper → composable (inline query) → view.
 
@@ -86,4 +89,4 @@ Cache invalidation rules are centralized in `lib/invalidation.ts` so mutations d
 
 ### Consequences
 
-New features follow the pattern: a domain concern owns its model, mapper, and query keys under `domains/<concern>/`, with the query/mutation hook inlined in the composable that owns the logic (plus occasional seam files, e.g. `test-group.ts`, `review-pass.ts`). Views must never import from `@sdk`. Mutations use centralized invalidation rules from `lib/invalidation.ts` rather than hand-listing query keys.
+New features follow the pattern: a domain concern owns its model, mapper, and query keys under `domains/<concern>/`, with the query/mutation hook inlined in the composable that owns the logic (plus occasional seam files outside `composables/`: `domains/projects/test-group.ts` and `lib/review-pass.ts`). Views must never import from `@sdk` — data reaches them through a composable, which may use the `lib/sdk.ts` helper. Mutations use centralized invalidation rules from `lib/invalidation.ts` rather than hand-listing query keys.

@@ -18,7 +18,7 @@ A pending comparison does not need an explicit reject action because the platfor
 - **Threshold auto-accept** — raising the baseline threshold retires pending comparisons at or below the new value via `ComparisonRetirementService.retirePendingComparisons` → `UnifiedComparisonsRepository.deletePendingByIds`.
 - **Deletion** — `DELETE /projects/:projectName/tests/:testName` (optionally variant-scoped) removes the comparison and its files.
 
-Approval and rejection would share the same retirement mechanics (`ComparisonRetirementService` owns the side effects — comparison deletion, candidate reclamation, job cancellation), so a future reject endpoint is a thin addition over the retirement seam — no new domain logic is required to add it later.
+Approval and rejection would share the same retirement mechanics (`ComparisonRetirementService` owns the side effects — comparison deletion, candidate reclamation, job cancellation), but the retirement seam is no longer the whole job: since review governance landed ([ADR-039 (Review Assignment, Due Dates and 4-Eyes)](./ADR-039-review-assignment-four-eyes.md), [ADR-041 (Review Governance and Human-Only 4-Eyes)](./ADR-041-review-governance-human-4-eyes.md)) a reject would also have to decide what happens to the retired comparison's pending votes (the `ApprovalVote` rows are keyed on `comparisonId`), account for the reviewers it was assigned to, and stay inside the 4-eyes invariant (N > 1 rejects an API-key actor outright). That is review-state logic, not a thin addition over the retirement seam.
 
 ## Consequences
 

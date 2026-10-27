@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-11-17
+Accepted — 2026-10-25
 
 ## Context
 
@@ -18,6 +18,10 @@ The review of R18–R20 found three silent-loss paths:
 The approval reason was also absent from the generic audit row and the
 `comparison.approved` webhook, making the structured reason unusable for
 reports/notifications.
+
+The ADR therefore bundles four decisions — artifact cleanup, the webhook lease,
+the comment window and reason propagation — so the lifecycle is documented in one
+place rather than in four follow-ups.
 
 ## Decision
 
@@ -50,6 +54,13 @@ reports/notifications.
   into the `comparison.approved` webhook payload (omitted when empty), so audit
   exports and Slack/HTTP consumers can classify intended changes vs flakes vs
   infra.
+
+**What is cheap to reverse.** By the ADR criteria, two of the four decisions
+would not earn a record of their own: the lease window (`10` minutes,
+`WEBHOOK_PROCESSING_LEASE_MINUTES`) and the 200-comment window are tunable
+constants — a one-line edit with no migration and no data loss. The transactional
+deletion contract and the reason propagation are not: they decide what a deletion
+erases and what audit/webhook consumers may rely on.
 
 ## Alternatives considered
 

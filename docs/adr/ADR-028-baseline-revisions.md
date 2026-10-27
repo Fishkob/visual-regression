@@ -7,11 +7,13 @@ Accepted — 2026-10-25
 ## Context
 
 Approval folds the reviewed candidate into the baseline row in place and the
-previous baseline file is reclaimed after the commit
-(`ApprovalService` → `UnifiedScreenshotRepository.updateBaselineScreenshot`).
-Only the durable `Approval` audit row survives, and it keeps hashes and ids but
-not the image URL. A wrong approval is therefore irreversible: the reviewer
-cannot look at what the baseline was before, and cannot put it back.
+previous baseline file is reclaimed after the commit. Both baseline writers —
+approval and restore — go through
+`BaselineHistoryService.overwriteKeepingHistory`, which replaces the row via
+`UnifiedScreenshotRepository.updateBaselineScreenshot`. Only the durable
+`Approval` audit row survives, and it keeps hashes and ids but not the image
+URL. A wrong approval is therefore irreversible: the reviewer cannot look at
+what the baseline was before, and cannot put it back.
 
 The review UI already binds each variant to its baseline screenshot row, and the
 reclaim chain (`filterReclaimableUrls`) protects any URL a live row references.
@@ -40,10 +42,11 @@ Every overwrite records a `BaselineRevision`.
   restored image. A revision that already equals the current baseline is a
   `409 CONFLICT`; an inherited variant is read-only (`409`) because restoring it
   would fork ownership — the branch must own the baseline first.
-- **Retention.** `BASELINE_HISTORY_LIMIT` (default 10, per variant) bounds the
-  history. Pruning is synchronous on write, keeps newest-first, deletes the rows
-  and releases their URLs through the reclaim chain. No cron is needed; pruning
-  happens exactly when the history grows.
+- **Retention.** The effective limit is `Project.baselineRevisionLimit` when
+  set, falling back to `BASELINE_HISTORY_LIMIT` (default 10, per variant), and
+  it bounds the history. Pruning is synchronous on write, keeps newest-first,
+  deletes the rows and releases their URLs through the reclaim chain. No cron is
+  needed; pruning happens exactly when the history grows.
 - **Storage safety.** `BaselineRevision` URLs are part of the referencedness
   seam (`findReferencedUrls`) and the reclaim chain
   (`filterReclaimableUrls`), so the orphan/unreferenced sweeps cannot delete a

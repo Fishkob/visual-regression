@@ -41,7 +41,8 @@ Notes:
 - **Last admin**: the last active admin cannot be demoted/deactivated; admins
   cannot deactivate themselves.
 - Sessions are revoked on deactivation and password reset; changing a password
-  revokes every session and issues a fresh one.
+  revokes every session and issues a fresh one. Deactivation also revokes the API
+  keys the user owns, so a long-lived CI credential cannot outlive its account.
 
 Security settings (`/settings/security`) are available to every authenticated
 user: 2FA enrollment/disable and the user's own session list. Admins cannot see

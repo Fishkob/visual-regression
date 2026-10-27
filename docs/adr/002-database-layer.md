@@ -4,7 +4,9 @@
 
 Accepted — 2026-04-12 (Prisma ORM), 2026-05-23 (Unit of Work), 2026-06-20 (Connection Split, recorded)
 
-Supersedes: ADR-002 (Prisma ORM), ADR-015 (Transactional Unit of Work), ADR-021 (Prisma Connection Split)
+Consolidates: ADR-002 (Prisma ORM), ADR-015 (Transactional Unit of Work), ADR-021 (Prisma Connection Split)
+
+Amended 2026-10-27: consumer lists of `PrismaUnitOfWork`/`PrismaConnection` and the "own transaction" exceptions reconciled with the code.
 
 ## Context
 
@@ -92,7 +94,7 @@ The original design used `IUnitOfWork` interface + `UNIT_OF_WORK` string token �
 - Every transactional operation must call `uow.execute()`. A service that calls multiple repositories outside a `uow.execute()` block has no atomicity guarantee.
 - **Retry, post-commit side effects and rollback compensation** must go through `StateChangeWorkflow.executeStateChange()` / `executeWithStoredFile()` — never re-implemented per caller. A mutation that needs a retried Serializable transaction, transactional status recompute, or post-commit event/file cleanup should not call `uow.execute()` directly.
 - The `PrismaUnitOfWork` uses Prisma's interactive transaction API (`prisma.$transaction(async (tx) => ...)`). Repository methods invoked within the callback receive the transaction client via `TransactionContext` ALS routing.
-- **Consumers of `PrismaUnitOfWork`**: `StateChangeWorkflow` (the single transactional mutation seam) and `OrphanCleanupService` (maintenance deletes — row-first via `deleteRecordsRowFirst`, plus the inline storage-first current-orphan path). Other application services (`UploadIntake`, `ComparisonJobProcessor`, `ApprovalService`, `TestCommandService`, `TestDeletionService`) reach transactions through `StateChangeWorkflow`, not the UoW directly.
+- **Consumers of `PrismaUnitOfWork`**: Services that must own a transaction inject `PrismaUnitOfWork` directly — `OrphanCleanupService` (maintenance deletes — row-first via `deleteRecordsRowFirst`, plus the inline storage-first current-orphan path) as well as the application services whose writes span several repositories; everything inside the mutation pipeline goes through `StateChangeWorkflow`.
 
 ---
 
@@ -126,7 +128,7 @@ export class PrismaConnection implements OnModuleInit, OnModuleDestroy {
 }
 ```
 
-Consumers: `HealthChecker`, `TransactionContext` (as the fallback for its `client` getter), `PrismaUnitOfWork`, and the read-only repositories `TestReadRepository` and `ProjectReadRepository`. (`PostgresAdvisoryLock` is listed in `PrismaModule` but does not inject `PrismaConnection` — it builds its own single-connection `pg.Pool` because advisory locks are session-scoped.)
+Consumers: the read-only repositories and `PrismaUnitOfWork`, plus the direct-query services (health checks, rate limiting, maintenance sweeps) that need no transaction awareness; `TransactionContext` injects it as the fallback for its `client` getter. (`PostgresAdvisoryLock` is listed in `PrismaModule` but does not inject `PrismaConnection` — it builds its own single-connection `pg.Pool` because advisory locks are session-scoped.)
 
 #### `TransactionContext`
 
@@ -136,9 +138,13 @@ AsyncLocalStorage wrapper that propagates the transaction client across reposito
 @Injectable()
 export class TransactionContext {
   get client(): PrismaClient | TransactionClient;
+  isInTransaction(): boolean;
+  assertInTransaction(): void;
   run<T>(tx: TransactionClient, fn: () => Promise<T>): Promise<T>;
 }
 ```
+
+`assertInTransaction()` throws when no ambient transaction is open, so a writer whose rows must join a `StateChangeWorkflow` transaction fails loudly instead of silently riding the bare connection.
 
 Consumers: `PrismaUnitOfWork` (runs its callback inside `run()`), the transaction-aware repositories (`UnifiedScreenshotRepository`, `UnifiedComparisonsRepository`, `UnifiedTestRepository`, `ProjectRepository`, `VariantStore`, `OrphanedScreenshotRepository` — the latter three inject it through their shared `BaseRepository`), plus `PostgresJobQueue` and `ComparisonRetirementService` — all inject `TransactionContext` to enforce the ambient-transaction contract via `assertInTransaction()` and to route the transaction client. Read-only consumers inject `PrismaConnection` directly.
 
@@ -156,7 +162,7 @@ export class PrismaUnitOfWork {
 }
 ```
 
-Consumers: `StateChangeWorkflow` (via `executeStateChange` / `executeWithStoredFile`) and `OrphanCleanupService`. Other application services reach transactions through `StateChangeWorkflow`, not the UoW directly.
+Consumers: services that must own a transaction inject it directly — `StateChangeWorkflow` via `executeStateChange` / `executeWithStoredFile` (the mutation pipeline) and `OrphanCleanupService` (maintenance) are the two load-bearing ones. Everything inside the mutation pipeline goes through `StateChangeWorkflow`, not the UoW directly.
 
 #### Registration
 
@@ -196,6 +202,6 @@ export class PrismaModule {}
 ### Consequences
 
 - **The transaction-aware repositories** inject `TransactionContext` and access `this.txCtx.client` — this resolves to the transaction client inside a UoW block, or the root client outside one.
-- **The `PrismaUnitOfWork` is the only place** that opens application-level database transactions. The single exception is `PostgresJobQueue.claimNext()` (`modules/internal/job-queue/postgres-job-queue.ts`), which opens its own `$transaction` for the `SELECT ... FOR UPDATE SKIP LOCKED` claim — it must claim atomically outside any caller's transaction and does not use the UoW at all.
-- **Raw query consumers** (`PostgresAdvisoryLock`, `HealthChecker`) inject `PrismaConnection` directly — they have no use for transaction routing. (`PostgresAdvisoryLock` in fact uses its own dedicated `pg.Pool` with `max: 1` so advisory locks are held on a single connection — advisory locks are session-scoped and must not share the pool.)
+- **The `PrismaUnitOfWork` is the default place** that opens application-level database transactions. A few call sites deliberately open their own `$transaction` instead: `PostgresJobQueue.claimNext()` (`modules/internal/job-queue/postgres-job-queue.ts`) claims with `SELECT ... FOR UPDATE SKIP LOCKED` and must be atomic outside any caller's transaction; `PrismaProjectRepository.create()` writes the project together with its default branch in one transaction (project creation mutates no test status, so it stays outside `StateChangeWorkflow`); and `AuthRepository` opens its own transactions for the two-statement auth writes that must not be half-applied (API-key rotation in `replaceApiKey`, TOTP disable, recovery-code re-issue).
+- **Raw query consumers** (`HealthChecker`, the rate-limit service and maintenance sweeps) inject `PrismaConnection` directly — they have no use for transaction routing. (`PostgresAdvisoryLock` in fact uses its own dedicated `pg.Pool` with `max: 1` so advisory locks are held on a single connection — advisory locks are session-scoped and must not share the pool.)
 - **The original `PrismaService` class** no longer exists. A quick search for `PrismaService` in the codebase returns zero results.

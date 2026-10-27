@@ -2,7 +2,7 @@
 
 ## Status
 
-Superseded — 2026-07-25
+Superseded — 2026-06-13
 
 Superseded by: [ADR-013 (Backend Structure)](./013-backend-structure.md)
 

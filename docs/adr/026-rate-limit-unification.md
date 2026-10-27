@@ -21,8 +21,13 @@ One uniform mechanism: a rate-limit rule is a counter row in Postgres for a
 fixed one-minute window, keyed by `(scope, key)`. The generic `RateLimitBucket`
 table replaces `ApiKeyRateLimitBucket`. A global `RateLimitGuard` (registered
 after `AuthenticationGuard`) is a pass-through unless a handler carries
-`@RateLimit(scope)`; exactly three handlers do — upload (key `apikey:<id>`),
-login (key `ip:<ip>`), log ingestion (key `ip:<ip>`).
+`@RateLimit(scope)`. The decorator sits on the abuse surfaces, not on product
+traffic: upload, every credential-checking login/2FA entry point (`login`,
+`2fa/verify`, `2fa/disable`, `change-password`), share-link resolve, and log
+ingestion. Login-scope routes consume two buckets when a username is submitted
+(`ip:<ip>` and `ip:<ip>:user:<username>`); upload consumes `apikey:<id>` for
+API-key traffic and `session:<username>` for session traffic (the IP when no
+username is known); log ingestion and share-link resolve consume `ip:<ip>`.
 
 - `@nestjs/throttler`, the global `default` flood guard, the `skipIf`
   machinery, and the TTL knobs are removed. Authenticated product traffic
@@ -32,8 +37,9 @@ login (key `ip:<ip>`), log ingestion (key `ip:<ip>`).
 - Env collapses to `UPLOAD_RATE_LIMIT_PER_MINUTE`, `LOGIN_RATE_LIMIT_PER_MINUTE`,
   `LOG_RATE_LIMIT_PER_MINUTE` (all "per minute", `0` disables) and
   `TRUST_PROXY`.
-- `TRUST_PROXY` now affects only the two per-IP anonymous rules, shrinking its
-  blast radius.
+- `TRUST_PROXY` now affects only the rules keyed by `ip:<ip>` — the login-scope
+  routes (the anonymous login/2FA/share-link ones among them) and log ingestion
+  — shrinking its blast radius.
 - The 429 metric is generalized to `rate_limited_total` with a `scope` label.
 
 ## Consequences

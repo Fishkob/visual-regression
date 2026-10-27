@@ -29,7 +29,10 @@ credentials:
   value; only its SHA-256 hash is persisted (sessions table), keyed to a user and
   an expiry (`AUTH_SESSION_TTL_DAYS`, default 30). The cookie name is the hardcoded
   `SESSION_COOKIE` constant shared by the controller (write) and guard (read) so
-  they can never drift; the `secure` flag comes from `AUTH_COOKIE_SECURE`.
+  they can never drift; the `secure` flag is set when `AUTH_COOKIE_SECURE` is
+  true or the request itself arrived over TLS (`cookieSecure || req.secure`). An
+  active session slides: once it is past half its TTL, each use extends it by a
+  full TTL, so a session in continuous use never expires.
 - **API key (CI/scripts)** — `POST /api/v1/admin/api-keys` (guarded by the
   `x-admin-key` header holding `ADMIN_API_KEY`) creates a key. The raw key is 256
   bits of base64url entropy, shown once at creation; only its SHA-256 hash is
@@ -41,14 +44,19 @@ credentials:
 `AuthenticationGuard` is registered as a global `APP_GUARD`, so every endpoint is
 protected by default. A request passes if it carries a valid, unexpired session
 cookie OR a valid api key. Endpoints that must stay reachable are marked with the
-`@Public()` decorator (`IS_PUBLIC_KEY` reflector): health, metrics, log ingestion,
-`POST /auth/login` (login must be reachable without credentials), and the admin
-endpoints (which carry their own `AdminAuthGuard`, see below).
+`@Public()` decorator (`IS_PUBLIC_KEY` reflector): health, log ingestion,
+`POST /auth/login` (login must be reachable without credentials),
+`POST /auth/2fa/verify` (the second step of that login),
+`POST /public/shares/:token` (resolving a share link), and the admin endpoints
+(which carry their own `AdminAuthGuard`, see below). `/metrics` is opted out of
+the product credential only: `MetricsAuthGuard` protects it and demands the
+`x-metrics-key` header, so it is not open.
 
 ### Env bootstrap
 
 The first admin user is created on startup from
-`BOOTSTRAP_ADMIN_USERNAME` / `BOOTSTRAP_ADMIN_PASSWORD` (only when both are set).
+`BOOTSTRAP_ADMIN_USERNAME` / `BOOTSTRAP_ADMIN_PASSWORD` (only when both are set
+and no user exists yet — an installation that already has users is not touched).
 Passwords are hashed with scrypt (16-byte random salt, 64-byte derived key) via
 `node:crypto` and verified with `timingSafeEqual`. The env vars are intended to be
 removed after first login.
@@ -58,8 +66,10 @@ removed after first login.
 Rate limits are one-minute-window counters in Postgres, applied by the global
 `RateLimitGuard` only where a `@RateLimit(scope)` decorator is present:
 
-- `login` — caps `POST /auth/login` per IP against brute force
-  (`LOGIN_RATE_LIMIT_PER_MINUTE`, default 5/min).
+- `login` — caps `POST /auth/login` against brute force in two buckets, per IP
+  and per IP+username (`LOGIN_RATE_LIMIT_PER_MINUTE`, default 5/min): the coarse
+  bucket stops password spraying across many usernames, the composite one stops
+  a shared-NAT neighbour from exhausting another account's bucket.
 - `log` — caps the public log-ingestion endpoint per IP
   (`LOG_RATE_LIMIT_PER_MINUTE`, default 100/min).
 - `upload` — caps uploads per API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default
@@ -69,13 +79,16 @@ A limit of `0` disables the rule. Because the counters live in Postgres, the
 limits hold across backend replicas. `429` responses carry a `Retry-After`
 header.
 
-Only the two anonymous rules (login, log) are keyed by `req.ip`. Behind the
-documented reverse proxy (nginx in `docker-compose`/Helm ingress), Express must
-be told to trust `X-Forwarded-For` or every client shares the proxy's IP and
-the per-IP budgets collapse into a shared limit. Set `TRUST_PROXY=true` in the
-backend env behind a proxy; keep it `false` when the backend is directly
-reachable. The switch is applied in `bootstrapApi()`
-(`app.set('trust proxy', appConfig.trustProxy)`).
+Only the anonymous rules (login, log) are keyed by `req.ip`; the login rule also
+keys on the attempted username. Behind the documented reverse proxy (nginx in
+`docker-compose`/Helm ingress), Express must be told to trust `X-Forwarded-For`
+or every client shares the proxy's IP and the per-IP budgets collapse into a
+shared limit. Set `TRUST_PROXY=true` in the backend env behind a proxy; keep it
+`false` when the backend is directly reachable. The switch is applied in
+`bootstrapApi()` as a hop count, not a boolean
+(`app.set('trust proxy', appConfig.trustProxyHops)`: `1` when enabled, `false`
+when not), because `true` would trust every appended `X-Forwarded-For` entry and
+let a client spoof `req.ip`.
 
 ### Admin endpoints
 
@@ -119,8 +132,8 @@ impossible to provision (bootstrap dead end).
 - A `Session` and `ApiKey` Prisma model were added (mapped via `@@map` to the
   Postgres tables `"Session"`/`"ApiKey"`, see the auth migration); existing
   deployments must run migrations.
-- Health, metrics, and log endpoints remain public by design; anything else is
-  guarded.
+- Health and log endpoints remain public by design; `/metrics` sits outside the
+  product credential but requires the metrics key. Anything else is guarded.
 - `RateLimitGuard` is registered **after** `AuthenticationGuard`, so the `upload`
   rule can be keyed by the authenticated API key rather than `req.ip`; see
   ADR-026 for the unified one-minute-window counter design.

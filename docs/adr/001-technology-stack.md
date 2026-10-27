@@ -4,7 +4,9 @@
 
 Accepted — 2026-04-12 (monorepo), 2026-06-20 (NestJS, frontend)
 
-Supersedes: ADR-001 (Monorepo), ADR-018 (NestJS Framework), ADR-019 (Frontend Stack)
+Consolidates: ADR-001 (Monorepo), ADR-018 (NestJS Framework), ADR-019 (Frontend Stack)
+
+Amended 2026-10-27: stack facts reconciled with the code (NestJS v12, `tsc`/`nest build` instead of SWC, `@sdk` alias instead of `workspace:*`, pnpm scripts, per-area CI workflows).
 
 ## Context
 
@@ -29,15 +31,15 @@ We use a monorepo with pnpm Workspaces.
 **Advantages:**
 
 - **Shared Dependencies**: TypeScript, ESLint, Prettier can be managed centrally
-- **Consistent Development Experience**: Same commands for all packages (`npm run test`, `npm run lint`)
+- **Consistent Development Experience**: Same commands for all packages (`pnpm run unitTest`, `pnpm run lint`)
 - **Easy Refactoring**: Changes to shared types can be made in a single commit
 - **Tight Integration**: SDK and Backend evolve in sync — no versioning issues
-- **Better CI/CD**: Single pipeline for the entire repo, no publish pipeline between repos
+- **Better CI/CD**: One repo, so no publish pipeline between repos is needed — CI runs as several area-specific workflows (`ci-backend`, `ci-frontend`, `sdk-sync-check`, …) instead of a single pipeline
 
 **Disadvantages:**
 
 - Larger repository
-- Potentially longer `npm install` times (due to workspace resolution)
+- Potentially longer `pnpm install` times (due to workspace resolution)
 - More configuration overhead
 
 **Alternatives Considered:**
@@ -48,7 +50,7 @@ We use a monorepo with pnpm Workspaces.
 ### Consequences
 
 - All packages are orchestrated from the root `package.json`
-- Cross-package dependencies are referenced via `workspace:*`
+- Cross-package dependencies are not declared as `workspace:*` — the frontend consumes the SDK through the Vite alias `@sdk` → `client-sdk/` (mirrored in `frontend/tsconfig.json`), so it reads the generated source instead of a versioned package
 - Global tools (lint, test) are defined in the root and used by packages
 
 ---
@@ -57,7 +59,7 @@ We use a monorepo with pnpm Workspaces.
 
 ### Decision
 
-We use NestJS v11 with the Express platform adapter, TypeScript, and decorator-based dependency injection.
+We use NestJS v12 with the Express platform adapter, TypeScript, and decorator-based dependency injection.
 
 NestJS's `@Module()` decorators and DI container directly realize the module dependency graph and provider injection patterns documented in [ADR-013 (Backend Structure)](./013-backend-structure.md). It also enables the OpenAPI-first SDK pipeline ([ADR-005](./005-openapi-sdk.md)) via `@nestjs/swagger` decorators that drive spec generation.
 
@@ -90,7 +92,7 @@ NestJS's `@Module()` decorators and DI container directly realize the module dep
 - `Test.createTestingModule()` is the standard pattern for unit tests.
 - The OpenAPI spec is generated from decorators (`@ApiTags()`, `@ApiOperation()`) — no hand-maintained spec file.
 - The Express platform adapter is coupled to `@nestjs/platform-express`. Switching to Fastify would require changing the adapter and testing all middleware.
-- The framework choice is visible in the build pipeline: `nest-cli.json`, `@nestjs/cli`, SWC builder for fast compilation.
+- The framework choice is visible in the build pipeline: `nest-cli.json`, `@nestjs/cli`, and `tsc` behind `nest build` (there is no SWC builder — no `.swcrc`, and `nest-cli.json` configures no `builder`).
 
 ---
 

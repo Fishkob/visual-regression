@@ -4,6 +4,8 @@
 
 Accepted — 2026-06-26 (amended 2026-06-30, 2026-07-08)
 
+Amended — 2026-08-24: `/metrics` is no longer unauthenticated. It sits at `/api/v1/metrics` behind `MetricsAuthGuard`, which demands the `x-metrics-key` header (the `METRICS_API_KEY` value); `backend/observability/prometheus.yml` sends it from a mounted key file.
+
 ## Context
 
 The backend has foundational observability primitives: structured JSON logging via Pino, Prometheus metrics via prom-client, health check endpoints, and manual traceId propagation via AsyncLocalStorage. These lack distributed tracing across the API → queue → worker chain, dashboards, and alerting. The stack must not degrade the application if any observability component is unreachable.
@@ -16,10 +18,10 @@ Add an open-source observability stack in a separate `docker-compose.observabili
 - **Grafana Alloy** (single agent replacing OTel Collector + Promtail) — receives OTLP traces, ships Docker logs to Loki
 - **Grafana Tempo** — trace storage
 - **Loki** — log aggregation
-- **Prometheus** — scrapes `/metrics` and Alloy span-metrics
+- **Prometheus** — scrapes the authenticated `/api/v1/metrics` and Alloy span-metrics
 - **Grafana** — dashboards for traces, logs, metrics + alerting rules (Grafana-native, no Alertmanager)
 
-The existing Pino logger and `/metrics` endpoint remain unchanged. All observability infra is opt-in — `scripts/dev.sh infra` does not start it.
+The existing Pino logger remains unchanged. The `/metrics` endpoint keeps its Prometheus format but moved behind the product API: it is served at `/api/v1/metrics` and requires `MetricsAuthGuard` (`x-metrics-key`, the configured `METRICS_API_KEY`) — the scrape config in `backend/observability/prometheus.yml` sends that header. All observability infra is opt-in — `scripts/dev.sh infra` does not start it.
 
 ## Rationale
 

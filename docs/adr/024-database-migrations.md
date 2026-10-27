@@ -54,7 +54,10 @@ Use Prisma Migrate for schema management.
 
 - A schema change now requires generating a migration (`db:migrate` in dev) and
   committing it — it can no longer be applied silently.
-- Existing local/CI databases get the baseline applied via `migrate deploy`; fresh
-  DBs are unaffected.
+- Fresh databases get the baseline applied via `migrate deploy`. A database that
+  already has the schema but no `_prisma_migrations` table is **not** migrated by
+  `migrate deploy` — Prisma refuses with P3005 ("database schema is not empty"),
+  so such a local/CI database has to be baselined explicitly
+  (`prisma migrate resolve --applied 0001_init`) or reset.
 - `prisma db push` no longer appears in live tooling or config (historical mentions in
   this ADR and past docs are context for the decision).

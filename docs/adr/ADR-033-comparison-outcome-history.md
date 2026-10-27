@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-11-04
+Accepted — 2026-10-25
 
 ## Context
 
@@ -11,8 +11,10 @@ many were changed / unchanged / auto-accepted, how long review and approval
 took, and which tests flip between changed and clean. The current schema cannot
 answer that:
 
-- A comparison row is deleted when it is approved (the candidate becomes the
-  baseline), and the candidate/baseline screenshots are reclaimed.
+- An approved image comparison row is deleted (the candidate becomes the
+  baseline) and the candidate/baseline screenshots are reclaimed. A PDF approval
+  keeps its APPROVED comparison row as history and reclaims only the diff
+  artifact, but that surviving row still carries no outcome.
 - `Approval` survives but has no mismatch/outcome and no link to the comparison
   that was reviewed.
 - Audit events describe approvals/deletions, not every comparison completion.
@@ -57,7 +59,9 @@ completed comparison:
 
 - Trends are approximate under crashes and for very old rows whose test was
   deleted (the project-scoped join drops them).
-- The table grows with comparisons; a retention task and archive/export are
-  future work (R15 owns retention).
+- The table grows with comparisons and nothing prunes it today: R15 (shipped)
+  covers run/job/session retention, not `ComparisonOutcomeEvent`, so a retention
+  task plus archive/export is an open follow-up rather than a planned slice of
+  that roadmap item.
 - The outcome history is not a replacement for audit: it records comparison
   results, not who approved what.

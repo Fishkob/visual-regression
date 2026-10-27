@@ -22,30 +22,33 @@ request path.
 Webhook delivery is an outbox with a worker-side dispatcher.
 
 - **Endpoints are project-scoped.** `WebhookEndpoint` stores the URL, a secret,
-  subscribed events and an active flag. Management is session-only (an API key
-  cannot create or edit an endpoint); until roles exist (R9), any logged-in
-  operator is effectively an admin.
+  subscribed events and an active flag. Management is session-only and
+  ADMIN-only (`@SessionOnly()` + `@Roles('ADMIN')`): an API key cannot create or
+  edit an endpoint, and a MEMBER/VIEWER session cannot read or edit one either.
 - **The outbox is written with the domain change.** `WebhookDelivery` rows are
   created inside the same `StateChangeWorkflow` transaction as the approval or
   the pending-comparison write. A crash cannot commit the change without its
-  delivery row. Events that have no transaction (job failure) write the row
-  directly.
+  delivery row. Every event in v1 rides a transaction; `job.failed` is the one
+  candidate that would not, which is why it arrives only with the queue observer
+  seam described below.
 - **The dispatcher runs in the worker process.** It claims due rows with
   `FOR UPDATE SKIP LOCKED`, sends them over HTTP and updates the row. Running it
   in the worker keeps the API request path free of outbound I/O; a deployment
   without a worker has no comparisons anyway (the worker is mandatory).
 - **Delivery is at-least-once.** A row is retried with exponential backoff
-  (1 m, 5 m, 30 m, 2 h, 6 h; five attempts) and then marked `FAILED` with the
-  last error. Consumers deduplicate via `X-VRT-Delivery-Id`.
+  (four delays — 1 m, 5 m, 30 m, 2 h — across five attempts, because the fifth
+  failure is terminal) and then marked `FAILED` with the last error. Consumers
+  deduplicate via `X-VRT-Delivery-Id`.
 - **Requests are signed.** `X-VRT-Timestamp` plus
   `X-VRT-Signature: sha256=<hmac(secret, timestamp + "." + body)>`. The secret
   is generated on create and shown once; it must be recoverable server-side to
   sign, so it is stored as-is (unlike API keys, which are hashed). The database
   is already the trusted secret store in this self-hosted product.
 - **Events v1:** `review.requested` (a comparison became `PENDING_APPROVAL`),
-  `comparison.approved`. `job.failed` is a follow-up because the queue's failure
-  path currently owns its own write; it needs an observer seam rather than a
-  layering violation from the queue into the webhook module.
+  `comparison.approved`, `review.assigned` and `review.comment`. `job.failed` is
+  a follow-up because the queue's failure path currently owns its own write; it
+  needs an observer seam rather than a layering violation from the queue into the
+  webhook module.
 - **Payloads carry context, not expiring URLs.** Project/test/branch/variant,
   comparison id and mismatch count, plus a dashboard link. Presigned storage
   URLs are deliberately not part of a webhook payload (they expire and leak
@@ -84,8 +87,9 @@ Webhook delivery is an outbox with a worker-side dispatcher.
 
 ## Consequences
 
-- `WebhookDelivery` rows need retention; the existing maintenance sweep family
-  gains a task in R15.
+- `WebhookDelivery` rows have no retention yet: delivery history grows with every
+  event, and no maintenance task prunes it (R15 shipped without one). A cleanup
+  task in the `MAINTENANCE_TASKS` sweep family is an open follow-up.
 - Delivery is at-least-once and unordered; documentation must say so.
 - The dispatcher only runs with the worker, which is already a documented
   requirement for comparisons.
