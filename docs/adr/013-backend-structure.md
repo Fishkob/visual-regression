@@ -6,19 +6,13 @@ Accepted — 2026-05-23 (all original decisions).
 
 ## History
 
-This file absorbed five earlier ADRs on 2026-10-27: the VisualTest module split
-(ADR-007), repository ports with injection tokens (ADR-008), the public/internal
-boundary (ADR-012), the worker/API process separation (the earlier ADR-013 that
-carried this number) and their consolidation (ADR-017, now a stub pointing here).
-The same pass reconciled §1–§5 with the code — seven sub-modules, 13 registered
-repositories, 10 controllers in `ReviewModule`, the `AppModule` import list and
-the actual worker entry point.
-
-Two design changes were recorded in place before the freeze: `shared/` became
-`core/` and the repository ports were dropped in favour of class injection
-(2026-06-13); and `review/` had grown into the catch-all (22 controllers, 28
-providers, 10.4k lines) and was split along the nouns `CONTEXT.md` already uses
-(2026-10-27, see §2).
+This file absorbed five earlier ADRs on 2026-10-27: ADR-007 (VisualTest module
+split), ADR-008 (repository ports), ADR-012 (public/internal boundary), the
+earlier ADR-013 (worker/API separation) and ADR-017 (their consolidation, now a
+stub pointing here). Two design changes had been recorded in place before the
+freeze: `shared/` became `core/` and the repository ports were dropped in favour
+of class injection (2026-06-13), and `review/` was split along the nouns
+`CONTEXT.md` already uses (2026-10-27, see §2).
 
 ## Context
 
@@ -95,20 +89,7 @@ constructor(
 ) {}
 ```
 
-The repository implementations live in `core/infrastructure/repositories/` and are registered in `VisualTestInfraModule` — 13 of them today, plus `StorageObjectReferencednessService` (the `STORAGE_OBJECT_REFERENCEDNESS` seam consumed by internal modules, see the Internal/Public boundary below). The table names the longest-lived ones; it is an excerpt, not an inventory (`BranchRepository`, `BranchTestRepository`, `ApprovalAuditRepository`, `BaselineRevisionRepository`, `RunRepository`, `ComparisonOutcomeRepository`, and `ReviewArtifactRepository` are registered alongside them):
-
-| Repository                     | Registered In           | Notes                                                             |
-| ------------------------------ | ----------------------- | ----------------------------------------------------------------- |
-| `UnifiedScreenshotRepository`  | `VisualTestInfraModule` |                                                                   |
-| `UnifiedComparisonsRepository` | `VisualTestInfraModule` |                                                                   |
-| `UnifiedTestRepository`        | `VisualTestInfraModule` |                                                                   |
-| `ProjectRepository`            | `VisualTestInfraModule` |                                                                   |
-| `VariantStore`                 | `VisualTestInfraModule` | Variant↔baseline lookups, composed by screenshot/comparison repos |
-| `OrphanedScreenshotRepository` | `VisualTestInfraModule` | Encodes the orphan-screenshot definition for maintenance cleanup  |
-
-The other families register read-only repositories in their own `infrastructure/repositories/`: `TestReadRepository` (test-scoped reads: details, PDF sources/ownership, test listing, pending list) and `ReviewInboxRepository` in `review/`; `ProjectReadRepository` (project overview statuses, pending flags/counts), `BranchReadRepository`, `SearchRepository`, and `ProjectGroupRepository` in `catalog/`; plus `ShareLinkRepository` in `access/` and `ComparisonJobStatusRepository` in `intake/`. There is no repository facade class — consumers inject the concrete repository classes they need, as described below.
-
-Cross-cutting shared services (e.g., `TestResolver`, `TestDeletionService`) also live in `core/application/services/` and are registered in `VisualTestApplicationModule`.
+The repository implementations live in `core/infrastructure/repositories/` and are registered in `VisualTestInfraModule`; the read-only ones sit in their family's `infrastructure/repositories/`. Cross-cutting application services (`TestResolver`, `TestDeletionService`) live in `core/application/services/` and are registered in `VisualTestApplicationModule`. There is no repository facade and no inventory kept here — the directories are the list, and consumers inject the concrete classes they need.
 
 The `core/domain/ports/` directory was deleted on 2026-06-13 — all four repository ports had exactly one adapter each and the interface maintenance cost (185 lines of boilerplate, dual-file edits per method change) exceeded the documentation benefit. Tests provide mock objects under the class token (`{ provide: ComparisonsRepository, useValue: mock }`), which works identically to string-token injection.
 
@@ -120,72 +101,30 @@ Domain modules must never be `@Global()`. Every domain dependency must be declar
 
 #### Approved `@Global()` modules
 
-The following infrastructure modules are `@Global()` because they are genuinely cross-cutting — removing `@Global()` would require every single module in the application to declare an explicit import for a non-domain concern. These form a fixed set; adding a new `@Global()` module requires justification in this ADR.
+The following infrastructure modules are `@Global()` because they are genuinely cross-cutting — removing `@Global()` would require every single module in the application to declare an explicit import for a non-domain concern: **`AppLoggerModule`**, **`LoggerConfigModule`**, **`TrackerModule`**, **`MetricsBaseModule`**.
 
-| Module                 | File                                      | Rationale                                                                                                                                                                                          |
-| ---------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **AppLoggerModule**    | `common/logging/app-logger.module.ts`     | Logging is injected in 17+ services, pipes, interceptors, filters, cron jobs, and infrastructure code. Explicit imports would add noise to nearly every module.                                    |
-| **LoggerConfigModule** | `config/logger-config.module.ts`          | Configures Pino logger settings once at application startup. Zero direct consumers — purely initialization.                                                                                        |
-| **TrackerModule**      | `common/tracker/tracker.module.ts`        | Request/operation tracing used across domain boundaries (upload, approval, worker, job queue). 4 consumers spread across intake, review, and internal modules.                                     |
-| **MetricsBaseModule**  | `internal/metrics/metrics-base.module.ts` | Metrics infrastructure (counters, histograms) used by the job queue, tracker, UoW, HTTP interceptor, and maintenance cron. 8+ injection sites spanning `common/`, `prisma/`, and internal modules. |
-
-The former `EventBusModule` was removed on 2026-08-09 — observability emission is now a synchronous switch in `StateChangeWorkflow`'s post-commit path (see ADR-004 §3), so there is no event-bus module left to make global.
-
-To add a new `@Global()` module, update this table with rationale. If the count reaches 8+, re-evaluate whether the implicit dependency graph is undermining the architecture's self-documenting property.
+This is a closed set. A fifth `@Global()` module is its own decision, not an edit to this sentence; if the set ever approaches eight, the implicit dependency graph is undermining the architecture's self-documenting property and the exceptions need re-arguing. The file paths and consumer counts are deliberately not repeated here — the modules and their imports are in `common/` and `internal/`.
 
 ---
 
 ## 4. Dependency Graph
 
-```
-AppModule (API mode — main.ts)
-  imports: [CoreInfrastructureModule, RateLimitModule, ScheduleModule.forRoot(),
-            VisualTestApplicationModule, IntakeApplicationModule, CatalogModule,
-            ReviewModule, RunsModule, AccessModule, NotificationsModule,
-            HealthModule, LogIngestionModule, DlqModule, DataDeletionModule,
-            AuthModule, AdminApiKeysModule, ApiKeysModule, AuditModule, UsersModule]
+`AppModule` (API mode) imports the public domain modules, the internal capability
+modules, and `CoreInfrastructureModule`; `WorkerModule` imports
+`CoreInfrastructureModule` and `IntakeWorkerModule` and nothing else. Sub-modules
+are imported directly — there is no composing wrapper module, and no
+`forwardRef()` is needed because the graph is acyclic.
 
-WorkerModule (worker mode — worker.module.ts)
-  imports: [CoreInfrastructureModule, IntakeWorkerModule]
+The rules that keep it acyclic: a cross-family dependency is an explicit module
+import with an exported provider (§2), never a shared global; a controller is
+mounted by the module that owns its noun; worker-only providers live in
+`IntakeWorkerModule`, so their lifecycle hooks never fire in API mode (§5); and
+the maintenance crons are mounted only in the API process (`ScheduleModule.forRoot()`
+in `AppModule`), so the worker graph contains no cron jobs.
 
-CoreInfrastructureModule
-  imports: [AppLoggerModule, LoggerConfigModule, TrackerModule,
-            MetricsBaseModule, ConfigModule, AppConfigModule, StorageModule, PrismaModule]
-
-VisualTestInfraModule
-  imports: [PrismaModule]                      ← no sub-module imports
-
-VisualTestApplicationModule
-  imports: [VisualTestInfraModule, PrismaModule, StorageModule, JobQueueModule]
-  providers: [TestResolver, TestStatusService, TestDeletionService,
-              ComparisonRetirementService, CandidateReclamationService,
-              StateChangeWorkflow, ThresholdUpdateService]
-
-IntakeApplicationModule
-  imports: [AppConfigModule, MulterModule, PrismaModule, StorageModule,
-            VisualTestInfraModule, JobQueueModule, VisualTestApplicationModule,
-            PdfSidecarModule]
-  controllers: [UploadController, JobStatusController]   ← API-only: controllers + pipelines
-
-IntakeWorkerModule
-  imports: [AppConfigModule, PrismaModule, StorageModule,
-            VisualTestInfraModule, VisualTestApplicationModule, ComparisonEngineModule,
-            JobQueueModule, WebhooksModule]
-  providers: [ComparisonJobProcessor, ComparisonJobPoller,
-              WorkerHealthServer]   ← worker-only seam
-
-ReviewModule
-  imports: [PrismaModule, StorageModule, VisualTestInfraModule,
-            VisualTestApplicationModule, PdfSidecarModule]
-  controllers: [ApprovalsController, AssignmentController, BaselineHistoryController,
-                BulkActionsController, ProjectsBulkController, ReviewCommentController,
-                ReviewInboxController, TestCommandsController, TestLifecycleController,
-                TestsQueriesController]     ← ProjectsController lives in catalog/, PdfController in access/
-```
-
-Note: the `MulterModule` in `IntakeApplicationModule` is registered with a `useFactory` that reads `screenshotMaxSize` from `AppConfigService`, and the `PdfSidecarModule` is imported by `IntakeApplicationModule` (for PDF page counts), `ReviewModule` (approval invalidates the `PDF_RENDER_CACHE`), and `AccessModule` (the PDF render/download proxies). The remaining public modules keep the same shape without being spelled out above: `CatalogModule` mounts `ProjectsController`, `ProjectGroupsController`, `BranchesController`, `SearchController`; `RunsModule` mounts `RunsController` and `TrendsController`; `AccessModule` mounts `PdfController`, `StorageController` and the share-link controllers; `NotificationsModule` mounts `WebhooksController`. Maintenance crons (see `DataDeletionModule`) run only in the API process — `AppModule` mounts `ScheduleModule.forRoot()` for them; the worker graph contains no cron jobs and does not mount `ScheduleModule`. The API registers a global `RateLimitGuard` (provided via `RateLimitModule`) for request throttling; see ADR-026. `VisualTestInfraModule` and `VisualTestApplicationModule` are imported independently by consumers — there is no composing wrapper module.
-
-No `forwardRef()` is needed — the import graph is acyclic.
+The import lists themselves are the module files (`app.module.ts`,
+`worker.module.ts`, and each feature module's `*.module.ts`); the picture is in
+[the architecture overview](../architecture/overview.md#module-graph).
 
 ---
 
@@ -199,7 +138,7 @@ The backend has a single entry point, `main.ts`: it reads `NODE_MODE` and dispat
 
 The API and worker run as separate processes sharing the same codebase, database, and storage:
 
-- **`AppModule`** (`main.ts`) — HTTP API server. Imports `CoreInfrastructureModule`, `VisualTestApplicationModule`, `IntakeApplicationModule`, `CatalogModule`, `ReviewModule`, `RunsModule`, `AccessModule`, `NotificationsModule`, `HealthModule`, `DataDeletionModule`, `DlqModule`, `LogIngestionModule`, `AuthModule`, `AdminApiKeysModule`, `ApiKeysModule`, `AuditModule`, `UsersModule`, `RateLimitModule`.
+- **`AppModule`** (`main.ts`) — HTTP API server. Imports the public domain modules, the internal capability modules, `CoreInfrastructureModule`, and `RateLimitModule`; the list itself is in `app.module.ts`.
 - **`WorkerModule`** (`worker.module.ts`) — Background job consumer. Imports `CoreInfrastructureModule` and `IntakeWorkerModule`. No controllers, no HTTP stack. The `ComparisonJobPoller` runs as a polling loop processing `ComparisonJob` records from the database queue.
 
 Both processes share `PrismaModule`, `StorageModule`, and the remaining `CoreInfrastructureModule` modules. The worker receives `ComparisonEngineModule` transitively through `IntakeWorkerModule`.
@@ -240,4 +179,4 @@ Both processes share `PrismaModule`, `StorageModule`, and the remaining `CoreInf
 - The worker process uses `IntakeWorkerModule` as its seam. Worker-specific providers must be added there, not in `IntakeApplicationModule`. This prevents lifecycle hooks (e.g., `ComparisonJobPoller.onApplicationBootstrap`) from firing in API mode.
 - Internal modules must not define visual test domain entities or domain services; the persistence-adjacent models they do own (`User`, `Session`, `ApiKey`, `AuditEvent`) stay inside them.
 - Observability events (`screenshot_uploaded`, `comparison_completed`, `comparison_approved`, `baseline_updated`) live as a discriminated union in `common/domain/observability-event.type.ts`. `StateChangeWorkflow` emits them synchronously to the logger + metrics in its post-commit path — there is no event bus and no `DomainEvent` base class (see ADR-004 §3). Adding a new event means extending the union and the emit switch in `common/domain/observability-event.emitter.ts`.
-- Internal modules reach visual test data either through a seam token — `STORAGE_OBJECT_REFERENCEDNESS`/`ORPHAN_SWEEP`, `PDF_RENDER_CACHE`, `FAILED_JOB_STORE` — or through a public repository class imported from `VisualTestInfraModule`; the maintenance sweeps that are deliberately not transaction-ambient (`ReviewArtifactCleanupTask`, the session and rate-limit cleanups) run on the bare `PrismaConnection`. Domain query logic (e.g., "what counts as an orphaned screenshot") still lives behind the seams, and the `DataDeletionModule` consuming those tokens (with `VisualTestInfraModule` only providing the seam implementations) is the canonical example.
+- Internal modules reach visual test data either through a seam token (`STORAGE_OBJECT_REFERENCEDNESS`/`ORPHAN_SWEEP`, `PDF_RENDER_CACHE`, `FAILED_JOB_STORE`) or through a public repository class imported from `VisualTestInfraModule`; the maintenance sweeps that are deliberately not transaction-ambient run on the bare `PrismaConnection`. Domain query logic (e.g. "what counts as an orphaned screenshot") stays behind the seams.

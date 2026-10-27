@@ -99,7 +99,7 @@ The original design used `IUnitOfWork` interface + `UNIT_OF_WORK` string token �
 - Every transactional operation must call `uow.execute()`. A service that calls multiple repositories outside a `uow.execute()` block has no atomicity guarantee.
 - **Retry, post-commit side effects and rollback compensation** must go through `StateChangeWorkflow.executeStateChange()` / `executeWithStoredFile()` — never re-implemented per caller. A mutation that needs a retried Serializable transaction, transactional status recompute, or post-commit event/file cleanup should not call `uow.execute()` directly.
 - The `PrismaUnitOfWork` uses Prisma's interactive transaction API (`prisma.$transaction(async (tx) => ...)`). Repository methods invoked within the callback receive the transaction client via `TransactionContext` ALS routing.
-- **Consumers of `PrismaUnitOfWork`**: Services that must own a transaction inject `PrismaUnitOfWork` directly — `OrphanCleanupService` (maintenance deletes — row-first via `deleteRecordsRowFirst`, plus the inline storage-first current-orphan path) as well as the application services whose writes span several repositories; everything inside the mutation pipeline goes through `StateChangeWorkflow`.
+- **`PrismaUnitOfWork` consumers**: a service that must own a transaction injects it directly; everything inside the mutation pipeline goes through `StateChangeWorkflow` instead. The call sites that deliberately open their own `$transaction` are listed under §3 → Consequences.
 
 ---
 
@@ -122,74 +122,36 @@ Split `PrismaService` into three classes with single responsibilities:
 
 #### `PrismaConnection`
 
-Lifecycle management and raw query access only. Handles `$connect`, `$disconnect`, `$transaction` (for the UoW implementation), and `$queryRaw`. Injected by consumers that need direct database access without transaction awareness.
-
-```typescript
-@Injectable()
-export class PrismaConnection implements OnModuleInit, OnModuleDestroy {
-  readonly client: PrismaClient;
-  $transaction<T>(fn: (tx: TransactionClient) => Promise<T>): Promise<T>;
-  $queryRaw<T>(query: TemplateStringsArray | Sql): Promise<T>;
-}
-```
-
-Consumers: the read-only repositories and `PrismaUnitOfWork`, plus the direct-query services (health checks, rate limiting, maintenance sweeps) that need no transaction awareness; `TransactionContext` injects it as the fallback for its `client` getter. (`PostgresAdvisoryLock` is listed in `PrismaModule` but does not inject `PrismaConnection` — it builds its own single-connection `pg.Pool` because advisory locks are session-scoped.)
+Lifecycle management and raw query access only: `$connect`, `$disconnect`,
+`$transaction` (for the UoW implementation) and `$queryRaw`. Read-only code and
+`PrismaUnitOfWork` inject it; `TransactionContext` uses it as the fallback for its
+`client` getter. `PostgresAdvisoryLock` is registered in `PrismaModule` but builds
+its own single-connection `pg.Pool`, because advisory locks are session-scoped.
 
 #### `TransactionContext`
 
-AsyncLocalStorage wrapper that propagates the transaction client across repository calls. Its `client` getter returns the active transaction client (if inside a `run()` callback) or falls back to `PrismaConnection.client`.
-
-```typescript
-@Injectable()
-export class TransactionContext {
-  get client(): PrismaClient | TransactionClient;
-  isInTransaction(): boolean;
-  assertInTransaction(): void;
-  run<T>(tx: TransactionClient, fn: () => Promise<T>): Promise<T>;
-}
-```
-
-`assertInTransaction()` throws when no ambient transaction is open, so a writer whose rows must join a `StateChangeWorkflow` transaction fails loudly instead of silently riding the bare connection.
-
-Consumers: `PrismaUnitOfWork` (runs its callback inside `run()`), the transaction-aware repositories (`UnifiedScreenshotRepository`, `UnifiedComparisonsRepository`, `UnifiedTestRepository`, `ProjectRepository`, `VariantStore`, `OrphanedScreenshotRepository` — the latter three inject it through their shared `BaseRepository`), plus `PostgresJobQueue` and `ComparisonRetirementService` — all inject `TransactionContext` to enforce the ambient-transaction contract via `assertInTransaction()` and to route the transaction client. Read-only consumers inject `PrismaConnection` directly.
+An AsyncLocalStorage wrapper that propagates the transaction client across
+repository calls: `client` returns the active transaction client inside a `run()`
+callback and `PrismaConnection.client` outside one. `assertInTransaction()` throws
+when no ambient transaction is open, so a writer whose rows must join a
+`StateChangeWorkflow` transaction fails loudly instead of silently riding the bare
+connection — which is why anything that writes injects `TransactionContext` rather
+than `PrismaConnection`.
 
 #### `PrismaUnitOfWork`
 
-Composes `PrismaConnection` and `TransactionContext`. Opens a database transaction via `PrismaConnection.$transaction()` and runs the callback inside `TransactionContext.run()` so that repositories seamlessly participate.
-
-```typescript
-@Injectable()
-export class PrismaUnitOfWork {
-  async execute<T>(
-    fn: () => Promise<T>,
-    options?: { isolationLevel?: Prisma.TransactionIsolationLevel },
-  ): Promise<T>;
-}
-```
-
-Consumers: services that must own a transaction inject it directly — `StateChangeWorkflow` via `executeStateChange` / `executeWithStoredFile` (the mutation pipeline) and `OrphanCleanupService` (maintenance) are the two load-bearing ones. Everything inside the mutation pipeline goes through `StateChangeWorkflow`, not the UoW directly.
+Composes the other two: it opens a transaction through
+`PrismaConnection.$transaction()` and runs the callback inside
+`TransactionContext.run()`, so repositories participate without being handed a
+client. Only a service that must own a transaction injects it directly — the
+mutation pipeline reaches it through `StateChangeWorkflow`, not by calling the UoW
+itself.
 
 #### Registration
 
-All three are plain `@Injectable()` classes registered in `PrismaModule`. No string tokens, no port interfaces — consistent with the backend module architecture.
-
-```typescript
-@Module({
-  providers: [
-    PrismaConnection,
-    TransactionContext,
-    PrismaUnitOfWork,
-    PostgresAdvisoryLock,
-  ],
-  exports: [
-    PrismaConnection,
-    TransactionContext,
-    PrismaUnitOfWork,
-    PostgresAdvisoryLock,
-  ],
-})
-export class PrismaModule {}
-```
+All three are plain `@Injectable()` classes registered in and exported from
+`PrismaModule`. No string tokens, no port interfaces — consistent with the module
+architecture in [ADR-013](./013-backend-structure.md).
 
 ### Rationale
 
