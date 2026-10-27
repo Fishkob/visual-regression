@@ -106,6 +106,47 @@ describe('Review assignments (e2e)', () => {
     expect(after.body).toHaveLength(0);
   });
 
+  it('creates the assignment together with its webhook delivery and audit trail', async () => {
+    await upload(baseline).expect(201);
+    const admin = await login('admin');
+
+    // The one configuration that exposes a missing transaction: the outbox
+    // write asserts its transaction only AFTER it finds a subscribed endpoint,
+    // so without an endpoint the assignment still succeeded while writing three
+    // rows that could not roll back together.
+    await request(app.getHttpServer())
+      .post('/api/v1/projects/shop/webhooks')
+      .set('Cookie', admin)
+      .send({
+        url: 'https://hooks.example.com/vrt',
+        events: ['review.assigned'],
+      })
+      .expect(201);
+
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/projects/shop/assignments')
+      .set('Cookie', admin)
+      .send({ testName: 'login', assignee: 'alice' })
+      .expect(201);
+    expect(created.body).toEqual(
+      expect.objectContaining({ assigneeUsername: 'alice' }),
+    );
+
+    const delivery = await db.webhookDelivery.findFirst({
+      where: { event: 'review.assigned' },
+    });
+    expect(delivery).not.toBeNull();
+
+    const trail = await db.auditEvent.findFirst({
+      where: { action: 'review.assign', targetId: created.body.id },
+    });
+    expect(trail).toMatchObject({
+      actor: 'admin',
+      targetType: 'assignment',
+      projectName: 'shop',
+    });
+  });
+
   it('filters the inbox to my assignments', async () => {
     await upload(baseline).expect(201);
     await upload(mismatch).expect(201);

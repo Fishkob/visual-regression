@@ -2,8 +2,8 @@ import {
   mapProjectDetailToDto,
   mapProjectSummaryToDto,
   mapProjectToDto,
-} from '@public/visualTest/review/infrastructure/mappers/project-response.mapper';
-import { ProjectDto } from '@public/visualTest/review/presentation/dto/project.dto';
+} from '@public/visualTest/catalog/infrastructure/mappers/project-response.mapper';
+import { ProjectDto } from '@public/visualTest/catalog/presentation/dto/project.dto';
 import { TestStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 
 describe('project-response.mapper', () => {

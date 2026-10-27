@@ -5,6 +5,24 @@ import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/re
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { ComparisonStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { createMock } from '@test/utils/create-mock';
+import type { VariantStatusSignalRow } from '@public/visualTest/core/infrastructure/repositories/variant-store';
+
+// The status-signal query returns one row per variant; only the two signal
+// fields matter to the aggregate, so the rest is filled in once here.
+function signal(
+  overrides: Partial<VariantStatusSignalRow> = {},
+): VariantStatusSignalRow {
+  return {
+    testName: 'test-1',
+    testKind: 'image',
+    viewport: '1920x1080',
+    browser: 'Chrome',
+    environment: 'staging',
+    hasBaseline: true,
+    latestComparisonStatus: null,
+    ...overrides,
+  };
+}
 
 describe('TestStatusService', () => {
   let service: TestStatusService;
@@ -32,21 +50,17 @@ describe('TestStatusService', () => {
 
   describe('recomputeStatus', () => {
     it('derives PENDING_APPROVAL when any variant is pending', async () => {
-      variants.findVariantStatusSignals.mockResolvedValue([
-        {
-          hasBaseline: true,
-          latestComparisonStatus: ComparisonStatus.PENDING_APPROVAL,
-        },
-        {
-          hasBaseline: true,
-          latestComparisonStatus: ComparisonStatus.APPROVED,
-        },
+      variants.findVariantStatusSignalsFor.mockResolvedValue([
+        signal({ latestComparisonStatus: ComparisonStatus.PENDING_APPROVAL }),
+        signal({ latestComparisonStatus: ComparisonStatus.APPROVED }),
       ]);
       tests.updateStatus.mockResolvedValue(undefined as any);
 
       await service.recomputeStatus('test-1');
 
-      expect(variants.findVariantStatusSignals).toHaveBeenCalledWith('test-1');
+      expect(variants.findVariantStatusSignalsFor).toHaveBeenCalledWith({
+        testId: 'test-1',
+      });
       expect(tests.updateStatus).toHaveBeenCalledWith(
         'test-1',
         'PENDING_APPROVAL',
@@ -54,12 +68,9 @@ describe('TestStatusService', () => {
     });
 
     it('derives UNCHANGED when every variant is clean and has a baseline', async () => {
-      variants.findVariantStatusSignals.mockResolvedValue([
-        {
-          hasBaseline: true,
-          latestComparisonStatus: ComparisonStatus.APPROVED,
-        },
-        { hasBaseline: true, latestComparisonStatus: null },
+      variants.findVariantStatusSignalsFor.mockResolvedValue([
+        signal({ latestComparisonStatus: ComparisonStatus.APPROVED }),
+        signal(),
       ]);
       tests.updateStatus.mockResolvedValue(undefined as any);
 
@@ -69,9 +80,9 @@ describe('TestStatusService', () => {
     });
 
     it('derives PENDING when a variant lacks a baseline', async () => {
-      variants.findVariantStatusSignals.mockResolvedValue([
-        { hasBaseline: true, latestComparisonStatus: null },
-        { hasBaseline: false, latestComparisonStatus: null },
+      variants.findVariantStatusSignalsFor.mockResolvedValue([
+        signal(),
+        signal({ hasBaseline: false }),
       ]);
       tests.updateStatus.mockResolvedValue(undefined as any);
 
@@ -81,7 +92,7 @@ describe('TestStatusService', () => {
     });
 
     it('derives PENDING for a test with no variants', async () => {
-      variants.findVariantStatusSignals.mockResolvedValue([]);
+      variants.findVariantStatusSignalsFor.mockResolvedValue([]);
       tests.updateStatus.mockResolvedValue(undefined as any);
 
       await service.recomputeStatus('test-1');

@@ -26,9 +26,10 @@ function whereFor(filters: AuditFilters): Prisma.AuditEventWhereInput {
 
 @Injectable()
 export class AuditRepository extends BaseRepository {
-  // Deliberately no assertWritable: settings writes are standalone and the
-  // transactional callers already run inside a StateChangeWorkflow. The audit
-  // row joins whichever transaction is active.
+  // Policy-free on purpose: the two shapes are distinguished one level up in
+  // AuditService (record asserts the ambient transaction, recordAccess is the
+  // read-time log), so both share this single insert. The row joins whichever
+  // transaction is active.
   async create(entry: AuditEntry): Promise<void> {
     await this.client.auditEvent.create({
       data: {

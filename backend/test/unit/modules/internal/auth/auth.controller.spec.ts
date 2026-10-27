@@ -4,6 +4,8 @@ import { SESSION_COOKIE } from '@common/http/session-cookie';
 import { AppConfigService } from '@config/app-config.service';
 import { AuthController } from '@internal/auth/auth.controller';
 import { AuthService } from '@internal/auth/auth.service';
+import { API_KEY_SCOPE_KEY } from '@common/http/api-key-scope.decorator';
+import { IS_SESSION_ONLY_KEY } from '@common/http/session-only.decorator';
 import { createMock } from '@test/utils/create-mock';
 
 describe('AuthController', () => {
@@ -141,5 +143,22 @@ describe('AuthController', () => {
       mustChangePassword: false,
       totpEnabled: false,
     });
+  });
+
+  it('declares no api-key scope on a session-only route', () => {
+    // The guard rejects the api key before it reads the scope, so a session-only
+    // route carrying one would describe a decision that cannot happen. Seven
+    // handlers did exactly that; this pins the rule for the next one.
+    const prototype = AuthController.prototype;
+    const offenders = Object.getOwnPropertyNames(prototype).filter((name) => {
+      const handler = (prototype as unknown as Record<string, unknown>)[name];
+      if (typeof handler !== 'function') return false;
+      return (
+        Reflect.getMetadata(IS_SESSION_ONLY_KEY, handler) === true &&
+        Reflect.getMetadata(API_KEY_SCOPE_KEY, handler) !== undefined
+      );
+    });
+
+    expect(offenders).toEqual([]);
   });
 });

@@ -83,12 +83,48 @@ export class BaselineHistoryService {
     }));
   }
 
-  // Record the baseline that is about to be overwritten and prune the history
-  // beyond the configured limit. Returns the storage URLs the prune made
-  // reclaimable (already filtered against every surviving reference).
+  // The one way a baseline's content changes. Approval (a candidate becomes the
+  // baseline) and restore (a revision becomes the baseline again) both replace
+  // the same row in place, and both must keep the outgoing content as a revision
+  // first. Folding the two steps into one method makes "overwrote it without
+  // keeping the history" unrepresentable instead of something each caller
+  // remembers — the ordering used to live in two files, neither naming the
+  // other.
   //
   // Transaction-riding: call only from inside a StateChangeWorkflow change.
-  async recordOutgoingBaseline(input: {
+  async overwriteKeepingHistory(input: {
+    testId: string;
+    variant: Variant;
+    current: ScreenshotEntity;
+    reason: BaselineRevisionReason;
+    createdBy: string;
+    next: {
+      imageHash: string;
+      imageUrl: string;
+      pageCount?: number | null;
+      pixelDiffThreshold?: number;
+    };
+  }): Promise<string[]> {
+    const reclaimable = await this.recordOutgoingBaseline({
+      testId: input.testId,
+      variant: input.variant,
+      baseline: input.current,
+      reason: input.reason,
+      createdBy: input.createdBy,
+    });
+    await this.screenshots.updateBaselineScreenshot(
+      input.current.id,
+      input.next,
+    );
+    return reclaimable;
+  }
+
+  // Record the baseline that is about to be overwritten and prune the history
+  // beyond the configured limit. Returns the storage URLs the prune made
+  // reclaimable (already filtered against every surviving reference). Private:
+  // the only caller is overwriteKeepingHistory, so a snapshot can never be
+  // written without the overwrite that justifies it.
+  private async recordOutgoingBaseline(input: {
     testId: string;
     variant: Variant;
     baseline: ScreenshotEntity;
@@ -182,22 +218,21 @@ export class BaselineHistoryService {
         );
       }
 
-      const staleUrls = await this.recordOutgoingBaseline({
-        testId: test.id,
-        variant,
-        baseline: current,
-        reason: 'restore',
-        createdBy: input.restoredBy,
-      });
-
       // The baseline row is updated in place, like an approval: the variant's
       // baselineId never changes, and the restored tolerance travels with the
       // restored image.
-      await this.screenshots.updateBaselineScreenshot(current.id, {
-        imageHash: revision.imageHash,
-        imageUrl: revision.imageUrl,
-        pageCount: revision.pageCount,
-        pixelDiffThreshold: revision.pixelDiffThreshold,
+      const staleUrls = await this.overwriteKeepingHistory({
+        testId: test.id,
+        variant,
+        current,
+        reason: 'restore',
+        createdBy: input.restoredBy,
+        next: {
+          imageHash: revision.imageHash,
+          imageUrl: revision.imageUrl,
+          pageCount: revision.pageCount,
+          pixelDiffThreshold: revision.pixelDiffThreshold,
+        },
       });
 
       await this.audit.record({

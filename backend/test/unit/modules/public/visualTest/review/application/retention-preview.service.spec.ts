@@ -1,5 +1,5 @@
 import type { Mocked } from 'vitest';
-import { RetentionPreviewService } from '@public/visualTest/review/application/retention-preview.service';
+import { RetentionPreviewService } from '@public/visualTest/access/application/retention-preview.service';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { BaselineRevisionRepository } from '@public/visualTest/core/infrastructure/repositories/baseline-revision.repository';
 import { RunRepository } from '@public/visualTest/core/infrastructure/repositories/run.repository';

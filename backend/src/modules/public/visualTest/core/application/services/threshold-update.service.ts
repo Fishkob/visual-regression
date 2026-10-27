@@ -11,7 +11,7 @@ import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import type { VariantFilter } from '@public/visualTest/core/domain/value-objects/variant.vo';
 
 export interface ThresholdAuditContext {
-  actor?: string;
+  actor: string;
   projectName?: string;
   branchName?: string;
 }
@@ -37,9 +37,9 @@ export class ThresholdUpdateService {
     testId: string,
     testName: string,
     threshold: number,
+    auditContext: ThresholdAuditContext,
     filters?: VariantFilter,
     preview = false,
-    auditContext: ThresholdAuditContext = {},
   ): Promise<{ autoAcceptedCount: number }> {
     if (preview) {
       // Server-owned preview of the rule: the frontend asks how many pending

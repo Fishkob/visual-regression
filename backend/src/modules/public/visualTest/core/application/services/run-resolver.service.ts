@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ComparisonOutcome } from '@common/domain/upload-outcome';
 import type { Run } from '@/prisma/client';
 import { RunRepository } from '@public/visualTest/core/infrastructure/repositories/run.repository';
 
@@ -41,7 +42,7 @@ export class RunResolver {
     browser: string;
     environment: string;
     contentHash: string;
-    outcome: string;
+    outcome: ComparisonOutcome;
   }): Promise<void> {
     await this.runs.recordUpload(input);
   }

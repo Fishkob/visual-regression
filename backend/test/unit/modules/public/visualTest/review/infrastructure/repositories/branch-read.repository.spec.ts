@@ -1,7 +1,7 @@
 import type { Mocked } from 'vitest';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
-import { BranchReadRepository } from '@public/visualTest/review/infrastructure/repositories/branch-read.repository';
+import { BranchReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/branch-read.repository';
 import { createMock } from '@test/utils/create-mock';
 
 describe('BranchReadRepository', () => {

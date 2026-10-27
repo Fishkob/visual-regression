@@ -1,7 +1,9 @@
 import {
+  mutedNow,
+  notMutedNow,
   REVIEWABLE_PENDING_SQL,
   reviewablePendingWhere,
-} from '@public/visualTest/review/infrastructure/repositories/reviewable-pending.sql';
+} from '@public/visualTest/core/infrastructure/repositories/reviewable-pending.sql';
 
 // The review queue is "pending and not muted"; the archived scope stays with
 // each reader. Those predicates are shared by the inbox page and every
@@ -12,6 +14,18 @@ describe('reviewable pending predicate', () => {
   const muteWindow = {
     OR: [{ mutedUntil: null }, { mutedUntil: { lte: now } }],
   };
+
+  describe('mute polarity', () => {
+    it('reads a null mute window as not muted', () => {
+      expect(notMutedNow(now)).toEqual(muteWindow);
+    });
+
+    it('derives the muted subset as the exact complement', () => {
+      // `gt` and not a negation: a NULL mutedUntil must never count as muted,
+      // so "muted" and "not muted" cannot both be false for the same row.
+      expect(mutedNow(now)).toEqual({ mutedUntil: { gt: now } });
+    });
+  });
 
   describe('reviewablePendingWhere', () => {
     it('carries the pending status and the mute window together', () => {

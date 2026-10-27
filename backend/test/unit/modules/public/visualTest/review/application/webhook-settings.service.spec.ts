@@ -4,7 +4,7 @@ import { ProjectRepository } from '@public/visualTest/core/infrastructure/reposi
 import { WebhookDeliveryRepository } from '@internal/webhooks/webhook-delivery.repository';
 import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
 import { WebhookEndpointRepository } from '@internal/webhooks/webhook-endpoint.repository';
-import { WebhookSettingsService } from '@public/visualTest/review/application/webhook-settings.service';
+import { WebhookSettingsService } from '@public/visualTest/notifications/application/webhook-settings.service';
 import { AuditService } from '@internal/audit/audit.service';
 import type { WebhookEndpointRow } from '@internal/webhooks/webhook.types';
 import { createMock } from '@test/utils/create-mock';
@@ -97,19 +97,27 @@ describe('WebhookSettingsService', () => {
 
   it('rejects a blocked URL on create', async () => {
     await expect(
-      service.create('shop', {
-        url: 'http://169.254.169.254/latest',
-        events: ['review.requested'],
-      }),
+      service.create(
+        'shop',
+        {
+          url: 'http://169.254.169.254/latest',
+          events: ['review.requested'],
+        },
+        'jane',
+      ),
     ).rejects.toBeInstanceOf(DomainError);
     expect(endpoints.create).not.toHaveBeenCalled();
   });
 
   it('generates a signing secret and returns it once on create', async () => {
-    await service.create('shop', {
-      url: 'https://hooks.example.com/x',
-      events: ['review.requested'],
-    });
+    await service.create(
+      'shop',
+      {
+        url: 'https://hooks.example.com/x',
+        events: ['review.requested'],
+      },
+      'jane',
+    );
 
     expect(endpoints.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -126,7 +134,7 @@ describe('WebhookSettingsService', () => {
     endpoints.findByIdForProject.mockResolvedValue(null);
 
     await expect(
-      service.update('shop', 'other', { active: false }),
+      service.update('shop', 'other', { active: false }, 'jane'),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 

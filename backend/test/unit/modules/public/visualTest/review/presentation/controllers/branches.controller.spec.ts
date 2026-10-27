@@ -1,7 +1,7 @@
 import type { Mocked } from 'vitest';
-import { BranchesController } from '@public/visualTest/review/presentation/controllers/branches.controller';
-import { BranchReadRepository } from '@public/visualTest/review/infrastructure/repositories/branch-read.repository';
-import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
+import { BranchesController } from '@public/visualTest/catalog/presentation/controllers/branches.controller';
+import { BranchReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/branch-read.repository';
+import { BranchCommandService } from '@public/visualTest/catalog/application/branch-command.service';
 import { BadRequestException } from '@nestjs/common';
 import { createMock } from '@test/utils/create-mock';
 
@@ -80,7 +80,7 @@ describe('BranchesController', () => {
 
     await expect(
       controller.remove('app', 'feature/x', {
-        auth: { username: 'jane' },
+        auth: { username: 'jane', userId: 'user-1' },
       } as never),
     ).resolves.toEqual({
       success: true,

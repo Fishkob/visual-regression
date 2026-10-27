@@ -7,7 +7,7 @@ import { UNASSIGNED_GROUP_FILTER } from '@common/domain/group-filter';
 import {
   REVIEWABLE_PENDING_SQL,
   reviewablePendingWhere,
-} from '@public/visualTest/review/infrastructure/repositories/reviewable-pending.sql';
+} from '@public/visualTest/core/infrastructure/repositories/reviewable-pending.sql';
 import { COMPARISON_INCLUDE } from '@public/visualTest/core/infrastructure/mappers/comparison.mapper';
 import { variantFromRow } from '@public/visualTest/core/infrastructure/mappers/variant-row.mapper';
 
@@ -59,6 +59,30 @@ type InboxComparisonRow = Prisma.UnifiedComparisonGetPayload<{
   include: typeof INBOX_INCLUDE;
 }>;
 
+// The queue's archived scope: archived branches are out, unless the caller
+// names a branch explicitly. One decision, rendered into the two shapes the
+// readers need — a Prisma where for the page, a SQL clause for the counts — so
+// the project section's "Review N" describes the rows the queue is showing.
+// The page and its count used to decide this separately: the count hard-coded
+// the exclusion, so a filtered archived branch listed rows whose header said 0.
+type ArchivedScope = { kind: 'named'; branchName: string } | { kind: 'live' };
+
+function archivedScope(branchName?: string): ArchivedScope {
+  return branchName ? { kind: 'named', branchName } : { kind: 'live' };
+}
+
+function branchWhereFor(scope: ArchivedScope): Prisma.BranchWhereInput {
+  return scope.kind === 'named'
+    ? { name: scope.branchName }
+    : { isArchived: false };
+}
+
+function archivedClauseFor(scope: ArchivedScope) {
+  return scope.kind === 'named'
+    ? Prisma.sql`AND b.name = ${scope.branchName}`
+    : Prisma.sql`AND b."isArchived" = false`;
+}
+
 @Injectable()
 export class ReviewInboxRepository {
   constructor(private readonly connection: PrismaConnection) {}
@@ -83,9 +107,15 @@ export class ReviewInboxRepository {
     data: PendingReviewRow[];
     total: number;
   }> {
-    const branchWhere: Prisma.BranchWhereInput = {};
-    if (filters?.branchName) branchWhere.name = filters.branchName;
-    else branchWhere.isArchived = false;
+    // One archived rule for the queue: archived branches are out — unless the
+    // caller names a branch explicitly, which is a deliberate deep link into
+    // one archived branch's pending work. The count below applies the same
+    // conditional, so the project section's "Review N" describes the rows the
+    // queue is showing; before, the count hard-coded the exclusion and a
+    // filtered archived branch listed rows whose header said 0.
+    const branchWhere: Prisma.BranchWhereInput = branchWhereFor(
+      archivedScope(filters?.branchName),
+    );
 
     const projectWhere: Prisma.ProjectWhereInput = {};
     if (filters?.projectName) projectWhere.name = filters.projectName;
@@ -139,7 +169,10 @@ export class ReviewInboxRepository {
     const projectNames = [
       ...new Set(data.map((row) => row.test.branch.project.name)),
     ];
-    const counts = await this.countPendingByProjectBranch(projectNames);
+    const counts = await this.countPendingByProjectBranch(
+      projectNames,
+      filters?.branchName,
+    );
 
     return {
       data: data.map((row) => {
@@ -191,8 +224,10 @@ export class ReviewInboxRepository {
 
   private async countPendingByProjectBranch(
     projectNames: string[],
+    branchName?: string,
   ): Promise<Map<string, { count: number; branchCount: number }>> {
     if (projectNames.length === 0) return new Map();
+    const scope = archivedScope(branchName);
 
     const rows = await this.client.$queryRaw<
       { projectName: string; branchName: string; count: bigint }[]
@@ -203,7 +238,7 @@ export class ReviewInboxRepository {
       JOIN "Branch" b ON b.id = t."branchId"
       JOIN "Project" p ON p.id = b."projectId"
       WHERE ${REVIEWABLE_PENDING_SQL}
-        AND b."isArchived" = false
+        ${archivedClauseFor(scope)}
         AND p.name IN (${Prisma.join(projectNames)})
       GROUP BY p.name, b.name
     `);

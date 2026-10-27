@@ -1,6 +1,6 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { PdfAccessService } from '@public/visualTest/review/application/pdf-access.service';
+import { PdfAccessService } from '@public/visualTest/access/application/pdf-access.service';
 import { TestReadRepository } from '@public/visualTest/review/infrastructure/repositories/test-read.repository';
 import {
   PDF_RENDER_CACHE,

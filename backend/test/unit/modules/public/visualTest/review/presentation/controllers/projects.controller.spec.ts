@@ -1,13 +1,13 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProjectDetailQueryDto } from '@public/visualTest/review/presentation/dto/project.dto';
-import { ProjectsController } from '@public/visualTest/review/presentation/controllers/projects.controller';
-import { ProjectService } from '@public/visualTest/review/application/project.service';
+import { ProjectDetailQueryDto } from '@public/visualTest/catalog/presentation/dto/project.dto';
+import { ProjectsController } from '@public/visualTest/catalog/presentation/controllers/projects.controller';
+import { ProjectService } from '@public/visualTest/catalog/application/project.service';
 import { DomainError } from '@common/domain/domain-error';
 import {
   CreateProjectDto,
   UpdateProjectDto,
-} from '@public/visualTest/review/presentation/dto/project.dto';
+} from '@public/visualTest/catalog/presentation/dto/project.dto';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';
@@ -72,7 +72,7 @@ describe('ProjectsController', () => {
       projectService.deleteProject.mockResolvedValue(undefined);
 
       const result = await controller.deleteProject('checkout-ui', {
-        auth: { username: 'jane' },
+        auth: { username: 'jane', userId: 'user-1' },
       } as never);
 
       expect(result).toEqual({ success: true });
@@ -124,7 +124,7 @@ describe('ProjectsController', () => {
       projectService.updateProjectGroup.mockResolvedValue(expected);
 
       const result = await controller.updateProject('checkout-ui', dto, {
-        auth: { username: 'ada' },
+        auth: { username: 'ada', userId: 'user-1' },
       } as never);
 
       expect(result).toEqual(expected);
@@ -152,7 +152,7 @@ describe('ProjectsController', () => {
       const result = await controller.updateReviewPolicy(
         'checkout-ui',
         { requiredApprovals: 3 },
-        { auth: { username: 'ada' } } as never,
+        { auth: { username: 'ada', userId: 'user-1' } } as never,
       );
 
       expect(projectService.updateReviewPolicy).toHaveBeenCalledWith(
@@ -169,11 +169,9 @@ describe('ProjectsController', () => {
       );
 
       await expect(
-        controller.updateReviewPolicy(
-          'missing',
-          { requiredApprovals: 2 },
-          {} as never,
-        ),
+        controller.updateReviewPolicy('missing', { requiredApprovals: 2 }, {
+          auth: { username: 'ada', userId: 'user-1' },
+        } as never),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
   });

@@ -1,5 +1,5 @@
 import type { Mocked } from 'vitest';
-import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
+import { BranchCommandService } from '@public/visualTest/catalog/application/branch-command.service';
 import { BranchRepository } from '@public/visualTest/core/infrastructure/repositories/branch.repository';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { BranchDeletionService } from '@public/visualTest/core/application/services/branch-deletion.service';
@@ -65,7 +65,7 @@ describe('BranchCommandService', () => {
       isArchived: false,
     });
 
-    await expect(service.delete('app', 'main')).rejects.toMatchObject({
+    await expect(service.delete('app', 'main', 'jane')).rejects.toMatchObject({
       code: 'CONFLICT',
     });
     expect(deletion.delete).not.toHaveBeenCalled();

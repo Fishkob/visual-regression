@@ -1,7 +1,7 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProjectGroupService } from '@public/visualTest/review/application/project-group.service';
-import { ProjectGroupRepository } from '@public/visualTest/review/infrastructure/repositories/project-group.repository';
+import { ProjectGroupService } from '@public/visualTest/catalog/application/project-group.service';
+import { ProjectGroupRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-group.repository';
 import { createMock } from '@test/utils/create-mock';
 
 describe('ProjectGroupService', () => {

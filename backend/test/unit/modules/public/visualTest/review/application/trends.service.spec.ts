@@ -1,6 +1,6 @@
 import type { Mocked } from 'vitest';
 import { DomainError } from '@common/domain/domain-error';
-import { TrendsService } from '@public/visualTest/review/application/trends.service';
+import { TrendsService } from '@public/visualTest/runs/application/trends.service';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ComparisonOutcomeService } from '@public/visualTest/core/application/services/comparison-outcome.service';
 import { createMock } from '@test/utils/create-mock';

@@ -2,8 +2,8 @@ import {
   buildRunCsv,
   buildRunHtml,
   buildRunJUnit,
-} from '@public/visualTest/review/application/run-report.builder';
-import type { RunDetail } from '@public/visualTest/review/application/run.service';
+} from '@public/visualTest/runs/application/run-report.builder';
+import type { RunDetail } from '@public/visualTest/runs/application/run.service';
 
 function detail(muted = false): RunDetail {
   return {

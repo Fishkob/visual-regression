@@ -17,7 +17,7 @@ export class TestStatusService {
   // The persisted aggregate is derived from the SAME per-variant rule the read
   // model uses, so the test row and the per-variant read model cannot drift.
   private async deriveStatus(testId: string): Promise<TestStatus> {
-    const signals = await this.variants.findVariantStatusSignals(testId);
+    const signals = await this.variants.findVariantStatusSignalsFor({ testId });
     const statuses = signals.map((signal) =>
       resolveVariantStatusFromComparison(
         signal.latestComparisonStatus ?? undefined,

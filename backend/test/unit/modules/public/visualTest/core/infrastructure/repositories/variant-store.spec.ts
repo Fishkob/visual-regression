@@ -166,7 +166,7 @@ describe('VariantStore', () => {
     });
   });
 
-  describe('findVariantStatusSignals', () => {
+  describe('findVariantStatusSignalsFor', () => {
     it('maps each variant to its baseline presence and latest reviewable comparison status', async () => {
       mockClient.unifiedVariant.findMany.mockResolvedValue([
         {
@@ -184,7 +184,9 @@ describe('VariantStore', () => {
         },
       ]);
 
-      const result = await store.findVariantStatusSignals('test-1');
+      const result = await store.findVariantStatusSignalsFor({
+        testId: 'test-1',
+      });
 
       expect(mockClient.unifiedVariant.findMany).toHaveBeenCalledWith({
         where: { testId: 'test-1' },
@@ -205,9 +207,20 @@ describe('VariantStore', () => {
         },
       });
       expect(result).toEqual([
-        { hasBaseline: true, latestComparisonStatus: 'PENDING_APPROVAL' },
-        { hasBaseline: false, latestComparisonStatus: null },
-        { hasBaseline: true, latestComparisonStatus: 'APPROVED' },
+        expect.objectContaining({
+          testName: 'test-1',
+          testKind: 'image',
+          hasBaseline: true,
+          latestComparisonStatus: 'PENDING_APPROVAL',
+        }),
+        expect.objectContaining({
+          hasBaseline: false,
+          latestComparisonStatus: null,
+        }),
+        expect.objectContaining({
+          hasBaseline: true,
+          latestComparisonStatus: 'APPROVED',
+        }),
       ]);
     });
 
@@ -219,17 +232,24 @@ describe('VariantStore', () => {
         },
       ]);
 
-      const result = await store.findVariantStatusSignals('test-1');
+      const result = await store.findVariantStatusSignalsFor({
+        testId: 'test-1',
+      });
 
       expect(result).toEqual([
-        { hasBaseline: true, latestComparisonStatus: null },
+        expect.objectContaining({
+          hasBaseline: true,
+          latestComparisonStatus: null,
+        }),
       ]);
     });
 
     it('returns an empty array when the test has no variants', async () => {
       mockClient.unifiedVariant.findMany.mockResolvedValue([]);
 
-      const result = await store.findVariantStatusSignals('test-1');
+      const result = await store.findVariantStatusSignalsFor({
+        testId: 'test-1',
+      });
 
       expect(result).toEqual([]);
     });

@@ -169,17 +169,18 @@ describe('BaselineHistoryService', () => {
     });
   });
 
-  describe('recordOutgoingBaseline', () => {
+  describe('overwriteKeepingHistory', () => {
     it('snapshots the replaced baseline, prunes and filters the reclaimable URLs', async () => {
       revisions.pruneBeyond.mockResolvedValue(['http://storage/pruned.png']);
       screenshots.filterReclaimableUrls.mockResolvedValue([]);
 
-      const result = await service.recordOutgoingBaseline({
+      const result = await service.overwriteKeepingHistory({
         testId: 'test-1',
         variant,
-        baseline,
+        current: baseline,
         reason: 'approval',
         createdBy: 'jane.doe',
+        next: { imageHash: 'new-hash', imageUrl: 'http://storage/new.png' },
       });
 
       expect(revisions.create).toHaveBeenCalledWith({
@@ -200,6 +201,15 @@ describe('BaselineHistoryService', () => {
         'variant-1',
         10,
       );
+      // The rule: the snapshot is written before the row it describes is
+      // overwritten, so an overwrite can never orphan the history it needs.
+      expect(revisions.create.mock.invocationCallOrder[0]).toBeLessThan(
+        screenshots.updateBaselineScreenshot.mock.invocationCallOrder[0]!,
+      );
+      expect(screenshots.updateBaselineScreenshot).toHaveBeenCalledWith(
+        baseline.id,
+        { imageHash: 'new-hash', imageUrl: 'http://storage/new.png' },
+      );
       expect(screenshots.filterReclaimableUrls).toHaveBeenCalledWith([
         'http://storage/pruned.png',
       ]);
@@ -210,14 +220,17 @@ describe('BaselineHistoryService', () => {
       variants.findVariantId.mockResolvedValue(null);
 
       await expect(
-        service.recordOutgoingBaseline({
+        service.overwriteKeepingHistory({
           testId: 'test-1',
           variant,
-          baseline,
+          current: baseline,
           reason: 'approval',
+          createdBy: 'jane.doe',
+          next: { imageHash: 'new-hash', imageUrl: 'http://storage/new.png' },
         }),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
       expect(revisions.create).not.toHaveBeenCalled();
+      expect(screenshots.updateBaselineScreenshot).not.toHaveBeenCalled();
     });
   });
 

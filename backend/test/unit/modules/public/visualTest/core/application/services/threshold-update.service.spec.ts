@@ -103,7 +103,7 @@ describe('ThresholdUpdateService', () => {
       'http://storage/diff.png',
     ]);
 
-    await service.update('test-1', 'my-test', 20);
+    await service.update('test-1', 'my-test', 20, { actor: 'jane' });
 
     expect(screenshots.updateThresholdMany).toHaveBeenCalledWith(
       ['baseline-A'],
@@ -122,7 +122,7 @@ describe('ThresholdUpdateService', () => {
       comparisonRow({ mismatchPixelCount: 25 }),
     ]);
 
-    await service.update('test-1', 'my-test', 20);
+    await service.update('test-1', 'my-test', 20, { actor: 'jane' });
 
     expect(screenshots.updateThresholdMany).toHaveBeenCalledWith(
       ['baseline-A'],
@@ -135,7 +135,7 @@ describe('ThresholdUpdateService', () => {
     screenshots.findBaselineIdsByFilters.mockResolvedValue(['baseline-A']);
     comparisons.findPendingForBaselines.mockResolvedValue([]);
 
-    await service.update('test-1', 'my-test', 20);
+    await service.update('test-1', 'my-test', 20, { actor: 'jane' });
 
     expect(uow.execute).toHaveBeenCalledWith(
       expect.any(Function),
@@ -146,9 +146,9 @@ describe('ThresholdUpdateService', () => {
   it('throws NOT_FOUND when no baseline matches', async () => {
     screenshots.findBaselineIdsByFilters.mockResolvedValue([]);
 
-    await expect(service.update('test-1', 'my-test', 20)).rejects.toThrow(
-      DomainError,
-    );
+    await expect(
+      service.update('test-1', 'my-test', 20, { actor: 'jane' }),
+    ).rejects.toThrow(DomainError);
     expect(screenshots.updateThresholdMany).not.toHaveBeenCalled();
   });
 
@@ -156,7 +156,7 @@ describe('ThresholdUpdateService', () => {
     screenshots.findBaselineIdsByFilters.mockResolvedValue(['baseline-A']);
     comparisons.findPendingForBaselines.mockResolvedValue([]);
 
-    await service.update('test-1', 'my-test', 20);
+    await service.update('test-1', 'my-test', 20, { actor: 'jane' });
 
     expect(statusService.recomputeStatus).toHaveBeenCalledWith('test-1');
   });
@@ -168,7 +168,9 @@ describe('ThresholdUpdateService', () => {
       comparisonRow({ id: 'cmp-2', mismatchPixelCount: 30 }),
     ]);
 
-    const result = await service.update('test-1', 'my-test', 20);
+    const result = await service.update('test-1', 'my-test', 20, {
+      actor: 'jane',
+    });
 
     expect(result).toEqual({ autoAcceptedCount: 1 });
     expect(retirement.retirePendingComparisons).toHaveBeenCalledWith('test-1', [
@@ -185,7 +187,7 @@ describe('ThresholdUpdateService', () => {
       screenshots.findThresholdsByIds.mockResolvedValue([0, 0]);
       comparisons.findPendingForBaselines.mockResolvedValue([comparisonRow()]);
 
-      await service.update('test-1', 'my-test', 20, undefined, false, {
+      await service.update('test-1', 'my-test', 20, {
         actor: 'jane',
         projectName: 'my-project',
         branchName: 'main',
@@ -215,7 +217,7 @@ describe('ThresholdUpdateService', () => {
       screenshots.findThresholdsByIds.mockResolvedValue([0, 10]);
       comparisons.findPendingForBaselines.mockResolvedValue([]);
 
-      await service.update('test-1', 'my-test', 20);
+      await service.update('test-1', 'my-test', 20, { actor: 'jane' });
 
       expect(audit.record).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -228,7 +230,14 @@ describe('ThresholdUpdateService', () => {
       screenshots.findBaselineIdsByFilters.mockResolvedValue(['baseline-A']);
       comparisons.findPendingForBaselines.mockResolvedValue([comparisonRow()]);
 
-      await service.update('test-1', 'my-test', 20, undefined, true);
+      await service.update(
+        'test-1',
+        'my-test',
+        20,
+        { actor: 'jane' },
+        undefined,
+        true,
+      );
 
       expect(audit.record).not.toHaveBeenCalled();
     });
@@ -238,9 +247,9 @@ describe('ThresholdUpdateService', () => {
       comparisons.findPendingForBaselines.mockResolvedValue([]);
       screenshots.updateThresholdMany.mockRejectedValue(new Error('db down'));
 
-      await expect(service.update('test-1', 'my-test', 20)).rejects.toThrow(
-        'db down',
-      );
+      await expect(
+        service.update('test-1', 'my-test', 20, { actor: 'jane' }),
+      ).rejects.toThrow('db down');
 
       expect(audit.record).not.toHaveBeenCalled();
     });
@@ -257,6 +266,7 @@ describe('ThresholdUpdateService', () => {
       'test-1',
       'my-test',
       20,
+      { actor: 'jane' },
       undefined,
       true,
     );
@@ -272,7 +282,14 @@ describe('ThresholdUpdateService', () => {
     screenshots.findBaselineIdsByFilters.mockResolvedValue([]);
 
     await expect(
-      service.update('test-1', 'my-test', 20, undefined, true),
+      service.update(
+        'test-1',
+        'my-test',
+        20,
+        { actor: 'jane' },
+        undefined,
+        true,
+      ),
     ).rejects.toThrow(DomainError);
     expect(screenshots.updateThresholdMany).not.toHaveBeenCalled();
   });

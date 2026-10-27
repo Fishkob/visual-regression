@@ -76,7 +76,7 @@ describe('BranchDeletionService', () => {
       'http://storage/diff.png',
     ]);
 
-    await service.delete('proj-1', 'br-feature');
+    await service.delete('proj-1', 'br-feature', 'jane');
 
     expect(jobQueue.cancelByTestIds).toHaveBeenCalledWith(['test-1']);
     expect(branches.deleteById).toHaveBeenCalledWith('br-feature');
@@ -94,7 +94,9 @@ describe('BranchDeletionService', () => {
     branches.findById.mockResolvedValue(main);
     branches.findDefault.mockResolvedValue(main);
 
-    await expect(service.delete('proj-1', 'br-main')).rejects.toMatchObject({
+    await expect(
+      service.delete('proj-1', 'br-main', 'jane'),
+    ).rejects.toMatchObject({
       code: 'CONFLICT',
     });
     expect(branches.deleteById).not.toHaveBeenCalled();
@@ -103,7 +105,9 @@ describe('BranchDeletionService', () => {
   it('rejects a branch of another project', async () => {
     branches.findById.mockResolvedValue({ ...feature, projectId: 'proj-2' });
 
-    await expect(service.delete('proj-1', 'br-feature')).rejects.toMatchObject({
+    await expect(
+      service.delete('proj-1', 'br-feature', 'jane'),
+    ).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
   });
@@ -111,7 +115,9 @@ describe('BranchDeletionService', () => {
   it('rejects an unknown branch', async () => {
     branches.findById.mockResolvedValue(null);
 
-    await expect(service.delete('proj-1', 'missing')).rejects.toMatchObject({
+    await expect(
+      service.delete('proj-1', 'missing', 'jane'),
+    ).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
   });
@@ -122,7 +128,7 @@ describe('BranchDeletionService', () => {
     tests.findIdsByBranchId.mockResolvedValue([]);
     screenshots.filterReclaimableUrls.mockResolvedValue([]);
 
-    await service.delete('proj-1', 'br-feature');
+    await service.delete('proj-1', 'br-feature', 'jane');
 
     expect(jobQueue.cancelByTestIds).not.toHaveBeenCalled();
     expect(screenshots.findAllImageUrlsForTests).not.toHaveBeenCalled();
@@ -140,7 +146,9 @@ describe('BranchDeletionService', () => {
       'release/2',
     ]);
 
-    await expect(service.delete('proj-1', 'br-feature')).rejects.toMatchObject({
+    await expect(
+      service.delete('proj-1', 'br-feature', 'jane'),
+    ).rejects.toMatchObject({
       code: 'CONFLICT',
       message:
         'Branch "feature/x" is the target of "feature/child", "release/2" — retarget them before deleting it',

@@ -1,31 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import type { ApprovalPrincipal } from '@common/domain/approval-principal';
+import { DomainError } from '@common/domain/domain-error';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import {
   ApprovalService,
+  bulkFailureMessage,
   type ApproveTarget,
+  type ListedApprovalBatch,
 } from '@public/visualTest/review/application/approval.service';
-import { ProjectService } from '@public/visualTest/review/application/project.service';
+import { ProjectService } from '@public/visualTest/catalog/application/project.service';
 
 export interface BulkItemResult {
   id: string;
   success: boolean;
   error?: string;
-}
-
-export interface BulkPendingVote {
-  id: string;
-  votes: number;
-  required: number;
-}
-
-export interface BulkApprovalResult {
-  approved: BulkItemResult[];
-  pending: BulkPendingVote[];
-  failed: BulkItemResult[];
 }
 
 // Bulk actions are deliberately a loop over the existing single-item services,
@@ -48,12 +39,12 @@ export class BulkActionService {
     comparisonIds: string[],
     actor: string,
     principal: ApprovalPrincipal,
-  ): Promise<BulkApprovalResult> {
+  ): Promise<ListedApprovalBatch> {
     // The selection may span tests and kinds, so each id is paired with its
     // owning test here; the approval itself (kind dispatch, failure policy, vote
     // bookkeeping) belongs to ApprovalService.approveMany.
     const targets: ApproveTarget[] = [];
-    const failed: BulkItemResult[] = [];
+    const failed: ListedApprovalBatch['failed'] = [];
     for (const comparisonId of comparisonIds) {
       const test = await this.comparisons.findTestOfComparisonById(
         projectName,
@@ -81,22 +72,10 @@ export class BulkActionService {
       actor,
       principal,
     );
-    return {
-      approved: batch.approved.map((id) => ({ id, success: true })),
-      pending: batch.pending.map((vote) => ({
-        id: vote.comparisonId,
-        votes: vote.votes,
-        required: vote.required,
-      })),
-      failed: [
-        ...failed,
-        ...batch.failed.map((item) => ({
-          id: item.comparisonId,
-          success: false,
-          error: item.error,
-        })),
-      ],
-    };
+    // The rows this loop resolved itself stay its own; the batch supplies the
+    // rest, including the failure copy it already owns.
+    const listed = batch.rows();
+    return { ...listed, failed: [...failed, ...listed.failed] };
   }
 
   async deleteTests(
@@ -114,7 +93,8 @@ export class BulkActionService {
           branch.branchId,
           testName,
         );
-        if (!test) throw new Error('Test not found on this branch');
+        if (!test)
+          throw new DomainError('Test not found on this branch', 'NOT_FOUND');
         await this.deletion.deleteTest(test.id, {
           actor,
           projectName,
@@ -126,7 +106,7 @@ export class BulkActionService {
         failed.push({
           id: testName,
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: bulkFailureMessage(error, 'Delete failed'),
         });
       }
     }
@@ -147,7 +127,7 @@ export class BulkActionService {
         failed.push({
           id: projectName,
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: bulkFailureMessage(error, 'Move failed'),
         });
       }
     }

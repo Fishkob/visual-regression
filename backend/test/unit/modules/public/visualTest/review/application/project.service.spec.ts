@@ -1,11 +1,11 @@
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProjectService } from '@public/visualTest/review/application/project.service';
+import { ProjectService } from '@public/visualTest/catalog/application/project.service';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
-import { ProjectReadRepository } from '@public/visualTest/review/infrastructure/repositories/project-read.repository';
-import { ProjectGroupRepository } from '@public/visualTest/review/infrastructure/repositories/project-group.repository';
-import { BranchCommandService } from '@public/visualTest/review/application/branch-command.service';
+import { ProjectReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-read.repository';
+import { ProjectGroupRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-group.repository';
+import { BranchCommandService } from '@public/visualTest/catalog/application/branch-command.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { DomainError } from '@common/domain/domain-error';
 import { AuditService } from '@internal/audit/audit.service';
@@ -60,11 +60,11 @@ describe('ProjectService', () => {
     it('delegates to TestDeletionService', async () => {
       testDeletion.deleteProject.mockResolvedValue(undefined);
 
-      await service.deleteProject('my-project');
+      await service.deleteProject('my-project', 'jane');
 
       expect(testDeletion.deleteProject).toHaveBeenCalledWith(
         'my-project',
-        undefined,
+        'jane',
       );
     });
 
@@ -73,9 +73,9 @@ describe('ProjectService', () => {
         new DomainError('Project "non-existent" not found', 'NOT_FOUND'),
       );
 
-      await expect(service.deleteProject('non-existent')).rejects.toThrow(
-        DomainError,
-      );
+      await expect(
+        service.deleteProject('non-existent', 'jane'),
+      ).rejects.toThrow(DomainError);
     });
   });
 
@@ -344,7 +344,7 @@ describe('ProjectService', () => {
       projects.requireByName.mockRejectedValue(missingProject('missing'));
 
       await expect(
-        service.updateRetention('missing', { runHistoryDays: 7 }),
+        service.updateRetention('missing', { runHistoryDays: 7 }, 'jane'),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
 
       expect(projects.updateRetention).not.toHaveBeenCalled();
@@ -385,11 +385,11 @@ describe('ProjectService', () => {
         createdAt: new Date('2024-01-01'),
       });
 
-      await service.updateReviewPolicy('my-project', 2);
+      await service.updateReviewPolicy('my-project', 2, 'jane');
 
       expect(audit.record).toHaveBeenCalledWith(
         expect.objectContaining({
-          actor: null,
+          actor: 'jane',
           metadata: { from: 1, to: 2 },
         }),
       );
@@ -410,7 +410,7 @@ describe('ProjectService', () => {
         order.push('audit');
       });
 
-      await service.updateReviewPolicy('my-project', 4);
+      await service.updateReviewPolicy('my-project', 4, 'jane');
 
       expect(order).toEqual(['update', 'audit']);
     });
@@ -419,7 +419,7 @@ describe('ProjectService', () => {
       projects.requireByName.mockRejectedValue(missingProject('missing'));
 
       await expect(
-        service.updateReviewPolicy('missing', 3),
+        service.updateReviewPolicy('missing', 3, 'jane'),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
       expect(projects.updateRequiredApprovals).not.toHaveBeenCalled();
       expect(audit.record).not.toHaveBeenCalled();

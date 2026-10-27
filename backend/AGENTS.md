@@ -22,7 +22,11 @@ src/
     public/visualTest/
       core/                      # Domain entities, policies, repositories, application services
       intake/                    # Upload controllers, pipelines, workers
-      review/                    # Approval controllers, DTOs, mappers, application services
+      review/                    # Inbox, approvals/votes, comments, assignments, test reads + commands
+      catalog/                   # Projects, groups, branches, global search
+      runs/                      # Run lifecycle, JUnit/HTML/CSV reports, trends
+      access/                    # Share links, PDF render/download, storage-retention settings
+      notifications/             # Webhook endpoint administration (delivery lives in internal/webhooks)
 ```
 
 ## DI & Module Patterns

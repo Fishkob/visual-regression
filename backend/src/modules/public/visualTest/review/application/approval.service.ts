@@ -10,6 +10,7 @@ import {
   ApprovalDecision,
   ComparisonEntity,
 } from '@public/visualTest/core/domain/entities/comparison.entity';
+import type { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import {
   ApprovalAuditRepository,
@@ -284,19 +285,15 @@ export class ApprovalService {
                 },
               };
             }
-            // Keep the baseline that is about to be replaced, so the approval can
-            // be undone from the history view. This writes the history row in the
-            // same transaction as the baseline overwrite; the previous baseline's
-            // file is no longer reclaimed because the revision now references it.
-            const revisionUrls =
-              await this.baselineHistory.recordOutgoingBaseline({
-                testId: test.id,
-                variant: decision.newBaseline.variant,
-                baseline: comparison.baseline,
-                reason: 'approval',
-                createdBy: approvedBy,
-              });
-            const staleDiffUrls = await this.persist(config, decision);
+            // The overwrite keeps the outgoing baseline as a revision in the same
+            // transaction, so the approval can be undone from the history view and
+            // the previous file stays referenced (see
+            // BaselineHistoryService.overwriteKeepingHistory).
+            const staleDiffUrls = await this.persist(config, decision, {
+              testId: test.id,
+              baseline: comparison.baseline,
+              createdBy: approvedBy,
+            });
             // The trail is written in the SAME change: an approval never commits
             // without its audit row, and an audit failure rolls the approval back.
             // The row is denormalized from the loaded entities because the
@@ -365,7 +362,7 @@ export class ApprovalService {
             });
             return {
               change: change([test.id], {
-                staleUrls: [...staleDiffUrls, ...revisionUrls],
+                staleUrls: staleDiffUrls,
                 events: [
                   {
                     kind: 'comparison_approved',
@@ -426,12 +423,8 @@ export class ApprovalService {
     targets: readonly ApproveTarget[],
     approvedBy: string,
     principal: ApprovalPrincipal,
-  ): Promise<ApprovalBatchResult> {
-    const result: ApprovalBatchResult = {
-      approved: [],
-      pending: [],
-      failed: [],
-    };
+  ): Promise<ApprovalBatch> {
+    const result = new ApprovalBatch([], [], []);
     for (const target of targets) {
       try {
         const outcome = await this.executeApproval(
@@ -455,7 +448,7 @@ export class ApprovalService {
       } catch (error) {
         result.failed.push({
           comparisonId: target.comparisonId,
-          error: bulkFailureMessage(error),
+          error: bulkFailureMessage(error, 'Approval failed'),
         });
       }
     }
@@ -472,7 +465,7 @@ export class ApprovalService {
     approvedBy: string,
     principal: ApprovalPrincipal,
     branchName?: string,
-  ): Promise<BulkApprovalResult> {
+  ): Promise<CountedApprovalBatch> {
     const test = await this.testResolver.findOwnTest(
       projectName,
       testName,
@@ -492,11 +485,7 @@ export class ApprovalService {
       approvedBy,
       principal,
     );
-    return {
-      approved: batch.approved.length,
-      pending: batch.pending,
-      failed: batch.failed,
-    };
+    return batch.counts();
   }
 
   // The audit trail read for the UI: the most recent approvals of a test,
@@ -572,26 +561,37 @@ export class ApprovalService {
     return comparison;
   }
 
-  // The approval recipe, shared by every kind: fold the candidate into the
-  // baseline, complete the comparison row (kind-specific), retire the sibling
-  // pending comparisons + delete the approved candidate row, and collect the
-  // storage URLs to reclaim post-commit. Kinds supply only the kind-specific
-  // bits — what to write on the baseline, how to complete the comparison, and
-  // the post-commit hook — via APPROVAL_KIND_CONFIG.
+  // The approval recipe, shared by every kind: replace the baseline's content
+  // (keeping the outgoing row as a revision), claim the variant as branch-owned,
+  // complete the comparison row (kind-specific), retire the sibling pending
+  // comparisons + delete the approved candidate row, and collect the storage
+  // URLs to reclaim post-commit. Kinds supply only the kind-specific bits — what
+  // to write on the baseline, how to complete the comparison, and the
+  // post-commit hook — via APPROVAL_KIND_CONFIG.
   private async persist(
     config: ApprovalKindConfig,
     decision: ApprovalDecision,
+    context: {
+      testId: string;
+      baseline: ScreenshotEntity;
+      createdBy: string;
+    },
   ): Promise<string[]> {
-    await this.screenshots.updateBaselineScreenshot(
-      decision.baselineId,
-      config.baselineUpdateData(decision),
-    );
+    const revisionUrls = await this.baselineHistory.overwriteKeepingHistory({
+      testId: context.testId,
+      variant: decision.newBaseline.variant,
+      current: context.baseline,
+      reason: 'approval',
+      createdBy: context.createdBy,
+      next: config.baselineUpdateData(decision),
+    });
     await this.screenshots.markBaselineOwned(decision.baselineId);
 
     const diffArtifactUrls = await config.completeComparison(decision);
 
     const stale = await this.retireAndDeleteCandidate(decision);
     return [
+      ...revisionUrls,
       ...(await this.collectApprovalUrls(decision, diffArtifactUrls)),
       ...stale,
     ];
@@ -649,26 +649,76 @@ export interface ApproveTarget {
   branchName?: string;
 }
 
-// The batch's single result shape. Callers map it to their own wire shape (a run
-// reports a count, a bulk selection reports per-item rows), but the failure
-// policy and the vote bookkeeping are decided once, here.
-export interface ApprovalBatchResult {
-  approved: string[];
-  pending: { comparisonId: string; votes: number; required: number }[];
-  failed: { comparisonId: string; error: string }[];
+export interface BatchPendingVote {
+  comparisonId: string;
+  votes: number;
+  required: number;
 }
 
-// The test-scoped endpoint's shape: how many comparisons were approved, plus one
-// entry per comparison that failed (the batch continues past failures).
-export interface BulkApprovalResult {
+export interface BatchFailure {
+  comparisonId: string;
+  error: string;
+}
+
+// A caller whose response is a summary: "how many were approved".
+export interface CountedApprovalBatch {
   approved: number;
-  pending: { comparisonId: string; votes: number; required: number }[];
-  failed: { comparisonId: string; error: string }[];
+  pending: BatchPendingVote[];
+  failed: BatchFailure[];
+}
+
+// A caller whose response lists the selection it sent.
+export interface ListedApprovalBatch {
+  approved: { id: string; success: true }[];
+  pending: { id: string; votes: number; required: number }[];
+  failed: { id: string; success: false; error: string }[];
+}
+
+// The batch's outcome, and the only place its shape is decided. Every
+// "approve many" call site — a run's approve-all, the test's pending list, a
+// cross-test bulk selection — projects this one result; before, each declared
+// its own near-identical shape (two of them under the same exported name) and
+// re-wrote the failure policy next to it.
+export class ApprovalBatch {
+  constructor(
+    readonly approved: string[],
+    readonly pending: BatchPendingVote[],
+    readonly failed: BatchFailure[],
+  ) {}
+
+  // The summary projection: a run reports a count.
+  counts(): CountedApprovalBatch {
+    return {
+      approved: this.approved.length,
+      pending: this.pending,
+      failed: this.failed,
+    };
+  }
+
+  // The listing projection: a bulk selection reports one row per comparison.
+  rows(): ListedApprovalBatch {
+    return {
+      approved: this.approved.map((id) => ({ id, success: true })),
+      pending: this.pending.map((vote) => ({
+        id: vote.comparisonId,
+        votes: vote.votes,
+        required: vote.required,
+      })),
+      failed: this.failed.map((failure) => ({
+        id: failure.comparisonId,
+        success: false,
+        error: failure.error,
+      })),
+    };
+  }
 }
 
 // A DomainError's message is written for the client and safe to return; any
 // other error is an internal failure whose text could leak implementation
-// detail, so the batch reports a generic message for it.
-function bulkFailureMessage(error: unknown): string {
-  return error instanceof DomainError ? error.message : 'Approval failed';
+// detail, so a batch reports the operation's generic message instead. The
+// policy is one function because the bulk delete/move loops had re-spelled it —
+// one of them without the guard, so internal text reached the browser. Only the
+// noun differs per operation, so the caller supplies it.
+export function bulkFailureMessage(error: unknown, fallback: string): string {
+  return error instanceof DomainError ? error.message : fallback;
 }

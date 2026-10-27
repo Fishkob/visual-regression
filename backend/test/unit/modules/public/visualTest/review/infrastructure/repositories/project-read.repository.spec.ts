@@ -1,7 +1,7 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaConnection } from '@/prisma/prisma-connection';
-import { ProjectReadRepository } from '@public/visualTest/review/infrastructure/repositories/project-read.repository';
+import { ProjectReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-read.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { createMock } from '@test/utils/create-mock';

@@ -4,7 +4,7 @@ import { validate } from 'class-validator';
 import {
   CreateProjectDto,
   UpdateProjectDto,
-} from '@public/visualTest/review/presentation/dto/project.dto';
+} from '@public/visualTest/catalog/presentation/dto/project.dto';
 
 describe('Project group DTO validation', () => {
   afterEach(() => {

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { AppLoggerService } from '@common/logging/app-logger.service';
 import {
   ComparisonOutcomeRepository,
   type ComparisonOutcomeEntry,
@@ -7,10 +8,27 @@ import {
 
 @Injectable()
 export class ComparisonOutcomeService {
-  constructor(private readonly outcomes: ComparisonOutcomeRepository) {}
+  constructor(
+    private readonly outcomes: ComparisonOutcomeRepository,
+    private readonly logger: AppLoggerService,
+  ) {}
 
+  // A report, not the work. The row is written outside the comparison
+  // transaction on purpose — a lost trend row must never roll back a
+  // comparison — and that only pays off if the write can also lose: it never
+  // throws, so a job whose comparison committed cannot be failed by its
+  // analytics. Before this the processor's INSERT sat outside any try, and one
+  // failed row turned a finished job into a FAILED one.
   async record(entry: ComparisonOutcomeEntry): Promise<void> {
-    await this.outcomes.record(entry);
+    try {
+      await this.outcomes.record(entry);
+    } catch (error) {
+      this.logger.warn('Dropped a comparison outcome row', {
+        testId: entry.testId,
+        outcome: entry.outcome,
+        error: String(error),
+      });
+    }
   }
 
   // Oscillation count: how often the test flipped between changed and clean in

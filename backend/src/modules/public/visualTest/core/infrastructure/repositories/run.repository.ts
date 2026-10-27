@@ -5,6 +5,8 @@ import type { Run } from '@/prisma/client';
 
 export type RunWithBranch = Run & { branch: { name: string } };
 import type { RunStatusCounts } from '@public/visualTest/core/domain/types/run.types';
+import { ComparisonOutcome } from '@common/domain/upload-outcome';
+import { mutedNow } from '@public/visualTest/core/infrastructure/repositories/reviewable-pending.sql';
 
 export interface UpsertRunActivityInput {
   projectId: string;
@@ -140,13 +142,17 @@ export class RunRepository extends BaseRepository {
     browser: string;
     environment: string;
     contentHash: string;
-    outcome: string;
+    outcome: ComparisonOutcome;
   }): Promise<void> {
     this.assertWritable();
     await this.client.runUpload.create({ data: input });
   }
 
   async statusCounts(runId: string): Promise<RunStatusCounts> {
+    // One clock for both polarities: the gate reports the pending set and the
+    // muted subset beside it, so they must not fall on different sides of the
+    // boundary.
+    const now = new Date();
     const [
       pendingComparisons,
       mutedPending,
@@ -161,7 +167,7 @@ export class RunRepository extends BaseRepository {
         where: {
           runId,
           status: 'PENDING_APPROVAL',
-          test: { mutedUntil: { gt: new Date() } },
+          test: mutedNow(now),
         },
       }),
       this.client.comparisonJob.count({

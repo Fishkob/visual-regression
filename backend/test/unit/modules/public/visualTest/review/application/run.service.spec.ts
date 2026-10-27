@@ -1,10 +1,13 @@
 import type { Mocked } from 'vitest';
 import { DomainError } from '@common/domain/domain-error';
-import { RunService } from '@public/visualTest/review/application/run.service';
+import { RunService } from '@public/visualTest/runs/application/run.service';
 import { RunRepository } from '@public/visualTest/core/infrastructure/repositories/run.repository';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
-import { ApprovalService } from '@public/visualTest/review/application/approval.service';
+import {
+  ApprovalBatch,
+  ApprovalService,
+} from '@public/visualTest/review/application/approval.service';
 import { createMock } from '@test/utils/create-mock';
 import { createMockProjectRepository } from '@test/utils/mocks';
 
@@ -188,11 +191,13 @@ describe('RunService', () => {
         },
       },
     ] as never);
-    approvals.approveMany.mockResolvedValue({
-      approved: ['cmp-1'],
-      pending: [],
-      failed: [{ comparisonId: 'cmp-2', error: 'stale' }],
-    });
+    approvals.approveMany.mockResolvedValue(
+      new ApprovalBatch(
+        ['cmp-1'],
+        [],
+        [{ comparisonId: 'cmp-2', error: 'stale' }],
+      ),
+    );
 
     const principal = { principalType: 'user' as const, principalId: 'user-1' };
     const result = await service.approveAll('shop', 'ci-1', 'jane', principal);
@@ -249,11 +254,9 @@ describe('RunService', () => {
         baseline: { variant: null },
       },
     ] as never);
-    approvals.approveMany.mockResolvedValue({
-      approved: ['cmp-live'],
-      pending: [],
-      failed: [],
-    });
+    approvals.approveMany.mockResolvedValue(
+      new ApprovalBatch(['cmp-live'], [], []),
+    );
 
     const principal = { principalType: 'user' as const, principalId: 'user-1' };
     const result = await service.approveAll('shop', 'ci-1', 'jane', principal);

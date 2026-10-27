@@ -34,7 +34,7 @@ export class BranchDeletionService {
   async delete(
     projectId: string,
     branchId: string,
-    actor?: string,
+    actor: string,
   ): Promise<void> {
     await this.workflow.executeStateChange(
       async () => {

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Req } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { requireActor } from '@common/http/authenticated-principal';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
@@ -51,7 +52,7 @@ export class TestLifecycleController {
       projectName,
       testName,
       dto,
-      req.auth?.username,
+      requireActor(req),
       branch,
     );
     return plainToInstance(TestMetadataDto, metadata, {

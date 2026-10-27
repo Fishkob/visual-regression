@@ -1,11 +1,15 @@
 import type { Mocked } from 'vitest';
 import { BulkActionService } from '@public/visualTest/review/application/bulk-action.service';
-import { ApprovalService } from '@public/visualTest/review/application/approval.service';
-import { ProjectService } from '@public/visualTest/review/application/project.service';
+import {
+  ApprovalBatch,
+  ApprovalService,
+} from '@public/visualTest/review/application/approval.service';
+import { ProjectService } from '@public/visualTest/catalog/application/project.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
+import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
 
 describe('BulkActionService', () => {
@@ -56,11 +60,7 @@ describe('BulkActionService', () => {
         branch: { name: 'main' },
       } as never)
       .mockResolvedValueOnce(null);
-    approvals.approveMany.mockResolvedValue({
-      approved: ['c1'],
-      pending: [],
-      failed: [],
-    });
+    approvals.approveMany.mockResolvedValue(new ApprovalBatch(['c1'], [], []));
 
     const principal = {
       principalType: 'user' as const,
@@ -121,13 +121,27 @@ describe('BulkActionService', () => {
   it('moves projects and reports failures per item', async () => {
     projects.updateProjectGroup
       .mockResolvedValueOnce({} as never)
-      .mockRejectedValueOnce(new Error('Project not found'));
+      .mockRejectedValueOnce(new DomainError('Project not found', 'NOT_FOUND'));
 
     const result = await service.moveProjects(['a', 'b'], 'g1');
 
     expect(result.moved).toEqual([{ id: 'a', success: true }]);
+    // A DomainError's message is written for the client, so it is returned.
     expect(result.failed).toEqual([
       { id: 'b', success: false, error: 'Project not found' },
     ]);
+  });
+
+  it('does not leak an internal error message into a bulk row', async () => {
+    projects.updateProjectGroup.mockRejectedValueOnce(
+      new Error('connect ECONNREFUSED 10.0.0.5:5432'),
+    );
+
+    const result = await service.moveProjects(['a'], 'g1');
+
+    expect(result.failed).toEqual([
+      { id: 'a', success: false, error: 'Move failed' },
+    ]);
+    expect(result.failed[0].error).not.toContain('ECONNREFUSED');
   });
 });

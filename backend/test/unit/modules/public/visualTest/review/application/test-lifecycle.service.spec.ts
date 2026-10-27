@@ -7,6 +7,7 @@ import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/re
 import { AuditService } from '@internal/audit/audit.service';
 import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
+import { createMockUoW } from '@test/utils/mocks';
 
 function row(overrides: Record<string, unknown> = {}) {
   return {
@@ -45,7 +46,13 @@ describe('TestLifecycleService', () => {
     });
     audit = createMock<AuditService>();
     audit.record.mockResolvedValue(undefined);
-    service = new TestLifecycleService(resolver, tests, outcomes, audit);
+    service = new TestLifecycleService(
+      resolver,
+      tests,
+      outcomes,
+      audit,
+      createMockUoW() as never,
+    );
   });
 
   afterEach(() => {
@@ -85,30 +92,45 @@ describe('TestLifecycleService', () => {
     tests.updateMetadata.mockRejectedValue({ code: 'P2002' });
 
     await expect(
-      service.update('shop', 'login', { name: 'taken' }),
+      service.update('shop', 'login', { name: 'taken' }, 'ada'),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('normalizes tags and rejects a mute without a reason', async () => {
-    await service.update('shop', 'login', {
-      tags: ['Checkout', 'checkout', ' ui '],
-    });
+    await service.update(
+      'shop',
+      'login',
+      {
+        tags: ['Checkout', 'checkout', ' ui '],
+      },
+      'ada',
+    );
     expect(tests.updateMetadata).toHaveBeenCalledWith('t1', {
       tags: ['checkout', 'ui'],
     });
 
     await expect(
-      service.update('shop', 'login', {
-        mutedUntil: new Date(Date.now() + 60_000).toISOString(),
-      }),
+      service.update(
+        'shop',
+        'login',
+        {
+          mutedUntil: new Date(Date.now() + 60_000).toISOString(),
+        },
+        'ada',
+      ),
     ).rejects.toBeInstanceOf(DomainError);
   });
 
   it('clears the mute for a past timestamp', async () => {
-    await service.update('shop', 'login', {
-      mutedUntil: new Date(Date.now() - 60_000).toISOString(),
-      muteReason: 'old',
-    });
+    await service.update(
+      'shop',
+      'login',
+      {
+        mutedUntil: new Date(Date.now() - 60_000).toISOString(),
+        muteReason: 'old',
+      },
+      'ada',
+    );
 
     expect(tests.updateMetadata).toHaveBeenCalledWith('t1', {
       mutedUntil: null,

@@ -1,8 +1,8 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { PdfController } from '@public/visualTest/review/presentation/controllers/pdf.controller';
+import { PdfController } from '@public/visualTest/access/presentation/controllers/pdf.controller';
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
-import { PdfAccessService } from '@public/visualTest/review/application/pdf-access.service';
+import { PdfAccessService } from '@public/visualTest/access/application/pdf-access.service';
 import { Response } from 'express';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';

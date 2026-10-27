@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaConnection } from '@/prisma/prisma-connection';
+import { BaseRepository } from '@/prisma/base.repository';
 
 export interface CreateAssignmentInput {
   projectId: string;
@@ -13,14 +13,12 @@ export interface CreateAssignmentInput {
 }
 
 @Injectable()
-export class ReviewAssignmentRepository {
-  constructor(private readonly connection: PrismaConnection) {}
-
-  private get client() {
-    return this.connection.client;
-  }
-
+export class ReviewAssignmentRepository extends BaseRepository {
+  // Transaction-aware: an assignment always changes together with its outbox
+  // row and its audit row (ReviewAssignmentService owns that transaction), so
+  // the write has to join it instead of riding the bare connection.
   async create(input: CreateAssignmentInput) {
+    this.assertWritable();
     return this.client.reviewAssignment.create({
       data: input,
       include: {
@@ -59,6 +57,7 @@ export class ReviewAssignmentRepository {
   }
 
   async complete(id: string, assigneeId: string): Promise<boolean> {
+    this.assertWritable();
     const result = await this.client.reviewAssignment.updateMany({
       where: { id, assigneeId, completedAt: null },
       data: { completedAt: new Date() },

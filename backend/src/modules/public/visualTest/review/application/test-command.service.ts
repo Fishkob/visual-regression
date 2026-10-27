@@ -19,9 +19,9 @@ export class TestCommandService {
   async deleteTest(
     projectName: string,
     testName: string,
+    actor: string,
     branchName?: string,
     filters?: VariantFilter,
-    actor?: string,
   ) {
     const test = await this.testResolver.findOwnTest(
       projectName,
@@ -75,10 +75,10 @@ export class TestCommandService {
     testName: string,
     projectName: string,
     threshold: number,
+    actor: string,
     filters?: VariantFilter,
     preview = false,
     branchName?: string,
-    actor?: string,
   ): Promise<{
     status: 'updated';
     test: string;
@@ -98,9 +98,9 @@ export class TestCommandService {
       test.id,
       testName,
       threshold,
+      { actor, projectName, branchName },
       filters,
       preview,
-      { actor, projectName, branchName },
     );
 
     return { status: 'updated', test: testName, threshold, autoAcceptedCount };

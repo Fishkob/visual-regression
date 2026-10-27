@@ -103,13 +103,15 @@ export class ComparisonJobProcessor {
       });
       const mismatch = mismatchCount(result);
       if (mismatch === 0) {
-        await this.handleUnchanged(data);
-        await this.recordOutcome(data, 'unchanged', 0);
+        await this.completeWithoutComparison(data, 'unchanged', 0);
       } else if (
         isWithinThreshold(data.testKind, mismatch, baseline.pixelDiffThreshold)
       ) {
-        await this.handleWithinThreshold(data, mismatch);
-        await this.recordOutcome(data, 'within_threshold', mismatch);
+        await this.completeWithoutComparison(
+          data,
+          'within_threshold',
+          mismatch,
+        );
       } else {
         const comparisonId = await this.handleDiff(data, result);
         await this.recordOutcome(data, 'changed', mismatch, comparisonId);
@@ -246,33 +248,21 @@ export class ComparisonJobProcessor {
     return { ...current, baseline };
   }
 
-  private async handleUnchanged(data: JobData): Promise<void> {
-    await this.reclamation.reclaimCandidateInChange({
-      testId: data.testId,
-      events: [
-        {
-          kind: 'comparison_completed',
-          testKind: data.testKind,
-          visualTestId: data.testId,
-          comparisonId: undefined,
-          outcome: 'unchanged',
-          diffMetric: 0,
-        },
-      ],
-      resolveCandidate: async () => this.loadCurrentCandidateOrFail(data),
-    });
-  }
-
-  // An image diff at or below the baseline threshold is accepted without a
-  // review. The baseline is deliberately kept (no silent promotion): every
-  // future run is measured against the same reference, so tolerated
-  // differences cannot accumulate, and approval stays the only path that
-  // writes a baseline. No comparison row and no diff artifact are stored — the
-  // candidate is reclaimed exactly like an unchanged diff, through the same
-  // in-transaction race-closer.
-  private async handleWithinThreshold(
+  // The two "nothing to review" outcomes complete the same way, so they are one
+  // method: the candidate is reclaimed through the same in-transaction
+  // race-closer, no comparison row and no diff artifact are stored, and the
+  // outcome is recorded in the same step. They used to be two copy-pasted
+  // handlers whose recorder sat in a second statement at the call site — the
+  // outcome and its record could drift apart, and one of them could be forgotten.
+  //
+  // For `within_threshold` the baseline is deliberately kept (no silent
+  // promotion): every future run is measured against the same reference, so
+  // tolerated differences cannot accumulate, and approval stays the only path
+  // that writes a baseline.
+  private async completeWithoutComparison(
     data: JobData,
-    mismatch: number,
+    outcome: 'unchanged' | 'within_threshold',
+    diffMetric: number,
   ): Promise<void> {
     await this.reclamation.reclaimCandidateInChange({
       testId: data.testId,
@@ -282,12 +272,13 @@ export class ComparisonJobProcessor {
           testKind: data.testKind,
           visualTestId: data.testId,
           comparisonId: undefined,
-          outcome: 'within_threshold',
-          diffMetric: mismatch,
+          outcome,
+          diffMetric,
         },
       ],
       resolveCandidate: async () => this.loadCurrentCandidateOrFail(data),
     });
+    await this.recordOutcome(data, outcome, diffMetric);
   }
 
   private async handleDiff(

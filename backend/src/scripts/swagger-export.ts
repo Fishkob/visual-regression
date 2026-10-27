@@ -6,7 +6,7 @@ import { AppConfigService } from '@config/app-config.service';
 import { DetailedHealthDto } from '../modules/internal/health/health.types';
 import { UploadIntake } from '@public/visualTest/intake/application/upload-intake.service';
 import { TestResolver } from '@public/visualTest/core/application/services/test-resolver.service';
-import { ProjectService } from '@public/visualTest/review/application/project.service';
+import { ProjectService } from '@public/visualTest/catalog/application/project.service';
 import { TestCommandService } from '@public/visualTest/review/application/test-command.service';
 import { ApprovalService } from '@public/visualTest/review/application/approval.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';

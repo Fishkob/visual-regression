@@ -5,7 +5,7 @@ import { createValidationPipe } from '@common/http/validation-pipe';
 import {
   TestNamesQueryDto,
   UpdateThresholdQueryDto,
-} from '@public/visualTest/review/presentation/dto/project.dto';
+} from '@public/visualTest/catalog/presentation/dto/project.dto';
 
 class SampleDto {
   @IsString()

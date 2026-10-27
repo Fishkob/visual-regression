@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { DomainError } from '@common/domain/domain-error';
 import { AuditService } from '@internal/audit/audit.service';
 import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
@@ -36,6 +37,7 @@ export class ReviewAssignmentService {
     private readonly users: AuthRepository,
     private readonly webhooks: WebhookDispatchService,
     private readonly audit: AuditService,
+    private readonly uow: PrismaUnitOfWork,
   ) {}
 
   async create(
@@ -99,39 +101,48 @@ export class ReviewAssignmentService {
     if (dueAt && Number.isNaN(dueAt.getTime())) {
       throw new DomainError('dueAt must be a valid date', 'BAD_REQUEST');
     }
-    const row = await this.assignments.create({
-      projectId: project.id,
-      branchName: branch.branchName,
-      testId,
-      runId,
-      assigneeId: assignee.id,
-      assigneeUsername: assignee.username,
-      assignedBy: actor,
-      dueAt,
-    });
-    if (testName && kind) {
-      await this.webhooks.enqueueReviewAssigned({
+    // The assignment, its notification and its trail commit together — the
+    // shape a review comment already uses. Without the transaction the outbox
+    // write asserted itself into a 500 after the assignment row had landed; a
+    // project with a subscribed `review.assigned` endpoint was the only
+    // configuration that showed it, because the outbox returns early when no
+    // endpoint exists.
+    const row = await this.uow.execute(async () => {
+      const created = await this.assignments.create({
+        projectId: project.id,
+        branchName: branch.branchName,
+        testId,
+        runId,
+        assigneeId: assignee.id,
+        assigneeUsername: assignee.username,
+        assignedBy: actor,
+        dueAt,
+      });
+      if (testName && kind) {
+        await this.webhooks.enqueueReviewAssigned({
+          projectName,
+          testName,
+          branchName: branch.branchName,
+          kind,
+          assignee: assignee.username,
+          dueAt: dueAt?.toISOString() ?? null,
+        });
+      }
+      await this.audit.record({
+        actor,
+        action: AUDIT_ACTIONS.reviewAssign,
         projectName,
         testName,
         branchName: branch.branchName,
-        kind,
-        assignee: assignee.username,
-        dueAt: dueAt?.toISOString() ?? null,
+        targetType: 'assignment',
+        targetId: created.id,
+        metadata: {
+          assignee: assignee.username,
+          dueAt: dueAt?.toISOString() ?? null,
+          runKey: input.runKey ?? null,
+        },
       });
-    }
-    await this.audit.record({
-      actor,
-      action: AUDIT_ACTIONS.reviewAssign,
-      projectName,
-      testName,
-      branchName: branch.branchName,
-      targetType: 'assignment',
-      targetId: row.id,
-      metadata: {
-        assignee: assignee.username,
-        dueAt: dueAt?.toISOString() ?? null,
-        runKey: input.runKey ?? null,
-      },
+      return created;
     });
     return this.toView(row);
   }
@@ -156,23 +167,28 @@ export class ReviewAssignmentService {
     id: string,
     actor: string,
   ): Promise<AssignmentView> {
-    const isCompleted = await this.assignments.complete(id, assigneeId);
-    if (!isCompleted) {
-      throw new DomainError(
-        'Assignment not found or already complete',
-        'NOT_FOUND',
-      );
-    }
-    const row = await this.assignments.findById(id);
-    if (!row) throw new DomainError('Assignment not found', 'NOT_FOUND');
-    await this.audit.record({
-      actor,
-      action: AUDIT_ACTIONS.reviewComplete,
-      projectName: row.project.name,
-      testName: row.test?.name ?? null,
-      branchName: row.branchName,
-      targetType: 'assignment',
-      targetId: id,
+    const row = await this.uow.execute(async () => {
+      const isCompleted = await this.assignments.complete(id, assigneeId);
+      if (!isCompleted) {
+        throw new DomainError(
+          'Assignment not found or already complete',
+          'NOT_FOUND',
+        );
+      }
+      const completed = await this.assignments.findById(id);
+      if (!completed) {
+        throw new DomainError('Assignment not found', 'NOT_FOUND');
+      }
+      await this.audit.record({
+        actor,
+        action: AUDIT_ACTIONS.reviewComplete,
+        projectName: completed.project.name,
+        testName: completed.test?.name ?? null,
+        branchName: completed.branchName,
+        targetType: 'assignment',
+        targetId: id,
+      });
+      return completed;
     });
     return this.toView(row);
   }

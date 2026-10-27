@@ -4,7 +4,7 @@ import { TestsQueriesController } from '@public/visualTest/review/presentation/c
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
 import { DomainError } from '@common/domain/domain-error';
 import { PaginationDto } from '@common/dto/pagination.dto';
-import { TestNamesQueryDto } from '@public/visualTest/review/presentation/dto/project.dto';
+import { TestNamesQueryDto } from '@public/visualTest/catalog/presentation/dto/project.dto';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import { ComparisonEntity } from '@public/visualTest/core/domain/entities/comparison.entity';
 import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';

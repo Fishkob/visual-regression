@@ -3,10 +3,8 @@ import { PrismaConnection } from '@/prisma/prisma-connection';
 import { findManyWithCount } from '@/prisma/find-many-with-count';
 import { TestKind, Prisma } from '@/prisma/client';
 import { DomainError } from '@common/domain/domain-error';
-import {
-  TestStatus,
-  PENDING_APPROVAL_STATUS_FILTER,
-} from '@public/visualTest/core/domain/types/visual-test.types';
+import { reviewablePendingWhere } from '@public/visualTest/core/infrastructure/repositories/reviewable-pending.sql';
+import { TestStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { resolveVariantStatusFromComparison } from '@public/visualTest/core/domain/policies/test-status.policy';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
@@ -443,10 +441,9 @@ export class TestReadRepository {
         };
       }>
     >(this.client.unifiedComparison, {
-      where: {
+      where: reviewablePendingWhere({
         test: {
           branchId,
-          OR: [{ mutedUntil: null }, { mutedUntil: { lte: new Date() } }],
           ...(assigneeId
             ? {
                 assignments: {
@@ -455,8 +452,7 @@ export class TestReadRepository {
               }
             : {}),
         },
-        ...PENDING_APPROVAL_STATUS_FILTER,
-      },
+      }),
       include: {
         test: { select: { name: true } },
         baseline: COMPARISON_INCLUDE.baseline,

@@ -1,4 +1,5 @@
 import type { Mocked } from 'vitest';
+import { TransactionContext } from '@/prisma/transaction-context';
 import { AuditRepository } from '@internal/audit/audit.repository';
 import { AuditService } from '@internal/audit/audit.service';
 import type { AuditEventRow } from '@internal/audit/audit.types';
@@ -7,6 +8,7 @@ import { createMock } from '@test/utils/create-mock';
 describe('AuditService', () => {
   let service: AuditService;
   let events: Mocked<AuditRepository>;
+  let txCtx: Mocked<TransactionContext>;
 
   const row: AuditEventRow = {
     id: 'audit-1',
@@ -24,9 +26,10 @@ describe('AuditService', () => {
   beforeEach(() => {
     events = createMock<AuditRepository>();
     events.create.mockResolvedValue(undefined);
+    txCtx = createMock<TransactionContext>();
     events.findPage.mockResolvedValue({ data: [row], total: 1 });
     events.findForExport.mockResolvedValue([row]);
-    service = new AuditService(events);
+    service = new AuditService(events, txCtx);
   });
 
   afterEach(() => {
@@ -58,6 +61,34 @@ describe('AuditService', () => {
       10,
     );
     expect(result.total).toBe(1);
+  });
+
+  it('refuses to record a trail outside a transaction', async () => {
+    txCtx.assertInTransaction.mockImplementation(() => {
+      throw new Error(
+        'Operation requires an active StateChangeWorkflow transaction',
+      );
+    });
+
+    await expect(
+      service.record({ actor: 'jane', action: 'approval' }),
+    ).rejects.toThrow('StateChangeWorkflow');
+    expect(events.create).not.toHaveBeenCalled();
+  });
+
+  it('lets the access log write without a transaction', async () => {
+    txCtx.assertInTransaction.mockImplementation(() => {
+      throw new Error(
+        'Operation requires an active StateChangeWorkflow transaction',
+      );
+    });
+
+    await service.recordAccess({ actor: null, action: 'share.access' });
+
+    expect(events.create).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'share.access' }),
+    );
+    expect(txCtx.assertInTransaction).not.toHaveBeenCalled();
   });
 
   it('exports CSV with escaped values and metadata', async () => {

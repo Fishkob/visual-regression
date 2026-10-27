@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { TransactionContext } from '@/prisma/transaction-context';
 import { AuditRepository } from '@internal/audit/audit.repository';
 import type {
   AuditEntry,
@@ -25,11 +26,25 @@ function csvCell(value: unknown): string {
 
 @Injectable()
 export class AuditService {
-  constructor(private readonly events: AuditRepository) {}
+  constructor(
+    private readonly events: AuditRepository,
+    private readonly txCtx: TransactionContext,
+  ) {}
 
-  // Transaction-riding when the caller is inside a StateChangeWorkflow: the
-  // audit row commits or rolls back with the mutation it records.
+  // A mutation's trail: the row commits or rolls back with the change it
+  // records. Asserted, not documented — the same guarantee
+  // WebhookDeliveryRepository.createMany gives the outbox. A write path that
+  // forgot its transaction fails here instead of leaving a trail that outlived
+  // (or preceded) the change it names.
   async record(entry: AuditEntry): Promise<void> {
+    this.txCtx.assertInTransaction();
+    await this.events.create(entry);
+  }
+
+  // A read's access log: there is no domain change to ride, so it writes on its
+  // own connection. The one caller is opening a share link, which must not fail
+  // because no transaction happens to be open.
+  async recordAccess(entry: AuditEntry): Promise<void> {
     await this.events.create(entry);
   }
 

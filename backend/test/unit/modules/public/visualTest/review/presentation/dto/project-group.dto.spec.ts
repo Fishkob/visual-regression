@@ -4,7 +4,7 @@ import { validate } from 'class-validator';
 import {
   CreateProjectGroupDto,
   UpdateProjectGroupDto,
-} from '@public/visualTest/review/presentation/dto/project-group.dto';
+} from '@public/visualTest/catalog/presentation/dto/project-group.dto';
 
 describe('Project group name DTO validation', () => {
   it('rejects the reserved Unassigned label on CreateProjectGroupDto', async () => {

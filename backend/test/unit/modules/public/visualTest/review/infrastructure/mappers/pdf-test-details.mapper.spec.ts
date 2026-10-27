@@ -1,4 +1,4 @@
-import { mapTestWithVariantsToPdfDetails } from '@public/visualTest/review/infrastructure/mappers/pdf-test-details.mapper';
+import { mapTestWithVariantsToPdfDetails } from '@public/visualTest/access/infrastructure/mappers/pdf-test-details.mapper';
 import type { TestWithVariantsResult } from '@public/visualTest/review/infrastructure/repositories/test-read.repository';
 import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 import { ComparisonEntity } from '@public/visualTest/core/domain/entities/comparison.entity';

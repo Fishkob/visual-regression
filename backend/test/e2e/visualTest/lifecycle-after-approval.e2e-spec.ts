@@ -73,6 +73,42 @@ describe('Comparison lifecycle after approval (e2e)', () => {
     return { baselineUrl: baseline.imageUrl };
   }
 
+  it('answers the same variant status in the overview and in the persisted aggregate', async () => {
+    await upload(black).expect(201);
+
+    // Two encodings of one rule: the overview page derives the variant status
+    // from an EXISTS over PENDING_APPROVAL, the persisted aggregate from the
+    // latest-reviewable-comparison query. They may only ever answer the same
+    // thing — that is what lets the overview page stay one statement.
+    const readBoth = async () => {
+      const overview = await authRequest(app)
+        .get('/api/v1/projects/checkout-ui')
+        .expect(200);
+      const row = overview.body.visualTests.find(
+        (candidate: { name: string }) => candidate.name === 'login-form',
+      );
+      const aggregate = await prisma.unifiedTest.findFirst({
+        where: { name: 'login-form' },
+        select: { status: true },
+      });
+      return {
+        overview: row?.latestStatus as string,
+        aggregate: aggregate?.status as string,
+      };
+    };
+
+    const clean = await readBoth();
+    expect(clean.overview).toBe(clean.aggregate);
+    expect(clean.aggregate).toBe('UNCHANGED');
+
+    await upload(blue).expect(201);
+    await waitForComparison(app, 'checkout-ui', 'login-form');
+
+    const pending = await readBoth();
+    expect(pending.aggregate).toBe('PENDING_APPROVAL');
+    expect(pending.overview).toBe(pending.aggregate);
+  });
+
   it('re-uploads a different image after approval and still gets a reviewable comparison', async () => {
     await uploadAndApprove();
 

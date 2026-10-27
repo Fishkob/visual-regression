@@ -1,4 +1,5 @@
 import { ConflictException, Injectable } from '@nestjs/common';
+import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import { AuditService } from '@internal/audit/audit.service';
 import { DomainError } from '@common/domain/domain-error';
@@ -28,6 +29,7 @@ export class TestLifecycleService {
     private readonly tests: UnifiedTestRepository,
     private readonly outcomes: ComparisonOutcomeService,
     private readonly audit: AuditService,
+    private readonly uow: PrismaUnitOfWork,
   ) {}
 
   async get(
@@ -54,7 +56,7 @@ export class TestLifecycleService {
       muteReason?: string | null;
       sizePolicy?: 'FAIL' | 'PAD' | 'CROP' | 'RESIZE';
     },
-    actor?: string,
+    actor: string,
     branchName?: string,
   ): Promise<TestMetadataView> {
     const test = await this.resolver.findOwnTest(
@@ -92,33 +94,38 @@ export class TestLifecycleService {
       }
     }
     try {
-      const updated = await this.tests.updateMetadata(test.id, {
-        ...(changes.name !== undefined ? { name: changes.name.trim() } : {}),
-        ...(changes.description !== undefined
-          ? { description: changes.description }
-          : {}),
-        ...(tags !== undefined ? { tags } : {}),
-        ...(mutedUntil !== undefined ? { mutedUntil } : {}),
-        ...(muteReason !== undefined ? { muteReason } : {}),
-        ...(changes.sizePolicy !== undefined
-          ? { sizePolicy: changes.sizePolicy }
-          : {}),
-      });
-      await this.audit.record({
-        actor: actor ?? null,
-        action: AUDIT_ACTIONS.testUpdate,
-        projectName,
-        testName: updated.name,
-        branchName: branchName ?? null,
-        targetType: 'test',
-        targetId: updated.id,
-        metadata: {
-          ...(changes.name !== undefined ? { renamedFrom: test.name } : {}),
-          ...(tags !== undefined ? { tags } : {}),
-          ...(mutedUntil !== undefined
-            ? { mutedUntil: mutedUntil?.toISOString() ?? null }
+      // The patch and its trail commit together: a rename nobody can attribute
+      // is exactly the silent loss the comment and approval paths refuse.
+      const updated = await this.uow.execute(async () => {
+        const row = await this.tests.updateMetadata(test.id, {
+          ...(changes.name !== undefined ? { name: changes.name.trim() } : {}),
+          ...(changes.description !== undefined
+            ? { description: changes.description }
             : {}),
-        },
+          ...(tags !== undefined ? { tags } : {}),
+          ...(mutedUntil !== undefined ? { mutedUntil } : {}),
+          ...(muteReason !== undefined ? { muteReason } : {}),
+          ...(changes.sizePolicy !== undefined
+            ? { sizePolicy: changes.sizePolicy }
+            : {}),
+        });
+        await this.audit.record({
+          actor,
+          action: AUDIT_ACTIONS.testUpdate,
+          projectName,
+          testName: row.name,
+          branchName: branchName ?? null,
+          targetType: 'test',
+          targetId: row.id,
+          metadata: {
+            ...(changes.name !== undefined ? { renamedFrom: test.name } : {}),
+            ...(tags !== undefined ? { tags } : {}),
+            ...(mutedUntil !== undefined
+              ? { mutedUntil: mutedUntil?.toISOString() ?? null }
+              : {}),
+          },
+        });
+        return row;
       });
       return await this.toView(updated.id);
     } catch (error) {

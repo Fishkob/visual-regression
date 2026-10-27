@@ -477,7 +477,7 @@ describe('TestDeletionService', () => {
       screenshots.findAllImageUrlsForTests.mockResolvedValue([]);
       comparisons.findDiffImageUrlsByTestIds.mockResolvedValue([]);
 
-      await service.deleteProject('my-project');
+      await service.deleteProject('my-project', 'jane');
 
       expect(projects.findByName).toHaveBeenCalledWith('my-project');
       expect(tests.findIdsByProjectId).toHaveBeenCalledWith('proj-1');
@@ -498,7 +498,7 @@ describe('TestDeletionService', () => {
     it('throws NOT_FOUND when the project does not exist', async () => {
       projects.requireByName.mockRejectedValue(missingProject('missing'));
 
-      await expect(service.deleteProject('missing')).rejects.toThrow(
+      await expect(service.deleteProject('missing', 'jane')).rejects.toThrow(
         'Project "missing" not found',
       );
 
@@ -515,7 +515,7 @@ describe('TestDeletionService', () => {
       });
       tests.findIdsByProjectId.mockResolvedValue([]);
 
-      await service.deleteProject('my-project');
+      await service.deleteProject('my-project', 'jane');
 
       expect(jobQueue.cancelByTestIds).not.toHaveBeenCalled();
       expect(tests.deleteByIds).not.toHaveBeenCalled();
@@ -532,7 +532,7 @@ describe('TestDeletionService', () => {
       screenshots.findAllImageUrlsForTests.mockResolvedValue([]);
       comparisons.findDiffImageUrlsByTestIds.mockResolvedValue([]);
 
-      await service.deleteProject('my-project');
+      await service.deleteProject('my-project', 'jane');
 
       expect(reviewArtifacts.deleteForTestIds).toHaveBeenCalledWith([
         'vt-1',
@@ -551,7 +551,7 @@ describe('TestDeletionService', () => {
       });
       tests.findIdsByProjectId.mockResolvedValue([]);
 
-      await service.deleteProject('my-project');
+      await service.deleteProject('my-project', 'jane');
 
       expect(reviewArtifacts.deleteForTestIds).not.toHaveBeenCalled();
       expect(reviewArtifacts.deleteForProjectName).toHaveBeenCalledWith(
@@ -568,7 +568,7 @@ describe('TestDeletionService', () => {
       });
       tests.findIdsByProjectId.mockResolvedValue([]);
 
-      await service.deleteProject('my-project');
+      await service.deleteProject('my-project', 'jane');
 
       const options = workflow.executeStateChange.mock.calls[0][1]!;
 

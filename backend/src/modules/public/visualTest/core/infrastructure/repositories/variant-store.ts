@@ -317,25 +317,20 @@ export class VariantStore extends BaseRepository {
     });
   }
 
-  // The per-variant input to the aggregate status recompute: for every variant
-  // of a test, does it have a baseline, and what is the status of its latest
-  // reviewable comparison. Delegates to the shared status-signal query so the
-  // persisted aggregate and the project read model derive from the same shape.
-  async findVariantStatusSignals(
-    testId: string,
-  ): Promise<VariantStatusSignal[]> {
-    const rows = await this.findVariantStatusSignalsFor({ testId });
-    return rows.map((row) => ({
-      hasBaseline: row.hasBaseline,
-      latestComparisonStatus: row.latestComparisonStatus,
-    }));
-  }
-
-  // Single owner of the "variant → status signal" query + row mapping: the
-  // persisted aggregate (TestStatusService) and the project overview read model
-  // (ProjectReadRepository) both derive their per-variant status from this one
-  // query so the read model cannot drift from the aggregate. The status of a
-  // variant is its baseline's latest reviewable comparison.
+  // Owner of the "variant → status signal" query + row mapping for the
+  // persisted aggregate: for every variant of a test, does it have a baseline,
+  // and what is the status of its latest reviewable comparison. The status is
+  // its baseline's latest reviewable comparison — one row per baseline, picked
+  // by the shared LATEST_REVIEWABLE_COMPARISON_QUERY ordering.
+  //
+  // The project overview does NOT compose this query: its unit is a page of
+  // variants across a branch chain, so it reads them in one statement
+  // (findProjectVariantPage) and lets an EXISTS over PENDING_APPROVAL stand in
+  // for "the latest reviewable comparison is pending". That substitution holds
+  // only because the write side keeps at most one pending comparison per
+  // variant; the two encodings are pinned equal by
+  // "lifecycle-after-approval.e2e-spec.ts". Change the reviewable set or the
+  // ordering and both move together — that test is the alarm.
   async findVariantStatusSignalsFor(
     where: Prisma.UnifiedVariantWhereInput,
   ): Promise<VariantStatusSignalRow[]> {

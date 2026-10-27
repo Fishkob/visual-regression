@@ -10,7 +10,7 @@ import { TestQueryService } from '@public/visualTest/review/application/test-que
 import {
   ProjectTestDto,
   TestNamesQueryDto,
-} from '@public/visualTest/review/presentation/dto/project.dto';
+} from '@public/visualTest/catalog/presentation/dto/project.dto';
 import {
   TestVariantsDto,
   VisualTestDetailsDto,

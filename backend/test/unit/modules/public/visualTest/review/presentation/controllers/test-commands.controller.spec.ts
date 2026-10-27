@@ -5,7 +5,7 @@ import { TestCommandService } from '@public/visualTest/review/application/test-c
 import {
   UpdateThresholdDto,
   UpdateThresholdQueryDto,
-} from '@public/visualTest/review/presentation/dto/project.dto';
+} from '@public/visualTest/catalog/presentation/dto/project.dto';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import { createMock } from '@test/utils/create-mock';
 import { Reflector } from '@nestjs/core';
@@ -59,7 +59,7 @@ describe('TestCommandsController', () => {
         'login-form',
         body,
         query,
-        { auth: { username: 'jane' } } as never,
+        { auth: { username: 'jane', userId: 'user-1' } } as never,
       );
 
       expect(result).toEqual(expected);
@@ -67,10 +67,10 @@ describe('TestCommandsController', () => {
         'login-form',
         'checkout-ui',
         body.threshold,
+        'jane',
         query,
         false,
         undefined,
-        'jane',
       );
     });
 
@@ -94,17 +94,17 @@ describe('TestCommandsController', () => {
         'login-form',
         body,
         query,
-        { auth: { username: 'jane' } } as never,
+        { auth: { username: 'jane', userId: 'user-1' } } as never,
       );
 
       expect(testCommandService.updateThreshold).toHaveBeenCalledWith(
         'login-form',
         'checkout-ui',
         body.threshold,
+        'jane',
         query,
         true,
         undefined,
-        'jane',
       );
     });
   });
@@ -123,16 +123,16 @@ describe('TestCommandsController', () => {
         'checkout-ui',
         'login-form',
         filterDto,
-        { auth: { username: 'jane' } } as never,
+        { auth: { username: 'jane', userId: 'user-1' } } as never,
       );
 
       expect(result).toEqual({ success: true, scope: 'test' });
       expect(testCommandService.deleteTest).toHaveBeenCalledWith(
         'checkout-ui',
         'login-form',
+        'jane',
         undefined,
         filterDto,
-        'jane',
       );
     });
   });

@@ -3,6 +3,10 @@ import { CoreInfrastructureModule } from '@/core-infrastructure.module';
 import { VisualTestApplicationModule } from '@public/visualTest/core/visual-test-application.module';
 import { IntakeApplicationModule } from '@public/visualTest/intake/intake-application.module';
 import { ReviewModule } from '@public/visualTest/review/review.module';
+import { CatalogModule } from '@public/visualTest/catalog/catalog.module';
+import { RunsModule } from '@public/visualTest/runs/runs.module';
+import { AccessModule } from '@public/visualTest/access/access.module';
+import { NotificationsModule } from '@public/visualTest/notifications/notifications.module';
 import { HealthModule } from '@internal/health/health.module';
 import { AuthModule } from '@internal/auth/auth.module';
 import { AdminApiKeysModule } from '@internal/admin/admin-api-keys.module';
@@ -13,7 +17,11 @@ import { UsersModule } from '@internal/users/users.module';
     CoreInfrastructureModule,
     VisualTestApplicationModule,
     IntakeApplicationModule,
+    CatalogModule,
     ReviewModule,
+    RunsModule,
+    AccessModule,
+    NotificationsModule,
     HealthModule,
     AuthModule,
     AdminApiKeysModule,

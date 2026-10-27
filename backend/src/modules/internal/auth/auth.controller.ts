@@ -133,7 +133,6 @@ export class AuthController {
   }
 
   @SessionOnly()
-  @Scope('admin')
   @Post('2fa/setup')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: TwoFactorSetupDto })
@@ -150,7 +149,6 @@ export class AuthController {
   }
 
   @SessionOnly()
-  @Scope('admin')
   @Post('2fa/enable')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: RecoveryCodesDto })
@@ -173,7 +171,6 @@ export class AuthController {
   }
 
   @SessionOnly()
-  @Scope('admin')
   @Post('2fa/disable')
   @RateLimit('login')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -189,7 +186,6 @@ export class AuthController {
   }
 
   @SessionOnly()
-  @Scope('read')
   @Get('sessions')
   @ApiOkResponse({ type: [SessionDto] })
   async listSessions(@Req() req: AuthenticatedRequest): Promise<SessionDto[]> {
@@ -206,7 +202,6 @@ export class AuthController {
   }
 
   @SessionOnly()
-  @Scope('admin')
   @Delete('sessions/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse({ description: 'Session revoked' })
@@ -221,7 +216,6 @@ export class AuthController {
   }
 
   @SessionOnly()
-  @Scope('admin')
   @Post('sessions/revoke-all')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ schema: { example: { revoked: 2 } } })
@@ -276,7 +270,6 @@ export class AuthController {
   }
 
   @SessionOnly()
-  @Scope('admin')
   @Post('change-password')
   @RateLimit('login')
   @HttpCode(HttpStatus.OK)

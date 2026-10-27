@@ -18,15 +18,15 @@ import type { ScreenshotDto } from '@public/visualTest/review/presentation/dto/s
 import type { ComparisonDto } from '@public/visualTest/review/presentation/dto/comparison.dto';
 import type { TestKind } from '@common/domain/test-kind';
 import { TEST_KINDS } from '@common/domain/test-kind';
-import { PdfTestDetailsDto } from '@public/visualTest/review/presentation/dto/pdf-test-details.dto';
+import { PdfTestDetailsDto } from '@public/visualTest/access/presentation/dto/pdf-test-details.dto';
 import type { TestVariantsDto } from '@public/visualTest/review/presentation/dto/visual-test.dto';
-import { ProjectTestDto } from '@public/visualTest/review/presentation/dto/project.dto';
+import { ProjectTestDto } from '@public/visualTest/catalog/presentation/dto/project.dto';
 import { PendingTestDto } from '@public/visualTest/review/presentation/dto/review-responses.dto';
 import {
   mapComparisonToDto,
   mapScreenshotToDto,
 } from '@public/visualTest/review/infrastructure/mappers/comparison-dto.mapper';
-import { mapTestWithVariantsToPdfDetails } from '@public/visualTest/review/infrastructure/mappers/pdf-test-details.mapper';
+import { mapTestWithVariantsToPdfDetails } from '@public/visualTest/access/infrastructure/mappers/pdf-test-details.mapper';
 import { mapTestVariantsToDto } from '@public/visualTest/review/infrastructure/mappers/test-variants.mapper';
 
 const isTestKind = (value: string): value is TestKind =>

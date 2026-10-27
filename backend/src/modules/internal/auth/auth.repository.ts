@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaConnection } from '@/prisma/prisma-connection';
+import { BaseRepository } from '@/prisma/base.repository';
 import type { UserRole } from '@/prisma/client';
 
 export interface AuthUserRow {
@@ -68,19 +68,20 @@ export interface ApiKeyRetirement {
   retiredName?: string;
 }
 
-// This repository does not extend BaseRepository: auth reads/writes never join
-// a StateChangeWorkflow ambient transaction (they mutate no test status), so
-// injecting TransactionContext would be unused — following the read-only
-// repository precedent. The standalone writes mirror ProjectRepository.create's
-// carve-out.
+// Transaction-aware, because the user-management writes ride a
+// PrismaUnitOfWork transaction in UsersService: the user row and the audit row
+// naming who created or changed it have to commit together. This repository
+// used to take PrismaConnection directly, on the premise that "auth writes never
+// join an ambient transaction" — true for the session, login and two-factor
+// writes, false for the user writes, whose row therefore committed outside the
+// audit's transaction and survived its rollback.
+//
+// BaseRepository resolves to the bare connection when no transaction is open,
+// so the two standalone writers (bootstrapAdmin at boot, the password-change
+// path) are unchanged — and they are also why no method here asserts
+// writability: a bootstrap without a transaction is legitimate.
 @Injectable()
-export class AuthRepository {
-  constructor(private readonly connection: PrismaConnection) {}
-
-  private get client() {
-    return this.connection.client;
-  }
-
+export class AuthRepository extends BaseRepository {
   async findUserByUsername(username: string): Promise<AuthUserRow | null> {
     return this.client.user.findUnique({ where: { username } });
   }

@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import { UpdateRetentionDto } from '@public/visualTest/review/presentation/dto/storage.dto';
+import { UpdateRetentionDto } from '@public/visualTest/access/presentation/dto/storage.dto';
 
 describe('UpdateRetentionDto storage quota validation', () => {
   async function validateQuota(value: unknown) {

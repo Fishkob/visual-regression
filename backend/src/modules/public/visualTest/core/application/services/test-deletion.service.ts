@@ -22,7 +22,7 @@ import { AuditService } from '@internal/audit/audit.service';
 import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 
 export interface AuditContext {
-  actor?: string;
+  actor: string;
   projectName?: string;
   testName?: string;
   branchName?: string;
@@ -207,7 +207,7 @@ export class TestDeletionService {
     return deleted({ staleUrls });
   }
 
-  async deleteProject(projectName: string, actor?: string): Promise<void> {
+  async deleteProject(projectName: string, actor: string): Promise<void> {
     await this.workflow.executeStateChange(
       async () => {
         const project = await this.projects.requireByName(projectName);

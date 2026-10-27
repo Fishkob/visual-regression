@@ -1,15 +1,18 @@
 import type { Mocked } from 'vitest';
 import { ComparisonOutcomeService } from '@public/visualTest/core/application/services/comparison-outcome.service';
 import { ComparisonOutcomeRepository } from '@public/visualTest/core/infrastructure/repositories/comparison-outcome.repository';
+import { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';
 
 describe('ComparisonOutcomeService', () => {
   let service: ComparisonOutcomeService;
   let repository: Mocked<ComparisonOutcomeRepository>;
+  let logger: Mocked<AppLoggerService>;
 
   beforeEach(() => {
     repository = createMock<ComparisonOutcomeRepository>();
-    service = new ComparisonOutcomeService(repository);
+    logger = createMock<AppLoggerService>();
+    service = new ComparisonOutcomeService(repository, logger);
   });
 
   afterEach(() => {
@@ -31,6 +34,30 @@ describe('ComparisonOutcomeService', () => {
     await service.record(entry);
 
     expect(repository.record).toHaveBeenCalledWith(entry);
+  });
+
+  it('swallows and logs a failed write instead of failing the job', async () => {
+    repository.record.mockRejectedValue(new Error('analytics table is gone'));
+
+    // A report, not the work: the comparison has already committed, so the job
+    // must not be failed by its analytics row.
+    await expect(
+      service.record({
+        testId: 't-1',
+        testName: 'checkout',
+        kind: 'image' as const,
+        viewport: '1920x1080',
+        browser: 'chrome',
+        environment: 'staging',
+        outcome: 'unchanged' as const,
+        mismatchMetric: 0,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Dropped a comparison outcome row',
+      expect.objectContaining({ testId: 't-1', outcome: 'unchanged' }),
+    );
   });
 
   it('derives the trend window from the requested days', async () => {

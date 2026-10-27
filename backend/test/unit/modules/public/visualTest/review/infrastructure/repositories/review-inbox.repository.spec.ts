@@ -163,6 +163,36 @@ describe('ReviewInboxRepository', () => {
     );
   });
 
+  it('counts the named archived branch with the same scope it lists', async () => {
+    mockClient.unifiedComparison.findMany.mockResolvedValue([row()]);
+    mockClient.$queryRaw.mockResolvedValue([
+      { projectName: 'checkout-ui', branchName: 'feature/x', count: 1n },
+    ]);
+
+    await repository.findPending(undefined, { branchName: 'feature/old' });
+
+    // The page narrowed to the named branch; the count has to narrow the same
+    // way instead of applying the archived exclusion — otherwise the project
+    // section reports "Review N" 0 above rows it is showing.
+    const sql = (
+      mockClient.$queryRaw.mock.calls[0]![0] as { strings: readonly string[] }
+    ).strings.join('?');
+    expect(sql).toContain('b.name =');
+    expect(sql).not.toContain('b."isArchived"');
+  });
+
+  it('excludes archived branches from the count when no branch is named', async () => {
+    mockClient.unifiedComparison.findMany.mockResolvedValue([row()]);
+    mockClient.$queryRaw.mockResolvedValue([]);
+
+    await repository.findPending();
+
+    const sql = (
+      mockClient.$queryRaw.mock.calls[0]![0] as { strings: readonly string[] }
+    ).strings.join('?');
+    expect(sql).toContain('b."isArchived" = false');
+  });
+
   it('applies the kind, group and search filters to the same query', async () => {
     mockClient.unifiedComparison.findMany.mockResolvedValue([]);
     mockClient.unifiedComparison.count.mockResolvedValue(0);

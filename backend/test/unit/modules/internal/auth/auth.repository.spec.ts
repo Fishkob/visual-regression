@@ -1,12 +1,12 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { PrismaConnection } from '@/prisma/prisma-connection';
+import { TransactionContext } from '@/prisma/transaction-context';
 import { AuthRepository } from '@internal/auth/auth.repository';
 import { createMock } from '@test/utils/create-mock';
 
 describe('AuthRepository', () => {
   let repository: AuthRepository;
-  let mockConnection: Mocked<PrismaConnection>;
+  let txCtx: Mocked<TransactionContext>;
   let mockClient: any;
 
   beforeEach(async () => {
@@ -31,15 +31,16 @@ describe('AuthRepository', () => {
       (callback: (tx: unknown) => unknown) => callback(mockClient),
     );
 
-    mockConnection = createMock<PrismaConnection>();
-    Object.defineProperty(mockConnection, 'client', {
-      get: () => mockClient,
-    });
+    // The repository is transaction-aware: it asks the ambient context for its
+    // client, which falls back to the bare connection when no transaction is
+    // open (pinned by the auth e2e specs).
+    txCtx = createMock<TransactionContext>();
+    Object.defineProperty(txCtx, 'client', { get: () => mockClient });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthRepository,
-        { provide: PrismaConnection, useValue: mockConnection },
+        { provide: TransactionContext, useValue: txCtx },
       ],
     }).compile();
 

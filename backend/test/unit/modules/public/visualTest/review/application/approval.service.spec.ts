@@ -187,7 +187,7 @@ describe('ApprovalService', () => {
     retirement = createMock<ComparisonRetirementService>();
     retirement.retireSiblingsAndDeleteCandidate.mockResolvedValue([]);
     baselineHistory = createMock<BaselineHistoryService>();
-    baselineHistory.recordOutgoingBaseline.mockResolvedValue([]);
+    baselineHistory.overwriteKeepingHistory.mockResolvedValue([]);
     webhooks = createMock<WebhookDispatchService>();
     webhooks.enqueueComparisonApproved.mockResolvedValue(0);
     audit = createMock<AuditService>();
@@ -409,17 +409,25 @@ describe('ApprovalService', () => {
         options(),
       );
 
-      expect(baselineHistory.recordOutgoingBaseline).toHaveBeenCalledWith({
+      expect(baselineHistory.overwriteKeepingHistory).toHaveBeenCalledWith({
         testId: 'test-1',
         variant,
-        baseline,
+        current: baseline,
         reason: 'approval',
         createdBy: approvedBy,
+        next: {
+          imageHash: 'new-hash',
+          imageUrl: 'http://storage/candidate.png',
+        },
       });
+      // The revision-before-overwrite order now lives inside that rule (pinned
+      // by its own spec); here the approval's own order matters: the baseline is
+      // written before the pending work it supersedes is retired.
       expect(
-        baselineHistory.recordOutgoingBaseline.mock.invocationCallOrder[0],
+        baselineHistory.overwriteKeepingHistory.mock.invocationCallOrder[0],
       ).toBeLessThan(
-        screenshots.updateBaselineScreenshot.mock.invocationCallOrder[0],
+        retirement.retireSiblingsAndDeleteCandidate.mock
+          .invocationCallOrder[0]!,
       );
     });
 
@@ -703,12 +711,14 @@ describe('ApprovalService', () => {
         options(),
       );
 
-      expect(screenshots.updateBaselineScreenshot).toHaveBeenCalledWith(
-        'baseline-1',
-        {
-          imageHash: 'new-hash',
-          imageUrl: 'http://storage/candidate.png',
-        },
+      expect(baselineHistory.overwriteKeepingHistory).toHaveBeenCalledWith(
+        expect.objectContaining({
+          current: expect.objectContaining({ id: 'baseline-1' }),
+          next: {
+            imageHash: 'new-hash',
+            imageUrl: 'http://storage/candidate.png',
+          },
+        }),
       );
       expect(comparisons.completeImageApproval).toHaveBeenCalledWith(
         'test-1',
@@ -1010,13 +1020,15 @@ describe('ApprovalService', () => {
         options(),
       );
 
-      expect(screenshots.updateBaselineScreenshot).toHaveBeenCalledWith(
-        'pdf-baseline-1',
-        {
-          imageHash: 'new-pdf-hash',
-          imageUrl: 'http://storage/pdf-candidate.png',
-          pageCount: 5,
-        },
+      expect(baselineHistory.overwriteKeepingHistory).toHaveBeenCalledWith(
+        expect.objectContaining({
+          current: expect.objectContaining({ id: 'pdf-baseline-1' }),
+          next: {
+            imageHash: 'new-pdf-hash',
+            imageUrl: 'http://storage/pdf-candidate.png',
+            pageCount: 5,
+          },
+        }),
       );
       expect(screenshots.markBaselineOwned).toHaveBeenCalledWith(
         'pdf-baseline-1',

@@ -208,7 +208,7 @@ export class UploadIntake {
           kind,
           params,
           fileHash,
-          'identical',
+          ComparisonOutcome.IDENTICAL,
         );
       }
       const superseded = await this.supersedeIdentical(fresh.testId, params);
@@ -368,7 +368,7 @@ export class UploadIntake {
     kind: TestKind,
     params: UploadParams,
     contentHash: string,
-    outcome: string,
+    outcome: ComparisonOutcome,
   ): Promise<void> {
     return this.runs.recordUpload({
       runId,

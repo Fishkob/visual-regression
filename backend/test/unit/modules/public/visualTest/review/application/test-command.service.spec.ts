@@ -47,15 +47,20 @@ describe('TestCommandService', () => {
     });
 
     it('delegates to the threshold update owner with the resolved test id', async () => {
-      const result = await service.updateThreshold('my-test', 'my-project', 20);
+      const result = await service.updateThreshold(
+        'my-test',
+        'my-project',
+        20,
+        'jane',
+      );
 
       expect(screenshots.update).toHaveBeenCalledWith(
         'test-1',
         'my-test',
         20,
+        { actor: 'jane', projectName: 'my-project', branchName: undefined },
         undefined,
         false,
-        { actor: undefined, projectName: 'my-project', branchName: undefined },
       );
       expect(result).toMatchObject({
         test: 'my-test',
@@ -66,7 +71,7 @@ describe('TestCommandService', () => {
     });
 
     it('forwards the variant filters', async () => {
-      await service.updateThreshold('my-test', 'my-project', 20, {
+      await service.updateThreshold('my-test', 'my-project', 20, 'jane', {
         viewport: '1920x1080',
       });
 
@@ -74,24 +79,31 @@ describe('TestCommandService', () => {
         'test-1',
         'my-test',
         20,
+        { actor: 'jane', projectName: 'my-project', branchName: undefined },
         {
           viewport: '1920x1080',
         },
         false,
-        { actor: undefined, projectName: 'my-project', branchName: undefined },
       );
     });
 
     it('forwards the preview flag', async () => {
-      await service.updateThreshold('my-test', 'my-project', 20, {}, true);
+      await service.updateThreshold(
+        'my-test',
+        'my-project',
+        20,
+        'jane',
+        {},
+        true,
+      );
 
       expect(screenshots.update).toHaveBeenCalledWith(
         'test-1',
         'my-test',
         20,
+        { actor: 'jane', projectName: 'my-project', branchName: undefined },
         {},
         true,
-        { actor: undefined, projectName: 'my-project', branchName: undefined },
       );
     });
 
@@ -100,19 +112,19 @@ describe('TestCommandService', () => {
         'my-test',
         'my-project',
         20,
+        'jane',
         undefined,
         false,
         'main',
-        'jane',
       );
 
       expect(screenshots.update).toHaveBeenCalledWith(
         'test-1',
         'my-test',
         20,
+        { actor: 'jane', projectName: 'my-project', branchName: 'main' },
         undefined,
         false,
-        { actor: 'jane', projectName: 'my-project', branchName: 'main' },
       );
     });
 
@@ -122,7 +134,7 @@ describe('TestCommandService', () => {
       );
 
       await expect(
-        service.updateThreshold('my-test', 'my-project', 20),
+        service.updateThreshold('my-test', 'my-project', 20, 'jane'),
       ).rejects.toThrow(DomainError);
 
       expect(screenshots.update).not.toHaveBeenCalled();
@@ -130,7 +142,7 @@ describe('TestCommandService', () => {
 
     it('rejects invalid variant filters before delegating', async () => {
       await expect(
-        service.updateThreshold('my-test', 'my-project', 20, {
+        service.updateThreshold('my-test', 'my-project', 20, 'jane', {
           viewport: '',
         }),
       ).rejects.toThrow(DomainError);
@@ -147,7 +159,7 @@ describe('TestCommandService', () => {
         kind: 'image',
       });
 
-      await service.deleteTest('my-project', 'my-test');
+      await service.deleteTest('my-project', 'my-test', 'jane');
 
       expect(testDeletion.deleteTest).toHaveBeenCalledWith(
         'test-1',
@@ -169,6 +181,7 @@ describe('TestCommandService', () => {
       const result = await service.deleteTest(
         'my-project',
         'my-test',
+        'jane',
         undefined,
         {
           viewport: '1920x1080',
@@ -197,7 +210,7 @@ describe('TestCommandService', () => {
       testDeletion.deleteScreenshotsByFilters.mockResolvedValue([]);
 
       await expect(
-        service.deleteTest('my-project', 'my-test', undefined, {
+        service.deleteTest('my-project', 'my-test', 'jane', undefined, {
           viewport: '800x600',
         }),
       ).rejects.toThrow(DomainError);
@@ -212,7 +225,7 @@ describe('TestCommandService', () => {
       );
 
       await expect(
-        service.deleteTest('app', 'login', 'feature/x'),
+        service.deleteTest('app', 'login', 'jane', 'feature/x'),
       ).rejects.toMatchObject({ code: 'CONFLICT' });
     });
 
@@ -224,7 +237,7 @@ describe('TestCommandService', () => {
       });
 
       await expect(
-        service.deleteTest('my-project', 'my-test', undefined, {
+        service.deleteTest('my-project', 'my-test', 'jane', undefined, {
           viewport: '',
         }),
       ).rejects.toThrow(DomainError);

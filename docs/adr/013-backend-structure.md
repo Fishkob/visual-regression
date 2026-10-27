@@ -6,6 +6,8 @@ Accepted — 2026-05-23 (all original decisions)
 
 Updated — 2026-06-13: renamed `shared/` → `core/`, removed repository ports, using class injection uniformly
 
+Updated — 2026-10-27: `review/` was the catch-all (22 controllers, 28 providers, 10.4k lines) and no longer matched its name, so it was split along the nouns CONTEXT.md already uses. See §2.
+
 Supersedes: ADR-007 (VisualTest Module Split), ADR-008 (Repository Ports), ADR-012 (Public/Internal Boundary), ADR-013 (Worker/API Separation), ADR-017 (Backend Module Architecture)
 
 ## Context
@@ -47,18 +49,24 @@ Internal modules must not import from public modules — the dependency arrow al
 The `visualTest` module at `modules/public/visualTest/` was split into three sub-modules:
 
 - **`intake/`** — Upload, screenshot creation, queuing, job polling, comparison execution
-- **`review/`** — Approval, status, thresholds, reads, project management
+- **`review/`** — The review loop: Inbox, approving/skipping, votes and decision reasons, comments, assignments, per-test reads and test/variant commands
+- **`catalog/`** — What exists and where it lives: Project, Group, Branch, and the global test search
+- **`runs/`** — A CI run's lifecycle and gate, its JUnit/HTML/CSV reports, and the trend window
+- **`access/`** — How evidence is reached from outside a review session: expiring share links, the PDF render/download proxies, storage quota and retention settings
+- **`notifications/`** — Webhook endpoint administration; delivery itself is `internal/webhooks` (the worker dispatches)
 - **`core/`** — Cross-cutting entities, policies, base classes, types, repository implementations. Originally named `shared/`; renamed on 2026-06-11 to communicate purpose over usage.
+
+The five review-family modules follow one rule: a module owns the nouns in its name, and a cross-family dependency is an explicit module import with an exported provider (a Run's approve-all imports `ReviewModule` for `ApprovalService`; access reads tests through `ReviewModule`'s `TestQueryService`; review and access both read projects through `CatalogModule`). Moving a controller between families is therefore a module-declaration change, not just a file move.
 
 Consolidations applied during the split:
 
-| Before                                  | After                                                                                                                                                                     |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 6 use cases (single-method classes)     | Methods on the relevant application service                                                                                                                               |
-| `VisualTestFacade`                      | Removed — services are injected directly                                                                                                                                  |
-| 3 finder repositories                   | Folded into `UnifiedComparisonsRepository` and `UnifiedTestRepository`                                                                                                    |
-| 3 mapper layers (Prisma → Entity → DTO) | 3 mappers in `core/infrastructure/mappers/` + `review/infrastructure/mappers/` (Prisma → Entity: comparison + screenshot; Entity → DTO: comparison-dto, pdf-test-details) |
-| Flat NestJS module                      | No wrapper module — `AppModule` imports sub-modules directly (`VisualTestApplicationModule`, `IntakeApplicationModule`, `ReviewModule`)                                   |
+| Before                                  | After                                                                                                                                                                                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 6 use cases (single-method classes)     | Methods on the relevant application service                                                                                                                                                                                                |
+| `VisualTestFacade`                      | Removed — services are injected directly                                                                                                                                                                                                   |
+| 3 finder repositories                   | Folded into `UnifiedComparisonsRepository` and `UnifiedTestRepository`                                                                                                                                                                     |
+| 3 mapper layers (Prisma → Entity → DTO) | 3 mappers in `core/infrastructure/mappers/` + one per API family (`review/`, `catalog/`, `access/` `infrastructure/mappers/`) (Prisma → Entity: comparison + screenshot; Entity → DTO: comparison-dto, project-response, pdf-test-details) |
+| Flat NestJS module                      | No wrapper module — `AppModule` imports sub-modules directly (`VisualTestApplicationModule`, `IntakeApplicationModule`, `ReviewModule`)                                                                                                    |
 
 Three mappers were retained because Prisma → Entity (infrastructure mapping, `core/infrastructure/mappers/`) and Entity → DTO (API shaping, `review/infrastructure/mappers/`) serve distinct responsibilities. Consolidating to one would couple DB schema to API contracts.
 
@@ -88,7 +96,7 @@ All six repository implementations live in `core/infrastructure/repositories/` a
 | `VariantStore`                 | `VisualTestInfraModule` | Variant↔baseline lookups, composed by screenshot/comparison repos |
 | `OrphanedScreenshotRepository` | `VisualTestInfraModule` | Encodes the orphan-screenshot definition for maintenance cleanup  |
 
-The review module additionally registers two read-only repositories in `review/infrastructure/repositories/` — `TestReadRepository` (test-scoped reads: details, PDF sources/ownership, test listing, pending list) and `ProjectReadRepository` (project overview statuses, pending flags/counts). There is no repository facade class — consumers inject the concrete repository classes they need, as described below.
+The review family additionally registers read-only repositories in its own `infrastructure/repositories/`: `TestReadRepository` (test-scoped reads: details, PDF sources/ownership, test listing, pending list) in `review/`, and `ProjectReadRepository` (project overview statuses, pending flags/counts) in `catalog/`. There is no repository facade class — consumers inject the concrete repository classes they need, as described below.
 
 Cross-cutting shared services (e.g., `TestResolver`, `TestDeletionService`) also live in `core/application/services/` and are registered in `VisualTestApplicationModule`.
 

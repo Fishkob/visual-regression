@@ -21,11 +21,12 @@ import { UpdateThresholdResultDto } from '@public/visualTest/review/presentation
 import {
   UpdateThresholdDto,
   UpdateThresholdQueryDto,
-} from '@public/visualTest/review/presentation/dto/project.dto';
+} from '@public/visualTest/catalog/presentation/dto/project.dto';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { Roles } from '@common/http/roles.decorator';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { requireActor } from '@common/http/authenticated-principal';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { Scope } from '@common/http/api-key-scope.decorator';
 
@@ -61,10 +62,10 @@ export class TestCommandsController {
       testName,
       projectName,
       body.threshold,
+      requireActor(req),
       query,
       query.preview === 'true',
       branch,
-      req.auth?.username,
     );
     return plainToInstance(UpdateThresholdResultDto, result, {
       excludeExtraneousValues: true,
@@ -91,9 +92,9 @@ export class TestCommandsController {
     return this.testCommand.deleteTest(
       projectName,
       testName,
+      requireActor(req),
       branch,
       filters,
-      req.auth?.username,
     );
   }
 }
