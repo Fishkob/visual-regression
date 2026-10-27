@@ -27,6 +27,33 @@ for the full reference, including how to seed demo data.
 - If you are adding or changing API surface, the client SDK is regenerated
   automatically by the pre-commit hook (`scripts/sdk-generate-if-needed.sh`).
 
+## Architecture Decision Records
+
+Decisions live in [`docs/adr/`](docs/adr/README.md). Read the index before
+changing an architectural seam — the ADRs explain why the seams are where they
+are.
+
+How they are maintained:
+
+- **One decision per ADR.** A second decision gets a new number; an existing
+  file is not extended into a multi-part document.
+- **`Accepted` is frozen.** Fix typos and broken links; do not rewrite a
+  decision, its rationale or its alternatives to match the code as it is today.
+- **Supersede, don't overwrite.** When a decision changes, write a new ADR that
+  supersedes the old one and set `Superseded by: ADR-NNN` on the old one. Its
+  text stays as written.
+- **Never delete an ADR.** A superseded ADR records what was believed before,
+  and the `ADR-NNN` references in code comments need a target.
+- **Divergence is one of three things.** The code has a bug (fix the code, leave
+  the ADR alone); the decision changed (new ADR); the wording is wrong (fix the
+  wording).
+- **Status is a state, not a changelog:** `Accepted — <date>` plus
+  `Superseded by: ADR-NNN` where it applies. Date the decision, not the edit.
+
+ADRs written before this rule still carry dated amendment notes and merged
+subjects; treat that as history, not as a template. Numbering is append-only
+(see the index for the numbers that were consolidated away in the past).
+
 ## Code Quality Gates
 
 Run these before submitting a change, in this order:

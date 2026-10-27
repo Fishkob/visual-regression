@@ -279,7 +279,7 @@ sequenceDiagram
 - No multi-tenancy — each deployment serves one organization; self-hosted instances are isolated by deployment
 - Single DB instance — read replicas add operational cost with negligible benefit at current scale
 
-The codebase invests complexity where it pays off: **clean layered architecture**, **domain-driven language** (CONTEXT.md), **12 ADRs** documenting key decisions, **ports-and-adapters** for testability, and **event-driven design** for loose coupling between intake/review flows.
+The codebase invests complexity where it pays off: **clean layered architecture**, **domain-driven language** (CONTEXT.md), **[architecture decision records](../adr/README.md)** that keep the why next to the seam, **ports-and-adapters** for testability, and a **single transactional write seam** (`StateChangeWorkflow`) instead of a message bus between intake and review.
 
 ## Deployment
 

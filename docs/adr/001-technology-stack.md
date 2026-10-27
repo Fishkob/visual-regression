@@ -2,11 +2,16 @@
 
 ## Status
 
-Accepted — 2026-04-12 (monorepo), 2026-06-20 (NestJS, frontend)
+Accepted — 2026-04-12 (monorepo), 2026-06-20 (NestJS, frontend).
 
-Consolidates: ADR-001 (Monorepo), ADR-018 (NestJS Framework), ADR-019 (Frontend Stack)
+## History
 
-Amended 2026-10-27: stack facts reconciled with the code (NestJS v12, `tsc`/`nest build` instead of SWC, `@sdk` alias instead of `workspace:*`, pnpm scripts, per-area CI workflows).
+The monorepo decision was recorded as ADR-001 on 2026-04-12; the backend framework
+and the frontend stack as ADR-018 and ADR-019 on 2026-06-20. On 2026-10-27 the
+three were merged into this file so that one stack decision reads as one
+document, and the stack facts were reconciled with the code in the same pass
+(NestJS v12, `tsc`/`nest build` instead of SWC, the `@sdk` alias instead of
+`workspace:*`, pnpm scripts, per-area CI workflows).
 
 ## Context
 

@@ -2,11 +2,15 @@
 
 ## Status
 
-Accepted — 2026-04-12 (Storage), 2026-05-14 (Queue), 2026-05-23 (Event Bus)
+Accepted — 2026-04-12 (storage), 2026-05-14 (queue), 2026-05-23 (event bus).
 
-Consolidates: ADR-004 (Storage Abstraction), ADR-006 (Postgres Queue), ADR-014 (In-Process Event Bus)
+## History
 
-Amended 2026-10-27: title and §1 wording aligned with the code and with §3 (the event bus is gone; one storage adapter).
+Storage was recorded as ADR-004 on 2026-04-12, the PostgreSQL queue as ADR-006 on
+2026-05-14, and the in-process event bus as ADR-014 on 2026-05-23. The event bus
+was removed between 2026-08-05 and 2026-08-09; §3 records the observability
+emission that replaced it. The three subjects were merged into this file on
+2026-10-27, and §1 was narrowed to the single storage adapter the code has.
 
 ## Context
 

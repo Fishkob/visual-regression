@@ -2,11 +2,16 @@
 
 ## Status
 
-Accepted — 2026-04-12 (Prisma ORM), 2026-05-23 (Unit of Work), 2026-06-20 (Connection Split, recorded)
+Accepted — 2026-04-12 (Prisma ORM), 2026-05-23 (Unit of Work), 2026-06-20 (connection split).
 
-Consolidates: ADR-002 (Prisma ORM), ADR-015 (Transactional Unit of Work), ADR-021 (Prisma Connection Split)
+## History
 
-Amended 2026-10-27: consumer lists of `PrismaUnitOfWork`/`PrismaConnection` and the "own transaction" exceptions reconciled with the code.
+Prisma as the ORM was recorded as ADR-002 on 2026-04-12, the transactional unit
+of work as ADR-015 on 2026-05-23, and the split into connection, transaction
+context and unit of work as ADR-021 on 2026-06-20. The three were merged into
+this file on 2026-10-27; the same pass reconciled the consumer lists of
+`PrismaUnitOfWork` and `PrismaConnection` and the "own transaction" exceptions
+with the code.
 
 ## Context
 

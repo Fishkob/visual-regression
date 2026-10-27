@@ -2,15 +2,23 @@
 
 ## Status
 
-Accepted — 2026-05-23 (all original decisions)
+Accepted — 2026-05-23 (all original decisions).
 
-Updated — 2026-06-13: renamed `shared/` → `core/`, removed repository ports, using class injection uniformly
+## History
 
-Updated — 2026-10-27: `review/` was the catch-all (22 controllers, 28 providers, 10.4k lines) and no longer matched its name, so it was split along the nouns CONTEXT.md already uses. See §2.
+This file absorbed five earlier ADRs on 2026-10-27: the VisualTest module split
+(ADR-007), repository ports with injection tokens (ADR-008), the public/internal
+boundary (ADR-012), the worker/API process separation (the earlier ADR-013 that
+carried this number) and their consolidation (ADR-017, now a stub pointing here).
+The same pass reconciled §1–§5 with the code — seven sub-modules, 13 registered
+repositories, 10 controllers in `ReviewModule`, the `AppModule` import list and
+the actual worker entry point.
 
-Amended 2026-10-27: §1–§5 reconciled with the code — seven sub-modules, 13 registered repositories, 10 controllers in `ReviewModule`, the full `AppModule` import list, and the actual worker entry point.
-
-Supersedes: ADR-007 (VisualTest Module Split), ADR-008 (Repository Ports), ADR-012 (Public/Internal Boundary), ADR-013 (Worker/API Separation — the earlier ADR that carried this number), ADR-017 (Backend Module Architecture)
+Two design changes were recorded in place before the freeze: `shared/` became
+`core/` and the repository ports were dropped in favour of class injection
+(2026-06-13); and `review/` had grown into the catch-all (22 controllers, 28
+providers, 10.4k lines) and was split along the nouns `CONTEXT.md` already uses
+(2026-10-27, see §2).
 
 ## Context
 

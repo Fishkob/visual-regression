@@ -99,6 +99,7 @@ Before starting any work:
 6. **Don't add comments** unless the code is genuinely unclear — this codebase prefers self-documenting code
 7. **Verify before claiming completion** — run `lint` → `typecheck:all` → `format` → `unitTest` (or the relevant subset for the workspace)
 8. **Don't assume test frameworks** — check AGENTS.md for the exact test command
+9. **Don't rewrite accepted ADRs** — `docs/adr/` records decisions, not the code as it is today; a changed decision gets a new ADR that supersedes the old one (rules in `CONTRIBUTING.md`)
 
 ## Conventions
 

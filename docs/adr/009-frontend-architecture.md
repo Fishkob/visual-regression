@@ -2,11 +2,17 @@
 
 ## Status
 
-Accepted — 2026-05-23 (all original decisions); Amended 2026-06-12 (services/ layer collapsed into composables/)
+Accepted — 2026-05-23 (all three decisions).
 
-Amended 2026-10-27: the three layers today comprise `domains/`, `composables/`, and `views/`+`components/`, plus the cross-cutting `lib/` support directory (`invalidation.ts`, `review-pass.ts`, `variant-key.ts`, `sdk.ts`).
+## History
 
-Consolidates: ADR-009 (Composable State), ADR-010 (Variant Query Params), ADR-011 (Frontend Layered Architecture)
+Composable client state was recorded as ADR-009, `variant` as a query parameter
+as ADR-010, and the layered structure as ADR-011 — all on 2026-05-23. The three
+were merged into this file on 2026-10-27. Two changes had been recorded in place
+before that: the `services/` layer was collapsed into `composables/` on
+2026-06-12, and the layer names were reconciled with the code in the 2026-10-27
+pass (`domains/`, `composables/`, `views/`+`components/`, plus the cross-cutting
+`lib/` directory).
 
 ## Context
 
