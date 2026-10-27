@@ -7,7 +7,7 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { Roles } from '@common/http/roles.decorator';
-import { Scope } from '@common/http/api-key-scope.decorator';
+import { SessionOnly } from '@common/http/session-only.decorator';
 import {
   createPaginatedResponse,
   PaginatedResponseDto,
@@ -19,16 +19,17 @@ import {
   AuditQueryDto,
 } from '@internal/audit/audit.dto';
 
-// The global audit trail: every project, newest first. Reads require the
-// product credential like the rest of the API; writes are performed by the
-// owning services, never by an HTTP caller.
+// The global audit trail: every project, newest first. Reads require a browser
+// session, not merely the ADMIN role: the trail names every actor and action in
+// the deployment, so a long-lived CI key must not be able to read it (ADR-035).
+// Writes are performed by the owning services, never by an HTTP caller.
 @ApiTags('Audit')
 @Controller('audit')
+@SessionOnly()
 @Roles('ADMIN')
 export class AuditController {
   constructor(private readonly audit: AuditService) {}
 
-  @Scope('read')
   @Get()
   @ApiOperation({ summary: 'List audit events (newest first, paginated)' })
   @ApiOkResponse({ type: PaginatedResponseDto(AuditEventDto) })
@@ -59,7 +60,6 @@ export class AuditController {
     };
   }
 
-  @Scope('read')
   @Get('export')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @Header('Content-Disposition', 'attachment; filename="audit.csv"')

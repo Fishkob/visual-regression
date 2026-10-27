@@ -23,7 +23,6 @@ import {
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
-import { Scope } from '@common/http/api-key-scope.decorator';
 import { ReviewCommentService } from '@public/visualTest/review/application/review-comment.service';
 import {
   CommentDto,
@@ -36,7 +35,6 @@ import {
 export class ReviewCommentController {
   constructor(private readonly comments: ReviewCommentService) {}
 
-  @Scope('read')
   @Get()
   @ApiOperation({ summary: 'List review comments for a test or comparison' })
   @ApiOkResponse({ type: [CommentDto] })
@@ -57,7 +55,6 @@ export class ReviewCommentController {
     });
   }
 
-  @Scope('admin')
   @Post()
   @ApiOperation({ summary: 'Add a review comment' })
   @ApiCreatedResponse({ type: CommentDto })
@@ -78,7 +75,6 @@ export class ReviewCommentController {
     });
   }
 
-  @Scope('admin')
   @Patch(':id/resolve')
   @ApiOperation({ summary: 'Resolve a review comment' })
   @ApiOkResponse({ type: CommentDto })

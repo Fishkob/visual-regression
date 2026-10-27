@@ -233,7 +233,11 @@ export const metricsControllerGetMetrics = <ThrowOnError extends boolean = false
  * List audit events (newest first, paginated)
  */
 export const auditControllerList = <ThrowOnError extends boolean = false>(options?: Options<AuditControllerListData, ThrowOnError>): RequestResult<AuditControllerListResponses, unknown, ThrowOnError> => (options?.client ?? client).get<AuditControllerListResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
     url: '/audit',
     ...options
 });
@@ -242,7 +246,11 @@ export const auditControllerList = <ThrowOnError extends boolean = false>(option
  * Export the filtered audit trail as CSV
  */
 export const auditControllerExport = <ThrowOnError extends boolean = false>(options?: Options<AuditControllerExportData, ThrowOnError>): RequestResult<AuditControllerExportResponses, unknown, ThrowOnError> => (options?.client ?? client).get<AuditControllerExportResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
     url: '/audit/export',
     ...options
 });
@@ -390,6 +398,46 @@ export const projectGroupsControllerRename = <ThrowOnError extends boolean = fal
 });
 
 /**
+ * Delete a feature branch and reclaim its files
+ */
+export const branchesControllerRemove = <ThrowOnError extends boolean = false>(options: Options<BranchesControllerRemoveData, ThrowOnError>): RequestResult<BranchesControllerRemoveResponses, BranchesControllerRemoveErrors, ThrowOnError> => (options.client ?? client).delete<BranchesControllerRemoveResponses, BranchesControllerRemoveErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/branches',
+    ...options
+});
+
+/**
+ * List the branches of a project
+ */
+export const branchesControllerList = <ThrowOnError extends boolean = false>(options: Options<BranchesControllerListData, ThrowOnError>): RequestResult<BranchesControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<BranchesControllerListResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/branches',
+    ...options
+});
+
+/**
+ * Archive/unarchive a branch or change its target
+ */
+export const branchesControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<BranchesControllerUpdateData, ThrowOnError>): RequestResult<BranchesControllerUpdateResponses, BranchesControllerUpdateErrors, ThrowOnError> => (options.client ?? client).patch<BranchesControllerUpdateResponses, BranchesControllerUpdateErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/branches',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Search projects, tests and branches (server-paginated groups)
+ */
+export const searchControllerQuery = <ThrowOnError extends boolean = false>(options: Options<SearchControllerQueryData, ThrowOnError>): RequestResult<SearchControllerQueryResponses, unknown, ThrowOnError> => (options.client ?? client).get<SearchControllerQueryResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/search',
+    ...options
+});
+
+/**
  * Approve a pending visual comparison
  */
 export const approvalsControllerApproveVisualTest = <ThrowOnError extends boolean = false>(options: Options<ApprovalsControllerApproveVisualTestData, ThrowOnError>): RequestResult<ApprovalsControllerApproveVisualTestResponses, ApprovalsControllerApproveVisualTestErrors, ThrowOnError> => (options.client ?? client).post<ApprovalsControllerApproveVisualTestResponses, ApprovalsControllerApproveVisualTestErrors, ThrowOnError>({
@@ -431,507 +479,6 @@ export const approvalsControllerListApprovals = <ThrowOnError extends boolean = 
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/projects/{projectName}/tests/{testName}/approvals',
     ...options
-});
-
-/**
- * List all tests for a specific project
- */
-export const testsQueriesControllerGetTestsForProject = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetTestsForProjectData, ThrowOnError>): RequestResult<TestsQueriesControllerGetTestsForProjectResponses, unknown, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetTestsForProjectResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests',
-    ...options
-});
-
-/**
- * Get the test kind (pdf or visual)
- */
-export const testsQueriesControllerGetKind = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetKindData, ThrowOnError>): RequestResult<TestsQueriesControllerGetKindResponses, unknown, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetKindResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/{testName}/kind',
-    ...options
-});
-
-/**
- * List the variants of an image test with status and thumbnails
- */
-export const testsQueriesControllerGetVariants = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetVariantsData, ThrowOnError>): RequestResult<TestsQueriesControllerGetVariantsResponses, TestsQueriesControllerGetVariantsErrors, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetVariantsResponses, TestsQueriesControllerGetVariantsErrors, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/{testName}/variants',
-    ...options
-});
-
-/**
- * List tests with pending approvals in project
- */
-export const testsQueriesControllerGetTestsWithPendingStatus = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetTestsWithPendingStatusData, ThrowOnError>): RequestResult<TestsQueriesControllerGetTestsWithPendingStatusResponses, unknown, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetTestsWithPendingStatusResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/meta/pending',
-    ...options
-});
-
-/**
- * Delete a visual test or a specific variant if filters are provided
- */
-export const testCommandsControllerDeleteVisualTest = <ThrowOnError extends boolean = false>(options: Options<TestCommandsControllerDeleteVisualTestData, ThrowOnError>): RequestResult<TestCommandsControllerDeleteVisualTestResponses, unknown, ThrowOnError> => (options.client ?? client).delete<TestCommandsControllerDeleteVisualTestResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/{testName}',
-    ...options
-});
-
-/**
- * Get details for a specific visual test (single variant or all variants)
- */
-export const testsQueriesControllerGetVisualTestDetails = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetVisualTestDetailsData, ThrowOnError>): RequestResult<TestsQueriesControllerGetVisualTestDetailsResponses, TestsQueriesControllerGetVisualTestDetailsErrors, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetVisualTestDetailsResponses, TestsQueriesControllerGetVisualTestDetailsErrors, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/{testName}',
-    ...options
-});
-
-/**
- * Get PDF test details including baseline and comparison
- */
-export const pdfControllerGetPdfTestDetails = <ThrowOnError extends boolean = false>(options: Options<PdfControllerGetPdfTestDetailsData, ThrowOnError>): RequestResult<PdfControllerGetPdfTestDetailsResponses, unknown, ThrowOnError> => (options.client ?? client).get<PdfControllerGetPdfTestDetailsResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/{testName}/pdf-details',
-    ...options
-});
-
-/**
- * Render a single PDF page as PNG (cached in RustFS)
- */
-export const pdfControllerRenderPdfPage = <ThrowOnError extends boolean = false>(options: Options<PdfControllerRenderPdfPageData, ThrowOnError>): RequestResult<PdfControllerRenderPdfPageResponses, unknown, ThrowOnError> => (options.client ?? client).get<PdfControllerRenderPdfPageResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/{testName}/pdf-render',
-    ...options
-});
-
-/**
- * Download baseline, candidate, or diff PDF for a test
- */
-export const pdfControllerDownloadPdf = <ThrowOnError extends boolean = false>(options: Options<PdfControllerDownloadPdfData, ThrowOnError>): RequestResult<PdfControllerDownloadPdfResponses, PdfControllerDownloadPdfErrors, ThrowOnError> => (options.client ?? client).get<PdfControllerDownloadPdfResponses, PdfControllerDownloadPdfErrors, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/{testName}/pdf-download',
-    ...options
-});
-
-/**
- * Update pixelDiffThreshold for a specific variant
- */
-export const testCommandsControllerUpdateThreshold = <ThrowOnError extends boolean = false>(options: Options<TestCommandsControllerUpdateThresholdData, ThrowOnError>): RequestResult<TestCommandsControllerUpdateThresholdResponses, unknown, ThrowOnError> => (options.client ?? client).patch<TestCommandsControllerUpdateThresholdResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/{testName}/threshold',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List pending reviews across all projects
- */
-export const reviewInboxControllerGetPending = <ThrowOnError extends boolean = false>(options?: Options<ReviewInboxControllerGetPendingData, ThrowOnError>): RequestResult<ReviewInboxControllerGetPendingResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ReviewInboxControllerGetPendingResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/review/pending',
-    ...options
-});
-
-/**
- * List branches that currently have pending reviews
- */
-export const reviewInboxControllerGetBranches = <ThrowOnError extends boolean = false>(options?: Options<ReviewInboxControllerGetBranchesData, ThrowOnError>): RequestResult<ReviewInboxControllerGetBranchesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ReviewInboxControllerGetBranchesResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/review/branches',
-    ...options
-});
-
-/**
- * Delete a feature branch and reclaim its files
- */
-export const branchesControllerRemove = <ThrowOnError extends boolean = false>(options: Options<BranchesControllerRemoveData, ThrowOnError>): RequestResult<BranchesControllerRemoveResponses, BranchesControllerRemoveErrors, ThrowOnError> => (options.client ?? client).delete<BranchesControllerRemoveResponses, BranchesControllerRemoveErrors, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/branches',
-    ...options
-});
-
-/**
- * List the branches of a project
- */
-export const branchesControllerList = <ThrowOnError extends boolean = false>(options: Options<BranchesControllerListData, ThrowOnError>): RequestResult<BranchesControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<BranchesControllerListResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/branches',
-    ...options
-});
-
-/**
- * Archive/unarchive a branch or change its target
- */
-export const branchesControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<BranchesControllerUpdateData, ThrowOnError>): RequestResult<BranchesControllerUpdateResponses, BranchesControllerUpdateErrors, ThrowOnError> => (options.client ?? client).patch<BranchesControllerUpdateResponses, BranchesControllerUpdateErrors, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/branches',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List replaced baselines for a test (newest first)
- */
-export const baselineHistoryControllerList = <ThrowOnError extends boolean = false>(options: Options<BaselineHistoryControllerListData, ThrowOnError>): RequestResult<BaselineHistoryControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<BaselineHistoryControllerListResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/{testName}/baseline-history',
-    ...options
-});
-
-/**
- * Restore a previously replaced baseline
- */
-export const baselineHistoryControllerRestore = <ThrowOnError extends boolean = false>(options: Options<BaselineHistoryControllerRestoreData, ThrowOnError>): RequestResult<BaselineHistoryControllerRestoreResponses, unknown, ThrowOnError> => (options.client ?? client).post<BaselineHistoryControllerRestoreResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/{testName}/baseline-restore',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List the project webhook endpoints
- */
-export const webhooksControllerList = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerListData, ThrowOnError>): RequestResult<WebhooksControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<WebhooksControllerListResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/projects/{projectName}/webhooks',
-    ...options
-});
-
-/**
- * Create a webhook endpoint and reveal its signing secret once
- */
-export const webhooksControllerCreate = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerCreateData, ThrowOnError>): RequestResult<WebhooksControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<WebhooksControllerCreateResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/projects/{projectName}/webhooks',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Delete a webhook endpoint and its delivery log
- */
-export const webhooksControllerRemove = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerRemoveData, ThrowOnError>): RequestResult<WebhooksControllerRemoveResponses, unknown, ThrowOnError> => (options.client ?? client).delete<WebhooksControllerRemoveResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/projects/{projectName}/webhooks/{id}',
-    ...options
-});
-
-/**
- * Update, disable or rotate the secret of a webhook endpoint
- */
-export const webhooksControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerUpdateData, ThrowOnError>): RequestResult<WebhooksControllerUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<WebhooksControllerUpdateResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/projects/{projectName}/webhooks/{id}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List the recent deliveries of an endpoint
- */
-export const webhooksControllerDeliveries = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerDeliveriesData, ThrowOnError>): RequestResult<WebhooksControllerDeliveriesResponses, unknown, ThrowOnError> => (options.client ?? client).get<WebhooksControllerDeliveriesResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/projects/{projectName}/webhooks/{id}/deliveries',
-    ...options
-});
-
-/**
- * Requeue a delivery for the dispatcher
- */
-export const webhooksControllerReplay = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerReplayData, ThrowOnError>): RequestResult<WebhooksControllerReplayResponses, unknown, ThrowOnError> => (options.client ?? client).post<WebhooksControllerReplayResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/projects/{projectName}/webhooks/{id}/deliveries/{deliveryId}/replay',
-    ...options
-});
-
-/**
- * Queue a synthetic test delivery
- */
-export const webhooksControllerTest = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerTestData, ThrowOnError>): RequestResult<WebhooksControllerTestResponses, unknown, ThrowOnError> => (options.client ?? client).post<WebhooksControllerTestResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/projects/{projectName}/webhooks/{id}/test',
-    ...options
-});
-
-/**
- * List CI runs of a project (newest first)
- */
-export const runsControllerList = <ThrowOnError extends boolean = false>(options: Options<RunsControllerListData, ThrowOnError>): RequestResult<RunsControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerListResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/runs',
-    ...options
-});
-
-/**
- * JUnit XML for a run (pending review is a failure)
- */
-export const runsControllerJunitReport = <ThrowOnError extends boolean = false>(options: Options<RunsControllerJunitReportData, ThrowOnError>): RequestResult<RunsControllerJunitReportResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerJunitReportResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/runs/{runKey}/report/junit',
-    ...options
-});
-
-/**
- * Self-contained HTML report for a run
- */
-export const runsControllerHtmlReport = <ThrowOnError extends boolean = false>(options: Options<RunsControllerHtmlReportData, ThrowOnError>): RequestResult<RunsControllerHtmlReportResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerHtmlReportResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/runs/{runKey}/report/html',
-    ...options
-});
-
-/**
- * CSV of the tests and outcomes of a run
- */
-export const runsControllerCsvReport = <ThrowOnError extends boolean = false>(options: Options<RunsControllerCsvReportData, ThrowOnError>): RequestResult<RunsControllerCsvReportResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerCsvReportResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/runs/{runKey}/report/csv',
-    ...options
-});
-
-/**
- * Read a run with its pending and approved work
- */
-export const runsControllerDetail = <ThrowOnError extends boolean = false>(options: Options<RunsControllerDetailData, ThrowOnError>): RequestResult<RunsControllerDetailResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerDetailResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/runs/{runKey}',
-    ...options
-});
-
-/**
- * Read the CI gate status of a run (pending/failed/passed/open)
- */
-export const runsControllerStatus = <ThrowOnError extends boolean = false>(options: Options<RunsControllerStatusData, ThrowOnError>): RequestResult<RunsControllerStatusResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerStatusResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/runs/{runKey}/status',
-    ...options
-});
-
-/**
- * Finish a run (idempotent)
- */
-export const runsControllerFinish = <ThrowOnError extends boolean = false>(options: Options<RunsControllerFinishData, ThrowOnError>): RequestResult<RunsControllerFinishResponses, unknown, ThrowOnError> => (options.client ?? client).post<RunsControllerFinishResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/runs/{runKey}/finish',
-    ...options
-});
-
-/**
- * Approve every pending comparison of a run
- */
-export const runsControllerApproveAll = <ThrowOnError extends boolean = false>(options: Options<RunsControllerApproveAllData, ThrowOnError>): RequestResult<RunsControllerApproveAllResponses, unknown, ThrowOnError> => (options.client ?? client).post<RunsControllerApproveAllResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/runs/{runKey}/approve-all',
-    ...options
-});
-
-/**
- * Read comparison volume, review age, approval latency and flake rate
- */
-export const trendsControllerGet = <ThrowOnError extends boolean = false>(options: Options<TrendsControllerGetData, ThrowOnError>): RequestResult<TrendsControllerGetResponses, unknown, ThrowOnError> => (options.client ?? client).get<TrendsControllerGetResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/trends',
-    ...options
-});
-
-/**
- * Approve up to 100 comparisons, returning per-item results
- */
-export const bulkActionsControllerApprove = <ThrowOnError extends boolean = false>(options: Options<BulkActionsControllerApproveData, ThrowOnError>): RequestResult<BulkActionsControllerApproveResponses, unknown, ThrowOnError> => (options.client ?? client).post<BulkActionsControllerApproveResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/bulk/approvals',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Delete up to 100 tests, returning per-item results
- */
-export const bulkActionsControllerDeleteTests = <ThrowOnError extends boolean = false>(options: Options<BulkActionsControllerDeleteTestsData, ThrowOnError>): RequestResult<BulkActionsControllerDeleteTestsResponses, unknown, ThrowOnError> => (options.client ?? client).post<BulkActionsControllerDeleteTestsResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/bulk/test-deletions',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Move up to 100 projects into a group (null clears the group)
- */
-export const projectsBulkControllerMove = <ThrowOnError extends boolean = false>(options: Options<ProjectsBulkControllerMoveData, ThrowOnError>): RequestResult<ProjectsBulkControllerMoveResponses, unknown, ThrowOnError> => (options.client ?? client).patch<ProjectsBulkControllerMoveResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/bulk/group',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Read rename/tags/mute metadata and the 30-day flake signal
- */
-export const testLifecycleControllerGet = <ThrowOnError extends boolean = false>(options: Options<TestLifecycleControllerGetData, ThrowOnError>): RequestResult<TestLifecycleControllerGetResponses, unknown, ThrowOnError> => (options.client ?? client).get<TestLifecycleControllerGetResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/{testName}/metadata',
-    ...options
-});
-
-/**
- * Rename a test, edit description/tags or mute it until a date
- */
-export const testLifecycleControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<TestLifecycleControllerUpdateData, ThrowOnError>): RequestResult<TestLifecycleControllerUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<TestLifecycleControllerUpdateResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/tests/{testName}/metadata',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Search projects, tests and branches (server-paginated groups)
- */
-export const searchControllerQuery = <ThrowOnError extends boolean = false>(options: Options<SearchControllerQueryData, ThrowOnError>): RequestResult<SearchControllerQueryResponses, unknown, ThrowOnError> => (options.client ?? client).get<SearchControllerQueryResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/search',
-    ...options
-});
-
-/**
- * Current storage usage, quota and retention settings
- */
-export const storageControllerGet = <ThrowOnError extends boolean = false>(options: Options<StorageControllerGetData, ThrowOnError>): RequestResult<StorageControllerGetResponses, unknown, ThrowOnError> => (options.client ?? client).get<StorageControllerGetResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/storage',
-    ...options
-});
-
-/**
- * Update per-project retention and quota settings
- */
-export const storageControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<StorageControllerUpdateData, ThrowOnError>): RequestResult<StorageControllerUpdateResponses, StorageControllerUpdateErrors, ThrowOnError> => (options.client ?? client).patch<StorageControllerUpdateResponses, StorageControllerUpdateErrors, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/storage',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Dry-run: what retention would reclaim without deleting anything
- */
-export const storageControllerPreviewRetention = <ThrowOnError extends boolean = false>(options: Options<StorageControllerPreviewRetentionData, ThrowOnError>): RequestResult<StorageControllerPreviewRetentionResponses, unknown, ThrowOnError> => (options.client ?? client).get<StorageControllerPreviewRetentionResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/{projectName}/storage/preview',
-    ...options
-});
-
-/**
- * List share links for a project
- */
-export const shareLinksControllerList = <ThrowOnError extends boolean = false>(options: Options<ShareLinksControllerListData, ThrowOnError>): RequestResult<ShareLinksControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<ShareLinksControllerListResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/projects/{projectName}/share-links',
-    ...options
-});
-
-/**
- * Create a read-only, expiring share link
- */
-export const shareLinksControllerCreate = <ThrowOnError extends boolean = false>(options: Options<ShareLinksControllerCreateData, ThrowOnError>): RequestResult<ShareLinksControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<ShareLinksControllerCreateResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/projects/{projectName}/share-links',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Revoke a share link
- */
-export const shareLinkRevokeControllerRevoke = <ThrowOnError extends boolean = false>(options: Options<ShareLinkRevokeControllerRevokeData, ThrowOnError>): RequestResult<ShareLinkRevokeControllerRevokeResponses, unknown, ThrowOnError> => (options.client ?? client).delete<ShareLinkRevokeControllerRevokeResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/share-links/{id}',
-    ...options
-});
-
-/**
- * Resolve a share token (optional passphrase) to a read-only view
- */
-export const publicShareControllerResolve = <ThrowOnError extends boolean = false>(options: Options<PublicShareControllerResolveData, ThrowOnError>): RequestResult<PublicShareControllerResolveResponses, unknown, ThrowOnError> => (options.client ?? client).post<PublicShareControllerResolveResponses, unknown, ThrowOnError>({
-    url: '/public/shares/{token}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
 });
 
 /**
@@ -991,6 +538,67 @@ export const assignmentControllerComplete = <ThrowOnError extends boolean = fals
 });
 
 /**
+ * List replaced baselines for a test (newest first)
+ */
+export const baselineHistoryControllerList = <ThrowOnError extends boolean = false>(options: Options<BaselineHistoryControllerListData, ThrowOnError>): RequestResult<BaselineHistoryControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<BaselineHistoryControllerListResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/baseline-history',
+    ...options
+});
+
+/**
+ * Restore a previously replaced baseline
+ */
+export const baselineHistoryControllerRestore = <ThrowOnError extends boolean = false>(options: Options<BaselineHistoryControllerRestoreData, ThrowOnError>): RequestResult<BaselineHistoryControllerRestoreResponses, unknown, ThrowOnError> => (options.client ?? client).post<BaselineHistoryControllerRestoreResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/baseline-restore',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Approve up to 100 comparisons, returning per-item results
+ */
+export const bulkActionsControllerApprove = <ThrowOnError extends boolean = false>(options: Options<BulkActionsControllerApproveData, ThrowOnError>): RequestResult<BulkActionsControllerApproveResponses, unknown, ThrowOnError> => (options.client ?? client).post<BulkActionsControllerApproveResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/bulk/approvals',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete up to 100 tests, returning per-item results
+ */
+export const bulkActionsControllerDeleteTests = <ThrowOnError extends boolean = false>(options: Options<BulkActionsControllerDeleteTestsData, ThrowOnError>): RequestResult<BulkActionsControllerDeleteTestsResponses, unknown, ThrowOnError> => (options.client ?? client).post<BulkActionsControllerDeleteTestsResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/bulk/test-deletions',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Move up to 100 projects into a group (null clears the group)
+ */
+export const projectsBulkControllerMove = <ThrowOnError extends boolean = false>(options: Options<ProjectsBulkControllerMoveData, ThrowOnError>): RequestResult<ProjectsBulkControllerMoveResponses, unknown, ThrowOnError> => (options.client ?? client).patch<ProjectsBulkControllerMoveResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/bulk/group',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * List review comments for a test or comparison
  */
 export const reviewCommentControllerList = <ThrowOnError extends boolean = false>(options: Options<ReviewCommentControllerListData, ThrowOnError>): RequestResult<ReviewCommentControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<ReviewCommentControllerListResponses, unknown, ThrowOnError>({
@@ -1030,6 +638,113 @@ export const reviewCommentControllerResolve = <ThrowOnError extends boolean = fa
             type: 'apiKey'
         }],
     url: '/projects/{projectName}/tests/{testName}/comments/{id}/resolve',
+    ...options
+});
+
+/**
+ * List pending reviews across all projects
+ */
+export const reviewInboxControllerGetPending = <ThrowOnError extends boolean = false>(options?: Options<ReviewInboxControllerGetPendingData, ThrowOnError>): RequestResult<ReviewInboxControllerGetPendingResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ReviewInboxControllerGetPendingResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/review/pending',
+    ...options
+});
+
+/**
+ * List branches that currently have pending reviews
+ */
+export const reviewInboxControllerGetBranches = <ThrowOnError extends boolean = false>(options?: Options<ReviewInboxControllerGetBranchesData, ThrowOnError>): RequestResult<ReviewInboxControllerGetBranchesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ReviewInboxControllerGetBranchesResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/review/branches',
+    ...options
+});
+
+/**
+ * Update pixelDiffThreshold for a specific variant
+ */
+export const testCommandsControllerUpdateThreshold = <ThrowOnError extends boolean = false>(options: Options<TestCommandsControllerUpdateThresholdData, ThrowOnError>): RequestResult<TestCommandsControllerUpdateThresholdResponses, unknown, ThrowOnError> => (options.client ?? client).patch<TestCommandsControllerUpdateThresholdResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/threshold',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete a visual test or a specific variant if filters are provided
+ */
+export const testCommandsControllerDeleteVisualTest = <ThrowOnError extends boolean = false>(options: Options<TestCommandsControllerDeleteVisualTestData, ThrowOnError>): RequestResult<TestCommandsControllerDeleteVisualTestResponses, unknown, ThrowOnError> => (options.client ?? client).delete<TestCommandsControllerDeleteVisualTestResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}',
+    ...options
+});
+
+/**
+ * Get details for a specific visual test (single variant or all variants)
+ */
+export const testsQueriesControllerGetVisualTestDetails = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetVisualTestDetailsData, ThrowOnError>): RequestResult<TestsQueriesControllerGetVisualTestDetailsResponses, TestsQueriesControllerGetVisualTestDetailsErrors, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetVisualTestDetailsResponses, TestsQueriesControllerGetVisualTestDetailsErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}',
+    ...options
+});
+
+/**
+ * Read rename/tags/mute metadata and the 30-day flake signal
+ */
+export const testLifecycleControllerGet = <ThrowOnError extends boolean = false>(options: Options<TestLifecycleControllerGetData, ThrowOnError>): RequestResult<TestLifecycleControllerGetResponses, unknown, ThrowOnError> => (options.client ?? client).get<TestLifecycleControllerGetResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/metadata',
+    ...options
+});
+
+/**
+ * Rename a test, edit description/tags or mute it until a date
+ */
+export const testLifecycleControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<TestLifecycleControllerUpdateData, ThrowOnError>): RequestResult<TestLifecycleControllerUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<TestLifecycleControllerUpdateResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/metadata',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List all tests for a specific project
+ */
+export const testsQueriesControllerGetTestsForProject = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetTestsForProjectData, ThrowOnError>): RequestResult<TestsQueriesControllerGetTestsForProjectResponses, unknown, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetTestsForProjectResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests',
+    ...options
+});
+
+/**
+ * Get the test kind (pdf or visual)
+ */
+export const testsQueriesControllerGetKind = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetKindData, ThrowOnError>): RequestResult<TestsQueriesControllerGetKindResponses, unknown, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetKindResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/kind',
+    ...options
+});
+
+/**
+ * List the variants of an image test with status and thumbnails
+ */
+export const testsQueriesControllerGetVariants = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetVariantsData, ThrowOnError>): RequestResult<TestsQueriesControllerGetVariantsResponses, TestsQueriesControllerGetVariantsErrors, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetVariantsResponses, TestsQueriesControllerGetVariantsErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/variants',
+    ...options
+});
+
+/**
+ * List tests with pending approvals in project
+ */
+export const testsQueriesControllerGetTestsWithPendingStatus = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetTestsWithPendingStatusData, ThrowOnError>): RequestResult<TestsQueriesControllerGetTestsWithPendingStatusResponses, unknown, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetTestsWithPendingStatusResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/meta/pending',
     ...options
 });
 
@@ -1143,6 +858,299 @@ export const authControllerChangePassword = <ThrowOnError extends boolean = fals
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * List CI runs of a project (newest first)
+ */
+export const runsControllerList = <ThrowOnError extends boolean = false>(options: Options<RunsControllerListData, ThrowOnError>): RequestResult<RunsControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerListResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs',
+    ...options
+});
+
+/**
+ * JUnit XML for a run (pending review is a failure)
+ */
+export const runsControllerJunitReport = <ThrowOnError extends boolean = false>(options: Options<RunsControllerJunitReportData, ThrowOnError>): RequestResult<RunsControllerJunitReportResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerJunitReportResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}/report/junit',
+    ...options
+});
+
+/**
+ * Self-contained HTML report for a run
+ */
+export const runsControllerHtmlReport = <ThrowOnError extends boolean = false>(options: Options<RunsControllerHtmlReportData, ThrowOnError>): RequestResult<RunsControllerHtmlReportResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerHtmlReportResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}/report/html',
+    ...options
+});
+
+/**
+ * CSV of the tests and outcomes of a run
+ */
+export const runsControllerCsvReport = <ThrowOnError extends boolean = false>(options: Options<RunsControllerCsvReportData, ThrowOnError>): RequestResult<RunsControllerCsvReportResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerCsvReportResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}/report/csv',
+    ...options
+});
+
+/**
+ * Read a run with its pending and approved work
+ */
+export const runsControllerDetail = <ThrowOnError extends boolean = false>(options: Options<RunsControllerDetailData, ThrowOnError>): RequestResult<RunsControllerDetailResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerDetailResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}',
+    ...options
+});
+
+/**
+ * Read the CI gate status of a run (pending/failed/passed/open)
+ */
+export const runsControllerStatus = <ThrowOnError extends boolean = false>(options: Options<RunsControllerStatusData, ThrowOnError>): RequestResult<RunsControllerStatusResponses, unknown, ThrowOnError> => (options.client ?? client).get<RunsControllerStatusResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}/status',
+    ...options
+});
+
+/**
+ * Finish a run (idempotent)
+ */
+export const runsControllerFinish = <ThrowOnError extends boolean = false>(options: Options<RunsControllerFinishData, ThrowOnError>): RequestResult<RunsControllerFinishResponses, unknown, ThrowOnError> => (options.client ?? client).post<RunsControllerFinishResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}/finish',
+    ...options
+});
+
+/**
+ * Approve every pending comparison of a run
+ */
+export const runsControllerApproveAll = <ThrowOnError extends boolean = false>(options: Options<RunsControllerApproveAllData, ThrowOnError>): RequestResult<RunsControllerApproveAllResponses, unknown, ThrowOnError> => (options.client ?? client).post<RunsControllerApproveAllResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/runs/{runKey}/approve-all',
+    ...options
+});
+
+/**
+ * Read comparison volume, review age, approval latency and flake rate
+ */
+export const trendsControllerGet = <ThrowOnError extends boolean = false>(options: Options<TrendsControllerGetData, ThrowOnError>): RequestResult<TrendsControllerGetResponses, unknown, ThrowOnError> => (options.client ?? client).get<TrendsControllerGetResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/trends',
+    ...options
+});
+
+/**
+ * Get PDF test details including baseline and comparison
+ */
+export const pdfControllerGetPdfTestDetails = <ThrowOnError extends boolean = false>(options: Options<PdfControllerGetPdfTestDetailsData, ThrowOnError>): RequestResult<PdfControllerGetPdfTestDetailsResponses, unknown, ThrowOnError> => (options.client ?? client).get<PdfControllerGetPdfTestDetailsResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/pdf-details',
+    ...options
+});
+
+/**
+ * Render a single PDF page as PNG (cached in RustFS)
+ */
+export const pdfControllerRenderPdfPage = <ThrowOnError extends boolean = false>(options: Options<PdfControllerRenderPdfPageData, ThrowOnError>): RequestResult<PdfControllerRenderPdfPageResponses, unknown, ThrowOnError> => (options.client ?? client).get<PdfControllerRenderPdfPageResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/pdf-render',
+    ...options
+});
+
+/**
+ * Download baseline, candidate, or diff PDF for a test
+ */
+export const pdfControllerDownloadPdf = <ThrowOnError extends boolean = false>(options: Options<PdfControllerDownloadPdfData, ThrowOnError>): RequestResult<PdfControllerDownloadPdfResponses, PdfControllerDownloadPdfErrors, ThrowOnError> => (options.client ?? client).get<PdfControllerDownloadPdfResponses, PdfControllerDownloadPdfErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/tests/{testName}/pdf-download',
+    ...options
+});
+
+/**
+ * Current storage usage, quota and retention settings
+ */
+export const storageControllerGet = <ThrowOnError extends boolean = false>(options: Options<StorageControllerGetData, ThrowOnError>): RequestResult<StorageControllerGetResponses, unknown, ThrowOnError> => (options.client ?? client).get<StorageControllerGetResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/storage',
+    ...options
+});
+
+/**
+ * Update per-project retention and quota settings
+ */
+export const storageControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<StorageControllerUpdateData, ThrowOnError>): RequestResult<StorageControllerUpdateResponses, StorageControllerUpdateErrors, ThrowOnError> => (options.client ?? client).patch<StorageControllerUpdateResponses, StorageControllerUpdateErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/storage',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Dry-run: what retention would reclaim without deleting anything
+ */
+export const storageControllerPreviewRetention = <ThrowOnError extends boolean = false>(options: Options<StorageControllerPreviewRetentionData, ThrowOnError>): RequestResult<StorageControllerPreviewRetentionResponses, unknown, ThrowOnError> => (options.client ?? client).get<StorageControllerPreviewRetentionResponses, unknown, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/storage/preview',
+    ...options
+});
+
+/**
+ * List share links for a project
+ */
+export const shareLinksControllerList = <ThrowOnError extends boolean = false>(options: Options<ShareLinksControllerListData, ThrowOnError>): RequestResult<ShareLinksControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<ShareLinksControllerListResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/share-links',
+    ...options
+});
+
+/**
+ * Create a read-only, expiring share link
+ */
+export const shareLinksControllerCreate = <ThrowOnError extends boolean = false>(options: Options<ShareLinksControllerCreateData, ThrowOnError>): RequestResult<ShareLinksControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<ShareLinksControllerCreateResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/share-links',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Revoke a share link
+ */
+export const shareLinkRevokeControllerRevoke = <ThrowOnError extends boolean = false>(options: Options<ShareLinkRevokeControllerRevokeData, ThrowOnError>): RequestResult<ShareLinkRevokeControllerRevokeResponses, unknown, ThrowOnError> => (options.client ?? client).delete<ShareLinkRevokeControllerRevokeResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/share-links/{id}',
+    ...options
+});
+
+/**
+ * Resolve a share token (optional passphrase) to a read-only view
+ */
+export const publicShareControllerResolve = <ThrowOnError extends boolean = false>(options: Options<PublicShareControllerResolveData, ThrowOnError>): RequestResult<PublicShareControllerResolveResponses, unknown, ThrowOnError> => (options.client ?? client).post<PublicShareControllerResolveResponses, unknown, ThrowOnError>({
+    url: '/public/shares/{token}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List the project webhook endpoints
+ */
+export const webhooksControllerList = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerListData, ThrowOnError>): RequestResult<WebhooksControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<WebhooksControllerListResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/webhooks',
+    ...options
+});
+
+/**
+ * Create a webhook endpoint and reveal its signing secret once
+ */
+export const webhooksControllerCreate = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerCreateData, ThrowOnError>): RequestResult<WebhooksControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<WebhooksControllerCreateResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/webhooks',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete a webhook endpoint and its delivery log
+ */
+export const webhooksControllerRemove = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerRemoveData, ThrowOnError>): RequestResult<WebhooksControllerRemoveResponses, unknown, ThrowOnError> => (options.client ?? client).delete<WebhooksControllerRemoveResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/webhooks/{id}',
+    ...options
+});
+
+/**
+ * Update, disable or rotate the secret of a webhook endpoint
+ */
+export const webhooksControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerUpdateData, ThrowOnError>): RequestResult<WebhooksControllerUpdateResponses, unknown, ThrowOnError> => (options.client ?? client).patch<WebhooksControllerUpdateResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/webhooks/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List the recent deliveries of an endpoint
+ */
+export const webhooksControllerDeliveries = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerDeliveriesData, ThrowOnError>): RequestResult<WebhooksControllerDeliveriesResponses, unknown, ThrowOnError> => (options.client ?? client).get<WebhooksControllerDeliveriesResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/webhooks/{id}/deliveries',
+    ...options
+});
+
+/**
+ * Requeue a delivery for the dispatcher
+ */
+export const webhooksControllerReplay = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerReplayData, ThrowOnError>): RequestResult<WebhooksControllerReplayResponses, unknown, ThrowOnError> => (options.client ?? client).post<WebhooksControllerReplayResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/webhooks/{id}/deliveries/{deliveryId}/replay',
+    ...options
+});
+
+/**
+ * Queue a synthetic test delivery
+ */
+export const webhooksControllerTest = <ThrowOnError extends boolean = false>(options: Options<WebhooksControllerTestData, ThrowOnError>): RequestResult<WebhooksControllerTestResponses, unknown, ThrowOnError> => (options.client ?? client).post<WebhooksControllerTestResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/webhooks/{id}/test',
+    ...options
 });
 
 export const healthControllerCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckData, ThrowOnError>): RequestResult<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError>({ url: '/health', ...options });

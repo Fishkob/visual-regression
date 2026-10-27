@@ -20,7 +20,6 @@ import { plainToInstance } from 'class-transformer';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { Roles } from '@common/http/roles.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
-import { Scope } from '@common/http/api-key-scope.decorator';
 import { ApiKeyService, type ApiKeyView } from '@internal/auth/api-key.service';
 import {
   ApiKeyDto,
@@ -46,7 +45,6 @@ import {
 export class ApiKeysController {
   constructor(private readonly apiKeyService: ApiKeyService) {}
 
-  @Scope('read')
   @Get()
   @ApiOperation({ summary: 'List API keys (hashes are never returned)' })
   @ApiOkResponse({ type: [ApiKeyDto] })
@@ -55,7 +53,6 @@ export class ApiKeysController {
     return rows.map((row) => this.toDto(row));
   }
 
-  @Scope('admin')
   @Post()
   @ApiOperation({ summary: 'Create an API key and reveal it once' })
   @ApiCreatedResponse({ type: CreatedApiKeyDto })
@@ -76,7 +73,6 @@ export class ApiKeysController {
     });
   }
 
-  @Scope('admin')
   @Post(':id/rotate')
   @ApiOperation({
     summary: 'Replace a key with a new one, retiring the previous key',
@@ -100,7 +96,6 @@ export class ApiKeysController {
     });
   }
 
-  @Scope('admin')
   @Post(':id/revoke')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Revoke a key; the row stays for the audit trail' })
@@ -113,7 +108,6 @@ export class ApiKeysController {
     return this.toDto(row);
   }
 
-  @Scope('admin')
   @Delete(':id')
   @ApiOperation({
     summary: 'Delete a key that was never used; used keys must be revoked',

@@ -152,6 +152,11 @@
             }
           }
         },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "summary": "List audit events (newest first, paginated)",
         "tags": [
           "Audit"
@@ -245,6 +250,11 @@
             "description": "CSV document"
           }
         },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "summary": "Export the filtered audit trail as CSV",
         "tags": [
           "Audit"
@@ -1065,6 +1075,187 @@
         ]
       }
     },
+    "/projects/{projectName}/branches": {
+      "get": {
+        "operationId": "BranchesController_list",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BranchSummaryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List the branches of a project",
+        "tags": [
+          "Branches"
+        ]
+      },
+      "patch": {
+        "operationId": "BranchesController_update",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": true,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBranchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BranchCommandResultDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Branch or target not found"
+          },
+          "409": {
+            "description": "Invalid target or default branch"
+          }
+        },
+        "summary": "Archive/unarchive a branch or change its target",
+        "tags": [
+          "Branches"
+        ]
+      },
+      "delete": {
+        "operationId": "BranchesController_remove",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": true,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BranchCommandResultDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The default branch cannot be deleted"
+          }
+        },
+        "summary": "Delete a feature branch and reclaim its files",
+        "tags": [
+          "Branches"
+        ]
+      }
+    },
+    "/search": {
+      "get": {
+        "operationId": "SearchController_query",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 20,
+              "default": 8,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResultsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Search projects, tests and branches (server-paginated groups)",
+        "tags": [
+          "Search"
+        ]
+      }
+    },
     "/projects/{projectName}/tests/{testName}/approval": {
       "post": {
         "operationId": "ApprovalsController_approveVisualTest",
@@ -1298,6 +1489,1074 @@
         "summary": "List the most recent approvals of a test, newest first",
         "tags": [
           "Approvals"
+        ]
+      }
+    },
+    "/projects/{projectName}/assignments": {
+      "post": {
+        "operationId": "AssignmentController_create",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAssignmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Assign a test or run to a reviewer",
+        "tags": [
+          "Assignments"
+        ]
+      }
+    },
+    "/assignments/mine": {
+      "get": {
+        "operationId": "AssignmentController_mine",
+        "parameters": [
+          {
+            "name": "includeCompleted",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssignmentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "List my open review assignments",
+        "tags": [
+          "Assignments"
+        ]
+      }
+    },
+    "/assignments/mine/overdue": {
+      "get": {
+        "operationId": "AssignmentController_overdue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssignmentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "List my overdue review assignments",
+        "tags": [
+          "Assignments"
+        ]
+      }
+    },
+    "/assignments/{id}/complete": {
+      "post": {
+        "operationId": "AssignmentController_complete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Mark my assignment complete",
+        "tags": [
+          "Assignments"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/baseline-history": {
+      "get": {
+        "operationId": "BaselineHistoryController_list",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BaselineRevisionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List replaced baselines for a test (newest first)",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/baseline-restore": {
+      "post": {
+        "operationId": "BaselineHistoryController_restore",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreBaselineDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreBaselineResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Restore a previously replaced baseline",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/bulk/approvals": {
+      "post": {
+        "operationId": "BulkActionsController_approve",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkApprovalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkApprovalResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Approve up to 100 comparisons, returning per-item results",
+        "tags": [
+          "Bulk actions"
+        ]
+      }
+    },
+    "/projects/{projectName}/bulk/test-deletions": {
+      "post": {
+        "operationId": "BulkActionsController_deleteTests",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkDeleteTestsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkDeleteResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Delete up to 100 tests, returning per-item results",
+        "tags": [
+          "Bulk actions"
+        ]
+      }
+    },
+    "/projects/bulk/group": {
+      "patch": {
+        "operationId": "ProjectsBulkController_move",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkMoveProjectsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkMoveResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Move up to 100 projects into a group (null clears the group)",
+        "tags": [
+          "Bulk actions"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/comments": {
+      "get": {
+        "operationId": "ReviewCommentController_list",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "comparisonId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "List review comments for a test or comparison",
+        "tags": [
+          "Review comments"
+        ]
+      },
+      "post": {
+        "operationId": "ReviewCommentController_create",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Add a review comment",
+        "tags": [
+          "Review comments"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/comments/{id}/resolve": {
+      "patch": {
+        "operationId": "ReviewCommentController_resolve",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Resolve a review comment",
+        "tags": [
+          "Review comments"
+        ]
+      }
+    },
+    "/review/pending": {
+      "get": {
+        "operationId": "ReviewInboxController_getPending",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "skip",
+            "required": false,
+            "in": "query",
+            "description": "Record offset (0-based), alternative to page",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "take",
+            "required": false,
+            "in": "query",
+            "description": "Page size, alternative to limit",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          },
+          {
+            "name": "assignedToMe",
+            "required": false,
+            "in": "query",
+            "description": "Only reviews assigned to me",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectName",
+            "required": false,
+            "in": "query",
+            "description": "Project to scope the read to (defaults to every project)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "description": "Filter by test kind",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "image",
+                "pdf"
+              ]
+            }
+          },
+          {
+            "name": "groupId",
+            "required": false,
+            "in": "query",
+            "description": "Group id, or \"unassigned\" for projects without a group",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive search across the test name and the project name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "required": false,
+            "in": "query",
+            "description": "Filter pending reviews by test tag",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runKey",
+            "required": false,
+            "in": "query",
+            "description": "Filter pending reviews by CI run key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPendingReviewDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List pending reviews across all projects",
+        "tags": [
+          "Review"
+        ]
+      }
+    },
+    "/review/branches": {
+      "get": {
+        "operationId": "ReviewInboxController_getBranches",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "List branches that currently have pending reviews",
+        "tags": [
+          "Review"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/threshold": {
+      "patch": {
+        "operationId": "TestCommandsController_updateThreshold",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "preview",
+            "required": false,
+            "in": "query",
+            "description": "When true, returns how many pending comparisons the value would auto-accept without mutating anything",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateThresholdDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateThresholdResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update pixelDiffThreshold for a specific variant",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}": {
+      "delete": {
+        "operationId": "TestCommandsController_deleteVisualTest",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          }
+        },
+        "summary": "Delete a visual test or a specific variant if filters are provided",
+        "tags": [
+          "Tests"
+        ]
+      },
+      "get": {
+        "operationId": "TestsQueriesController_getVisualTestDetails",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "description": "Variant filter — at least one of viewport/browser/environment is required",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Visual test details including variants, baselines and comparisons",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisualTestDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Visual test not found"
+          }
+        },
+        "summary": "Get details for a specific visual test (single variant or all variants)",
+        "tags": [
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/metadata": {
+      "get": {
+        "operationId": "TestLifecycleController_get",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestMetadataDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read rename/tags/mute metadata and the 30-day flake signal",
+        "tags": [
+          "Tests"
+        ]
+      },
+      "patch": {
+        "operationId": "TestLifecycleController_update",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTestMetadataDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestMetadataDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Rename a test, edit description/tags or mute it until a date",
+        "tags": [
+          "Tests"
         ]
       }
     },
@@ -1579,420 +2838,60 @@
         ]
       }
     },
-    "/projects/{projectName}/tests/{testName}": {
-      "get": {
-        "operationId": "TestsQueriesController_getVisualTestDetails",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "testName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewport",
-            "required": false,
-            "in": "query",
-            "description": "Variant filter — at least one of viewport/browser/environment is required",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "browser",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "environment",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch",
-            "required": false,
-            "in": "query",
-            "description": "Branch to read or act on (defaults to the project default branch)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Visual test details including variants, baselines and comparisons",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VisualTestDetailsDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Visual test not found"
-          }
-        },
-        "summary": "Get details for a specific visual test (single variant or all variants)",
-        "tags": [
-          "Tests"
-        ]
-      },
-      "delete": {
-        "operationId": "TestCommandsController_deleteVisualTest",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "testName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewport",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "browser",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "environment",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch",
-            "required": false,
-            "in": "query",
-            "description": "Branch to read or act on (defaults to the project default branch)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Deleted"
-          }
-        },
-        "summary": "Delete a visual test or a specific variant if filters are provided",
-        "tags": [
-          "Tests"
-        ]
-      }
-    },
-    "/projects/{projectName}/tests/{testName}/pdf-details": {
-      "get": {
-        "operationId": "PdfController_getPdfTestDetails",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "testName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewport",
-            "required": false,
-            "in": "query",
-            "description": "Variant filter — at least one of viewport/browser/environment is required",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "browser",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "environment",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch",
-            "required": false,
-            "in": "query",
-            "description": "Branch to read or act on (defaults to the project default branch)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "PDF test details with baseline and comparison information",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PdfTestDetailsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Get PDF test details including baseline and comparison",
-        "tags": [
-          "Tests"
-        ]
-      }
-    },
-    "/projects/{projectName}/tests/{testName}/pdf-render": {
-      "get": {
-        "operationId": "PdfController_renderPdfPage",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "testName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "branch",
-            "required": false,
-            "in": "query",
-            "description": "Branch to read or act on (defaults to the project default branch)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "pdfUrl",
-            "required": true,
-            "in": "query",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Rendered page PNG URL and page count"
-          }
-        },
-        "summary": "Render a single PDF page as PNG (cached in RustFS)",
-        "tags": [
-          "Tests"
-        ]
-      }
-    },
-    "/projects/{projectName}/tests/{testName}/pdf-download": {
-      "get": {
-        "operationId": "PdfController_downloadPdf",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "testName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "type",
-            "required": true,
-            "in": "query",
-            "description": "Which PDF to download: baseline, candidate, or diff",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewport",
-            "required": false,
-            "in": "query",
-            "description": "Variant filter — at least one of viewport/browser/environment is required",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "browser",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "environment",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch",
-            "required": false,
-            "in": "query",
-            "description": "Branch to read or act on (defaults to the project default branch)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "PDF file streamed with Content-Disposition attachment"
-          },
-          "404": {
-            "description": "PDF not found"
-          }
-        },
-        "summary": "Download baseline, candidate, or diff PDF for a test",
-        "tags": [
-          "Tests"
-        ]
-      }
-    },
-    "/projects/{projectName}/tests/{testName}/threshold": {
-      "patch": {
-        "operationId": "TestCommandsController_updateThreshold",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "testName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewport",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "browser",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "environment",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch",
-            "required": false,
-            "in": "query",
-            "description": "Branch to read or act on (defaults to the project default branch)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "preview",
-            "required": false,
-            "in": "query",
-            "description": "When true, returns how many pending comparisons the value would auto-accept without mutating anything",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateThresholdDto"
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A session user, or a two-factor challenge when 2FA is enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/MeDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TwoFactorChallengeDto"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid username or password"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/2fa/verify": {
+      "post": {
+        "operationId": "AuthController_verifyTwoFactor",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyTwoFactorDto"
               }
             }
           }
@@ -2003,22 +2902,295 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UpdateThresholdResultDto"
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired 2FA code"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/2fa/setup": {
+      "post": {
+        "operationId": "AuthController_setupTwoFactor",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorSetupDto"
                 }
               }
             }
           }
         },
-        "summary": "Update pixelDiffThreshold for a specific variant",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
         "tags": [
-          "Tests"
+          "Auth"
         ]
       }
     },
-    "/review/pending": {
+    "/auth/2fa/enable": {
+      "post": {
+        "operationId": "AuthController_enableTwoFactor",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnableTotpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/2fa/disable": {
+      "post": {
+        "operationId": "AuthController_disableTwoFactor",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableTotpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Two-factor authentication disabled"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/sessions": {
       "get": {
-        "operationId": "ReviewInboxController_getPending",
+        "operationId": "AuthController_listSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/sessions/{id}": {
+      "delete": {
+        "operationId": "AuthController_revokeSession",
         "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Session revoked"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/sessions/revoke-all": {
+      "post": {
+        "operationId": "AuthController_revokeAllSessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "revoked": 2
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Session cleared"
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/change-password": {
+      "post": {
+        "operationId": "AuthController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Current password is incorrect"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/projects/{projectName}/runs": {
+      "get": {
+        "operationId": "RunsController_list",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "page",
             "required": false,
@@ -2064,747 +3236,12 @@
             }
           },
           {
-            "name": "assignedToMe",
-            "required": false,
-            "in": "query",
-            "description": "Only reviews assigned to me",
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
             "name": "branch",
             "required": false,
             "in": "query",
             "description": "Branch to read or act on (defaults to the project default branch)",
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "projectName",
-            "required": false,
-            "in": "query",
-            "description": "Project to scope the read to (defaults to every project)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "kind",
-            "required": false,
-            "in": "query",
-            "description": "Filter by test kind",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "image",
-                "pdf"
-              ]
-            }
-          },
-          {
-            "name": "groupId",
-            "required": false,
-            "in": "query",
-            "description": "Group id, or \"unassigned\" for projects without a group",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "q",
-            "required": false,
-            "in": "query",
-            "description": "Case-insensitive search across the test name and the project name",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tag",
-            "required": false,
-            "in": "query",
-            "description": "Filter pending reviews by test tag",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "runKey",
-            "required": false,
-            "in": "query",
-            "description": "Filter pending reviews by CI run key",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedPendingReviewDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "List pending reviews across all projects",
-        "tags": [
-          "Review"
-        ]
-      }
-    },
-    "/review/branches": {
-      "get": {
-        "operationId": "ReviewInboxController_getBranches",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "List branches that currently have pending reviews",
-        "tags": [
-          "Review"
-        ]
-      }
-    },
-    "/projects/{projectName}/branches": {
-      "get": {
-        "operationId": "BranchesController_list",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "includeArchived",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/BranchSummaryDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "List the branches of a project",
-        "tags": [
-          "Branches"
-        ]
-      },
-      "patch": {
-        "operationId": "BranchesController_update",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch",
-            "required": true,
-            "in": "query",
-            "description": "Branch to read or act on (defaults to the project default branch)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateBranchDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BranchCommandResultDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Branch or target not found"
-          },
-          "409": {
-            "description": "Invalid target or default branch"
-          }
-        },
-        "summary": "Archive/unarchive a branch or change its target",
-        "tags": [
-          "Branches"
-        ]
-      },
-      "delete": {
-        "operationId": "BranchesController_remove",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch",
-            "required": true,
-            "in": "query",
-            "description": "Branch to read or act on (defaults to the project default branch)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BranchCommandResultDto"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The default branch cannot be deleted"
-          }
-        },
-        "summary": "Delete a feature branch and reclaim its files",
-        "tags": [
-          "Branches"
-        ]
-      }
-    },
-    "/projects/{projectName}/tests/{testName}/baseline-history": {
-      "get": {
-        "operationId": "BaselineHistoryController_list",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "testName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewport",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "browser",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "environment",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch",
-            "required": false,
-            "in": "query",
-            "description": "Branch to read or act on (defaults to the project default branch)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/BaselineRevisionDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "List replaced baselines for a test (newest first)",
-        "tags": [
-          "Tests"
-        ]
-      }
-    },
-    "/projects/{projectName}/tests/{testName}/baseline-restore": {
-      "post": {
-        "operationId": "BaselineHistoryController_restore",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "testName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch",
-            "required": false,
-            "in": "query",
-            "description": "Branch to read or act on (defaults to the project default branch)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RestoreBaselineDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RestoreBaselineResultDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Restore a previously replaced baseline",
-        "tags": [
-          "Tests"
-        ]
-      }
-    },
-    "/projects/{projectName}/webhooks": {
-      "get": {
-        "operationId": "WebhooksController_list",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WebhookEndpointDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "List the project webhook endpoints",
-        "tags": [
-          "Webhooks"
-        ]
-      },
-      "post": {
-        "operationId": "WebhooksController_create",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateWebhookDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreatedWebhookEndpointDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Create a webhook endpoint and reveal its signing secret once",
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{projectName}/webhooks/{id}": {
-      "patch": {
-        "operationId": "WebhooksController_update",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateWebhookDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebhookEndpointDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Update, disable or rotate the secret of a webhook endpoint",
-        "tags": [
-          "Webhooks"
-        ]
-      },
-      "delete": {
-        "operationId": "WebhooksController_remove",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Delete a webhook endpoint and its delivery log",
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{projectName}/webhooks/{id}/deliveries": {
-      "get": {
-        "operationId": "WebhooksController_deliveries",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WebhookDeliveryDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "List the recent deliveries of an endpoint",
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{projectName}/webhooks/{id}/deliveries/{deliveryId}/replay": {
-      "post": {
-        "operationId": "WebhooksController_replay",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "deliveryId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebhookReplayResultDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Requeue a delivery for the dispatcher",
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{projectName}/webhooks/{id}/test": {
-      "post": {
-        "operationId": "WebhooksController_test",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebhookTestResultDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Queue a synthetic test delivery",
-        "tags": [
-          "Webhooks"
-        ]
-      }
-    },
-    "/projects/{projectName}/runs": {
-      "get": {
-        "operationId": "RunsController_list",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch",
-            "required": false,
-            "in": "query",
-            "description": "Branch to read or act on (defaults to the project default branch)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": 1,
-              "type": "number"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": 20,
-              "type": "number"
             }
           }
         ],
@@ -3204,123 +3641,9 @@
         ]
       }
     },
-    "/projects/{projectName}/bulk/approvals": {
-      "post": {
-        "operationId": "BulkActionsController_approve",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BulkApprovalDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkApprovalResultDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Approve up to 100 comparisons, returning per-item results",
-        "tags": [
-          "Bulk actions"
-        ]
-      }
-    },
-    "/projects/{projectName}/bulk/test-deletions": {
-      "post": {
-        "operationId": "BulkActionsController_deleteTests",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BulkDeleteTestsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkDeleteResultDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Delete up to 100 tests, returning per-item results",
-        "tags": [
-          "Bulk actions"
-        ]
-      }
-    },
-    "/projects/bulk/group": {
-      "patch": {
-        "operationId": "ProjectsBulkController_move",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BulkMoveProjectsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkMoveResultDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Move up to 100 projects into a group (null clears the group)",
-        "tags": [
-          "Bulk actions"
-        ]
-      }
-    },
-    "/projects/{projectName}/tests/{testName}/metadata": {
+    "/projects/{projectName}/tests/{testName}/pdf-details": {
       "get": {
-        "operationId": "TestLifecycleController_get",
+        "operationId": "PdfController_getPdfTestDetails",
         "parameters": [
           {
             "name": "projectName",
@@ -3339,6 +3662,31 @@
             }
           },
           {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "description": "Variant filter — at least one of viewport/browser/environment is required",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "branch",
             "required": false,
             "in": "query",
@@ -3350,23 +3698,25 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "PDF test details with baseline and comparison information",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TestMetadataDto"
+                  "$ref": "#/components/schemas/PdfTestDetailsDto"
                 }
               }
             }
           }
         },
-        "summary": "Read rename/tags/mute metadata and the 30-day flake signal",
+        "summary": "Get PDF test details including baseline and comparison",
         "tags": [
           "Tests"
         ]
-      },
-      "patch": {
-        "operationId": "TestLifecycleController_update",
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/pdf-render": {
+      "get": {
+        "operationId": "PdfController_renderPdfPage",
         "parameters": [
           {
             "name": "projectName",
@@ -3385,84 +3735,115 @@
             }
           },
           {
-            "name": "branch",
-            "required": false,
-            "in": "query",
-            "description": "Branch to read or act on (defaults to the project default branch)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTestMetadataDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TestMetadataDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Rename a test, edit description/tags or mute it until a date",
-        "tags": [
-          "Tests"
-        ]
-      }
-    },
-    "/search": {
-      "get": {
-        "operationId": "SearchController_query",
-        "parameters": [
-          {
-            "name": "q",
+            "name": "page",
             "required": true,
             "in": "query",
             "schema": {
-              "minLength": 1,
-              "maxLength": 100,
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "minimum": 1,
-              "maximum": 20,
-              "default": 8,
               "type": "number"
             }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pdfUrl",
+            "required": true,
+            "in": "query",
+            "schema": {}
           }
         ],
         "responses": {
           "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchResultsDto"
-                }
-              }
-            }
+            "description": "Rendered page PNG URL and page count"
           }
         },
-        "summary": "Search projects, tests and branches (server-paginated groups)",
+        "summary": "Render a single PDF page as PNG (cached in RustFS)",
         "tags": [
-          "Search"
+          "Tests"
+        ]
+      }
+    },
+    "/projects/{projectName}/tests/{testName}/pdf-download": {
+      "get": {
+        "operationId": "PdfController_downloadPdf",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "testName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "in": "query",
+            "description": "Which PDF to download: baseline, candidate, or diff",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewport",
+            "required": false,
+            "in": "query",
+            "description": "Variant filter — at least one of viewport/browser/environment is required",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "browser",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "environment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF file streamed with Content-Disposition attachment"
+          },
+          "404": {
+            "description": "PDF not found"
+          }
+        },
+        "summary": "Download baseline, candidate, or diff PDF for a test",
+        "tags": [
+          "Tests"
         ]
       }
     },
@@ -3733,9 +4114,9 @@
         ]
       }
     },
-    "/projects/{projectName}/assignments": {
-      "post": {
-        "operationId": "AssignmentController_create",
+    "/projects/{projectName}/webhooks": {
+      "get": {
+        "operationId": "WebhooksController_list",
         "parameters": [
           {
             "name": "projectName",
@@ -3746,53 +4127,6 @@
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateAssignmentDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AssignmentDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Assign a test or run to a reviewer",
-        "tags": [
-          "Assignments"
-        ]
-      }
-    },
-    "/assignments/mine": {
-      "get": {
-        "operationId": "AssignmentController_mine",
-        "parameters": [
-          {
-            "name": "includeCompleted",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "",
@@ -3801,7 +4135,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/AssignmentDto"
+                    "$ref": "#/components/schemas/WebhookEndpointDto"
                   }
                 }
               }
@@ -3813,153 +4147,16 @@
             "sessionCookie": []
           }
         ],
-        "summary": "List my open review assignments",
+        "summary": "List the project webhook endpoints",
         "tags": [
-          "Assignments"
-        ]
-      }
-    },
-    "/assignments/mine/overdue": {
-      "get": {
-        "operationId": "AssignmentController_overdue",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AssignmentDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "List my overdue review assignments",
-        "tags": [
-          "Assignments"
-        ]
-      }
-    },
-    "/assignments/{id}/complete": {
-      "post": {
-        "operationId": "AssignmentController_complete",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AssignmentDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Mark my assignment complete",
-        "tags": [
-          "Assignments"
-        ]
-      }
-    },
-    "/projects/{projectName}/tests/{testName}/comments": {
-      "get": {
-        "operationId": "ReviewCommentController_list",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "testName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "comparisonId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "branch",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/CommentDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "List review comments for a test or comparison",
-        "tags": [
-          "Review comments"
+          "Webhooks"
         ]
       },
       "post": {
-        "operationId": "ReviewCommentController_create",
+        "operationId": "WebhooksController_create",
         "parameters": [
           {
             "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "testName",
             "required": true,
             "in": "path",
             "schema": {
@@ -3972,7 +4169,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCommentDto"
+                "$ref": "#/components/schemas/CreateWebhookDto"
               }
             }
           }
@@ -3983,7 +4180,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CommentDto"
+                  "$ref": "#/components/schemas/CreatedWebhookEndpointDto"
                 }
               }
             }
@@ -3994,15 +4191,15 @@
             "sessionCookie": []
           }
         ],
-        "summary": "Add a review comment",
+        "summary": "Create a webhook endpoint and reveal its signing secret once",
         "tags": [
-          "Review comments"
+          "Webhooks"
         ]
       }
     },
-    "/projects/{projectName}/tests/{testName}/comments/{id}/resolve": {
+    "/projects/{projectName}/webhooks/{id}": {
       "patch": {
-        "operationId": "ReviewCommentController_resolve",
+        "operationId": "WebhooksController_update",
         "parameters": [
           {
             "name": "projectName",
@@ -4013,7 +4210,51 @@
             }
           },
           {
-            "name": "testName",
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWebhookDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Update, disable or rotate the secret of a webhook endpoint",
+        "tags": [
+          "Webhooks"
+        ]
+      },
+      "delete": {
+        "operationId": "WebhooksController_remove",
+        "parameters": [
+          {
+            "name": "projectName",
             "required": true,
             "in": "path",
             "schema": {
@@ -4030,188 +4271,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommentDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Resolve a review comment",
-        "tags": [
-          "Review comments"
-        ]
-      }
-    },
-    "/auth/login": {
-      "post": {
-        "operationId": "AuthController_login",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "A session user, or a two-factor challenge when 2FA is enabled",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/MeDto"
-                    },
-                    {
-                      "$ref": "#/components/schemas/TwoFactorChallengeDto"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid username or password"
-          }
-        },
-        "security": [
-          {}
-        ],
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/2fa/verify": {
-      "post": {
-        "operationId": "AuthController_verifyTwoFactor",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyTwoFactorDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or expired 2FA code"
-          }
-        },
-        "security": [
-          {}
-        ],
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/2fa/setup": {
-      "post": {
-        "operationId": "AuthController_setupTwoFactor",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TwoFactorSetupDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/2fa/enable": {
-      "post": {
-        "operationId": "AuthController_enableTwoFactor",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EnableTotpDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecoveryCodesDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/2fa/disable": {
-      "post": {
-        "operationId": "AuthController_disableTwoFactor",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DisableTotpDto"
-              }
-            }
-          }
-        },
-        "responses": {
           "204": {
-            "description": "Two-factor authentication disabled"
+            "description": ""
           }
         },
         "security": [
@@ -4219,15 +4280,33 @@
             "sessionCookie": []
           }
         ],
+        "summary": "Delete a webhook endpoint and its delivery log",
         "tags": [
-          "Auth"
+          "Webhooks"
         ]
       }
     },
-    "/auth/sessions": {
+    "/projects/{projectName}/webhooks/{id}/deliveries": {
       "get": {
-        "operationId": "AuthController_listSessions",
-        "parameters": [],
+        "operationId": "WebhooksController_deliveries",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -4236,7 +4315,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/SessionDto"
+                    "$ref": "#/components/schemas/WebhookDeliveryDto"
                   }
                 }
               }
@@ -4248,15 +4327,76 @@
             "sessionCookie": []
           }
         ],
+        "summary": "List the recent deliveries of an endpoint",
         "tags": [
-          "Auth"
+          "Webhooks"
         ]
       }
     },
-    "/auth/sessions/{id}": {
-      "delete": {
-        "operationId": "AuthController_revokeSession",
+    "/projects/{projectName}/webhooks/{id}/deliveries/{deliveryId}/replay": {
+      "post": {
+        "operationId": "WebhooksController_replay",
         "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deliveryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookReplayResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Requeue a delivery for the dispatcher",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/projects/{projectName}/webhooks/{id}/test": {
+      "post": {
+        "operationId": "WebhooksController_test",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -4267,33 +4407,12 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Session revoked"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/sessions/revoke-all": {
-      "post": {
-        "operationId": "AuthController_revokeAllSessions",
-        "parameters": [],
-        "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "example": {
-                    "revoked": 2
-                  }
+                  "$ref": "#/components/schemas/WebhookTestResultDto"
                 }
               }
             }
@@ -4304,92 +4423,9 @@
             "sessionCookie": []
           }
         ],
+        "summary": "Queue a synthetic test delivery",
         "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/logout": {
-      "post": {
-        "operationId": "AuthController_logout",
-        "parameters": [],
-        "responses": {
-          "204": {
-            "description": "Session cleared"
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/me": {
-      "get": {
-        "operationId": "AuthController_me",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/change-password": {
-      "post": {
-        "operationId": "AuthController_changePassword",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChangePasswordDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeDto"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Current password is incorrect"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "tags": [
-          "Auth"
+          "Webhooks"
         ]
       }
     },
@@ -5535,6 +5571,169 @@
           "name"
         ]
       },
+      "BranchSummaryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "feature/checkout-v2"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "example": false
+          },
+          "isArchived": {
+            "type": "boolean",
+            "example": false
+          },
+          "targetBranchName": {
+            "type": "string",
+            "example": "main",
+            "nullable": true
+          },
+          "testCount": {
+            "type": "number",
+            "example": 12,
+            "description": "Tests materialised on this branch; inherited (not yet materialised) tests are not counted"
+          },
+          "pendingCount": {
+            "type": "number",
+            "example": 2
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "isDefault",
+          "isArchived",
+          "targetBranchName",
+          "testCount",
+          "pendingCount",
+          "createdAt"
+        ]
+      },
+      "UpdateBranchDto": {
+        "type": "object",
+        "properties": {
+          "isArchived": {
+            "type": "boolean",
+            "description": "Archive or unarchive the branch"
+          },
+          "targetBranch": {
+            "type": "string",
+            "description": "Branch to inherit baselines from; null or the default branch means the project default",
+            "nullable": true
+          }
+        }
+      },
+      "BranchCommandResultDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "SearchProjectDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "SearchTestDto": {
+        "type": "object",
+        "properties": {
+          "projectName": {
+            "type": "string"
+          },
+          "branchName": {
+            "type": "string"
+          },
+          "testName": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image",
+              "pdf"
+            ]
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "projectName",
+          "branchName",
+          "testName",
+          "kind",
+          "status"
+        ]
+      },
+      "SearchBranchDto": {
+        "type": "object",
+        "properties": {
+          "projectName": {
+            "type": "string"
+          },
+          "branchName": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "projectName",
+          "branchName",
+          "isDefault"
+        ]
+      },
+      "SearchResultsDto": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchProjectDto"
+            }
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchTestDto"
+            }
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchBranchDto"
+            }
+          }
+        },
+        "required": [
+          "query",
+          "projects",
+          "tests",
+          "branches"
+        ]
+      },
       "ApproveComparisonBodyDto": {
         "type": "object",
         "properties": {
@@ -5734,6 +5933,661 @@
           "variant",
           "candidateHash"
         ]
+      },
+      "CreateAssignmentDto": {
+        "type": "object",
+        "properties": {
+          "testName": {
+            "type": "string"
+          },
+          "runKey": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "assignee": {
+            "type": "string",
+            "example": "alice"
+          },
+          "dueAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "assignee"
+        ]
+      },
+      "AssignmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "branchName": {
+            "type": "string",
+            "nullable": true
+          },
+          "testName": {
+            "type": "string",
+            "nullable": true
+          },
+          "testKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "runKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "assigneeUsername": {
+            "type": "string"
+          },
+          "assignedBy": {
+            "type": "string"
+          },
+          "dueAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "isOverdue": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "projectName",
+          "branchName",
+          "testName",
+          "testKind",
+          "runKey",
+          "assigneeUsername",
+          "assignedBy",
+          "dueAt",
+          "completedAt",
+          "createdAt",
+          "isOverdue"
+        ]
+      },
+      "BaselineRevisionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "viewport": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "Canonical storage URL of the baseline file (identity)"
+          },
+          "signedImageUrl": {
+            "type": "string",
+            "description": "Time-limited presigned URL for rendering the baseline"
+          },
+          "imageHash": {
+            "type": "string"
+          },
+          "pageCount": {
+            "type": "object",
+            "nullable": true
+          },
+          "pixelDiffThreshold": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "approval",
+              "restore",
+              "import"
+            ]
+          },
+          "createdBy": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "viewport",
+          "browser",
+          "environment",
+          "imageUrl",
+          "signedImageUrl",
+          "imageHash",
+          "pixelDiffThreshold",
+          "reason",
+          "createdAt"
+        ]
+      },
+      "RestoreBaselineDto": {
+        "type": "object",
+        "properties": {
+          "revisionId": {
+            "type": "string",
+            "description": "The baseline revision to restore"
+          }
+        },
+        "required": [
+          "revisionId"
+        ]
+      },
+      "RestoreBaselineResultDto": {
+        "type": "object",
+        "properties": {
+          "baselineUrl": {
+            "type": "string"
+          },
+          "signedBaselineUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "baselineUrl",
+          "signedBaselineUrl"
+        ]
+      },
+      "BulkApprovalDto": {
+        "type": "object",
+        "properties": {
+          "comparisonIds": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "comparisonIds"
+        ]
+      },
+      "BulkItemResultDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "success"
+        ]
+      },
+      "BulkPendingVoteDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "votes": {
+            "type": "number"
+          },
+          "required": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "votes",
+          "required"
+        ]
+      },
+      "BulkApprovalResultDto": {
+        "type": "object",
+        "properties": {
+          "approved": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          },
+          "pending": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkPendingVoteDto"
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          }
+        },
+        "required": [
+          "approved",
+          "pending",
+          "failed"
+        ]
+      },
+      "BulkDeleteTestsDto": {
+        "type": "object",
+        "properties": {
+          "testNames": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "branch": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "testNames"
+        ]
+      },
+      "BulkDeleteResultDto": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          }
+        },
+        "required": [
+          "deleted",
+          "failed"
+        ]
+      },
+      "BulkMoveProjectsDto": {
+        "type": "object",
+        "properties": {
+          "projectNames": {
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "groupId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "projectNames"
+        ]
+      },
+      "BulkMoveResultDto": {
+        "type": "object",
+        "properties": {
+          "moved": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkItemResultDto"
+            }
+          }
+        },
+        "required": [
+          "moved",
+          "failed"
+        ]
+      },
+      "CommentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "branchName": {
+            "type": "string",
+            "nullable": true
+          },
+          "testId": {
+            "type": "string"
+          },
+          "comparisonId": {
+            "type": "string",
+            "nullable": true
+          },
+          "body": {
+            "type": "string"
+          },
+          "authorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "author": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "resolvedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolvedBy": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "projectName",
+          "branchName",
+          "testId",
+          "comparisonId",
+          "body",
+          "authorId",
+          "author",
+          "createdAt",
+          "resolvedAt",
+          "resolvedBy"
+        ]
+      },
+      "CreateCommentDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "comparisonId": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ]
+      },
+      "PendingReviewDto": {
+        "type": "object",
+        "properties": {
+          "comparisonId": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string",
+            "nullable": true
+          },
+          "groupName": {
+            "type": "string",
+            "nullable": true
+          },
+          "testName": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "example": "image"
+          },
+          "branchName": {
+            "type": "string",
+            "example": "main"
+          },
+          "runKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDefaultBranch": {
+            "type": "boolean",
+            "example": true
+          },
+          "variant": {
+            "$ref": "#/components/schemas/VariantDto"
+          },
+          "mismatchPixelCount": {
+            "type": "number"
+          },
+          "mismatchPageCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "projectPendingCount": {
+            "type": "number",
+            "description": "Pending comparisons in this project on this branch, across every test (the set the review pass walks, independent of inbox filters)"
+          },
+          "projectBranchCount": {
+            "type": "number",
+            "description": "Number of branches in this project that currently have pending comparisons"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "comparisonId",
+          "projectName",
+          "testName",
+          "kind",
+          "branchName",
+          "isDefaultBranch",
+          "variant",
+          "mismatchPixelCount",
+          "projectPendingCount",
+          "projectBranchCount",
+          "createdAt"
+        ]
+      },
+      "PaginatedPendingReviewDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingReviewDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "UpdateThresholdDto": {
+        "type": "object",
+        "properties": {
+          "threshold": {
+            "type": "number",
+            "description": "Allowed pixel difference threshold",
+            "example": 25
+          }
+        },
+        "required": [
+          "threshold"
+        ]
+      },
+      "UpdateThresholdResultDto": {
+        "type": "object",
+        "properties": {
+          "test": {
+            "type": "string",
+            "example": "product_mobile",
+            "description": "Name of the test that was updated"
+          },
+          "status": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "number"
+          },
+          "autoAcceptedCount": {
+            "type": "number",
+            "example": 2,
+            "description": "Number of pending comparisons the update auto-accepted (or would auto-accept, for a preview)"
+          }
+        },
+        "required": [
+          "test"
+        ]
+      },
+      "TestFlakeDto": {
+        "type": "object",
+        "properties": {
+          "transitions": {
+            "type": "number"
+          },
+          "changed": {
+            "type": "number"
+          },
+          "clean": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "transitions",
+          "changed",
+          "clean"
+        ]
+      },
+      "TestMetadataDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mutedUntil": {
+            "type": "string",
+            "nullable": true
+          },
+          "muteReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "isMuted": {
+            "type": "boolean"
+          },
+          "sizePolicy": {
+            "type": "string",
+            "enum": [
+              "FAIL",
+              "PAD",
+              "CROP",
+              "RESIZE"
+            ]
+          },
+          "flake": {
+            "$ref": "#/components/schemas/TestFlakeDto"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "tags",
+          "mutedUntil",
+          "muteReason",
+          "isMuted",
+          "sizePolicy",
+          "flake"
+        ]
+      },
+      "UpdateTestMetadataDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "tags": {
+            "maxItems": 20,
+            "description": "Normalized to lowercase; empty clears the tags",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mutedUntil": {
+            "type": "string",
+            "nullable": true,
+            "description": "ISO timestamp until which the test is muted; null clears the mute. A past timestamp also clears it."
+          },
+          "muteReason": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          },
+          "sizePolicy": {
+            "type": "string",
+            "enum": [
+              "FAIL",
+              "PAD",
+              "CROP",
+              "RESIZE"
+            ]
+          }
+        }
       },
       "ProjectTestDto": {
         "type": "object",
@@ -6049,733 +6903,177 @@
           }
         }
       },
-      "PdfVariantDetailsDto": {
+      "LoginDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "pdfUrl": {
-            "type": "string"
-          },
-          "imageHash": {
-            "type": "string"
-          },
-          "pageCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "viewport": {
-            "type": "string"
-          },
-          "browser": {
-            "type": "string"
-          },
-          "environment": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "pdfUrl",
-          "imageHash",
-          "pageCount",
-          "viewport",
-          "browser",
-          "environment"
-        ]
-      },
-      "PdfCandidateDetailsDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "pdfUrl": {
-            "type": "string"
-          },
-          "imageHash": {
-            "type": "string"
-          },
-          "viewport": {
-            "type": "string"
-          },
-          "browser": {
-            "type": "string"
-          },
-          "environment": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "pdfUrl",
-          "imageHash",
-          "viewport",
-          "browser",
-          "environment"
-        ]
-      },
-      "PdfComparisonDetailsDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "baselineId": {
-            "type": "string"
-          },
-          "diffPdfUrl": {
+          "username": {
             "type": "string",
-            "nullable": true
+            "example": "alice"
           },
-          "pageCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "mismatchPageCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ComparisonStatus"
-              }
-            ]
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "candidate": {
-            "nullable": true,
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PdfCandidateDetailsDto"
-              }
-            ]
+          "password": {
+            "type": "string",
+            "example": "secret"
           }
         },
         "required": [
-          "id",
-          "baselineId",
-          "diffPdfUrl",
-          "pageCount",
-          "mismatchPageCount",
-          "status",
-          "createdAt",
-          "candidate"
+          "username",
+          "password"
         ]
       },
-      "PdfTestDetailsDto": {
+      "VerifyTwoFactorDto": {
         "type": "object",
         "properties": {
-          "id": {
+          "challengeToken": {
             "type": "string"
           },
-          "name": {
-            "type": "string"
+          "code": {
+            "type": "string",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "challengeToken",
+          "code"
+        ]
+      },
+      "MeDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "alice"
           },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/TestStatus"
-              }
-            ]
-          },
-          "kind": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "origin": {
+          "role": {
             "type": "string",
             "enum": [
-              "branch",
-              "inherited"
-            ]
-          },
-          "inheritedFrom": {
-            "type": "string",
-            "nullable": true
-          },
-          "baselineInherited": {
-            "type": "boolean",
-            "description": "True while this baseline is an inherited clone that still follows the target branch"
-          },
-          "inheritTarget": {
-            "type": "string",
-            "nullable": true
-          },
-          "baseline": {
-            "nullable": true,
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PdfVariantDetailsDto"
-              }
-            ]
-          },
-          "comparison": {
-            "nullable": true,
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/PdfComparisonDetailsDto"
-              }
-            ]
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "status",
-          "kind",
-          "createdAt",
-          "origin",
-          "inheritedFrom",
-          "baselineInherited",
-          "inheritTarget",
-          "baseline",
-          "comparison"
-        ]
-      },
-      "UpdateThresholdDto": {
-        "type": "object",
-        "properties": {
-          "threshold": {
-            "type": "number",
-            "description": "Allowed pixel difference threshold",
-            "example": 25
-          }
-        },
-        "required": [
-          "threshold"
-        ]
-      },
-      "UpdateThresholdResultDto": {
-        "type": "object",
-        "properties": {
-          "test": {
-            "type": "string",
-            "example": "product_mobile",
-            "description": "Name of the test that was updated"
-          },
-          "status": {
-            "type": "string"
-          },
-          "threshold": {
-            "type": "number"
-          },
-          "autoAcceptedCount": {
-            "type": "number",
-            "example": 2,
-            "description": "Number of pending comparisons the update auto-accepted (or would auto-accept, for a preview)"
-          }
-        },
-        "required": [
-          "test"
-        ]
-      },
-      "PendingReviewDto": {
-        "type": "object",
-        "properties": {
-          "comparisonId": {
-            "type": "string"
-          },
-          "projectName": {
-            "type": "string"
-          },
-          "groupId": {
-            "type": "string",
-            "nullable": true
-          },
-          "groupName": {
-            "type": "string",
-            "nullable": true
-          },
-          "testName": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string",
-            "example": "image"
-          },
-          "branchName": {
-            "type": "string",
-            "example": "main"
-          },
-          "runKey": {
-            "type": "string",
-            "nullable": true
-          },
-          "isDefaultBranch": {
-            "type": "boolean",
-            "example": true
-          },
-          "variant": {
-            "$ref": "#/components/schemas/VariantDto"
-          },
-          "mismatchPixelCount": {
-            "type": "number"
-          },
-          "mismatchPageCount": {
-            "type": "number",
-            "nullable": true
-          },
-          "projectPendingCount": {
-            "type": "number",
-            "description": "Pending comparisons in this project on this branch, across every test (the set the review pass walks, independent of inbox filters)"
-          },
-          "projectBranchCount": {
-            "type": "number",
-            "description": "Number of branches in this project that currently have pending comparisons"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "comparisonId",
-          "projectName",
-          "testName",
-          "kind",
-          "branchName",
-          "isDefaultBranch",
-          "variant",
-          "mismatchPixelCount",
-          "projectPendingCount",
-          "projectBranchCount",
-          "createdAt"
-        ]
-      },
-      "PaginatedPendingReviewDto": {
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PendingReviewDto"
-            }
-          },
-          "meta": {
-            "$ref": "#/components/schemas/PaginationMetaDto"
-          }
-        },
-        "required": [
-          "data",
-          "meta"
-        ]
-      },
-      "BranchSummaryDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "feature/checkout-v2"
-          },
-          "isDefault": {
-            "type": "boolean",
-            "example": false
-          },
-          "isArchived": {
-            "type": "boolean",
-            "example": false
-          },
-          "targetBranchName": {
-            "type": "string",
-            "example": "main",
-            "nullable": true
-          },
-          "testCount": {
-            "type": "number",
-            "example": 12,
-            "description": "Tests materialised on this branch; inherited (not yet materialised) tests are not counted"
-          },
-          "pendingCount": {
-            "type": "number",
-            "example": 2
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "isDefault",
-          "isArchived",
-          "targetBranchName",
-          "testCount",
-          "pendingCount",
-          "createdAt"
-        ]
-      },
-      "UpdateBranchDto": {
-        "type": "object",
-        "properties": {
-          "isArchived": {
-            "type": "boolean",
-            "description": "Archive or unarchive the branch"
-          },
-          "targetBranch": {
-            "type": "string",
-            "description": "Branch to inherit baselines from; null or the default branch means the project default",
-            "nullable": true
-          }
-        }
-      },
-      "BranchCommandResultDto": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "example": true
-          }
-        },
-        "required": [
-          "success"
-        ]
-      },
-      "BaselineRevisionDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "viewport": {
-            "type": "string"
-          },
-          "browser": {
-            "type": "string"
-          },
-          "environment": {
-            "type": "string"
-          },
-          "imageUrl": {
-            "type": "string",
-            "description": "Canonical storage URL of the baseline file (identity)"
-          },
-          "signedImageUrl": {
-            "type": "string",
-            "description": "Time-limited presigned URL for rendering the baseline"
-          },
-          "imageHash": {
-            "type": "string"
-          },
-          "pageCount": {
-            "type": "object",
-            "nullable": true
-          },
-          "pixelDiffThreshold": {
-            "type": "number"
-          },
-          "reason": {
-            "type": "string",
-            "enum": [
-              "approval",
-              "restore",
-              "import"
-            ]
-          },
-          "createdBy": {
-            "type": "object",
-            "nullable": true
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "viewport",
-          "browser",
-          "environment",
-          "imageUrl",
-          "signedImageUrl",
-          "imageHash",
-          "pixelDiffThreshold",
-          "reason",
-          "createdAt"
-        ]
-      },
-      "RestoreBaselineDto": {
-        "type": "object",
-        "properties": {
-          "revisionId": {
-            "type": "string",
-            "description": "The baseline revision to restore"
-          }
-        },
-        "required": [
-          "revisionId"
-        ]
-      },
-      "RestoreBaselineResultDto": {
-        "type": "object",
-        "properties": {
-          "baselineUrl": {
-            "type": "string"
-          },
-          "signedBaselineUrl": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "baselineUrl",
-          "signedBaselineUrl"
-        ]
-      },
-      "WebhookEndpointDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "url": {
-            "type": "string"
-          },
-          "events": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "format": {
-            "type": "string",
-            "enum": [
-              "json",
-              "slack"
-            ]
-          },
-          "active": {
-            "type": "boolean"
-          },
-          "secretPreview": {
-            "type": "string",
-            "description": "Last four characters of the secret; the full secret is only returned on create/rotate."
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "url",
-          "events",
-          "format",
-          "active",
-          "secretPreview",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "CreateWebhookDto": {
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string",
-            "example": "https://hooks.slack.com/services/..."
-          },
-          "events": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "review.requested",
-                "comparison.approved",
-                "review.assigned",
-                "review.comment"
-              ]
-            }
-          },
-          "format": {
-            "type": "string",
-            "enum": [
-              "json",
-              "slack"
+              "ADMIN",
+              "MEMBER",
+              "VIEWER"
             ],
-            "default": "json"
+            "example": "MEMBER"
           },
-          "secret": {
-            "type": "string",
-            "description": "Custom signing secret (min 16 chars). Generated and returned once when omitted."
+          "mustChangePassword": {
+            "type": "boolean",
+            "example": false
+          },
+          "totpEnabled": {
+            "type": "boolean",
+            "example": false
           }
         },
         "required": [
-          "url",
-          "events"
+          "username",
+          "role",
+          "mustChangePassword",
+          "totpEnabled"
         ]
       },
-      "CreatedWebhookEndpointDto": {
+      "TwoFactorSetupDto": {
         "type": "object",
         "properties": {
-          "id": {
+          "secret": {
             "type": "string"
           },
-          "url": {
+          "otpauthUrl": {
             "type": "string"
-          },
-          "events": {
+          }
+        },
+        "required": [
+          "secret",
+          "otpauthUrl"
+        ]
+      },
+      "EnableTotpDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "RecoveryCodesDto": {
+        "type": "object",
+        "properties": {
+          "recoveryCodes": {
             "type": "array",
             "items": {
               "type": "string"
             }
-          },
-          "format": {
-            "type": "string",
-            "enum": [
-              "json",
-              "slack"
-            ]
-          },
-          "active": {
-            "type": "boolean"
-          },
-          "secretPreview": {
-            "type": "string",
-            "description": "Last four characters of the secret; the full secret is only returned on create/rotate."
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "secret": {
-            "type": "string",
-            "description": "Full signing secret — shown exactly once."
           }
         },
         "required": [
-          "id",
-          "url",
-          "events",
-          "format",
-          "active",
-          "secretPreview",
-          "createdAt",
-          "updatedAt",
-          "secret"
+          "recoveryCodes"
         ]
       },
-      "UpdateWebhookDto": {
+      "DisableTotpDto": {
         "type": "object",
         "properties": {
-          "url": {
+          "password": {
             "type": "string"
-          },
-          "events": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "review.requested",
-                "comparison.approved",
-                "review.assigned",
-                "review.comment"
-              ]
-            }
-          },
-          "format": {
-            "type": "string",
-            "enum": [
-              "json",
-              "slack"
-            ]
-          },
-          "active": {
-            "type": "boolean"
-          },
-          "secret": {
-            "type": "string",
-            "description": "Rotate the signing secret (min 16 chars)."
           }
-        }
+        },
+        "required": [
+          "password"
+        ]
       },
-      "WebhookDeliveryDto": {
+      "SessionDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
-          "event": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "PENDING",
-              "PROCESSING",
-              "DELIVERED",
-              "FAILED"
-            ]
-          },
-          "attempts": {
-            "type": "number"
-          },
-          "responseStatus": {
-            "type": "object",
-            "nullable": true
-          },
-          "lastError": {
-            "type": "object",
-            "nullable": true
-          },
-          "nextAttemptAt": {
-            "type": "object",
-            "nullable": true
-          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
           },
-          "deliveredAt": {
+          "lastSeenAt": {
             "type": "object",
             "nullable": true
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "ip": {
+            "type": "object",
+            "nullable": true
+          },
+          "userAgent": {
+            "type": "object",
+            "nullable": true
+          },
+          "isCurrent": {
+            "type": "boolean"
           }
         },
         "required": [
           "id",
-          "event",
-          "status",
-          "attempts",
-          "createdAt"
+          "createdAt",
+          "lastSeenAt",
+          "expiresAt",
+          "ip",
+          "userAgent",
+          "isCurrent"
         ]
       },
-      "WebhookReplayResultDto": {
+      "ChangePasswordDto": {
         "type": "object",
         "properties": {
-          "queued": {
-            "type": "boolean"
+          "currentPassword": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8
           }
         },
         "required": [
-          "queued"
-        ]
-      },
-      "WebhookTestResultDto": {
-        "type": "object",
-        "properties": {
-          "queued": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "queued"
+          "currentPassword",
+          "newPassword"
         ]
       },
       "RunDto": {
@@ -7209,185 +7507,127 @@
           "flakeRate"
         ]
       },
-      "BulkApprovalDto": {
-        "type": "object",
-        "properties": {
-          "comparisonIds": {
-            "maxItems": 100,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "comparisonIds"
-        ]
-      },
-      "BulkItemResultDto": {
+      "PdfVariantDetailsDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
-          "success": {
-            "type": "boolean"
+          "pdfUrl": {
+            "type": "string"
           },
-          "error": {
+          "imageHash": {
+            "type": "string"
+          },
+          "pageCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "viewport": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "environment": {
             "type": "string"
           }
         },
         "required": [
           "id",
-          "success"
+          "pdfUrl",
+          "imageHash",
+          "pageCount",
+          "viewport",
+          "browser",
+          "environment"
         ]
       },
-      "BulkPendingVoteDto": {
+      "PdfCandidateDetailsDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
-          "votes": {
-            "type": "number"
+          "pdfUrl": {
+            "type": "string"
           },
-          "required": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "id",
-          "votes",
-          "required"
-        ]
-      },
-      "BulkApprovalResultDto": {
-        "type": "object",
-        "properties": {
-          "approved": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BulkItemResultDto"
-            }
+          "imageHash": {
+            "type": "string"
           },
-          "pending": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BulkPendingVoteDto"
-            }
+          "viewport": {
+            "type": "string"
           },
-          "failed": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BulkItemResultDto"
-            }
-          }
-        },
-        "required": [
-          "approved",
-          "pending",
-          "failed"
-        ]
-      },
-      "BulkDeleteTestsDto": {
-        "type": "object",
-        "properties": {
-          "testNames": {
-            "maxItems": 100,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "browser": {
+            "type": "string"
           },
-          "branch": {
+          "environment": {
             "type": "string"
           }
         },
         "required": [
-          "testNames"
+          "id",
+          "pdfUrl",
+          "imageHash",
+          "viewport",
+          "browser",
+          "environment"
         ]
       },
-      "BulkDeleteResultDto": {
+      "PdfComparisonDetailsDto": {
         "type": "object",
         "properties": {
-          "deleted": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BulkItemResultDto"
-            }
+          "id": {
+            "type": "string"
           },
-          "failed": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BulkItemResultDto"
-            }
-          }
-        },
-        "required": [
-          "deleted",
-          "failed"
-        ]
-      },
-      "BulkMoveProjectsDto": {
-        "type": "object",
-        "properties": {
-          "projectNames": {
-            "maxItems": 100,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "baselineId": {
+            "type": "string"
           },
-          "groupId": {
+          "diffPdfUrl": {
             "type": "string",
             "nullable": true
+          },
+          "pageCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "mismatchPageCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonStatus"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "candidate": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PdfCandidateDetailsDto"
+              }
+            ]
           }
         },
         "required": [
-          "projectNames"
+          "id",
+          "baselineId",
+          "diffPdfUrl",
+          "pageCount",
+          "mismatchPageCount",
+          "status",
+          "createdAt",
+          "candidate"
         ]
       },
-      "BulkMoveResultDto": {
-        "type": "object",
-        "properties": {
-          "moved": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BulkItemResultDto"
-            }
-          },
-          "failed": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BulkItemResultDto"
-            }
-          }
-        },
-        "required": [
-          "moved",
-          "failed"
-        ]
-      },
-      "TestFlakeDto": {
-        "type": "object",
-        "properties": {
-          "transitions": {
-            "type": "number"
-          },
-          "changed": {
-            "type": "number"
-          },
-          "clean": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "transitions",
-          "changed",
-          "clean"
-        ]
-      },
-      "TestMetadataDto": {
+      "PdfTestDetailsDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -7396,185 +7636,70 @@
           "name": {
             "type": "string"
           },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "mutedUntil": {
-            "type": "string",
-            "nullable": true
-          },
-          "muteReason": {
-            "type": "string",
-            "nullable": true
-          },
-          "isMuted": {
-            "type": "boolean"
-          },
-          "sizePolicy": {
-            "type": "string",
-            "enum": [
-              "FAIL",
-              "PAD",
-              "CROP",
-              "RESIZE"
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TestStatus"
+              }
             ]
           },
-          "flake": {
-            "$ref": "#/components/schemas/TestFlakeDto"
+          "kind": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "branch",
+              "inherited"
+            ]
+          },
+          "inheritedFrom": {
+            "type": "string",
+            "nullable": true
+          },
+          "baselineInherited": {
+            "type": "boolean",
+            "description": "True while this baseline is an inherited clone that still follows the target branch"
+          },
+          "inheritTarget": {
+            "type": "string",
+            "nullable": true
+          },
+          "baseline": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PdfVariantDetailsDto"
+              }
+            ]
+          },
+          "comparison": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PdfComparisonDetailsDto"
+              }
+            ]
           }
         },
         "required": [
           "id",
           "name",
-          "description",
-          "tags",
-          "mutedUntil",
-          "muteReason",
-          "isMuted",
-          "sizePolicy",
-          "flake"
-        ]
-      },
-      "UpdateTestMetadataDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100
-          },
-          "description": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 2000
-          },
-          "tags": {
-            "maxItems": 20,
-            "description": "Normalized to lowercase; empty clears the tags",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "mutedUntil": {
-            "type": "string",
-            "nullable": true,
-            "description": "ISO timestamp until which the test is muted; null clears the mute. A past timestamp also clears it."
-          },
-          "muteReason": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 500
-          },
-          "sizePolicy": {
-            "type": "string",
-            "enum": [
-              "FAIL",
-              "PAD",
-              "CROP",
-              "RESIZE"
-            ]
-          }
-        }
-      },
-      "SearchProjectDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
-      "SearchTestDto": {
-        "type": "object",
-        "properties": {
-          "projectName": {
-            "type": "string"
-          },
-          "branchName": {
-            "type": "string"
-          },
-          "testName": {
-            "type": "string"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "image",
-              "pdf"
-            ]
-          },
-          "status": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "projectName",
-          "branchName",
-          "testName",
+          "status",
           "kind",
-          "status"
-        ]
-      },
-      "SearchBranchDto": {
-        "type": "object",
-        "properties": {
-          "projectName": {
-            "type": "string"
-          },
-          "branchName": {
-            "type": "string"
-          },
-          "isDefault": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "projectName",
-          "branchName",
-          "isDefault"
-        ]
-      },
-      "SearchResultsDto": {
-        "type": "object",
-        "properties": {
-          "query": {
-            "type": "string"
-          },
-          "projects": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SearchProjectDto"
-            }
-          },
-          "tests": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SearchTestDto"
-            }
-          },
-          "branches": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SearchBranchDto"
-            }
-          }
-        },
-        "required": [
-          "query",
-          "projects",
-          "tests",
-          "branches"
+          "createdAt",
+          "origin",
+          "inheritedFrom",
+          "baselineInherited",
+          "inheritTarget",
+          "baseline",
+          "comparison"
         ]
       },
       "StorageUsageDto": {
@@ -7926,339 +8051,250 @@
           "project"
         ]
       },
-      "CreateAssignmentDto": {
-        "type": "object",
-        "properties": {
-          "testName": {
-            "type": "string"
-          },
-          "runKey": {
-            "type": "string"
-          },
-          "branch": {
-            "type": "string"
-          },
-          "assignee": {
-            "type": "string",
-            "example": "alice"
-          },
-          "dueAt": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "assignee"
-        ]
-      },
-      "AssignmentDto": {
+      "WebhookEndpointDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
-          "projectName": {
+          "url": {
             "type": "string"
           },
-          "branchName": {
-            "type": "string",
-            "nullable": true
-          },
-          "testName": {
-            "type": "string",
-            "nullable": true
-          },
-          "testKind": {
-            "type": "string",
-            "nullable": true
-          },
-          "runKey": {
-            "type": "string",
-            "nullable": true
-          },
-          "assigneeUsername": {
-            "type": "string"
-          },
-          "assignedBy": {
-            "type": "string"
-          },
-          "dueAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "completedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "isOverdue": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "id",
-          "projectName",
-          "branchName",
-          "testName",
-          "testKind",
-          "runKey",
-          "assigneeUsername",
-          "assignedBy",
-          "dueAt",
-          "completedAt",
-          "createdAt",
-          "isOverdue"
-        ]
-      },
-      "CommentDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "projectName": {
-            "type": "string"
-          },
-          "branchName": {
-            "type": "string",
-            "nullable": true
-          },
-          "testId": {
-            "type": "string"
-          },
-          "comparisonId": {
-            "type": "string",
-            "nullable": true
-          },
-          "body": {
-            "type": "string"
-          },
-          "authorId": {
-            "type": "string",
-            "nullable": true
-          },
-          "author": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "resolvedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "resolvedBy": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "id",
-          "projectName",
-          "branchName",
-          "testId",
-          "comparisonId",
-          "body",
-          "authorId",
-          "author",
-          "createdAt",
-          "resolvedAt",
-          "resolvedBy"
-        ]
-      },
-      "CreateCommentDto": {
-        "type": "object",
-        "properties": {
-          "body": {
-            "type": "string",
-            "maxLength": 4000
-          },
-          "comparisonId": {
-            "type": "string"
-          },
-          "branch": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "body"
-        ]
-      },
-      "LoginDto": {
-        "type": "object",
-        "properties": {
-          "username": {
-            "type": "string",
-            "example": "alice"
-          },
-          "password": {
-            "type": "string",
-            "example": "secret"
-          }
-        },
-        "required": [
-          "username",
-          "password"
-        ]
-      },
-      "VerifyTwoFactorDto": {
-        "type": "object",
-        "properties": {
-          "challengeToken": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string",
-            "example": "123456"
-          }
-        },
-        "required": [
-          "challengeToken",
-          "code"
-        ]
-      },
-      "MeDto": {
-        "type": "object",
-        "properties": {
-          "username": {
-            "type": "string",
-            "example": "alice"
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "ADMIN",
-              "MEMBER",
-              "VIEWER"
-            ],
-            "example": "MEMBER"
-          },
-          "mustChangePassword": {
-            "type": "boolean",
-            "example": false
-          },
-          "totpEnabled": {
-            "type": "boolean",
-            "example": false
-          }
-        },
-        "required": [
-          "username",
-          "role",
-          "mustChangePassword",
-          "totpEnabled"
-        ]
-      },
-      "TwoFactorSetupDto": {
-        "type": "object",
-        "properties": {
-          "secret": {
-            "type": "string"
-          },
-          "otpauthUrl": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "secret",
-          "otpauthUrl"
-        ]
-      },
-      "EnableTotpDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "example": "123456"
-          }
-        },
-        "required": [
-          "code"
-        ]
-      },
-      "RecoveryCodesDto": {
-        "type": "object",
-        "properties": {
-          "recoveryCodes": {
+          "events": {
             "type": "array",
             "items": {
               "type": "string"
             }
-          }
-        },
-        "required": [
-          "recoveryCodes"
-        ]
-      },
-      "DisableTotpDto": {
-        "type": "object",
-        "properties": {
-          "password": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "password"
-        ]
-      },
-      "SessionDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "slack"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "secretPreview": {
+            "type": "string",
+            "description": "Last four characters of the secret; the full secret is only returned on create/rotate."
           },
           "createdAt": {
             "format": "date-time",
             "type": "string"
           },
-          "lastSeenAt": {
-            "type": "object",
-            "nullable": true
-          },
-          "expiresAt": {
+          "updatedAt": {
             "format": "date-time",
             "type": "string"
-          },
-          "ip": {
-            "type": "object",
-            "nullable": true
-          },
-          "userAgent": {
-            "type": "object",
-            "nullable": true
-          },
-          "isCurrent": {
-            "type": "boolean"
           }
         },
         "required": [
           "id",
+          "url",
+          "events",
+          "format",
+          "active",
+          "secretPreview",
           "createdAt",
-          "lastSeenAt",
-          "expiresAt",
-          "ip",
-          "userAgent",
-          "isCurrent"
+          "updatedAt"
         ]
       },
-      "ChangePasswordDto": {
+      "CreateWebhookDto": {
         "type": "object",
         "properties": {
-          "currentPassword": {
-            "type": "string"
-          },
-          "newPassword": {
+          "url": {
             "type": "string",
-            "minLength": 8
+            "example": "https://hooks.slack.com/services/..."
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "review.requested",
+                "comparison.approved",
+                "review.assigned",
+                "review.comment"
+              ]
+            }
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "slack"
+            ],
+            "default": "json"
+          },
+          "secret": {
+            "type": "string",
+            "description": "Custom signing secret (min 16 chars). Generated and returned once when omitted."
           }
         },
         "required": [
-          "currentPassword",
-          "newPassword"
+          "url",
+          "events"
+        ]
+      },
+      "CreatedWebhookEndpointDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "slack"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "secretPreview": {
+            "type": "string",
+            "description": "Last four characters of the secret; the full secret is only returned on create/rotate."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "secret": {
+            "type": "string",
+            "description": "Full signing secret — shown exactly once."
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "events",
+          "format",
+          "active",
+          "secretPreview",
+          "createdAt",
+          "updatedAt",
+          "secret"
+        ]
+      },
+      "UpdateWebhookDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "review.requested",
+                "comparison.approved",
+                "review.assigned",
+                "review.comment"
+              ]
+            }
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "slack"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "secret": {
+            "type": "string",
+            "description": "Rotate the signing secret (min 16 chars)."
+          }
+        }
+      },
+      "WebhookDeliveryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PROCESSING",
+              "DELIVERED",
+              "FAILED"
+            ]
+          },
+          "attempts": {
+            "type": "number"
+          },
+          "responseStatus": {
+            "type": "object",
+            "nullable": true
+          },
+          "lastError": {
+            "type": "object",
+            "nullable": true
+          },
+          "nextAttemptAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deliveredAt": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "event",
+          "status",
+          "attempts",
+          "createdAt"
+        ]
+      },
+      "WebhookReplayResultDto": {
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "queued"
+        ]
+      },
+      "WebhookTestResultDto": {
+        "type": "object",
+        "properties": {
+          "queued": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "queued"
         ]
       },
       "DetailedHealthDto": {

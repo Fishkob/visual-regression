@@ -247,6 +247,10 @@ export class ShareLinkService {
       project: { name: row.projectName },
     } as const;
     if (row.scope === 'PROJECT') {
+      // A deleted project must not read as "a project with no tests": resolving
+      // the branch first makes a vanished target a 404, the same answer TEST and
+      // RUN links give (ADR-038).
+      await this.branches.resolveRead(row.projectName, undefined);
       const tests = await this.tests.listForProject(row.projectName);
       return {
         ...base,

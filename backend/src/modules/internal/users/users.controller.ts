@@ -18,7 +18,6 @@ import { plainToInstance } from 'class-transformer';
 import { Roles } from '@common/http/roles.decorator';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
-import { Scope } from '@common/http/api-key-scope.decorator';
 import {
   requireActor,
   requireUserActor,
@@ -39,7 +38,6 @@ import {
 export class UsersController {
   constructor(private readonly users: UsersService) {}
 
-  @Scope('read')
   @Get()
   @ApiOperation({ summary: 'List users (admin only)' })
   @ApiOkResponse({ type: [UserDto] })
@@ -48,7 +46,6 @@ export class UsersController {
     return plainToInstance(UserDto, rows, { excludeExtraneousValues: true });
   }
 
-  @Scope('admin')
   @Post()
   @ApiOperation({ summary: 'Create a user with a one-time temporary password' })
   @ApiCreatedResponse({ type: CreatedUserDto })
@@ -68,7 +65,6 @@ export class UsersController {
     );
   }
 
-  @Scope('admin')
   @Patch(':id')
   @ApiOperation({ summary: 'Change a role or deactivate a user' })
   @ApiOkResponse({ type: UserDto })
@@ -83,7 +79,6 @@ export class UsersController {
     });
   }
 
-  @Scope('admin')
   @Post(':id/reset-password')
   @HttpCode(200)
   @ApiOperation({

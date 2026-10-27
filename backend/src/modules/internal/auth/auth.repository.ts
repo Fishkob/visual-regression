@@ -143,6 +143,20 @@ export class AuthRepository extends BaseRepository {
     return result.count;
   }
 
+  // A deactivated user must not keep acting through keys they own. Revoking
+  // keeps the row (and its rotation history) so the audit trail still resolves,
+  // while the key itself stops authenticating.
+  async revokeApiKeysForOwner(
+    ownerId: string,
+    reason: string,
+  ): Promise<number> {
+    const result = await this.client.apiKey.updateMany({
+      where: { ownerId, revokedAt: null },
+      data: { revokedAt: new Date(), revokedReason: reason },
+    });
+    return result.count;
+  }
+
   async countActiveAdmins(): Promise<number> {
     return this.client.user.count({
       where: { role: 'ADMIN', isActive: true },

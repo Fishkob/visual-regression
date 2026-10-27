@@ -73,6 +73,10 @@ jobs:
         run: pnpm exec prettier --check "src/**/*.{ts,vue,js,json,css,md}"
         working-directory: frontend
 
+      - name: Check i18n key parity
+        run: pnpm run i18n:check
+        working-directory: frontend
+
   build:
     name: Build
     runs-on: ubuntu-latest

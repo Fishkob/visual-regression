@@ -116,6 +116,19 @@ async function bootstrapApi(): Promise<INestApplication> {
   app.setGlobalPrefix('api/v1');
   const appConfig = app.get(AppConfigService);
 
+  // The session cookie is marked Secure when AUTH_COOKIE_SECURE is set, or when
+  // the request itself arrived over TLS. A production deployment that terminates
+  // TLS in front of the app therefore has to set the flag; we warn instead of
+  // forcing it, because a plain-HTTP self-hosted install is a supported
+  // topology and forcing it would break login there.
+  if (appConfig.app.env === 'production' && !appConfig.auth.cookieSecure) {
+    app
+      .get(AppLoggerService)
+      .warn(
+        'AUTH_COOKIE_SECURE is not set in production: session cookies will not carry the Secure flag unless the request arrives over TLS',
+      );
+  }
+
   // Trust exactly one X-Forwarded-For hop (nginx/ingress) so the IP-keyed
   // login/log rate limits and request logging see the real client IP instead
   // of the proxy IP. A hop count rather than a boolean: `true` would trust

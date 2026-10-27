@@ -7,11 +7,25 @@ export type RunsControllerListData = {
     };
     query?: {
         /**
+         * Page number (1-based)
+         */
+        page?: number;
+        /**
+         * Items per page
+         */
+        limit?: number;
+        /**
+         * Record offset (0-based), alternative to page
+         */
+        skip?: number;
+        /**
+         * Page size, alternative to limit
+         */
+        take?: number;
+        /**
          * Branch to read or act on (defaults to the project default branch)
          */
         branch?: string;
-        page?: number;
-        limit?: number;
     };
     url: '/projects/{projectName}/runs';
 };

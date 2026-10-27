@@ -2,15 +2,10 @@
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
-import { publicShareControllerResolve, type PublicShareDto } from "@sdk";
 import { statusLabelFor } from "@/components/StatusBadge";
 import { formatDateTime, formatRelativeAge } from "@/lib/format-date";
-import { getData } from "@/lib/sdk";
+import { usePublicShare } from "@/composables/usePublicShare";
 import { RUN_STATES } from "@/domains/runs/run.model";
-import {
-  mapPublicShare,
-  type PublicShareSource,
-} from "@/domains/share-links/share-link.mapper";
 import type { PublicShare } from "@/domains/share-links/share-link.model";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -26,46 +21,30 @@ const failure = ref<"notFound" | "generic" | null>(null);
 const passphrase = ref("");
 const passphraseError = ref(false);
 
-function responseStatus(response: unknown): number | undefined {
-  const candidate = response as { response?: { status?: unknown } } | undefined;
-  const status = candidate?.response?.status;
-  return typeof status === "number" ? status : undefined;
-}
+const resolvePublicShare = usePublicShare();
 
 async function resolveShare(): Promise<void> {
   loading.value = true;
   passphraseError.value = false;
   try {
-    const response = await publicShareControllerResolve({
-      path: { token: token.value },
-      body: passphrase.value ? { passphrase: passphrase.value } : {},
-    });
-    const status = responseStatus(response);
-    if (status !== undefined) {
-      if (status === 403) {
-        needsPassphrase.value = true;
-        passphraseError.value = passphrase.value.length > 0;
-      } else if (status === 404) {
-        failure.value = "notFound";
-        needsPassphrase.value = false;
-      } else {
-        failure.value = "generic";
-      }
-      share.value = null;
-      return;
-    }
-    const mapped = mapPublicShare(
-      getData<PublicShareDto>(response) as PublicShareSource | undefined,
+    const resolution = await resolvePublicShare(
+      token.value,
+      passphrase.value || undefined,
     );
-    if (!mapped) {
-      failure.value = "generic";
+    if (resolution.kind === "resolved") {
+      share.value = resolution.share;
+      needsPassphrase.value = false;
+      failure.value = null;
       return;
     }
-    share.value = mapped;
+    share.value = null;
+    if (resolution.kind === "passphrase-required") {
+      needsPassphrase.value = true;
+      passphraseError.value = passphrase.value.length > 0;
+      return;
+    }
     needsPassphrase.value = false;
-    failure.value = null;
-  } catch {
-    failure.value = "generic";
+    failure.value = resolution.kind === "not-found" ? "notFound" : "generic";
   } finally {
     loading.value = false;
   }

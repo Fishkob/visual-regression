@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { formatDateTime } from "@/lib/format-date";
 import { Download } from "@lucide/vue";
-import { auditControllerExport } from "@sdk";
+import { useAuditExport } from "@/composables/useAuditExport";
 import { toast } from "vue-sonner";
 import AsyncState from "@/components/AsyncState.vue";
 import PaginationBar from "@/components/PaginationBar.vue";
@@ -39,7 +39,6 @@ import {
 import { FILTER_ALL } from "@/domains/test-status";
 import { triggerDownload } from "@/lib/download";
 import { formatRelativeAge } from "@/lib/format-date";
-import { unwrapSdkData } from "@/lib/sdk";
 import { TEST_ID } from "@/lib/test-ids";
 
 // Draft inputs stay local so typing does not fire a request per keystroke; the
@@ -154,34 +153,14 @@ function detailsTitle(event: AuditEvent): string | undefined {
 }
 
 const exporting = ref(false);
+const exportAuditCsv = useAuditExport();
 
 // The export is a snapshot of the applied filters, not of the draft inputs:
 // what the operator sees in the table is what the CSV contains.
 async function exportCsv() {
   exporting.value = true;
   try {
-    const response = await auditControllerExport({
-      query: {
-        ...(appliedFilters.value.actor
-          ? { actor: appliedFilters.value.actor }
-          : {}),
-        ...(appliedFilters.value.action
-          ? { action: appliedFilters.value.action }
-          : {}),
-        ...(appliedFilters.value.projectName
-          ? { projectName: appliedFilters.value.projectName }
-          : {}),
-        ...(appliedFilters.value.from
-          ? { from: appliedFilters.value.from }
-          : {}),
-        ...(appliedFilters.value.to ? { to: appliedFilters.value.to } : {}),
-      },
-      parseAs: "text",
-    });
-    const csv = unwrapSdkData<string>(response);
-    if (typeof csv !== "string") {
-      throw new Error("The audit export came back empty");
-    }
+    const csv = await exportAuditCsv(appliedFilters.value);
     triggerDownload(new Blob([csv], { type: "text/csv" }), "audit.csv");
     toast.success(t("audit.exported"));
   } catch {

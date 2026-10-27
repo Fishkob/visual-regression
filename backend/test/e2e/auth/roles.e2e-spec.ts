@@ -198,6 +198,49 @@ describe('Roles and users (e2e)', () => {
       .expect(401);
   });
 
+  it('revokes the api keys a deactivated user owns', async () => {
+    await seed('admin', 'ADMIN');
+    const target = await seed('member', 'MEMBER');
+    const admin = await login('admin');
+
+    // Key management is ADMIN-owned, so the key is minted by the admin and then
+    // attributed to the member: ownership is what deactivation has to sever.
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/api-keys')
+      .set('Cookie', admin.cookie)
+      .send({ name: 'member-key', scopes: ['read'] })
+      .expect(201);
+    const rawKey = created.body.rawKey as string;
+    await db.apiKey.update({
+      where: { id: created.body.id },
+      data: { ownerId: target.id },
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/projects')
+      .set('x-api-key', rawKey)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/users/${target.id}`)
+      .set('Cookie', admin.cookie)
+      .send({ isActive: false })
+      .expect(200);
+
+    // A key is a long-lived credential: deactivation has to kill it too, not
+    // just the sessions.
+    await request(app.getHttpServer())
+      .get('/api/v1/projects')
+      .set('x-api-key', rawKey)
+      .expect(401);
+
+    await expect(
+      db.apiKey.findFirst({ where: { ownerId: target.id } }),
+    ).resolves.toEqual(
+      expect.objectContaining({ revokedReason: 'owner-deactivated' }),
+    );
+  });
+
   it('revokes sessions on a password reset', async () => {
     await seed('admin', 'ADMIN');
     const target = await seed('member', 'MEMBER');

@@ -83,6 +83,26 @@ describe('Share links (e2e)', () => {
     expect(audit.body.data.length).toBeGreaterThan(0);
   });
 
+  it('answers 404 when a project share lost its project', async () => {
+    await TestApp.createProject('ghost');
+    const share = await request(app.getHttpServer())
+      .post('/api/v1/projects/ghost/share-links')
+      .set('Cookie', cookie)
+      .send({ scope: 'PROJECT' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete('/api/v1/projects/ghost')
+      .set('Cookie', cookie)
+      .expect(200);
+
+    // A vanished target is a 404, not "a project with no tests" (ADR-038).
+    await request(app.getHttpServer())
+      .post(`/api/v1/public/shares/${share.body.token}`)
+      .send({})
+      .expect(404);
+  });
+
   it('enforces an optional passphrase', async () => {
     const share = await createShare({
       scope: 'TEST',

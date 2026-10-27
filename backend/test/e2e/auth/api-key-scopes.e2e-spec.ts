@@ -135,4 +135,15 @@ describe('API key scopes (e2e)', () => {
       .set('x-api-key', adminKey.rawKey)
       .expect(200);
   });
+
+  it('keeps the audit trail unreadable for api keys', async () => {
+    const adminKey = await createKey({ name: 'auditor', scopes: ['admin'] });
+
+    // The trail names every actor and action in the deployment; an admin-scoped
+    // key still must not read it, only a browser session can (ADR-035).
+    await request(app.getHttpServer())
+      .get('/api/v1/audit')
+      .set('x-api-key', adminKey.rawKey)
+      .expect(403);
+  });
 });

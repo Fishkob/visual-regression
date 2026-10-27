@@ -13,7 +13,6 @@ import {
 } from '@common/http/authenticated-principal';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
-import { Scope } from '@common/http/api-key-scope.decorator';
 import { ReviewAssignmentService } from '@public/visualTest/review/application/review-assignment.service';
 import {
   AssignmentDto,
@@ -27,7 +26,6 @@ import {
 export class AssignmentController {
   constructor(private readonly assignments: ReviewAssignmentService) {}
 
-  @Scope('admin')
   @Post('projects/:projectName/assignments')
   @ApiOperation({ summary: 'Assign a test or run to a reviewer' })
   @ApiCreatedResponse({ type: AssignmentDto })
@@ -46,7 +44,6 @@ export class AssignmentController {
     });
   }
 
-  @Scope('read')
   @Get('assignments/mine')
   @ApiOperation({ summary: 'List my open review assignments' })
   @ApiOkResponse({ type: [AssignmentDto] })
@@ -64,7 +61,6 @@ export class AssignmentController {
     });
   }
 
-  @Scope('read')
   @Get('assignments/mine/overdue')
   @ApiOperation({ summary: 'List my overdue review assignments' })
   @ApiOkResponse({ type: [AssignmentDto] })
@@ -76,7 +72,6 @@ export class AssignmentController {
     });
   }
 
-  @Scope('admin')
   @Post('assignments/:id/complete')
   @ApiOperation({ summary: 'Mark my assignment complete' })
   @ApiOkResponse({ type: AssignmentDto })

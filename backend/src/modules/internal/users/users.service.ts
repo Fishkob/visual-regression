@@ -115,8 +115,10 @@ export class UsersService {
     if (id === actor.id && changes.isActive === false) {
       throw new BadRequestException('You cannot deactivate your own account');
     }
-    // Deactivation also revokes the sessions, and all three commit together —
-    // otherwise a failed audit write leaves a deactivated user still signed in.
+    // Deactivation also revokes the sessions and the API keys the user owns, and
+    // all of it commits together — otherwise a failed audit write leaves a
+    // deactivated user still signed in, or a long-lived CI key still
+    // authenticating on their behalf.
     return this.uow.execute(async () => {
       const updated = await this.repo.updateUser(id, {
         ...(changes.role !== undefined ? { role: changes.role } : {}),
@@ -129,6 +131,7 @@ export class UsersService {
       });
       if (changes.isActive === false) {
         await this.repo.deleteSessionsForUser(id);
+        await this.repo.revokeApiKeysForOwner(id, 'owner-deactivated');
       }
       await this.audit.record({
         actor: actor.username,
