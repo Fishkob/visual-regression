@@ -42,6 +42,8 @@ Walkthrough: `docs/local-development.md`
 | `./scripts/quality.sh a11y`            | Axe WCAG A/AA scan in both themes                           |
 | `./scripts/quality.sh visual --update` | Regenerate visual baselines                                 |
 
+Suite layout, the infrastructure each suite needs and the coverage gates: [docs/testing.md](docs/testing.md).
+
 ## Code Quality
 
 ```

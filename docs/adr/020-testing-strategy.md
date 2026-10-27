@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-06-20 (revised 2026-07-25)
+Accepted — 2026-06-20 (revised 2026-07-25).
 
 ## Context
 
@@ -14,43 +14,18 @@ This strategy validates the architecture described across multiple ADRs: the fro
 
 We use two test runners in parallel:
 
-- **Vitest** — Unit tests for both backend and frontend.
+- **Vitest** — unit tests for both backend and frontend, and the backend E2E suite (`*.e2e-spec.ts`), which is a supertest round-trip against a real app instance.
 - **Playwright** — E2E tests (backend + frontend via UI) and component tests (frontend only).
 
-## Test-Category Decision Matrix
+## Rationale
 
-| Test type                                                | What it covers                                                                                                                                                                                  | Infra needed                                         | Speed              | CI order                     |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ------------------ | ---------------------------- |
-| **Unit** (Vitest, `*.spec.ts`)                           | Business logic, domain rules, service orchestration. All infrastructure mocked via `vi.fn()` or `createMock()`.                                                                                 | None                                                 | Fast (~10s)        | 1st                          |
-| **E2E backend** (Vitest, `*.e2e-spec.ts`)                | Full HTTP round-trip: controller → pipes → guards → interceptors → service → repository → real DB/RustFS/pdf-sidecar. Validates wiring, validation, error handling, and real query correctness. | Postgres, RustFS, pdf-sidecar (Docker)               | Medium (~30s/file) | 2nd                          |
-| **E2E frontend** (Playwright, `tests/e2e/`)              | Real user flows: upload → navigate → review → approve. Full Playwright browser with real frontend + backend.                                                                                    | Postgres, RustFS, pdf-sidecar, Frontend              | Slow               | 3rd                          |
-| **Component (CT)** (Playwright, `tests/ct/`)             | Individual Vue components in a real browser via a story-gallery page. DOM interaction, rendering, a11y.                                                                                         | None (Vite dev server)                               | Medium             | Parallel with unit           |
-| **Visual / A11y quality** (Playwright, `tests/quality/`) | Every gallery story in light and dark mode: committed screenshot baselines (`visual.spec.ts`) plus an axe WCAG A/AA scan (`a11y.spec.ts`).                                                      | Docker quality image (`frontend/Dockerfile.quality`) | Medium             | `Frontend Theme Quality` job |
+- **One unit runner across the stack**: Vitest runs in `backend/` and `frontend/`, natively on Vite's transform pipeline — no framework-specific transforms, and no separate configuration for the backend's CommonJS output and the frontend's ESM modules.
+- **One browser vendor**: Playwright serves both E2E and component tests, so the same `page` API, locator strategy and assertion patterns apply to both instead of maintaining two browser tools.
+- **Real browser for components**: a component test renders in Chromium through the story gallery, which catches rendering and accessibility bugs that jsdom cannot surface.
+- **Trace-on-failure**: Playwright captures DOM snapshots, network logs and console output, which is what makes a CI-only failure debuggable.
+- **The backend E2E suite needs no second runner**: it asserts over HTTP through supertest, not through a browser.
 
-There is **no integration test category**. Repository-layer tests against real Postgres without HTTP were evaluated and rejected — see below.
-
-### Vitest for Unit
-
-- **Single runner across stack**: Vitest is used in both `backend/` and `frontend/`. It exposes the standard `describe`/`it`/`expect` testing style and runs natively on Vite's transform pipeline — no framework-specific transforms needed.
-- **ESM/CJS compatible**: Vitest handles the backend's CommonJS output and the frontend's ESM modules without separate configuration.
-- **Coverage**: `@vitest/coverage-v8` provides Istanbul-compatible coverage reports. Backend targets unit tests; frontend targets composables and domain logic. UI components are covered on two paths — page-level Playwright CT specs (the normal case) and, for components whose own logic is worth isolating, a Vitest test that mounts the component via `@vue/test-utils` (e.g. `DataTable.test.ts`) — so the Vitest coverage gate excludes `src/views/**` and `src/components/**/*.vue` from its denominator. The backend coverage thresholds live in `backend/vitest.config.ts` (≥95% statements/lines/functions, ≥85% branches) and are enforced by the Vitest run itself, so the CI job fails when they are not met.
-- **In-source testing**: Backend tests use `Test.createTestingModule()` from `@nestjs/testing` — the NestJS DI container is available without HTTP overhead.
-
-### Playwright for E2E + Component Tests
-
-- **Cross-browser E2E**: Playwright runs Chromium (configured in `playwright-e2e.config.ts`) against the full stack (backend + frontend). Tests simulate real user flows: upload a screenshot, navigate the review UI, approve a comparison.
-- **Component Tests (CT)**: CT renders individual Vue components in a real browser via a **story-gallery page** (`frontend/playwright/gallery/`) that resolves `*.story.ts` files through `import.meta.glob` and exposes `window.mount`/`window.unmount`. Specs in `tests/ct/` use `@playwright/test`'s built-in `mount` fixture against that page. This replaces the former `@playwright/experimental-ct-vue` runtime, which was dropped in favor of the simpler gallery approach. It catches rendering bugs, accessibility issues, and interaction behavior that Vitest/jsdom cannot surface.
-- **Single vendor**: Using Playwright for both E2E and CT avoids maintaining two browser automation tools. The same `page` API, locator strategy, and assertion patterns apply to both.
-- **Trace viewer**: Playwright's trace-on-failure captures DOM snapshots, network logs, and console output — essential for debugging CI failures without reproducing the environment.
-
-### Test-Doubling Strategy
-
-- **Backend unit tests**: Mock at the NestJS provider level via `Test.createTestingModule({ providers: [{ provide: Repository, useValue: mock }] })`. No network calls, no database. Infrastructure modules (Storage, JobQueue) also use provider mocks.
-- **Backend E2E tests**: Real infrastructure (Postgres, RustFS, pdf-sidecar) via Docker Compose. Tests call the API via supertest `request(app.getHttpServer())`.
-- **Frontend unit tests**: Mock SDK calls via TanStack Query's `queryClient` and `vi.mock('@sdk/...')`. Composables are tested without mounting components. Component-level DOM interaction happens on both paths: Vitest specs mount the component under test with `@vue/test-utils` (and jsdom), while the page-level flows are driven through Playwright CT against the gallery.
-- **Frontend E2E tests**: Full real infrastructure (Postgres, RustFS, backend, frontend). Tests interact with the UI via Playwright locators and assert on DOM state.
-
-### No Integration Tests
+## No Integration Tests
 
 A dedicated integration test suite (`test/integration/`) was initially created with a single test for `ProjectRepository` against real Postgres. This was removed on 2026-07-25 because:
 
@@ -64,16 +39,16 @@ A dedicated integration test suite (`test/integration/`) was initially created w
 - A complex query/transaction is added that is difficult to trigger via HTTP (e.g., advisory locks, race conditions)
 - An external API dependency is added where fault injection (timeout, 503, malformed response) matters and is hard to simulate through HTTP
 
-### Alternatives Considered
+## Alternatives Considered
 
-Playwright was chosen as the single browser-automation vendor for both E2E and component tests; no other runner needed replacing.
+- **Jest only**: works for both backend and frontend, but needs additional configuration for ESM, TypeScript path aliases and Vue SFC transforms; Vitest handles these natively through Vite.
+- **Vitest for everything, E2E included**: `@vitest/browser` still requires Playwright or WebDriver as a transport layer, so using Playwright directly was simpler and more capable for multi-page flows.
+- **Cypress**: full-featured E2E with time-travel debugging, but slower CI execution, no native component testing at the time of evaluation, and a different API than the unit runner.
+- **Testing Library (`@testing-library/vue`) + Vitest for the frontend**: the standard in React projects, but it has less traction in the Vue ecosystem; Playwright CT with real browser rendering gives more confidence than jsdom assertions.
 
 ## Consequences
 
-- New backend services should have unit tests in `backend/test/unit/` using `Test.createTestingModule()`.
-- New backend controllers should have unit tests (mocked services) existing spec patterns.
-- Backend E2E tests (`test/e2e/`) must be added for new HTTP endpoints — these validate the full stack (controller → real DB/RustFS).
-- New frontend composables should have Vitest tests in `src/__tests__/`. A new UI component needs a page-level Playwright CT spec in `tests/ct/` (backed by a `*.story.ts` file picked up by the gallery) or, when its own logic is worth isolating, a Vitest test that mounts it via `@vue/test-utils`.
-- E2E tests run against Docker Compose services (Postgres + RustFS) and require the frontend to be built or served. The `test:e2e` script coordinates this.
-- CI runs: lint/typecheck → unit tests → backend E2E, and frontend lint → build → unit + CT + E2E, plus the `Frontend Theme Quality` job (visual + a11y). The backend unit-test CI job enforces coverage through the thresholds configured in `backend/vitest.config.ts` (≥95% statements/lines/functions, ≥85% branches); the Vitest run fails when they are not met, so there is no separate coverage gate outside Vitest. This should be revisited if it becomes a burden rather than a guard.
-- No integration tests should be added unless one of the thresholds above is met.
+- New backend services get unit tests in `backend/test/unit/`; new controllers get unit tests against a mocked service; new HTTP endpoints get an E2E test in `backend/test/e2e/`.
+- New frontend composables get a Vitest test in `src/__tests__/`. A new UI component gets a page-level CT spec in `tests/ct/` backed by a `*.story.ts` file — or a Vitest mount test when its own logic is worth isolating.
+- No integration tests are added unless one of the thresholds above is met.
+- The suite layout, the per-category infrastructure, the story-gallery mechanism and the coverage gates live in [docs/testing.md](../testing.md). This ADR records the choice, not the current test inventory.
