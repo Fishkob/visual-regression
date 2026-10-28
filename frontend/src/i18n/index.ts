@@ -31,6 +31,13 @@ export const i18n = createI18n({
   messages: { en, de },
 });
 
+// Mirror the initial locale onto <html lang>; setLocale() keeps it in sync
+// after a switch. Without this a stored German preference still told screen
+// readers the page was English until the user toggled the language again.
+if (typeof document !== "undefined") {
+  document.documentElement.lang = i18n.global.locale.value;
+}
+
 export function setLocale(locale: SupportedLocale): void {
   i18n.global.locale.value = locale;
   try {

@@ -9,7 +9,12 @@
     "security": "Sicherheit",
     "expand": "Seitenleiste erweitern",
     "collapse": "Seitenleiste einklappen",
-    "main": "Hauptnavigation"
+    "main": "Hauptnavigation",
+    "project": "Projekt",
+    "test": "Test",
+    "run": "Run",
+    "openMenu": "Navigation öffnen",
+    "closeMenu": "Navigation schließen"
   },
   "header": {
     "search": "Suchen",
@@ -41,7 +46,8 @@
     "retry": "Erneut versuchen",
     "confirm": "Bestätigen",
     "loading": "Wird geladen…",
-    "requestFailed": "Anfrage fehlgeschlagen"
+    "requestFailed": "Anfrage fehlgeschlagen",
+    "skipToContent": "Zum Inhalt springen"
   },
   "pagination": {
     "label": "Seitennavigation",
@@ -79,7 +85,8 @@
   },
   "notFound": {
     "message": "Die gesuchte Seite existiert nicht.",
-    "back": "Zurück zur Projektliste"
+    "back": "Zurück zur Projektliste",
+    "title": "Seite nicht gefunden"
   },
   "approvalDone": {
     "heading": "Alle Vergleiche überprüft",
@@ -136,11 +143,11 @@
     "acrossProjects": "in {count} Projekt | in {count} Projekten",
     "reviewCount": "{count} Änderung zu prüfen | {count} Änderungen zu prüfen",
     "reviewScope": " auf {branch}",
-    "reviewAria": "{count} Änderung{scope} in {project} prüfen | {count} Änderungen{scope} in {project} prüfen",
+    "reviewAria": "Prüfen: {count}{scope} in {project}",
     "reviewButton": "Prüfen: {count}{scope}",
     "noVariant": "Keine Variante",
     "runTitle": "Run {runKey}",
-    "mismatchPages": "{count} Seiten",
+    "mismatchPages": "{count} Seite | {count} Seiten",
     "mismatchPixels": "{count} px",
     "image": "Bild",
     "pdf": "PDF",
@@ -177,7 +184,8 @@
     "pendingAria": "{count} ausstehend",
     "deleteProject": "Projekt löschen",
     "deleteTitle": "Projekt löschen",
-    "deleteButton": "Löschen"
+    "deleteButton": "Löschen",
+    "pendingLabel": "ausstehend"
   },
   "newProject": {
     "title": "Neues Projekt",
@@ -271,10 +279,10 @@
     "runHistory": "Run-Verlauf:",
     "orphan": "Waisen-Karenz:",
     "globalDefault": "Globale Vorgabe",
-    "revisions": "{count} Revisionen",
-    "days": "{count} Tage",
-    "hours": "{count} Stunden",
-    "retentionNote": "Diese Grenzen werden pro Projekt gespeichert. Die Durchsetzung verwendet derzeit die globalen Vorgaben; die Durchsetzung pro Projekt folgt separat."
+    "revisions": "{count} Revision | {count} Revisionen",
+    "days": "{count} Tag | {count} Tage",
+    "hours": "{count} Stunde | {count} Stunden",
+    "retentionNote": "Diese Grenzen gelten für dieses Projekt; nicht gesetzte Werte verwenden die globalen Vorgaben."
   },
   "storageEdit": {
     "title": "Speicheraufbewahrung bearbeiten",
@@ -304,7 +312,7 @@
     "runs": "Läufe",
     "runsValue": "{eligible} im {days}-Tage-Fenster",
     "orphan": "Waisen-Karenz",
-    "hours": "{count} Stunden",
+    "hours": "{count} Stunde | {count} Stunden",
     "storage": "Speicher",
     "nearQuota": "Nahe am Kontingent",
     "close": "Schließen",
@@ -452,7 +460,7 @@
     "approveAllDescription": "Genehmigt jeden ausstehenden Vergleich in {runKey}. Ein zwischenzeitlich geänderter Vergleich schlägt allein fehl; die übrigen werden weiterhin genehmigt.",
     "approveAllConfirm": "Alle genehmigen",
     "noVariant": "Keine Variante",
-    "mismatchPages": "{count} Seiten",
+    "mismatchPages": "{count} Seite | {count} Seiten",
     "mismatchPixels": "{count} px",
     "test": "Test",
     "variant": "Variante",
@@ -464,9 +472,9 @@
   "trends": {
     "title": "Trends",
     "subtitle": "Vergleichsvolumen, Prüfalter, Genehmigungslatenz und Flaky-Rate über die letzten {range} Tage",
-    "window": "({from} → {to}).",
+    "window": " ({from} → {to}).",
     "rangeLabel": "Zeitraum",
-    "days": "{count} Tage",
+    "days": "{count} Tag | {count} Tage",
     "errorTitle": "Trends konnten nicht geladen werden",
     "empty": "Noch keine Trenddaten — Vergleiche dieses Projekts erscheinen hier.",
     "comparisons": "Vergleiche",
@@ -503,11 +511,11 @@
     "active": "Aktiv",
     "inactive": "Inaktiv",
     "resetPassword": "Passwort zurücksetzen",
-    "resetAria": "Passwort von {username} zurücksetzen",
+    "resetAria": "Passwort zurücksetzen für {username}",
     "deactivate": "Deaktivieren",
     "reactivate": "Reaktivieren",
-    "deactivateAria": "{username} deaktivieren",
-    "reactivateAria": "{username} reaktivieren",
+    "deactivateAria": "Deaktivieren: {username}",
+    "reactivateAria": "Reaktivieren: {username}",
     "passwordReset": "Passwort zurückgesetzt",
     "resetTitle": "Passwort zurücksetzen",
     "resetDescription": "Setzt das Passwort von {username} zurück. Die Sitzungen enden und das neue temporäre Passwort muss bei der nächsten Anmeldung geändert werden.",
@@ -918,13 +926,13 @@
     "diffRemoved": "Diff nach Genehmigung entfernt",
     "unknownPageCount": "Unbekannte Seitenzahl",
     "allPagesMatch": "Alle Seiten stimmen überein",
-    "pagesDiffer": "{mismatch} von {count} Seiten weichen ab"
+    "pagesDiffer": "{mismatch} von {count} Seite weicht ab | {mismatch} von {count} Seiten weichen ab"
   },
   "detail": {
     "inherited": "geerbt von {branch}",
     "baselineFollows": "Baseline folgt {target}",
     "baselineFollowsTitle": "Diese Baseline folgt {target}, bis sie auf diesem Branch genehmigt wird",
-    "progress": "{current} von {total}",
+    "progress": "Änderung {current} von {total}",
     "pdfNote": "Dies ist ein PDF-Test — der seitenweise Vergleich befindet sich in der Prüfansicht.",
     "openProject": "Projekt öffnen",
     "shortcuts": "A genehmigen, S überspringen, Esc zurück.",
@@ -944,7 +952,12 @@
     "baselineAlt": "Baseline",
     "candidateAlt": "Kandidat",
     "image": "Bild",
-    "pdf": "PDF"
+    "pdf": "PDF",
+    "noVariantsTitle": "Noch keine Screenshots für diesen Test",
+    "noVariantsBody": "Lade einen Screenshot für diesen Test hoch, um seine Varianten zu prüfen.",
+    "variantsHeading": "Varianten",
+    "pendingCount": "{count} ausstehend",
+    "noBaseline": "Keine Baseline"
   },
   "overview": {
     "errorTitle": "Varianten konnten nicht geladen werden",
@@ -956,7 +969,7 @@
     "approvedBy": "Genehmigt von {user} · {age}",
     "pendingToast": "Deine Stimme ist erfasst — {votes} von {required} Genehmigungen, {count} weitere Genehmigung fehlt | Deine Stimme ist erfasst — {votes} von {required} Genehmigungen, {count} weitere Genehmigungen fehlen",
     "alreadyVoted": "Du hast diesen Vergleich bereits genehmigt",
-    "awaitingCount": "{count} warten auf weitere Genehmigung",
+    "awaitingCount": "{count} zusätzliche Genehmigung ausstehend | {count} zusätzliche Genehmigungen ausstehend",
     "voteDetail": "{votes} von {required} Stimmen",
     "pendingTitle": "Warten auf weitere Genehmigung",
     "reason": {
@@ -1142,7 +1155,8 @@
     "created": "Freigabelink erstellt",
     "revoked": "Freigabelink widerrufen",
     "createError": "Freigabelink konnte nicht erstellt werden",
-    "revokeError": "Freigabelink konnte nicht widerrufen werden"
+    "revokeError": "Freigabelink konnte nicht widerrufen werden",
+    "pageTitle": "Geteilter Vergleich"
   },
   "reviewSettings": {
     "action": "Prüfeinstellungen",

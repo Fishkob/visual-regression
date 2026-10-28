@@ -9,7 +9,12 @@
     "security": "Security",
     "expand": "Expand sidebar",
     "collapse": "Collapse sidebar",
-    "main": "Main"
+    "main": "Main",
+    "project": "Project",
+    "test": "Test",
+    "run": "Run",
+    "openMenu": "Open navigation",
+    "closeMenu": "Close navigation"
   },
   "header": {
     "search": "Search",
@@ -41,7 +46,8 @@
     "retry": "Try again",
     "confirm": "Confirm",
     "loading": "Loading…",
-    "requestFailed": "Request failed"
+    "requestFailed": "Request failed",
+    "skipToContent": "Skip to content"
   },
   "pagination": {
     "label": "Pagination",
@@ -79,7 +85,8 @@
   },
   "notFound": {
     "message": "The page you’re looking for doesn’t exist.",
-    "back": "Back to project list"
+    "back": "Back to project list",
+    "title": "Page not found"
   },
   "approvalDone": {
     "heading": "All comparisons reviewed",
@@ -136,11 +143,11 @@
     "acrossProjects": "across {count} project | across {count} projects",
     "reviewCount": "{count} change to review | {count} changes to review",
     "reviewScope": " on {branch}",
-    "reviewAria": "Review {count} change{scope} in {project} | Review {count} changes{scope} in {project}",
+    "reviewAria": "Review {count}{scope} in {project}",
     "reviewButton": "Review {count}{scope}",
     "noVariant": "No variant",
     "runTitle": "Run {runKey}",
-    "mismatchPages": "{count} pages",
+    "mismatchPages": "{count} page | {count} pages",
     "mismatchPixels": "{count} px",
     "image": "Image",
     "pdf": "PDF",
@@ -177,7 +184,8 @@
     "pendingAria": "{count} pending",
     "deleteProject": "Delete project",
     "deleteTitle": "Delete project",
-    "deleteButton": "Delete"
+    "deleteButton": "Delete",
+    "pendingLabel": "pending"
   },
   "newProject": {
     "title": "New project",
@@ -215,7 +223,7 @@
     "defaultBranch": "Default branch",
     "defaultSuffix": " (default)",
     "archivedSuffix": " (archived)",
-    "inherits": "inherits {target}",
+    "inherits": "inherits from {target}",
     "branchesUnavailable": "Branches unavailable",
     "retry": "Retry",
     "moveToGroup": "Move to group",
@@ -271,10 +279,10 @@
     "runHistory": "Run history:",
     "orphan": "Orphan grace:",
     "globalDefault": "Global default",
-    "revisions": "{count} revisions",
-    "days": "{count} days",
-    "hours": "{count} hours",
-    "retentionNote": "These limits are stored per project. Enforcement currently uses the global defaults; per-project enforcement ships separately."
+    "revisions": "{count} revision | {count} revisions",
+    "days": "{count} day | {count} days",
+    "hours": "{count} hour | {count} hours",
+    "retentionNote": "These limits apply to this project; values left unset use the global defaults."
   },
   "storageEdit": {
     "title": "Edit storage retention",
@@ -304,7 +312,7 @@
     "runs": "Runs",
     "runsValue": "{eligible} eligible in the {days}-day window",
     "orphan": "Orphan grace",
-    "hours": "{count} hours",
+    "hours": "{count} hour | {count} hours",
     "storage": "Storage",
     "nearQuota": "Near quota",
     "close": "Close",
@@ -452,7 +460,7 @@
     "approveAllDescription": "Approves every pending comparison in {runKey}. A comparison that changed meanwhile fails alone; the rest are still approved.",
     "approveAllConfirm": "Approve all",
     "noVariant": "No variant",
-    "mismatchPages": "{count} pages",
+    "mismatchPages": "{count} page | {count} pages",
     "mismatchPixels": "{count} px",
     "test": "Test",
     "variant": "Variant",
@@ -464,9 +472,9 @@
   "trends": {
     "title": "Trends",
     "subtitle": "Comparison volume, review age, approval latency and flake rate over the last {range} days",
-    "window": "({from} → {to}).",
+    "window": " ({from} → {to}).",
     "rangeLabel": "Trend range",
-    "days": "{count} days",
+    "days": "{count} day | {count} days",
     "errorTitle": "Failed to load trends",
     "empty": "No trend data yet — comparisons recorded on this project will appear here.",
     "comparisons": "Comparisons",
@@ -503,7 +511,7 @@
     "active": "Active",
     "inactive": "Inactive",
     "resetPassword": "Reset password",
-    "resetAria": "Reset the password of {username}",
+    "resetAria": "Reset password for {username}",
     "deactivate": "Deactivate",
     "reactivate": "Reactivate",
     "deactivateAria": "Deactivate {username}",
@@ -918,13 +926,13 @@
     "diffRemoved": "Diff removed after approval",
     "unknownPageCount": "Unknown page count",
     "allPagesMatch": "All pages match",
-    "pagesDiffer": "{mismatch} of {count} pages differ"
+    "pagesDiffer": "{mismatch} of {count} page differs | {mismatch} of {count} pages differ"
   },
   "detail": {
     "inherited": "inherited from {branch}",
     "baselineFollows": "baseline follows {target}",
     "baselineFollowsTitle": "This baseline follows {target} until it is approved on this branch",
-    "progress": "{current} of {total}",
+    "progress": "Change {current} of {total}",
     "pdfNote": "This is a PDF test — the page-by-page comparison lives in the review view.",
     "openProject": "Open the project",
     "shortcuts": "Press A to approve, S to skip, Esc to go back.",
@@ -944,7 +952,12 @@
     "baselineAlt": "Baseline",
     "candidateAlt": "Candidate",
     "image": "Image",
-    "pdf": "PDF"
+    "pdf": "PDF",
+    "noVariantsTitle": "No screenshots for this test yet",
+    "noVariantsBody": "Upload a screenshot for this test to review its variants.",
+    "variantsHeading": "Variants",
+    "pendingCount": "{count} pending",
+    "noBaseline": "No baseline"
   },
   "overview": {
     "errorTitle": "Failed to load variants",
@@ -956,7 +969,7 @@
     "approvedBy": "Approved by {user} · {age}",
     "pendingToast": "Your vote is recorded — {votes} of {required} approvals, {count} more approval needed | Your vote is recorded — {votes} of {required} approvals, {count} more approvals needed",
     "alreadyVoted": "You have already approved this comparison",
-    "awaitingCount": "{count} awaiting additional approval",
+    "awaitingCount": "{count} awaiting additional approval | {count} awaiting additional approvals",
     "voteDetail": "{votes} of {required} votes",
     "pendingTitle": "Waiting for additional approval",
     "reason": {
@@ -1142,7 +1155,8 @@
     "created": "Share link created",
     "revoked": "Share link revoked",
     "createError": "Could not create the share link",
-    "revokeError": "Could not revoke the share link"
+    "revokeError": "Could not revoke the share link",
+    "pageTitle": "Shared comparison"
   },
   "reviewSettings": {
     "action": "Review settings",
