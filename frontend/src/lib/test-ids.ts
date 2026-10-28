@@ -69,7 +69,13 @@ export const TEST_ID = {
   reviewSettingsAction: "review-settings-action",
   reviewSettingsDialog: "review-settings-dialog",
   reviewRequiredApprovals: "review-required-approvals",
+  reviewRequiredApprovalsValue: "review-required-approvals-value",
   reviewSettingsSave: "review-settings-save",
+
+  projectSettingsAction: "project-settings-action",
+  projectSettingsView: "project-settings-view",
+  projectSettingsName: "project-settings-name",
+  projectSettingsBack: "project-settings-back",
   assignAction: "assign-action",
   assignDialog: "assign-dialog",
   assignAssignee: "assign-assignee",
@@ -102,6 +108,7 @@ export const TEST_ID = {
   shareRevoke: "share-revoke",
 
   storagePanel: "storage-panel",
+  storageHeaderBadge: "storage-header-badge",
   storageUsage: "storage-usage",
   storageQuota: "storage-quota",
   storageProgress: "storage-progress",

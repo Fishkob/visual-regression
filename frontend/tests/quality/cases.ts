@@ -43,6 +43,25 @@ const PROJECTS_GLOB = "**/api/v1/projects/pending*";
 // without a trailing wildcard does not match a query string — the call would
 // escape the mock and hit the Vite proxy instead.
 const PROJECT_DETAILS_GLOB = "**/api/v1/projects/checkout-ui*";
+// The settings page reads the storage aggregate; a glob without the trailing
+// wildcard keeps it from being shadowed by the project read above.
+const PROJECT_STORAGE_GLOB = "**/api/v1/projects/checkout-ui/storage";
+const PROJECT_STORAGE_RESPONSE: FulfillResponse = {
+  status: 200,
+  contentType: "application/json",
+  body: JSON.stringify({
+    usageBytes: "5242880",
+    quotaBytes: "10485760",
+    percent: 50,
+    softPercent: 80,
+    warning: false,
+    fileCount: 12,
+    diffCount: 3,
+    baselineRevisionLimit: 5,
+    runHistoryDays: 30,
+    orphanGraceHours: 24,
+  }),
+};
 const VISUAL_DETAILS_ROUTE = `/projects/checkout-ui/tests/checkout-flow?${CHROME_1920_1080_STAGING}`;
 // Pinned to the path, tolerant of the query: the variant identity comes from the
 // route, and a reordered/unextended query must not silently unmock the call.
@@ -80,6 +99,16 @@ export const QUALITY_CASES: QualityCase[] = [
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ],
     readyTestId: TEST_ID.tableRow,
+  },
+  {
+    name: "project-settings",
+    story: "views/ProjectSettingsView/Routed",
+    props: { initialRoute: "/projects/checkout-ui/settings" },
+    routes: [
+      [PROJECT_STORAGE_GLOB, PROJECT_STORAGE_RESPONSE],
+      [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
+    ],
+    readyTestId: TEST_ID.storageUsage,
   },
   {
     name: "visual-test-details",

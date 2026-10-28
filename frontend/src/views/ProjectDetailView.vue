@@ -26,6 +26,21 @@
           >
             {{ t("projectDetail.testCount", testCount) }}
           </span>
+          <!-- Storage is a settings-page concern; the header only surfaces the
+               one state that changes behaviour (the soft quota threshold). -->
+          <RouterLink
+            v-if="storageWarning"
+            :to="{ name: 'project-settings', params: { projectName } }"
+            :data-testid="TEST_ID.storageHeaderBadge"
+          >
+            <Badge variant="destructive">
+              {{
+                t("storage.headerBadge", {
+                  percent: formatPercent(storageWarning.percent),
+                })
+              }}
+            </Badge>
+          </RouterLink>
         </template>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -100,15 +115,15 @@
         >
           {{ t("projectDetail.moveToGroup") }}
         </Button>
-        <Button
-          v-if="project && isAdmin"
-          type="button"
-          variant="outline"
-          :data-testid="TEST_ID.reviewSettingsAction"
-          @click="reviewSettingsOpen = true"
+        <RouterLink
+          v-if="project"
+          :to="{ name: 'project-settings', params: { projectName } }"
+          :class="buttonVariants({ variant: 'outline', size: 'sm' })"
+          :data-testid="TEST_ID.projectSettingsAction"
         >
-          {{ t("reviewSettings.action") }}
-        </Button>
+          <Settings class="h-4 w-4" />
+          {{ t("projectSettings.action") }}
+        </RouterLink>
         <Button
           v-if="project && canWrite"
           type="button"
@@ -149,8 +164,6 @@
       </div>
     </div>
 
-    <ProjectStoragePanel :project-name="projectName" />
-
     <AsyncState
       :is-loading="activeTabState.isLoading"
       :error="activeTabState.error"
@@ -182,14 +195,6 @@
     </AsyncState>
   </div>
 
-  <ReviewSettingsDialog
-    v-if="reviewSettingsOpen && project"
-    :open="reviewSettingsOpen"
-    :project-name="projectName"
-    :required-approvals="project.requiredApprovals ?? 1"
-    @update:open="reviewSettingsOpen = $event"
-  />
-
   <ShareLinksDialog
     v-if="shareOpen"
     :open="shareOpen"
@@ -212,14 +217,12 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import { ListChecks, Share2, TrendingUp, Webhook } from "@lucide/vue";
+import { ListChecks, Settings, Share2, TrendingUp, Webhook } from "@lucide/vue";
 
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import SkeletonAccordionGroups from "@/components/cards/SkeletonAccordionGroups.vue";
-import ProjectStoragePanel from "@/components/storage/ProjectStoragePanel.vue";
 import ShareLinksDialog from "@/components/share/ShareLinksDialog.vue";
-import ReviewSettingsDialog from "@/components/projects/ReviewSettingsDialog.vue";
 import MoveProjectDialog from "@/components/projects/MoveProjectDialog.vue";
 import VisualTestsTable from "@/components/tables/VisualTestsTable.vue";
 import PaginationBar from "@/components/PaginationBar.vue";
@@ -243,7 +246,9 @@ import {
   type ProjectDetailFilters,
 } from "@/composables/useProjectDetailPage";
 import { useProjectGroupAssignment } from "@/composables/useProjectGroupAssignment";
+import { useProjectStorage } from "@/composables/useProjectStorage";
 import { useRouteParams } from "@/composables/useRouteParams";
+import { formatPercent } from "@/domains/storage/storage.model";
 import { PROJECT_DETAIL_PAGE_SIZE } from "@/lib/pagination";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -254,6 +259,14 @@ const { t } = useI18n();
 const { isAdmin, canWrite } = useCurrentRole();
 const route = useRoute();
 const router = useRouter();
+
+// The full storage panel lives on the settings page; here the shared query is
+// only read for its warning flag, so the header can point at the cause of a
+// rejected upload without turning the page back into a storage dashboard.
+const { data: storage } = useProjectStorage(projectName);
+const storageWarning = computed(() =>
+  storage.value?.warning ? storage.value : null,
+);
 
 // Archived branches are fetched too: they stay readable, and hiding them from
 // the switcher made "unarchive" unreachable — once a branch was archived and the
@@ -515,7 +528,6 @@ function handleDelete() {
 
 const { data: groups } = useGroupsQuery();
 const moveMutation = useProjectGroupAssignment();
-const reviewSettingsOpen = ref(false);
 const shareOpen = ref(false);
 const moveOpen = ref(false);
 const movePending = computed(() => moveMutation.isPending.value);

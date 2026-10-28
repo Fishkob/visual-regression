@@ -23,13 +23,18 @@ const props = defineProps<{ projectName: string }>();
 
 const { t } = useI18n();
 
+// The project name is read through a ref, not as a snapshot: a routed story
+// pushes its initial route during render, so the prop can arrive one tick after
+// setup — a captured `undefined` would leave the panel permanently empty.
+const projectName = computed(() => props.projectName);
+
 const {
   data: storage,
   isLoading,
   error,
   refetch,
-} = useProjectStorage(props.projectName);
-const update = useUpdateProjectStorage(props.projectName);
+} = useProjectStorage(projectName);
+const update = useUpdateProjectStorage(projectName);
 
 // The dry-run is only fetched once the preview dialog is opened.
 const previewOpen = ref(false);
@@ -39,7 +44,7 @@ const {
   error: previewError,
   refetch: refetchPreview,
 } = useRetentionPreview(
-  props.projectName,
+  projectName,
   computed(() => previewOpen.value),
 );
 // Retention decides which evidence survives, so editing it is an ADMIN surface
@@ -88,7 +93,7 @@ function submit(payload: UpdateProjectStorageInput) {
   >
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h2 class="font-medium">{{ t("storage.title") }}</h2>
+        <h3 class="font-medium">{{ t("storage.title") }}</h3>
         <p class="text-sm text-muted-foreground">
           {{ t("storage.description") }}
         </p>

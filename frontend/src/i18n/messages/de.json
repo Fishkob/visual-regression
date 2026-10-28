@@ -239,6 +239,13 @@
     "testCount": "{count} Test | {count} Tests",
     "variants": "Varianten"
   },
+  "projectSettings": {
+    "title": "Projekteinstellungen",
+    "action": "Einstellungen",
+    "description": "Review-Richtlinie und Speicher dieses Projekts. Die Speichergrenzen entscheiden, welche Nachweise eine Bereinigung überleben, deshalb können nur Admins sie ändern.",
+    "backToProject": "Zurück zum Projekt",
+    "reviewCurrent": "{count} erforderliche Zustimmung | {count} erforderliche Zustimmungen"
+  },
   "branchActions": {
     "label": "Branch-Aktionen",
     "setDefault": "Als Standard festlegen",
@@ -264,6 +271,7 @@
   "storage": {
     "title": "Speicher",
     "description": "Screenshots und Diffs dieses Projekts, sein Kontingent und seine Aufbewahrungsgrenzen.",
+    "headerBadge": "{percent} des Kontingents",
     "previewAction": "Bereinigung vorschauen",
     "editAction": "Aufbewahrung bearbeiten",
     "errorTitle": "Speichernutzung konnte nicht geladen werden",
@@ -286,7 +294,7 @@
   },
   "storageEdit": {
     "title": "Speicheraufbewahrung bearbeiten",
-    "description": "Aufbewahrungsgrenzen werden pro Projekt gespeichert. Uploads über einem harten Kontingent werden abgelehnt; die Wartungsaufgaben verwenden derzeit die globalen Aufbewahrungsvorgaben.",
+    "description": "Aufbewahrungsgrenzen werden pro Projekt gespeichert und von den Bereinigungsaufgaben angewendet; nicht gesetzte Werte verwenden die globalen Vorgaben. Uploads über einem harten Kontingent werden abgelehnt.",
     "confirm": "Einstellungen speichern",
     "quotaLabel": "Speicherkontingent (MB)",
     "noQuotaPlaceholder": "Kein Kontingent",
@@ -1161,6 +1169,7 @@
   "reviewSettings": {
     "action": "Prüfeinstellungen",
     "title": "Prüfeinstellungen",
+    "edit": "Bearbeiten",
     "description": "Steuere, wie viele unabhängige Genehmigungen eine Änderung braucht, bevor sie zur Baseline wird.",
     "requiredLabel": "Erforderliche Genehmigungen (1–10)",
     "help": "Bei mehr als einer Genehmigung bleibt ein Vergleich ausstehend, bis so viele verschiedene Prüfende zugestimmt haben.",

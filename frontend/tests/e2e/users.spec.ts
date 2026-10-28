@@ -164,11 +164,24 @@ test.describe("User administration", () => {
           projectName,
           { timeout: 10000 },
         );
+        await expect(page.getByTestId(TEST_ID.webhooksLink)).toHaveCount(0);
+        await expect(page.getByTestId(TEST_ID.shareAction)).toHaveCount(0);
+
+        // The settings page is readable, but every edit surface in it is
+        // admin-only.
+        await page.goto(
+          `/projects/${encodeURIComponent(projectName)}/settings`,
+        );
+        await expect(page.getByTestId(TEST_ID.projectSettingsView)).toBeVisible(
+          { timeout: 10000 },
+        );
+        await expect(page.getByTestId(TEST_ID.storagePanel)).toBeVisible();
         await expect(
           page.getByTestId(TEST_ID.reviewSettingsAction),
         ).toHaveCount(0);
-        await expect(page.getByTestId(TEST_ID.webhooksLink)).toHaveCount(0);
-        await expect(page.getByTestId(TEST_ID.shareAction)).toHaveCount(0);
+        await expect(page.getByTestId(TEST_ID.storageEditAction)).toHaveCount(
+          0,
+        );
       } finally {
         await context.close();
       }

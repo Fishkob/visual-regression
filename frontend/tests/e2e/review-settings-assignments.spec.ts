@@ -7,6 +7,10 @@ let projectName: string;
 
 const TEST_NAME = "login-form";
 
+// Review policy and storage share one settings surface per project.
+const settingsUrl = (name: string) =>
+  `/projects/${encodeURIComponent(name)}/settings`;
+
 test.describe("Review settings and assignments", () => {
   test.beforeEach(async () => {
     projectName = `e2e-review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -20,7 +24,7 @@ test.describe("Review settings and assignments", () => {
   test("requires a second approval and keeps the comparison pending", async ({
     page,
   }) => {
-    await page.goto(`/projects/${encodeURIComponent(projectName)}`);
+    await page.goto(settingsUrl(projectName));
     await page.getByTestId(TEST_ID.reviewSettingsAction).click();
     await expect(page.getByTestId(TEST_ID.reviewSettingsDialog)).toBeVisible();
     await page.getByTestId(TEST_ID.reviewRequiredApprovals).fill("2");
@@ -55,7 +59,7 @@ test.describe("Review settings and assignments", () => {
     await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
 
     // The review settings survive a reload (server-side field, not local UI).
-    await page.goto(`/projects/${encodeURIComponent(projectName)}`);
+    await page.goto(settingsUrl(projectName));
     await page.getByTestId(TEST_ID.reviewSettingsAction).click();
     await expect(page.getByTestId(TEST_ID.reviewRequiredApprovals)).toHaveValue(
       "2",

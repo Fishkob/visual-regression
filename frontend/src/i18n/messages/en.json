@@ -239,6 +239,13 @@
     "testCount": "{count} test | {count} tests",
     "variants": "variants"
   },
+  "projectSettings": {
+    "title": "Project settings",
+    "action": "Settings",
+    "description": "Review policy and storage for this project. Storage limits decide which evidence survives a cleanup, so only admins can change them.",
+    "backToProject": "Back to project",
+    "reviewCurrent": "{count} approval required | {count} approvals required"
+  },
   "branchActions": {
     "label": "Branch actions",
     "setDefault": "Set as default",
@@ -264,6 +271,7 @@
   "storage": {
     "title": "Storage",
     "description": "Screenshots and diffs stored for this project, its quota and its retention limits.",
+    "headerBadge": "{percent} of quota",
     "previewAction": "Preview cleanup",
     "editAction": "Edit retention",
     "errorTitle": "Failed to load storage usage",
@@ -286,7 +294,7 @@
   },
   "storageEdit": {
     "title": "Edit storage retention",
-    "description": "Retention limits are stored per project. Uploads over a hard quota are rejected; the maintenance tasks currently use the global retention defaults.",
+    "description": "Retention limits are stored per project and the cleanup tasks apply them; unset values fall back to the global defaults. Uploads over a hard quota are rejected.",
     "confirm": "Save settings",
     "quotaLabel": "Storage quota (MB)",
     "noQuotaPlaceholder": "No quota",
@@ -1161,6 +1169,7 @@
   "reviewSettings": {
     "action": "Review settings",
     "title": "Review settings",
+    "edit": "Edit",
     "description": "Control how many independent approvals a change needs before it becomes the baseline.",
     "requiredLabel": "Approvals required (1–10)",
     "help": "With more than one approval, a comparison stays pending until that many different reviewers have approved it.",
