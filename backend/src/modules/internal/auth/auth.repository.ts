@@ -310,33 +310,35 @@ export class AuthRepository extends BaseRepository {
   }
 
   async createApiKey(input: CreateApiKeyInput): Promise<ApiKeyRow> {
+    this.assertWritable();
     return this.client.apiKey.create({ data: input });
   }
 
-  // Rotation creates the successor and retires the predecessor in one
-  // transaction: a half-applied rotation would either leave the caller locked
-  // out or leave two live keys behind unintentionally. The predecessor points
-  // at its successor (replacedById) so the audit trail survives.
+  // Rotation creates the successor and retires the predecessor atomically: a
+  // half-applied rotation would either leave the caller locked out or leave two
+  // live keys behind unintentionally. The predecessor points at its successor
+  // (replacedById) so the audit trail survives. The caller owns that
+  // transaction — ApiKeyService.rotateKey wraps the rotation and its audit row —
+  // so this rides the ambient client instead of opening a nested one.
   async replaceApiKey(
     created: CreateApiKeyInput,
     retiredId: string,
     retirement: ApiKeyRetirement,
   ): Promise<ApiKeyRow> {
-    return this.client.$transaction(async (tx) => {
-      const { retiredName, ...retirementData } = retirement;
-      if (retiredName) {
-        await tx.apiKey.update({
-          where: { id: retiredId },
-          data: { name: retiredName },
-        });
-      }
-      const row = await tx.apiKey.create({ data: created });
-      await tx.apiKey.update({
+    this.assertWritable();
+    const { retiredName, ...retirementData } = retirement;
+    if (retiredName) {
+      await this.client.apiKey.update({
         where: { id: retiredId },
-        data: { ...retirementData, replacedById: row.id },
+        data: { name: retiredName },
       });
-      return row;
+    }
+    const row = await this.client.apiKey.create({ data: created });
+    await this.client.apiKey.update({
+      where: { id: retiredId },
+      data: { ...retirementData, replacedById: row.id },
     });
+    return row;
   }
 
   async findApiKeyByHash(keyHash: string): Promise<ApiKeyRow | null> {
@@ -365,6 +367,7 @@ export class AuthRepository extends BaseRepository {
     revokedAt: Date,
     revokedReason: string | null,
   ): Promise<ApiKeyRow> {
+    this.assertWritable();
     return this.client.apiKey.update({
       where: { id },
       data: { revokedAt, revokedReason },
@@ -379,6 +382,7 @@ export class AuthRepository extends BaseRepository {
   }
 
   async deleteApiKey(id: string): Promise<void> {
+    this.assertWritable();
     await this.client.apiKey.delete({ where: { id } });
   }
 

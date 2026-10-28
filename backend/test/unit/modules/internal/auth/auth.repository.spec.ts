@@ -333,7 +333,7 @@ describe('AuthRepository', () => {
       revokedReason: 'rotated',
     });
 
-    expect(mockClient.$transaction).toHaveBeenCalled();
+    expect(txCtx.assertInTransaction).toHaveBeenCalled();
     expect(mockClient.apiKey.create).toHaveBeenCalledWith({ data: created });
     expect(mockClient.apiKey.update).toHaveBeenCalledWith({
       where: { id: 'k1' },

@@ -3,7 +3,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { Mocked } from 'vitest';
 import { AuthRepository, type ApiKeyRow } from '@internal/auth/auth.repository';
 import { ApiKeyService } from '@internal/auth/api-key.service';
+import { AuditService } from '@internal/audit/audit.service';
+import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
+import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { createMock } from '@test/utils/create-mock';
+import { createMockUoW } from '@test/utils/mocks';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -32,14 +36,19 @@ function makeRow(overrides: Partial<ApiKeyRow> = {}): ApiKeyRow {
 describe('ApiKeyService', () => {
   let service: ApiKeyService;
   let mockRepository: Mocked<AuthRepository>;
+  let mockAudit: Mocked<AuditService>;
 
   beforeEach(async () => {
     mockRepository = createMock<AuthRepository>();
+    mockAudit = createMock<AuditService>();
+    mockAudit.record.mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ApiKeyService,
         { provide: AuthRepository, useValue: mockRepository },
+        { provide: AuditService, useValue: mockAudit },
+        { provide: PrismaUnitOfWork, useValue: createMockUoW() },
       ],
     }).compile();
 
@@ -56,7 +65,7 @@ describe('ApiKeyService', () => {
         makeRow({ scopes: ['upload'] }),
       );
 
-      const result = await service.createKey({
+      const result = await service.createKey('alice', {
         name: 'ci-upload',
         ownerId: 'u1',
         createdBy: 'alice',
@@ -71,6 +80,17 @@ describe('ApiKeyService', () => {
       );
       expect(result.scopes).toEqual(['upload']);
       expect(result.projectNames).toEqual([]);
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actor: 'alice',
+          action: AUDIT_ACTIONS.apiKeyCreate,
+          targetType: 'api-key',
+          targetId: 'k1',
+        }),
+      );
+      const metadata = mockAudit.record.mock.calls[0][0].metadata ?? {};
+      expect(JSON.stringify(metadata)).not.toContain(result.rawKey);
+      expect(JSON.stringify(metadata)).not.toContain('hash');
     });
 
     it('stores explicit scopes and a project allowlist', async () => {
@@ -78,7 +98,7 @@ describe('ApiKeyService', () => {
         makeRow({ scopes: ['read'], projectNames: ['checkout'] }),
       );
 
-      await service.createKey({
+      await service.createKey('alice', {
         name: 'reader',
         scopes: ['read'],
         projectNames: ['checkout'],
@@ -95,7 +115,7 @@ describe('ApiKeyService', () => {
     it('generates a raw key and stores only its sha256 hash', async () => {
       mockRepository.createApiKey.mockResolvedValue(makeRow());
 
-      const result = await service.createKey({ name: 'ci-upload' });
+      const result = await service.createKey('alice', { name: 'ci-upload' });
 
       expect(result.rawKey.length).toBeGreaterThanOrEqual(40);
       const expectedHash = createHash('sha256')
@@ -117,7 +137,7 @@ describe('ApiKeyService', () => {
     it('never returns the key hash to the caller', async () => {
       mockRepository.createApiKey.mockResolvedValue(makeRow());
 
-      const result = await service.createKey({ name: 'ci-upload' });
+      const result = await service.createKey('alice', { name: 'ci-upload' });
 
       expect(result).not.toHaveProperty('keyHash');
     });
@@ -125,7 +145,10 @@ describe('ApiKeyService', () => {
     it('records the creating user', async () => {
       mockRepository.createApiKey.mockResolvedValue(makeRow());
 
-      await service.createKey({ name: 'ci-upload', createdBy: 'alice' });
+      await service.createKey('alice', {
+        name: 'ci-upload',
+        createdBy: 'alice',
+      });
 
       expect(mockRepository.createApiKey).toHaveBeenCalledWith(
         expect.objectContaining({ createdBy: 'alice' }),
@@ -135,7 +158,7 @@ describe('ApiKeyService', () => {
     it('turns expiresInDays into an absolute expiry', async () => {
       mockRepository.createApiKey.mockResolvedValue(makeRow());
 
-      const result = await service.createKey({
+      const result = await service.createKey('alice', {
         name: 'ci-upload',
         expiresInDays: 30,
       });
@@ -148,7 +171,7 @@ describe('ApiKeyService', () => {
     it('issues a key without expiry when none is requested', async () => {
       mockRepository.createApiKey.mockResolvedValue(makeRow());
 
-      const result = await service.createKey({ name: 'ci-upload' });
+      const result = await service.createKey('alice', { name: 'ci-upload' });
 
       expect(result.expiresAt).toBeNull();
     });
@@ -157,7 +180,7 @@ describe('ApiKeyService', () => {
       mockRepository.createApiKey.mockRejectedValue({ code: 'P2002' });
 
       await expect(
-        service.createKey({ name: 'ci-upload' }),
+        service.createKey('alice', { name: 'ci-upload' }),
       ).rejects.toMatchObject({
         code: 'CONFLICT',
         message: 'An API key named "ci-upload" already exists',
@@ -169,9 +192,9 @@ describe('ApiKeyService', () => {
         new Error('db unavailable'),
       );
 
-      await expect(service.createKey({ name: 'ci-upload' })).rejects.toThrow(
-        'db unavailable',
-      );
+      await expect(
+        service.createKey('alice', { name: 'ci-upload' }),
+      ).rejects.toThrow('db unavailable');
     });
   });
 
@@ -225,7 +248,7 @@ describe('ApiKeyService', () => {
         makeRow({ revokedAt: new Date('2026-03-01T00:00:00Z') }),
       );
 
-      const result = await service.revokeKey('k1', ' leaked in logs ');
+      const result = await service.revokeKey('alice', 'k1', ' leaked in logs ');
 
       expect(mockRepository.revokeApiKey).toHaveBeenCalledWith(
         'k1',
@@ -233,6 +256,14 @@ describe('ApiKeyService', () => {
         'leaked in logs',
       );
       expect(result.status).toBe('revoked');
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actor: 'alice',
+          action: AUDIT_ACTIONS.apiKeyRevoke,
+          targetId: 'k1',
+          metadata: expect.objectContaining({ reason: 'leaked in logs' }),
+        }),
+      );
     });
 
     it('stores null when no reason is given', async () => {
@@ -241,7 +272,7 @@ describe('ApiKeyService', () => {
         makeRow({ revokedAt: new Date() }),
       );
 
-      await service.revokeKey('k1');
+      await service.revokeKey('alice', 'k1');
 
       expect(mockRepository.revokeApiKey).toHaveBeenCalledWith(
         'k1',
@@ -254,7 +285,7 @@ describe('ApiKeyService', () => {
       const revoked = makeRow({ revokedAt: new Date('2026-02-01') });
       mockRepository.findApiKeyById.mockResolvedValue(revoked);
 
-      const result = await service.revokeKey('k1');
+      const result = await service.revokeKey('alice', 'k1');
 
       expect(mockRepository.revokeApiKey).not.toHaveBeenCalled();
       expect(result.status).toBe('revoked');
@@ -263,9 +294,11 @@ describe('ApiKeyService', () => {
     it('rejects an unknown key', async () => {
       mockRepository.findApiKeyById.mockResolvedValue(null);
 
-      await expect(service.revokeKey('missing')).rejects.toMatchObject({
-        code: 'NOT_FOUND',
-      });
+      await expect(service.revokeKey('alice', 'missing')).rejects.toMatchObject(
+        {
+          code: 'NOT_FOUND',
+        },
+      );
     });
   });
 
@@ -273,10 +306,17 @@ describe('ApiKeyService', () => {
     it('deletes a key that was never used', async () => {
       mockRepository.findApiKeyById.mockResolvedValue(makeRow());
 
-      await expect(service.deleteKey('k1')).resolves.toEqual({
+      await expect(service.deleteKey('alice', 'k1')).resolves.toEqual({
         success: true,
       });
       expect(mockRepository.deleteApiKey).toHaveBeenCalledWith('k1');
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actor: 'alice',
+          action: AUDIT_ACTIONS.apiKeyDelete,
+          targetId: 'k1',
+        }),
+      );
     });
 
     it('refuses to delete a key that has authenticated a request', async () => {
@@ -284,7 +324,7 @@ describe('ApiKeyService', () => {
         makeRow({ lastUsedAt: new Date() }),
       );
 
-      await expect(service.deleteKey('k1')).rejects.toMatchObject({
+      await expect(service.deleteKey('alice', 'k1')).rejects.toMatchObject({
         code: 'CONFLICT',
       });
       expect(mockRepository.deleteApiKey).not.toHaveBeenCalled();
@@ -293,9 +333,11 @@ describe('ApiKeyService', () => {
     it('rejects an unknown key', async () => {
       mockRepository.findApiKeyById.mockResolvedValue(null);
 
-      await expect(service.deleteKey('missing')).rejects.toMatchObject({
-        code: 'NOT_FOUND',
-      });
+      await expect(service.deleteKey('alice', 'missing')).rejects.toMatchObject(
+        {
+          code: 'NOT_FOUND',
+        },
+      );
     });
   });
 
@@ -308,8 +350,16 @@ describe('ApiKeyService', () => {
         makeRow({ scopes: ['upload'], projectNames: ['checkout'] }),
       );
 
-      await service.rotateKey('k1');
+      await service.rotateKey('alice', 'k1');
 
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actor: 'alice',
+          action: AUDIT_ACTIONS.apiKeyRotate,
+          targetId: 'k1',
+          metadata: expect.objectContaining({ replacesId: 'k1' }),
+        }),
+      );
       expect(mockRepository.replaceApiKey).toHaveBeenCalledWith(
         expect.objectContaining({
           ownerId: 'u1',
@@ -325,7 +375,9 @@ describe('ApiKeyService', () => {
       mockRepository.findApiKeyById.mockResolvedValue(makeRow());
       mockRepository.replaceApiKey.mockResolvedValue(makeRow({ id: 'k2' }));
 
-      const result = await service.rotateKey('k1', { createdBy: 'alice' });
+      const result = await service.rotateKey('alice', 'k1', {
+        createdBy: 'alice',
+      });
 
       expect(mockRepository.replaceApiKey).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'ci-upload', createdBy: 'alice' }),
@@ -347,7 +399,9 @@ describe('ApiKeyService', () => {
       mockRepository.findApiKeyById.mockResolvedValue(makeRow());
       mockRepository.replaceApiKey.mockResolvedValue(makeRow({ id: 'k2' }));
 
-      const result = await service.rotateKey('k1', { graceMinutes: 60 });
+      const result = await service.rotateKey('alice', 'k1', {
+        graceMinutes: 60,
+      });
 
       const retirement = mockRepository.replaceApiKey.mock.calls[0][2];
       expect(retirement.revokedAt).toBeNull();
@@ -361,7 +415,7 @@ describe('ApiKeyService', () => {
       );
       mockRepository.replaceApiKey.mockResolvedValue(makeRow({ id: 'k2' }));
 
-      const result = await service.rotateKey('k1');
+      const result = await service.rotateKey('alice', 'k1');
 
       expect(result.expiresAt!.getTime()).toBeGreaterThan(
         Date.now() + 3 * DAY_MS,
@@ -377,7 +431,9 @@ describe('ApiKeyService', () => {
       );
       mockRepository.replaceApiKey.mockResolvedValue(makeRow({ id: 'k2' }));
 
-      const result = await service.rotateKey('k1', { expiresInDays: null });
+      const result = await service.rotateKey('alice', 'k1', {
+        expiresInDays: null,
+      });
 
       expect(result.expiresAt).toBeNull();
       expect(
@@ -391,7 +447,9 @@ describe('ApiKeyService', () => {
       );
       mockRepository.replaceApiKey.mockResolvedValue(makeRow({ id: 'k2' }));
 
-      const result = await service.rotateKey('k1', { expiresInDays: 90 });
+      const result = await service.rotateKey('alice', 'k1', {
+        expiresInDays: 90,
+      });
 
       expect(result.expiresAt!.getTime()).toBeGreaterThan(
         Date.now() + 89 * DAY_MS,
@@ -405,7 +463,7 @@ describe('ApiKeyService', () => {
       mockRepository.findApiKeyById.mockResolvedValue(makeRow());
       mockRepository.replaceApiKey.mockRejectedValue({ code: 'P2002' });
 
-      await expect(service.rotateKey('k1')).rejects.toMatchObject({
+      await expect(service.rotateKey('alice', 'k1')).rejects.toMatchObject({
         code: 'CONFLICT',
         message: 'An API key named "ci-upload" already exists',
       });
@@ -416,7 +474,7 @@ describe('ApiKeyService', () => {
         makeRow({ revokedAt: new Date() }),
       );
 
-      await expect(service.rotateKey('k1')).rejects.toMatchObject({
+      await expect(service.rotateKey('alice', 'k1')).rejects.toMatchObject({
         code: 'INVALID_STATE',
       });
       expect(mockRepository.replaceApiKey).not.toHaveBeenCalled();
@@ -427,7 +485,7 @@ describe('ApiKeyService', () => {
         makeRow({ expiresAt: new Date(Date.now() - DAY_MS) }),
       );
 
-      await expect(service.rotateKey('k1')).rejects.toMatchObject({
+      await expect(service.rotateKey('alice', 'k1')).rejects.toMatchObject({
         code: 'INVALID_STATE',
       });
     });
@@ -435,9 +493,11 @@ describe('ApiKeyService', () => {
     it('rejects an unknown key', async () => {
       mockRepository.findApiKeyById.mockResolvedValue(null);
 
-      await expect(service.rotateKey('missing')).rejects.toMatchObject({
-        code: 'NOT_FOUND',
-      });
+      await expect(service.rotateKey('alice', 'missing')).rejects.toMatchObject(
+        {
+          code: 'NOT_FOUND',
+        },
+      );
     });
   });
 

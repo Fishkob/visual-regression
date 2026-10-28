@@ -122,6 +122,8 @@ export const TEST_ID = {
   storagePreviewRetry: "storage-preview-retry",
   storagePreviewClose: "storage-preview-close",
 
+  rowActionDelete: "row-action-delete",
+  rowActionOverview: "row-action-overview",
   projectActionsButton: "project-actions-button",
   projectBranchSelect: "project-branch-select",
   branchActionsButton: "branch-actions-button",
@@ -131,6 +133,8 @@ export const TEST_ID = {
   branchSwitcherError: "branch-switcher-error",
   branchSetDefault: "branch-set-default",
   branchChangeTarget: "branch-change-target",
+  branchArchive: "branch-archive",
+  branchDelete: "branch-delete",
   branchTargetDialog: "branch-target-dialog",
   branchTargetSelect: "branch-target-select",
   branchTargetCancel: "branch-target-cancel",
@@ -303,6 +307,8 @@ export const TEST_ID = {
 
   groupRow: "group-row",
   groupProjectCount: "group-project-count",
+  groupRename: "group-rename",
+  groupDelete: "group-delete",
   newGroup: "new-group",
   groupNameInput: "group-name-input",
   groupFormSubmit: "group-form-submit",

@@ -15,6 +15,8 @@ import {
   CreatedApiKeyDto,
 } from '@internal/auth/dto/create-api-key.dto';
 
+const ADMIN_KEY_ACTOR = 'admin-api-key';
+
 // Deliberately outside the product API surface (spec: "narrower than the
 // global guard, not part of the product API surface"): only AdminAuthGuard
 // applies, so a key can be provisioned before any product credential exists.
@@ -29,7 +31,9 @@ export class AdminApiKeysController {
   @HttpCode(HttpStatus.CREATED)
   @ApiCreatedResponse({ type: CreatedApiKeyDto })
   async create(@Body() dto: CreateApiKeyDto): Promise<CreatedApiKeyDto> {
-    return this.apiKeyService.createKey({
+    // Provisioning has no signed-in human; the x-admin-key is the principal,
+    // so the trail names that credential instead of inventing a user.
+    return this.apiKeyService.createKey(ADMIN_KEY_ACTOR, {
       name: dto.name,
       expiresInDays: dto.expiresInDays ?? null,
       // The DTO is the operator's contract: a bootstrap key that will seed or

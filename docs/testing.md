@@ -36,6 +36,50 @@ would bring it back.
   it through Playwright's `mount` fixture; the quality suite walks every story in
   both themes.
 
+## Frontend E2E coverage
+
+Every user-facing feature area has a Playwright spec under
+`frontend/tests/e2e/`. A spec creates its own uniquely named project (and
+group/user/key where needed) through `fixtures/api.ts`, drives the real UI, and
+cleans up in `afterEach`; API calls that need a browser session use
+`loginSession()` instead of the project API key.
+
+| Area                                                                               | Spec                                  |
+| ---------------------------------------------------------------------------------- | ------------------------------------- |
+| Review loop, skip, approve, done page                                              | `image-review-workflow.spec.ts`       |
+| PDF compare, downloads, approval, diff reclamation                                 | `pdf-comparison-workflow.spec.ts`     |
+| Inbox entry/return                                                                 | `review-inbox.spec.ts`                |
+| Inbox bulk approve, project bulk move                                              | `bulk-actions.spec.ts`                |
+| Comments: create, filter, resolve, reload, inherited read-only                     | `comments.spec.ts`                    |
+| Test metadata: rename, description, tags, size policy, mute/unmute, delete variant | `test-lifecycle.spec.ts`              |
+| Threshold edit, auto-accept confirmation, invalid input                            | `threshold.spec.ts`                   |
+| Baseline history + restore, inherited read-only                                    | `baseline-history.spec.ts`            |
+| Branch switch, inherited baseline, retarget, default, delete guards                | `branches.spec.ts`                    |
+| Required approvals (4-eyes vote), assignments, inbox "my reviews"                  | `review-settings-assignments.spec.ts` |
+| Storage usage, retention settings, cleanup preview                                 | `storage.spec.ts`                     |
+| Share links: create, passphrase, anonymous read, revoke                            | `share-links.spec.ts`                 |
+| API keys: create/use/rotate/revoke/delete                                          | `api-keys.spec.ts`                    |
+| Users: create, reset, deactivate/reactivate, forced password change, viewer gating | `users.spec.ts`                       |
+| Sessions list/revoke, 2FA enable/login challenge/disable                           | `security.spec.ts`                    |
+| Audit filters and CSV export                                                       | `audit.spec.ts`                       |
+| Webhooks: create, edit, activate, test, deliveries, replay, delete, SSRF rejection | `webhooks.spec.ts`                    |
+| Runs: list/detail, approve all, finish, JUnit/HTML/CSV reports                     | `runs.spec.ts`                        |
+| Trends metrics and range switch                                                    | `trends.spec.ts`                      |
+| Variant gallery, overview page, PDF overview note                                  | `test-overview.spec.ts`               |
+| Global search, theme persistence, locale switch, logout                            | `search-theme-locale.spec.ts`         |
+| Project list/search/filter, group CRUD, project move/delete                        | `groups-projects.spec.ts`             |
+| Navigation and 404                                                                 | `navigation.spec.ts`                  |
+
+## Backend E2E coverage
+
+`backend/test/e2e/**/*.e2e-spec.ts` covers the HTTP surface the frontend E2E
+cannot reach cheaply: API-key scopes and lifecycle, roles, users administration,
+audit export, review comments/assignments, four-eyes votes, thresholds, baseline
+history/restore, branch management, variants/pending meta, runs and reports,
+share links, webhook management/delivery/replay, storage/quota, PDF pipeline and
+maintenance sweeps. Each spec resets the `vrt_e2e` database and calls the real
+app through supertest.
+
 ## Gates
 
 - The backend coverage thresholds are enforced by the Vitest run itself

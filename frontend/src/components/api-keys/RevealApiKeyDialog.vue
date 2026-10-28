@@ -42,8 +42,12 @@ async function copy() {
   // The reveal is a convenience, not the only way to get the key: clipboard
   // access can be denied (insecure origin, missing permission), in which case
   // the key stays selectable in the field so it can still be copied by hand.
-  await navigator.clipboard?.writeText(rawKey);
-  copied.value = true;
+  try {
+    await navigator.clipboard?.writeText(rawKey);
+    copied.value = true;
+  } catch {
+    copied.value = false;
+  }
 }
 </script>
 

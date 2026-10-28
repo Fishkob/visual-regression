@@ -20,6 +20,7 @@ import { plainToInstance } from 'class-transformer';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { Roles } from '@common/http/roles.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { requireActor } from '@common/http/authenticated-principal';
 import { ApiKeyService, type ApiKeyView } from '@internal/auth/api-key.service';
 import {
   ApiKeyDto,
@@ -60,7 +61,7 @@ export class ApiKeysController {
     @Body() dto: CreateApiKeyDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<CreatedApiKeyDto> {
-    const issued = await this.apiKeyService.createKey({
+    const issued = await this.apiKeyService.createKey(requireActor(req), {
       name: dto.name,
       expiresInDays: dto.expiresInDays ?? null,
       createdBy: req.auth?.username ?? null,
@@ -83,7 +84,7 @@ export class ApiKeysController {
     @Body() dto: RotateApiKeyDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<CreatedApiKeyDto> {
-    const issued = await this.apiKeyService.rotateKey(id, {
+    const issued = await this.apiKeyService.rotateKey(requireActor(req), id, {
       graceMinutes: dto.graceMinutes,
       // Passed through untouched: the rotation's expiry is a three-way choice —
       // omitted inherits the predecessor's remaining lifetime, null means the
@@ -103,8 +104,13 @@ export class ApiKeysController {
   async revoke(
     @Param('id') id: string,
     @Body() dto: RevokeApiKeyDto,
+    @Req() req: AuthenticatedRequest,
   ): Promise<ApiKeyDto> {
-    const row = await this.apiKeyService.revokeKey(id, dto.reason ?? null);
+    const row = await this.apiKeyService.revokeKey(
+      requireActor(req),
+      id,
+      dto.reason ?? null,
+    );
     return this.toDto(row);
   }
 
@@ -113,8 +119,11 @@ export class ApiKeysController {
     summary: 'Delete a key that was never used; used keys must be revoked',
   })
   @ApiOkResponse({ description: 'Key deleted' })
-  async remove(@Param('id') id: string): Promise<{ success: true }> {
-    return this.apiKeyService.deleteKey(id);
+  async remove(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<{ success: true }> {
+    return this.apiKeyService.deleteKey(requireActor(req), id);
   }
 
   private toDto(row: ApiKeyView): ApiKeyDto {

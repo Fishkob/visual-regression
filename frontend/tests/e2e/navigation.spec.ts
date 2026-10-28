@@ -33,7 +33,7 @@ test.describe("Project List", () => {
 
     await page.waitForURL(/\/projects\//);
 
-    await expect(page.getByRole("heading", { level: 2 })).toContainText(
+    await expect(page.getByTestId(TEST_ID.projectTitle)).toContainText(
       projectName,
       {
         timeout: 10000,

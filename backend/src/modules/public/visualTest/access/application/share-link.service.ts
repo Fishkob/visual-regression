@@ -180,6 +180,9 @@ export class ShareLinkService {
   }
 
   async list(projectName: string): Promise<ShareLinkView[]> {
+    // An unknown parent project is a 404, not an empty list: a typo must not
+    // read as "this project has no share links" (matches webhooks/storage).
+    await this.projects.requireByName(projectName);
     return (await this.links.listByProject(projectName)).map((row) =>
       this.toView(row),
     );

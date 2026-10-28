@@ -5,6 +5,7 @@ import { BranchResolver } from '@public/visualTest/core/application/services/bra
 import { BranchDeletionService } from '@public/visualTest/core/application/services/branch-deletion.service';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
+import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
 import { createMockProjectRepository } from '@test/utils/mocks';
 
@@ -56,7 +57,7 @@ describe('BranchCommandService', () => {
     vi.restoreAllMocks();
   });
 
-  it('refuses to delete the default branch', async () => {
+  it('lets the deletion service own the default-branch refusal', async () => {
     branchResolver.resolveRead.mockResolvedValue({
       projectId: 'proj-1',
       branchId: 'br-main',
@@ -64,11 +65,18 @@ describe('BranchCommandService', () => {
       isDefault: true,
       isArchived: false,
     });
+    branches.findByProjectAndName.mockResolvedValue(main);
+    // The specific message ("cannot be deleted", not "cannot be modified this
+    // way") is produced by the deletion service, so the command must hand the
+    // default branch over instead of rejecting it on the way.
+    deletion.delete.mockRejectedValue(
+      new DomainError('The default branch cannot be deleted', 'CONFLICT'),
+    );
 
     await expect(service.delete('app', 'main', 'jane')).rejects.toMatchObject({
       code: 'CONFLICT',
     });
-    expect(deletion.delete).not.toHaveBeenCalled();
+    expect(deletion.delete).toHaveBeenCalledWith('proj-1', 'br-main', 'jane');
   });
 
   it('archives a feature branch', async () => {

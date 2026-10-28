@@ -5,6 +5,7 @@ import {
   setupReviewableTest,
 } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
+import { approveCurrentComparison } from "./fixtures/review";
 
 let projectName: string;
 
@@ -34,7 +35,7 @@ test("opens a single review from the inbox and returns to the inbox", async ({
   await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
     timeout: 10000,
   });
-  await page.getByTestId(TEST_ID.approveChanges).click();
+  await approveCurrentComparison(page);
 
   await expect(page).toHaveURL("/", { timeout: 10000 });
 });

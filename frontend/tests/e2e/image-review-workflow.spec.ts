@@ -6,6 +6,7 @@ import {
   uploadScreenshot,
 } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
+import { approveCurrentComparison } from "./fixtures/review";
 
 let projectName: string;
 const DETAIL_QUERY = "?viewport=1920x1080&browser=Chrome&environment=staging";
@@ -34,7 +35,7 @@ test.describe("Image Review Loop", () => {
     });
     await expect(page.getByTestId(TEST_ID.badgeMismatch)).toBeVisible();
 
-    await page.getByTestId(TEST_ID.approveChanges).click();
+    await approveCurrentComparison(page);
 
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Approved .* of "login-form"/,
@@ -101,7 +102,7 @@ test.describe("Image Review Loop", () => {
       timeout: 10000,
     });
     await pendingResponse;
-    await page.getByTestId(TEST_ID.approveChanges).click();
+    await approveCurrentComparison(page);
 
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Approved .* of "login-form"/,
@@ -113,7 +114,7 @@ test.describe("Image Review Loop", () => {
     await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
       timeout: 10000,
     });
-    await page.getByTestId(TEST_ID.approveChanges).click();
+    await approveCurrentComparison(page);
 
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Approved .* of "checkout-flow"/,

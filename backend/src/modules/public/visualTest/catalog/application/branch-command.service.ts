@@ -138,7 +138,11 @@ export class BranchCommandService {
     branchName: string,
     actor: string,
   ): Promise<void> {
-    const branch = await this.resolveFeatureBranch(projectName, branchName);
+    // Deleting a default branch is rejected, but with the deletion-specific
+    // message: BranchDeletionService owns that rule, so let it see the branch.
+    const branch = await this.resolveFeatureBranch(projectName, branchName, {
+      allowDefault: true,
+    });
     await this.deletion.delete(branch.projectId, branch.id, actor);
   }
 
@@ -178,9 +182,13 @@ export class BranchCommandService {
     return project;
   }
 
-  private async resolveFeatureBranch(projectName: string, branchName: string) {
+  private async resolveFeatureBranch(
+    projectName: string,
+    branchName: string,
+    options: { allowDefault?: boolean } = {},
+  ) {
     const resolved = await this.resolver.resolveRead(projectName, branchName);
-    if (resolved.isDefault) {
+    if (resolved.isDefault && !options.allowDefault) {
       throw new DomainError(
         'The default branch cannot be modified this way',
         'CONFLICT',

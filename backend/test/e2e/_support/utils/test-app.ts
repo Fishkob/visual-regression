@@ -47,10 +47,15 @@ export class TestApp {
 
     // The approval audit rows and the review artifacts deliberately have no
     // foreign key to the test, so the cascading deletes below cannot reach
-    // them: clear them explicitly.
+    // them: clear them explicitly. The same is true for the global trail, share
+    // links and outcome events, whose rows outlive the project they name —
+    // leaving them behind made list assertions depend on earlier test files.
     await db.approval.deleteMany();
     await db.approvalVote.deleteMany();
     await db.reviewComment.deleteMany();
+    await db.shareLink.deleteMany();
+    await db.auditEvent.deleteMany();
+    await db.comparisonOutcomeEvent.deleteMany();
     await db.unifiedVariant.deleteMany();
     await db.unifiedComparison.deleteMany();
     await db.unifiedScreenshot.deleteMany();

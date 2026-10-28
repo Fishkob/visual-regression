@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { DomainError } from '@common/domain/domain-error';
+import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
+import { AuditService } from '@internal/audit/audit.service';
+import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import { isCredentialLive } from './credential-liveness.policy';
 import {
   AuthRepository,
@@ -86,26 +89,49 @@ export interface RotatedApiKey extends IssuedApiKey {
 
 @Injectable()
 export class ApiKeyService {
-  constructor(private readonly repo: AuthRepository) {}
+  constructor(
+    private readonly repo: AuthRepository,
+    private readonly audit: AuditService,
+    private readonly uow: PrismaUnitOfWork,
+  ) {}
 
-  async createKey(options: CreateApiKeyOptions): Promise<IssuedApiKey> {
+  async createKey(
+    actor: string,
+    options: CreateApiKeyOptions,
+  ): Promise<IssuedApiKey> {
     const issued = this.generate();
     const input = this.toInput(issued, options);
-    let row: ApiKeyRow;
-    try {
-      row = await this.repo.createApiKey(input);
-    } catch (error) {
-      this.rethrowNameConflict(error, input.name);
-    }
-    return {
-      id: row.id,
-      name: row.name,
-      rawKey: issued.rawKey,
-      keyHint: input.keyHint,
-      scopes: input.scopes as ApiKeyScope[],
-      projectNames: input.projectNames,
-      expiresAt: input.expiresAt,
-    };
+    // Issuing a credential and recording who issued it are one change: a key
+    // that exists without a trail is exactly what the audit log must not miss.
+    return this.uow.execute(async () => {
+      let row: ApiKeyRow;
+      try {
+        row = await this.repo.createApiKey(input);
+      } catch (error) {
+        this.rethrowNameConflict(error, input.name);
+      }
+      await this.audit.record({
+        actor,
+        action: AUDIT_ACTIONS.apiKeyCreate,
+        targetType: 'api-key',
+        targetId: row.id,
+        metadata: {
+          name: row.name,
+          scopes: input.scopes,
+          projectNames: input.projectNames,
+          ...(row.ownerId ? { ownerId: row.ownerId } : {}),
+        },
+      });
+      return {
+        id: row.id,
+        name: row.name,
+        rawKey: issued.rawKey,
+        keyHint: input.keyHint,
+        scopes: input.scopes as ApiKeyScope[],
+        projectNames: input.projectNames,
+        expiresAt: input.expiresAt,
+      };
+    });
   }
 
   async listKeys(): Promise<ApiKeyView[]> {
@@ -117,22 +143,38 @@ export class ApiKeyService {
   // Idempotent by design: revoking an already-revoked key reports the existing
   // state instead of failing, so a double click or a retried request cannot
   // flip the result of an operation that already happened.
-  async revokeKey(id: string, reason?: string | null): Promise<ApiKeyView> {
+  async revokeKey(
+    actor: string,
+    id: string,
+    reason?: string | null,
+  ): Promise<ApiKeyView> {
     const current = await this.findOrFail(id);
     if (current.revokedAt) return this.toView(current);
     const trimmed = reason?.trim() ?? '';
-    const row = await this.repo.revokeApiKey(
-      id,
-      new Date(),
-      trimmed.length > 0 ? trimmed : null,
-    );
-    return this.toView(row);
+    return this.uow.execute(async () => {
+      const row = await this.repo.revokeApiKey(
+        id,
+        new Date(),
+        trimmed.length > 0 ? trimmed : null,
+      );
+      await this.audit.record({
+        actor,
+        action: AUDIT_ACTIONS.apiKeyRevoke,
+        targetType: 'api-key',
+        targetId: id,
+        metadata: {
+          name: current.name,
+          ...(trimmed.length > 0 ? { reason: trimmed } : {}),
+        },
+      });
+      return this.toView(row);
+    });
   }
 
   // Only a key that never authenticated may be deleted outright: once it has
   // used the API, the row is the only record of which CI job that was, so it is
   // revoked (kept) rather than deleted.
-  async deleteKey(id: string): Promise<{ success: true }> {
+  async deleteKey(actor: string, id: string): Promise<{ success: true }> {
     const current = await this.findOrFail(id);
     if (current.lastUsedAt) {
       throw new DomainError(
@@ -140,11 +182,21 @@ export class ApiKeyService {
         'CONFLICT',
       );
     }
-    await this.repo.deleteApiKey(id);
+    await this.uow.execute(async () => {
+      await this.repo.deleteApiKey(id);
+      await this.audit.record({
+        actor,
+        action: AUDIT_ACTIONS.apiKeyDelete,
+        targetType: 'api-key',
+        targetId: id,
+        metadata: { name: current.name },
+      });
+    });
     return { success: true };
   }
 
   async rotateKey(
+    actor: string,
     id: string,
     options: RotateApiKeyOptions = {},
   ): Promise<RotatedApiKey> {
@@ -194,25 +246,38 @@ export class ApiKeyService {
       },
       now,
     );
-    let row: ApiKeyRow;
-    try {
-      row = await this.repo.replaceApiKey(input, id, retirement);
-    } catch (error) {
-      this.rethrowNameConflict(error, input.name);
-    }
-
-    return {
-      id: row.id,
-      name: row.name,
-      rawKey: issued.rawKey,
-      keyHint: input.keyHint,
-      scopes: input.scopes as ApiKeyScope[],
-      projectNames: input.projectNames,
-      expiresAt: input.expiresAt,
-      replacesId: current.id,
-      replacesKeyHint: current.keyHint,
-      graceEndsAt,
-    };
+    return this.uow.execute(async () => {
+      let row: ApiKeyRow;
+      try {
+        row = await this.repo.replaceApiKey(input, id, retirement);
+      } catch (error) {
+        this.rethrowNameConflict(error, input.name);
+      }
+      await this.audit.record({
+        actor,
+        action: AUDIT_ACTIONS.apiKeyRotate,
+        targetType: 'api-key',
+        targetId: row.id,
+        metadata: {
+          name: row.name,
+          replacesId: current.id,
+          graceMinutes,
+          ...(graceEndsAt ? { graceEndsAt: graceEndsAt.toISOString() } : {}),
+        },
+      });
+      return {
+        id: row.id,
+        name: row.name,
+        rawKey: issued.rawKey,
+        keyHint: input.keyHint,
+        scopes: input.scopes as ApiKeyScope[],
+        projectNames: input.projectNames,
+        expiresAt: input.expiresAt,
+        replacesId: current.id,
+        replacesKeyHint: current.keyHint,
+        graceEndsAt,
+      };
+    });
   }
 
   // Resolves a raw key to its stored id + name if it is active (not revoked,

@@ -38,8 +38,12 @@ async function copy() {
   if (!props.secret) return;
   // Clipboard access can be denied (insecure origin, missing permission); the
   // secret stays selectable in the field so it can still be copied by hand.
-  await navigator.clipboard?.writeText(props.secret);
-  copied.value = true;
+  try {
+    await navigator.clipboard?.writeText(props.secret);
+    copied.value = true;
+  } catch {
+    copied.value = false;
+  }
 }
 </script>
 

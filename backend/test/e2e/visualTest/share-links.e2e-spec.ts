@@ -126,6 +126,58 @@ describe('Share links (e2e)', () => {
     );
   });
 
+  it('lists the project shares with their revocation state', async () => {
+    const active = await createShare({ scope: 'PROJECT' });
+    const revoked = await createShare({ scope: 'TEST', testName: 'login' });
+    await request(app.getHttpServer())
+      .delete(`/api/v1/share-links/${revoked.link.id}`)
+      .set('Cookie', cookie)
+      .expect(200);
+
+    const list = await request(app.getHttpServer())
+      .get('/api/v1/projects/shop/share-links')
+      .set('Cookie', cookie)
+      .expect(200);
+    // Share links outlive the project row (the token is a bearer credential),
+    // so the list is filtered to the two links this test created.
+    const listed = list.body.filter(
+      (row: { id: string }) =>
+        row.id === active.link.id || row.id === revoked.link.id,
+    );
+    expect(listed).toHaveLength(2);
+    expect(listed).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: active.link.id,
+          scope: 'PROJECT',
+          projectName: 'shop',
+          testName: null,
+          branchName: null,
+          runKey: null,
+          createdBy: 'admin',
+          revokedAt: null,
+          lastAccessedAt: null,
+          accessCount: 0,
+          hasPassphrase: false,
+          expiresAt: expect.any(String),
+        }),
+        expect.objectContaining({
+          id: revoked.link.id,
+          scope: 'TEST',
+          testName: 'login',
+          revokedAt: expect.any(String),
+        }),
+      ]),
+    );
+
+    // An unknown project is a 404, not an empty list: "no links" and "no such
+    // project" are different answers (matches webhooks/storage).
+    await request(app.getHttpServer())
+      .get('/api/v1/projects/never-existed/share-links')
+      .set('Cookie', cookie)
+      .expect(404);
+  });
+
   it('stops resolving once revoked or expired', async () => {
     const revoked = await createShare({ scope: 'PROJECT' });
     await request(app.getHttpServer())

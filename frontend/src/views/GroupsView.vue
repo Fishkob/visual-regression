@@ -63,7 +63,9 @@ function cancelDelete() {
   deleteOpen.value = false;
 }
 function onDeleteOpenChange(open: boolean) {
-  if (!open) pendingDelete.value = null;
+  // Do not clear the target here: reka-ui closes the alert dialog before the
+  // action's click handler runs, so clearing on close left confirmDelete with
+  // no group to delete. cancelDelete() and onSuccess own the reset instead.
   deleteOpen.value = open;
 }
 function confirmDelete() {
@@ -138,6 +140,7 @@ function confirmDelete() {
               variant="outline"
               size="sm"
               :aria-label="t('groups.renameAria', { name: group.name })"
+              :data-testid="TEST_ID.groupRename"
               @click="openRename(group)"
             >
               {{ t("groups.rename") }}
@@ -147,6 +150,7 @@ function confirmDelete() {
               variant="destructive"
               size="sm"
               :aria-label="t('groups.deleteAria', { name: group.name })"
+              :data-testid="TEST_ID.groupDelete"
               @click="requestDelete(group)"
             >
               {{ t("groups.delete") }}

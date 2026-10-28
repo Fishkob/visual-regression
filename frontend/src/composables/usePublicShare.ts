@@ -16,9 +16,22 @@ export type PublicShareResolution =
   | { kind: "not-found" }
   | { kind: "error" };
 
+// A successful SDK call also carries the raw Response (status 201), so the
+// presence of `response` alone says nothing. Only the error envelope — which
+// has an `error` member — decides passphrase/not-found.
+function isErrorResponse(response: unknown): boolean {
+  return (
+    typeof response === "object" &&
+    response !== null &&
+    "error" in response &&
+    (response as { error?: unknown }).error !== undefined
+  );
+}
+
 function responseStatus(response: unknown): number | undefined {
-  const candidate = response as { response?: { status?: unknown } } | undefined;
-  const status = candidate?.response?.status;
+  if (!isErrorResponse(response)) return undefined;
+  const candidate = response as { response?: { status?: unknown } };
+  const status = candidate.response?.status;
   return typeof status === "number" ? status : undefined;
 }
 

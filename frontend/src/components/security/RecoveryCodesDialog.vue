@@ -36,8 +36,12 @@ watch(
 async function copy() {
   // Clipboard access can be denied (insecure origin, missing permission); the
   // codes stay selectable in the list, so the copy is a convenience only.
-  await navigator.clipboard?.writeText(props.codes.join("\n"));
-  copied.value = true;
+  try {
+    await navigator.clipboard?.writeText(props.codes.join("\n"));
+    copied.value = true;
+  } catch {
+    copied.value = false;
+  }
 }
 </script>
 

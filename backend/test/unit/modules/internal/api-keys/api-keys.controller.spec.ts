@@ -26,7 +26,9 @@ function makeView(overrides: Partial<ApiKeyView> = {}): ApiKeyView {
   };
 }
 
-const request = { auth: { username: 'alice' } } as AuthenticatedRequest;
+const request = {
+  auth: { username: 'alice', userId: 'u1' },
+} as AuthenticatedRequest;
 
 describe('ApiKeysController', () => {
   let controller: ApiKeysController;
@@ -69,11 +71,11 @@ describe('ApiKeysController', () => {
 
     const result = await controller.create({ name: 'ci-upload' }, request);
 
-    expect(apiKeyService.createKey).toHaveBeenCalledWith({
+    expect(apiKeyService.createKey).toHaveBeenCalledWith('alice', {
       name: 'ci-upload',
       expiresInDays: null,
       createdBy: 'alice',
-      ownerId: null,
+      ownerId: 'u1',
       scopes: undefined,
       projectNames: undefined,
     });
@@ -105,7 +107,7 @@ describe('ApiKeysController', () => {
 
     const result = await controller.rotate('k1', { graceMinutes: 30 }, request);
 
-    expect(apiKeyService.rotateKey).toHaveBeenCalledWith('k1', {
+    expect(apiKeyService.rotateKey).toHaveBeenCalledWith('alice', 'k1', {
       graceMinutes: 30,
       expiresInDays: undefined,
       createdBy: 'alice',
@@ -139,6 +141,7 @@ describe('ApiKeysController', () => {
     await controller.rotate('k1', { expiresInDays: null }, request);
 
     expect(apiKeyService.rotateKey).toHaveBeenCalledWith(
+      'alice',
       'k1',
       expect.objectContaining({ expiresInDays: null }),
     );
@@ -149,9 +152,13 @@ describe('ApiKeysController', () => {
       makeView({ status: 'revoked', revokedAt: new Date() }),
     );
 
-    const result = await controller.revoke('k1', { reason: 'leaked' });
+    const result = await controller.revoke('k1', { reason: 'leaked' }, request);
 
-    expect(apiKeyService.revokeKey).toHaveBeenCalledWith('k1', 'leaked');
+    expect(apiKeyService.revokeKey).toHaveBeenCalledWith(
+      'alice',
+      'k1',
+      'leaked',
+    );
     expect(result.status).toBe('revoked');
   });
 
@@ -160,15 +167,17 @@ describe('ApiKeysController', () => {
       makeView({ status: 'revoked', revokedAt: new Date() }),
     );
 
-    await controller.revoke('k1', {});
+    await controller.revoke('k1', {}, request);
 
-    expect(apiKeyService.revokeKey).toHaveBeenCalledWith('k1', null);
+    expect(apiKeyService.revokeKey).toHaveBeenCalledWith('alice', 'k1', null);
   });
 
   it('deletes a key', async () => {
     apiKeyService.deleteKey.mockResolvedValue({ success: true });
 
-    await expect(controller.remove('k1')).resolves.toEqual({ success: true });
-    expect(apiKeyService.deleteKey).toHaveBeenCalledWith('k1');
+    await expect(controller.remove('k1', request)).resolves.toEqual({
+      success: true,
+    });
+    expect(apiKeyService.deleteKey).toHaveBeenCalledWith('alice', 'k1');
   });
 });

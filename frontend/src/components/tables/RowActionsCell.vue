@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { LayoutGrid, MoreVertical, Trash2 } from "@lucide/vue";
+import { TEST_ID } from "@/lib/test-ids";
 
 // Single owner of the row-actions overflow menu: an open-state DropdownMenu with
 // a destructive delete item. Tables pass the delete label, a testid, and their
@@ -71,6 +72,7 @@ function handleOverview() {
         <DropdownMenuItem
           v-if="overviewLabel"
           class="cursor-pointer"
+          :data-testid="TEST_ID.rowActionOverview"
           @click="handleOverview"
         >
           <LayoutGrid class="w-4 h-4 mr-2" />
@@ -78,6 +80,7 @@ function handleOverview() {
         </DropdownMenuItem>
         <DropdownMenuItem
           class="text-status-danger focus:text-status-danger cursor-pointer"
+          :data-testid="TEST_ID.rowActionDelete"
           @click="handleSelect"
         >
           <Trash2 class="w-4 h-4 mr-2" />

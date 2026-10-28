@@ -16,7 +16,10 @@ export default defineConfig({
       // /api-keys and turn a page refresh into a backend 404.
       "^/api/": {
         target: "http://localhost:3000",
-        changeOrigin: true,
+        // Keep the browser's Host header: the backend's same-origin guard
+        // compares the Origin host to the request Host, and rewriting it to
+        // the target made every mutation look cross-origin in local dev.
+        changeOrigin: false,
       },
     },
   },

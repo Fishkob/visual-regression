@@ -145,6 +145,7 @@ function confirmTarget(target: string | null) {
         <DropdownMenuItem
           :disabled="isDefault"
           class="cursor-pointer"
+          :data-testid="TEST_ID.branchArchive"
           @click="toggleArchive"
         >
           <ArchiveRestore v-if="branch.isArchived" class="w-4 h-4 mr-2" />
@@ -158,6 +159,7 @@ function confirmTarget(target: string | null) {
         <DropdownMenuItem
           :disabled="!canDelete"
           class="text-status-danger focus:text-status-danger cursor-pointer"
+          :data-testid="TEST_ID.branchDelete"
           @click="requestDelete"
         >
           <Trash2 class="w-4 h-4 mr-2" />

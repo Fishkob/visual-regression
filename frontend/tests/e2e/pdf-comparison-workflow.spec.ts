@@ -6,6 +6,7 @@ import {
   deleteProject,
 } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
+import { approveCurrentComparison } from "./fixtures/review";
 
 let projectName: string;
 const TEST_NAME = "annual-report";
@@ -105,7 +106,7 @@ test.describe("PDF Comparison Workflow", () => {
       timeout: 10000,
     });
 
-    await page.getByTestId(TEST_ID.approveChanges).click();
+    await approveCurrentComparison(page);
 
     // Approving the last comparison lands on the done page showing "Back to project list"
     await expect(page.getByTestId(TEST_ID.approveChanges)).not.toBeVisible({
@@ -115,5 +116,30 @@ test.describe("PDF Comparison Workflow", () => {
     await expect(page.getByTestId(TEST_ID.backToProjectList)).toBeVisible({
       timeout: 10000,
     });
+  });
+
+  test("reclaims the PDF diff artifact after approval", async ({ page }) => {
+    await uploadPdf(projectName, `${TEST_NAME}_report`, "sample-v2.pdf");
+    await waitForPdfComparison(projectName, `${TEST_NAME}_report`);
+
+    await page.goto(testUrl(projectName, `${TEST_NAME}_report`));
+    await expect(page.getByTestId(TEST_ID.mismatchInfo)).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.getByTestId(TEST_ID.downloadDiff)).toBeVisible();
+
+    await approveCurrentComparison(page);
+    await expect(page.getByTestId(TEST_ID.approveChanges)).not.toBeVisible({
+      timeout: 10000,
+    });
+
+    // The approved PDF comparison is kept as history, but its diff artifact is
+    // gone: the details show the note instead of a diff download.
+    await page.goto(testUrl(projectName, `${TEST_NAME}_report`));
+    await expect(page.getByTestId(TEST_ID.diffRemovedNote)).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.getByTestId(TEST_ID.downloadDiff)).toHaveCount(0);
+    await expect(page.getByTestId(TEST_ID.approvalBadge)).toBeVisible();
   });
 });

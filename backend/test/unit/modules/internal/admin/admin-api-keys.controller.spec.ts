@@ -42,7 +42,7 @@ describe('AdminApiKeysController', () => {
 
     const result = await controller.create({ name: 'ci-upload' });
 
-    expect(apiKeyService.createKey).toHaveBeenCalledWith({
+    expect(apiKeyService.createKey).toHaveBeenCalledWith('admin-api-key', {
       name: 'ci-upload',
       expiresInDays: null,
     });
@@ -74,7 +74,7 @@ describe('AdminApiKeysController', () => {
       projectNames: ['shop'],
     });
 
-    expect(apiKeyService.createKey).toHaveBeenCalledWith({
+    expect(apiKeyService.createKey).toHaveBeenCalledWith('admin-api-key', {
       name: 'dev-seed',
       expiresInDays: null,
       scopes: ['upload', 'read', 'approve', 'admin'],
@@ -95,7 +95,7 @@ describe('AdminApiKeysController', () => {
 
     await controller.create({ name: 'ci-upload', expiresInDays: 90 });
 
-    expect(apiKeyService.createKey).toHaveBeenCalledWith({
+    expect(apiKeyService.createKey).toHaveBeenCalledWith('admin-api-key', {
       name: 'ci-upload',
       expiresInDays: 90,
     });
