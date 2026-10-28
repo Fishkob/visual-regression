@@ -42,7 +42,7 @@ export function getStatusBadge(status?: string | null) {
 export function getStatusCountBadge(
   status: string | null | undefined,
   count: number,
-  options: { icon?: StatusIcon; className?: string } = {},
+  options: { icon?: StatusIcon; className?: string; label?: string } = {},
 ) {
   const cfg = getStatusConfig(status);
   const icon = options.icon
@@ -55,6 +55,6 @@ export function getStatusCountBadge(
       variant: "outline",
       class: `text-xs flex items-center gap-1 ${cfg.class} ${options.className ?? ""}`,
     },
-    () => [icon, String(count)],
+    () => [icon, options.label ? `${count} ${options.label}` : String(count)],
   );
 }

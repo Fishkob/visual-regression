@@ -132,7 +132,7 @@ describe("AuditView", () => {
     expect(row.text()).toContain("checkout");
     expect(row.text()).toContain("checkout-flow");
     expect(row.text()).toContain("main");
-    expect(row.text()).toContain("test test-1");
+    expect(row.text()).toContain("test checkout-flow");
     expect(row.text()).toContain(formatRelativeAge(dto.createdAt));
 
     const time = row.findAll("td")[0]!.get("span");
@@ -145,6 +145,34 @@ describe("AuditView", () => {
     expect(details.attributes("title")).toBe(
       JSON.stringify({ viewport: "1920x1080", testKind: "image" }),
     );
+  });
+
+  it("names the target entity instead of showing its raw id", async () => {
+    mockList.mockResolvedValue(pageOf([auditDto()]));
+
+    const wrapper = mountView();
+    await waitForRows(wrapper, 1);
+
+    const row = rows(wrapper)[0]!;
+    expect(row.text()).toContain("test checkout-flow");
+    expect(row.text()).not.toContain("test-1");
+  });
+
+  it("abbreviates the id of a target without a denormalized name", async () => {
+    mockList.mockResolvedValue(
+      pageOf([
+        auditDto({
+          action: "review.comment",
+          targetType: "comment",
+          targetId: "cmvo9vus80008abcdefgh1234",
+        }),
+      ]),
+    );
+
+    const wrapper = mountView();
+    await waitForRows(wrapper, 1);
+
+    expect(rows(wrapper)[0]!.text()).toContain("comment cmvo9vus…");
   });
 
   it("labels the review and policy actions instead of their wire keys", async () => {

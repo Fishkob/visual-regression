@@ -139,7 +139,7 @@ test.describe("ProjectDetail", () => {
       { initialRoute: "/projects/checkout-ui" },
     );
 
-    await expect(component.getByRole("heading", { level: 2 })).toHaveText(
+    await expect(component.getByTestId(TEST_ID.projectTitle)).toHaveText(
       "checkout-ui",
     );
     await expect(component.getByTestId(TEST_ID.projectGroupBadge)).toHaveText(

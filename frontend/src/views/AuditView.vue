@@ -139,8 +139,38 @@ function absoluteTime(iso: string): string {
   return Number.isNaN(date.getTime()) ? iso : formatDateTime(date);
 }
 
+// The trail denormalizes the names it still knows, so a test/project/branch
+// target reads as a name instead of a cuid. Ids stay in the title for the
+// entities that have no denormalized name (comments, comparisons, keys).
+function namedTarget(event: AuditEvent): string | undefined {
+  switch (event.targetType) {
+    case "project":
+      return event.projectName ?? undefined;
+    case "test":
+      return event.testName ?? undefined;
+    case "branch":
+      return event.branchName ?? undefined;
+    default:
+      return undefined;
+  }
+}
+
+function shortId(id: string): string {
+  return id.length <= 10 ? id : `${id.slice(0, 8)}…`;
+}
+
 function targetLabel(event: AuditEvent): string {
-  return [event.targetType, event.targetId].filter(Boolean).join(" ");
+  const name = namedTarget(event);
+  if (name) return `${event.targetType} ${name}`;
+  if (!event.targetId) return event.targetType ?? "";
+  return [event.targetType, shortId(event.targetId)].filter(Boolean).join(" ");
+}
+
+function targetTitle(event: AuditEvent): string | undefined {
+  const name = namedTarget(event);
+  const full = [event.targetType, event.targetId].filter(Boolean).join(" ");
+  if (name && event.targetId) return `${name} (${event.targetId})`;
+  return full || undefined;
 }
 
 function detailsSummary(event: AuditEvent): string {
@@ -380,8 +410,8 @@ async function exportCsv() {
                 </TableCell>
                 <TableCell>
                   <span
-                    class="block max-w-40 truncate font-mono text-xs"
-                    :title="targetLabel(event)"
+                    class="block max-w-40 truncate text-xs"
+                    :title="targetTitle(event)"
                   >
                     {{ targetLabel(event) || "—" }}
                   </span>

@@ -7,7 +7,7 @@
   <div class="space-y-6 p-6">
     <div class="flex flex-wrap items-center justify-between gap-4">
       <div class="flex flex-wrap items-center gap-3">
-        <h2 class="text-xl font-semibold">
+        <h2 class="text-xl font-semibold" :data-testid="TEST_ID.projectTitle">
           {{ project?.name || projectName }}
         </h2>
         <template v-if="project">

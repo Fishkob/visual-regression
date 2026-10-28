@@ -85,13 +85,19 @@ const {
             :aria-label="
               t('projects.pendingAria', { count: project.pendingCount ?? 0 })
             "
+            :title="
+              t('projects.pendingAria', { count: project.pendingCount ?? 0 })
+            "
           >
             <component
               :is="
                 getStatusCountBadge(
                   STATUS.PENDING_APPROVAL,
                   project.pendingCount ?? 0,
-                  { className: 'py-0.5 px-1.5' },
+                  {
+                    className: 'py-0.5 px-1.5',
+                    label: t('projects.pendingLabel'),
+                  },
                 )
               "
             />
