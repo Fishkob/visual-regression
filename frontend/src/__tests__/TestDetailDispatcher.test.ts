@@ -20,11 +20,41 @@ vi.mock("@/lib/sdk", () => ({
       : undefined,
 }));
 
+// The details view is normally reached with variant coordinates in the URL;
+// the variant-less case is covered by the useVariantResolution test.
+const routeState = vi.hoisted(() => ({
+  filters: {
+    value: {} as {
+      viewport?: string;
+      browser?: string;
+      environment?: string;
+    },
+  },
+}));
+
 vi.mock("@/composables/useRouteParams", () => ({
   useRouteParams: () => ({
     projectName: ref("test-project"),
     testName: ref("test-name"),
+    branch: ref(undefined),
+    filters: routeState.filters,
   }),
+}));
+
+// The dispatcher resolves a missing variant before it renders a details view;
+// the variant-resolution composable owns that query and has its own test.
+vi.mock("@/composables/useTestVariants", () => ({
+  useTestVariantsQuery: () => ({
+    data: ref(null),
+    isLoading: ref(false),
+    error: ref(null),
+    refetch: vi.fn(),
+  }),
+}));
+
+vi.mock("vue-router", () => ({
+  useRoute: () => ({ query: {} }),
+  useRouter: () => ({ replace: vi.fn() }),
 }));
 
 const stubs = {
@@ -38,6 +68,10 @@ const stubs = {
   ErrorAlert: {
     props: ["variant", "title", "message", "retry", "onRetry"],
     template: '<div data-testid="error">{{ title }}</div>',
+  },
+  EmptyState: {
+    props: ["title", "description"],
+    template: '<div data-testid="empty">{{ title }}</div>',
   },
 };
 
@@ -54,6 +88,11 @@ function mockQuery(overrides: Record<string, unknown>) {
 describe("TestDetailDispatcher", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    routeState.filters.value = {
+      viewport: "1920x1080",
+      browser: "Chrome",
+      environment: "staging",
+    };
   });
 
   it("shows skeleton while loading", async () => {
@@ -84,6 +123,15 @@ describe("TestDetailDispatcher", () => {
     const mod = await import("@/components/TestDetailDispatcher.vue");
     const wrapper = mount(mod.default, { global: { stubs } });
     expect(wrapper.find('[data-testid="pdf-view"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="visual-view"]').exists()).toBe(false);
+  });
+
+  it("shows the empty state when a variant-less test has no variants", async () => {
+    routeState.filters.value = {};
+    mockQuery({ data: ref({ kind: "image" }) });
+    const mod = await import("@/components/TestDetailDispatcher.vue");
+    const wrapper = mount(mod.default, { global: { stubs } });
+    expect(wrapper.find('[data-testid="empty"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="visual-view"]').exists()).toBe(false);
   });
 
