@@ -10,6 +10,8 @@ declare module "vue-router" {
   interface RouteMeta {
     requiresAuth?: boolean;
     requiresRole?: UserRole;
+    // i18n key for the browser tab title (see lib/document-title).
+    titleKey?: string;
   }
 }
 

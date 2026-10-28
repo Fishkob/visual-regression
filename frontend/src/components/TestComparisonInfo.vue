@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center gap-2 p-2">
+  <div class="flex flex-wrap items-center gap-2 p-2">
     <Badge
       variant="outline"
       class="px-2 py-0.5"
@@ -24,7 +24,10 @@
       {{ variant.environment ?? "-" }}
     </Badge>
 
-    <span v-if="comparison?.createdAt" class="text-xs text-muted-foreground">
+    <span
+      v-if="comparison?.createdAt"
+      class="whitespace-nowrap text-xs text-muted-foreground"
+    >
       {{ formatRelativeAge(comparison.createdAt) }}
     </span>
 

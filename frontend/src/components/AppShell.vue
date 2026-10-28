@@ -4,10 +4,23 @@
     :class="{ 'md:flex': !isBare }"
     :data-testid="TEST_ID.appShell"
   >
+    <a
+      v-if="!isBare"
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
+      :data-testid="TEST_ID.skipToContent"
+    >
+      {{ t("common.skipToContent") }}
+    </a>
     <AppSidebar v-if="!isBare && routeReady" />
     <div class="flex min-w-0 flex-col" :class="{ 'flex-1': !isBare }">
       <AppHeader v-if="!isBare && routeReady" />
-      <main class="p-4 md:p-6" :class="{ 'flex-1': !isBare }">
+      <main
+        id="main-content"
+        tabindex="-1"
+        class="p-4 md:p-6"
+        :class="{ 'flex-1': !isBare }"
+      >
         <ErrorBoundary>
           <RouterView />
         </ErrorBoundary>
@@ -21,6 +34,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { RouterView, useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
 import AppHeader from "@/components/AppHeader.vue";
 import AppSidebar from "@/components/AppSidebar.vue";
 import ErrorBoundary from "@/components/ErrorBoundary.vue";
@@ -33,6 +47,7 @@ import { TEST_ID } from "@/lib/test-ids";
 const BARE_ROUTES = new Set(["login", "change-password", "share"]);
 
 const route = useRoute();
+const { t } = useI18n();
 const isBare = computed(() => BARE_ROUTES.has(String(route.name)));
 const routeReady = computed(() => route.matched.length > 0);
 </script>

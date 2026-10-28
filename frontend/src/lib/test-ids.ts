@@ -3,7 +3,9 @@ export const TEST_ID = {
   appSidebar: "app-sidebar",
   appHeader: "app-header",
   sidebarToggle: "sidebar-toggle",
+  sidebarMenuToggle: "sidebar-menu-toggle",
   appShell: "app-shell",
+  skipToContent: "skip-to-content",
   localeSwitcher: "locale-switcher",
   searchTrigger: "search-trigger",
   globalSearchDialog: "global-search-dialog",
@@ -39,6 +41,7 @@ export const TEST_ID = {
 
   projectSearch: "project-search",
   breadcrumbGroup: "breadcrumb-group",
+  projectTitle: "project-title",
   projectGroupBadge: "project-group-badge",
   projectPendingCount: "project-pending-count",
   projectTestCount: "project-test-count",

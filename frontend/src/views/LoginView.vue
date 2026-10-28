@@ -1,5 +1,18 @@
 <template>
   <div class="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+    <div class="flex flex-col items-center gap-2">
+      <img
+        src="/logo.svg"
+        alt=""
+        aria-hidden="true"
+        class="h-12 w-12 dark:invert"
+      />
+      <p
+        class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground"
+      >
+        Visual Regression
+      </p>
+    </div>
     <h1 class="text-2xl font-semibold">
       {{ step === "password" ? t("login.signIn") : t("login.twoFactorTitle") }}
     </h1>

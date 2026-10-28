@@ -26,7 +26,6 @@ const { openPalette } = useGlobalSearchPalette();
       type="button"
       variant="ghost"
       size="sm"
-      :aria-label="t('header.searchLabel')"
       :data-testid="TEST_ID.searchTrigger"
       @click="openPalette"
     >
@@ -37,6 +36,9 @@ const { openPalette } = useGlobalSearchPalette();
       >
         Ctrl K
       </kbd>
+      <!-- The icon-only mobile button still needs a name, while the desktop
+           label must stay part of it (WCAG 2.5.3 label in name). -->
+      <span class="sr-only">{{ t("header.searchLabel") }}</span>
     </Button>
     <span
       v-if="user"

@@ -179,7 +179,7 @@ function startProjectReview() {
         />
         <button
           type="button"
-          class="flex min-w-0 flex-1 items-center justify-between gap-4 text-left transition-colors hover:bg-muted/50"
+          class="flex min-w-0 flex-1 flex-col items-start gap-2 text-left transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
           :data-testid="TEST_ID.inboxItem"
           @click="openItem(item)"
         >
@@ -189,11 +189,11 @@ function startProjectReview() {
               {{ formatVariantLabel(item) || t("inbox.noVariant") }}
             </p>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2 sm:justify-end">
             <Badge
               v-if="!item.isDefaultBranch"
               variant="secondary"
-              class="font-mono text-[10px]"
+              class="whitespace-nowrap font-mono text-[10px]"
               :data-testid="TEST_ID.inboxBranchBadge"
             >
               {{ item.branchName }}
@@ -201,7 +201,7 @@ function startProjectReview() {
             <Badge
               v-if="item.runKey"
               variant="outline"
-              class="font-mono text-[10px]"
+              class="whitespace-nowrap font-mono text-[10px]"
               :title="t('inbox.runTitle', { runKey: item.runKey })"
               :data-testid="TEST_ID.inboxRunBadge"
             >
@@ -221,7 +221,7 @@ function startProjectReview() {
                     })
               }}
             </Badge>
-            <span class="text-xs text-muted-foreground">{{
+            <span class="whitespace-nowrap text-xs text-muted-foreground">{{
               formatRelativeAge(item.createdAt)
             }}</span>
           </div>

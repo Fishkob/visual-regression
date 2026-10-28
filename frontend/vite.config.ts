@@ -12,7 +12,9 @@ export default defineConfig({
   server: {
     host: true,
     proxy: {
-      "/api": {
+      // Anchored: a plain "/api" prefix would also swallow the SPA route
+      // /api-keys and turn a page refresh into a backend 404.
+      "^/api/": {
         target: "http://localhost:3000",
         changeOrigin: true,
       },

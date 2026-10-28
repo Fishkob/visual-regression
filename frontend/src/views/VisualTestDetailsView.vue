@@ -124,8 +124,10 @@ useReviewShortcuts({
 
 <template>
   <!-- Header: Breadcrumb + Info -->
-  <div class="flex justify-between items-start px-6 py-3">
-    <div class="flex items-center gap-2">
+  <div
+    class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-6 py-3"
+  >
+    <div class="flex min-w-0 flex-wrap items-center gap-2">
       <Breadcrumbs
         class="text-sm text-muted-foreground"
         :group-name="groupName"
@@ -168,7 +170,7 @@ useReviewShortcuts({
       </Badge>
       <span
         v-if="!fromInbox && progress.total > 0"
-        class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+        class="whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
         role="status"
         aria-live="polite"
         :data-testid="TEST_ID.reviewProgress"

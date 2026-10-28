@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import {
   Inbox,
@@ -11,6 +11,8 @@ import {
   Users,
   PanelLeftClose,
   PanelLeftOpen,
+  Menu,
+  X,
 } from "@lucide/vue";
 import { useSidebar } from "@/composables/useSidebar";
 import { useReviewInboxCountQuery } from "@/composables/useReviewInbox";
@@ -21,6 +23,21 @@ import { useI18n } from "vue-i18n";
 
 const route = useRoute();
 const { t } = useI18n();
+
+// Below md the navigation cannot sit next to the content, so it collapses into
+// a menu under the header instead of a horizontally clipped strip. The menu
+// closes on navigation and Escape so it never covers the page it opened.
+const mobileOpen = ref(false);
+watch(
+  () => route.fullPath,
+  () => {
+    mobileOpen.value = false;
+  },
+);
+function onEscape(event: KeyboardEvent): void {
+  if (event.key === "Escape") mobileOpen.value = false;
+}
+
 const { collapsed, toggle: toggleSidebar } = useSidebar();
 const { data: pendingCount } = useReviewInboxCountQuery();
 // The admin-only pages are hidden, not just guarded: a member/viewer has no use
@@ -47,6 +64,7 @@ const pending = computed(() => pendingCount.value ?? 0);
     :class="collapsed ? 'md:w-16' : 'md:w-60'"
     :data-testid="TEST_ID.appSidebar"
     :data-collapsed="collapsed ? 'true' : 'false'"
+    @keydown.esc="onEscape"
   >
     <div
       class="flex items-center justify-between px-4 py-3 md:px-2"
@@ -54,11 +72,31 @@ const pending = computed(() => pendingCount.value ?? 0);
     >
       <RouterLink
         to="/"
-        class="truncate text-sm font-semibold tracking-tight"
+        class="flex min-w-0 items-center gap-2 text-sm font-semibold tracking-tight"
         :class="collapsed ? 'md:hidden' : ''"
       >
-        Visual Regression
+        <img
+          src="/logo.svg"
+          alt=""
+          aria-hidden="true"
+          class="h-6 w-6 shrink-0 dark:invert"
+        />
+        <span class="truncate">Visual Regression</span>
       </RouterLink>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        class="md:hidden"
+        :aria-expanded="mobileOpen"
+        aria-controls="app-sidebar-nav"
+        :aria-label="mobileOpen ? t('nav.closeMenu') : t('nav.openMenu')"
+        :data-testid="TEST_ID.sidebarMenuToggle"
+        @click="mobileOpen = !mobileOpen"
+      >
+        <X v-if="mobileOpen" class="h-4 w-4" />
+        <Menu v-else class="h-4 w-4" />
+      </Button>
       <Button
         type="button"
         variant="ghost"
@@ -78,7 +116,8 @@ const pending = computed(() => pendingCount.value ?? 0);
 
     <nav
       id="app-sidebar-nav"
-      class="flex gap-1 overflow-x-auto px-2 pb-2 md:flex-col md:px-3 md:pb-0"
+      class="gap-1 px-2 pb-2 md:flex md:flex-col md:px-3 md:pb-0"
+      :class="mobileOpen ? 'flex flex-col' : 'hidden'"
       :aria-label="t('nav.main')"
     >
       <RouterLink

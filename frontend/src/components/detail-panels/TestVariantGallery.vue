@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { statusLabelFor } from "@/components/StatusBadge";
 import { getStatusConfig } from "@/domains/test-status";
 import { sortVariantSummaries } from "@/domains/visual-test/variant-order";
@@ -12,6 +13,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ select: [variant: VariantSummary] }>();
+const { t } = useI18n();
 
 const orderedVariants = computed(() => sortVariantSummaries(props.variants));
 
@@ -75,7 +77,7 @@ function mismatchLabel(variant: VariantSummary): string | undefined {
         id="variant-gallery-heading"
         class="text-sm font-semibold text-foreground"
       >
-        Variants
+        {{ t("detail.variantsHeading") }}
         <span class="font-normal text-muted-foreground">
           ({{ variants.length }})
         </span>
@@ -85,7 +87,7 @@ function mismatchLabel(variant: VariantSummary): string | undefined {
         class="text-xs text-status-warning"
         :data-testid="TEST_ID.variantGalleryPendingCount"
       >
-        {{ pendingCount }} pending
+        {{ t("detail.pendingCount", { count: pendingCount }) }}
       </span>
     </div>
 
@@ -106,7 +108,6 @@ function mismatchLabel(variant: VariantSummary): string | undefined {
               : 'border-border'
           "
           :aria-pressed="isActive(variant)"
-          :aria-label="accessibleLabel(variant)"
           :title="accessibleLabel(variant)"
           :data-testid="TEST_ID.variantGalleryTile"
           :data-variant-key="variantKey(variant)"
@@ -126,7 +127,7 @@ function mismatchLabel(variant: VariantSummary): string | undefined {
               v-else
               class="flex h-full items-center justify-center px-2 text-center text-[11px] text-muted-foreground"
             >
-              No baseline
+              {{ t("detail.noBaseline") }}
             </div>
 
             <span

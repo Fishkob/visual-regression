@@ -619,7 +619,6 @@ const imageFitClass = computed(() =>
           </button>
           <button
             :data-testid="TEST_ID.actualSizeToggle"
-            :aria-label="t('imageViewer.actual')"
             :aria-pressed="isActualSize"
             :class="
               cn(
@@ -631,9 +630,8 @@ const imageFitClass = computed(() =>
             "
             @click="enableActualSize"
           >
-            <span class="text-xs font-semibold leading-none" aria-hidden="true"
-              >1:1</span
-            >
+            <span class="text-xs font-semibold leading-none">1:1</span>
+            <span class="sr-only">{{ t("imageViewer.actual") }}</span>
           </button>
           <button
             ref="fullscreenToggle"
@@ -746,7 +744,7 @@ const imageFitClass = computed(() =>
                 :data-testid="`${layeredTestId}-retry`"
                 @click="retry('baseline')"
               >
-                Retry
+                {{ t("imageViewer.retry") }}
               </Button>
             </div>
             <div
@@ -834,7 +832,7 @@ const imageFitClass = computed(() =>
                 :data-testid="`${panel.testId}-retry`"
                 @click="retry(panel.key)"
               >
-                Retry
+                {{ t("imageViewer.retry") }}
               </Button>
             </div>
             <div

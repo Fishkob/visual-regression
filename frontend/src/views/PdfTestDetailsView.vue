@@ -85,8 +85,10 @@ useReviewShortcuts({
 </script>
 
 <template>
-  <div class="flex justify-between items-start px-6 py-3">
-    <div class="flex items-center gap-2">
+  <div
+    class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-6 py-3"
+  >
+    <div class="flex min-w-0 flex-wrap items-center gap-2">
       <Breadcrumbs
         class="text-sm text-muted-foreground"
         :group-name="groupName"
@@ -129,7 +131,7 @@ useReviewShortcuts({
       </Badge>
       <span
         v-if="data?.comparison?.createdAt"
-        class="text-xs text-muted-foreground"
+        class="whitespace-nowrap text-xs text-muted-foreground"
         :data-testid="TEST_ID.pdfComparisonAge"
       >
         {{ formatRelativeAge(data.comparison.createdAt) }}
