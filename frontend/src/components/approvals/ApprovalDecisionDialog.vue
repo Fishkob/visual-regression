@@ -50,6 +50,10 @@ function submit() {
       : { reason: reason.value as ApprovalReason }),
     ...(trimmedNote.value ? { note: trimmedNote.value } : {}),
   };
+  // Submitting closes the form, as ConfirmDialog does: the decision is final,
+  // and a failed approval reports through the toast while the reviewer must
+  // still be able to skip instead of facing the same modal again.
+  emit("update:open", false);
   emit("confirm", decision);
 }
 </script>

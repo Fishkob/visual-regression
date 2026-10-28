@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { mockReviewBackend } from "./routes/api.routes";
 import {
   makeConflictError,
@@ -11,6 +11,13 @@ import type { AppShell } from "../../src/AppShell.story";
 import { TEST_ID } from "@/lib/test-ids";
 
 const PROJECT = "checkout-ui";
+
+// Approving is a reviewed decision (ADR-040): the footer button opens the
+// reason dialog, and confirming it is what posts the approval.
+async function approve(component: Locator, page: Page) {
+  await component.getByTestId(TEST_ID.approveChanges).click();
+  await page.getByTestId(TEST_ID.approveConfirm).click();
+}
 
 const testUrl = (name: string) =>
   `/projects/${PROJECT}/tests/${name}?${CHROME_1920_1080_STAGING}`;
@@ -52,7 +59,7 @@ test.describe("Approval loop (image)", () => {
       "1 of 2",
     );
 
-    await component.getByTestId(TEST_ID.approveChanges).click();
+    await approve(component, page);
 
     await expect(page).toHaveURL(/tests\/checkout-flow/);
     await expect(component.getByTestId(TEST_ID.reviewProgress)).toContainText(
@@ -63,7 +70,7 @@ test.describe("Approval loop (image)", () => {
       "157",
     );
 
-    await component.getByTestId(TEST_ID.approveChanges).click();
+    await approve(component, page);
 
     await expect(page).toHaveURL(/\/done/);
     await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText(
@@ -82,7 +89,7 @@ test.describe("Approval loop (image)", () => {
     });
 
     await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
-    await component.getByTestId(TEST_ID.approveChanges).click();
+    await approve(component, page);
 
     await expect(page).toHaveURL(/\/done/);
     await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText(
@@ -128,7 +135,7 @@ test.describe("Approval loop (image)", () => {
     });
 
     await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
-    await component.getByTestId(TEST_ID.approveChanges).click();
+    await approve(component, page);
 
     await expect(page).toHaveURL(/tests\/login-form/);
     await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
@@ -153,7 +160,7 @@ test.describe("Approval loop (image)", () => {
     });
 
     await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
-    await component.getByTestId(TEST_ID.approveChanges).click();
+    await approve(component, page);
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       /Could not approve .* "login-form"/,
     );

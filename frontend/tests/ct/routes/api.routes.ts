@@ -94,7 +94,11 @@ export interface ReviewBackendOptions {
 // the test pending on a failed one. An optional onApprove callback fires on
 // every approval POST so specs can observe that the endpoint was hit. Dispatch
 // happens on the URL pathname, so the single route glob needs no ordering
-// tricks between `meta/pending`, `:name/kind` and `:name`.
+// tricks between `meta/pending`, `:name/kind` and `:name`. The secondary reads
+// every reviewable details page makes (variants, metadata, comments, approvals)
+// answer empty instead of escaping to the dev server: an unmatched request there
+// returns 401, and because the variants key is shared with the variant resolver,
+// that error replaced the whole details page with "Failed to load test".
 export async function mockReviewBackend(
   page: Page,
   options: ReviewBackendOptions,
@@ -165,6 +169,27 @@ export async function mockReviewBackend(
         await route.fulfill(response);
         return;
       }
+    }
+
+    if (method === "GET" && tail.length === 2 && tail[1] === "variants") {
+      await route.fulfill(
+        json(200, { name: tail[0], kind: "image", variants: [] }),
+      );
+      return;
+    }
+
+    if (method === "GET" && tail.length === 2 && tail[1] === "metadata") {
+      await route.fulfill(json(200, { id: tail[0], name: tail[0], tags: [] }));
+      return;
+    }
+
+    if (
+      method === "GET" &&
+      tail.length === 2 &&
+      (tail[1] === "comments" || tail[1] === "approvals")
+    ) {
+      await route.fulfill(json(200, []));
+      return;
     }
 
     if (method === "GET" && tail.length === 1) {

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import { mockReviewBackend } from "./routes/api.routes";
 import {
   makeConflictError,
@@ -13,6 +13,13 @@ import { TEST_ID } from "@/lib/test-ids";
 const PROJECT = "checkout-ui";
 const testUrl = (name: string) =>
   `/projects/${PROJECT}/tests/${name}?${CHROME_1920_1080_STAGING}`;
+
+// Approving is a reviewed decision (ADR-040): the footer button opens the
+// reason dialog, and confirming it is what posts the approval.
+async function approve(component: Locator, page: Page) {
+  await component.getByTestId(TEST_ID.approveChanges).click();
+  await page.getByTestId(TEST_ID.approveConfirm).click();
+}
 
 const TWO_PENDING = {
   details: new Map([
@@ -48,14 +55,14 @@ test.describe("PDF approval loop", () => {
     );
     await expect(component.getByTestId(TEST_ID.approveChanges)).toBeVisible();
 
-    await component.getByTestId(TEST_ID.approveChanges).click();
+    await approve(component, page);
 
     await expect(page).toHaveURL(/tests\/receipt/);
     await expect(component.getByTestId(TEST_ID.mismatchInfo)).toContainText(
       "1 of 3 pages differ",
     );
 
-    await component.getByTestId(TEST_ID.approveChanges).click();
+    await approve(component, page);
 
     await expect(page).toHaveURL(/\/done/);
     await expect(component.getByTestId(TEST_ID.doneHeading)).toContainText(
@@ -125,7 +132,7 @@ test.describe("PDF approval loop", () => {
     });
 
     await expect(component.getByTestId(TEST_ID.mismatchInfo)).toBeVisible();
-    await component.getByTestId(TEST_ID.approveChanges).click();
+    await approve(component, page);
 
     await expect(page).toHaveURL(/tests\/invoice/);
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
