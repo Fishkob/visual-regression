@@ -1,7 +1,5 @@
 import {
-  BASELINE_PATH,
   BASE_URL,
-  BLUE_PATH,
   BROWSERS,
   DEMO_BRANCH_SEEDS,
   DEMO_TESTS,
@@ -9,13 +7,16 @@ import {
   PDF_CANDIDATE_PATH,
   PROJECT_NAMES,
   VIEWPORTS,
+  assignProjectGroup,
   createProject,
+  ensureGroup,
   resolveSeedApiKey,
   seedAuth,
   seedBranches,
   uploadVariant,
   verifyApiKeyAuth,
 } from './fixtures';
+import { createSeedImages } from './generated-images';
 /**
  * Demo Seeder - Seeds realistic data for presentation/demos
  * - 3 Projects with 4 tests each
@@ -27,6 +28,39 @@ import request from 'supertest';
 
 const SEED_API_KEY = resolveSeedApiKey();
 const AUTH_HEADERS = seedAuth(SEED_API_KEY);
+
+// One CI run per demo project: the candidate uploads below share its runKey and
+// commit context, so the Runs page and the run gate have something to show.
+const DEMO_RUNS: Record<
+  string,
+  { runKey: string; commitSha: string; commitMessage: string; ciUrl: string }
+> = {
+  'checkout-ui': {
+    runKey: 'ci-4821',
+    commitSha: '9fceb02',
+    commitMessage: 'feat: refresh checkout surfaces',
+    ciUrl: 'https://ci.example.com/runs/4821',
+  },
+  'dashboard-ui': {
+    runKey: 'ci-4822',
+    commitSha: '4d1a7c9',
+    commitMessage: 'feat: rework dashboard cards',
+    ciUrl: 'https://ci.example.com/runs/4822',
+  },
+  'admin-ui': {
+    runKey: 'ci-4823',
+    commitSha: 'c0ffee1',
+    commitMessage: 'fix: update admin tables',
+    ciUrl: 'https://ci.example.com/runs/4823',
+  },
+};
+
+// Groups make the dashboard's grouping surfaces (projects, inbox, filters)
+// non-empty in a local demo.
+const DEMO_GROUPS: Record<string, string[]> = {
+  Storefront: ['checkout-ui'],
+  Backoffice: ['dashboard-ui', 'admin-ui'],
+};
 
 async function deleteExistingProjects() {
   try {
@@ -59,6 +93,9 @@ async function seed() {
 
   await deleteExistingProjects();
 
+  const images = createSeedImages();
+  let candidateIndex = 0;
+
   for (const project of PROJECT_NAMES.DEMO) {
     await createProject(SEED_API_KEY, project);
 
@@ -78,12 +115,14 @@ async function seed() {
             viewport,
             browser,
             environment: 'staging',
-            file: BASELINE_PATH,
+            file: images.baseline,
             testKind: 'image',
           });
         }
       }
 
+      const candidate = images.candidates[candidateIndex] ?? images.baseline;
+      candidateIndex++;
       await uploadVariant({
         apiKey: SEED_API_KEY,
         project,
@@ -91,8 +130,9 @@ async function seed() {
         viewport: VIEWPORTS[0],
         browser: BROWSERS[0],
         environment: 'staging',
-        file: BLUE_PATH,
+        file: candidate,
         testKind: 'image',
+        ...DEMO_RUNS[project],
       });
     }
 
@@ -117,7 +157,16 @@ async function seed() {
       environment: 'staging',
       file: PDF_CANDIDATE_PATH,
       testKind: 'pdf',
+      ...DEMO_RUNS[project],
     });
+  }
+
+  console.log('\nSeeding project groups...');
+  for (const [groupName, projects] of Object.entries(DEMO_GROUPS)) {
+    const group = await ensureGroup(SEED_API_KEY, groupName);
+    for (const project of projects) {
+      await assignProjectGroup(SEED_API_KEY, project, group.id);
+    }
   }
 
   console.log('\nSeeding branch scenarios...');

@@ -143,6 +143,11 @@ export interface SeedUpload {
   branch?: string;
   /** Target for a *newly created* branch (ignored when it already exists). */
   targetBranch?: string;
+  /** Groups the upload into a CI run on the Runs page. */
+  runKey?: string;
+  commitSha?: string;
+  commitMessage?: string;
+  ciUrl?: string;
 }
 
 export interface BranchSeed {
@@ -233,6 +238,10 @@ export async function uploadVariant({
   testKind,
   branch,
   targetBranch,
+  runKey,
+  commitSha,
+  commitMessage,
+  ciUrl,
 }: SeedUpload): Promise<void> {
   const branchLabel = branch ? ` @${branch}` : '';
   const label = `${test} (${viewport}/${browser}/${environment}) [${testKind}]${branchLabel}`;
@@ -250,6 +259,10 @@ export async function uploadVariant({
       .field('environment', environment);
     if (branch) req = req.field('branch', branch);
     if (targetBranch) req = req.field('targetBranch', targetBranch);
+    if (runKey) req = req.field('runKey', runKey);
+    if (commitSha) req = req.field('commitSha', commitSha);
+    if (commitMessage) req = req.field('commitMessage', commitMessage);
+    if (ciUrl) req = req.field('ciUrl', ciUrl);
     return req.attach('file', file);
   });
 
@@ -313,5 +326,59 @@ export async function seedBranches(
     if (seed.archive) {
       await archiveBranch(apiKey, seed.project, seed.branch);
     }
+  }
+}
+
+export interface SeedGroup {
+  id: string;
+  name: string;
+}
+
+// Seeding is idempotent: a repeated run reuses the group instead of failing on
+// the unique name, so `dev.sh seed` can be run any number of times.
+export async function ensureGroup(
+  apiKey: string,
+  name: string,
+): Promise<SeedGroup> {
+  const list = await request(BASE_URL)
+    .get('/api/v1/groups')
+    .set(seedAuth(apiKey));
+  const groups = (list.body as SeedGroup[] | undefined) ?? [];
+  const existing = groups.find((group) => group.name === name);
+  if (existing) return existing;
+
+  process.stdout.write(`Creating group "${name}"... `);
+  const res = await withRateLimitRetry(`creating group "${name}"`, () =>
+    request(BASE_URL)
+      .post('/api/v1/groups')
+      .set('Content-Type', 'application/json')
+      .set(seedAuth(apiKey))
+      .send({ name }),
+  );
+  if (res.status !== 201) {
+    throw new Error(`Could not create group "${name}" (HTTP ${res.status}).`);
+  }
+  console.log('done');
+  return res.body as SeedGroup;
+}
+
+export async function assignProjectGroup(
+  apiKey: string,
+  project: string,
+  groupId: string,
+): Promise<void> {
+  process.stdout.write(`  Moving "${project}" into its group... `);
+  const res = await withRateLimitRetry(`moving project "${project}"`, () =>
+    request(BASE_URL)
+      .patch(`/api/v1/projects/${encodeURIComponent(project)}`)
+      .set('Content-Type', 'application/json')
+      .set(seedAuth(apiKey))
+      .send({ groupId }),
+  );
+  console.log(String(res.status));
+  if (res.status !== 200) {
+    throw new Error(
+      `Could not move project "${project}" (HTTP ${res.status}).`,
+    );
   }
 }
