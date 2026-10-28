@@ -85,6 +85,14 @@ describe('Variant', () => {
     it('is true when any key holds a real value', () => {
       expect(Variant.hasFilters({ viewport: '1920x1080' })).toBe(true);
     });
+
+    it('ignores non-variant keys such as branch', () => {
+      // The query DTO carries `branch` next to the variant coordinates; route
+      // scope must not satisfy the variant-filter rule.
+      expect(Variant.hasFilters({ branch: 'main' } as VariantFilter)).toBe(
+        false,
+      );
+    });
   });
 
   describe('assertValidFilter', () => {
@@ -119,6 +127,14 @@ describe('Variant', () => {
         Variant.assertValidFilter({ viewport: '', environment: '' }),
       ).toThrow(DomainError);
     });
+
+    it('ignores non-variant keys such as branch', () => {
+      // Branch validity is owned by BranchNameValidationPipe; the variant
+      // filter validator must not report it as a variant filter.
+      expect(() =>
+        Variant.assertValidFilter({ branch: '' } as VariantFilter),
+      ).not.toThrow();
+    });
   });
 
   describe('resolveRequiredFilter', () => {
@@ -144,6 +160,26 @@ describe('Variant', () => {
           'BAD_REQUEST',
         ),
       );
+    });
+
+    it('rejects a branch-only filter set as missing variant filters', () => {
+      expect(() =>
+        Variant.resolveRequiredFilter({ branch: 'main' } as VariantFilter),
+      ).toThrow(
+        new DomainError(
+          'Variant filters (viewport/browser/environment) are required',
+          'BAD_REQUEST',
+        ),
+      );
+    });
+
+    it('strips non-variant keys from the resolved filter', () => {
+      expect(
+        Variant.resolveRequiredFilter({
+          viewport: '1920x1080',
+          branch: 'main',
+        } as VariantFilter),
+      ).toEqual({ viewport: '1920x1080' });
     });
   });
 });

@@ -71,12 +71,24 @@ export class Variant {
     );
   }
 
+  // Only the three variant coordinates count as a variant filter. A request DTO
+  // may carry sibling route parameters (branch) in the same object; treating
+  // those as filters used to satisfy the "filters required" rule and resolve an
+  // arbitrary variant, so the key list is explicit here rather than derived
+  // from Object.entries().
+  private static readonly filterKeys = [
+    'viewport',
+    'browser',
+    'environment',
+  ] as const satisfies readonly (keyof VariantRecord)[];
+
   static hasFilters(filter?: VariantFilter): boolean {
-    return Object.values(filter ?? {}).some((value) => value !== undefined);
+    return this.filterKeys.some((key) => filter?.[key] !== undefined);
   }
 
   static assertValidFilter(filter?: VariantFilter): void {
-    for (const [key, value] of Object.entries(filter ?? {})) {
+    for (const key of this.filterKeys) {
+      const value = filter?.[key];
       if (value === undefined) continue;
       if (typeof value !== 'string' || value.trim().length === 0) {
         throw new DomainError(
@@ -85,6 +97,17 @@ export class Variant {
         );
       }
     }
+  }
+
+  // The filter a repository may act on: the three variant coordinates only, so
+  // an unrelated parameter can never leak into a variant-scoped query.
+  private static pickFilter(filter?: VariantFilter): VariantFilter {
+    const picked: VariantFilter = {};
+    for (const key of this.filterKeys) {
+      const value = filter?.[key];
+      if (value !== undefined) picked[key] = value;
+    }
+    return picked;
   }
 
   // Single validation rule for "the variant filters are present and valid":
@@ -99,6 +122,6 @@ export class Variant {
         'BAD_REQUEST',
       );
     }
-    return filter ?? {};
+    return this.pickFilter(filter);
   }
 }
