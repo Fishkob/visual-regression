@@ -37,7 +37,12 @@ async function resolveApiKey(): Promise<string> {
       .post('/api/v1/admin/api-keys')
       .set('Content-Type', 'application/json')
       .set('x-admin-key', process.env.ADMIN_API_KEY)
-      .send({ name: 'ci-e2e-seed' });
+      .send({
+        name: 'ci-e2e-seed',
+        // The seed creates and deletes projects (admin), uploads (upload) and
+        // approves (approve) — request every scope it uses, not the default.
+        scopes: ['upload', 'read', 'approve', 'admin'],
+      });
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const rawKey = String(res.body?.rawKey ?? '');

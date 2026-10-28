@@ -16,7 +16,7 @@ curl -X POST http://localhost:3000/api/v1/admin/api-keys \
   -d '{"name":"github-actions"}'
 ```
 
-The response contains `rawKey`, shown exactly once. Send it as `x-api-key` on every product request. See [CI Authentication](../README.md#ci-authentication) for key rotation and scope details.
+The response contains `rawKey`, shown exactly once. Send it as `x-api-key` on every product request. Pass `scopes` (for example `["upload","read"]`, or `["upload","read","approve","admin"]` for scripting) and `projectNames` to narrow the key; the default is `upload` only. See [CI Authentication](../README.md#ci-authentication) for key rotation and scope details.
 
 ## 2. Upload and wait
 

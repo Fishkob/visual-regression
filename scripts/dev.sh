@@ -222,7 +222,7 @@ cmd_seed() {
             ADMIN_RESPONSE=$(curl -sf -X POST "http://localhost:$BACKEND_PORT/api/v1/admin/api-keys" \
                 -H 'Content-Type: application/json' \
                 -H "x-admin-key: $ADMIN_API_KEY" \
-                -d '{"name":"dev-seed"}') || {
+                -d '{"name":"dev-seed","scopes":["upload","read","approve","admin"]}') || {
                 warn "Could not provision a seed API key (bad ADMIN_API_KEY, or the admin endpoint is disabled)."
                 warn "Fix ADMIN_API_KEY in backend/.env.local, or create a key and set SEED_API_KEY instead."
                 exit 1

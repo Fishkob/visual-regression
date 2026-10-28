@@ -57,6 +57,31 @@ describe('AdminApiKeysController', () => {
     });
   });
 
+  it('passes requested scopes and project names through to the service', async () => {
+    apiKeyService.createKey.mockResolvedValue({
+      id: 'k1',
+      name: 'dev-seed',
+      rawKey: 'raw-secret',
+      keyHint: '7f3a',
+      scopes: ['upload', 'read', 'approve', 'admin'],
+      projectNames: ['shop'],
+      expiresAt: null,
+    });
+
+    await controller.create({
+      name: 'dev-seed',
+      scopes: ['upload', 'read', 'approve', 'admin'],
+      projectNames: ['shop'],
+    });
+
+    expect(apiKeyService.createKey).toHaveBeenCalledWith({
+      name: 'dev-seed',
+      expiresInDays: null,
+      scopes: ['upload', 'read', 'approve', 'admin'],
+      projectNames: ['shop'],
+    });
+  });
+
   it('passes an optional expiry through to the service', async () => {
     apiKeyService.createKey.mockResolvedValue({
       id: 'k1',

@@ -140,7 +140,7 @@ curl -X POST http://localhost:3000/api/v1/admin/api-keys \
   -d '{"name":"ci-upload"}'
 ```
 
-The response contains `rawKey`, which is shown **exactly once** — store it in your CI secret store (only its SHA-256 hash is persisted). Create one key per pipeline/user for easy revocation. The same call accepts an optional `expiresInDays`.
+The response contains `rawKey`, which is shown **exactly once** — store it in your CI secret store (only its SHA-256 hash is persisted). Create one key per pipeline/user for easy revocation. The same call accepts an optional `expiresInDays`, an optional `scopes` array (`upload`, `read`, `approve`, `admin`; defaults to `upload` only) and an optional `projectNames` allowlist that confines the key to those projects.
 
 **Send the key on every product API request** via the `x-api-key` header (the header name is configurable via `AUTH_API_KEY_HEADER`):
 

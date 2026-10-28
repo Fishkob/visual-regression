@@ -32,6 +32,11 @@ export class AdminApiKeysController {
     return this.apiKeyService.createKey({
       name: dto.name,
       expiresInDays: dto.expiresInDays ?? null,
+      // The DTO is the operator's contract: a bootstrap key that will seed or
+      // upload for CI may need more than the default `upload` scope, so the
+      // request's scopes and project allowlist must reach the service.
+      ...(dto.scopes ? { scopes: dto.scopes } : {}),
+      ...(dto.projectNames ? { projectNames: dto.projectNames } : {}),
     });
   }
 }
