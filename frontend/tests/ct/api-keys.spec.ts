@@ -44,7 +44,7 @@ async function mockApiKeysBackend(
 }
 
 test.describe("API keys", () => {
-  test("lists keys with status, hint and last use", async ({ mount, page }) => {
+  test("lists keys with status and last use", async ({ mount, page }) => {
     await mockApiKeysBackend(page);
 
     const component = await mount("views/ApiKeysView/ApiKeys");
@@ -56,7 +56,6 @@ test.describe("API keys", () => {
     await expect(neverUsed.getByTestId(TEST_ID.apiKeyStatus)).toHaveText(
       "Active",
     );
-    await expect(neverUsed.getByTestId(TEST_ID.apiKeyHint)).toHaveText("…ab12");
     await expect(neverUsed.getByTestId(TEST_ID.apiKeyLastUsed)).toContainText(
       "Never used",
     );

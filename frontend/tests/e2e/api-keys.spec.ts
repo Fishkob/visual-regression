@@ -39,7 +39,6 @@ test.describe("API keys", () => {
     await expect(row.getByTestId(TEST_ID.apiKeyStatus)).toContainText("Active");
     await expect(row.getByTestId(TEST_ID.apiKeyScopes)).toContainText("upload");
     await expect(row.getByTestId(TEST_ID.apiKeyScopes)).toContainText("read");
-    await expect(row.getByTestId(TEST_ID.apiKeyHint)).toContainText("…");
 
     // The reveal dialog is the only place the raw key exists; it must work.
     const authorized = await fetch(`${API_BASE}/projects`, {

@@ -200,13 +200,6 @@ function absolute(iso: string | null): string | undefined {
                 >
                   {{ statusLabel(key) }}
                 </Badge>
-                <code
-                  v-if="key.keyHint"
-                  class="font-mono text-xs text-muted-foreground"
-                  :data-testid="TEST_ID.apiKeyHint"
-                >
-                  …{{ key.keyHint }}
-                </code>
               </div>
 
               <div class="flex flex-wrap items-center gap-2">

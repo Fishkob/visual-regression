@@ -342,7 +342,6 @@ export const TEST_ID = {
 
   apiKeyRow: "api-key-row",
   apiKeyName: "api-key-name",
-  apiKeyHint: "api-key-hint",
   apiKeyStatus: "api-key-status",
   apiKeyLastUsed: "api-key-last-used",
   apiKeyOwner: "api-key-owner",
