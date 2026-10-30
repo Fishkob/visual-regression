@@ -207,14 +207,12 @@ export const TEST_ID = {
   overlayOpacity: "overlay-opacity",
   wipeHandle: "wipe-handle",
 
-  variantGallery: "variant-gallery",
-  variantGalleryTile: "variant-gallery-tile",
-  variantGalleryStatus: "variant-gallery-status",
-  variantGalleryMismatch: "variant-gallery-mismatch",
-  variantGalleryPendingCount: "variant-gallery-pending-count",
   testOverview: "test-overview",
   testOverviewCard: "test-overview-card",
   testOverviewBack: "test-overview-back",
+  testOverviewLink: "test-overview-link",
+  testOverviewVariantCount: "test-overview-variant-count",
+  testOverviewViewportGroup: "test-overview-viewport-group",
   testOverviewPdfNote: "test-overview-pdf-note",
 
   mismatchInfo: "mismatch-info",

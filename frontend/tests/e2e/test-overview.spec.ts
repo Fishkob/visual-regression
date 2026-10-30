@@ -34,23 +34,23 @@ test.describe("Variant gallery and test overview", () => {
     await deleteProject(projectName);
   });
 
-  test("switches the variant from the gallery", async ({ page }) => {
+  test("switches the variant from the overview", async ({ page }) => {
     await page.goto(testUrl(projectName, TEST_NAME, "1920x1080"));
     await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
       timeout: 10000,
     });
 
-    const gallery = page.getByTestId(TEST_ID.variantGallery);
-    await expect(gallery).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId(TEST_ID.variantGalleryTile)).toHaveCount(2);
-    await expect(page.getByTestId(TEST_ID.variantGalleryStatus)).toHaveCount(2);
-    await expect(page.getByTestId(TEST_ID.variantGalleryMismatch)).toHaveCount(
-      2,
-    );
+    // The comparison page carries one comparison, not the variant tiles: it
+    // hands over to the overview, which is where a variant is picked.
+    await page.getByTestId(TEST_ID.testOverviewLink).click();
+    await expect(page.getByTestId(TEST_ID.testOverview)).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.getByTestId(TEST_ID.testOverviewCard)).toHaveCount(2);
 
-    await gallery
-      .getByTestId(TEST_ID.variantGalleryTile)
-      .filter({ hasText: "1280x720" })
+    await page
+      .getByTestId(TEST_ID.testOverviewCard)
+      .and(page.locator('[data-variant-key^="1280x720|"]'))
       .click();
     await expect(page).toHaveURL(
       (url) => url.searchParams.get("viewport") === "1280x720",
@@ -81,7 +81,7 @@ test.describe("Variant gallery and test overview", () => {
 
     await page
       .getByTestId(TEST_ID.testOverviewCard)
-      .filter({ hasText: "1280x720" })
+      .and(page.locator('[data-variant-key^="1280x720|"]'))
       .click();
     await expect(page).toHaveURL(
       (url) => url.pathname.endsWith("/tests/login-form"),

@@ -2,7 +2,6 @@ import { test, expect } from "@playwright/test";
 import { mockApi, mockThresholdBackend } from "./routes/api.routes";
 import {
   PROJECT_TEST_DETAILS_ONLY_BASELINE_RESPONSE,
-  VISUAL_TEST_DETAILS_MOBILE,
   VISUAL_TEST_DETAILS_PENDING,
   VISUAL_TEST_PENDING_META,
   VISUAL_TEST_VARIANTS,
@@ -22,9 +21,6 @@ const DETAILS_GLOB = `**/api/v1/projects/checkout-ui/tests/checkout-flow?${CHROM
 const KIND_GLOB = `**/api/v1/projects/checkout-ui/tests/checkout-flow/kind`;
 const PENDING_META_GLOB = `**/api/v1/projects/checkout-ui/tests/meta/pending*`;
 const VARIANTS_GLOB = `**/api/v1/projects/checkout-ui/tests/checkout-flow/variants*`;
-const MOBILE_ROUTE_QUERY =
-  "viewport=375x667&browser=Chrome&environment=staging";
-const MOBILE_DETAILS_GLOB = `**/api/v1/projects/checkout-ui/tests/checkout-flow?${MOBILE_ROUTE_QUERY}`;
 
 test.describe("VisualTestDetails", () => {
   test("shows baseline-only state", async ({ mount, page }) => {
@@ -86,13 +82,12 @@ test.describe("VisualTestDetails", () => {
     await expect(component.getByTestId(TEST_ID.shortcutsHint)).toBeVisible();
   });
 
-  test("switches the shown variant from the gallery", async ({
+  test("keeps the variants on their own page and links to them", async ({
     mount,
     page,
   }) => {
     await mockApi(page, [
       [DETAILS_GLOB, VISUAL_TEST_DETAILS_PENDING],
-      [MOBILE_DETAILS_GLOB, VISUAL_TEST_DETAILS_MOBILE],
       [PENDING_META_GLOB, VISUAL_TEST_PENDING_META],
       [VARIANTS_GLOB, VISUAL_TEST_VARIANTS],
     ]);
@@ -102,20 +97,18 @@ test.describe("VisualTestDetails", () => {
       { initialRoute: PENDING_ROUTE },
     );
 
-    await expect(component.getByTestId(TEST_ID.variantGallery)).toBeVisible();
-    await expect(component.getByTestId(TEST_ID.variantGalleryTile)).toHaveCount(
-      3,
+    // One comparison per page: the variant tiles live on the overview, so the
+    // comparison must not carry them.
+    await expect(component.getByTestId(TEST_ID.testOverviewCard)).toHaveCount(
+      0,
     );
+    await expect(component.getByTestId(TEST_ID.comparisonView)).toBeVisible();
 
-    await component
-      .getByTestId(TEST_ID.variantGalleryTile)
-      .filter({ hasText: "375x667" })
-      .click();
+    await component.getByTestId(TEST_ID.testOverviewLink).click();
 
-    await expect(component.getByTestId(TEST_ID.badgeViewport)).toContainText(
-      "375x667",
-    );
-    await expect(component.getByTestId(TEST_ID.panelCandidate)).toHaveCount(0);
+    await expect
+      .poll(() => page.url())
+      .toContain("/projects/checkout-ui/tests/checkout-flow/overview");
   });
 
   test("commits a new threshold directly when nothing auto-accepts", async ({

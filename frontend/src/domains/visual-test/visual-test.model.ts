@@ -34,7 +34,7 @@ export interface VisualTestDetails {
   inheritTarget?: string | null;
 }
 
-// One tile of the variant gallery: a single configuration of the same test
+// One variant tile of the overview: a single configuration of the same test
 // (viewport/browser/environment) with the image that represents its current
 // state — the candidate while a change is pending, otherwise the baseline.
 export interface VariantSummary {

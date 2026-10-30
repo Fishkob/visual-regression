@@ -1,12 +1,5 @@
 import type { VariantSummary } from "./visual-test.model";
-
-const VIEWPORT_PATTERN = /^(\d+)x(\d+)$/;
-
-function viewportSize(viewport: string): [number, number] | null {
-  const match = VIEWPORT_PATTERN.exec(viewport.trim());
-  if (!match) return null;
-  return [Number(match[1]), Number(match[2])];
-}
+import { parseViewport } from "./viewport";
 
 function compareStrings(left: string, right: string): number {
   if (left === right) return 0;
@@ -21,12 +14,12 @@ export function compareVariantSummaries(
   left: VariantSummary,
   right: VariantSummary,
 ): number {
-  const leftSize = viewportSize(left.viewport);
-  const rightSize = viewportSize(right.viewport);
+  const leftSize = parseViewport(left.viewport);
+  const rightSize = parseViewport(right.viewport);
   if (leftSize && rightSize) {
-    const widthDifference = leftSize[0] - rightSize[0];
+    const widthDifference = leftSize.width - rightSize.width;
     if (widthDifference !== 0) return widthDifference;
-    const heightDifference = leftSize[1] - rightSize[1];
+    const heightDifference = leftSize.height - rightSize.height;
     if (heightDifference !== 0) return heightDifference;
   } else if (leftSize) {
     return -1;

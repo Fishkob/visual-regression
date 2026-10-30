@@ -151,29 +151,10 @@ export const VISUAL_TEST_VARIANTS = jsonResponse({
   ],
 });
 
-// A single variant keeps the gallery collapsed. The story's visual baseline
-// predates the gallery; re-baseline with `./scripts/quality.sh visual --update`
-// after switching this fixture to VISUAL_TEST_VARIANTS.
+// The single-variant read the comparison page needs for its bulk-approve
+// state; the variant tiles themselves live on the overview page.
 export const VISUAL_TEST_VARIANTS_SINGLE = jsonResponse({
   name: "checkout-flow",
   kind: "image",
   variants: [galleryDesktop],
-});
-
-export const VISUAL_TEST_DETAILS_MOBILE = jsonResponse({
-  name: "checkout-flow",
-  baseline: {
-    id: "baseline-mobile-1",
-    imageUrl: "http://localhost:9000/vrt/baseline-mobile.png",
-    imageHash: "hash-baseline-mobile",
-    createdAt: "2026-01-23T14:48:36.276Z",
-    pixelDiffThreshold: 0,
-    type: "BASELINE",
-    variant: {
-      viewport: "375x667",
-      browser: "Chrome",
-      environment: "staging",
-    },
-  },
-  comparison: null,
 });

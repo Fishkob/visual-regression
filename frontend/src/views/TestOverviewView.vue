@@ -8,19 +8,24 @@ import { useTestVariantsQuery } from "@/composables/useTestVariants";
 import { useProjectDetailQuery } from "@/composables/useProjects";
 import { isImageKind, isPdfKind } from "@/domains/test-kind";
 import { isPendingApproval } from "@/domains/test-status";
-import { sortVariantSummaries } from "@/domains/visual-test/variant-order";
+import {
+  groupVariantsByViewport,
+  type ViewportGroup,
+} from "@/domains/visual-test/variant-groups";
 import type { VariantSummary } from "@/domains/visual-test/visual-test.model";
 import AsyncState from "@/components/AsyncState.vue";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TEST_ID } from "@/lib/test-ids";
-import { ArrowLeft, ArrowRight } from "@lucide/vue";
+import { ArrowLeft } from "@lucide/vue";
 
-// The browse view for one image test: the BASELINE of every variant at full
-// size. No review state, no candidate image, no approve/skip — pending changes
-// belong to the review page, which a card opens for its variant. A variant
-// without a baseline yet stays visible as a placeholder.
+// The browse view for one image test: the BASELINE of every variant, grouped by
+// viewport and laid out at its real size ratio, so the question it answers is
+// "how does this screen look at each size" rather than "which browser was it".
+// No review state, no candidate image, no approve/skip — pending changes belong
+// to the review page, which a tile opens for its variant. A variant without a
+// baseline yet stays visible as a placeholder.
 const { t } = useI18n();
 const { projectName, testName, branch } = useRouteParams();
 const { navigateToTest } = useTestNavigation({
@@ -46,9 +51,31 @@ const { data, isLoading, error, refetch } = useTestVariantsQuery(
   isImage,
 );
 
-const variants = computed(() =>
-  sortVariantSummaries(data.value?.variants ?? []),
+const variants = computed(() => data.value?.variants ?? []);
+const variantGroups = computed(() => groupVariantsByViewport(variants.value));
+const showVariantCount = computed(
+  () => isImage.value && variants.value.length > 0,
 );
+
+// One shared scale makes the size comparison honest: a row is as wide as its
+// viewport is relative to the widest one. Two bounds keep it readable — a very
+// small viewport stops shrinking (its tiles would be postage stamps), and the
+// gallery stops growing past a full desktop row (a lone variant would otherwise
+// become a billboard).
+const MIN_RELATIVE_WIDTH = 0.45;
+const MAX_ROW_WIDTH_REM = 72;
+const MAX_TILE_WIDTH_REM = 24;
+
+function rowStyle(group: ViewportGroup): Record<string, string> {
+  const count = group.variants.length;
+  const ratio = Math.max(MIN_RELATIVE_WIDTH, group.relativeWidth);
+  const maxRowWidth = `min(${MAX_ROW_WIDTH_REM}rem, ${count} * ${MAX_TILE_WIDTH_REM}rem)`;
+  return {
+    "--variant-row-width": `${(ratio * 100).toFixed(2)}%`,
+    "--variant-row-max": `calc(${ratio.toFixed(4)} * ${maxRowWidth})`,
+    "--variant-columns": `repeat(${count}, minmax(0, 1fr))`,
+  };
+}
 
 const projectRoute = computed(() => ({
   name: "project-detail",
@@ -58,11 +85,11 @@ const projectRoute = computed(() => ({
 
 // The comparison needs a concrete variant (the details endpoint rejects an
 // empty variant filter): prefer the variant that is actually waiting for a
-// review, otherwise the first one.
+// review, otherwise the first tile of the gallery.
 const comparisonTarget = computed(
   () =>
     variants.value.find((variant) => isPendingApproval(variant.status)) ??
-    variants.value[0],
+    variantGroups.value[0]?.variants[0],
 );
 
 function openVariant(variant: VariantSummary) {
@@ -73,32 +100,35 @@ function imageUrl(variant: VariantSummary): string | undefined {
   return variant.baselineUrl;
 }
 
+function variantKey(variant: VariantSummary): string {
+  return `${variant.viewport}|${variant.browser}|${variant.environment}`;
+}
+
 function variantLabel(variant: VariantSummary): string {
   return [variant.viewport, variant.browser, variant.environment]
     .filter(Boolean)
     .join(", ");
-}
-
-function cardLabel(variant: VariantSummary): string {
-  return variantLabel(variant);
 }
 </script>
 
 <template>
   <div class="space-y-6 p-6" :data-testid="TEST_ID.testOverview">
     <div class="flex flex-wrap items-start justify-between gap-4">
-      <div class="min-w-0 space-y-1">
+      <div class="min-w-0 space-y-2">
         <Breadcrumbs :group-name="groupName" />
-        <h1 class="flex items-center gap-2 truncate text-lg font-semibold">
-          {{ testName }}
+        <div class="flex flex-wrap items-center gap-2">
+          <h1 class="truncate text-lg font-semibold">{{ testName }}</h1>
           <Badge v-if="branch" variant="outline" class="font-mono text-[10px]">
             {{ branch }}
           </Badge>
-        </h1>
-        <p class="text-sm text-muted-foreground">
-          {{ t("detail.variantCount", variants.length) }} ·
-          {{ t("detail.baselines") }}
-        </p>
+          <Badge
+            v-if="showVariantCount"
+            variant="secondary"
+            :data-testid="TEST_ID.testOverviewVariantCount"
+          >
+            {{ t("detail.variantCount", variants.length) }}
+          </Badge>
+        </div>
       </div>
 
       <Button
@@ -114,12 +144,17 @@ function cardLabel(variant: VariantSummary): string {
     </div>
 
     <template v-if="isKindLoading">
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        <div
-          v-for="index in 3"
-          :key="index"
-          class="h-72 animate-pulse rounded-xl bg-muted"
-        />
+      <div class="space-y-8">
+        <div v-for="group in 2" :key="group" class="space-y-3">
+          <div class="h-4 w-28 animate-pulse rounded bg-muted" />
+          <div class="flex gap-4">
+            <div
+              v-for="tile in 3"
+              :key="tile"
+              class="h-60 flex-1 animate-pulse rounded-xl bg-muted"
+            />
+          </div>
+        </div>
       </div>
     </template>
 
@@ -152,65 +187,77 @@ function cardLabel(variant: VariantSummary): string {
       :empty-description="t('overview.emptyDescription')"
     >
       <template #loading>
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          <div
-            v-for="index in 3"
-            :key="index"
-            class="h-72 animate-pulse rounded-xl bg-muted"
-          />
+        <div class="space-y-8">
+          <div v-for="group in 2" :key="group" class="space-y-3">
+            <div class="h-4 w-28 animate-pulse rounded bg-muted" />
+            <div class="flex gap-4">
+              <div
+                v-for="tile in 3"
+                :key="tile"
+                class="h-60 flex-1 animate-pulse rounded-xl bg-muted"
+              />
+            </div>
+          </div>
         </div>
       </template>
 
-      <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-        <li
-          v-for="variant in variants"
-          :key="`${variant.viewport}|${variant.browser}|${variant.environment}`"
-          class="min-w-0"
+      <div class="space-y-8">
+        <section
+          v-for="group in variantGroups"
+          :key="group.viewport"
+          class="space-y-3"
+          :data-testid="TEST_ID.testOverviewViewportGroup"
         >
-          <button
-            type="button"
-            class="group flex w-full flex-col overflow-hidden rounded-xl border border-border bg-card text-left shadow-sm transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            :aria-label="cardLabel(variant)"
-            :data-testid="TEST_ID.testOverviewCard"
-            :data-variant-key="`${variant.viewport}|${variant.browser}|${variant.environment}`"
-            @click="openVariant(variant)"
+          <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 class="font-mono text-sm font-semibold text-foreground">
+              {{ group.viewport }}
+            </h2>
+            <span class="text-xs text-muted-foreground">
+              {{ t("detail.variantCount", group.variants.length) }}
+            </span>
+          </div>
+
+          <ul
+            class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:w-[var(--variant-row-width)] lg:max-w-[var(--variant-row-max)] lg:[grid-template-columns:var(--variant-columns)]"
+            :style="rowStyle(group)"
           >
-            <div
-              class="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2"
+            <li
+              v-for="variant in group.variants"
+              :key="variantKey(variant)"
+              class="min-w-0"
             >
-              <span class="font-mono text-xs font-medium text-foreground">
-                {{ variant.viewport }}
-              </span>
-              <span class="truncate text-xs text-muted-foreground">
-                {{ variant.browser }} · {{ variant.environment }}
-              </span>
-            </div>
-
-            <div class="h-56 w-full overflow-hidden bg-image-canvas">
-              <img
-                v-if="imageUrl(variant)"
-                :src="imageUrl(variant)"
-                :alt="variantLabel(variant)"
-                loading="lazy"
-                class="block h-auto w-full select-none"
-              />
-              <span
-                v-else
-                class="flex h-full items-center justify-center text-xs text-muted-foreground"
+              <button
+                type="button"
+                class="block w-full overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                :aria-label="variantLabel(variant)"
+                :title="variantLabel(variant)"
+                :data-testid="TEST_ID.testOverviewCard"
+                :data-variant-key="variantKey(variant)"
+                @click="openVariant(variant)"
               >
-                {{ t("overview.noBaseline") }}
-              </span>
-            </div>
-
-            <div
-              class="flex items-center justify-end gap-1 px-3 py-2 text-xs text-muted-foreground group-hover:text-foreground"
-            >
-              {{ t("detail.openComparison") }}
-              <ArrowRight class="h-3.5 w-3.5" aria-hidden />
-            </div>
-          </button>
-        </li>
-      </ul>
+                <div
+                  class="w-full overflow-hidden bg-image-canvas"
+                  :style="{ aspectRatio: group.aspectRatio }"
+                >
+                  <img
+                    v-if="imageUrl(variant)"
+                    :src="imageUrl(variant)"
+                    :alt="variantLabel(variant)"
+                    loading="lazy"
+                    class="block h-full w-full select-none object-cover object-top"
+                  />
+                  <span
+                    v-else
+                    class="flex h-full items-center justify-center px-3 text-center text-xs text-muted-foreground"
+                  >
+                    {{ t("overview.noBaseline") }}
+                  </span>
+                </div>
+              </button>
+            </li>
+          </ul>
+        </section>
+      </div>
     </AsyncState>
   </div>
 </template>

@@ -908,7 +908,7 @@
     "kind": "Kind",
     "status": "Status",
     "deleteVariant": "Delete variant",
-    "overview": "Overview",
+    "variants": "Variants",
     "unnamedTest": "Unnamed test"
   },
   "pdf": {
@@ -935,10 +935,8 @@
     "pdfNote": "This is a PDF test — the page-by-page comparison lives in the review view.",
     "openProject": "Open the project",
     "shortcuts": "Press A to approve, S to skip, Esc to go back.",
-    "openComparison": "Open comparison",
     "pdfPageUnknown": "Page count unknown — upload a comparison",
     "variantCount": "{count} variant | {count} variants",
-    "baselines": "baselines",
     "comparison": "Comparison",
     "errorTitle": "Failed to load test",
     "pdfErrorTitle": "Failed to load PDF test",
@@ -955,7 +953,6 @@
     "noVariantsTitle": "No screenshots for this test yet",
     "noVariantsBody": "Upload a screenshot for this test to review its variants.",
     "variantsHeading": "Variants",
-    "pendingCount": "{count} pending",
     "noBaseline": "No baseline"
   },
   "overview": {

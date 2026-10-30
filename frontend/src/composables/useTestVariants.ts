@@ -3,8 +3,9 @@ import { mapTestVariants } from "@/domains/visual-test/visual-test.mapper";
 import { visualTestQueryKeys } from "@/domains/visual-test/query-keys";
 import { useSdkQuery, type MaybeRef } from "@/composables/useDomainQuery";
 
-// The variant gallery read: every variant of one image test. Deliberately not
-// keyed by the shown variant — switching variants is a pure view change.
+// Every variant of one image test: the overview builds its viewport groups from
+// it, the comparison page counts the pending ones for the bulk approve. Not
+// keyed by the shown variant — the read is the whole test.
 export function useTestVariantsQuery(
   projectName: MaybeRef<string | undefined>,
   testName: MaybeRef<string | undefined>,

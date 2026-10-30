@@ -908,7 +908,7 @@
     "kind": "Typ",
     "status": "Status",
     "deleteVariant": "Variante löschen",
-    "overview": "Übersicht",
+    "variants": "Varianten",
     "unnamedTest": "Unbenannter Test"
   },
   "pdf": {
@@ -935,10 +935,8 @@
     "pdfNote": "Dies ist ein PDF-Test — der seitenweise Vergleich befindet sich in der Prüfansicht.",
     "openProject": "Projekt öffnen",
     "shortcuts": "A genehmigen, S überspringen, Esc zurück.",
-    "openComparison": "Vergleich öffnen",
     "pdfPageUnknown": "Seitenzahl unbekannt — lade einen Vergleich hoch",
     "variantCount": "{count} Variante | {count} Varianten",
-    "baselines": "Baselines",
     "comparison": "Vergleich",
     "errorTitle": "Test konnte nicht geladen werden",
     "pdfErrorTitle": "PDF-Test konnte nicht geladen werden",
@@ -955,7 +953,6 @@
     "noVariantsTitle": "Noch keine Screenshots für diesen Test",
     "noVariantsBody": "Lade einen Screenshot für diesen Test hoch, um seine Varianten zu prüfen.",
     "variantsHeading": "Varianten",
-    "pendingCount": "{count} ausstehend",
     "noBaseline": "Keine Baseline"
   },
   "overview": {

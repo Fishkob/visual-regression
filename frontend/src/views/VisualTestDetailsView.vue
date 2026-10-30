@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRoute, useRouter } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
+import { LayoutGrid } from "@lucide/vue";
 import { useVisualTestDetailsPage } from "@/composables/useTestDetailsPage";
 import { useTestVariantsQuery } from "@/composables/useTestVariants";
 import { useRouteParams } from "@/composables/useRouteParams";
@@ -9,14 +10,12 @@ import { useReviewShortcuts } from "@/composables/useReviewShortcuts";
 import { useProjectDetailQuery } from "@/composables/useProjects";
 import { isInheritedOrigin } from "@/domains/branches/branch-origin";
 import { isApproved } from "@/domains/test-status";
-import type { VariantSummary } from "@/domains/visual-test/visual-test.model";
-import { passMarkState } from "@/lib/review-pass";
 
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import TestComparisonView from "@/components/detail-panels/TestComparisonView.vue";
 import TestBaselineView from "@/components/detail-panels/TestBaselineView.vue";
 import BaselineHistoryPanel from "@/components/detail-panels/BaselineHistoryPanel.vue";
-import TestVariantGallery from "@/components/detail-panels/TestVariantGallery.vue";
 import TestComparisonInfo from "@/components/TestComparisonInfo.vue";
 import BulkApproveButton from "@/components/BulkApproveButton.vue";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
@@ -36,7 +35,6 @@ const { t } = useI18n();
 const { projectName, testName, filters, branch, fromInbox, assignedToMe } =
   useRouteParams();
 const router = useRouter();
-const route = useRoute();
 
 const { data: project } = useProjectDetailQuery(projectName, branch);
 const groupName = computed(() => project.value?.groupName ?? undefined);
@@ -85,8 +83,22 @@ const hasPendingVariants = computed(() =>
   ),
 );
 
-// The active tile is the variant the detail panel resolved, not the raw query
-// params: a partial filter (only viewport) still resolves to exactly one
+// The variants themselves are browsed on the overview, not here: this page
+// shows one comparison at a time, and a gallery above it made the review page
+// carry the whole test. The link keeps the way back one click away.
+// A route without the params (a mount before the initial route resolves) has no
+// overview to point at, so the link only renders once both names are known.
+const overviewLink = computed(() => {
+  if (!projectName.value || !testName.value) return null;
+  return {
+    name: "test-overview",
+    params: { projectName: projectName.value, testName: testName.value },
+    ...(branch.value ? { query: { branch: branch.value } } : {}),
+  };
+});
+
+// The history belongs to the variant the detail panel resolved, not to the raw
+// query params: a partial filter (only viewport) still resolves to exactly one
 // variant server-side, and the loaded comparison names it.
 const activeVariant = computed(() => {
   const resolved = data.value?.comparison?.baseline ?? data.value?.baseline;
@@ -96,18 +108,6 @@ const activeVariant = computed(() => {
     environment: resolved?.environment ?? filters.value.environment,
   };
 });
-
-function selectVariant(variant: VariantSummary) {
-  router.replace({
-    query: {
-      ...route.query,
-      viewport: variant.viewport,
-      browser: variant.browser,
-      environment: variant.environment,
-    },
-    state: passMarkState(),
-  });
-}
 
 useReviewShortcuts({
   onApprove: handleApprove,
@@ -192,6 +192,15 @@ useReviewShortcuts({
         :required-approvals="project?.requiredApprovals"
         :disabled="isApproving"
       />
+      <RouterLink
+        v-if="overviewLink"
+        :to="overviewLink"
+        :class="buttonVariants({ variant: 'outline', size: 'sm' })"
+        :data-testid="TEST_ID.testOverviewLink"
+      >
+        <LayoutGrid />
+        {{ t("detail.variantsHeading") }}
+      </RouterLink>
     </div>
 
     <TestComparisonInfo
@@ -211,14 +220,6 @@ useReviewShortcuts({
   <TestMetadataPanel class="px-6 pb-1" />
 
   <div class="p-6 pt-0">
-    <TestVariantGallery
-      v-if="variantSummaries.length > 1"
-      :variants="variantSummaries"
-      :active="activeVariant"
-      class="mb-6"
-      @select="selectVariant"
-    />
-
     <AsyncState
       :is-loading="isLoading"
       :error="error"

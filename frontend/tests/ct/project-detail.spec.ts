@@ -101,7 +101,30 @@ test.describe("ProjectDetail", () => {
     await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(9);
   });
 
-  test("opens the variant overview from a test row", async ({
+  test("opens the clicked variant from a test row", async ({ mount, page }) => {
+    await mockApi(page, [
+      ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+
+    const component = await mount<typeof Routed>(
+      "views/ProjectDetailView/Routed",
+      { initialRoute: "/projects/checkout-ui" },
+    );
+
+    await component.getByTestId(TEST_ID.tableRow).first().click();
+
+    // The row opens that variant itself (baseline, or the comparison waiting
+    // for review) — the variant gallery is a detour, not the destination.
+    await expect
+      .poll(() => page.url())
+      .toContain("/projects/checkout-ui/tests/");
+    await expect.poll(() => page.url()).toContain("viewport=");
+    await expect.poll(() => page.url()).not.toContain("/overview");
+  });
+
+  test("opens the variant gallery from the row actions", async ({
     mount,
     page,
   }) => {
@@ -116,11 +139,10 @@ test.describe("ProjectDetail", () => {
       { initialRoute: "/projects/checkout-ui" },
     );
 
-    await component.getByTestId(TEST_ID.tableRow).first().click();
+    await component.getByTestId(TEST_ID.testActionsButton).first().click();
+    // The menu renders in a portal, so it is addressed through the page.
+    await page.getByTestId(TEST_ID.rowActionOverview).click();
 
-    await expect
-      .poll(() => page.url())
-      .toContain("/projects/checkout-ui/tests/");
     await expect.poll(() => page.url()).toContain("/overview");
   });
 
@@ -466,10 +488,10 @@ test.describe("ProjectDetail row actions", () => {
 
     await component.getByTestId(TEST_ID.testActionsButton).first().click();
 
-    // The menu renders in a portal and its entries carry no testids of their
-    // own: the read-only overview comes first, the destructive delete second.
+    // The menu renders in a portal: the read-only variant gallery comes first,
+    // the destructive delete second.
     const items = page.getByRole("menuitem");
-    await expect(items).toHaveText(["Overview", "Delete variant"]);
+    await expect(items).toHaveText(["Variants", "Delete variant"]);
 
     await items.nth(1).click();
     // The confirmation names the variant that was clicked, which proves the
