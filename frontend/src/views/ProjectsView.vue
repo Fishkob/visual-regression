@@ -11,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import BulkFailureDialog from "@/components/bulk-actions/BulkFailureDialog.vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import EmptyState from "@/components/EmptyState.vue";
@@ -225,58 +224,62 @@ function create(payload: { name: string; groupId?: string }) {
 </script>
 
 <template>
-  <Breadcrumbs class="px-6 py-3 text-sm text-muted-foreground" />
-
-  <div class="space-y-6 p-6">
-    <div class="flex flex-wrap items-center justify-between gap-4">
-      <h1 class="text-xl font-semibold tracking-tight">
-        {{ t("projects.title") }}
-      </h1>
-      <div class="flex flex-wrap items-center gap-2">
-        <Input
-          :model-value="searchInput"
-          :placeholder="t('projects.searchPlaceholder')"
-          :aria-label="t('projects.searchLabel')"
-          class="w-64 rounded-xl shadow-sm"
-          :data-testid="TEST_ID.projectSearch"
-          @update:model-value="searchInput = String($event)"
-        />
-        <Select
-          :model-value="groupFilter"
-          :disabled="groupsLoading"
-          @update:model-value="groupFilter = String($event)"
-        >
-          <SelectTrigger
-            class="w-48"
-            :aria-label="t('projects.filterGroupLabel')"
-            :data-testid="TEST_ID.filterGroup"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem :value="FILTER_ALL">{{
-              t("projects.allGroups")
-            }}</SelectItem>
-            <SelectItem
-              v-for="group in groups ?? []"
-              :key="group.id"
-              :value="group.id"
-            >
-              {{ group.name }}
-            </SelectItem>
-            <SelectItem :value="UNASSIGNED_GROUP_QUERY">
-              {{ t("projects.unassigned") }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
-        <Button
-          type="button"
-          :data-testid="TEST_ID.newProject"
-          @click="openCreate"
-        >
-          {{ t("projects.newProject") }}
-        </Button>
+  <div class="space-y-6">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-xl font-semibold tracking-tight">
+          {{ t("projects.title") }}
+        </h1>
+        <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
+          {{ t("projects.subtitle") }}
+        </p>
       </div>
+      <Button
+        type="button"
+        :data-testid="TEST_ID.newProject"
+        @click="openCreate"
+      >
+        {{ t("projects.newProject") }}
+      </Button>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <Input
+        :model-value="searchInput"
+        :placeholder="t('projects.searchPlaceholder')"
+        :aria-label="t('projects.searchLabel')"
+        class="w-64 rounded-xl shadow-sm"
+        :data-testid="TEST_ID.projectSearch"
+        @update:model-value="searchInput = String($event)"
+      />
+      <Select
+        :model-value="groupFilter"
+        :disabled="groupsLoading"
+        @update:model-value="groupFilter = String($event)"
+      >
+        <SelectTrigger
+          class="w-48"
+          :aria-label="t('projects.filterGroupLabel')"
+          :data-testid="TEST_ID.filterGroup"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem :value="FILTER_ALL">{{
+            t("projects.allGroups")
+          }}</SelectItem>
+          <SelectItem
+            v-for="group in groups ?? []"
+            :key="group.id"
+            :value="group.id"
+          >
+            {{ group.name }}
+          </SelectItem>
+          <SelectItem :value="UNASSIGNED_GROUP_QUERY">
+            {{ t("projects.unassigned") }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
     </div>
 
     <ErrorAlert

@@ -159,6 +159,7 @@
   },
   "projects": {
     "title": "Projects",
+    "subtitle": "Each project holds the tests of one application, with its own branches and baselines.",
     "searchPlaceholder": "Search project...",
     "searchLabel": "Search projects",
     "filterGroupLabel": "Filter by group",
@@ -389,6 +390,7 @@
   },
   "groups": {
     "title": "Groups",
+    "subtitle": "Groups bundle projects for the sidebar and the inbox. A project's tests and review state stay untouched.",
     "newGroup": "New group",
     "errorTitle": "Failed to load groups",
     "emptyTitle": "No groups yet",

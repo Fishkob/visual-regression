@@ -81,10 +81,15 @@ function confirmDelete() {
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-xl font-semibold tracking-tight">
-        {{ t("groups.title") }}
-      </h1>
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-xl font-semibold tracking-tight">
+          {{ t("groups.title") }}
+        </h1>
+        <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
+          {{ t("groups.subtitle") }}
+        </p>
+      </div>
       <Button type="button" :data-testid="TEST_ID.newGroup" @click="openCreate">
         {{ t("groups.newGroup") }}
       </Button>

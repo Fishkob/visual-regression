@@ -159,6 +159,7 @@
   },
   "projects": {
     "title": "Projekte",
+    "subtitle": "Jedes Projekt enthält die Tests einer Anwendung, mit eigenen Branches und Baselines.",
     "searchPlaceholder": "Projekt suchen...",
     "searchLabel": "Projekte durchsuchen",
     "filterGroupLabel": "Nach Gruppe filtern",
@@ -389,6 +390,7 @@
   },
   "groups": {
     "title": "Gruppen",
+    "subtitle": "Gruppen bündeln Projekte für die Navigation und den Posteingang. Tests und Prüfstatus eines Projekts bleiben unberührt.",
     "newGroup": "Neue Gruppe",
     "errorTitle": "Gruppen konnten nicht geladen werden",
     "emptyTitle": "Noch keine Gruppen",
