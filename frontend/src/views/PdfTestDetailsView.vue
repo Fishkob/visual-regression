@@ -11,10 +11,9 @@ import { isApproved } from "@/domains/test-status";
 import { Badge } from "@/components/ui/badge";
 import PdfComparisonView from "@/components/pdf/PdfComparisonView.vue";
 import PdfBaselineView from "@/components/pdf/PdfBaselineView.vue";
-import BaselineHistoryPanel from "@/components/detail-panels/BaselineHistoryPanel.vue";
+import DetailActivityRail from "@/components/detail-panels/DetailActivityRail.vue";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
-import CommentsPanel from "@/components/comments/CommentsPanel.vue";
 import TestMetadataPanel from "@/components/test-lifecycle/TestMetadataPanel.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import ApprovalBadge from "@/components/ApprovalBadge.vue";
@@ -233,33 +232,21 @@ useReviewShortcuts({
       {{ t("detail.shortcuts") }}
     </p>
 
-    <!-- The thread annotates the diff it sits under; the panel is collapsed
-         while empty so the comparison stays in view. -->
-    <CommentsPanel
-      class="mt-6"
-      :project-name="projectName"
-      :test-name="testName"
-      :branch="branch"
-      :comparison-id="data?.comparison?.id"
-      :read-only="isInherited"
-    />
-
-    <!-- Restoring replaces the baseline of the resolved variant and retires its
-         pending comparison, so the panel needs the same read-only flag as the
-         approve actions. Hidden for an inherited test (the read answers 409 —
-         the history lives on the branch that owns it) and read-only while the
-         baseline is still an inherited clone. The page count of each revision
-         travels in the DTO. -->
-    <BaselineHistoryPanel
-      v-if="data?.baseline && !isInherited"
+    <!-- The thread, the baseline trail and the approval trail sit below the
+         page pair: the document needs the full width. The page count of each
+         revision travels in the DTO. -->
+    <DetailActivityRail
       class="mt-6"
       kind="pdf"
       :project-name="projectName"
       :test-name="testName"
       :branch="branch"
+      :comparison-id="data?.comparison?.id"
+      :read-only="isInherited"
+      :history-read-only="isInherited || !!data?.baselineInherited"
+      :history-enabled="!!data?.baseline && !isInherited"
       :variant="resolvedVariant"
       :current-hash="data?.baseline?.imageHash"
-      :read-only="isInherited || !!data?.baselineInherited"
     />
   </div>
 </template>

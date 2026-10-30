@@ -1,28 +1,20 @@
 <script setup lang="ts">
-import { computed, ref, toRef } from "vue";
+import { computed, ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { formatDateTime } from "@/lib/format-date";
-import { FileText } from "@lucide/vue";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { FileText, Maximize2, RotateCcw } from "@lucide/vue";
+import AsyncState from "@/components/AsyncState.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import BaselinePreviewDialog from "@/components/detail-panels/BaselinePreviewDialog.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
-import ErrorAlert from "@/components/ErrorAlert.vue";
 import { useBaselineHistory } from "@/composables/useBaselineHistory";
 import { useRestoreBaseline } from "@/composables/useRestoreBaseline";
-import { useTestApprovalsQuery } from "@/composables/useTestApprovals";
 import { useCurrentRole } from "@/composables/useAuth";
 import type {
   BaselineRevision,
   BaselineRevisionReason,
 } from "@/domains/baseline-history/baseline-history.model";
-import { approvalReasonKey } from "@/domains/approvals/approval-reason";
-import { formatRelativeAge } from "@/lib/format-date";
+import { formatDateTime, formatRelativeAge } from "@/lib/format-date";
 import { TEST_ID } from "@/lib/test-ids";
 import type { VariantParams } from "@/lib/variant-key";
 
@@ -48,6 +40,12 @@ const props = withDefaults(
   { kind: "image", readOnly: false },
 );
 
+// Content only: the rail owns the header and its tab, and gets the size so the
+// tab can carry the count.
+const emit = defineEmits<{
+  "update:count": [count: number];
+}>();
+
 const {
   data: revisions,
   isLoading,
@@ -59,12 +57,6 @@ const {
   branchName: toRef(props, "branch"),
   variant: toRef(props, "variant"),
 });
-
-const { data: approvals } = useTestApprovalsQuery(
-  toRef(props, "projectName"),
-  toRef(props, "testName"),
-  toRef(props, "branch"),
-);
 
 const { restore, isPending } = useRestoreBaseline({
   projectName: toRef(props, "projectName"),
@@ -78,7 +70,9 @@ const { restore, isPending } = useRestoreBaseline({
 const { canWrite } = useCurrentRole();
 
 const rows = computed(() => revisions.value ?? []);
-const approvalRows = computed(() => approvals.value ?? []);
+const canRestore = computed(() => !props.readOnly && canWrite.value);
+
+watch(rows, (list) => emit("update:count", list.length), { immediate: true });
 
 // The reason names the overwrite that retired the recorded baseline, so the
 // badge reads as "what happened to it", not as a status of the image.
@@ -97,6 +91,20 @@ function pageCountLabel(revision: BaselineRevision): string | null {
   return t("baseline.pageCount", revision.pageCount);
 }
 
+function thumbAlt(revision: BaselineRevision): string {
+  return t("baseline.thumbAlt", {
+    age: formatRelativeAge(revision.createdAt),
+  });
+}
+
+const previewOpen = ref(false);
+const previewTarget = ref<BaselineRevision | null>(null);
+
+function openPreview(revision: BaselineRevision) {
+  previewTarget.value = revision;
+  previewOpen.value = true;
+}
+
 const restoreTarget = ref<BaselineRevision | null>(null);
 const confirmOpen = ref(false);
 
@@ -105,6 +113,16 @@ function askRestore(revision: BaselineRevision) {
   confirmOpen.value = true;
 }
 
+// Restoring from the preview first steps back to the confirmation: the dialog
+// shows a picture, not the consequences of replacing the live baseline.
+function restoreFromPreview() {
+  if (!previewTarget.value) return;
+  previewOpen.value = false;
+  askRestore(previewTarget.value);
+}
+
+// The confirm dialog closes itself on confirm (ConfirmDialog's contract), so
+// the target only has to survive until the mutation is sent.
 function confirmRestore() {
   const target = restoreTarget.value;
   if (!target) return;
@@ -122,182 +140,154 @@ const confirmDescription = computed(() => {
 
 <template>
   <div :data-testid="TEST_ID.baselineHistorySection">
-    <Accordion type="multiple" :default-value="['history', 'approvals']">
-      <AccordionItem
-        value="history"
-        class="rounded-xl border bg-card shadow-sm"
-      >
-        <AccordionTrigger
-          class="px-4 py-3 hover:no-underline"
-          :data-testid="TEST_ID.baselineHistoryToggle"
-        >
-          <span class="text-sm font-semibold">
-            {{ t("baseline.title", { count: rows.length }) }}
-          </span>
-        </AccordionTrigger>
-
-        <AccordionContent class="px-4">
+    <AsyncState
+      :is-loading="isLoading"
+      :error="error"
+      :error-title="t('baseline.errorTitle')"
+      :retry="refetch"
+      :empty="rows.length === 0"
+    >
+      <template #loading>
+        <div class="space-y-3 px-4 py-3" role="status" aria-live="polite">
           <div
-            v-if="isLoading"
-            class="space-y-2 py-2"
-            role="status"
-            aria-live="polite"
+            v-for="row in 3"
+            :key="row"
+            class="h-14 animate-pulse rounded-md bg-muted"
+          />
+          <span class="sr-only">{{ t("baseline.loading") }}</span>
+        </div>
+      </template>
+
+      <template #empty>
+        <p
+          class="px-4 py-6 text-sm text-muted-foreground"
+          :data-testid="TEST_ID.baselineHistoryEmpty"
+        >
+          {{ t("baseline.empty") }}
+        </p>
+      </template>
+
+      <ul class="divide-y px-4">
+        <li
+          v-for="revision in rows"
+          :key="revision.id"
+          class="flex items-center gap-3 py-3"
+          :data-testid="TEST_ID.baselineHistoryRow"
+        >
+          <button
+            v-if="kind !== 'pdf'"
+            type="button"
+            class="group relative h-12 w-16 shrink-0 overflow-hidden rounded-md border bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+            :aria-label="
+              t('baseline.previewOpenAria', {
+                age: formatRelativeAge(revision.createdAt),
+              })
+            "
+            :data-testid="TEST_ID.baselinePreviewOpen"
+            @click="openPreview(revision)"
           >
-            <div
-              v-for="row in 3"
-              :key="row"
-              class="h-14 animate-pulse rounded-md bg-muted"
+            <img
+              :src="revision.imageUrl"
+              :alt="thumbAlt(revision)"
+              loading="lazy"
+              class="h-full w-full object-cover"
+              :data-testid="TEST_ID.baselineHistoryThumb"
             />
-            <span class="sr-only">{{ t("baseline.loading") }}</span>
+            <span
+              class="absolute inset-0 flex items-center justify-center bg-background/70 text-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+            >
+              <Maximize2 class="size-3.5" aria-hidden="true" />
+            </span>
+          </button>
+
+          <div
+            v-else
+            class="flex h-12 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded-md border bg-muted text-muted-foreground"
+            :data-testid="TEST_ID.baselineHistoryThumb"
+          >
+            <FileText class="size-4" aria-hidden="true" />
+            <span class="text-[10px] font-medium">PDF</span>
           </div>
 
-          <ErrorAlert
-            v-else-if="error"
-            variant="error"
-            :title="t('baseline.errorTitle')"
-            :message="error.message"
-            retry
-            :on-retry="() => refetch()"
-          />
-
-          <p
-            v-else-if="rows.length === 0"
-            class="py-4 text-sm text-muted-foreground"
-            :data-testid="TEST_ID.baselineHistoryEmpty"
-          >
-            {{ t("baseline.empty") }}
-          </p>
-
-          <ul v-else class="divide-y">
-            <li
-              v-for="revision in rows"
-              :key="revision.id"
-              class="flex items-center gap-3 py-3"
-              :data-testid="TEST_ID.baselineHistoryRow"
-            >
-              <img
-                v-if="kind !== 'pdf'"
-                :src="revision.imageUrl"
-                :alt="
-                  t('baseline.thumbAlt', {
-                    age: formatRelativeAge(revision.createdAt),
-                  })
-                "
-                loading="lazy"
-                class="h-12 w-16 shrink-0 rounded border bg-muted object-cover"
-                :data-testid="TEST_ID.baselineHistoryThumb"
-              />
-              <div
-                v-else
-                class="flex h-12 w-16 shrink-0 flex-col items-center justify-center gap-0.5 rounded border bg-muted text-muted-foreground"
-                :data-testid="TEST_ID.baselineHistoryThumb"
-              >
-                <FileText class="size-4" aria-hidden="true" />
-                <span class="text-[10px] font-medium">PDF</span>
-              </div>
-
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-2">
-                  <Badge
-                    variant="secondary"
-                    :data-testid="TEST_ID.baselineHistoryReason"
-                  >
-                    {{ t(REASON_KEY[revision.reason]) }}
-                  </Badge>
-                  <Badge v-if="isCurrent(revision)" variant="outline">
-                    {{ t("baseline.current") }}
-                  </Badge>
-                  <span class="truncate text-sm">
-                    {{ revision.createdBy ?? t("baseline.unknown") }}
-                  </span>
-                </div>
-
-                <div
-                  class="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
-                >
-                  <span :title="formatDateTime(new Date(revision.createdAt))">
-                    {{ formatRelativeAge(revision.createdAt) }}
-                  </span>
-                  <span aria-hidden="true">·</span>
-                  <span>≤ {{ revision.pixelDiffThreshold }} px</span>
-                  <template v-if="pageCountLabel(revision)">
-                    <span aria-hidden="true">·</span>
-                    <span>{{ pageCountLabel(revision) }}</span>
-                  </template>
-                </div>
-              </div>
-
-              <Button
-                v-if="!readOnly && canWrite"
-                type="button"
-                variant="outline"
-                size="sm"
-                :disabled="isCurrent(revision) || isPending"
-                :aria-label="
-                  t('baseline.restoreAria', {
-                    age: formatRelativeAge(revision.createdAt),
-                  })
-                "
-                :data-testid="TEST_ID.baselineHistoryRestore"
-                @click="askRestore(revision)"
-              >
-                {{ t("baseline.restore") }}
-              </Button>
-            </li>
-          </ul>
-        </AccordionContent>
-      </AccordionItem>
-
-      <AccordionItem
-        value="approvals"
-        class="rounded-xl border bg-card shadow-sm"
-      >
-        <AccordionTrigger
-          class="px-4 py-3 hover:no-underline"
-          :data-testid="TEST_ID.approvalHistoryToggle"
-        >
-          <span class="text-sm font-semibold">
-            {{ t("approval.historyTitle", { count: approvalRows.length }) }}
-          </span>
-        </AccordionTrigger>
-        <AccordionContent class="px-4">
-          <p
-            v-if="approvalRows.length === 0"
-            class="py-4 text-sm text-muted-foreground"
-          >
-            {{ t("approval.historyEmpty") }}
-          </p>
-          <ul v-else class="divide-y">
-            <li
-              v-for="approval in approvalRows"
-              :key="approval.id"
-              class="flex flex-wrap items-center gap-2 py-3 text-sm"
-              :data-testid="TEST_ID.approvalHistoryRow"
-            >
-              <span class="font-medium">{{ approval.approvedBy }}</span>
-              <span class="text-xs text-muted-foreground">
-                {{ formatRelativeAge(approval.approvedAt.toISOString()) }}
-              </span>
+          <div class="min-w-0 flex-1">
+            <div class="flex flex-wrap items-center gap-1.5">
               <Badge
-                v-if="approval.reason"
+                variant="secondary"
+                class="text-[10px]"
+                :data-testid="TEST_ID.baselineHistoryReason"
+              >
+                {{ t(REASON_KEY[revision.reason]) }}
+              </Badge>
+              <Badge
+                v-if="isCurrent(revision)"
                 variant="outline"
                 class="text-[10px]"
-                :data-testid="TEST_ID.approvalReason"
               >
-                {{ t(approvalReasonKey(approval.reason)) }}
+                {{ t("baseline.current") }}
               </Badge>
-              <span
-                v-if="approval.note"
-                class="w-full text-xs text-muted-foreground"
-                :data-testid="TEST_ID.approvalNote"
-              >
-                {{ approval.note }}
+            </div>
+
+            <p class="mt-0.5 truncate text-xs">
+              <span class="text-foreground/90">
+                {{ revision.createdBy ?? t("baseline.unknown") }}
               </span>
-            </li>
-          </ul>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
+              <span
+                class="text-muted-foreground"
+                :title="formatDateTime(new Date(revision.createdAt))"
+              >
+                · {{ formatRelativeAge(revision.createdAt) }}
+              </span>
+            </p>
+
+            <p
+              class="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground"
+            >
+              <span>
+                {{
+                  t("baseline.thresholdMeta", {
+                    px: revision.pixelDiffThreshold,
+                  })
+                }}
+              </span>
+              <template v-if="pageCountLabel(revision)">
+                <span aria-hidden="true">·</span>
+                <span>{{ pageCountLabel(revision) }}</span>
+              </template>
+            </p>
+          </div>
+
+          <Button
+            v-if="canRestore"
+            type="button"
+            variant="ghost"
+            size="icon"
+            class="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+            :disabled="isCurrent(revision) || isPending"
+            :aria-label="
+              t('baseline.restoreAria', {
+                age: formatRelativeAge(revision.createdAt),
+              })
+            "
+            :title="t('baseline.restore')"
+            :data-testid="TEST_ID.baselineHistoryRestore"
+            @click="askRestore(revision)"
+          >
+            <RotateCcw class="size-4" />
+          </Button>
+        </li>
+      </ul>
+    </AsyncState>
+
+    <BaselinePreviewDialog
+      :open="previewOpen"
+      :revision="previewTarget"
+      :kind="kind"
+      :can-restore="canRestore"
+      :current="previewTarget ? isCurrent(previewTarget) : false"
+      :pending="isPending"
+      @update:open="previewOpen = $event"
+      @restore="restoreFromPreview"
+    />
 
     <ConfirmDialog
       :open="confirmOpen"

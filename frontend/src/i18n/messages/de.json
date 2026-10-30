@@ -830,6 +830,7 @@
     "withinTolerance": "innerhalb der Toleranz",
     "withinTooltip": "{mismatch} px liegt auf oder unter der Toleranz von {threshold} px und wurde daher automatisch akzeptiert.",
     "thresholdAria": "Abweichungsschwelle in Pixeln",
+    "thresholdLabel": "Schwelle",
     "thresholdTooltip": "{tolerance} Größere Änderungen müssen geprüft werden.",
     "toleranceSet": "Abweichungen bis {threshold} px werden automatisch akzeptiert.",
     "toleranceNone": "Keine Toleranz festgelegt — jede Abweichung muss geprüft werden.",
@@ -841,9 +842,10 @@
   },
   "baseline": {
     "title": "Baseline-Verlauf ({count})",
+    "tab": "Verlauf",
     "loading": "Baseline-Verlauf wird geladen",
     "errorTitle": "Baseline-Verlauf konnte nicht geladen werden",
-    "empty": "Noch keine ersetzten Baselines — beim Genehmigen einer Änderung bleibt die vorherige Baseline hier erhalten.",
+    "empty": "Durch eine Genehmigung ersetzte Baselines erscheinen hier.",
     "current": "aktuell",
     "unknown": "unbekannt",
     "restoreAria": "Baseline von {age} wiederherstellen",
@@ -853,6 +855,11 @@
     "confirmDescription": "Das Wiederherstellen der Baseline{when} ersetzt die aktuelle Baseline dieser Variante und beendet jede ausstehende Prüfung. Die jetzt aktive Baseline bleibt im Verlauf.",
     "when": " von {age}",
     "pageCount": "{count} Seite | {count} Seiten",
+    "thresholdMeta": "Schwelle {px} px",
+    "previewTitle": "Baseline von {age}",
+    "previewOpenAria": "Baseline von {age} in der Vorschau öffnen",
+    "previewNoImage": "Diese Revision hat kein Vorschaubild.",
+    "previewDescription": "Ersetzt durch {reason} · {user}",
     "reason": {
       "approval": "Genehmigung",
       "restore": "Wiederherstellen",
@@ -953,7 +960,8 @@
     "noVariantsTitle": "Noch keine Screenshots für diesen Test",
     "noVariantsBody": "Lade einen Screenshot für diesen Test hoch, um seine Varianten zu prüfen.",
     "variantsHeading": "Varianten",
-    "noBaseline": "Keine Baseline"
+    "noBaseline": "Keine Baseline",
+    "activityLabel": "Aktivität des Tests"
   },
   "overview": {
     "errorTitle": "Varianten konnten nicht geladen werden",
@@ -984,7 +992,11 @@
     "noteTooLong": "Die Notiz darf höchstens 2000 Zeichen lang sein.",
     "noteTitle": "Genehmigungsnotiz",
     "historyTitle": "Genehmigungen ({count})",
-    "historyEmpty": "Noch keine Genehmigungen."
+    "tab": "Freigaben",
+    "approvedLabel": "hat freigegeben",
+    "acceptedMismatch": "{count} px akzeptiert",
+    "historyLoadError": "Freigaben konnten nicht geladen werden",
+    "historyEmpty": "Noch keine Genehmigungen. Beim Genehmigen einer Änderung erscheint sie hier."
   },
   "toast": {
     "operationFailed": "Vorgang fehlgeschlagen",
@@ -1212,6 +1224,8 @@
     "resolvedBadge": "Erledigt",
     "resolvedToast": "Kommentar erledigt",
     "resolveError": "Kommentar konnte nicht erledigt werden",
-    "resolvedBy": "Erledigt von {user}"
+    "resolvedBy": "Erledigt von {user}",
+    "resolvedGroup": "Erledigt ({count})",
+    "submitHint": "Strg + Enter"
   }
 }

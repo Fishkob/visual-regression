@@ -15,12 +15,11 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import TestComparisonView from "@/components/detail-panels/TestComparisonView.vue";
 import TestBaselineView from "@/components/detail-panels/TestBaselineView.vue";
-import BaselineHistoryPanel from "@/components/detail-panels/BaselineHistoryPanel.vue";
+import DetailActivityRail from "@/components/detail-panels/DetailActivityRail.vue";
 import TestComparisonInfo from "@/components/TestComparisonInfo.vue";
 import BulkApproveButton from "@/components/BulkApproveButton.vue";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
-import CommentsPanel from "@/components/comments/CommentsPanel.vue";
 import TestMetadataPanel from "@/components/test-lifecycle/TestMetadataPanel.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import { TEST_ID } from "@/lib/test-ids";
@@ -258,31 +257,20 @@ useReviewShortcuts({
       {{ t("detail.shortcuts") }}
     </p>
 
-    <!-- The thread annotates the diff it sits under; the panel is collapsed
-         while empty so the comparison stays in view. -->
-    <CommentsPanel
+    <!-- The thread, the baseline trail and the approval trail sit below the
+         comparison: the picture needs the full width, and a reviewer reaches
+         them after deciding on it. -->
+    <DetailActivityRail
       class="mt-6"
       :project-name="projectName"
       :test-name="testName"
       :branch="branch"
       :comparison-id="data?.comparison?.id"
       :read-only="isInherited"
-    />
-
-    <!-- The history belongs to the variant the details resolved, not to the
-         route filter: a partial filter still resolves to exactly one variant
-         server-side. Hidden for an inherited test — the history lives on the
-         branch that owns it, and the read answers 409 here (ADR-028) — and
-         read-only while the baseline is still an inherited clone. -->
-    <BaselineHistoryPanel
-      v-if="data?.baseline && !isInherited"
-      class="mt-6"
-      :project-name="projectName"
-      :test-name="testName"
-      :branch="branch"
+      :history-read-only="isInherited || !!data?.baselineInherited"
+      :history-enabled="!!data?.baseline && !isInherited"
       :variant="activeVariant"
       :current-hash="data?.baseline?.imageHash"
-      :read-only="isInherited || !!data?.baselineInherited"
     />
   </div>
 </template>

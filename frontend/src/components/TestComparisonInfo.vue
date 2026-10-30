@@ -84,8 +84,11 @@
       <Tooltip>
         <TooltipTrigger as-child>
           <div
-            class="flex items-center gap-1 bg-muted border border-border px-2 py-1 rounded-md"
+            class="flex items-center gap-1.5 bg-muted border border-border px-2 py-1 rounded-md"
           >
+            <span class="text-[11px] text-muted-foreground">
+              {{ t("comparison.thresholdLabel") }}
+            </span>
             <input
               v-model="inputValue"
               @blur="onBlur"

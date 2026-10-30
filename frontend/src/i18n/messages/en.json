@@ -830,6 +830,7 @@
     "withinTolerance": "within tolerance",
     "withinTooltip": "{mismatch} px is at or below the {threshold} px tolerance, so it was accepted automatically.",
     "thresholdAria": "Mismatch threshold in pixels",
+    "thresholdLabel": "Threshold",
     "thresholdTooltip": "{tolerance} Larger changes need review.",
     "toleranceSet": "Differences up to {threshold} px are accepted automatically.",
     "toleranceNone": "No tolerance set — every difference needs review.",
@@ -841,9 +842,10 @@
   },
   "baseline": {
     "title": "Baseline history ({count})",
+    "tab": "History",
     "loading": "Loading baseline history",
     "errorTitle": "Failed to load baseline history",
-    "empty": "No replaced baselines yet — approving a change will keep the previous baseline here.",
+    "empty": "Baselines replaced by an approval show up here.",
     "current": "current",
     "unknown": "unknown",
     "restoreAria": "Restore the baseline from {age}",
@@ -853,6 +855,11 @@
     "confirmDescription": "Restoring the baseline{when} replaces the current baseline of this variant and retires any pending comparison. The baseline in place now stays in the history.",
     "when": " from {age}",
     "pageCount": "{count} page | {count} pages",
+    "thresholdMeta": "Threshold {px} px",
+    "previewTitle": "Baseline from {age}",
+    "previewOpenAria": "Preview the baseline from {age}",
+    "previewNoImage": "This revision has no preview image.",
+    "previewDescription": "Replaced by {reason} · {user}",
     "reason": {
       "approval": "Approval",
       "restore": "Restore",
@@ -953,7 +960,8 @@
     "noVariantsTitle": "No screenshots for this test yet",
     "noVariantsBody": "Upload a screenshot for this test to review its variants.",
     "variantsHeading": "Variants",
-    "noBaseline": "No baseline"
+    "noBaseline": "No baseline",
+    "activityLabel": "Test activity"
   },
   "overview": {
     "errorTitle": "Failed to load variants",
@@ -984,7 +992,11 @@
     "noteTooLong": "The note can be at most 2000 characters.",
     "noteTitle": "Approval note",
     "historyTitle": "Approvals ({count})",
-    "historyEmpty": "No approvals yet."
+    "tab": "Approvals",
+    "approvedLabel": "approved",
+    "acceptedMismatch": "{count} px accepted",
+    "historyLoadError": "Failed to load approvals",
+    "historyEmpty": "No approvals yet. Approving a change records it here."
   },
   "toast": {
     "operationFailed": "Operation failed",
@@ -1212,6 +1224,8 @@
     "resolvedBadge": "Resolved",
     "resolvedToast": "Comment resolved",
     "resolveError": "Could not resolve the comment",
-    "resolvedBy": "Resolved by {user}"
+    "resolvedBy": "Resolved by {user}",
+    "resolvedGroup": "Resolved ({count})",
+    "submitHint": "Ctrl + Enter"
   }
 }

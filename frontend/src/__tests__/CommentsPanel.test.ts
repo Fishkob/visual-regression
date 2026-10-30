@@ -39,6 +39,13 @@ function commentDto(overrides: Record<string, unknown> = {}) {
 
 const mounted: { unmount: () => void }[] = [];
 
+function lastCount(wrapper: {
+  emitted: (name: string) => unknown[][] | undefined;
+}) {
+  const events = wrapper.emitted("update:count") ?? [];
+  return events[events.length - 1];
+}
+
 function mountPanel(extraProps: Record<string, unknown> = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -79,14 +86,15 @@ beforeEach(() => {
         id: "c-2",
         author: "bob",
         body: "Known flake.",
-        resolvedAt: "2026-10-02T10:00:00.000Z",
+        createdAt: new Date(Date.now() - 26 * 60 * 60_000).toISOString(),
+        resolvedAt: new Date(Date.now() - 25 * 60 * 60_000).toISOString(),
         resolvedBy: "alice",
       }),
     ],
   });
   mockCreate.mockResolvedValue({ data: commentDto({ id: "c-3" }) });
   mockResolve.mockResolvedValue({
-    data: commentDto({ resolvedAt: "2026-10-02T11:00:00.000Z" }),
+    data: commentDto({ resolvedAt: new Date().toISOString() }),
   });
 });
 
@@ -95,30 +103,66 @@ afterEach(() => {
 });
 
 describe("CommentsPanel", () => {
-  it("lists comments with authors, bodies and resolved state", async () => {
+  it("lists open comments with their author, body and resolve action", async () => {
     const wrapper = mountPanel();
     await waitForComments(wrapper, 2);
 
-    const rows = wrapper.findAll(`[data-testid="${TEST_ID.commentRow}"]`);
-    expect(rows[0].text()).toContain("alice");
-    expect(rows[0].text()).toContain("The spacing changed here.");
-    expect(rows[0].text()).toContain("Is this intended?");
+    const openRow = wrapper.findAll(
+      `[data-testid="${TEST_ID.commentRow}"]`,
+    )[0]!;
+    expect(openRow.text()).toContain("alice");
+    expect(openRow.text()).toContain("The spacing changed here.");
+    expect(openRow.text()).toContain("Is this intended?");
     expect(
-      rows[0].find(`[data-testid="${TEST_ID.commentResolve}"]`).exists(),
+      openRow.find(`[data-testid="${TEST_ID.commentResolve}"]`).exists(),
     ).toBe(true);
 
-    expect(rows[1].text()).toContain("bob");
-    expect(
-      rows[1].find(`[data-testid="${TEST_ID.commentResolved}"]`).exists(),
-    ).toBe(true);
-    expect(rows[1].text()).toContain("Resolved by alice");
-    expect(
-      rows[1].find(`[data-testid="${TEST_ID.commentResolve}"]`).exists(),
-    ).toBe(false);
     expect(mockList).toHaveBeenCalledWith({
       path: { projectName: "checkout", testName: "login" },
       query: { branch: "main" },
     });
+  });
+
+  it("reports the whole thread size to the section header", async () => {
+    const wrapper = mountPanel();
+    await waitForComments(wrapper, 2);
+
+    // Resolved comments count too: the tab's number means "everything here",
+    // which is what makes the collapsed group discoverable.
+    await vi.waitFor(() => expect(lastCount(wrapper)).toEqual([2]));
+  });
+
+  it("folds resolved comments behind one toggle that starts collapsed", async () => {
+    const wrapper = mountPanel();
+    await waitForComments(wrapper, 2);
+
+    const toggle = wrapper.get(
+      `[data-testid="${TEST_ID.commentsResolvedToggle}"]`,
+    );
+    expect(toggle.text()).toContain("Resolved (1)");
+    expect(toggle.attributes("aria-expanded")).toBe("false");
+
+    // The row is in the DOM (a reload must not lose it) but out of sight.
+    const group = wrapper.get(
+      `[data-testid="${TEST_ID.commentsResolvedGroup}"]`,
+    );
+    expect(group.attributes("style")).toContain("display: none");
+
+    await toggle.trigger("click");
+    expect(toggle.attributes("aria-expanded")).toBe("true");
+    expect(group.attributes("style") ?? "").not.toContain("display: none");
+
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.commentResolved}"]`).exists(),
+    ).toBe(true);
+    const resolvedRow = wrapper.findAll(
+      `[data-testid="${TEST_ID.commentRow}"]`,
+    )[1]!;
+    expect(resolvedRow.text()).toContain("bob");
+    expect(resolvedRow.text()).toContain("Resolved by alice");
+    expect(
+      resolvedRow.find(`[data-testid="${TEST_ID.commentResolve}"]`).exists(),
+    ).toBe(false);
   });
 
   it("submits a comment for the selected comparison and clears the box", async () => {
@@ -147,6 +191,26 @@ describe("CommentsPanel", () => {
             .element as HTMLTextAreaElement
         ).value,
       ).toBe(""),
+    );
+  });
+
+  it("submits on Ctrl+Enter without leaving the textarea", async () => {
+    const wrapper = mountPanel();
+    await waitForComments(wrapper, 2);
+
+    const body = wrapper.get(`[data-testid="${TEST_ID.commentsBody}"]`);
+    await body.setValue("Keyboard only");
+    await body.trigger("keydown", { key: "Enter", ctrlKey: true });
+
+    await vi.waitFor(() =>
+      expect(mockCreate).toHaveBeenCalledWith({
+        path: { projectName: "checkout", testName: "login" },
+        body: {
+          body: "Keyboard only",
+          comparisonId: "cmp-1",
+          branch: "main",
+        },
+      }),
     );
   });
 
@@ -205,65 +269,8 @@ describe("CommentsPanel", () => {
   it("shows the empty state when there are no comments", async () => {
     mockList.mockResolvedValue({ data: [] });
     const wrapper = mountPanel();
-    await vi.waitFor(() =>
-      expect(
-        wrapper.get(`[data-testid="${TEST_ID.commentsToggle}"]`).text(),
-      ).toContain("Comments"),
-    );
 
-    await wrapper
-      .get(`[data-testid="${TEST_ID.commentsToggle}"]`)
-      .trigger("click");
     await vi.waitFor(() => expect(wrapper.text()).toContain("No comments yet"));
-  });
-
-  it("collapses an empty thread so it does not push the diff down", async () => {
-    mockList.mockResolvedValue({ data: [] });
-    const wrapper = mountPanel();
-
-    const toggle = wrapper.get(`[data-testid="${TEST_ID.commentsToggle}"]`);
-    await vi.waitFor(() => expect(mockList).toHaveBeenCalled());
-
-    expect(toggle.attributes("aria-expanded")).toBe("false");
-    expect(
-      wrapper.find(`[data-testid="${TEST_ID.commentsBody}"]`).exists(),
-    ).toBe(false);
-    // Still discoverable through its header and count.
-    expect(toggle.text()).toContain("Comments");
-    expect(toggle.text()).toContain("0");
-  });
-
-  it("expands a thread that has comments", async () => {
-    const wrapper = mountPanel();
-    await waitForComments(wrapper, 2);
-
-    expect(
-      wrapper
-        .get(`[data-testid="${TEST_ID.commentsToggle}"]`)
-        .attributes("aria-expanded"),
-    ).toBe("true");
-    expect(
-      wrapper.find(`[data-testid="${TEST_ID.commentsBody}"]`).exists(),
-    ).toBe(true);
-  });
-
-  it("keeps a reviewer's collapse choice when the thread reloads", async () => {
-    const wrapper = mountPanel();
-    await waitForComments(wrapper, 2);
-
-    const toggle = wrapper.get(`[data-testid="${TEST_ID.commentsToggle}"]`);
-    await toggle.trigger("click");
-    expect(toggle.attributes("aria-expanded")).toBe("false");
-
-    // A different branch loads another thread; the manual collapse wins over
-    // the auto-expand.
-    await wrapper.setProps({ branch: "feature/x" });
-    await vi.waitFor(() =>
-      expect(mockList).toHaveBeenLastCalledWith({
-        path: { projectName: "checkout", testName: "login" },
-        query: { branch: "feature/x" },
-      }),
-    );
-    expect(toggle.attributes("aria-expanded")).toBe("false");
+    expect(lastCount(wrapper)).toEqual([0]);
   });
 });

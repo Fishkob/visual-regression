@@ -15,9 +15,9 @@ for (const qualityCase of QUALITY_CASES) {
       await mount(qualityCase.story, qualityCase.props);
       await waitForReady(page, qualityCase.readyTestId, theme);
       if (qualityCase.readyAlsoTestId) {
-        await expect(
-          page.getByTestId(qualityCase.readyAlsoTestId).first(),
-        ).toBeVisible();
+        for (const testId of [qualityCase.readyAlsoTestId].flat()) {
+          await expect(page.getByTestId(testId).first()).toBeVisible();
+        }
       }
 
       const results = await new AxeBuilder({ page })

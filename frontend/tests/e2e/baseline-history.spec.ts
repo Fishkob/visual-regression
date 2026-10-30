@@ -47,6 +47,10 @@ test.describe("Baseline history", () => {
     expect(beforeUrl).toBeTruthy();
 
     await page.goto(testUrl(projectName, TEST_NAME));
+
+    // The history shares the activity rail with the discussion; a test with
+    // replaced baselines is what the rail opens on.
+    await page.getByTestId(TEST_ID.activityTabHistory).click();
     await expect(page.getByTestId(TEST_ID.baselineHistorySection)).toBeVisible({
       timeout: 10000,
     });

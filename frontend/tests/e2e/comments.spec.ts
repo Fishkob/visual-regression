@@ -33,10 +33,9 @@ test.describe("Review comments", () => {
       timeout: 10000,
     });
 
-    // The panel starts collapsed while the thread is empty, so the diff keeps
-    // the reviewer's scroll.
+    // The discussion sits beside the comparison, so an empty thread still
+    // offers its composer without a click.
     await expect(page.getByTestId(TEST_ID.commentsPanel)).toBeVisible();
-    await page.getByTestId(TEST_ID.commentsToggle).click();
     await expect(page.getByTestId(TEST_ID.commentsBody)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.commentRow)).toHaveCount(0);
 
@@ -85,6 +84,10 @@ test.describe("Review comments", () => {
       "Comment resolved",
       { timeout: 10000 },
     );
+
+    // Resolved comments fold into their own group, so the reviewer can see
+    // what is still open at a glance.
+    await page.getByTestId(TEST_ID.commentsResolvedToggle).click();
     await expect(row.getByTestId(TEST_ID.commentResolved)).toBeVisible();
     await expect(row.getByTestId(TEST_ID.commentResolve)).toHaveCount(0);
     await expect(row).toContainText("Resolved by alice");
@@ -105,11 +108,14 @@ test.describe("Review comments", () => {
       .filter({ hasText: commentText });
     await expect(row).toBeVisible({ timeout: 10000 });
     await row.getByTestId(TEST_ID.commentResolve).click();
+
+    await page.getByTestId(TEST_ID.commentsResolvedToggle).click();
     await expect(row.getByTestId(TEST_ID.commentResolved)).toBeVisible({
       timeout: 10000,
     });
 
     await page.reload();
+    await page.getByTestId(TEST_ID.commentsResolvedToggle).click();
     await expect(
       page
         .getByTestId(TEST_ID.commentRow)
@@ -138,7 +144,7 @@ test.describe("Review comments", () => {
     });
 
     // Reading an inherited thread is allowed; writing and resolving are not.
-    // A non-empty thread renders expanded, so the row is already reachable.
+    // The open thread is the rail's first tab, so the row is already there.
     await expect(
       page.getByTestId(TEST_ID.commentRow).filter({ hasText: commentText }),
     ).toBeVisible({ timeout: 10000 });

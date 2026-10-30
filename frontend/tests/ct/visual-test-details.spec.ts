@@ -180,4 +180,42 @@ test.describe("VisualTestDetails", () => {
     await expect(input).toHaveValue("200");
     await expect(page.getByTestId(TEST_ID.dialogTitle)).toHaveCount(0);
   });
+
+  test("keeps discussion, history and approvals in one block below the comparison", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      [DETAILS_GLOB, VISUAL_TEST_DETAILS_PENDING],
+      [PENDING_META_GLOB, VISUAL_TEST_PENDING_META],
+      [VARIANTS_GLOB, VISUAL_TEST_VARIANTS],
+    ]);
+
+    const component = await mount<typeof Routed>(
+      "views/VisualTestDetailsView/Routed",
+      { initialRoute: PENDING_ROUTE },
+    );
+
+    // The three trailing sections share one tabbed block below the comparison,
+    // so the diff keeps the full width of the page.
+    await expect(component.getByTestId(TEST_ID.activityRail)).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.commentsPanel)).toBeVisible();
+
+    await component.getByTestId(TEST_ID.activityTabHistory).click();
+    await expect(
+      component.getByTestId(TEST_ID.baselineHistoryEmpty),
+    ).toBeVisible();
+    await expect(component.getByTestId(TEST_ID.commentsPanel)).toBeHidden();
+
+    await component.getByTestId(TEST_ID.activityTabApprovals).click();
+    await expect(component.getByTestId(TEST_ID.approvalHistoryRow)).toHaveCount(
+      0,
+    );
+    await expect(component.getByTestId(TEST_ID.activityRail)).toContainText(
+      "No approvals yet",
+    );
+
+    await component.getByTestId(TEST_ID.activityTabComments).click();
+    await expect(component.getByTestId(TEST_ID.commentsPanel)).toBeVisible();
+  });
 });

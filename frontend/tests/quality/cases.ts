@@ -33,7 +33,10 @@ export interface QualityCase {
   props?: Record<string, unknown>;
   routes?: MockRoute[];
   readyTestId: string;
-  readyAlsoTestId?: string;
+  // Extra gates the shot/scan waits for. A rail section is only in the layout
+  // once its tab is selected, so waiting for one of its rows also waits for the
+  // tab the rail opened on.
+  readyAlsoTestId?: string | string[];
   // Dynamic content (counts, avatars) that must not make screenshots flaky.
   maskTestIds?: string[];
 }
@@ -124,7 +127,9 @@ export const QUALITY_CASES: QualityCase[] = [
       [VISUAL_BASELINE_HISTORY_GLOB, VISUAL_BASELINE_HISTORY],
     ],
     readyTestId: TEST_ID.comparisonView,
-    readyAlsoTestId: TEST_ID.breadcrumbGroup,
+    // The rail opens on the populated section (history), so its rows gate the
+    // shot instead of a tab that may still be switching.
+    readyAlsoTestId: [TEST_ID.breadcrumbGroup, TEST_ID.baselineHistoryRow],
   },
   {
     name: "pdf-test-details",
@@ -136,7 +141,7 @@ export const QUALITY_CASES: QualityCase[] = [
       [PDF_BASELINE_HISTORY_GLOB, PDF_BASELINE_HISTORY],
     ],
     readyTestId: TEST_ID.pdfPageCountUnknown,
-    readyAlsoTestId: TEST_ID.breadcrumbGroup,
+    readyAlsoTestId: [TEST_ID.breadcrumbGroup, TEST_ID.baselineHistoryRow],
   },
   {
     name: "inbox",

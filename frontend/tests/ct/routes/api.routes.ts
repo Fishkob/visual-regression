@@ -20,8 +20,23 @@ export async function mockApi(
   routes: Array<[string, FulfillResponse]>,
 ) {
   await mockBaselineHistory(page);
+  await mockEmptyThreads(page);
   for (const [glob, res] of routes) {
     await mockGet(page, glob, res);
+  }
+}
+
+// The activity rail beside every detail view also reads the comment thread and
+// the approval trail. Empty answers keep those reads off the dev server — an
+// unmatched request there answers 401, which paints an error state into a tab
+// the spec never opened.
+export async function mockEmptyThreads(page: Page): Promise<void> {
+  for (const section of ["comments", "approvals"]) {
+    await mockGet(page, `**/api/v1/projects/*/tests/*/${section}*`, {
+      status: 200,
+      contentType: "application/json",
+      body: "[]",
+    });
   }
 }
 

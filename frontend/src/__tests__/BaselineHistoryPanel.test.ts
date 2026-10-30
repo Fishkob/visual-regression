@@ -1,3 +1,4 @@
+import { computed } from "vue";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
@@ -5,23 +6,22 @@ import { toast } from "vue-sonner";
 import BaselineHistoryPanel from "@/components/detail-panels/BaselineHistoryPanel.vue";
 import { TEST_ID } from "@/lib/test-ids";
 
-const { mockList, mockRestore, mockApprovals, roleRef } = vi.hoisted(() => ({
+const { mockList, mockRestore, roleRef } = vi.hoisted(() => ({
   mockList: vi.fn(),
   mockRestore: vi.fn(),
-  mockApprovals: vi.fn(),
   roleRef: { value: "MEMBER" as "ADMIN" | "MEMBER" | "VIEWER" },
 }));
 
 vi.mock("@/composables/useAuth", () => ({
-  useCurrentRole: () => ({ canWrite: roleRef.value !== "VIEWER" }),
+  useCurrentRole: () => ({
+    canWrite: computed(() => roleRef.value !== "VIEWER"),
+  }),
 }));
 
 vi.mock("@sdk", () => ({
   baselineHistoryControllerList: (...args: unknown[]) => mockList(...args),
   baselineHistoryControllerRestore: (...args: unknown[]) =>
     mockRestore(...args),
-  approvalsControllerListApprovals: (...args: unknown[]) =>
-    mockApprovals(...args),
 }));
 
 vi.mock("vue-sonner", () => ({
@@ -49,6 +49,26 @@ const ConfirmDialogStub = {
   </div>`,
 };
 
+// The preview is a modal from a UI primitive library; the panel only owns when
+// it opens and what restoring it asks for.
+const BaselinePreviewDialogStub = {
+  props: {
+    open: { type: Boolean, default: false },
+    revision: { type: Object, default: null },
+    kind: { type: String, default: "image" },
+    canRestore: { type: Boolean, default: false },
+    current: { type: Boolean, default: false },
+  },
+  emits: ["update:open", "restore"],
+  template: `<div v-if="open" data-testid="preview-stub">
+    <span data-testid="preview-stub-id">{{ revision?.id }}</span>
+    <span data-testid="preview-stub-current">{{ current }}</span>
+    <button type="button" data-testid="preview-stub-restore" @click="$emit('restore')">
+      restore
+    </button>
+  </div>`,
+};
+
 function revisionDto(overrides: Record<string, unknown> = {}) {
   return {
     id: "rev-1",
@@ -68,6 +88,13 @@ function revisionDto(overrides: Record<string, unknown> = {}) {
 }
 
 const mounted: { unmount: () => void }[] = [];
+
+function lastCount(wrapper: {
+  emitted: (name: string) => unknown[][] | undefined;
+}) {
+  const events = wrapper.emitted("update:count") ?? [];
+  return events[events.length - 1];
+}
 
 function mountPanel(
   props: Partial<{
@@ -97,26 +124,28 @@ function mountPanel(
     },
     global: {
       plugins: [[VueQueryPlugin, { queryClient }]],
-      stubs: { ConfirmDialog: ConfirmDialogStub },
+      stubs: {
+        ConfirmDialog: ConfirmDialogStub,
+        BaselinePreviewDialog: BaselinePreviewDialogStub,
+      },
     },
   });
   mounted.push(wrapper);
   return wrapper;
 }
 
-async function waitForHistory(
+async function waitForRows(
   wrapper: ReturnType<typeof mountPanel>,
   count: number,
 ) {
   await vi.waitFor(() =>
     expect(
-      wrapper.get(`[data-testid="${TEST_ID.baselineHistoryToggle}"]`).text(),
-    ).toContain(`Baseline history (${count})`),
+      wrapper.findAll(`[data-testid="${TEST_ID.baselineHistoryRow}"]`).length,
+    ).toBe(count),
   );
 }
 
 beforeEach(() => {
-  mockApprovals.mockResolvedValue({ data: [] });
   vi.clearAllMocks();
   roleRef.value = "MEMBER";
   mockRestore.mockResolvedValue({
@@ -135,8 +164,8 @@ describe("BaselineHistoryPanel", () => {
   it("reads the history of the resolved variant on the selected branch", async () => {
     mockList.mockResolvedValue({ data: [] });
 
-    const wrapper = mountPanel();
-    await waitForHistory(wrapper, 0);
+    mountPanel();
+    await vi.waitFor(() => expect(mockList).toHaveBeenCalled());
 
     expect(mockList).toHaveBeenCalledWith({
       path: { projectName: "checkout", testName: "login" },
@@ -163,7 +192,18 @@ describe("BaselineHistoryPanel", () => {
 
     expect(
       wrapper.get(`[data-testid="${TEST_ID.baselineHistoryEmpty}"]`).text(),
-    ).toContain("No replaced baselines yet");
+    ).toContain("Baselines replaced by an approval show up here");
+  });
+
+  it("reports the number of revisions to the section header", async () => {
+    mockList.mockResolvedValue({
+      data: [revisionDto(), revisionDto({ id: "rev-2" })],
+    });
+
+    const wrapper = mountPanel();
+    await waitForRows(wrapper, 2);
+
+    expect(lastCount(wrapper)).toEqual([2]);
   });
 
   it("renders one row per revision with reason, actor and threshold", async () => {
@@ -182,7 +222,7 @@ describe("BaselineHistoryPanel", () => {
     });
 
     const wrapper = mountPanel();
-    await waitForHistory(wrapper, 2);
+    await waitForRows(wrapper, 2);
 
     const rows = wrapper.findAll(
       `[data-testid="${TEST_ID.baselineHistoryRow}"]`,
@@ -193,14 +233,14 @@ describe("BaselineHistoryPanel", () => {
       rows[0]!.get(`[data-testid="${TEST_ID.baselineHistoryReason}"]`).text(),
     ).toBe("Approval");
     expect(rows[0]!.text()).toContain("jane.doe");
-    expect(rows[0]!.text()).toContain("≤ 12 px");
+    expect(rows[0]!.text()).toContain("Threshold 12 px");
     expect(rows[0]!.text()).toContain("5 minutes ago");
 
     expect(
       rows[1]!.get(`[data-testid="${TEST_ID.baselineHistoryReason}"]`).text(),
     ).toBe("Restore");
     expect(rows[1]!.text()).toContain("unknown");
-    expect(rows[1]!.text()).toContain("≤ 0 px");
+    expect(rows[1]!.text()).toContain("Threshold 0 px");
     expect(rows[1]!.text()).toContain("yesterday");
   });
 
@@ -208,7 +248,7 @@ describe("BaselineHistoryPanel", () => {
     mockList.mockResolvedValue({ data: [revisionDto()] });
 
     const wrapper = mountPanel();
-    await waitForHistory(wrapper, 1);
+    await waitForRows(wrapper, 1);
 
     const thumb = wrapper.get(
       `[data-testid="${TEST_ID.baselineHistoryThumb}"]`,
@@ -220,13 +260,30 @@ describe("BaselineHistoryPanel", () => {
     expect(thumb.attributes("alt")).toContain("Baseline from");
   });
 
+  it("opens the preview of the clicked revision", async () => {
+    mockList.mockResolvedValue({
+      data: [revisionDto(), revisionDto({ id: "rev-2" })],
+    });
+
+    const wrapper = mountPanel();
+    await waitForRows(wrapper, 2);
+
+    expect(wrapper.find('[data-testid="preview-stub"]').exists()).toBe(false);
+
+    await wrapper
+      .findAll(`[data-testid="${TEST_ID.baselinePreviewOpen}"]`)[1]!
+      .trigger("click");
+
+    expect(wrapper.get('[data-testid="preview-stub-id"]').text()).toBe("rev-2");
+  });
+
   it("shows a PDF placeholder with the recorded page count", async () => {
     mockList.mockResolvedValue({
       data: [revisionDto({ pageCount: 7, reason: "approval" })],
     });
 
     const wrapper = mountPanel({ kind: "pdf" });
-    await waitForHistory(wrapper, 1);
+    await waitForRows(wrapper, 1);
 
     const thumb = wrapper.get(
       `[data-testid="${TEST_ID.baselineHistoryThumb}"]`,
@@ -241,7 +298,7 @@ describe("BaselineHistoryPanel", () => {
     mockList.mockResolvedValue({ data: [revisionDto()] });
 
     const wrapper = mountPanel();
-    await waitForHistory(wrapper, 1);
+    await waitForRows(wrapper, 1);
 
     const button = wrapper.get(
       `[data-testid="${TEST_ID.baselineHistoryRestore}"]`,
@@ -255,7 +312,7 @@ describe("BaselineHistoryPanel", () => {
     mockList.mockResolvedValue({ data: [revisionDto()] });
 
     const wrapper = mountPanel();
-    await waitForHistory(wrapper, 1);
+    await waitForRows(wrapper, 1);
 
     await wrapper
       .get(`[data-testid="${TEST_ID.baselineHistoryRestore}"]`)
@@ -283,6 +340,33 @@ describe("BaselineHistoryPanel", () => {
     );
   });
 
+  it("routes a restore from the preview through the confirmation", async () => {
+    mockList.mockResolvedValue({ data: [revisionDto()] });
+
+    const wrapper = mountPanel();
+    await waitForRows(wrapper, 1);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.baselinePreviewOpen}"]`)
+      .trigger("click");
+    await wrapper.get('[data-testid="preview-stub-restore"]').trigger("click");
+
+    // The preview steps back so the confirmation has the reviewer's attention.
+    expect(wrapper.find('[data-testid="preview-stub"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="confirm-stub"]').exists()).toBe(true);
+    expect(mockRestore).not.toHaveBeenCalled();
+
+    await wrapper.get('[data-testid="confirm-stub-confirm"]').trigger("click");
+
+    await vi.waitFor(() =>
+      expect(mockRestore).toHaveBeenCalledWith({
+        path: { projectName: "checkout", testName: "login" },
+        body: { revisionId: "rev-1" },
+        query: { branch: "feature/x" },
+      }),
+    );
+  });
+
   it("disables the restore of the revision that is already the baseline", async () => {
     mockList.mockResolvedValue({
       data: [
@@ -292,7 +376,7 @@ describe("BaselineHistoryPanel", () => {
     });
 
     const wrapper = mountPanel({ currentHash: "hash-older" });
-    await waitForHistory(wrapper, 2);
+    await waitForRows(wrapper, 2);
 
     const buttons = wrapper.findAll(
       `[data-testid="${TEST_ID.baselineHistoryRestore}"]`,
@@ -310,7 +394,7 @@ describe("BaselineHistoryPanel", () => {
     mockList.mockResolvedValue({ data: [revisionDto()] });
 
     const wrapper = mountPanel({ readOnly: true });
-    await waitForHistory(wrapper, 1);
+    await waitForRows(wrapper, 1);
 
     expect(
       wrapper
@@ -327,7 +411,7 @@ describe("BaselineHistoryPanel", () => {
     mockList.mockResolvedValue({ data: [revisionDto()] });
 
     const wrapper = mountPanel();
-    await waitForHistory(wrapper, 1);
+    await waitForRows(wrapper, 1);
 
     expect(
       wrapper
@@ -345,7 +429,7 @@ describe("BaselineHistoryPanel", () => {
     mockList.mockResolvedValue({ data: [revisionDto()] });
 
     const wrapper = mountPanel();
-    await waitForHistory(wrapper, 1);
+    await waitForRows(wrapper, 1);
 
     expect(
       wrapper
@@ -365,52 +449,6 @@ describe("BaselineHistoryPanel", () => {
     mockList.mockResolvedValue({ data: [revisionDto()] });
     await wrapper.get(`[data-testid="${TEST_ID.retry}"]`).trigger("click");
 
-    await waitForHistory(wrapper, 1);
-  });
-});
-
-describe("BaselineHistoryPanel approvals", () => {
-  it("shows the structured reason and note in the approval history", async () => {
-    mockApprovals.mockResolvedValue({
-      data: [
-        {
-          id: "ap-1",
-          approvedBy: "alice",
-          approvedAt: new Date(Date.now() - 5 * 60_000).toISOString(),
-          comparisonId: "cmp-1",
-          testKind: "image",
-          reason: "INTENDED_CHANGE",
-          note: "New design approved",
-          branchName: "feature/x",
-          variant: {
-            viewport: "1920x1080",
-            browser: "Chrome",
-            environment: "staging",
-          },
-          candidateHash: "abc",
-          baselineHash: null,
-          mismatchPixelCount: 12,
-          mismatchPageCount: null,
-          pageCount: null,
-        },
-      ],
-    });
-
-    const wrapper = mountPanel();
-    await vi.waitFor(() => expect(wrapper.text()).toContain("Approvals (1)"));
-
-    await wrapper
-      .get(`[data-testid="${TEST_ID.approvalHistoryToggle}"]`)
-      .trigger("click");
-
-    await vi.waitFor(() =>
-      expect(
-        wrapper.findAll(`[data-testid="${TEST_ID.approvalHistoryRow}"]`),
-      ).toHaveLength(1),
-    );
-    const row = wrapper.get(`[data-testid="${TEST_ID.approvalHistoryRow}"]`);
-    expect(row.text()).toContain("alice");
-    expect(row.text()).toContain("Intended change");
-    expect(row.text()).toContain("New design approved");
+    await waitForRows(wrapper, 1);
   });
 });
