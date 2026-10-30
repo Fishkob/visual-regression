@@ -124,31 +124,33 @@ function unmute() {
       {{ t("lifecycle.mutedBadge", { date: mutedLabel }) }}
     </Badge>
 
-    <Badge
-      variant="outline"
-      class="text-xs"
-      :title="
-        t('lifecycle.flakeTitle', {
-          changed: metadata.flake.changed,
-          clean: metadata.flake.clean,
-        })
-      "
-      :data-testid="TEST_ID.testFlakeBadge"
+    <!-- Test health is context, not a control: it reads as one muted sentence
+         next to the name instead of one badge per value. -->
+    <span
+      class="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
     >
-      {{ t("lifecycle.flake", { count: metadata.flake.transitions }) }}
-    </Badge>
+      <span
+        :title="
+          t('lifecycle.flakeTitle', {
+            changed: metadata.flake.changed,
+            clean: metadata.flake.clean,
+          })
+        "
+        :data-testid="TEST_ID.testFlakeBadge"
+      >
+        {{ t("lifecycle.flake", { count: metadata.flake.transitions }) }}
+      </span>
 
-    <Badge
-      variant="outline"
-      class="text-xs"
-      :data-testid="TEST_ID.testSizePolicy"
-    >
-      {{
-        t("lifecycle.sizePolicy", {
-          policy: t(`sizePolicy.label.${metadata.sizePolicy}`),
-        })
-      }}
-    </Badge>
+      <span class="text-muted-foreground" aria-hidden="true">·</span>
+
+      <span :data-testid="TEST_ID.testSizePolicy">
+        {{
+          t("lifecycle.sizePolicy", {
+            policy: t(`sizePolicy.label.${metadata.sizePolicy}`),
+          })
+        }}
+      </span>
+    </span>
 
     <div
       v-if="metadata.tags.length > 0"
@@ -158,8 +160,8 @@ function unmute() {
       <Badge
         v-for="tag in metadata.tags"
         :key="tag"
-        variant="outline"
-        class="font-mono text-[10px]"
+        variant="secondary"
+        class="border-transparent bg-muted/60 px-1.5 py-0 font-mono text-[10px] text-muted-foreground"
       >
         {{ tag }}
       </Badge>
@@ -180,38 +182,42 @@ function unmute() {
       </template>
     </Badge>
 
-    <Button
-      v-if="canCompleteAssignment && assignment"
-      type="button"
-      variant="outline"
-      size="sm"
-      :data-testid="TEST_ID.assignComplete"
-      @click="completeAssignment.mutate(assignment.id)"
-    >
-      {{ t("assign.complete") }}
-    </Button>
+    <!-- The actions keep the right edge of the page: the left side of this row
+         is what the test is, the right side is what you can do to it. -->
+    <div class="ml-auto flex flex-wrap items-center gap-2">
+      <Button
+        v-if="canCompleteAssignment && assignment"
+        type="button"
+        variant="outline"
+        size="sm"
+        :data-testid="TEST_ID.assignComplete"
+        @click="completeAssignment.mutate(assignment.id)"
+      >
+        {{ t("assign.complete") }}
+      </Button>
 
-    <Button
-      v-if="canWrite"
-      type="button"
-      variant="outline"
-      size="sm"
-      :data-testid="TEST_ID.assignAction"
-      @click="assignOpen = true"
-    >
-      {{ t("assign.action") }}
-    </Button>
+      <Button
+        v-if="canWrite"
+        type="button"
+        variant="outline"
+        size="sm"
+        :data-testid="TEST_ID.assignAction"
+        @click="assignOpen = true"
+      >
+        {{ t("assign.action") }}
+      </Button>
 
-    <Button
-      v-if="canWrite"
-      type="button"
-      variant="outline"
-      size="sm"
-      :data-testid="TEST_ID.testEditAction"
-      @click="openDialog"
-    >
-      {{ t("lifecycle.editAction") }}
-    </Button>
+      <Button
+        v-if="canWrite"
+        type="button"
+        variant="outline"
+        size="sm"
+        :data-testid="TEST_ID.testEditAction"
+        @click="openDialog"
+      >
+        {{ t("lifecycle.editAction") }}
+      </Button>
+    </div>
 
     <p
       v-if="metadata.description"

@@ -13,7 +13,15 @@ import {
 } from "@/components/ui/breadcrumb";
 import { TEST_ID } from "@/lib/test-ids";
 
-defineProps<{ groupName?: string }>();
+withDefaults(
+  defineProps<{
+    groupName?: string;
+    // A page that renders the test name as its own heading leaves it out of the
+    // trail: the crumb and the heading would name the same thing twice.
+    showTest?: boolean;
+  }>(),
+  { showTest: true },
+);
 
 const { t } = useI18n();
 const route = useRoute();
@@ -82,7 +90,7 @@ const branch = computed(() =>
       </template>
 
       <!-- TestName -->
-      <template v-if="hasTest">
+      <template v-if="hasTest && showTest">
         <BreadcrumbSeparator />
 
         <BreadcrumbItem>

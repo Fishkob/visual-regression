@@ -142,7 +142,10 @@ const mismatchPercent = computed(() => {
   if (!size) return null;
   const area = size.width * size.height;
   if (area <= 0) return null;
-  return `${count} px · ${((count / area) * 100).toFixed(1)}%`;
+  // The count itself lives in the comparison facts above the viewer; here only
+  // the share of the image is added, because that is the number plain pixels
+  // cannot tell.
+  return `${((count / area) * 100).toFixed(1)}%`;
 });
 
 const resetPan = () => {

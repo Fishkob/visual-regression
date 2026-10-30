@@ -70,105 +70,98 @@ const resolvedVariant = computed(() => {
   };
 });
 
-useReviewShortcuts({
-  onApprove: handleApprove,
-  onSkip: handleSkip,
-  onBack: () => router.back(),
-  enabled: () =>
+// Both lines under the page pair describe the decision the reviewer is about to
+// make, so they render next to Skip/Approve instead of in the page header.
+const showProgress = computed(
+  () => !fromInbox.value && progress.value.total > 0,
+);
+const showShortcuts = computed(
+  () =>
     !!data.value?.comparison &&
     !isInherited.value &&
     !isApproving.value &&
     !isApproved(data.value.comparison.status),
+);
+
+useReviewShortcuts({
+  onApprove: handleApprove,
+  onSkip: handleSkip,
+  onBack: () => router.back(),
+  enabled: () => showShortcuts.value,
   canBack: () => !!data.value?.comparison && !isApproving.value,
 });
 </script>
 
 <template>
-  <div
-    class="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-6 py-3"
-  >
-    <div class="flex min-w-0 flex-wrap items-center gap-2">
-      <Breadcrumbs
-        class="text-sm text-muted-foreground"
-        :group-name="groupName"
-      />
-      <Badge v-if="kind" variant="outline">
-        {{ kind === "pdf" ? t("detail.pdf") : t("detail.image") }}
-      </Badge>
-      <Badge
-        v-if="isInherited"
-        variant="secondary"
-        class="font-mono text-[10px]"
-        :data-testid="TEST_ID.inheritedBadge"
-      >
-        {{ t("detail.inherited", { branch: data?.inheritedFrom }) }}
-      </Badge>
-      <!-- The baseline can be inherited even when the test itself is owned:
-           it then tracks the target branch until an approval pins it here.
-           Without this the reviewer sees a diff against a picture that points at
-           another branch with no indication that it does. -->
-      <Badge
-        v-else-if="data?.baselineInherited"
-        variant="outline"
-        class="font-mono text-[10px]"
-        :title="
-          t('detail.baselineFollowsTitle', {
-            target:
-              data?.inheritTarget ??
-              t('detail.baselineFollows', {
-                target: '',
-              }),
-          })
-        "
-        :data-testid="TEST_ID.baselineInheritedBadge"
-      >
-        {{
-          t("detail.baselineFollows", {
-            target: data?.inheritTarget ?? "target",
-          })
-        }}
-      </Badge>
-      <span
-        v-if="data?.comparison?.createdAt"
-        class="whitespace-nowrap text-xs text-muted-foreground"
-        :data-testid="TEST_ID.pdfComparisonAge"
-      >
-        {{ formatRelativeAge(data.comparison.createdAt) }}
-      </span>
-      <ApprovalBadge
-        :project-name="projectName"
-        :test-name="testName"
-        :branch="branch"
-        :variant="resolvedVariant"
-      />
-      <BulkApproveButton
-        v-if="hasPendingComparison && !isInherited"
-        :project-name="projectName"
-        :test-name="testName"
-        :branch="branch"
-        :required-approvals="project?.requiredApprovals"
-        :disabled="isApproving"
-      />
-      <span
-        v-if="!fromInbox && progress.total > 0"
-        class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-        role="status"
-        aria-live="polite"
-        :data-testid="TEST_ID.reviewProgress"
-      >
-        {{
-          progress.total > 0
-            ? t("detail.progress", {
-                current: progress.current,
-                total: progress.total,
-              })
-            : ""
-        }}
-      </span>
-    </div>
-  </div>
+  <!-- Same shape as the image review page: the trail and the test name own the
+       top, the review action sits opposite the name. -->
+  <header class="space-y-2 px-6 pt-4 pb-2">
+    <Breadcrumbs
+      class="text-muted-foreground"
+      :group-name="groupName"
+      :show-test="false"
+    />
 
-  <TestMetadataPanel class="px-6 pb-1" />
+    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div class="flex min-w-0 flex-wrap items-center gap-2">
+        <h1 class="min-w-0 truncate text-xl font-semibold tracking-tight">
+          {{ testName }}
+        </h1>
+        <Badge v-if="kind" variant="outline">
+          {{ kind === "pdf" ? t("detail.pdf") : t("detail.image") }}
+        </Badge>
+        <Badge v-if="branch" variant="outline" class="font-mono text-[10px]">
+          {{ branch }}
+        </Badge>
+        <Badge
+          v-if="isInherited"
+          variant="secondary"
+          class="font-mono text-[10px]"
+          :data-testid="TEST_ID.inheritedBadge"
+        >
+          {{ t("detail.inherited", { branch: data?.inheritedFrom }) }}
+        </Badge>
+        <!-- The baseline can be inherited even when the test itself is owned:
+             it then tracks the target branch until an approval pins it here.
+             Without this the reviewer sees a diff against a picture that points
+             at another branch with no indication that it does. -->
+        <Badge
+          v-else-if="data?.baselineInherited"
+          variant="outline"
+          class="font-mono text-[10px]"
+          :title="
+            t('detail.baselineFollowsTitle', {
+              target:
+                data?.inheritTarget ??
+                t('detail.baselineFollows', {
+                  target: '',
+                }),
+            })
+          "
+          :data-testid="TEST_ID.baselineInheritedBadge"
+        >
+          {{
+            t("detail.baselineFollows", {
+              target: data?.inheritTarget ?? "target",
+            })
+          }}
+        </Badge>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <BulkApproveButton
+          v-if="hasPendingComparison && !isInherited"
+          :project-name="projectName"
+          :test-name="testName"
+          :branch="branch"
+          :required-approvals="project?.requiredApprovals"
+          :disabled="isApproving"
+        />
+      </div>
+    </div>
+  </header>
+
+  <TestMetadataPanel class="px-6 pb-3" />
 
   <div class="p-6 pt-0">
     <AsyncState
@@ -183,6 +176,27 @@ useReviewShortcuts({
       <template #loading>
         <TestComparisonSkeleton />
       </template>
+
+      <!-- What am I looking at: the age of the pair and who approved it last,
+           directly above the document it describes. -->
+      <div
+        v-if="data"
+        class="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
+      >
+        <span
+          v-if="data.comparison?.createdAt"
+          class="whitespace-nowrap"
+          :data-testid="TEST_ID.pdfComparisonAge"
+        >
+          {{ formatRelativeAge(data.comparison.createdAt) }}
+        </span>
+        <ApprovalBadge
+          :project-name="projectName"
+          :test-name="testName"
+          :branch="branch"
+          :variant="resolvedVariant"
+        />
+      </div>
 
       <PdfComparisonView
         v-if="data?.comparison && data?.baseline"
@@ -206,9 +220,9 @@ useReviewShortcuts({
         "
         :project-name="projectName"
         :test-name="testName"
+        :branch-name="branch"
         :pdf-url="data.baseline.pdfUrl"
         :page-count="data.baseline.pageCount"
-        :branch-name="branch"
       />
       <div
         v-else-if="data?.baseline"
@@ -219,18 +233,29 @@ useReviewShortcuts({
       </div>
     </AsyncState>
 
-    <p
-      v-if="
-        data?.comparison &&
-        !isInherited &&
-        !isApproved(data.comparison.status) &&
-        !isApproving
-      "
-      class="mt-2 text-center text-xs text-muted-foreground"
-      :data-testid="TEST_ID.shortcutsHint"
+    <!-- The pass position belongs next to the decision it describes. -->
+    <div
+      v-if="showProgress || showShortcuts"
+      class="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-muted-foreground"
     >
-      {{ t("detail.shortcuts") }}
-    </p>
+      <span
+        v-if="showProgress"
+        role="status"
+        aria-live="polite"
+        :data-testid="TEST_ID.reviewProgress"
+      >
+        {{
+          t("detail.progress", {
+            current: progress.current,
+            total: progress.total,
+          })
+        }}
+      </span>
+      <span v-if="showProgress && showShortcuts" aria-hidden="true">·</span>
+      <span v-if="showShortcuts" :data-testid="TEST_ID.shortcutsHint">
+        {{ t("detail.shortcuts") }}
+      </span>
+    </div>
 
     <!-- The thread, the baseline trail and the approval trail sit below the
          page pair: the document needs the full width. The page count of each

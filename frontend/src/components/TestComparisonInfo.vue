@@ -1,35 +1,33 @@
 <template>
-  <div class="flex flex-wrap items-center gap-2 p-2">
-    <Badge
-      variant="outline"
-      class="px-2 py-0.5"
-      :data-testid="TEST_ID.badgeViewport"
-    >
-      {{ variant.viewport ?? "-" }}
-    </Badge>
-
-    <Badge
-      variant="outline"
-      class="px-2 py-0.5"
-      :data-testid="TEST_ID.badgeBrowser"
-    >
-      {{ variant.browser ?? "-" }}
-    </Badge>
-
-    <Badge
-      variant="outline"
-      class="px-2 py-0.5"
-      :data-testid="TEST_ID.badgeEnvironment"
-    >
-      {{ variant.environment ?? "-" }}
-    </Badge>
-
-    <span
-      v-if="comparison?.createdAt"
-      class="whitespace-nowrap text-xs text-muted-foreground"
-    >
-      {{ formatRelativeAge(comparison.createdAt) }}
+  <div
+    class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
+  >
+    <!-- One variant is one fact, not three badges: the three values only mean
+         something together, and read as a sentence they cannot be mistaken for
+         three independent settings. -->
+    <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <span
+        class="font-mono text-foreground"
+        :data-testid="TEST_ID.badgeViewport"
+      >
+        {{ variant.viewport ?? "-" }}
+      </span>
+      <span class="text-muted-foreground" aria-hidden="true">·</span>
+      <span :data-testid="TEST_ID.badgeBrowser">{{
+        variant.browser ?? "-"
+      }}</span>
+      <span class="text-muted-foreground" aria-hidden="true">·</span>
+      <span :data-testid="TEST_ID.badgeEnvironment">{{
+        variant.environment ?? "-"
+      }}</span>
     </span>
+
+    <template v-if="comparison?.createdAt">
+      <span class="text-muted-foreground" aria-hidden="true">·</span>
+      <span class="whitespace-nowrap">
+        {{ formatRelativeAge(comparison.createdAt) }}
+      </span>
+    </template>
 
     <ApprovalBadge
       :project-name="projectName"
@@ -44,7 +42,7 @@
           <Badge
             v-if="comparison"
             variant="destructive"
-            class="px-2 py-0.5 cursor-default"
+            class="cursor-default px-1.5 py-0 tabular-nums"
             :data-testid="TEST_ID.badgeMismatch"
           >
             {{ comparison?.mismatchPixelCount }} px
@@ -62,7 +60,7 @@
         <TooltipTrigger as-child>
           <Badge
             variant="outline"
-            class="px-2 py-0.5 cursor-default"
+            class="cursor-default px-1.5 py-0"
             :data-testid="TEST_ID.badgeWithinTolerance"
           >
             {{ t("comparison.withinTolerance") }}
@@ -80,26 +78,29 @@
       </Tooltip>
     </TooltipProvider>
 
+    <!-- The threshold the comparison was measured against. It is a number to
+         read first and an admin setting second, so the resting state is text:
+         the input only shows a field on hover or focus. -->
     <TooltipProvider v-if="!readOnly && isAdmin">
       <Tooltip>
         <TooltipTrigger as-child>
-          <div
-            class="flex items-center gap-1.5 bg-muted border border-border px-2 py-1 rounded-md"
+          <label
+            class="inline-flex items-center gap-1 whitespace-nowrap text-xs"
           >
-            <span class="text-[11px] text-muted-foreground">
-              {{ t("comparison.thresholdLabel") }}
-            </span>
+            <span>{{ t("comparison.thresholdLabel") }}</span>
             <input
               v-model="inputValue"
               @blur="onBlur"
               @keydown.enter.prevent="onBlur"
-              type="number"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
               :aria-label="t('comparison.thresholdAria')"
-              class="w-12 bg-transparent border-none outline-none text-center text-[13px]"
+              class="min-w-3 field-sizing-content rounded bg-transparent text-center font-mono text-foreground tabular-nums outline-none transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:ring-1 focus-visible:ring-ring"
               :data-testid="TEST_ID.thresholdInput"
             />
-            <span class="text-muted-foreground text-xs">px</span>
-          </div>
+            <span>px</span>
+          </label>
         </TooltipTrigger>
 
         <TooltipContent side="top" :side-offset="6" class="text-xs">

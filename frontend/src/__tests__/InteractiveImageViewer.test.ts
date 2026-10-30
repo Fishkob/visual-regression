@@ -370,7 +370,7 @@ describe("InteractiveImageViewer", () => {
     ).toContain("translate(30px, 20px)");
   });
 
-  it("renders the mismatch count and percentage from the baseline size", async () => {
+  it("renders the mismatch share from the baseline size", async () => {
     const wrapper = mountViewer({ ...defaultProps, mismatchPixelCount: 157 });
     const image = byId(wrapper, TEST_ID.panelBaseline).find("img");
 
@@ -384,7 +384,7 @@ describe("InteractiveImageViewer", () => {
     });
     await image.trigger("load");
 
-    expect(byId(wrapper, TEST_ID.mismatchPercent).text()).toBe("157 px · 0.4%");
+    expect(byId(wrapper, TEST_ID.mismatchPercent).text()).toBe("0.4%");
   });
 
   it("hides the mismatch percentage without a count or natural size", () => {
