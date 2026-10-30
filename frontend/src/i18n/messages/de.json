@@ -507,6 +507,11 @@
     "title": "Benutzer",
     "subtitle": "Admins verwalten, wer sich anmelden darf und was er tun darf. Neue Konten erhalten ein temporäres Passwort, das bei der ersten Anmeldung ersetzt werden muss.",
     "newUser": "Neuer Benutzer",
+    "searchPlaceholder": "Nach Benutzername suchen",
+    "searchLabel": "Benutzer nach Benutzername durchsuchen",
+    "count": "{count} Benutzer",
+    "countFiltered": "{visible} von {total} Benutzern",
+    "noMatches": "Kein Konto passt zu „{query}“.",
     "errorTitle": "Benutzer konnten nicht geladen werden",
     "emptyTitle": "Noch keine Benutzer",
     "emptyDescription": "Erstelle das erste Konto, um diese Installation zu teilen.",
@@ -515,15 +520,19 @@
     "status": "Status",
     "created": "Erstellt",
     "actions": "Aktionen",
+    "actionsFor": "Aktionen für {username}",
     "mustChangePassword": "Muss Passwort ändern",
     "active": "Aktiv",
     "inactive": "Inaktiv",
+    "you": "Du",
+    "createdBy": "von {username}",
     "resetPassword": "Passwort zurücksetzen",
-    "resetAria": "Passwort zurücksetzen für {username}",
     "deactivate": "Deaktivieren",
     "reactivate": "Reaktivieren",
-    "deactivateAria": "Deaktivieren: {username}",
-    "reactivateAria": "Reaktivieren: {username}",
+    "changeRole": "Rolle ändern",
+    "changeRoleTitle": "Rolle ändern",
+    "changeRoleDescription": "Ändert, was {username} tun darf. Die neuen Rechte gelten ab der nächsten Anfrage; die Sitzung bleibt angemeldet.",
+    "changeRoleConfirm": "Rolle ändern",
     "passwordReset": "Passwort zurückgesetzt",
     "resetTitle": "Passwort zurücksetzen",
     "resetDescription": "Setzt das Passwort von {username} zurück. Die Sitzungen enden und das neue temporäre Passwort muss bei der nächsten Anmeldung geändert werden.",
@@ -531,19 +540,37 @@
     "deactivateDescription": "Das Deaktivieren von {username} beendet die Sitzungen und blockiert neue Anmeldungen. Prüfungen und Audit-Trail bleiben erhalten.",
     "reactivateDescription": "Das Reaktivieren von {username} erlaubt die erneute Anmeldung mit dem aktuellen Passwort.",
     "thisUser": "diesen Benutzer",
-    "userCreated": "Benutzer erstellt"
+    "userCreated": "Benutzer erstellt",
+    "blockedSelfReset": "Das eigene Passwort änderst du unter Sicherheit.",
+    "blockedSelfRole": "Die eigene Rolle lässt sich nicht ändern.",
+    "blockedSelfDeactivate": "Das eigene Konto lässt sich nicht deaktivieren.",
+    "blockedLastAdmin": "Der letzte aktive Admin kann weder herabgestuft noch deaktiviert werden."
+  },
+  "roles": {
+    "ADMIN": {
+      "description": "Verwaltet Benutzer, API-Keys, Einstellungen und den Audit-Trail."
+    },
+    "MEMBER": {
+      "description": "Prüft und gibt Tests frei, kann die Installation aber nicht verwalten."
+    },
+    "VIEWER": {
+      "description": "Nur Lesen: Projekte, Tests und Ergebnisse ansehen."
+    }
   },
   "createUser": {
     "title": "Neuer Benutzer",
     "description": "Das Konto erhält ein temporäres Passwort und muss bei der ersten Anmeldung ein neues wählen.",
     "confirm": "Benutzer erstellen",
     "username": "Benutzername",
+    "usernameRequired": "Gib einen Benutzernamen ein.",
     "role": "Rolle"
   },
   "tempPassword": {
     "title": "Temporäres Passwort",
     "description": "Kopiere dieses Passwort jetzt und übergib es dem Benutzer über einen sicheren Kanal. Es wird nur einmal angezeigt und kann nicht erneut abgerufen werden.",
     "user": "Benutzer: {username}",
+    "copy": "Passwort kopieren",
+    "copied": "Kopiert",
     "done": "Fertig"
   },
   "security": {
@@ -1057,6 +1084,7 @@
     "userCreated": "Benutzer erstellt",
     "userReactivated": "Benutzer reaktiviert",
     "userDeactivated": "Benutzer deaktiviert",
+    "userRoleChanged": "Rolle geändert",
     "tempPasswordIssued": "Temporäres Passwort ausgegeben",
     "userCreateError": "Benutzer konnte nicht erstellt werden",
     "userUpdateError": "Benutzer konnte nicht aktualisiert werden",

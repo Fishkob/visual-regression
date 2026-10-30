@@ -55,8 +55,13 @@ export function useUpdateUser() {
           ...(isActive === undefined ? {} : { isActive }),
         },
       }),
-    successMessage: (user) =>
-      tm(user.isActive ? "toast.userReactivated" : "toast.userDeactivated"),
+    // A role change returns the same user shape, so the toast reads the intent
+    // from the variables: `isActive` alone would announce every promotion as a
+    // reactivation.
+    successMessage: (user, variables) =>
+      variables.role !== undefined
+        ? tm("toast.userRoleChanged")
+        : tm(user.isActive ? "toast.userReactivated" : "toast.userDeactivated"),
     errorMessage: tm("toast.userUpdateError"),
     invalidate: invalidateUsers,
   });

@@ -507,6 +507,11 @@
     "title": "Users",
     "subtitle": "Admins manage who can sign in and what they may do. New accounts get a temporary password they must replace at first sign-in.",
     "newUser": "New user",
+    "searchPlaceholder": "Search by username",
+    "searchLabel": "Search users by username",
+    "count": "{count} users",
+    "countFiltered": "{visible} of {total} users",
+    "noMatches": "No account matches “{query}”.",
     "errorTitle": "Failed to load users",
     "emptyTitle": "No users yet",
     "emptyDescription": "Create the first account to share this installation.",
@@ -515,15 +520,19 @@
     "status": "Status",
     "created": "Created",
     "actions": "Actions",
+    "actionsFor": "Actions for {username}",
     "mustChangePassword": "Must change password",
     "active": "Active",
     "inactive": "Inactive",
+    "you": "You",
+    "createdBy": "by {username}",
     "resetPassword": "Reset password",
-    "resetAria": "Reset password for {username}",
     "deactivate": "Deactivate",
     "reactivate": "Reactivate",
-    "deactivateAria": "Deactivate {username}",
-    "reactivateAria": "Reactivate {username}",
+    "changeRole": "Change role",
+    "changeRoleTitle": "Change role",
+    "changeRoleDescription": "Changes what {username} may do. The new permissions apply from their next request on; their session stays signed in.",
+    "changeRoleConfirm": "Change role",
     "passwordReset": "Password reset",
     "resetTitle": "Reset password",
     "resetDescription": "Resets the password of {username}. Their sessions end and the new temporary password must be changed at next sign-in.",
@@ -531,19 +540,37 @@
     "deactivateDescription": "Deactivating {username} ends their sessions and blocks new sign-ins. Their reviews and audit trail stay intact.",
     "reactivateDescription": "Reactivating {username} lets them sign in again with their current password.",
     "thisUser": "this user",
-    "userCreated": "User created"
+    "userCreated": "User created",
+    "blockedSelfReset": "Change your own password under Security.",
+    "blockedSelfRole": "You cannot change your own role.",
+    "blockedSelfDeactivate": "You cannot deactivate your own account.",
+    "blockedLastAdmin": "The last active admin cannot be demoted or deactivated."
+  },
+  "roles": {
+    "ADMIN": {
+      "description": "Manages users, API keys, settings and the audit trail."
+    },
+    "MEMBER": {
+      "description": "Reviews and approves tests, but cannot administer the installation."
+    },
+    "VIEWER": {
+      "description": "Read-only access to projects, tests and results."
+    }
   },
   "createUser": {
     "title": "New user",
     "description": "The account gets a temporary password and must choose a new one at first sign-in.",
     "confirm": "Create user",
     "username": "Username",
+    "usernameRequired": "Enter a username.",
     "role": "Role"
   },
   "tempPassword": {
     "title": "Temporary password",
     "description": "Copy this password now and hand it to the user over a secure channel. It is shown once and cannot be retrieved again.",
     "user": "User: {username}",
+    "copy": "Copy password",
+    "copied": "Copied",
     "done": "Done"
   },
   "security": {
@@ -1057,6 +1084,7 @@
     "userCreated": "User created",
     "userReactivated": "User reactivated",
     "userDeactivated": "User deactivated",
+    "userRoleChanged": "Role changed",
     "tempPasswordIssued": "Temporary password issued",
     "userCreateError": "Could not create the user",
     "userUpdateError": "Could not update the user",

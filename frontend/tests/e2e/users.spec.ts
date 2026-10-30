@@ -57,7 +57,8 @@ test.describe("User administration", () => {
     await expect(row.getByTestId(TEST_ID.userRole)).toContainText("MEMBER");
     await expect(row.getByTestId(TEST_ID.userActive)).toContainText("Active");
 
-    await row.getByTestId(TEST_ID.userReset).click();
+    await row.getByTestId(TEST_ID.userActions).click();
+    await page.getByTestId(TEST_ID.userReset).click();
     await page.getByTestId(TEST_ID.dialogConfirm).click();
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       "Temporary password issued",
@@ -75,7 +76,8 @@ test.describe("User administration", () => {
       .getByTestId(TEST_ID.temporaryPasswordDone)
       .click({ force: true });
 
-    await row.getByTestId(TEST_ID.userDeactivate).click();
+    await row.getByTestId(TEST_ID.userActions).click();
+    await page.getByTestId(TEST_ID.userDeactivate).click();
     await page.getByTestId(TEST_ID.dialogConfirm).click();
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       "User deactivated",
@@ -83,7 +85,8 @@ test.describe("User administration", () => {
     );
     await expect(row.getByTestId(TEST_ID.userActive)).toContainText("Inactive");
 
-    await row.getByTestId(TEST_ID.userDeactivate).click();
+    await row.getByTestId(TEST_ID.userActions).click();
+    await page.getByTestId(TEST_ID.userDeactivate).click();
     await page.getByTestId(TEST_ID.dialogConfirm).click();
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
       "User reactivated",

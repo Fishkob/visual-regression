@@ -30,8 +30,13 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const username = ref("");
 const role = ref<UserRole>(DEFAULT_ROLE);
+const touched = ref(false);
 
 const invalid = computed(() => !username.value.trim());
+// The empty field is only "invalid" once the admin has had a chance to fill it:
+// painting the error ring the moment the dialog opens reports a mistake that has
+// not happened yet.
+const showInvalid = computed(() => touched.value && invalid.value);
 
 // Reopening starts from a blank form, so a cancelled attempt never leaks into
 // the next create.
@@ -41,10 +46,12 @@ watch(
     if (!open) return;
     username.value = "";
     role.value = DEFAULT_ROLE;
+    touched.value = false;
   },
 );
 
 function submit() {
+  touched.value = true;
   if (invalid.value) return;
   emit("submit", { username: username.value.trim(), role: role.value });
 }
@@ -62,32 +69,43 @@ function submit() {
     @update:open="emit('update:open', $event)"
     @submit="submit"
   >
-    <label class="block space-y-1 text-sm">
-      <span>{{ t("createUser.username") }}</span>
-      <Input
-        v-model="username"
-        placeholder="jane.doe"
-        :aria-invalid="invalid"
-        :data-testid="TEST_ID.createUserUsername"
-      />
-    </label>
+    <div class="space-y-2">
+      <label class="block space-y-1 text-sm">
+        <span>{{ t("createUser.username") }}</span>
+        <Input
+          v-model="username"
+          placeholder="jane.doe"
+          :aria-invalid="showInvalid"
+          :data-testid="TEST_ID.createUserUsername"
+          @blur="touched = true"
+        />
+      </label>
+      <p v-if="showInvalid" class="text-xs text-destructive">
+        {{ t("createUser.usernameRequired") }}
+      </p>
+    </div>
 
-    <label class="block space-y-1 text-sm">
-      <span>{{ t("createUser.role") }}</span>
-      <Select v-model="role">
-        <SelectTrigger class="w-full" :data-testid="TEST_ID.createUserRole">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem
-            v-for="option in USER_ROLES"
-            :key="option"
-            :value="option"
-          >
-            {{ option }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
-    </label>
+    <div class="space-y-2">
+      <label class="block space-y-1 text-sm">
+        <span>{{ t("createUser.role") }}</span>
+        <Select v-model="role">
+          <SelectTrigger class="w-full" :data-testid="TEST_ID.createUserRole">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem
+              v-for="option in USER_ROLES"
+              :key="option"
+              :value="option"
+            >
+              {{ option }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </label>
+      <p class="text-xs leading-snug text-muted-foreground">
+        {{ t(`roles.${role}.description`) }}
+      </p>
+    </div>
   </FormDialog>
 </template>
