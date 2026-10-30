@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted — 2026-08-24
+Accepted — 2026-08-24; the delete-only-for-unused-key rule is superseded by
+[ADR-047](./ADR-047-delete-removes-an-api-key.md).
 
 ## Context
 

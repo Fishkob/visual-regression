@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { Plus } from "@lucide/vue";
 import {
   useApiKeysQuery,
   useCreateApiKey,
   useDeleteApiKey,
-  useRevokeApiKey,
-  useRotateApiKey,
 } from "@/composables/useApiKeys";
 import { mapIssuedApiKey } from "@/domains/api-keys/api-key.mapper";
 import type {
@@ -14,7 +13,7 @@ import type {
   CreateApiKeyInput,
   IssuedApiKey,
 } from "@/domains/api-keys/api-key.model";
-import { formatRelativeAge } from "@/lib/format-date";
+import { formatDateTime, formatRelativeAge } from "@/lib/format-date";
 import { TEST_ID } from "@/lib/test-ids";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,8 +21,6 @@ import AsyncState from "@/components/AsyncState.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import CreateApiKeyDialog from "@/components/api-keys/CreateApiKeyDialog.vue";
 import RevealApiKeyDialog from "@/components/api-keys/RevealApiKeyDialog.vue";
-import RotateApiKeyDialog from "@/components/api-keys/RotateApiKeyDialog.vue";
-import RevokeApiKeyDialog from "@/components/api-keys/RevokeApiKeyDialog.vue";
 
 const { t } = useI18n();
 const STATUS_KEY: Record<ApiKey["status"], string> = {
@@ -33,25 +30,22 @@ const STATUS_KEY: Record<ApiKey["status"], string> = {
 };
 const { data: apiKeys, isLoading, error, refetch } = useApiKeysQuery();
 const createKey = useCreateApiKey();
-const rotateKey = useRotateApiKey();
-const revokeKey = useRevokeApiKey();
 const deleteKey = useDeleteApiKey();
 
 const createOpen = ref(false);
 const revealOpen = ref(false);
 const revealKey = ref<IssuedApiKey | null>(null);
-const revealTitle = ref(t("apiKeys.created"));
 
-const rotateOpen = ref(false);
-const rotateTarget = ref<ApiKey | null>(null);
-const revokeOpen = ref(false);
-const revokeTarget = ref<ApiKey | null>(null);
 const deleteOpen = ref(false);
 const deleteTarget = ref<ApiKey | null>(null);
 
 const keys = computed(() => apiKeys.value ?? []);
 const activeCount = computed(
   () => keys.value.filter((key) => key.status === "active").length,
+);
+
+const deleteDescription = computed(() =>
+  t("apiKeys.deleteDescription", { name: deleteTarget.value?.name ?? "" }),
 );
 
 // Mirrors the status-badge convention in domains/test-status: an outline plus
@@ -89,67 +83,10 @@ function submitCreate(payload: CreateApiKeyInput) {
   createKey.mutate(payload, {
     onSuccess: (issued) => {
       revealKey.value = mapIssuedApiKey(issued);
-      revealTitle.value = t("apiKeys.created");
       createOpen.value = false;
       revealOpen.value = true;
     },
   });
-}
-
-function openRotate(key: ApiKey) {
-  rotateKey.reset();
-  rotateTarget.value = key;
-  rotateOpen.value = true;
-}
-
-function submitRotate(payload: {
-  graceMinutes: number;
-  expiresInDays?: number | null;
-}) {
-  const target = rotateTarget.value;
-  if (!target) return;
-  rotateKey.mutate(
-    {
-      id: target.id,
-      rotation: {
-        ...(payload.graceMinutes > 0
-          ? { graceMinutes: payload.graceMinutes }
-          : {}),
-        ...(payload.expiresInDays === undefined
-          ? {}
-          : { expiresInDays: payload.expiresInDays }),
-      },
-    },
-    {
-      onSuccess: (issued) => {
-        revealKey.value = mapIssuedApiKey(issued);
-        revealTitle.value = t("apiKeys.rotated");
-        rotateOpen.value = false;
-        rotateTarget.value = null;
-        revealOpen.value = true;
-      },
-    },
-  );
-}
-
-function openRevoke(key: ApiKey) {
-  revokeKey.reset();
-  revokeTarget.value = key;
-  revokeOpen.value = true;
-}
-
-function submitRevoke(reason: string | undefined) {
-  const target = revokeTarget.value;
-  if (!target) return;
-  revokeKey.mutate(
-    { id: target.id, reason },
-    {
-      onSuccess: () => {
-        revokeOpen.value = false;
-        revokeTarget.value = null;
-      },
-    },
-  );
 }
 
 function requestDelete(key: ApiKey) {
@@ -185,16 +122,22 @@ function describeExpiry(key: ApiKey): string | null {
   if (!key.expiresAt) return null;
   return t("apiKeys.expires", { age: formatRelativeAge(key.expiresAt) });
 }
+
+// Every relative age carries its absolute timestamp as a tooltip, the same way
+// the user and webhook lists do.
+function absolute(iso: string | null): string | undefined {
+  return iso ? formatDateTime(iso) : undefined;
+}
 </script>
 
 <template>
   <div class="space-y-6">
-    <div class="flex items-start justify-between gap-4">
+    <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
         <h1 class="text-xl font-semibold tracking-tight">
           {{ t("apiKeys.title") }}
         </h1>
-        <p class="mt-1 text-sm text-muted-foreground">
+        <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
           {{ t("apiKeys.subtitle") }}
         </p>
       </div>
@@ -203,6 +146,7 @@ function describeExpiry(key: ApiKey): string | null {
         :data-testid="TEST_ID.newApiKey"
         @click="openCreate"
       >
+        <Plus class="h-4 w-4" />
         {{ t("apiKeys.newKey") }}
       </Button>
     </div>
@@ -224,135 +168,132 @@ function describeExpiry(key: ApiKey): string | null {
             class="flex items-center justify-between gap-4 border-b px-4 py-3 last:border-b-0"
           >
             <div class="space-y-2">
-              <div class="h-4 w-24 animate-pulse rounded bg-muted" />
-              <div class="h-3 w-16 animate-pulse rounded bg-muted" />
+              <div class="h-4 w-32 animate-pulse rounded bg-muted" />
+              <div class="h-3 w-20 animate-pulse rounded bg-muted" />
             </div>
-            <div class="flex gap-2">
-              <div class="h-8 w-20 animate-pulse rounded-md bg-muted" />
-              <div class="h-8 w-20 animate-pulse rounded-md bg-muted" />
-            </div>
+            <div class="h-8 w-20 animate-pulse rounded-md bg-muted" />
           </div>
         </div>
       </template>
 
-      <div class="overflow-hidden rounded-xl border bg-card shadow-sm">
-        <div
-          v-for="key in keys"
-          :key="key.id"
-          class="flex flex-col gap-3 border-b px-4 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
-          :data-testid="TEST_ID.apiKeyRow"
-        >
-          <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <p class="truncate font-medium" :data-testid="TEST_ID.apiKeyName">
-                {{ key.name }}
+      <div class="space-y-4">
+        <ul class="overflow-hidden rounded-xl border bg-card shadow-sm">
+          <li
+            v-for="key in keys"
+            :key="key.id"
+            class="flex flex-col gap-3 border-b px-4 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
+            :data-testid="TEST_ID.apiKeyRow"
+          >
+            <div class="min-w-0 space-y-1.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <p
+                  class="truncate font-medium"
+                  :title="key.name"
+                  :data-testid="TEST_ID.apiKeyName"
+                >
+                  {{ key.name }}
+                </p>
+                <Badge
+                  variant="outline"
+                  :class="badgeClass(key)"
+                  :data-testid="TEST_ID.apiKeyStatus"
+                >
+                  {{ statusLabel(key) }}
+                </Badge>
+                <code
+                  v-if="key.keyHint"
+                  class="font-mono text-xs text-muted-foreground"
+                  :data-testid="TEST_ID.apiKeyHint"
+                >
+                  …{{ key.keyHint }}
+                </code>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <div
+                  class="flex flex-wrap items-center gap-1"
+                  :data-testid="TEST_ID.apiKeyScopes"
+                >
+                  <Badge
+                    v-for="scope in key.scopes"
+                    :key="scope"
+                    variant="secondary"
+                    class="font-mono text-[10px]"
+                  >
+                    {{ scope }}
+                  </Badge>
+                </div>
+                <div
+                  class="flex flex-wrap items-center gap-1"
+                  :data-testid="TEST_ID.apiKeyProjects"
+                >
+                  <Badge
+                    v-if="key.projectNames.length === 0"
+                    variant="outline"
+                    class="text-[10px] text-muted-foreground"
+                  >
+                    {{ t("apiKeys.allProjects") }}
+                  </Badge>
+                  <Badge
+                    v-for="projectName in key.projectNames"
+                    :key="projectName"
+                    variant="outline"
+                    class="font-mono text-[10px]"
+                  >
+                    {{ projectName }}
+                  </Badge>
+                </div>
+              </div>
+
+              <p
+                class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
+                :data-testid="TEST_ID.apiKeyLastUsed"
+              >
+                <span :data-testid="TEST_ID.apiKeyOwner">
+                  {{ t("apiKeys.owner", { owner: ownerLabel(key) }) }}
+                </span>
+                <span :title="absolute(key.createdAt)">
+                  ·
+                  {{
+                    t("apiKeys.createdAge", {
+                      age: formatRelativeAge(key.createdAt),
+                    })
+                  }}
+                </span>
+                <span :title="absolute(key.lastUsedAt)">
+                  · {{ describeUsage(key) }}
+                </span>
+                <span
+                  v-if="describeExpiry(key)"
+                  :title="absolute(key.expiresAt)"
+                >
+                  · {{ describeExpiry(key) }}
+                </span>
+                <span v-if="key.revokedReason">
+                  · {{ key.revokedReason }}
+                </span>
               </p>
-              <Badge
-                variant="outline"
-                :class="badgeClass(key)"
-                :data-testid="TEST_ID.apiKeyStatus"
-              >
-                {{ statusLabel(key) }}
-              </Badge>
-              <code
-                v-if="key.keyHint"
-                class="font-mono text-xs text-muted-foreground"
-                :data-testid="TEST_ID.apiKeyHint"
-              >
-                …{{ key.keyHint }}
-              </code>
-            </div>
-            <div
-              class="mt-1 flex flex-wrap items-center gap-1"
-              :data-testid="TEST_ID.apiKeyScopes"
-            >
-              <Badge
-                v-for="scope in key.scopes"
-                :key="scope"
-                variant="secondary"
-                class="font-mono text-[10px]"
-              >
-                {{ scope }}
-              </Badge>
             </div>
 
-            <div
-              class="mt-1 flex flex-wrap items-center gap-1"
-              :data-testid="TEST_ID.apiKeyProjects"
-            >
-              <Badge
-                v-if="key.projectNames.length === 0"
-                variant="outline"
-                class="text-[10px]"
+            <div class="flex shrink-0 items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                :aria-label="t('apiKeys.deleteAria', { name: key.name })"
+                :data-testid="TEST_ID.deleteApiKey"
+                @click="requestDelete(key)"
               >
-                {{ t("apiKeys.allProjects") }}
-              </Badge>
-              <Badge
-                v-for="projectName in key.projectNames"
-                :key="projectName"
-                variant="outline"
-                class="font-mono text-[10px]"
-              >
-                {{ projectName }}
-              </Badge>
+                {{ t("apiKeys.delete") }}
+              </Button>
             </div>
+          </li>
+        </ul>
 
-            <p
-              class="mt-1 flex flex-wrap gap-x-2 text-sm text-muted-foreground"
-              :data-testid="TEST_ID.apiKeyLastUsed"
-            >
-              <span :data-testid="TEST_ID.apiKeyOwner">
-                {{ t("apiKeys.owner", { owner: ownerLabel(key) }) }}
-              </span>
-              <span>· {{ describeUsage(key) }}</span>
-              <span v-if="describeExpiry(key)">
-                · {{ describeExpiry(key) }}
-              </span>
-              <span v-if="key.revokedReason"> · {{ key.revokedReason }} </span>
-            </p>
-          </div>
-
-          <div class="flex shrink-0 gap-2">
-            <Button
-              v-if="key.status === 'active'"
-              type="button"
-              variant="outline"
-              size="sm"
-              :aria-label="t('apiKeys.rotateAria', { name: key.name })"
-              :data-testid="TEST_ID.rotateApiKey"
-              @click="openRotate(key)"
-            >
-              {{ t("apiKeys.rotate") }}
-            </Button>
-            <Button
-              v-if="key.status === 'active'"
-              type="button"
-              variant="destructive"
-              size="sm"
-              :aria-label="t('apiKeys.revokeAria', { name: key.name })"
-              :data-testid="TEST_ID.revokeApiKey"
-              @click="openRevoke(key)"
-            >
-              {{ t("apiKeys.revoke") }}
-            </Button>
-            <Button
-              v-if="!key.lastUsedAt"
-              type="button"
-              variant="outline"
-              size="sm"
-              :aria-label="t('apiKeys.deleteAria', { name: key.name })"
-              :data-testid="TEST_ID.deleteApiKey"
-              @click="requestDelete(key)"
-            >
-              {{ t("apiKeys.delete") }}
-            </Button>
-          </div>
-        </div>
+        <p class="text-xs text-muted-foreground">
+          {{ t("apiKeys.activeCount", activeCount) }}
+        </p>
       </div>
-
-      <p class="text-sm text-muted-foreground">
-        {{ t("apiKeys.activeCount", activeCount) }}
-      </p>
     </AsyncState>
 
     <CreateApiKeyDialog
@@ -366,26 +307,8 @@ function describeExpiry(key: ApiKey): string | null {
     <RevealApiKeyDialog
       :open="revealOpen"
       :issued-key="revealKey"
-      :title="revealTitle"
+      :title="t('apiKeys.created')"
       @update:open="revealOpen = $event"
-    />
-
-    <RotateApiKeyDialog
-      :open="rotateOpen"
-      :api-key="rotateTarget"
-      :pending="rotateKey.isPending.value"
-      :error="rotateKey.error.value"
-      @update:open="rotateOpen = $event"
-      @submit="submitRotate"
-    />
-
-    <RevokeApiKeyDialog
-      :open="revokeOpen"
-      :api-key="revokeTarget"
-      :pending="revokeKey.isPending.value"
-      :error="revokeKey.error.value"
-      @update:open="revokeOpen = $event"
-      @submit="submitRevoke"
     />
 
     <ConfirmDialog
@@ -393,6 +316,7 @@ function describeExpiry(key: ApiKey): string | null {
       :pending="deleteKey.isPending.value"
       confirm-variant="destructive"
       :title="t('apiKeys.deleteTitle')"
+      :description="deleteDescription"
       :confirm-text="t('apiKeys.delete')"
       :cancel-text="t('common.cancel')"
       @confirm="confirmDelete"
@@ -403,10 +327,6 @@ function describeExpiry(key: ApiKey): string | null {
         }
       "
       @update:open="deleteOpen = $event"
-    >
-      <template #description>
-        {{ t("apiKeys.deleteDescription", { name: deleteTarget?.name ?? "" }) }}
-      </template>
-    </ConfirmDialog>
+    />
   </div>
 </template>

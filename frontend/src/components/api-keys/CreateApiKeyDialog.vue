@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { useAllProjectsQuery } from "@/composables/useProjects";
 import {
+  API_KEY_NAME_MAX_LENGTH,
   API_KEY_SCOPES,
   DEFAULT_API_KEY_SCOPES,
   type ApiKeyScope,
@@ -94,8 +95,16 @@ const noScopes = computed(() => scopes.value.length === 0);
 const noProjects = computed(
   () => !allProjects.value && restrictedProjectNames.value.length === 0,
 );
+const trimmedName = computed(() => name.value.trim());
+const nameTooLong = computed(
+  () => trimmedName.value.length > API_KEY_NAME_MAX_LENGTH,
+);
 const invalid = computed(
-  () => !name.value.trim() || noScopes.value || noProjects.value,
+  () =>
+    !trimmedName.value ||
+    nameTooLong.value ||
+    noScopes.value ||
+    noProjects.value,
 );
 const showAdminWarning = computed(() => scopes.value.includes("admin"));
 
@@ -115,7 +124,7 @@ watch(
 function submit() {
   if (invalid.value) return;
   emit("submit", {
-    name: name.value.trim(),
+    name: trimmedName.value,
     ...(expiry.value === "never"
       ? {}
       : { expiresInDays: Number(expiry.value) }),
@@ -142,10 +151,23 @@ function submit() {
       <Input
         v-model="name"
         placeholder="ci-upload"
-        :aria-invalid="!name.trim()"
+        :maxlength="API_KEY_NAME_MAX_LENGTH"
+        :aria-invalid="!trimmedName || nameTooLong"
         :data-testid="TEST_ID.createApiKeyName"
       />
+      <span class="block text-right text-xs text-muted-foreground">
+        {{
+          t("apiKeyDialog.nameCounter", {
+            count: trimmedName.length,
+            max: API_KEY_NAME_MAX_LENGTH,
+          })
+        }}
+      </span>
     </label>
+
+    <p v-if="nameTooLong" class="text-sm text-destructive" role="alert">
+      {{ t("apiKeyDialog.nameTooLong", { max: API_KEY_NAME_MAX_LENGTH }) }}
+    </p>
 
     <label class="block space-y-1 text-sm">
       <span>{{ t("apiKeyDialog.expires") }}</span>

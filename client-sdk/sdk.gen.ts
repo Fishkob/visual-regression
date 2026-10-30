@@ -1235,7 +1235,7 @@ export const apiKeysControllerRevoke = <ThrowOnError extends boolean = false>(op
 });
 
 /**
- * Delete a key that was never used; used keys must be revoked
+ * Delete a key permanently; it stops authenticating immediately
  */
 export const apiKeysControllerRemove = <ThrowOnError extends boolean = false>(options: Options<ApiKeysControllerRemoveData, ThrowOnError>): RequestResult<ApiKeysControllerRemoveResponses, ApiKeysControllerRemoveErrors, ThrowOnError> => (options.client ?? client).delete<ApiKeysControllerRemoveResponses, ApiKeysControllerRemoveErrors, ThrowOnError>({
     security: [{

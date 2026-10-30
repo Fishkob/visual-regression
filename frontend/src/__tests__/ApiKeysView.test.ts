@@ -4,27 +4,18 @@ import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import ApiKeysView from "@/views/ApiKeysView.vue";
 import { TEST_ID } from "@/lib/test-ids";
 
-const {
-  mockFindAll,
-  mockCreate,
-  mockRotate,
-  mockRevoke,
-  mockRemove,
-  mockProjects,
-} = vi.hoisted(() => ({
-  mockFindAll: vi.fn(),
-  mockCreate: vi.fn(),
-  mockRotate: vi.fn(),
-  mockRevoke: vi.fn(),
-  mockRemove: vi.fn(),
-  mockProjects: vi.fn(),
-}));
+const { mockFindAll, mockCreate, mockRemove, mockProjects } = vi.hoisted(
+  () => ({
+    mockFindAll: vi.fn(),
+    mockCreate: vi.fn(),
+    mockRemove: vi.fn(),
+    mockProjects: vi.fn(),
+  }),
+);
 
 vi.mock("@sdk", () => ({
   apiKeysControllerFindAll: (...args: unknown[]) => mockFindAll(...args),
   apiKeysControllerCreate: (...args: unknown[]) => mockCreate(...args),
-  apiKeysControllerRotate: (...args: unknown[]) => mockRotate(...args),
-  apiKeysControllerRevoke: (...args: unknown[]) => mockRevoke(...args),
   apiKeysControllerRemove: (...args: unknown[]) => mockRemove(...args),
   projectsControllerGetProjectsWithPendingFlag: (...args: unknown[]) =>
     mockProjects(...args),
@@ -209,6 +200,46 @@ describe("ApiKeysView", () => {
     );
   });
 
+  it("caps the key name at 50 characters", async () => {
+    const wrapper = mountView();
+    await waitForRows(wrapper, 2);
+    await openCreate(wrapper);
+
+    const input = wrapper.get(`[data-testid="${TEST_ID.createApiKeyName}"]`);
+    expect(input.attributes("maxlength")).toBe("50");
+
+    // A pasted or programmatically set value is not cut by the browser, so the
+    // dialog itself has to refuse it.
+    await input.setValue("a".repeat(51));
+
+    expect(wrapper.text()).toContain("The name can be at most 50 characters.");
+    expect(
+      wrapper
+        .get(`[data-testid="${TEST_ID.createApiKeySubmit}"]`)
+        .attributes("disabled"),
+    ).toBeDefined();
+
+    await wrapper.find("form").trigger("submit");
+    expect(mockCreate).not.toHaveBeenCalled();
+
+    // 50 characters is still accepted, and the value is sent trimmed.
+    await input.setValue(`  ${"a".repeat(50)}  `);
+    expect(wrapper.text()).not.toContain(
+      "The name can be at most 50 characters.",
+    );
+    await wrapper.find("form").trigger("submit");
+
+    await vi.waitFor(() =>
+      expect(mockCreate).toHaveBeenCalledWith({
+        body: {
+          name: "a".repeat(50),
+          scopes: ["upload"],
+          projectNames: [],
+        },
+      }),
+    );
+  });
+
   it("creates a scoped key restricted to selected projects", async () => {
     const wrapper = mountView();
     await waitForRows(wrapper, 2);
@@ -321,16 +352,48 @@ describe("ApiKeysView", () => {
     );
   });
 
-  it("mentions that rotation inherits scopes and the allowlist", async () => {
+  it("offers delete for a used key and for an unused one", async () => {
     const wrapper = mountView();
     await waitForRows(wrapper, 2);
 
-    await wrapper
-      .findAll(`[data-testid="${TEST_ID.rotateApiKey}"]`)[0]
+    const rows = wrapper.findAll(`[data-testid="${TEST_ID.apiKeyRow}"]`);
+
+    expect(
+      rows[0]!.find(`[data-testid="${TEST_ID.deleteApiKey}"]`).exists(),
+    ).toBe(true);
+    expect(
+      rows[1]!.find(`[data-testid="${TEST_ID.deleteApiKey}"]`).exists(),
+    ).toBe(true);
+  });
+
+  it("deletes a key that has already authenticated a request", async () => {
+    mockRemove.mockResolvedValue({ data: { success: true } });
+
+    const wrapper = mountView();
+    await waitForRows(wrapper, 2);
+
+    // The second row was used by CI minutes ago; deleting it is the hard
+    // removal, not a revoke.
+    const usedRow = wrapper.findAll(`[data-testid="${TEST_ID.apiKeyRow}"]`)[1]!;
+    await usedRow
+      .get(`[data-testid="${TEST_ID.deleteApiKey}"]`)
       .trigger("click");
 
     await vi.waitFor(() =>
-      expect(wrapper.text()).toContain("inherits this key's scopes"),
+      expect(
+        wrapper.find(`[data-testid="${TEST_ID.dialogConfirm}"]`).exists(),
+      ).toBe(true),
+    );
+    expect(wrapper.text()).toContain(
+      "release is deleted permanently and stops authenticating immediately.",
+    );
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.dialogConfirm}"]`)
+      .trigger("click");
+
+    await vi.waitFor(() =>
+      expect(mockRemove).toHaveBeenCalledWith({ path: { id: "k2" } }),
     );
   });
 });

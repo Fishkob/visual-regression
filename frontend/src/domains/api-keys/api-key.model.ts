@@ -9,6 +9,10 @@ export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 
 export const DEFAULT_API_KEY_SCOPES: ApiKeyScope[] = ["upload"];
 
+// Mirrors MAX_API_KEY_NAME_LENGTH in the create DTO: the name is the row's
+// label, so the API and the dialog must refuse the same length.
+export const API_KEY_NAME_MAX_LENGTH = 50;
+
 export const API_KEY_SCOPE_DESCRIPTION: Record<ApiKeyScope, string> = {
   upload: "Upload captures and read the job status of those uploads.",
   read: "Read projects, runs, trends and audit data.",
@@ -54,16 +58,6 @@ export interface CreateApiKeyInput {
   expiresInDays?: number;
   scopes?: ApiKeyScope[];
   projectNames?: string[];
-}
-
-export interface RotateApiKeyInput {
-  graceMinutes?: number;
-  /** Omitted inherits the previous key's remaining lifetime; null means never. */
-  expiresInDays?: number | null;
-}
-
-export interface RevokeApiKeyInput {
-  reason?: string;
 }
 
 export const API_KEY_STATUS_LABEL: Record<ApiKeyStatus, string> = {

@@ -3,8 +3,6 @@ import {
   API_KEYS_EMPTY_RESPONSE,
   API_KEYS_RESPONSE,
   CREATED_API_KEY_RESPONSE,
-  REVOKED_API_KEY_RESPONSE,
-  ROTATED_API_KEY_RESPONSE,
 } from "./mocks/apiKeys.mocks";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -33,12 +31,6 @@ async function mockApiKeysBackend(
         ],
       }),
     }),
-  );
-  await page.route(`**${API_KEYS_PATH}/*/rotate`, (route) =>
-    route.fulfill(ROTATED_API_KEY_RESPONSE),
-  );
-  await page.route(`**${API_KEYS_PATH}/*/revoke`, (route) =>
-    route.fulfill(REVOKED_API_KEY_RESPONSE),
   );
   await page.route(`**${API_KEYS_PATH}/*`, (route) =>
     route.request().method() === "DELETE"
@@ -91,15 +83,13 @@ test.describe("API keys", () => {
     await expect(component).toContainText("No API keys yet");
   });
 
-  test("offers delete only for keys that were never used", async ({
-    mount,
-    page,
-  }) => {
+  test("offers delete on every row", async ({ mount, page }) => {
     await mockApiKeysBackend(page);
 
     const component = await mount("views/ApiKeysView/ApiKeys");
     const rows = component.getByTestId(TEST_ID.apiKeyRow);
 
+    await expect(rows).toHaveCount(4);
     await expect(
       rows
         .filter({ hasText: "design-review" })
@@ -107,7 +97,11 @@ test.describe("API keys", () => {
     ).toBeVisible();
     await expect(
       rows.filter({ hasText: "ci-upload" }).getByTestId(TEST_ID.deleteApiKey),
-    ).toHaveCount(0);
+    ).toBeVisible();
+    // A revoked key can be removed as well: the row is not the audit trail.
+    await expect(
+      rows.filter({ hasText: "retired-ci" }).getByTestId(TEST_ID.deleteApiKey),
+    ).toBeVisible();
   });
 
   test("creates a key and reveals it exactly once", async ({ mount, page }) => {
@@ -145,103 +139,42 @@ test.describe("API keys", () => {
     );
   });
 
-  test("rotates a key and reveals the successor", async ({ mount, page }) => {
+  test("caps the key name at 50 characters", async ({ mount, page }) => {
     await mockApiKeysBackend(page);
 
     const component = await mount("views/ApiKeysView/ApiKeys");
-    const row = component
-      .getByTestId(TEST_ID.apiKeyRow)
-      .filter({ hasText: "design-review" });
+    await component.getByTestId(TEST_ID.newApiKey).click();
 
-    await row.getByTestId(TEST_ID.rotateApiKey).click();
+    const nameInput = page.getByTestId(TEST_ID.createApiKeyName);
+    await expect(nameInput).toHaveAttribute("maxlength", "50");
 
-    const request = page.waitForRequest(
-      (candidate) =>
-        candidate.method() === "POST" &&
-        new URL(candidate.url()).pathname === `${API_KEYS_PATH}/k2/rotate`,
-    );
-
-    await page.getByTestId(TEST_ID.rotateApiKeySubmit).click();
-
-    expect(JSON.parse((await request).postData() ?? "{}")).toEqual({});
-
-    await expect(page.getByTestId(TEST_ID.apiKeyRevealValue)).toHaveText(
-      "rotated-secret-value-ab12",
-    );
+    // The browser cuts typed and pasted input at maxlength, so the request can
+    // never carry a longer name.
+    await nameInput.fill("x".repeat(60));
+    await expect(nameInput).toHaveValue("x".repeat(50));
   });
 
-  test("rotates with an explicit lifetime", async ({ mount, page }) => {
+  test("deletes a used key after confirming", async ({ mount, page }) => {
     await mockApiKeysBackend(page);
 
     const component = await mount("views/ApiKeysView/ApiKeys");
     const row = component
       .getByTestId(TEST_ID.apiKeyRow)
-      .filter({ hasText: "design-review" });
+      .filter({ hasText: "ci-upload" });
 
-    await row.getByTestId(TEST_ID.rotateApiKey).click();
-    await page.getByTestId(TEST_ID.rotateApiKeyExpiry).click();
-    await page.getByRole("option", { name: "90 days" }).click();
+    await row.getByTestId(TEST_ID.deleteApiKey).click();
+
+    await expect(page.getByTestId(TEST_ID.dialogDescription)).toContainText(
+      "ci-upload is deleted permanently",
+    );
 
     const request = page.waitForRequest(
       (candidate) =>
-        candidate.method() === "POST" &&
-        new URL(candidate.url()).pathname === `${API_KEYS_PATH}/k2/rotate`,
+        candidate.method() === "DELETE" &&
+        new URL(candidate.url()).pathname === `${API_KEYS_PATH}/k1`,
     );
-    await page.getByTestId(TEST_ID.rotateApiKeySubmit).click();
+    await page.getByTestId(TEST_ID.dialogConfirm).click();
 
-    expect(JSON.parse((await request).postData() ?? "{}")).toEqual({
-      expiresInDays: 90,
-    });
-  });
-
-  test("rotates into a key that never expires", async ({ mount, page }) => {
-    await mockApiKeysBackend(page);
-
-    const component = await mount("views/ApiKeysView/ApiKeys");
-    const row = component
-      .getByTestId(TEST_ID.apiKeyRow)
-      .filter({ hasText: "design-review" });
-
-    await row.getByTestId(TEST_ID.rotateApiKey).click();
-    await page.getByTestId(TEST_ID.rotateApiKeyExpiry).click();
-    await page.getByRole("option", { name: "Never" }).click();
-
-    const request = page.waitForRequest(
-      (candidate) =>
-        candidate.method() === "POST" &&
-        new URL(candidate.url()).pathname === `${API_KEYS_PATH}/k2/rotate`,
-    );
-    await page.getByTestId(TEST_ID.rotateApiKeySubmit).click();
-
-    // An explicit null is what turns the expiry off; omitting the field would
-    // mean "inherit the previous key's remaining lifetime" instead.
-    expect(JSON.parse((await request).postData() ?? "{}")).toEqual({
-      expiresInDays: null,
-    });
-  });
-
-  test("revokes a key with the entered reason", async ({ mount, page }) => {
-    await mockApiKeysBackend(page);
-
-    const component = await mount("views/ApiKeysView/ApiKeys");
-    const row = component
-      .getByTestId(TEST_ID.apiKeyRow)
-      .filter({ hasText: "design-review" });
-
-    await row.getByTestId(TEST_ID.revokeApiKey).click();
-    await page.getByTestId(TEST_ID.revokeApiKeyReason).fill("leaked");
-
-    const request = page.waitForRequest(
-      (candidate) =>
-        candidate.method() === "POST" &&
-        new URL(candidate.url()).pathname === `${API_KEYS_PATH}/k2/revoke`,
-    );
-
-    await page.getByTestId(TEST_ID.revokeApiKeySubmit).click();
-
-    expect(JSON.parse((await request).postData() ?? "{}")).toEqual({
-      reason: "leaked",
-    });
-    await expect(page.getByTestId(TEST_ID.revokeApiKeyReason)).toBeHidden();
+    expect((await request).method()).toBe("DELETE");
   });
 });

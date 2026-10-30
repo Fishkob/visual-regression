@@ -92,39 +92,3 @@ export const CREATED_API_KEY_RESPONSE = {
     expiresAt: null,
   }),
 };
-
-export const ROTATED_API_KEY_RESPONSE = {
-  status: 201,
-  contentType: "application/json",
-  body: JSON.stringify({
-    id: "k4",
-    name: "ci-upload",
-    rawKey: "rotated-secret-value-ab12",
-    keyHint: "ab12",
-    scopes: ["upload"],
-    projectNames: [],
-    expiresAt: null,
-  }),
-};
-
-export const REVOKED_API_KEY_RESPONSE = {
-  status: 200,
-  contentType: "application/json",
-  body: JSON.stringify({
-    id: "k2",
-    name: "design-review",
-    keyHint: "ab12",
-    ownerId: "u-1",
-    ownerUsername: "alice",
-    scopes: ["upload"],
-    projectNames: [],
-    createdBy: "alice",
-    createdAt: "2026-10-20T10:00:00.000Z",
-    lastUsedAt: null,
-    expiresAt: null,
-    revokedAt: "2026-10-26T10:00:00.000Z",
-    revokedReason: "leaked",
-    replacedById: null,
-    status: "revoked",
-  }),
-};

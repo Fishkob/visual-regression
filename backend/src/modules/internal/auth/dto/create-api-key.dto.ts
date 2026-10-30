@@ -19,11 +19,17 @@ import {
 } from '@common/domain/api-key-scopes';
 
 const MAX_EXPIRY_DAYS = 3650;
+// The dashboard caps the name at the same number: the name is the only label an
+// operator has for a credential in the list, and the row is one line.
+export const MAX_API_KEY_NAME_LENGTH = 50;
 
 export class CreateApiKeyDto {
-  @ApiProperty({ example: 'ci-upload' })
+  @ApiProperty({ example: 'ci-upload', maxLength: MAX_API_KEY_NAME_LENGTH })
   @IsString()
   @MinLength(1)
+  @MaxLength(MAX_API_KEY_NAME_LENGTH, {
+    message: `API key name must be at most ${MAX_API_KEY_NAME_LENGTH} characters`,
+  })
   name!: string;
 
   @ApiPropertyOptional({

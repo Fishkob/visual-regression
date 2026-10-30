@@ -18,7 +18,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 022 | [Observability Stack](./022-observability-stack.md)                                 | Accepted                                 |
 | 023 | [No Reject Endpoint](./023-no-reject-endpoint.md)                                   | Accepted                                 |
 | 024 | [Database Migrations](./024-database-migrations.md)                                 | Accepted                                 |
-| 025 | [Authentication](./025-authentication.md)                                           | Accepted                                 |
+| 025 | [Authentication](./025-authentication.md)                                           | Accepted (delete rule superseded by 047) |
 | 026 | [Rate-Limit Unification](./026-rate-limit-unification.md)                           | Accepted                                 |
 | 027 | [Branch-Scoped Baselines](./ADR-027-branch-scoped-baselines.md)                     | Accepted                                 |
 | 028 | [Baseline Revisions](./ADR-028-baseline-revisions.md)                               | Accepted                                 |
@@ -40,6 +40,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 044 | [A Failed Job Owns Its Candidate](./ADR-044-failed-job-candidate-ownership.md)      | Accepted                                 |
 | 045 | [API-Key Scopes on the Route](./ADR-045-api-key-scopes-on-the-route.md)             | Accepted (partially supersedes 035)      |
 | 046 | [PDF Comparison Runs in a Java Sidecar](./ADR-046-pdf-comparison-sidecar.md)        | Accepted                                 |
+| 047 | [Delete Removes an API Key, Used or Not](./ADR-047-delete-removes-an-api-key.md)    | Accepted (partially supersedes 025)      |
 
 ## Numbering
 

@@ -319,15 +319,21 @@ describe('ApiKeyService', () => {
       );
     });
 
-    it('refuses to delete a key that has authenticated a request', async () => {
+    it('deletes a key that has already authenticated a request', async () => {
       mockRepository.findApiKeyById.mockResolvedValue(
         makeRow({ lastUsedAt: new Date() }),
       );
 
-      await expect(service.deleteKey('alice', 'k1')).rejects.toMatchObject({
-        code: 'CONFLICT',
+      await expect(service.deleteKey('alice', 'k1')).resolves.toEqual({
+        success: true,
       });
-      expect(mockRepository.deleteApiKey).not.toHaveBeenCalled();
+      expect(mockRepository.deleteApiKey).toHaveBeenCalledWith('k1');
+      expect(mockAudit.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: AUDIT_ACTIONS.apiKeyDelete,
+          metadata: expect.objectContaining({ name: 'ci-upload' }),
+        }),
+      );
     });
 
     it('rejects an unknown key', async () => {

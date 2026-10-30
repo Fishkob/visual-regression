@@ -7,21 +7,15 @@ import {
   useApiKeysQuery,
   useCreateApiKey,
   useDeleteApiKey,
-  useRevokeApiKey,
-  useRotateApiKey,
 } from "@/composables/useApiKeys";
 
 const mockFindAll = vi.hoisted(() => vi.fn());
 const mockCreate = vi.hoisted(() => vi.fn());
-const mockRotate = vi.hoisted(() => vi.fn());
-const mockRevoke = vi.hoisted(() => vi.fn());
 const mockRemove = vi.hoisted(() => vi.fn());
 
 vi.mock("@sdk", () => ({
   apiKeysControllerFindAll: (...args: unknown[]) => mockFindAll(...args),
   apiKeysControllerCreate: (...args: unknown[]) => mockCreate(...args),
-  apiKeysControllerRotate: (...args: unknown[]) => mockRotate(...args),
-  apiKeysControllerRevoke: (...args: unknown[]) => mockRevoke(...args),
   apiKeysControllerRemove: (...args: unknown[]) => mockRemove(...args),
 }));
 
@@ -157,52 +151,6 @@ describe("useCreateApiKey", () => {
 
     expect(toast.error).toHaveBeenCalledWith("Could not create API key");
     expect(invalidate).not.toHaveBeenCalled();
-  });
-});
-
-describe("useRotateApiKey", () => {
-  it("rotates the key scoped to its id and invalidates the list", async () => {
-    mockRotate.mockResolvedValue({ data: { id: 7, rawKey: "vrk_new" } });
-
-    const { result, invalidate } = mountComposable(useRotateApiKey);
-
-    await result.mutateAsync({ id: "7", rotation: { graceMinutes: 5 } });
-
-    expect(mockRotate).toHaveBeenCalledWith({
-      path: { id: "7" },
-      body: { graceMinutes: 5 },
-    });
-    expect(toast.success).toHaveBeenCalledWith("API key rotated");
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["api-keys"] });
-  });
-});
-
-describe("useRevokeApiKey", () => {
-  it("sends the revoke reason with the request", async () => {
-    mockRevoke.mockResolvedValue({ data: { id: 7, status: "revoked" } });
-
-    const { result } = mountComposable(useRevokeApiKey);
-
-    await result.mutateAsync({ id: "7", reason: "leaked in CI" });
-
-    expect(mockRevoke).toHaveBeenCalledWith({
-      path: { id: "7" },
-      body: { reason: "leaked in CI" },
-    });
-    expect(toast.success).toHaveBeenCalledWith("API key revoked");
-  });
-
-  it("omits the body when no reason is given", async () => {
-    mockRevoke.mockResolvedValue({ data: { id: 7, status: "revoked" } });
-
-    const { result } = mountComposable(useRevokeApiKey);
-
-    await result.mutateAsync({ id: "7" });
-
-    expect(mockRevoke).toHaveBeenCalledWith({
-      path: { id: "7" },
-      body: {},
-    });
   });
 });
 

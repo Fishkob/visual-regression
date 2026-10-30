@@ -171,17 +171,11 @@ export class ApiKeyService {
     });
   }
 
-  // Only a key that never authenticated may be deleted outright: once it has
-  // used the API, the row is the only record of which CI job that was, so it is
-  // revoked (kept) rather than deleted.
+  // Deleting is the hard removal: the row and its credential are gone at once,
+  // whether or not the key ever authenticated. The audit row (written in the
+  // same transaction) keeps the name, so the removal itself stays traceable.
   async deleteKey(actor: string, id: string): Promise<{ success: true }> {
     const current = await this.findOrFail(id);
-    if (current.lastUsedAt) {
-      throw new DomainError(
-        'A key that has been used must be revoked instead of deleted',
-        'CONFLICT',
-      );
-    }
     await this.uow.execute(async () => {
       await this.repo.deleteApiKey(id);
       await this.audit.record({

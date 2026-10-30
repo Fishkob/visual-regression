@@ -10,7 +10,7 @@ test.describe("API keys", () => {
     keyName = `e2e-key-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   });
 
-  test("creates, uses, rotates and revokes a key", async ({ page }) => {
+  test("creates, uses and deletes a key", async ({ page }) => {
     await page.goto("/api-keys");
 
     await page.getByTestId(TEST_ID.newApiKey).click();
@@ -47,46 +47,20 @@ test.describe("API keys", () => {
     });
     expect(authorized.status).toBe(200);
 
-    // Rotate: the new key is revealed once and replaces the old one.
-    await row.getByTestId(TEST_ID.rotateApiKey).click();
-    await page.getByTestId(TEST_ID.rotateApiKeySubmit).click();
+    // Delete is the only action and applies to a used key as well: the
+    // credential is gone at once instead of staying as a revoked audit row.
+    await row.getByTestId(TEST_ID.deleteApiKey).click();
+    await page.getByTestId(TEST_ID.dialogConfirm).click();
     await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "API key rotated",
+      "API key deleted",
       { timeout: 10000 },
     );
-    const rotatedKey = (
-      (await page.getByTestId(TEST_ID.apiKeyRevealValue).textContent()) ?? ""
-    ).trim();
-    expect(rotatedKey.length).toBeGreaterThan(10);
-    expect(rotatedKey).not.toBe(rawKey);
-    await page.getByTestId(TEST_ID.apiKeyRevealDone).click({ force: true });
-
-    // Revoke the unused replacement (the row still offers delete while unused).
-    // Rotation keeps the predecessor as a second, revoked row with the same
-    // name, so the target is the one that is still active.
-    const namedRows = page
-      .getByTestId(TEST_ID.apiKeyRow)
-      .filter({ hasText: keyName });
-    await expect(namedRows).toHaveCount(2, { timeout: 10000 });
-    const activeRow = namedRows.filter({ hasText: "Active" });
-    await activeRow.getByTestId(TEST_ID.revokeApiKey).click();
-    await page
-      .getByTestId(TEST_ID.revokeApiKeyReason)
-      .fill("e2e: replaced by a fresh key");
-    await page.getByTestId(TEST_ID.revokeApiKeySubmit).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "API key revoked",
-      { timeout: 10000 },
-    );
-    const revokedRow = namedRows.filter({
-      hasText: "e2e: replaced by a fresh key",
-    });
-    await expect(revokedRow.getByTestId(TEST_ID.apiKeyStatus)).toContainText(
-      "Revoked",
-    );
+    await expect(
+      page.getByTestId(TEST_ID.apiKeyRow).filter({ hasText: keyName }),
+    ).toHaveCount(0, { timeout: 10000 });
 
     const unauthorized = await fetch(`${API_BASE}/projects`, {
-      headers: { "x-api-key": rotatedKey },
+      headers: { "x-api-key": rawKey },
     });
     expect(unauthorized.status).toBe(401);
   });

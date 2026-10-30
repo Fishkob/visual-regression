@@ -116,7 +116,7 @@ export class ApiKeysController {
 
   @Delete(':id')
   @ApiOperation({
-    summary: 'Delete a key that was never used; used keys must be revoked',
+    summary: 'Delete a key permanently; it stops authenticating immediately',
   })
   @ApiOkResponse({ description: 'Key deleted' })
   async remove(

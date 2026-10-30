@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { TestApp } from '../_support/utils/test-app';
 import { authRequest } from '../_support/utils/authenticated-request';
+import { MAX_API_KEY_NAME_LENGTH } from '@internal/auth/dto/create-api-key.dto';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import type { PrismaClient } from '@/prisma/client';
 import { hashPassword } from '@internal/auth/password-hasher';
@@ -146,6 +147,23 @@ describe('API key lifecycle (e2e)', () => {
     expect(JSON.stringify(audit[0]!.metadata)).not.toContain('keyHash');
   });
 
+  it('caps the key name at 50 characters', async () => {
+    // The boundary is inclusive: the longest allowed name is accepted.
+    const longest = 'a'.repeat(MAX_API_KEY_NAME_LENGTH);
+    const created = await createKey({ name: longest, scopes: ['read'] });
+    expect(created.name).toBe(longest);
+
+    // DTO validation answers 422, not 400 (see branch-pagination.dto.ts).
+    const rejected = await request(app.getHttpServer())
+      .post('/api/v1/api-keys')
+      .set('Cookie', cookie)
+      .send({ name: 'a'.repeat(MAX_API_KEY_NAME_LENGTH + 1) })
+      .expect(422);
+    expect(JSON.stringify(rejected.body.errors)).toContain(
+      `API key name must be at most ${MAX_API_KEY_NAME_LENGTH} characters`,
+    );
+  });
+
   it('revokes a key with a reason and the credential stops authenticating', async () => {
     const created = await createKey({ name: 'ci-upload', scopes: ['read'] });
     await request(app.getHttpServer())
@@ -201,7 +219,7 @@ describe('API key lifecycle (e2e)', () => {
     );
   });
 
-  it('deletes a never-used key but keeps a used one for the trail', async () => {
+  it('deletes a never-used key and a used one alike', async () => {
     const unused = await createKey({ name: 'never-used', scopes: ['read'] });
 
     const deleted = await request(app.getHttpServer())
@@ -220,7 +238,13 @@ describe('API key lifecycle (e2e)', () => {
     await request(app.getHttpServer())
       .delete(`/api/v1/api-keys/${used.id}`)
       .set('Cookie', cookie)
-      .expect(409);
+      .expect(200);
+    expect((await listKeys()).map((key) => key.id)).not.toContain(used.id);
+    // The credential is gone, so it no longer authenticates.
+    await request(app.getHttpServer())
+      .get('/api/v1/projects/shop')
+      .set('x-api-key', used.rawKey)
+      .expect(401);
 
     // 404 for an unknown key on every key route.
     await request(app.getHttpServer())
@@ -236,8 +260,14 @@ describe('API key lifecycle (e2e)', () => {
         metadata: expect.objectContaining({ name: 'never-used' }),
       }),
     );
-    // The refused delete of a used key leaves no delete row.
-    expect(await auditRows('api-key.delete', used.id)).toHaveLength(0);
+    // A used key's delete keeps its trail row too: the removal stays traceable.
+    const usedAudit = await auditRows('api-key.delete', used.id);
+    expect(usedAudit).toHaveLength(1);
+    expect(usedAudit[0]).toEqual(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ name: 'used-once' }),
+      }),
+    );
   });
 
   it('rotates a key and keeps the predecessor working during the grace window', async () => {

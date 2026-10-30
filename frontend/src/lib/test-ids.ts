@@ -351,13 +351,6 @@ export const TEST_ID = {
   apiKeyRevealValue: "api-key-reveal-value",
   apiKeyCopy: "api-key-copy",
   apiKeyRevealDone: "api-key-reveal-done",
-  rotateApiKey: "rotate-api-key",
-  rotateApiKeyGrace: "rotate-api-key-grace",
-  rotateApiKeyExpiry: "rotate-api-key-expiry",
-  rotateApiKeySubmit: "rotate-api-key-submit",
-  revokeApiKey: "revoke-api-key",
-  revokeApiKeyReason: "revoke-api-key-reason",
-  revokeApiKeySubmit: "revoke-api-key-submit",
   deleteApiKey: "delete-api-key",
 
   newProject: "new-project",

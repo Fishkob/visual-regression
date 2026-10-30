@@ -4766,7 +4766,7 @@
             "sessionCookie": []
           }
         ],
-        "summary": "Delete a key that was never used; used keys must be revoked",
+        "summary": "Delete a key permanently; it stops authenticating immediately",
         "tags": [
           "API Keys"
         ]
@@ -8355,7 +8355,8 @@
         "properties": {
           "name": {
             "type": "string",
-            "example": "ci-upload"
+            "example": "ci-upload",
+            "maxLength": 50
           },
           "expiresInDays": {
             "type": "number",

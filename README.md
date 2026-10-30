@@ -127,7 +127,7 @@ The demo and dev seeds also create **feature branches** to exercise branch-scope
 
 The product API is authenticated. Browsers authenticate with a session cookie (login via the dashboard); CI pipelines and scripted callers authenticate with an **API key**.
 
-**Create an API key in the dashboard** — sign in and open **API keys** (`/api-keys`). There you can list every key (with its last four characters, last use, expiry, and revocation reason), create keys with an optional expiry, **rotate** a key (the previous key keeps working for an optional grace window so a pipeline can be updated, and the new key inherits the remaining lifetime unless you pick "never" or an explicit number of days), revoke a key with a reason, and delete keys that were never used. The raw key is shown once, right after creation or rotation.
+**Create an API key in the dashboard** — sign in and open **API keys** (`/api-keys`). There you can list every key (with its last four characters, owner, created, last use and expiry) and create keys with a name of up to 50 characters, an optional expiry, scopes and project allowlist. Each row offers one action: **Delete** removes the key permanently and it stops authenticating immediately. The raw key is shown once, right after creation. Rotation (with an optional grace window) and revocation with a reason stay available on the API (`POST /api/v1/api-keys/:id/rotate`, `POST /api/v1/api-keys/:id/revoke`).
 
 Key management requires the **browser session** — an API key itself cannot mint, rotate, or revoke keys (`403`), so a leaked CI key cannot escalate into permanent access.
 

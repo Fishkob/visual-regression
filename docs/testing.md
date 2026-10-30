@@ -58,7 +58,7 @@ cleans up in `afterEach`; API calls that need a browser session use
 | Required approvals (4-eyes vote), assignments, inbox "my reviews"                  | `review-settings-assignments.spec.ts` |
 | Storage usage, retention settings, cleanup preview                                 | `storage.spec.ts`                     |
 | Share links: create, passphrase, anonymous read, revoke                            | `share-links.spec.ts`                 |
-| API keys: create/use/rotate/revoke/delete                                          | `api-keys.spec.ts`                    |
+| API keys: create, use, delete (rotate/revoke stay API-only)                        | `api-keys.spec.ts`                    |
 | Users: create, reset, deactivate/reactivate, forced password change, viewer gating | `users.spec.ts`                       |
 | Sessions list/revoke, 2FA enable/login challenge/disable                           | `security.spec.ts`                    |
 | Audit filters and CSV export                                                       | `audit.spec.ts`                       |
