@@ -232,6 +232,88 @@ describe("InteractiveImageViewer", () => {
     expect(byId(wrapper, TEST_ID.zoomLevel).text()).toBe("100%");
   });
 
+  it("returns to fit to screen when zooming back to 100%", async () => {
+    const wrapper = mountViewer();
+    expect(byId(wrapper, TEST_ID.fitToggle).attributes("aria-pressed")).toBe(
+      "true",
+    );
+
+    await byId(wrapper, TEST_ID.zoomIn).trigger("click");
+    expect(byId(wrapper, TEST_ID.fitToggle).attributes("aria-pressed")).toBe(
+      "false",
+    );
+
+    await byId(wrapper, TEST_ID.zoomOut).trigger("click");
+    expect(byId(wrapper, TEST_ID.zoomLevel).text()).toBe("100%");
+    expect(byId(wrapper, TEST_ID.fitToggle).attributes("aria-pressed")).toBe(
+      "true",
+    );
+    expect(
+      byId(wrapper, TEST_ID.actualSizeToggle).attributes("aria-pressed"),
+    ).toBe("false");
+  });
+
+  it("returns to fit to screen on reset after panning a zoom", async () => {
+    const wrapper = mountViewer();
+    await byId(wrapper, TEST_ID.zoomIn).trigger("click");
+    await pressKey(window, "ArrowRight");
+    expect(
+      stageOf(wrapper, TEST_ID.panelBaseline).attributes("style"),
+    ).toContain("translate(40px, 0px)");
+
+    await byId(wrapper, TEST_ID.zoomReset).trigger("click");
+
+    expect(
+      stageOf(wrapper, TEST_ID.panelBaseline).attributes("style"),
+    ).toContain("translate(0px, 0px)");
+    expect(byId(wrapper, TEST_ID.fitToggle).attributes("aria-pressed")).toBe(
+      "true",
+    );
+  });
+
+  it("keeps actual size as the resting mode after choosing 1:1", async () => {
+    const wrapper = mountViewer();
+    await byId(wrapper, TEST_ID.actualSizeToggle).trigger("click");
+
+    await byId(wrapper, TEST_ID.zoomIn).trigger("click");
+    await byId(wrapper, TEST_ID.zoomOut).trigger("click");
+
+    expect(
+      byId(wrapper, TEST_ID.actualSizeToggle).attributes("aria-pressed"),
+    ).toBe("true");
+    expect(byId(wrapper, TEST_ID.fitToggle).attributes("aria-pressed")).toBe(
+      "false",
+    );
+  });
+
+  it("returns to the resting state after a wheel zoom round trip", async () => {
+    const wrapper = mountViewer();
+    const stage = byId(wrapper, `${TEST_ID.panelBaseline}-zoom`);
+    const wheel = async (deltaY: number) => {
+      stage.element.dispatchEvent(
+        new WheelEvent("wheel", {
+          ctrlKey: true,
+          deltaY,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+      await nextTick();
+    };
+
+    await wheel(-100);
+    await pressKey(window, "ArrowDown");
+    await wheel(100);
+
+    expect(byId(wrapper, TEST_ID.zoomLevel).text()).toBe("100%");
+    expect(byId(wrapper, TEST_ID.fitToggle).attributes("aria-pressed")).toBe(
+      "true",
+    );
+    expect(
+      stageOf(wrapper, TEST_ID.panelBaseline).attributes("style"),
+    ).toContain("translate(0px, 0px)");
+  });
+
   it("disables zoom out at minimum zoom (50%)", async () => {
     const wrapper = mountViewer();
     await byId(wrapper, TEST_ID.zoomOut).trigger("click");

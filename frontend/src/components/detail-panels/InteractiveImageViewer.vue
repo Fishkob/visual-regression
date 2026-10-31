@@ -102,7 +102,11 @@ const viewMode = ref<ViewMode>(
       : "side-by-side",
 );
 const zoomLevel = ref(readStoredZoom());
-const fitToScreen = ref(zoomLevel.value === 100);
+// The mode the viewer rests in at 100%: fit to the stage (the default) or the
+// image at its own pixel size. Zooming away and back has to land on that mode
+// again, otherwise a round trip ends on the 1:1 crop instead of where it began.
+const restingFit = ref(true);
+const fitToScreen = ref(zoomLevel.value === 100 && restingFit.value);
 const pan = reactive({ x: 0, y: 0 });
 
 const readStoredFlag = (key: string): boolean => {
@@ -210,12 +214,26 @@ const panBy = (dx: number, dy: number) => {
   pan.y += dy;
 };
 
+const restoreResting = () => {
+  zoomLevel.value = 100;
+  fitToScreen.value = restingFit.value;
+  resetPan();
+};
+
 const setZoom = (next: number) => {
+  if (next === 100) {
+    restoreResting();
+    return;
+  }
   zoomLevel.value = next;
   fitToScreen.value = false;
 };
 
 const zoomAtPoint = (nextZoom: number, pointX: number, pointY: number) => {
+  if (nextZoom === 100) {
+    restoreResting();
+    return;
+  }
   const previousScale = zoomLevel.value / 100;
   const nextScale = nextZoom / 100;
   const contentX = (pointX - pan.x) / previousScale;
@@ -223,6 +241,7 @@ const zoomAtPoint = (nextZoom: number, pointX: number, pointY: number) => {
   pan.x = pointX - contentX * nextScale;
   pan.y = pointY - contentY * nextScale;
   zoomLevel.value = nextZoom;
+  fitToScreen.value = false;
 };
 
 const zoomIn = () => {
@@ -236,19 +255,20 @@ const zoomOut = () => {
 };
 
 const zoomReset = () => {
-  zoomLevel.value = 100;
-  resetPan();
+  restoreResting();
 };
 
 const enableFit = () => {
-  fitToScreen.value = true;
+  restingFit.value = true;
   zoomLevel.value = 100;
+  fitToScreen.value = true;
   resetPan();
 };
 
 const enableActualSize = () => {
-  fitToScreen.value = false;
+  restingFit.value = false;
   zoomLevel.value = 100;
+  fitToScreen.value = false;
   resetPan();
 };
 
@@ -267,7 +287,6 @@ const wheelZoom = (event: WheelEvent) => {
   const next = ZOOM_STEPS[idx + direction];
   if (next === undefined || next === zoomLevel.value) return;
   zoomAtPoint(next, event.clientX - rect.left, event.clientY - rect.top);
-  fitToScreen.value = false;
 };
 
 const doubleClickZoom = (event: MouseEvent) => {
@@ -278,7 +297,6 @@ const doubleClickZoom = (event: MouseEvent) => {
   if (next === undefined) return;
   const rect = el.getBoundingClientRect();
   zoomAtPoint(next, event.clientX - rect.left, event.clientY - rect.top);
-  fitToScreen.value = false;
 };
 
 const drag = reactive({
