@@ -8,6 +8,7 @@ import {
 } from "../ct/mocks/projects.mocks";
 import { GROUPS_RESPONSE } from "../ct/mocks/groups.mocks";
 import { API_KEYS_RESPONSE } from "../ct/mocks/apiKeys.mocks";
+import { WEBHOOKS_RESPONSE } from "../ct/mocks/webhooks.mocks";
 import { PDF_TEST_DETAILS_BASELINE_NO_PAGE_COUNT } from "../ct/mocks/pdfTest.mocks";
 import {
   PDF_BASELINE_HISTORY,
@@ -49,6 +50,7 @@ const PROJECT_DETAILS_GLOB = "**/api/v1/projects/checkout-ui*";
 // The settings page reads the storage aggregate; a glob without the trailing
 // wildcard keeps it from being shadowed by the project read above.
 const PROJECT_STORAGE_GLOB = "**/api/v1/projects/checkout-ui/storage";
+const PROJECT_WEBHOOKS_GLOB = "**/api/v1/projects/checkout-ui/webhooks";
 const PROJECT_STORAGE_RESPONSE: FulfillResponse = {
   status: 200,
   contentType: "application/json",
@@ -109,9 +111,16 @@ export const QUALITY_CASES: QualityCase[] = [
     props: { initialRoute: "/projects/checkout-ui/settings" },
     routes: [
       [PROJECT_STORAGE_GLOB, PROJECT_STORAGE_RESPONSE],
+      [PROJECT_WEBHOOKS_GLOB, WEBHOOKS_RESPONSE],
       [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
     ],
+    // The settings page is also the home of the endpoint administration, so the
+    // shot has to wait for that section instead of only the storage aggregate.
     readyTestId: TEST_ID.storageUsage,
+    readyAlsoTestId: TEST_ID.projectSettingsWebhooks,
+    // "Created 3 months ago" is relative to the run; its absolute value lives in
+    // the title attribute, which the mask hides along with the label.
+    maskTestIds: [TEST_ID.webhookCreated],
   },
   {
     name: "visual-test-details",

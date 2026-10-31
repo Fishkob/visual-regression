@@ -243,9 +243,10 @@
   "projectSettings": {
     "title": "Project settings",
     "action": "Settings",
-    "description": "Review policy and storage for this project. Storage limits decide which evidence survives a cleanup, so only admins can change them.",
+    "description": "Review policy, storage and notifications for this project. Storage limits decide which evidence survives a cleanup, so only admins can change them.",
     "backToProject": "Back to project",
-    "reviewCurrent": "{count} approval required | {count} approvals required"
+    "reviewCurrent": "{count} approval required | {count} approvals required",
+    "webhooksDescription": "This project's external notifications for review and approval events. Only admins can create or change endpoints."
   },
   "branchActions": {
     "label": "Branch actions",

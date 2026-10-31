@@ -185,6 +185,11 @@ test.describe("User administration", () => {
         await expect(page.getByTestId(TEST_ID.storageEditAction)).toHaveCount(
           0,
         );
+        // Endpoint administration is ADMIN-only in the API, so the section is
+        // absent rather than present-but-failing.
+        await expect(
+          page.getByTestId(TEST_ID.projectSettingsWebhooks),
+        ).toHaveCount(0);
       } finally {
         await context.close();
       }

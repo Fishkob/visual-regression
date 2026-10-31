@@ -372,6 +372,9 @@ export const TEST_ID = {
 
   webhooksLink: "webhooks-link",
   webhooksView: "webhooks-view",
+  projectWebhooksPanel: "project-webhooks-panel",
+  projectSettingsWebhooks: "project-settings-webhooks",
+  webhookCreated: "webhook-created",
   webhooksEmpty: "webhooks-empty",
   webhookAdd: "webhook-add",
   webhookRow: "webhook-row",

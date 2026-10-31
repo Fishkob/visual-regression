@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import { RouterLink } from "vue-router";
 
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
+import ProjectWebhooksPanel from "@/components/webhooks/ProjectWebhooksPanel.vue";
 import ReviewSettingsDialog from "@/components/projects/ReviewSettingsDialog.vue";
 import ProjectStoragePanel from "@/components/storage/ProjectStoragePanel.vue";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +84,24 @@ const requiredApprovals = computed(() => project.value?.requiredApprovals ?? 1);
     </section>
 
     <ProjectStoragePanel :project-name="projectName" />
+
+    <!-- Endpoint administration is ADMIN-only in the API, so a MEMBER/VIEWER
+    session gets no section instead of a failing one. The settings page and the
+    dedicated Webhooks page render the same panel. -->
+    <section
+      v-if="isAdmin"
+      id="webhooks"
+      class="space-y-3 rounded-xl border bg-card p-4 shadow-sm"
+      :data-testid="TEST_ID.projectSettingsWebhooks"
+    >
+      <div>
+        <h3 class="font-medium">{{ t("webhooks.title") }}</h3>
+        <p class="text-sm text-muted-foreground">
+          {{ t("projectSettings.webhooksDescription") }}
+        </p>
+      </div>
+      <ProjectWebhooksPanel :project-name="projectName" />
+    </section>
 
     <ReviewSettingsDialog
       v-if="reviewSettingsOpen && project"

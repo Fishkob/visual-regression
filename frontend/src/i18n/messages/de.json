@@ -243,9 +243,10 @@
   "projectSettings": {
     "title": "Projekteinstellungen",
     "action": "Einstellungen",
-    "description": "Review-Richtlinie und Speicher dieses Projekts. Die Speichergrenzen entscheiden, welche Nachweise eine Bereinigung überleben, deshalb können nur Admins sie ändern.",
+    "description": "Review-Richtlinie, Speicher und Benachrichtigungen dieses Projekts. Die Speichergrenzen entscheiden, welche Nachweise eine Bereinigung überleben, deshalb können nur Admins sie ändern.",
     "backToProject": "Zurück zum Projekt",
-    "reviewCurrent": "{count} erforderliche Zustimmung | {count} erforderliche Zustimmungen"
+    "reviewCurrent": "{count} erforderliche Zustimmung | {count} erforderliche Zustimmungen",
+    "webhooksDescription": "Externe Benachrichtigungen dieses Projekts für Review- und Genehmigungsereignisse. Nur Admins können Endpunkte anlegen und ändern."
   },
   "branchActions": {
     "label": "Branch-Aktionen",

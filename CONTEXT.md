@@ -60,7 +60,7 @@ A replaced baseline kept for restore. Approval and restore write one before over
 _Avoid_: Version, snapshot, backup
 
 **WebhookEndpoint**:
-A project-scoped outbound notification target: URL, signing secret, subscribed events and payload format. Managed from the project's Webhooks page; administration requires a browser session (an API key cannot create or edit one).
+A project-scoped outbound notification target: URL, signing secret, subscribed events and payload format. Managed from the project's settings page; administration requires a browser session (an API key cannot create or edit one).
 _Avoid_: Hook, integration, notification channel
 
 **WebhookDelivery**:
