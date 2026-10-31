@@ -761,6 +761,7 @@ const imageFitClass = computed(() =>
           v-model="viewMode"
           :show-diff="hasDiff"
           :show-highlight="hasDiff && hasRegions"
+          :show-layered="hasDiff"
           :show-blink="Boolean(baselineUrl && candidateUrl)"
         />
         <label

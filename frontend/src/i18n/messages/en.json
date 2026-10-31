@@ -987,7 +987,16 @@
     "errorTitle": "Failed to load variants",
     "emptyTitle": "No screenshots yet",
     "emptyDescription": "Upload a screenshot for this test to see its variants here.",
-    "noBaseline": "No baseline yet"
+    "noBaseline": "No baseline yet",
+    "reference": "Reference",
+    "referenceLabel": "Reference browser",
+    "compareWith": "Compare",
+    "compareWithLabel": "Browser to compare",
+    "openVariant": "Open {variant}",
+    "wipeHint": "Drag or use the arrow keys to move the divider",
+    "blinkHint": "Alternates between the browsers",
+    "opacity": "Opacity of the top layer",
+    "modeHint": "Applies to every viewport"
   },
   "approval": {
     "approvedBy": "Approved by {user} · {age}",

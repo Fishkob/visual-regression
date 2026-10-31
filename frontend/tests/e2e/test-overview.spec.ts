@@ -28,6 +28,12 @@ test.describe("Variant gallery and test overview", () => {
         viewport,
       });
     }
+    // A second browser of the same resolution: the overview compares the
+    // browsers of one viewport against each other.
+    await uploadScreenshot(projectName, TEST_NAME, "baseline_blue.png", {
+      viewport: "1920x1080",
+      browser: "Firefox",
+    });
   });
 
   test.afterEach(async () => {
@@ -46,7 +52,7 @@ test.describe("Variant gallery and test overview", () => {
     await expect(page.getByTestId(TEST_ID.testOverview)).toBeVisible({
       timeout: 10000,
     });
-    await expect(page.getByTestId(TEST_ID.testOverviewCard)).toHaveCount(2);
+    await expect(page.getByTestId(TEST_ID.testOverviewCard)).toHaveCount(3);
 
     await page
       .getByTestId(TEST_ID.testOverviewCard)
@@ -76,7 +82,7 @@ test.describe("Variant gallery and test overview", () => {
     await expect(page.getByTestId(TEST_ID.testOverview)).toBeVisible({
       timeout: 10000,
     });
-    await expect(page.getByTestId(TEST_ID.testOverviewCard)).toHaveCount(2);
+    await expect(page.getByTestId(TEST_ID.testOverviewCard)).toHaveCount(3);
     await expect(page.getByTestId(TEST_ID.testOverviewBack)).toBeVisible();
 
     await page
@@ -91,6 +97,41 @@ test.describe("Variant gallery and test overview", () => {
       "1280x720",
     );
     await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
+  });
+
+  test("compares the browsers of one resolution", async ({ page }) => {
+    await page.goto(
+      `/projects/${encodeURIComponent(projectName)}/tests/${TEST_NAME}/overview`,
+    );
+    await expect(page.getByTestId(TEST_ID.testOverview)).toBeVisible({
+      timeout: 10000,
+    });
+
+    // The desktop section holds both browsers; the laptop section has none to
+    // compare, so only one mode toggle exists on the page.
+    await expect(page.getByTestId(TEST_ID.modeOverlay)).toHaveCount(1);
+    await page.getByTestId(TEST_ID.modeOverlay).click();
+
+    const stage = page.getByTestId(TEST_ID.testOverviewStage);
+    await expect(stage).toBeVisible();
+    await expect(
+      page.getByTestId(TEST_ID.testOverviewReferencePane),
+    ).toContainText("Chrome");
+    await expect(
+      page.getByTestId(TEST_ID.testOverviewTargetPane),
+    ).toContainText("Firefox");
+
+    // The target pane opens the review page for that browser. Firefox has a
+    // baseline but no pending change, so the page shows the baseline view with
+    // the variant badges instead of a comparison.
+    await page.getByTestId(TEST_ID.testOverviewTargetPane).click();
+    await expect(page).toHaveURL(
+      (url) => url.searchParams.get("browser") === "Firefox",
+      { timeout: 10000 },
+    );
+    await expect(page.getByTestId(TEST_ID.badgeBrowser)).toContainText(
+      "Firefox",
+    );
   });
 
   test("shows the PDF note instead of a variant overview", async ({ page }) => {

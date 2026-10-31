@@ -75,16 +75,21 @@ describe("ViewModeToggle", () => {
     }
   });
 
-  it("hides the overlay and wipe modes without a diff or when opted out", () => {
+  it("shows the layered modes without a diff and hides them when opted out", () => {
+    // Overlay and wipe only need the two pictures: the variant overview compares
+    // two browsers with them, and there is no diff artifact between browsers.
     const withoutDiff = mount(ViewModeToggle, {
       props: { modelValue: "side-by-side", showDiff: false },
     });
 
     expect(
       withoutDiff.find(`[data-testid="${TEST_ID.modeOverlay}"]`).exists(),
-    ).toBe(false);
+    ).toBe(true);
     expect(
       withoutDiff.find(`[data-testid="${TEST_ID.modeWipe}"]`).exists(),
+    ).toBe(true);
+    expect(
+      withoutDiff.find(`[data-testid="${TEST_ID.modeDiff}"]`).exists(),
     ).toBe(false);
 
     const withoutLayered = mount(ViewModeToggle, {

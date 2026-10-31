@@ -987,7 +987,16 @@
     "errorTitle": "Varianten konnten nicht geladen werden",
     "emptyTitle": "Noch keine Screenshots",
     "emptyDescription": "Lade einen Screenshot für diesen Test hoch, um die Varianten hier zu sehen.",
-    "noBaseline": "Noch keine Baseline"
+    "noBaseline": "Noch keine Baseline",
+    "reference": "Referenz",
+    "referenceLabel": "Referenz-Browser",
+    "compareWith": "Vergleich",
+    "compareWithLabel": "Browser zum Vergleichen",
+    "openVariant": "{variant} öffnen",
+    "wipeHint": "Ziehen oder Pfeiltasten bewegen die Trennlinie",
+    "blinkHint": "Wechselt zwischen den Browsern",
+    "opacity": "Deckkraft der oberen Ebene",
+    "modeHint": "Gilt für alle Auflösungen"
   },
   "approval": {
     "approvedBy": "Genehmigt von {user} · {age}",

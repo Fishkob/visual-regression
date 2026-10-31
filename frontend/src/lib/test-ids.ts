@@ -232,6 +232,13 @@ export const TEST_ID = {
   testOverviewVariantCount: "test-overview-variant-count",
   testOverviewViewportGroup: "test-overview-viewport-group",
   testOverviewPdfNote: "test-overview-pdf-note",
+  testOverviewStage: "test-overview-stage",
+  testOverviewReference: "test-overview-reference",
+  testOverviewTarget: "test-overview-target",
+  testOverviewReferencePane: "test-overview-reference-pane",
+  testOverviewTargetPane: "test-overview-target-pane",
+  testOverviewWipeHandle: "test-overview-wipe-handle",
+  testOverviewOverlayOpacity: "test-overview-overlay-opacity",
 
   mismatchInfo: "mismatch-info",
   downloadBaseline: "download-baseline",

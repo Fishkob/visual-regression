@@ -174,6 +174,57 @@ export const VISUAL_TEST_VARIANTS = jsonResponse({
   ],
 });
 
+// The overview's actual job: one resolution captured in three browsers, plus a
+// second resolution with a single browser (a section without anything to
+// compare). Distinct image URLs make the layered stages assertable — the CT spec
+// can tell which browser is the ground and which one is the layer.
+export const VISUAL_TEST_VARIANTS_BROWSERS = jsonResponse({
+  name: "checkout-flow",
+  kind: "image",
+  variants: [
+    {
+      viewport: "1920x1080",
+      browser: "Chrome",
+      environment: "staging",
+      status: "UNCHANGED",
+      baselineUrl: "http://localhost:9000/vrt/baseline-chrome.png",
+      candidateUrl: null,
+      mismatchPixelCount: null,
+      baselineInherited: false,
+    },
+    {
+      viewport: "1920x1080",
+      browser: "Firefox",
+      environment: "staging",
+      status: "UNCHANGED",
+      baselineUrl: "http://localhost:9000/vrt/baseline-firefox.png",
+      candidateUrl: null,
+      mismatchPixelCount: null,
+      baselineInherited: false,
+    },
+    {
+      viewport: "1920x1080",
+      browser: "Safari",
+      environment: "staging",
+      status: "UNCHANGED",
+      baselineUrl: "http://localhost:9000/vrt/baseline-safari.png",
+      candidateUrl: null,
+      mismatchPixelCount: null,
+      baselineInherited: false,
+    },
+    {
+      viewport: "1366x768",
+      browser: "Chrome",
+      environment: "staging",
+      status: "UNCHANGED",
+      baselineUrl: "http://localhost:9000/vrt/baseline-laptop.png",
+      candidateUrl: null,
+      mismatchPixelCount: null,
+      baselineInherited: false,
+    },
+  ],
+});
+
 // The single-variant read the comparison page needs for its bulk-approve
 // state; the variant tiles themselves live on the overview page.
 export const VISUAL_TEST_VARIANTS_SINGLE = jsonResponse({

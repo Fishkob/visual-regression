@@ -54,9 +54,12 @@ const visibleModes = computed(() =>
     if (mode.key === "side-by-side") return true;
     if (mode.key === "highlight") return props.showHighlight && props.showDiff;
     if (mode.key === "blink") return props.showBlink;
+    // Overlay and wipe only need two pictures, not a diff artifact: the variant
+    // overview compares two browsers with them, where no diff exists.
+    if (mode.key === "overlay" || mode.key === "wipe") return props.showLayered;
     if (!props.showDiff) return false;
-    if (mode.key === "diff-only") return true;
-    return props.showLayered;
+    // Only "diff-only" is left: it needs the stored diff artifact.
+    return true;
   }),
 );
 </script>
