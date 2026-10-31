@@ -15,6 +15,7 @@ import {
   VISUAL_BASELINE_HISTORY,
 } from "../ct/mocks/baselineHistory.mocks";
 import {
+  makeImageKind,
   makeReviewableDetails,
   makeReviewableDetailsWithRegions,
 } from "../ct/mocks/reviewLoop.mocks";
@@ -23,6 +24,7 @@ import {
   VISUAL_TEST_PENDING_META,
   VISUAL_TEST_VARIANTS_SINGLE,
   VISUAL_TEST_VARIANTS_DEMO,
+  VISUAL_TEST_VARIANTS_BROWSERS_DEMO,
 } from "../ct/mocks/visualTest.mocks";
 import type { FulfillResponse } from "../ct/routes/api.routes";
 
@@ -80,6 +82,10 @@ const VISUAL_PENDING_GLOB =
   "**/api/v1/projects/checkout-ui/tests/meta/pending*";
 const VISUAL_VARIANTS_GLOB =
   "**/api/v1/projects/checkout-ui/tests/checkout-flow/variants*";
+const OVERVIEW_KIND_GLOB =
+  "**/api/v1/projects/checkout-ui/tests/checkout-flow/kind";
+const OVERVIEW_VARIANTS_GLOB =
+  "**/api/v1/projects/checkout-ui/tests/checkout-flow/variants*";
 const PDF_DETAILS_ROUTE = `/projects/checkout-ui/tests/invoice?${CHROME_1920_1080_STAGING}`;
 const PDF_DETAILS_GLOB =
   "**/api/v1/projects/checkout-ui/tests/invoice/pdf-details?*";
@@ -125,6 +131,22 @@ export const QUALITY_CASES: QualityCase[] = [
     // "Created 3 months ago" is relative to the run; its absolute value lives in
     // the title attribute, which the mask hides along with the label.
     maskTestIds: [TEST_ID.webhookCreated],
+  },
+  {
+    // The variant surface: one section per viewport, the browsers of a section
+    // labelled side by side. The compare toolbar only appears because two of the
+    // four variants share a resolution.
+    name: "test-overview",
+    story: "views/TestOverviewView/Routed",
+    props: {
+      initialRoute: "/projects/checkout-ui/tests/checkout-flow/overview",
+    },
+    routes: [
+      [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
+      [OVERVIEW_KIND_GLOB, makeImageKind()],
+      [OVERVIEW_VARIANTS_GLOB, VISUAL_TEST_VARIANTS_BROWSERS_DEMO],
+    ],
+    readyTestId: TEST_ID.testOverviewCard,
   },
   {
     name: "visual-test-details",

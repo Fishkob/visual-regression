@@ -271,3 +271,54 @@ export const VISUAL_TEST_VARIANTS_DEMO = jsonResponse({
     },
   ],
 });
+
+// The overview as a screenshot target: one resolution captured in three
+// browsers (with the demo screenshots, so the panes actually render) plus a
+// second resolution captured in a single browser. The Firefox baseline is the
+// changed demo image, which is the difference a reader is meant to spot.
+export const VISUAL_TEST_VARIANTS_BROWSERS_DEMO = jsonResponse({
+  name: "checkout-flow",
+  kind: "image",
+  variants: [
+    {
+      viewport: "1920x1080",
+      browser: "Chrome",
+      environment: "staging",
+      status: "UNCHANGED",
+      baselineUrl: DEMO_BASELINE,
+      candidateUrl: null,
+      mismatchPixelCount: null,
+      baselineInherited: false,
+    },
+    {
+      viewport: "1920x1080",
+      browser: "Firefox",
+      environment: "staging",
+      status: "UNCHANGED",
+      baselineUrl: DEMO_CANDIDATE,
+      candidateUrl: null,
+      mismatchPixelCount: null,
+      baselineInherited: false,
+    },
+    {
+      viewport: "1920x1080",
+      browser: "Safari",
+      environment: "staging",
+      status: "UNCHANGED",
+      baselineUrl: DEMO_CANDIDATE,
+      candidateUrl: null,
+      mismatchPixelCount: null,
+      baselineInherited: false,
+    },
+    {
+      viewport: "1366x768",
+      browser: "Chrome",
+      environment: "staging",
+      status: "UNCHANGED",
+      baselineUrl: DEMO_BASELINE,
+      candidateUrl: null,
+      mismatchPixelCount: null,
+      baselineInherited: false,
+    },
+  ],
+});
