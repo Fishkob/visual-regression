@@ -148,6 +148,23 @@ objects are skipped and logged rather than deleted. Still, pointing two
 installations at one bucket means each one sees the other's objects as
 unreferenced and the log fills with warnings — use one bucket per installation.
 
+## Backups
+
+The product ships no backup automation. Whatever secures the data sits below the
+application, and it has to cover **both** stores at the same point in time:
+
+- **PostgreSQL** — projects, tests, comparisons, runs, audit trail: a host or
+  volume snapshot, or the provider's automated backup of the instance.
+- **Object storage** (`RUSTFS_BUCKET`) — screenshots, PDFs, diff images: the
+  bucket volume snapshot, taken with the database.
+
+Restoring one without the other does not work: a database restored against an
+older bucket leaves every row pointing at a missing object, and a newer bucket
+against an older database leaves objects the daily unreferenced sweep then
+deletes. A `pg_dump` plus an object copy of the bucket is enough for a
+self-managed host; schedule both and restore once into a scratch stack to prove
+the pair still matches.
+
 ## k3s Quickstart
 
 For a single-node cluster on a fresh VM:
