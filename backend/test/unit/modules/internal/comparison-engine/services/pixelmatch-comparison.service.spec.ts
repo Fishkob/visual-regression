@@ -51,6 +51,30 @@ describe('PixelmatchComparisonService', () => {
     );
   });
 
+  it('reports where the mismatches are', async () => {
+    const expected = createPngBuffer(40, 30, 255);
+    const actual = new PNG({ width: 40, height: 30 });
+    actual.data.fill(255);
+    for (let y = 10; y < 20; y++) {
+      for (let x = 5; x < 15; x++) {
+        actual.data.set([0, 0, 0, 255], (y * 40 + x) * 4);
+      }
+    }
+
+    const result = await service.compare(expected, PNG.sync.write(actual));
+
+    expect(result).toMatchObject({ kind: 'image' });
+    if (result.kind !== 'image') throw new Error('expected an image result');
+    expect(result.changedRegions).toHaveLength(1);
+    expect(result.changedRegions[0]).toMatchObject({
+      x: 5,
+      y: 10,
+      width: 10,
+      height: 10,
+    });
+    expect(result.changedRegions[0].pixelCount).toBeGreaterThan(0);
+  });
+
   it('throws for different dimensions', async () => {
     const imgA = createPngBuffer(10, 10, 255);
     const imgB = createPngBuffer(12, 12, 255);

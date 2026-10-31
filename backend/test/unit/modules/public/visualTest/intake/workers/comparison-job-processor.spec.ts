@@ -88,6 +88,7 @@ describe('ComparisonJobProcessor', () => {
   const imageUnchanged: ComparisonResult = {
     kind: 'image',
     mismatchPixelCount: 0,
+    changedRegions: [],
     diffOutput: Buffer.from(''),
     pageCount: 0,
   };
@@ -95,6 +96,7 @@ describe('ComparisonJobProcessor', () => {
   const imageDiff: ComparisonResult = {
     kind: 'image',
     mismatchPixelCount: 15,
+    changedRegions: [],
     diffOutput: Buffer.from('diff-data'),
   };
 

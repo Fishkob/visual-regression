@@ -6814,6 +6814,38 @@
           "id"
         ]
       },
+      "ChangedRegionDto": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "description": "Left edge in image pixels"
+          },
+          "y": {
+            "type": "number",
+            "description": "Top edge in image pixels"
+          },
+          "width": {
+            "type": "number",
+            "description": "Width in image pixels"
+          },
+          "height": {
+            "type": "number",
+            "description": "Height in image pixels"
+          },
+          "pixelCount": {
+            "type": "number",
+            "description": "Mismatched pixels inside this region (not its area)"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "width",
+          "height",
+          "pixelCount"
+        ]
+      },
       "ComparisonDto": {
         "type": "object",
         "properties": {
@@ -6830,6 +6862,13 @@
           },
           "mismatchPixelCount": {
             "type": "number"
+          },
+          "changedRegions": {
+            "description": "Changed areas of the diff, largest first: where the reviewer has to look",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChangedRegionDto"
+            }
           },
           "status": {
             "allOf": [

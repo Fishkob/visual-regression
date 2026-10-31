@@ -5,6 +5,7 @@ import { AppLoggerService } from '@common/logging/app-logger.service';
 import { DomainError } from '@common/domain/domain-error';
 import { MAX_IMAGE_PIXELS } from '@config/upload-limits';
 import { isPngSignature, readPngDimensions } from '@common/utils/png-header';
+import { extractChangedRegions } from '@common/utils/changed-regions';
 import {
   ComparisonResult,
   IComparisonEngine,
@@ -18,7 +19,11 @@ type Pixelmatch = (
   diff: Buffer,
   w: number,
   h: number,
-  options: { threshold: number },
+  options: {
+    threshold: number;
+    diffColor: [number, number, number];
+    aaColor: [number, number, number];
+  },
 ) => number;
 
 let pixelmatch: Pixelmatch;
@@ -77,22 +82,37 @@ export class PixelmatchComparisonService implements IComparisonEngine {
     }
 
     const diff = new PNG({ width: imgA.width, height: imgA.height });
+    // The colours are pinned because region extraction reads them back out of
+    // the diff buffer: red never means "anti-aliased" and is never reused.
     const mismatchPixelCount = pm(
       imgA.data,
       imgB.data,
       diff.data,
       imgA.width,
       imgA.height,
-      { threshold: ENGINE_TOLERANCE },
+      {
+        threshold: ENGINE_TOLERANCE,
+        diffColor: [255, 0, 0],
+        aaColor: [255, 255, 0],
+      },
     );
 
     const diffBuffer = PNG.sync.write(diff);
+    const changedRegions = extractChangedRegions(
+      diff.data,
+      imgA.width,
+      imgA.height,
+    );
 
-    this.logger.debug('Comparison completed', { mismatchPixelCount });
+    this.logger.debug('Comparison completed', {
+      mismatchPixelCount,
+      changedRegionCount: changedRegions.length,
+    });
 
     return {
       kind: 'image',
       mismatchPixelCount,
+      changedRegions,
       diffOutput: diffBuffer,
     };
   }

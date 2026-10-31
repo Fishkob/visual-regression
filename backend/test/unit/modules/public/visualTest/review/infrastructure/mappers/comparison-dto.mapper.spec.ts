@@ -64,6 +64,24 @@ describe('mapComparisonToDto', () => {
     expect(dto.candidate).toBeDefined();
   });
 
+  it('maps changed regions onto the dto', () => {
+    const comparison = createComparison({
+      changedRegions: [{ x: 1, y: 2, width: 3, height: 4, pixelCount: 5 }],
+    } as unknown as Partial<ComparisonEntity>);
+
+    const dto = mapComparisonToDto(comparison, identitySigner);
+
+    expect(dto.changedRegions).toEqual([
+      { x: 1, y: 2, width: 3, height: 4, pixelCount: 5 },
+    ]);
+  });
+
+  it('leaves changed regions out when the comparison has none', () => {
+    const dto = mapComparisonToDto(createComparison(), identitySigner);
+
+    expect(dto.changedRegions).toBeUndefined();
+  });
+
   it('handles missing baseline', () => {
     const comparison = createComparison({
       baseline: undefined as unknown as ScreenshotEntity,

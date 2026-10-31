@@ -12,12 +12,44 @@ const defaultProps = {
 
 const mounted: { unmount: () => void }[] = [];
 
+type ChangedRegion = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  pixelCount: number;
+};
+
 type ViewerProps = {
   baselineUrl?: string;
   candidateUrl?: string;
   diffUrl?: string;
   mismatchPixelCount?: number;
+  regions?: ChangedRegion[];
 };
+
+const REGIONS: ChangedRegion[] = [
+  { x: 10, y: 20, width: 100, height: 50, pixelCount: 500 },
+  { x: 300, y: 400, width: 20, height: 20, pixelCount: 40 },
+];
+
+async function loadCandidate(
+  wrapper: ReturnType<typeof mountViewer>,
+  width = 800,
+  height = 600,
+) {
+  const image = byId(wrapper, TEST_ID.panelHighlight).find("img");
+  Object.defineProperty(image.element, "naturalWidth", {
+    value: width,
+    configurable: true,
+  });
+  Object.defineProperty(image.element, "naturalHeight", {
+    value: height,
+    configurable: true,
+  });
+  await image.trigger("load");
+  return image;
+}
 
 function mountViewer(props: ViewerProps = defaultProps) {
   const wrapper = mount(InteractiveImageViewer, { props });
@@ -287,20 +319,152 @@ describe("InteractiveImageViewer", () => {
     expect(byId(wrapper, TEST_ID.fullscreenClose).exists()).toBe(false);
   });
 
+  it("shows the minimap only while the stage shows a crop", async () => {
+    const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
+    await loadCandidate(wrapper);
+
+    const stage = byId(wrapper, `${TEST_ID.panelHighlight}-zoom`)
+      .element as HTMLElement;
+    const image = stage.querySelector("img") as HTMLImageElement;
+    Object.defineProperty(stage, "getBoundingClientRect", {
+      value: () => ({ left: 0, top: 0, width: 600, height: 400 }),
+      configurable: true,
+    });
+    Object.defineProperty(image, "getBoundingClientRect", {
+      value: () => ({ left: -300, top: -200, width: 1200, height: 750 }),
+      configurable: true,
+    });
+
+    expect(byId(wrapper, TEST_ID.minimap).exists()).toBe(false);
+
+    await byId(wrapper, TEST_ID.zoomIn).trigger("click");
+    await new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+    expect(byId(wrapper, TEST_ID.minimap).exists()).toBe(true);
+  });
+
+  it("alternates baseline and candidate in blink mode", async () => {
+    const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
+
+    await pressKey(window, "6");
+
+    const panel = byId(wrapper, TEST_ID.panelHighlight);
+    const images = panel.findAll("img");
+    expect(images).toHaveLength(2);
+    expect(images[1].classes()).toContain("blink-candidate");
+  });
+
+  it("jumps to the largest change on load when autofocus is on", async () => {
+    window.localStorage.setItem("vrt:viewer:autofocus", "true");
+    const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
+
+    await loadCandidate(wrapper);
+
+    expect(byId(wrapper, TEST_ID.changedRegionFocus).text()).toBe(
+      "Area 1 of 2",
+    );
+    expect(byId(wrapper, TEST_ID.zoomLevel).text()).not.toBe("100%");
+  });
+
+  it("stays on the whole page when autofocus is off", async () => {
+    const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
+
+    await loadCandidate(wrapper);
+
+    expect(byId(wrapper, TEST_ID.changedRegionFocus).exists()).toBe(false);
+    expect(byId(wrapper, TEST_ID.autoFocusToggle).attributes("checked")).toBe(
+      undefined,
+    );
+  });
+
+  it("opens on the marked diff when the comparison knows its regions", () => {
+    const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
+
+    expect(byId(wrapper, TEST_ID.panelHighlight).exists()).toBe(true);
+    expect(
+      byId(wrapper, TEST_ID.modeHighlight).attributes("aria-pressed"),
+    ).toBe("true");
+  });
+
+  it("numbers the changed regions on the image", async () => {
+    const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
+
+    await loadCandidate(wrapper);
+
+    const boxes = wrapper.findAll(
+      `[data-testid="${TEST_ID.changedRegionBox}"]`,
+    );
+    expect(boxes).toHaveLength(2);
+    expect(boxes[0].text()).toBe("1");
+    expect(boxes[0].attributes("style")).toContain("width: 12.5%");
+  });
+
+  it("draws no boxes without a loaded image size", () => {
+    const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
+
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.changedRegionBox}"]`).exists(),
+    ).toBe(false);
+  });
+
+  it("steps through the regions with n and p", async () => {
+    const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
+    await loadCandidate(wrapper);
+
+    await pressKey(window, "n");
+    expect(byId(wrapper, TEST_ID.changedRegionFocus).text()).toBe(
+      "Area 1 of 2",
+    );
+
+    await pressKey(window, "n");
+    expect(byId(wrapper, TEST_ID.changedRegionFocus).text()).toBe(
+      "Area 2 of 2",
+    );
+
+    await pressKey(window, "p");
+    expect(byId(wrapper, TEST_ID.changedRegionFocus).text()).toBe(
+      "Area 1 of 2",
+    );
+  });
+
+  it("focuses a region through the exposed api", async () => {
+    const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
+    await loadCandidate(wrapper);
+
+    (
+      wrapper.vm as unknown as { focusRegion: (index: number) => void }
+    ).focusRegion(1);
+    await nextTick();
+
+    expect(byId(wrapper, TEST_ID.changedRegionFocus).text()).toBe(
+      "Area 2 of 2",
+    );
+    expect(byId(wrapper, TEST_ID.zoomLevel).text()).not.toBe("100%");
+  });
+
   it("switches modes and zooms with keyboard shortcuts", async () => {
     const wrapper = mountViewer();
 
-    await pressKey(window, "3");
-    expect(byId(wrapper, TEST_ID.panelOverlay).exists()).toBe(true);
+    await pressKey(window, "1");
+    expect(byId(wrapper, TEST_ID.panelHighlight).exists()).toBe(true);
 
     await pressKey(window, "4");
+    expect(byId(wrapper, TEST_ID.panelOverlay).exists()).toBe(true);
+
+    await pressKey(window, "5");
     expect(byId(wrapper, TEST_ID.panelWipe).exists()).toBe(true);
 
-    await pressKey(window, "2");
+    await pressKey(window, "6");
+    expect(byId(wrapper, TEST_ID.panelHighlight).exists()).toBe(true);
+    expect(byId(wrapper, TEST_ID.modeBlink).attributes("aria-pressed")).toBe(
+      "true",
+    );
+
+    await pressKey(window, "3");
     expect(byId(wrapper, TEST_ID.panelDiff).exists()).toBe(true);
     expect(byId(wrapper, TEST_ID.panelBaseline).exists()).toBe(false);
 
-    await pressKey(window, "1");
+    await pressKey(window, "2");
     expect(byId(wrapper, TEST_ID.panelBaseline).exists()).toBe(true);
 
     await pressKey(window, "+");
@@ -399,7 +563,7 @@ describe("InteractiveImageViewer", () => {
   });
 
   it("restores the last view mode and zoom from localStorage", () => {
-    window.localStorage.setItem("vrt:viewer:mode", JSON.stringify("wipe"));
+    window.localStorage.setItem("vrt:viewer:mode:v2", JSON.stringify("wipe"));
     window.localStorage.setItem("vrt:viewer:zoom", JSON.stringify(150));
 
     const wrapper = mountViewer();
@@ -412,7 +576,7 @@ describe("InteractiveImageViewer", () => {
   });
 
   it("ignores invalid stored values", () => {
-    window.localStorage.setItem("vrt:viewer:mode", "garbage");
+    window.localStorage.setItem("vrt:viewer:mode:v2", "garbage");
     window.localStorage.setItem("vrt:viewer:zoom", JSON.stringify(999));
 
     const wrapper = mountViewer();
@@ -430,7 +594,7 @@ describe("InteractiveImageViewer", () => {
     await byId(wrapper, TEST_ID.zoomIn).trigger("click");
     await nextTick();
 
-    expect(window.localStorage.getItem("vrt:viewer:mode")).toBe(
+    expect(window.localStorage.getItem("vrt:viewer:mode:v2")).toBe(
       JSON.stringify("overlay"),
     );
     expect(window.localStorage.getItem("vrt:viewer:zoom")).toBe(

@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import {
   Allow,
+  IsArray,
   IsBoolean,
   IsDate,
   IsEnum,
@@ -9,9 +10,11 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator';
 import { ComparisonStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { ScreenshotDto } from '@public/visualTest/review/presentation/dto/screenshot.dto';
+import { ChangedRegionDto } from '@public/visualTest/review/presentation/dto/changed-region.dto';
 
 export class ComparisonDto {
   @ApiProperty()
@@ -40,6 +43,19 @@ export class ComparisonDto {
   @IsNumber()
   @Expose()
   mismatchPixelCount?: number;
+
+  @ApiPropertyOptional({
+    type: () => ChangedRegionDto,
+    isArray: true,
+    description:
+      'Changed areas of the diff, largest first: where the reviewer has to look',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChangedRegionDto)
+  @Expose()
+  changedRegions?: ChangedRegionDto[];
 
   @ApiProperty({ enum: ComparisonStatus, enumName: 'ComparisonStatus' })
   @IsEnum(ComparisonStatus)

@@ -14,11 +14,15 @@ import {
   PDF_BASELINE_HISTORY,
   VISUAL_BASELINE_HISTORY,
 } from "../ct/mocks/baselineHistory.mocks";
-import { makeReviewableDetails } from "../ct/mocks/reviewLoop.mocks";
+import {
+  makeReviewableDetails,
+  makeReviewableDetailsWithRegions,
+} from "../ct/mocks/reviewLoop.mocks";
 import { CHROME_1920_1080_STAGING } from "../ct/mocks/variants";
 import {
   VISUAL_TEST_PENDING_META,
   VISUAL_TEST_VARIANTS_SINGLE,
+  VISUAL_TEST_VARIANTS_DEMO,
 } from "../ct/mocks/visualTest.mocks";
 import type { FulfillResponse } from "../ct/routes/api.routes";
 
@@ -139,6 +143,27 @@ export const QUALITY_CASES: QualityCase[] = [
     // The rail opens on the populated section (history), so its rows gate the
     // shot instead of a tab that may still be switching.
     readyAlsoTestId: [TEST_ID.breadcrumbGroup, TEST_ID.baselineHistoryRow],
+  },
+  {
+    // The review page for a comparison whose changed areas are known: it opens
+    // on the marked diff and lists the areas beside the stage.
+    name: "visual-test-details-regions",
+    story: "views/VisualTestDetailsView/Routed",
+    props: { initialRoute: VISUAL_DETAILS_ROUTE },
+    routes: [
+      [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
+      [
+        VISUAL_DETAILS_GLOB,
+        makeReviewableDetailsWithRegions("checkout-flow", [
+          { x: 220, y: 176, width: 134, height: 210, pixelCount: 26460 },
+        ]),
+      ],
+      [VISUAL_PENDING_GLOB, VISUAL_TEST_PENDING_META],
+      [VISUAL_VARIANTS_GLOB, VISUAL_TEST_VARIANTS_DEMO],
+      [VISUAL_BASELINE_HISTORY_GLOB, VISUAL_BASELINE_HISTORY],
+    ],
+    readyTestId: TEST_ID.comparisonView,
+    readyAlsoTestId: [TEST_ID.changedRegionList, TEST_ID.variantStrip],
   },
   {
     name: "pdf-test-details",

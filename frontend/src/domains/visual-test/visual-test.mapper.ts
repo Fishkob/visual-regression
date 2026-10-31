@@ -44,6 +44,17 @@ function mapComparison(dto: ComparisonDto | undefined): Comparison | undefined {
     createdAt: dto.createdAt,
     baseline: mapScreenshot(dto.baseline),
     candidate: mapScreenshot(dto.candidate),
+    ...(dto.changedRegions?.length
+      ? {
+          changedRegions: dto.changedRegions.map((region) => ({
+            x: region.x,
+            y: region.y,
+            width: region.width,
+            height: region.height,
+            pixelCount: region.pixelCount,
+          })),
+        }
+      : {}),
   };
 }
 

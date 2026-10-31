@@ -1,4 +1,5 @@
 import { ONE_PIXEL_PNG_DATA_URL } from "./projects.mocks";
+import { DEMO_BASELINE, DEMO_CANDIDATE } from "./demoImages.mocks";
 
 export const PROJECT_TEST_DETAILS_ONLY_BASELINE_RESPONSE = {
   status: 200,
@@ -36,39 +37,17 @@ function jsonResponse(data: unknown, status = 200): FulfillResponse {
   };
 }
 
-export const VISUAL_TEST_DETAILS_PENDING = jsonResponse({
-  name: "checkout-flow",
-  baseline: {
-    id: "baseline-1",
-    imageUrl: "http://localhost:9000/vrt/baseline.png",
-    imageHash: "hash-baseline",
-    createdAt: "2026-01-23T14:48:36.276Z",
-    pixelDiffThreshold: 0,
-    type: "BASELINE",
-    variant: {
-      viewport: "1920x1080",
-      browser: "Chrome",
-      environment: "staging",
-    },
-  },
-  comparison: {
-    id: "cmp-1",
-    diffImageUrl: "http://localhost:9000/vrt/diff.png",
-    mismatchPixelCount: 157,
-    status: "PENDING_APPROVAL",
-    thresholdExceeded: true,
-    candidate: {
-      id: "candidate-1",
-      imageUrl: "http://localhost:9000/vrt/current.png",
-      imageHash: "hash-current",
-      createdAt: "2026-01-23T14:48:36.352Z",
-      type: "CURRENT",
-      variant: {
-        viewport: "1920x1080",
-        browser: "Chrome",
-        environment: "staging",
-      },
-    },
+function pendingDetailsBody(
+  changedRegions?: Array<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    pixelCount: number;
+  }>,
+) {
+  return {
+    name: "checkout-flow",
     baseline: {
       id: "baseline-1",
       imageUrl: "http://localhost:9000/vrt/baseline.png",
@@ -82,9 +61,53 @@ export const VISUAL_TEST_DETAILS_PENDING = jsonResponse({
         environment: "staging",
       },
     },
-    createdAt: "2026-01-23T14:48:36.352Z",
-  },
-});
+    comparison: {
+      id: "cmp-1",
+      diffImageUrl: "http://localhost:9000/vrt/diff.png",
+      mismatchPixelCount: 157,
+      status: "PENDING_APPROVAL",
+      thresholdExceeded: true,
+      candidate: {
+        id: "candidate-1",
+        imageUrl: "http://localhost:9000/vrt/current.png",
+        imageHash: "hash-current",
+        createdAt: "2026-01-23T14:48:36.352Z",
+        type: "CURRENT",
+        variant: {
+          viewport: "1920x1080",
+          browser: "Chrome",
+          environment: "staging",
+        },
+      },
+      baseline: {
+        id: "baseline-1",
+        imageUrl: "http://localhost:9000/vrt/baseline.png",
+        imageHash: "hash-baseline",
+        createdAt: "2026-01-23T14:48:36.276Z",
+        pixelDiffThreshold: 0,
+        type: "BASELINE",
+        variant: {
+          viewport: "1920x1080",
+          browser: "Chrome",
+          environment: "staging",
+        },
+      },
+      createdAt: "2026-01-23T14:48:36.352Z",
+      ...(changedRegions ? { changedRegions } : {}),
+    },
+  };
+}
+
+export const VISUAL_TEST_DETAILS_PENDING = jsonResponse(pendingDetailsBody());
+
+// A comparison that knows where its changes are: the review page opens on the
+// marked diff and lists the areas beside it.
+export const VISUAL_TEST_DETAILS_WITH_REGIONS = jsonResponse(
+  pendingDetailsBody([
+    { x: 40, y: 60, width: 320, height: 120, pixelCount: 157 },
+    { x: 40, y: 400, width: 160, height: 80, pixelCount: 64 },
+  ]),
+);
 
 export const VISUAL_TEST_PENDING_META = jsonResponse({
   data: [
@@ -157,4 +180,43 @@ export const VISUAL_TEST_VARIANTS_SINGLE = jsonResponse({
   name: "checkout-flow",
   kind: "image",
   variants: [galleryDesktop],
+});
+
+// The strip under the comparison needs thumbnails that actually render, so this
+// set uses the demo screenshot instead of an unreachable storage URL.
+export const VISUAL_TEST_VARIANTS_DEMO = jsonResponse({
+  name: "checkout-flow",
+  kind: "image",
+  variants: [
+    {
+      viewport: "1920x1080",
+      browser: "Chrome",
+      environment: "staging",
+      status: "PENDING_APPROVAL",
+      baselineUrl: DEMO_BASELINE,
+      candidateUrl: DEMO_CANDIDATE,
+      mismatchPixelCount: 157,
+      baselineInherited: false,
+    },
+    {
+      viewport: "1366x768",
+      browser: "Chrome",
+      environment: "staging",
+      status: "UNCHANGED",
+      baselineUrl: DEMO_CANDIDATE,
+      candidateUrl: null,
+      mismatchPixelCount: null,
+      baselineInherited: false,
+    },
+    {
+      viewport: "375x667",
+      browser: "Chrome",
+      environment: "staging",
+      status: "UNCHANGED",
+      baselineUrl: DEMO_BASELINE,
+      candidateUrl: null,
+      mismatchPixelCount: null,
+      baselineInherited: false,
+    },
+  ],
 });

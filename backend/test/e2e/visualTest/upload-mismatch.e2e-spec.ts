@@ -119,6 +119,16 @@ describe('Upload Mismatch (e2e)', () => {
     const details = await waitForComparison(app, 'checkout-ui', 'login-form');
     expect(details.body.comparison.id).toBe(jobRes.body.comparison.id);
 
+    // The worker stores where the diff is, and the per-region counts add up to
+    // the comparison's own mismatch count.
+    const changedRegions = details.body.comparison.changedRegions as Array<{
+      pixelCount: number;
+    }>;
+    expect(changedRegions.length).toBeGreaterThan(0);
+    expect(
+      changedRegions.reduce((sum, region) => sum + region.pixelCount, 0),
+    ).toBe(details.body.comparison.mismatchPixelCount);
+
     expect(details.body).toEqual({
       name: 'login-form',
       origin: 'branch',
@@ -150,6 +160,7 @@ describe('Upload Mismatch (e2e)', () => {
         // only its shape is asserted.
         signedDiffImageUrl: expect.any(String),
         mismatchPixelCount: expect.any(Number),
+        changedRegions: expect.any(Array),
         status: expect.stringMatching(/PENDING_APPROVAL|APPROVED|UNCHANGED/),
         thresholdExceeded: expect.any(Boolean),
         baseline: expect.objectContaining({

@@ -2,6 +2,7 @@ import { ComparisonStatus } from '@public/visualTest/core/domain/types/visual-te
 import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { DomainError } from '@common/domain/domain-error';
+import type { ChangedRegion } from '@common/domain/changed-region.type';
 import { isThresholdExceeded } from '@public/visualTest/core/domain/policies/threshold-policy';
 
 export class ApprovalDecision {
@@ -42,6 +43,7 @@ export class ComparisonEntity {
   readonly diffPdfUrl?: string;
   readonly runId?: string;
   readonly runKey?: string;
+  readonly changedRegions?: ChangedRegion[];
 
   constructor(params: {
     id: string;
@@ -59,6 +61,7 @@ export class ComparisonEntity {
     diffPdfUrl?: string;
     runId?: string;
     runKey?: string;
+    changedRegions?: ChangedRegion[];
   }) {
     if (!params.id || params.id.trim() === '') {
       throw new DomainError('Comparison id is required', 'INVALID_STATE');
@@ -103,6 +106,7 @@ export class ComparisonEntity {
     this.diffPdfUrl = params.diffPdfUrl;
     this.runId = params.runId;
     this.runKey = params.runKey;
+    this.changedRegions = params.changedRegions;
   }
 
   // Threshold is an image-only concept (PDF threshold updates are rejected), so

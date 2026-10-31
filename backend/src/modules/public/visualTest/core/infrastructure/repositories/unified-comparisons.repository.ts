@@ -262,6 +262,8 @@ export class UnifiedComparisonsRepository extends BaseRepository {
             ...base,
             ...PENDING_APPROVAL_STATUS_FILTER,
             mismatchPixelCount: result.mismatchPixelCount,
+            changedRegions:
+              result.changedRegions as unknown as Prisma.InputJsonValue,
             diffImageUrl: diffUrl,
             diffSizeBytes: BigInt(diffSizeBytes ?? 0),
             mismatchPageCount: 0,

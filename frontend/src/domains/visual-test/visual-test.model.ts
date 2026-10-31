@@ -10,6 +10,17 @@ export interface Screenshot {
 import type { TestStatusValue, VisualTestStatus } from "@/domains/test-status";
 import type { BranchOrigin } from "@/domains/branches/branch-origin";
 
+// One changed area of the diff, in the comparison image's pixel space. The
+// backend derives these from the diff mask it already holds (the browser cannot
+// read the stored diff image back: the bucket answers without CORS headers).
+export interface ChangedRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  pixelCount: number;
+}
+
 export interface Comparison {
   id: string;
   diffImageUrl: string;
@@ -19,6 +30,7 @@ export interface Comparison {
   createdAt?: string;
   baseline?: Screenshot;
   candidate?: Screenshot;
+  changedRegions?: ChangedRegion[];
 }
 
 export interface VisualTestDetails {

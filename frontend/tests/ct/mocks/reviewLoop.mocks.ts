@@ -1,4 +1,6 @@
 import { ONE_PIXEL_PNG_DATA_URL } from "./projects.mocks";
+import { DEMO_BASELINE, DEMO_CANDIDATE, DEMO_DIFF } from "./demoImages.mocks";
+import type { ChangedRegion } from "@/domains/visual-test/visual-test.model";
 
 type FulfillResponse = {
   status: number;
@@ -20,8 +22,8 @@ const VARIANT = {
   environment: "staging",
 };
 
-export function makeReviewableDetails(name: string): FulfillResponse {
-  return jsonResponse({
+function reviewableDetailsBody(name: string) {
+  return {
     name,
     baseline: {
       id: "baseline-1",
@@ -56,6 +58,30 @@ export function makeReviewableDetails(name: string): FulfillResponse {
         variant: VARIANT,
       },
       createdAt: "2026-01-23T14:48:36.352Z",
+    },
+  };
+}
+
+export function makeReviewableDetails(name: string): FulfillResponse {
+  return jsonResponse(reviewableDetailsBody(name));
+}
+
+// A real screenshot pair with the areas the worker would have stored: the only
+// fixture in which the review page opens on the marked diff.
+export function makeReviewableDetailsWithRegions(
+  name: string,
+  changedRegions: ChangedRegion[],
+): FulfillResponse {
+  const body = reviewableDetailsBody(name);
+  return jsonResponse({
+    ...body,
+    baseline: { ...body.baseline, imageUrl: DEMO_BASELINE },
+    comparison: {
+      ...body.comparison,
+      diffImageUrl: DEMO_DIFF,
+      changedRegions,
+      candidate: { ...body.comparison.candidate, imageUrl: DEMO_CANDIDATE },
+      baseline: { ...body.comparison.baseline, imageUrl: DEMO_BASELINE },
     },
   });
 }

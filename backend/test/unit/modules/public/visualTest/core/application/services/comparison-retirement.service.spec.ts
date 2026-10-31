@@ -201,6 +201,7 @@ describe('ComparisonRetirementService', () => {
         result: {
           kind: 'image',
           mismatchPixelCount: 10,
+          changedRegions: [],
           diffOutput: Buffer.from('diff'),
         },
       });
@@ -213,6 +214,7 @@ describe('ComparisonRetirementService', () => {
         result: {
           kind: 'image',
           mismatchPixelCount: 10,
+          changedRegions: [],
           diffOutput: Buffer.from('diff'),
         },
       });

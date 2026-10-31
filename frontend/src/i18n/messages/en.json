@@ -826,7 +826,9 @@
     "sideBySide": "Side by Side",
     "diffOnly": "Diff Only",
     "overlay": "Overlay",
-    "wipe": "Wipe"
+    "wipe": "Wipe",
+    "highlight": "Diff marked",
+    "blink": "Blink"
   },
   "comparison": {
     "mismatchTooltip": "Number of pixels that differ from baseline. {tolerance}",
@@ -885,7 +887,22 @@
     "unavailable": "Image unavailable",
     "wipe": "Wipe position",
     "retry": "Retry",
-    "diff": "Diff"
+    "diff": "Diff",
+    "changedRegions": "Changed areas",
+    "regionCount": "{count} area | {count} areas",
+    "regionOf": "Area {index} of {total}",
+    "regionSize": "{width} × {height} px",
+    "regionShare": "{percent} of the image",
+    "focusRegion": "Zoom to area {index}",
+    "regionList": "Changed areas of this comparison",
+    "showRegions": "Show areas",
+    "noRegions": "No areas recorded for this comparison",
+    "wholePage": "Whole page",
+    "regionHint": "Click an area to zoom to it · n/p steps through them",
+    "minimap": "Overview — click to jump",
+    "autoFocus": "Jump to the largest change",
+    "otherVariants": "Other variants",
+    "variantCurrent": "Shown now"
   },
   "filterBar": {
     "viewportLabel": "Filter by viewport",

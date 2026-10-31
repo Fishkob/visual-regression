@@ -101,4 +101,20 @@ describe("ViewModeToggle", () => {
       withoutLayered.find(`[data-testid="${TEST_ID.modeDiff}"]`).exists(),
     ).toBe(true);
   });
+
+  it("offers the blink mode only when both pictures exist", () => {
+    const withoutBlink = mount(ViewModeToggle, {
+      props: { modelValue: "side-by-side" },
+    });
+    expect(
+      withoutBlink.find(`[data-testid="${TEST_ID.modeBlink}"]`).exists(),
+    ).toBe(false);
+
+    const withBlink = mount(ViewModeToggle, {
+      props: { modelValue: "side-by-side", showBlink: true },
+    });
+    expect(
+      withBlink.find(`[data-testid="${TEST_ID.modeBlink}"]`).exists(),
+    ).toBe(true);
+  });
 });

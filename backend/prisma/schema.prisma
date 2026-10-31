@@ -127,6 +127,10 @@ model UnifiedComparison {
   diffSizeBytes      BigInt @default(0)
   diffImageUrl       String?
   diffPdfUrl         String?
+  // Changed areas of the diff, for the review page (see ChangedRegion): the
+  // worker already holds the mask, and the browser cannot recompute it from the
+  // stored diff image. Null for comparisons written before the column existed.
+  changedRegions     Json?
   status             ComparisonStatus
   baselineId         String
   candidateId        String?

@@ -14,6 +14,8 @@ import {
   type ViewMode,
 } from "@/components/ui/view-mode-toggle";
 import { Button } from "@/components/ui/button";
+import ChangedRegionBoxes from "@/components/detail-panels/ChangedRegionBoxes.vue";
+import type { ChangedRegion } from "@/domains/visual-test/visual-test.model";
 import { TEST_ID } from "@/lib/test-ids";
 import { cn } from "@/lib/utils";
 
@@ -25,37 +27,53 @@ const props = withDefaults(
     candidateUrl?: string;
     diffUrl?: string;
     mismatchPixelCount?: number;
+    regions?: ChangedRegion[];
   }>(),
   {
     baselineUrl: undefined,
     candidateUrl: undefined,
     diffUrl: undefined,
     mismatchPixelCount: undefined,
+    regions: undefined,
   },
 );
 
+const emit = defineEmits<{
+  "image-size": [size: { width: number; height: number }];
+}>();
+
 const ZOOM_STEPS = [50, 75, 100, 150, 200];
-const MODE_STORAGE_KEY = "vrt:viewer:mode";
+// v2: the default depends on whether the comparison carries changed regions,
+// so a mode stored under the old key cannot be the fallback any more.
+const MODE_STORAGE_KEY = "vrt:viewer:mode:v2";
 const ZOOM_STORAGE_KEY = "vrt:viewer:zoom";
+const AUTOFOCUS_STORAGE_KEY = "vrt:viewer:autofocus";
 const PAN_STEP = 40;
 const WIPE_STEP = 2;
 
-const VIEW_MODES: ViewMode[] = ["side-by-side", "diff-only", "overlay", "wipe"];
+const VIEW_MODES: ViewMode[] = [
+  "highlight",
+  "side-by-side",
+  "diff-only",
+  "overlay",
+  "wipe",
+  "blink",
+];
 
 const controlClass =
   "p-1.5 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-const readStoredMode = (): ViewMode => {
+const readStoredMode = (): ViewMode | null => {
   try {
     const raw = window.localStorage.getItem(MODE_STORAGE_KEY);
-    if (!raw) return "side-by-side";
+    if (!raw) return null;
     const value: unknown = JSON.parse(raw);
-    if (typeof value !== "string") return "side-by-side";
+    if (typeof value !== "string") return null;
     return (VIEW_MODES as readonly string[]).includes(value)
       ? (value as ViewMode)
-      : "side-by-side";
+      : null;
   } catch {
-    return "side-by-side";
+    return null;
   }
 };
 
@@ -72,10 +90,40 @@ const readStoredZoom = (): number => {
   }
 };
 
-const viewMode = ref<ViewMode>(readStoredMode());
+const hasRegions = computed(() => (props.regions?.length ?? 0) > 0);
+// With changed regions the comparison opens on the marked diff: the place to
+// look is the news, and side-by-side stays one click away.
+const storedMode = readStoredMode();
+const viewMode = ref<ViewMode>(
+  storedMode && (storedMode !== "highlight" || hasRegions.value)
+    ? storedMode
+    : hasRegions.value
+      ? "highlight"
+      : "side-by-side",
+);
 const zoomLevel = ref(readStoredZoom());
 const fitToScreen = ref(zoomLevel.value === 100);
 const pan = reactive({ x: 0, y: 0 });
+
+const readStoredFlag = (key: string): boolean => {
+  try {
+    return window.localStorage.getItem(key) === "true";
+  } catch {
+    return false;
+  }
+};
+
+// Off by default: landing on a zoomed crop hides where you are on the page. On,
+// it saves the click that finds the change in the first place.
+const autoFocus = ref(readStoredFlag(AUTOFOCUS_STORAGE_KEY));
+
+watch(autoFocus, (value) => {
+  try {
+    window.localStorage.setItem(AUTOFOCUS_STORAGE_KEY, String(value));
+  } catch {
+    // Persistence is optional: storage may be unavailable or full.
+  }
+});
 
 const failed = reactive<Record<string, boolean>>({});
 const attempts = reactive<Record<string, number>>({});
@@ -98,6 +146,10 @@ const onImageLoad = (key: string, event: Event) => {
   const img = event.target as HTMLImageElement;
   if (img.naturalWidth > 0 && img.naturalHeight > 0) {
     sizes[key] = { width: img.naturalWidth, height: img.naturalHeight };
+    emit("image-size", sizes[key]);
+    if (autoFocus.value && hasRegions.value && activeRegion.value === null) {
+      void nextTick(() => focusRegion(0));
+    }
   }
 };
 
@@ -320,8 +372,11 @@ const isTypingTarget = (target: EventTarget | null): boolean => {
   );
 };
 
-const isModeAvailable = (mode: ViewMode) =>
-  mode === "side-by-side" || hasDiff.value;
+const isModeAvailable = (mode: ViewMode) => {
+  if (mode === "side-by-side") return true;
+  if (mode === "blink") return Boolean(props.baselineUrl && props.candidateUrl);
+  return hasDiff.value;
+};
 
 const onWindowKeydown = (event: KeyboardEvent) => {
   if (isTypingTarget(event.target)) return;
@@ -358,12 +413,25 @@ const onWindowKeydown = (event: KeyboardEvent) => {
     return;
   }
 
-  if (event.key >= "1" && event.key <= "4") {
+  if (event.key >= "1" && event.key <= String(VIEW_MODES.length)) {
     const mode = VIEW_MODES[Number(event.key) - 1];
     if (isModeAvailable(mode)) {
       event.preventDefault();
       viewMode.value = mode;
     }
+    return;
+  }
+
+  if (event.key === "n" || event.key === "p") {
+    const total = props.regions?.length ?? 0;
+    if (total === 0) return;
+    event.preventDefault();
+    const current = activeRegion.value ?? -1;
+    const next =
+      event.key === "n"
+        ? Math.min(total - 1, current + 1)
+        : Math.max(0, current <= 0 ? total - 1 : current - 1);
+    focusRegion(next);
     return;
   }
 
@@ -382,6 +450,182 @@ const onWindowKeydown = (event: KeyboardEvent) => {
   }
 };
 
+const activeRegion = ref<number | null>(null);
+const root = ref<HTMLElement | null>(null);
+
+const activeRegionLabel = computed(() => {
+  const total = props.regions?.length ?? 0;
+  if (activeRegion.value === null || total === 0) return null;
+  return t("imageViewer.regionOf", {
+    index: activeRegion.value + 1,
+    total,
+  });
+});
+
+function regionStage(): HTMLElement | null {
+  return (
+    root.value?.querySelector<HTMLElement>('[data-testid$="-zoom"]') ?? null
+  );
+}
+
+// Jumping to a region means two things: a zoom that makes the area fill the
+// stage, and a pan that puts it in the middle. The zoom is picked from the fixed
+// steps (so the zoom buttons stay in sync); the pan is measured after the zoom
+// has rendered, which keeps the correction independent of how the stage centres
+// its image.
+function focusRegion(index: number): void {
+  const region = props.regions?.[index];
+  if (!region) return;
+  // The label and the rail highlight must follow the pick even before the image
+  // has reported its size; only the zoom needs to know how big it is.
+  activeRegion.value = index;
+  const size = sizes.baseline ?? sizes.candidate;
+  if (!size) return;
+  if (!isStage.value && viewMode.value !== "diff-only") {
+    viewMode.value = hasDiff.value ? "highlight" : "side-by-side";
+  }
+  const stage = regionStage();
+  const stageWidth = stage?.clientWidth || Math.min(size.width, 1024);
+  const stageHeight = stage?.clientHeight || Math.min(size.height, 720);
+  const target =
+    Math.min(
+      stageWidth / (region.width * 1.25),
+      stageHeight / (region.height * 1.25),
+    ) * 100;
+  const step =
+    [...ZOOM_STEPS].reverse().find((value) => value <= target) ?? ZOOM_STEPS[0];
+  zoomLevel.value = step;
+  fitToScreen.value = false;
+
+  void nextTick(() => {
+    centreOnImagePoint(
+      region.x + region.width / 2,
+      region.y + region.height / 2,
+    );
+  });
+}
+
+// Pan correction by measurement: the stage centres its image and scales it about
+// the container's top-left, so the arithmetic is not worth repeating — read where
+// the image actually is and move it so the point sits in the middle.
+function centreOnImagePoint(imageX: number, imageY: number): void {
+  const stage = regionStage();
+  const image = stage?.querySelector("img") ?? null;
+  const size = sizes.candidate ?? sizes.baseline;
+  if (!stage || !image || !size) return;
+  const box = image.getBoundingClientRect();
+  const stageBox = stage.getBoundingClientRect();
+  if (box.width <= 0 || stageBox.width <= 0) return;
+  pan.x +=
+    stageBox.left +
+    stageBox.width / 2 -
+    (box.left + (imageX / size.width) * box.width);
+  pan.y +=
+    stageBox.top +
+    stageBox.height / 2 -
+    (box.top + (imageY / size.height) * box.height);
+  scheduleMinimap();
+}
+
+const minimap = ref<HTMLElement | null>(null);
+const minimapVisible = ref(false);
+const minimapRect = ref<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}>({ x: 0, y: 0, width: 0, height: 0 });
+
+const minimapRegions = computed(() => {
+  const size = sizes.candidate ?? sizes.baseline;
+  if (!size) return [];
+  return (props.regions ?? []).map((region) => ({
+    left: `${(region.x / size.width) * 100}%`,
+    top: `${(region.y / size.height) * 100}%`,
+    width: `${(region.width / size.width) * 100}%`,
+    height: `${(region.height / size.height) * 100}%`,
+  }));
+});
+
+const minimapViewStyle = computed(() => {
+  const size = sizes.candidate ?? sizes.baseline;
+  const rect = minimapRect.value;
+  if (!size) return {};
+  return {
+    left: `${(rect.x / size.width) * 100}%`,
+    top: `${(rect.y / size.height) * 100}%`,
+    width: `${(rect.width / size.width) * 100}%`,
+    height: `${(rect.height / size.height) * 100}%`,
+  };
+});
+
+let minimapFrame = 0;
+function scheduleMinimap(): void {
+  if (typeof window === "undefined") return;
+  if (minimapFrame) return;
+  minimapFrame = window.requestAnimationFrame(() => {
+    minimapFrame = 0;
+    updateMinimap();
+  });
+}
+
+// The minimap answers "where am I" only while the stage shows a crop; at fit it
+// would be a second copy of the picture.
+function updateMinimap(): void {
+  const stage = regionStage();
+  const image = stage?.querySelector("img") ?? null;
+  const size = sizes.candidate ?? sizes.baseline;
+  if (!stage || !image || !size) {
+    minimapVisible.value = false;
+    return;
+  }
+  const box = image.getBoundingClientRect();
+  const stageBox = stage.getBoundingClientRect();
+  if (box.width <= 0 || box.height <= 0 || stageBox.width <= 0) {
+    minimapVisible.value = false;
+    return;
+  }
+  const scale = size.width / box.width;
+  const x = Math.max(0, (stageBox.left - box.left) * scale);
+  const y = Math.max(0, (stageBox.top - box.top) * scale);
+  const width = Math.max(0, Math.min(size.width - x, stageBox.width * scale));
+  const height = Math.max(
+    0,
+    Math.min(size.height - y, stageBox.height * scale),
+  );
+  const coversWholeImage =
+    x <= 1 && y <= 1 && width >= size.width - 2 && height >= size.height - 2;
+  minimapRect.value = { x, y, width, height };
+  // At fit the stage is the overview: a thumbnail of the whole picture beside it
+  // would be a second, smaller copy of what is already on screen.
+  minimapVisible.value = !coversWholeImage && !fitToScreen.value;
+}
+
+function minimapJump(event: MouseEvent): void {
+  const el = minimap.value;
+  const size = sizes.candidate ?? sizes.baseline;
+  if (!el || !size) return;
+  const rect = el.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return;
+  const imageX = ((event.clientX - rect.left) / rect.width) * size.width;
+  const imageY = ((event.clientY - rect.top) / rect.height) * size.height;
+  centreOnImagePoint(imageX, imageY);
+}
+
+watch([zoomLevel, fitToScreen, () => pan.x, () => pan.y], () =>
+  scheduleMinimap(),
+);
+watch(
+  () => [sizes.candidate, sizes.baseline, viewMode.value],
+  () => nextTick(scheduleMinimap),
+);
+
+function selectRegion(index: number): void {
+  focusRegion(index);
+}
+
+defineExpose({ focusRegion });
+
 onMounted(() => {
   window.addEventListener("mousemove", onWindowMouseMove);
   window.addEventListener("mouseup", onWindowMouseUp);
@@ -394,7 +638,10 @@ onBeforeUnmount(() => {
   window.removeEventListener("keydown", onWindowKeydown);
 });
 
+const isBlink = computed(() => viewMode.value === "blink");
+
 const panels = computed(() => {
+  if (isStage.value) return [];
   const list: {
     key: string;
     label: string;
@@ -440,6 +687,20 @@ const isLayered = computed(
   () => viewMode.value === "overlay" || viewMode.value === "wipe",
 );
 
+const isHighlight = computed(() => viewMode.value === "highlight");
+
+const isStage = computed(
+  () => viewMode.value === "highlight" || viewMode.value === "blink",
+);
+
+const stageLabel = computed(() =>
+  isBlink.value ? t("viewMode.blink") : t("viewMode.highlight"),
+);
+
+const showRegionBoxes = computed(
+  () => hasRegions.value && viewMode.value !== "diff-only",
+);
+
 const layeredLabel = computed(() =>
   viewMode.value === "overlay" ? t("viewMode.overlay") : t("viewMode.wipe"),
 );
@@ -453,6 +714,7 @@ const layeredDotClass = computed(() =>
 );
 
 const gridClass = computed(() => {
+  if (isStage.value) return "grid-cols-1";
   if (viewMode.value === "side-by-side") {
     return hasDiff.value ? "grid-cols-3" : "grid-cols-2";
   }
@@ -460,9 +722,11 @@ const gridClass = computed(() => {
   return "grid-cols-1";
 });
 
-const contentTransform = computed(() => ({
+// `--s` lets the region boxes keep a hairline border while the image grows.
+const contentTransform = computed<Record<string, string>>(() => ({
   transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomLevel.value / 100})`,
   transformOrigin: "top left",
+  "--s": String(zoomLevel.value / 100),
 }));
 
 const layeredCandidateStyle = computed(() => ({
@@ -486,12 +750,32 @@ const imageFitClass = computed(() =>
         isFullscreen && 'fixed inset-0 z-50 overflow-auto bg-background p-4',
       )
     "
+    ref="root"
     :role="isFullscreen ? 'dialog' : undefined"
     :aria-modal="isFullscreen ? 'true' : undefined"
     :aria-label="isFullscreen ? t('imageViewer.label') : undefined"
   >
     <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-      <ViewModeToggle v-model="viewMode" :show-diff="hasDiff" />
+      <div class="flex flex-wrap items-center gap-3">
+        <ViewModeToggle
+          v-model="viewMode"
+          :show-diff="hasDiff"
+          :show-highlight="hasDiff && hasRegions"
+          :show-blink="Boolean(baselineUrl && candidateUrl)"
+        />
+        <label
+          v-if="hasRegions"
+          class="flex items-center gap-2 text-xs text-muted-foreground"
+        >
+          <input
+            v-model="autoFocus"
+            type="checkbox"
+            :data-testid="TEST_ID.autoFocusToggle"
+            class="h-3.5 w-3.5 accent-primary"
+          />
+          {{ t("imageViewer.autoFocus") }}
+        </label>
+      </div>
 
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
         <span
@@ -694,7 +978,138 @@ const imageFitClass = computed(() =>
     </div>
 
     <div class="grid gap-4" :class="gridClass">
-      <template v-if="isLayered">
+      <template v-if="isStage">
+        <div
+          :data-testid="TEST_ID.panelHighlight"
+          class="relative rounded-3xl border border-border bg-card shadow p-4"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div
+              class="flex items-center gap-2 text-sm font-medium text-foreground/80"
+            >
+              <span
+                class="w-3 h-3 rounded-full"
+                :class="isBlink ? 'bg-status-info' : 'bg-status-danger'"
+              />
+              <span>{{ stageLabel }}</span>
+            </div>
+            <span
+              v-if="activeRegionLabel"
+              :data-testid="TEST_ID.changedRegionFocus"
+              class="text-xs text-muted-foreground tabular-nums"
+              >{{ activeRegionLabel }}</span
+            >
+          </div>
+
+          <div
+            :data-testid="`${TEST_ID.panelHighlight}-zoom`"
+            class="relative min-h-[300px] max-h-[70vh] overflow-auto bg-image-canvas rounded-2xl"
+            @wheel="wheelZoom"
+          >
+            <div
+              v-if="isFailed('candidate')"
+              class="flex flex-col items-center justify-center gap-2 min-h-[300px] p-4 text-center"
+            >
+              <span class="text-sm text-status-danger">{{
+                t("imageViewer.unavailable")
+              }}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                :data-testid="`${TEST_ID.panelHighlight}-retry`"
+                @click="retry('candidate')"
+              >
+                {{ t("imageViewer.retry") }}
+              </Button>
+            </div>
+            <div
+              v-else
+              class="relative"
+              :class="fitToScreen ? 'w-full' : 'inline-block'"
+              :style="contentTransform"
+              @mousedown="beginPan"
+              @dblclick="doubleClickZoom"
+            >
+              <img
+                v-if="isBlink"
+                :key="imageKey('baseline')"
+                :src="baselineUrl"
+                :alt="t('detail.baselineAlt')"
+                decoding="async"
+                draggable="false"
+                :class="cn(imageFitClass, fitToScreen && 'w-full max-h-[70vh]')"
+                @load="onImageLoad('baseline', $event)"
+                @error="markFailed('baseline')"
+              />
+              <img
+                :key="imageKey('candidate')"
+                :src="candidateUrl"
+                :alt="t('detail.candidateAlt')"
+                decoding="async"
+                draggable="false"
+                :class="
+                  cn(
+                    imageFitClass,
+                    fitToScreen && 'w-full max-h-[70vh]',
+                    isBlink &&
+                      'blink-candidate pointer-events-none absolute inset-0 h-full w-full object-contain',
+                  )
+                "
+                @load="onImageLoad('candidate', $event)"
+                @error="markFailed('candidate')"
+              />
+              <img
+                v-if="isHighlight && diffUrl"
+                :src="diffUrl"
+                alt=""
+                aria-hidden="true"
+                decoding="async"
+                draggable="false"
+                class="pointer-events-none absolute inset-0 h-full w-full select-none object-contain opacity-30"
+              />
+              <ChangedRegionBoxes
+                v-if="showRegionBoxes && sizes.candidate"
+                :regions="regions ?? []"
+                :image-width="sizes.candidate.width"
+                :image-height="sizes.candidate.height"
+                :active-index="activeRegion"
+                @select="selectRegion"
+              />
+            </div>
+          </div>
+
+          <button
+            v-if="minimapVisible && candidateUrl"
+            ref="minimap"
+            type="button"
+            :data-testid="TEST_ID.minimap"
+            :aria-label="t('imageViewer.minimap')"
+            class="absolute bottom-3 right-3 z-10 w-28 overflow-hidden rounded-lg border border-border bg-card shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            @click="minimapJump"
+          >
+            <img
+              :src="candidateUrl"
+              alt=""
+              aria-hidden="true"
+              class="block w-full select-none opacity-90"
+            />
+            <span
+              v-for="(style, index) in minimapRegions"
+              :key="index"
+              aria-hidden="true"
+              class="absolute border border-status-danger bg-destructive/30"
+              :style="style"
+            />
+            <span
+              aria-hidden="true"
+              class="pointer-events-none absolute border border-foreground bg-background/20"
+              :style="minimapViewStyle"
+            />
+          </button>
+        </div>
+      </template>
+
+      <template v-else-if="isLayered">
         <div
           :data-testid="layeredTestId"
           class="rounded-3xl border border-border bg-card shadow p-4"
@@ -845,19 +1260,29 @@ const imageFitClass = computed(() =>
               @mousedown="beginPan"
               @dblclick="doubleClickZoom"
             >
-              <img
-                :key="imageKey(panel.key)"
-                :src="panel.url"
-                :alt="panel.label"
-                :width="sizes[panel.key]?.width"
-                :height="sizes[panel.key]?.height"
-                loading="lazy"
-                decoding="async"
-                draggable="false"
-                :class="imageFitClass"
-                @load="onImageLoad(panel.key, $event)"
-                @error="markFailed(panel.key)"
-              />
+              <span class="relative inline-block max-w-full">
+                <img
+                  :key="imageKey(panel.key)"
+                  :src="panel.url"
+                  :alt="panel.label"
+                  :width="sizes[panel.key]?.width"
+                  :height="sizes[panel.key]?.height"
+                  loading="lazy"
+                  decoding="async"
+                  draggable="false"
+                  :class="imageFitClass"
+                  @load="onImageLoad(panel.key, $event)"
+                  @error="markFailed(panel.key)"
+                />
+                <ChangedRegionBoxes
+                  v-if="showRegionBoxes && sizes[panel.key]"
+                  :regions="regions ?? []"
+                  :image-width="sizes[panel.key].width"
+                  :image-height="sizes[panel.key].height"
+                  :active-index="activeRegion"
+                  @select="selectRegion"
+                />
+              </span>
             </div>
           </div>
         </div>
@@ -865,3 +1290,27 @@ const imageFitClass = computed(() =>
     </div>
   </div>
 </template>
+
+<style scoped>
+.blink-candidate {
+  animation: viewer-blink 1.1s steps(1, end) infinite;
+}
+
+@keyframes viewer-blink {
+  0%,
+  45% {
+    opacity: 0;
+  }
+  55%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blink-candidate {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+</style>

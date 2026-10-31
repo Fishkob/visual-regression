@@ -35,6 +35,10 @@ _Avoid_: Profile, configuration, preset
 **UnifiedComparison**:
 The result of a diff between a BASELINE Screenshot and a CURRENT Screenshot. Status values: PENDING_APPROVAL (differences found), APPROVED (reviewer accepted). A zero-diff comparison is never persisted (see Flagged Ambiguities). Mismatch count: pixels for images, pages for PDF.
 
+**Changed region**:
+One contiguous area of an image diff, stored on the UnifiedComparison as `(x, y, width, height, pixelCount)`. Regions are what the review page numbers on the picture and lists beside it, so "where did it change" is answerable without hunting the diff. They are derived by the worker from the diff mask (not by the browser: the stored diff image is not readable back under CORS), ordered largest first, and capped at the 40 largest. `pixelCount` is the exact number of mismatched pixels inside the region's box; regions never nest (one fully inside another is folded into it).
+_Avoid_: Diff cluster, hotspot, blob, area
+
 **ComparisonJob**:
 An asynchronous queue job that processes a comparison in the background when a CURRENT screenshot is uploaded.
 _Avoid_: Task, worker job, message

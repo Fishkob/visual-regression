@@ -9,6 +9,7 @@ const baseRow = {
   mismatchPixelCount: 10,
   diffImageUrl: 'http://storage/diff.png',
   diffPdfUrl: null,
+  changedRegions: null,
   status: 'PENDING_APPROVAL',
   baselineId: 'baseline-1',
   candidateId: 'candidate-1',
@@ -62,6 +63,46 @@ describe('comparison.mapper', () => {
 
       expect(entity.pageCount).toBe(8);
       expect(entity.mismatchPageCount).toBe(2);
+    });
+
+    it('maps stored changed regions onto the entity', () => {
+      const row = {
+        ...relatedRow,
+        changedRegions: [
+          { x: 10, y: 20, width: 30, height: 40, pixelCount: 500 },
+        ],
+      } as unknown as ComparisonRow;
+
+      const entity = toComparisonEntityWithRelations(row);
+
+      expect(entity.changedRegions).toEqual([
+        { x: 10, y: 20, width: 30, height: 40, pixelCount: 500 },
+      ]);
+    });
+
+    it('drops malformed changed regions instead of failing the read', () => {
+      const row = {
+        ...relatedRow,
+        changedRegions: [
+          { x: 1, y: 2, width: 3, height: 4, pixelCount: 5 },
+          { x: 'nope', y: 2, width: 3, height: 4, pixelCount: 5 },
+          null,
+        ],
+      } as unknown as ComparisonRow;
+
+      const entity = toComparisonEntityWithRelations(row);
+
+      expect(entity.changedRegions).toEqual([
+        { x: 1, y: 2, width: 3, height: 4, pixelCount: 5 },
+      ]);
+    });
+
+    it('maps an absent region list to undefined', () => {
+      const entity = toComparisonEntityWithRelations(
+        relatedRow as ComparisonRow,
+      );
+
+      expect(entity.changedRegions).toBeUndefined();
     });
 
     it('maps a null candidateId to an undefined candidate reference', () => {

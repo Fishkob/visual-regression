@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import ApprovalDecisionDialog from "@/components/approvals/ApprovalDecisionDialog.vue";
 import InteractiveImageViewer from "@/components/detail-panels/InteractiveImageViewer.vue";
+import ChangedRegionRail from "@/components/detail-panels/ChangedRegionRail.vue";
+import ComparisonVariantStrip from "@/components/detail-panels/ComparisonVariantStrip.vue";
 import ApproveSkipFooter from "@/components/ApproveSkipFooter.vue";
 import { isApproved } from "@/domains/test-status";
 import { TEST_ID } from "@/lib/test-ids";
-import type { Comparison } from "@/domains/visual-test/visual-test.model";
+import type {
+  Comparison,
+  VariantSummary,
+} from "@/domains/visual-test/visual-test.model";
 import type { ApprovalDecision } from "@/domains/approvals/approval-reason";
 
 const props = defineProps<{
@@ -14,14 +19,36 @@ const props = defineProps<{
   // Inherited baselines are read-only on this branch: the approve/skip actions
   // belong to the branch that owns the baseline.
   readOnly?: boolean;
+  // Sibling variants of the same test, for the strip under the stage.
+  variants?: VariantSummary[];
+  activeVariant?: {
+    viewport?: string;
+    browser?: string;
+    environment?: string;
+  };
 }>();
 
 defineEmits<{
   skip: [];
   approve: [decision: ApprovalDecision];
+  selectVariant: [variant: VariantSummary];
 }>();
 
 const decisionOpen = ref(false);
+
+const viewer = ref<InstanceType<typeof InteractiveImageViewer> | null>(null);
+const imageSize = ref<{ width: number; height: number } | null>(null);
+const activeRegion = ref<number | null>(null);
+
+const regions = computed(() => props.comparison.changedRegions ?? []);
+
+// The rail is the list of places to look; the stage is where you look at them.
+// Focus flows one way (rail -> stage) so the reviewed picture and the numbers
+// in the list can never disagree about which area is meant.
+function focusRegion(index: number): void {
+  activeRegion.value = index;
+  viewer.value?.focusRegion(index);
+}
 </script>
 
 <template>
@@ -33,12 +60,37 @@ const decisionOpen = ref(false);
     leave-to-class="opacity-0 -translate-x-4"
   >
     <div class="w-full" :data-testid="TEST_ID.comparisonView">
-      <InteractiveImageViewer
-        :baseline-url="comparison.baseline?.imageUrl"
-        :candidate-url="comparison.candidate?.imageUrl"
-        :diff-url="comparison.diffImageUrl"
-        :mismatch-pixel-count="comparison.mismatchPixelCount"
-      />
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <div class="min-w-0 flex-1">
+          <InteractiveImageViewer
+            ref="viewer"
+            :baseline-url="comparison.baseline?.imageUrl"
+            :candidate-url="comparison.candidate?.imageUrl"
+            :diff-url="comparison.diffImageUrl"
+            :mismatch-pixel-count="comparison.mismatchPixelCount"
+            :regions="regions"
+            @image-size="imageSize = $event"
+          />
+
+          <ComparisonVariantStrip
+            v-if="variants && variants.length > 1"
+            :variants="variants"
+            :active="activeVariant"
+            @select="$emit('selectVariant', $event)"
+          />
+        </div>
+
+        <ChangedRegionRail
+          v-if="regions.length > 0"
+          class="w-full shrink-0 lg:w-64"
+          :regions="regions"
+          :candidate-url="comparison.candidate?.imageUrl"
+          :image-width="imageSize?.width ?? 0"
+          :image-height="imageSize?.height ?? 0"
+          :active-index="activeRegion"
+          @select="focusRegion"
+        />
+      </div>
 
       <ApproveSkipFooter
         v-if="!readOnly"

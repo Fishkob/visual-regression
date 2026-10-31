@@ -24,6 +24,7 @@ export function mapComparisonToDto(
         ? signUrl(comparison.diffImageUrl)
         : undefined,
       mismatchPixelCount: comparison.mismatchPixelCount,
+      changedRegions: comparison.changedRegions,
       thresholdExceeded: comparison.thresholdExceeded,
       baseline: comparison.baseline
         ? mapScreenshotToDto(comparison.baseline, signUrl)

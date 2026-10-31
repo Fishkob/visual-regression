@@ -826,7 +826,9 @@
     "sideBySide": "Nebeneinander",
     "diffOnly": "Nur Diff",
     "overlay": "Überlagerung",
-    "wipe": "Wischen"
+    "wipe": "Wischen",
+    "highlight": "Diff markiert",
+    "blink": "Blinken"
   },
   "comparison": {
     "mismatchTooltip": "Anzahl der Pixel, die von der Baseline abweichen. {tolerance}",
@@ -885,7 +887,22 @@
     "unavailable": "Bild nicht verfügbar",
     "wipe": "Wischposition",
     "retry": "Erneut versuchen",
-    "diff": "Diff"
+    "diff": "Diff",
+    "changedRegions": "Änderungen",
+    "regionCount": "{count} Stelle | {count} Stellen",
+    "regionOf": "Stelle {index} von {total}",
+    "regionSize": "{width} × {height} px",
+    "regionShare": "{percent} der Fläche",
+    "focusRegion": "Zu Stelle {index} zoomen",
+    "regionList": "Geänderte Stellen dieses Vergleichs",
+    "showRegions": "Stellen anzeigen",
+    "noRegions": "Für diesen Vergleich sind keine Stellen erfasst",
+    "wholePage": "Ganze Seite",
+    "regionHint": "Klick zoomt zur Stelle · n/p wechselt",
+    "minimap": "Übersicht — klick zum Springen",
+    "autoFocus": "Sofort zur größten Änderung",
+    "otherVariants": "Andere Varianten",
+    "variantCurrent": "Wird angezeigt"
   },
   "filterBar": {
     "viewportLabel": "Nach Viewport filtern",

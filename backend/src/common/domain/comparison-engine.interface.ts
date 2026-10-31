@@ -1,4 +1,5 @@
 import type { TestKind } from '@common/domain/test-kind';
+import type { ChangedRegion } from '@common/domain/changed-region.type';
 
 interface ComparisonResultBase {
   diffOutput: Buffer;
@@ -8,6 +9,10 @@ interface ComparisonResultBase {
 export interface ImageComparisonResult extends ComparisonResultBase {
   kind: 'image';
   mismatchPixelCount: number;
+  // Where the mismatches are, for the review page: the engine already holds the
+  // diff mask, and a client-side scan of the stored diff image is impossible
+  // (the bucket answers without CORS headers).
+  changedRegions: ChangedRegion[];
 }
 
 export interface PdfComparisonResult extends ComparisonResultBase {

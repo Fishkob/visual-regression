@@ -28,6 +28,9 @@ backend/observability/secrets/x-metrics-key
 /skills-lock.json
 /.opencode/
 
+# Local screenshots, prototypes and scratch from design work
+/.preview/
+
 # Generated Prisma client — regenerate via `pnpm run db:prepare`
 /backend/prisma/generated/
 
