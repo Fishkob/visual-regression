@@ -38,7 +38,16 @@ async function loadCandidate(
   width = 800,
   height = 600,
 ) {
-  const image = byId(wrapper, TEST_ID.panelHighlight).find("img");
+  return loadPanelImage(wrapper, TEST_ID.panelHighlight, width, height);
+}
+
+async function loadPanelImage(
+  wrapper: ReturnType<typeof mountViewer>,
+  panelId: string,
+  width: number,
+  height: number,
+) {
+  const image = byId(wrapper, panelId).find("img");
   Object.defineProperty(image.element, "naturalWidth", {
     value: width,
     configurable: true,
@@ -128,6 +137,137 @@ describe("InteractiveImageViewer", () => {
     expect(byId(wrapper, TEST_ID.panelBaseline).exists()).toBe(true);
     expect(byId(wrapper, TEST_ID.panelCandidate).exists()).toBe(true);
     expect(byId(wrapper, TEST_ID.panelDiff).exists()).toBe(true);
+  });
+
+  // The comparison surface is framed by the picture, not by the page: otherwise
+  // the leftover canvas shows up as a band beside the picture in every layered
+  // mode. The width and the height limit cannot both come from CSS, so the stage
+  // carries the measured box instead.
+  describe("picture frame", () => {
+    const viewportHeight = window.innerHeight;
+
+    afterEach(() => {
+      Object.defineProperty(window, "innerHeight", {
+        value: viewportHeight,
+        configurable: true,
+      });
+    });
+
+    async function sizeSurface(
+      wrapper: ReturnType<typeof mountViewer>,
+      width: number,
+      height: number,
+    ) {
+      Object.defineProperty(wrapper.element, "clientWidth", {
+        value: width,
+        configurable: true,
+      });
+      Object.defineProperty(window, "innerHeight", {
+        value: height,
+        configurable: true,
+      });
+      window.dispatchEvent(new Event("resize"));
+      await nextTick();
+    }
+
+    function boxOf(
+      wrapper: ReturnType<typeof mountViewer>,
+      panelId: string,
+    ): { width: number; height: number } {
+      const style = stageOf(wrapper, panelId).attributes("style") ?? "";
+      return {
+        width: Number(/width:\s*(\d+)px/.exec(style)?.[1]),
+        height: Number(/height:\s*(\d+)px/.exec(style)?.[1]),
+      };
+    }
+
+    it("frames the overlapping modes with the picture", async () => {
+      const wrapper = mountViewer();
+      await byId(wrapper, TEST_ID.modeOverlay).trigger("click");
+      await loadPanelImage(wrapper, TEST_ID.panelOverlay, 1200, 600);
+
+      const overlay = byId(wrapper, TEST_ID.panelOverlay);
+      expect(overlay.classes()).toContain("w-fit");
+      expect(overlay.classes()).toContain("mx-auto");
+
+      await byId(wrapper, TEST_ID.modeWipe).trigger("click");
+      expect(byId(wrapper, TEST_ID.panelWipe).classes()).toContain("w-fit");
+    });
+
+    it("frames the blink stage with the picture", async () => {
+      const wrapper = mountViewer();
+      await byId(wrapper, TEST_ID.modeBlink).trigger("click");
+      await loadPanelImage(wrapper, TEST_ID.panelHighlight, 1200, 600);
+
+      expect(byId(wrapper, TEST_ID.panelHighlight).classes()).toContain(
+        "w-fit",
+      );
+    });
+
+    it("keeps the page width until the picture has reported its size", async () => {
+      const wrapper = mountViewer();
+      await byId(wrapper, TEST_ID.modeOverlay).trigger("click");
+
+      const card = byId(wrapper, TEST_ID.panelOverlay);
+      expect(card.classes()).not.toContain("w-fit");
+      expect(stageOf(wrapper, TEST_ID.panelOverlay).classes()).toContain(
+        "w-full",
+      );
+    });
+
+    it("centres the single diff on the picture", async () => {
+      const wrapper = mountViewer();
+      await byId(wrapper, TEST_ID.modeDiff).trigger("click");
+
+      expect(byId(wrapper, TEST_ID.panelDiff).classes()).toContain("w-fit");
+      expect(wrapper.find(".grid").classes()).not.toContain("max-w-5xl");
+    });
+
+    it("gives the stage the largest box that fits the surface", async () => {
+      const wrapper = mountViewer();
+      await byId(wrapper, TEST_ID.modeOverlay).trigger("click");
+      await loadPanelImage(wrapper, TEST_ID.panelOverlay, 1200, 600);
+
+      // Width-bound: the surface leaves 800px of room for the picture.
+      await sizeSurface(wrapper, 834, 2000);
+      expect(boxOf(wrapper, TEST_ID.panelOverlay)).toEqual({
+        width: 800,
+        height: 400,
+      });
+
+      // Height-bound: 70% of the viewport, the width follows the ratio.
+      await sizeSurface(wrapper, 2000, 1000);
+      expect(boxOf(wrapper, TEST_ID.panelOverlay)).toEqual({
+        width: 1400,
+        height: 700,
+      });
+    });
+
+    it("keeps a portrait picture inside the surface", async () => {
+      const wrapper = mountViewer();
+      await byId(wrapper, TEST_ID.modeOverlay).trigger("click");
+      await loadPanelImage(wrapper, TEST_ID.panelOverlay, 400, 900);
+
+      await sizeSurface(wrapper, 834, 2000);
+      expect(boxOf(wrapper, TEST_ID.panelOverlay)).toEqual({
+        width: 622,
+        height: 1400,
+      });
+    });
+
+    it("drops the box at 1:1 so the picture keeps its pixels", async () => {
+      const wrapper = mountViewer();
+      await byId(wrapper, TEST_ID.modeOverlay).trigger("click");
+      await loadPanelImage(wrapper, TEST_ID.panelOverlay, 1200, 600);
+      await sizeSurface(wrapper, 834, 2000);
+
+      await byId(wrapper, TEST_ID.actualSizeToggle).trigger("click");
+
+      expect(boxOf(wrapper, TEST_ID.panelOverlay)).toEqual({
+        width: NaN,
+        height: NaN,
+      });
+    });
   });
 
   it("shows all four view modes when a diff exists", () => {

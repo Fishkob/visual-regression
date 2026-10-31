@@ -471,6 +471,51 @@ const onWindowKeydown = (event: KeyboardEvent) => {
 const activeRegion = ref<number | null>(null);
 const root = ref<HTMLElement | null>(null);
 
+// The frame of a comparison surface is exactly as large as the picture it shows.
+// Otherwise the card keeps the full page width while the picture keeps its own
+// ratio, and the leftover canvas shows up as a band beside it — a band that is
+// white on white in light mode but a dark stripe in dark mode. One CSS rule cannot
+// express this: `max-width` and `max-height` are honoured against the *box*, so
+// whichever constraint the browser drops it drops by letterboxing the picture
+// inside its own frame. The box is therefore measured (surface width × the 70vh
+// the scroll container allows) and written out in pixels.
+const MAX_STAGE_HEIGHT = 0.7;
+// p-4 plus the hairline border, on both sides of the comparison card.
+const SURFACE_CHROME = 34;
+
+const surfaceWidth = ref(0);
+const viewportHeight = ref(0);
+
+function measureSurface(): void {
+  surfaceWidth.value = root.value?.clientWidth ?? 0;
+  viewportHeight.value = window.innerHeight || 0;
+}
+
+// Before the first picture has reported its size the surface keeps the page width:
+// there is nothing to frame yet, and a card that jumps from the width of its label
+// to the width of the picture on the first paint is worse than a wide card that
+// shrinks once the picture is there.
+const stageFramed = computed(() => Boolean(sizes.baseline ?? sizes.candidate));
+
+const stageBoxStyle = computed((): Record<string, string> => {
+  const size = sizes.baseline ?? sizes.candidate;
+  if (!size || !fitToScreen.value || size.height <= 0) return {};
+  const maxWidth =
+    surfaceWidth.value > SURFACE_CHROME
+      ? surfaceWidth.value - SURFACE_CHROME
+      : size.width;
+  const maxHeight =
+    viewportHeight.value > 0
+      ? viewportHeight.value * MAX_STAGE_HEIGHT
+      : Number.POSITIVE_INFINITY;
+  const ratio = size.width / size.height;
+  const width = Math.min(maxWidth, maxHeight * ratio);
+  return {
+    width: `${Math.round(width)}px`,
+    height: `${Math.round(width / ratio)}px`,
+  };
+});
+
 const activeRegionLabel = computed(() => {
   const total = props.regions?.length ?? 0;
   if (activeRegion.value === null || total === 0) return null;
@@ -648,13 +693,20 @@ onMounted(() => {
   window.addEventListener("mousemove", onWindowMouseMove);
   window.addEventListener("mouseup", onWindowMouseUp);
   window.addEventListener("keydown", onWindowKeydown);
+  window.addEventListener("resize", measureSurface);
+  void nextTick(measureSurface);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("mousemove", onWindowMouseMove);
   window.removeEventListener("mouseup", onWindowMouseUp);
   window.removeEventListener("keydown", onWindowKeydown);
+  window.removeEventListener("resize", measureSurface);
 });
+
+// The overlay takes the whole viewport, so the room the picture has changes with
+// it — after the DOM has switched to the overlay, not before.
+watch(isFullscreen, () => void nextTick(measureSurface));
 
 const isBlink = computed(() => viewMode.value === "blink");
 
@@ -736,7 +788,7 @@ const gridClass = computed(() => {
   if (viewMode.value === "side-by-side") {
     return hasDiff.value ? "grid-cols-3" : "grid-cols-2";
   }
-  if (viewMode.value === "diff-only") return "grid-cols-1 mx-auto max-w-5xl";
+  if (viewMode.value === "diff-only") return "grid-cols-1";
   return "grid-cols-1";
 });
 
@@ -758,6 +810,20 @@ const imageFitClass = computed(() =>
     ? "block w-auto h-auto max-w-full max-h-[70vh] object-contain select-none"
     : "block max-w-none max-h-none select-none",
 );
+
+// Inside a stage the box already carries the picture's ratio, so the picture fills
+// it edge to edge instead of being contained in a frame that is too wide; at 1:1
+// the intrinsic size is the box.
+const stageImageClass = computed(() =>
+  fitToScreen.value
+    ? "block h-full w-full select-none object-contain"
+    : "block max-w-none max-h-none select-none",
+);
+
+// Diff only is a single picture, so its card hugs that picture just like the
+// stages do. The grid panes of side-by-side stay columns: there the equal width
+// is the comparison.
+const hugsPicture = computed(() => viewMode.value === "diff-only");
 </script>
 
 <template>
@@ -1001,6 +1067,7 @@ const imageFitClass = computed(() =>
         <div
           :data-testid="TEST_ID.panelHighlight"
           class="relative rounded-3xl border border-border bg-card shadow p-4"
+          :class="stageFramed && 'w-fit max-w-full mx-auto'"
         >
           <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div
@@ -1022,7 +1089,7 @@ const imageFitClass = computed(() =>
 
           <div
             :data-testid="`${TEST_ID.panelHighlight}-zoom`"
-            class="relative min-h-[300px] max-h-[70vh] overflow-auto bg-image-canvas rounded-2xl"
+            class="relative max-h-[70vh] overflow-auto bg-image-canvas rounded-2xl"
             @wheel="wheelZoom"
           >
             <div
@@ -1044,8 +1111,14 @@ const imageFitClass = computed(() =>
             <div
               v-else
               class="relative"
-              :class="fitToScreen ? 'w-full' : 'inline-block'"
-              :style="contentTransform"
+              :class="
+                fitToScreen
+                  ? stageFramed
+                    ? 'mx-auto'
+                    : 'w-full'
+                  : 'inline-block'
+              "
+              :style="[contentTransform, stageBoxStyle]"
               @mousedown="beginPan"
               @dblclick="doubleClickZoom"
             >
@@ -1056,7 +1129,7 @@ const imageFitClass = computed(() =>
                 :alt="t('detail.baselineAlt')"
                 decoding="async"
                 draggable="false"
-                :class="cn(imageFitClass, fitToScreen && 'w-full max-h-[70vh]')"
+                :class="stageImageClass"
                 @load="onImageLoad('baseline', $event)"
                 @error="markFailed('baseline')"
               />
@@ -1068,8 +1141,7 @@ const imageFitClass = computed(() =>
                 draggable="false"
                 :class="
                   cn(
-                    imageFitClass,
-                    fitToScreen && 'w-full max-h-[70vh]',
+                    stageImageClass,
                     isBlink &&
                       'blink-candidate pointer-events-none absolute inset-0 h-full w-full object-contain',
                   )
@@ -1132,6 +1204,7 @@ const imageFitClass = computed(() =>
         <div
           :data-testid="layeredTestId"
           class="rounded-3xl border border-border bg-card shadow p-4"
+          :class="stageFramed && 'w-fit max-w-full mx-auto'"
         >
           <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div
@@ -1188,8 +1261,14 @@ const imageFitClass = computed(() =>
               v-else
               ref="layeredStage"
               class="relative"
-              :class="fitToScreen ? 'w-full' : 'inline-block'"
-              :style="contentTransform"
+              :class="
+                fitToScreen
+                  ? stageFramed
+                    ? 'mx-auto'
+                    : 'w-full'
+                  : 'inline-block'
+              "
+              :style="[contentTransform, stageBoxStyle]"
               @mousedown="
                 viewMode === 'wipe' ? beginWipeDrag($event) : beginPan($event)
               "
@@ -1203,7 +1282,7 @@ const imageFitClass = computed(() =>
                 :height="sizes.baseline?.height"
                 decoding="async"
                 draggable="false"
-                :class="cn(imageFitClass, fitToScreen && 'w-full max-h-[70vh]')"
+                :class="stageImageClass"
                 @load="onImageLoad('baseline', $event)"
                 @error="markFailed('baseline')"
               />
@@ -1244,6 +1323,7 @@ const imageFitClass = computed(() =>
           :key="panel.key"
           :data-testid="panel.testId"
           class="rounded-3xl border border-border bg-card shadow p-4"
+          :class="hugsPicture && 'w-fit max-w-full mx-auto'"
         >
           <div
             class="flex items-center gap-2 text-sm font-medium text-foreground/80 mb-3"
@@ -1253,7 +1333,8 @@ const imageFitClass = computed(() =>
           </div>
           <div
             :data-testid="`${panel.testId}-zoom`"
-            class="min-h-[300px] max-h-[70vh] overflow-auto bg-image-canvas rounded-2xl"
+            class="max-h-[70vh] overflow-auto bg-image-canvas rounded-2xl"
+            :class="!hugsPicture && 'min-h-[300px]'"
             @wheel="wheelZoom"
           >
             <div
