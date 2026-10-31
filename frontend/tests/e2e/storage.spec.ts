@@ -4,7 +4,8 @@ import { TEST_ID } from "@/lib/test-ids";
 
 let projectName: string;
 
-const settingsUrl = (name: string) => `/projects/${encodeURIComponent(name)}/settings`;
+const settingsUrl = (name: string) =>
+  `/projects/${encodeURIComponent(name)}/settings`;
 
 test.describe("Project storage", () => {
   test.beforeEach(async () => {
