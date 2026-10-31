@@ -59,6 +59,27 @@ function labelOf(variant: VariantSummary): string {
     .filter(Boolean)
     .join(", ");
 }
+
+// A tile is labelled with the dimensions that actually tell it apart from its
+// siblings: repeating "Chrome" on every tile of a one-browser test is noise, but
+// on tiles that share a resolution the browser is exactly the difference the
+// reviewer is looking for ("is this only here, or in every browser too?").
+const differing = computed(() => ({
+  viewport: new Set(props.variants.map((variant) => variant.viewport)).size > 1,
+  browser: new Set(props.variants.map((variant) => variant.browser)).size > 1,
+  environment:
+    new Set(props.variants.map((variant) => variant.environment)).size > 1,
+}));
+
+function tileLabel(variant: VariantSummary): string {
+  const parts: string[] = [];
+  if (differing.value.viewport) parts.push(variant.viewport);
+  if (differing.value.browser) parts.push(variant.browser);
+  if (differing.value.environment) parts.push(variant.environment);
+  // Distinct variants always differ in at least one dimension, so the fallback
+  // only guards a caller that passes the same variant twice.
+  return parts.length > 0 ? parts.join(" · ") : variant.viewport;
+}
 </script>
 
 <template>
@@ -107,7 +128,7 @@ function labelOf(variant: VariantSummary): string {
               :class="dotClass(variant.status)"
               aria-hidden="true"
             />
-            <span class="font-mono text-[11px]">{{ variant.viewport }}</span>
+            <span class="font-mono text-[11px]">{{ tileLabel(variant) }}</span>
           </span>
         </button>
       </li>

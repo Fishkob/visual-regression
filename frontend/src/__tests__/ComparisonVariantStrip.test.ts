@@ -42,9 +42,49 @@ describe("ComparisonVariantStrip", () => {
     expect(items).toHaveLength(2);
     expect(items[0].text()).toContain("1920x1080");
     expect(items[1].text()).toContain("768x1024");
+    // Both tiles are Chrome, so the browser would be repeated noise here.
+    expect(items[0].text()).not.toContain("Chrome");
     expect(items[0].attributes("aria-label")).toBe(
       "1920x1080, Chrome, staging",
     );
+  });
+
+  it("names the browser when the siblings share a resolution", () => {
+    const wrapper = mountStrip({
+      variants: [
+        { ...VARIANTS[0], viewport: "1920x1080", browser: "Chrome" },
+        { ...VARIANTS[1], viewport: "1920x1080", browser: "Firefox" },
+      ],
+    });
+
+    const items = wrapper.findAll(
+      `[data-testid="${TEST_ID.variantStripItem}"]`,
+    );
+
+    // Same resolution, different browser: the browser is the only thing that
+    // tells the two entries apart, so it carries the label and the constant
+    // resolution does not get repeated on every tile.
+    expect(items[0].text()).toContain("Chrome");
+    expect(items[1].text()).toContain("Firefox");
+    expect(items[0].text()).not.toContain("1920x1080");
+  });
+
+  it("names both dimensions when the siblings differ in both", () => {
+    const wrapper = mountStrip({
+      variants: [
+        { ...VARIANTS[0], viewport: "1920x1080", browser: "Chrome" },
+        { ...VARIANTS[0], viewport: "1920x1080", browser: "Firefox" },
+        { ...VARIANTS[1], viewport: "1366x768", browser: "Chrome" },
+      ],
+    });
+
+    const items = wrapper.findAll(
+      `[data-testid="${TEST_ID.variantStripItem}"]`,
+    );
+
+    expect(items[0].text()).toContain("1920x1080 · Chrome");
+    expect(items[1].text()).toContain("1920x1080 · Firefox");
+    expect(items[2].text()).toContain("1366x768 · Chrome");
   });
 
   it("stays out of the page when the test has one variant", () => {
