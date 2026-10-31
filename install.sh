@@ -75,6 +75,28 @@ source_env() {
     set +a
     BACKEND_PORT="${BACKEND_PORT:-3000}"
     FRONTEND_PORT="${FRONTEND_PORT:-80}"
+    apply_build_identity
+}
+
+# /api/v1/health reports APP_VERSION/GIT_COMMIT/BUILD_TIME, so the running
+# deployment can be matched to a commit. Derive them from the checkout; a value
+# set in .env wins. Everything falls back to the Joi defaults, so a stripped
+# tarball without git still starts.
+apply_build_identity() {
+    local version
+    version="$(sed -n 's/^[[:space:]]*"version": "\([^"]*\)".*/\1/p' package.json 2>/dev/null | head -n1)"
+    APP_VERSION="${APP_VERSION:-${version:-dev}}"
+    GIT_COMMIT="${GIT_COMMIT:-$(current_commit)}"
+    BUILD_TIME="${BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+    export APP_VERSION GIT_COMMIT BUILD_TIME
+}
+
+current_commit() {
+    if command -v git >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
+        git rev-parse --short HEAD 2>/dev/null || echo unknown
+        return 0
+    fi
+    echo unknown
 }
 
 wait_for() {
