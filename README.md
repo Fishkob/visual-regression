@@ -159,6 +159,16 @@ The seed scripts authenticate the same way — see [Seed Demo Data](#seed-demo-d
 
 ---
 
+### Review Notifications (Webhooks)
+
+A project can push review events to an HTTP endpoint or a Slack incoming webhook: `review.requested`, `comparison.approved`, `review.assigned` and `review.comment`. Create one as an **ADMIN** in the dashboard — open the project and click **Webhooks** (`/projects/<project>/webhooks`); an API key cannot administer endpoints.
+
+Deliveries are HMAC-signed (`X-VRT-Signature` over `<timestamp>.<body>`), retried five times with backoff, and at-least-once — deduplicate on `X-VRT-Delivery-Id`. They are sent by the **worker** process, not the API. The payload carries a dashboard link, never a presigned storage URL.
+
+See [docs/webhooks.md](docs/webhooks.md) for the payload shape, signature verification in Node and shell, the admin API, delivery semantics and troubleshooting.
+
+---
+
 ### Ports
 
 | Service        | Local Dev                               | Docker                                  |
@@ -410,6 +420,7 @@ This platform is designed to run in a **private/trusted network**:
 - **Public by design** — Health, metrics, and log-ingestion endpoints are public; everything else is protected by the global authentication guard.
 - **CORS defaults to wildcard** — Configure `CORS_ORIGIN` explicitly in production.
 - **Helm chart secrets** — Create `deploy/charts/vrt/values.local.yaml` (gitignored) for local credentials. Use external secrets management (SealedSecrets, External Secrets Operator, SOPS) for production.
+- **Webhook endpoints are admin-only and URL-checked** — registering or editing an endpoint requires an `ADMIN` browser session; an API key is rejected. Endpoint URLs pass an SSRF guard (no loopback, link-local or cloud-metadata targets; RFC1918 stays allowed for self-hosting), but DNS rebinding is a residual risk. Secrets are stored readable because the sender signs with them, so protecting the database remains your job. See [docs/webhooks.md](docs/webhooks.md).
 - **Storage access is presigned** — The API returns time-limited presigned URLs for screenshots and rendered PDF pages; the bucket needs no anonymous access. Keep `RUSTFS_SIGNED_URL_TTL_SECONDS` short and serve the stack over HTTPS so the signed query string is not exposed in transit. Enabling `RUSTFS_ENSURE_PUBLIC_BUCKET` restores anonymous reads for everyone who can reach RustFS.
 
 See [docs/deployment.md](docs/deployment.md) for production deployment guidance.
