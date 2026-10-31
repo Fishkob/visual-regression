@@ -90,12 +90,12 @@ a `Retry-After` header.
 
 ## Health Endpoints
 
-| Endpoint       | Auth                | Use                                              |
-| -------------- | ------------------- | ------------------------------------------------ |
-| `/health/live` | anonymous           | liveness probe (also the image `HEALTHCHECK`)    |
-| `/health/ready`| anonymous           | readiness probe; statuses only, no error strings |
-| `/health`      | `x-metrics-key`     | full diagnostics incl. probe latencies/messages  |
-| `/health/db`, `/health/storage` | `x-metrics-key` | single-dependency diagnostics       |
+| Endpoint                        | Auth            | Use                                              |
+| ------------------------------- | --------------- | ------------------------------------------------ |
+| `/health/live`                  | anonymous       | liveness probe (also the image `HEALTHCHECK`)    |
+| `/health/ready`                 | anonymous       | readiness probe; statuses only, no error strings |
+| `/health`                       | `x-metrics-key` | full diagnostics incl. probe latencies/messages  |
+| `/health/db`, `/health/storage` | `x-metrics-key` | single-dependency diagnostics                    |
 
 The probe endpoints must stay anonymous (a kubelet carries no key), so they
 report only which dependency is unhealthy. The detailed view names the raw probe

@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# Husky v9 runs this file from .husky/_/pre-push, which owns the PATH setup.
+# Do not source .husky/_/h here: it would re-enter the shim with this file as
+# $0, resolve to ./pre-push (missing) and exit 0, silently skipping the gate.
+
+# The local gate before anything leaves the machine. Runs the lint, typecheck,
+# format, unit and SDK-drift checks that CI would run; `VERIFY_ARGS="--with-e2e"`
+# adds the e2e suite, `git push --no-verify` skips it deliberately.
+#
+# shellcheck disable=SC2086 # VERIFY_ARGS is intentionally word-split
+./scripts/verify.sh ${VERIFY_ARGS:-}

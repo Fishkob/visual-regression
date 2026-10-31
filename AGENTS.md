@@ -55,6 +55,12 @@ pnpm run format:check      # Check formatting only
 
 **Order:** `lint` → `typecheck:all` → `format` → `unitTest`
 
+**Local gate:** `./scripts/verify.sh` runs lint + typecheck + format + backend unit +
+frontend unit + the SDK drift check in one command (~2 min). It is wired into
+`.husky/pre-push`, so a normal `git push` runs it; `--fast` skips the frontend suite
+and the SDK check, `--with-e2e` adds the backend e2e suite. The CI workflows may be
+disabled — treat `verify.sh` as the gate that must be green before a push.
+
 ## SDK Generation
 
 ```

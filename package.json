@@ -43,6 +43,7 @@
     "dev:backend": "pnpm --filter ./backend copy:prisma && concurrently -k -n api,worker \"pnpm --filter ./backend start:dev\" \"pnpm --filter ./backend start:worker\"",
     "dev:frontend": "pnpm --filter ./frontend dev",
     "dev:generate": "pnpm run sdk:generate",
+    "verify": "./scripts/verify.sh",
     "unitTest": "pnpm --filter ./backend test -- test/unit",
     "unitTest:cov": "pnpm --filter ./backend test:cov -- test/unit",
     "coverage:open": "npx --yes opener backend/coverage/lcov-report/index.html",

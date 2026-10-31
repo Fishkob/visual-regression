@@ -1,5 +1,8 @@
 #!/usr/bin/env sh
-. "$(dirname "$0")/_/h"
+# Husky v9 runs this file from .husky/_/pre-commit, which installs the PATH and
+# the ~/.config/husky/init.sh hook. Sourcing .husky/_/h here would re-enter that
+# shim with this file as $0, resolve its target to ./pre-commit (missing) and
+# `exit 0` — which silently turned this hook into a no-op.
 
 # Regenerate the client SDK when the OpenAPI surface changed, staging the
 # regenerated files so lint-staged formats them before the commit.
