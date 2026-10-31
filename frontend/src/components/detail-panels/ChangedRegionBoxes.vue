@@ -51,8 +51,12 @@ function boxStyle(region: ChangedRegion) {
       :style="boxStyle(region)"
       @click.stop="$emit('select', index)"
     >
+      <!-- The number sits on the status red, so its text follows the theme
+           background instead of the destructive foreground: white on the dark
+           light-mode red, near-black on the light dark-mode red (6.4:1 / 10.4:1
+           measured, where destructive-foreground dropped to 1.8:1 in dark). -->
       <span
-        class="absolute -top-px left-0 -translate-y-full rounded-[2px] bg-status-danger px-1 text-[10px] font-semibold leading-[14px] text-destructive-foreground tabular-nums"
+        class="absolute -top-px left-0 -translate-y-full rounded-[2px] bg-status-danger px-1 text-[10px] font-semibold leading-[14px] text-background tabular-nums"
         >{{ index + 1 }}</span
       >
     </button>
