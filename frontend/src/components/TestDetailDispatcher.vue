@@ -7,13 +7,22 @@ import { useVariantResolution } from "@/composables/useVariantResolution";
 import { isImageKind, isPdfKind, isTestKind } from "@/domains/test-kind";
 import VisualTestDetailsView from "@/views/VisualTestDetailsView.vue";
 import PdfTestDetailsView from "@/views/PdfTestDetailsView.vue";
+import TestDetailsHeader from "@/components/TestDetailsHeader.vue";
+import DetailActivityRail from "@/components/detail-panels/DetailActivityRail.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
+import TestMetadataPanel from "@/components/test-lifecycle/TestMetadataPanel.vue";
 import EmptyState from "@/components/EmptyState.vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import AsyncState from "@/components/AsyncState.vue";
+import { useProjectDetailQuery } from "@/composables/useProjects";
 
 const { t } = useI18n();
 const { projectName, testName, branch, filters } = useRouteParams();
+
+// The loading frame shows the real trail, so it needs the group of the project
+// it sits in. It shares the key the details views read, so this adds no request.
+const { data: project } = useProjectDetailQuery(projectName, branch);
+const groupName = computed(() => project.value?.groupName ?? undefined);
 
 // The kind lookup is branch-scoped: a test that only exists on the branch must
 // resolve there, not against the project default.
@@ -56,16 +65,38 @@ function retry(): void {
     :retry="retry"
     :empty="isEmpty"
   >
+    <!-- The kind (and, on a variant-less deep link, the variant) is still on
+         its way, but the page around the comparison is already known: the
+         trail, the test name and its metadata come from the route. Only the
+         comparison body is a placeholder, so entering a test or skipping to
+         the next one never blanks the page. -->
     <template #loading>
-      <TestComparisonSkeleton />
+      <TestDetailsHeader
+        :test-name="testName"
+        :group-name="groupName"
+        :branch="branch"
+        :kind="kind"
+      />
+      <TestMetadataPanel class="px-6 pb-3" />
+      <div class="p-6 pt-0">
+        <TestComparisonSkeleton />
+        <DetailActivityRail
+          class="mt-6"
+          :project-name="projectName"
+          :test-name="testName"
+          :branch="branch"
+          :variant="filters"
+          :history-enabled="false"
+        />
+      </div>
     </template>
     <VisualTestDetailsView
       v-if="isTestKind(kind) && isImageKind(kind) && !isResolvingVariant"
-      :kind="kind"
+      :kind="kind ?? undefined"
     />
     <PdfTestDetailsView
       v-else-if="isTestKind(kind) && isPdfKind(kind) && !isResolvingVariant"
-      :kind="kind"
+      :kind="kind ?? undefined"
     />
     <template #empty>
       <ErrorAlert

@@ -65,6 +65,12 @@ const stubs = {
   TestComparisonSkeleton: {
     template: '<div data-testid="skeleton">Loading</div>',
   },
+  TestDetailsHeader: {
+    props: ["testName"],
+    template: '<header data-testid="frame-header">{{ testName }}</header>',
+  },
+  TestMetadataPanel: { template: '<div data-testid="frame-metadata" />' },
+  DetailActivityRail: { template: '<div data-testid="frame-rail" />' },
   ErrorAlert: {
     props: ["variant", "title", "message", "retry", "onRetry"],
     template: '<div data-testid="error">{{ title }}</div>',
@@ -95,11 +101,16 @@ describe("TestDetailDispatcher", () => {
     };
   });
 
-  it("shows skeleton while loading", async () => {
+  it("keeps the page frame around the comparison skeleton while loading", async () => {
     mockQuery({ isLoading: ref(true) });
     const mod = await import("@/components/TestDetailDispatcher.vue");
     const wrapper = mount(mod.default, { global: { stubs } });
     expect(wrapper.find('[data-testid="skeleton"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="frame-header"]').text()).toContain(
+      "test-name",
+    );
+    expect(wrapper.find('[data-testid="frame-metadata"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="frame-rail"]').exists()).toBe(true);
   });
 
   it("shows error alert on error", async () => {

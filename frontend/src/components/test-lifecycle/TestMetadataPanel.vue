@@ -113,144 +113,155 @@ function unmute() {
 </script>
 
 <template>
-  <div v-if="metadata" class="flex flex-wrap items-center gap-2">
-    <Badge
-      v-if="metadata.isMuted"
-      variant="secondary"
-      class="text-xs"
-      :title="metadata.muteReason ?? undefined"
-      :data-testid="TEST_ID.testMutedBadge"
-    >
-      {{ t("lifecycle.mutedBadge", { date: mutedLabel }) }}
-    </Badge>
-
-    <!-- Test health is context, not a control: it reads as one muted sentence
-         next to the name instead of one badge per value. -->
-    <span
-      class="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
-    >
-      <span
-        :title="
-          t('lifecycle.flakeTitle', {
-            changed: metadata.flake.changed,
-            clean: metadata.flake.clean,
-          })
-        "
-        :data-testid="TEST_ID.testFlakeBadge"
-      >
-        {{ t("lifecycle.flake", { count: metadata.flake.transitions }) }}
-      </span>
-
-      <span class="text-muted-foreground" aria-hidden="true">·</span>
-
-      <span :data-testid="TEST_ID.testSizePolicy">
-        {{
-          t("lifecycle.sizePolicy", {
-            policy: t(`sizePolicy.label.${metadata.sizePolicy}`),
-          })
-        }}
-      </span>
-    </span>
-
+  <div class="flex flex-wrap items-center gap-2">
+    <!-- The row keeps its height while the read is in flight: this line is what
+         pushes the comparison down, and loading the next test in a pass must
+         not make the page jump. -->
     <div
-      v-if="metadata.tags.length > 0"
-      class="flex flex-wrap items-center gap-1"
-      :data-testid="TEST_ID.testTags"
-    >
+      v-if="!metadata"
+      class="h-5 w-64 animate-pulse rounded bg-muted"
+      aria-hidden="true"
+    />
+
+    <template v-else>
       <Badge
-        v-for="tag in metadata.tags"
-        :key="tag"
+        v-if="metadata.isMuted"
         variant="secondary"
-        class="border-transparent bg-muted/60 px-1.5 py-0 font-mono text-[10px] text-muted-foreground"
+        class="text-xs"
+        :title="metadata.muteReason ?? undefined"
+        :data-testid="TEST_ID.testMutedBadge"
       >
-        {{ tag }}
+        {{ t("lifecycle.mutedBadge", { date: mutedLabel }) }}
       </Badge>
-    </div>
 
-    <Badge
-      v-if="assignment"
-      variant="secondary"
-      class="text-xs"
-      :data-testid="TEST_ID.assignBadge"
-    >
-      {{ t("assign.badge", { user: assignment.assigneeUsername }) }}
-      <template v-if="assignmentDue">
-        · {{ t("assign.due", { date: assignmentDue }) }}
-      </template>
-      <template v-if="assignment.isOverdue">
-        · {{ t("assign.overdue") }}
-      </template>
-    </Badge>
+      <!-- Test health is context, not a control: it reads as one muted sentence
+         next to the name instead of one badge per value. -->
+      <span
+        class="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
+      >
+        <span
+          :title="
+            t('lifecycle.flakeTitle', {
+              changed: metadata.flake.changed,
+              clean: metadata.flake.clean,
+            })
+          "
+          :data-testid="TEST_ID.testFlakeBadge"
+        >
+          {{ t("lifecycle.flake", { count: metadata.flake.transitions }) }}
+        </span>
 
-    <!-- The actions keep the right edge of the page: the left side of this row
+        <span class="text-muted-foreground" aria-hidden="true">·</span>
+
+        <span :data-testid="TEST_ID.testSizePolicy">
+          {{
+            t("lifecycle.sizePolicy", {
+              policy: t(`sizePolicy.label.${metadata.sizePolicy}`),
+            })
+          }}
+        </span>
+      </span>
+
+      <div
+        v-if="metadata.tags.length > 0"
+        class="flex flex-wrap items-center gap-1"
+        :data-testid="TEST_ID.testTags"
+      >
+        <Badge
+          v-for="tag in metadata.tags"
+          :key="tag"
+          variant="secondary"
+          class="border-transparent bg-muted/60 px-1.5 py-0 font-mono text-[10px] text-muted-foreground"
+        >
+          {{ tag }}
+        </Badge>
+      </div>
+
+      <Badge
+        v-if="assignment"
+        variant="secondary"
+        class="text-xs"
+        :data-testid="TEST_ID.assignBadge"
+      >
+        {{ t("assign.badge", { user: assignment.assigneeUsername }) }}
+        <template v-if="assignmentDue">
+          · {{ t("assign.due", { date: assignmentDue }) }}
+        </template>
+        <template v-if="assignment.isOverdue">
+          · {{ t("assign.overdue") }}
+        </template>
+      </Badge>
+
+      <!-- The actions keep the right edge of the page: the left side of this row
          is what the test is, the right side is what you can do to it. -->
-    <div class="ml-auto flex flex-wrap items-center gap-2">
-      <Button
-        v-if="canCompleteAssignment && assignment"
-        type="button"
-        variant="outline"
-        size="sm"
-        :data-testid="TEST_ID.assignComplete"
-        @click="completeAssignment.mutate(assignment.id)"
-      >
-        {{ t("assign.complete") }}
-      </Button>
+      <div class="ml-auto flex flex-wrap items-center gap-2">
+        <Button
+          v-if="canCompleteAssignment && assignment"
+          type="button"
+          variant="outline"
+          size="sm"
+          :data-testid="TEST_ID.assignComplete"
+          @click="completeAssignment.mutate(assignment.id)"
+        >
+          {{ t("assign.complete") }}
+        </Button>
 
-      <Button
+        <Button
+          v-if="canWrite"
+          type="button"
+          variant="outline"
+          size="sm"
+          :data-testid="TEST_ID.assignAction"
+          @click="assignOpen = true"
+        >
+          {{ t("assign.action") }}
+        </Button>
+
+        <Button
+          v-if="canWrite"
+          type="button"
+          variant="outline"
+          size="sm"
+          :data-testid="TEST_ID.testEditAction"
+          @click="openDialog"
+        >
+          {{ t("lifecycle.editAction") }}
+        </Button>
+      </div>
+
+      <p
+        v-if="metadata.description"
+        class="w-full text-xs text-muted-foreground"
+        :data-testid="TEST_ID.testDescription"
+      >
+        {{ metadata.description }}
+      </p>
+
+      <AssignReviewDialog
+        v-if="canWrite && assignOpen"
+        :open="assignOpen"
+        :project-name="projectName"
+        :test-name="testName"
+        :branch="branch"
+        @update:open="assignOpen = $event"
+      />
+
+      <EditTestDialog
         v-if="canWrite"
-        type="button"
-        variant="outline"
-        size="sm"
-        :data-testid="TEST_ID.assignAction"
-        @click="assignOpen = true"
-      >
-        {{ t("assign.action") }}
-      </Button>
-
-      <Button
-        v-if="canWrite"
-        type="button"
-        variant="outline"
-        size="sm"
-        :data-testid="TEST_ID.testEditAction"
-        @click="openDialog"
-      >
-        {{ t("lifecycle.editAction") }}
-      </Button>
-    </div>
-
-    <p
-      v-if="metadata.description"
-      class="w-full text-xs text-muted-foreground"
-      :data-testid="TEST_ID.testDescription"
-    >
-      {{ metadata.description }}
-    </p>
-
-    <AssignReviewDialog
-      v-if="canWrite && assignOpen"
-      :open="assignOpen"
-      :project-name="projectName"
-      :test-name="testName"
-      :branch="branch"
-      @update:open="assignOpen = $event"
-    />
-
-    <EditTestDialog
-      v-if="canWrite"
-      :open="dialogOpen"
-      :name="metadata.name || testName"
-      :description="metadata.description"
-      :tags="metadata.tags"
-      :muted-until="metadata.mutedUntil"
-      :mute-reason="metadata.muteReason"
-      :is-muted="metadata.isMuted"
-      :size-policy="metadata.sizePolicy"
-      :pending="update.isPending.value"
-      :error="update.error.value"
-      @update:open="dialogOpen = $event"
-      @submit="submit"
-      @unmute="unmute"
-    />
+        :open="dialogOpen"
+        :name="metadata.name || testName"
+        :description="metadata.description"
+        :tags="metadata.tags"
+        :muted-until="metadata.mutedUntil"
+        :mute-reason="metadata.muteReason"
+        :is-muted="metadata.isMuted"
+        :size-policy="metadata.sizePolicy"
+        :pending="update.isPending.value"
+        :error="update.error.value"
+        @update:open="dialogOpen = $event"
+        @submit="submit"
+        @unmute="unmute"
+      />
+    </template>
   </div>
 </template>

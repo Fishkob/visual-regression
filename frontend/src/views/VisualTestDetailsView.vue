@@ -10,21 +10,21 @@ import { useReviewShortcuts } from "@/composables/useReviewShortcuts";
 import { useProjectDetailQuery } from "@/composables/useProjects";
 import { isInheritedOrigin } from "@/domains/branches/branch-origin";
 import { isApproved } from "@/domains/test-status";
+import type { TestKind } from "@/domains/test-kind";
 
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import TestComparisonView from "@/components/detail-panels/TestComparisonView.vue";
 import TestBaselineView from "@/components/detail-panels/TestBaselineView.vue";
 import DetailActivityRail from "@/components/detail-panels/DetailActivityRail.vue";
 import TestComparisonInfo from "@/components/TestComparisonInfo.vue";
+import TestDetailsHeader from "@/components/TestDetailsHeader.vue";
 import BulkApproveButton from "@/components/BulkApproveButton.vue";
-import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import TestComparisonSkeleton from "@/components/cards/TestComparisonSkeleton.vue";
 import TestMetadataPanel from "@/components/test-lifecycle/TestMetadataPanel.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import { TEST_ID } from "@/lib/test-ids";
 
-defineProps<{ kind?: string }>();
+defineProps<{ kind?: TestKind }>();
 
 /* ------------------------------------------------------------- */
 /* ROUTE + PARAMS                                                */
@@ -136,80 +136,36 @@ useReviewShortcuts({
   <!-- Where am I, what is this: the trail and the test name own the top. The
        actions of the review sit opposite the name, so the page opens with one
        headline and two buttons instead of a row of ten chips. -->
-  <header class="space-y-2 px-6 pt-4 pb-2">
-    <Breadcrumbs
-      class="text-muted-foreground"
-      :group-name="groupName"
-      :show-test="false"
-    />
-
-    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-      <div class="flex min-w-0 flex-wrap items-center gap-2">
-        <h1 class="min-w-0 truncate text-xl font-semibold tracking-tight">
-          {{ testName }}
-        </h1>
-        <Badge v-if="kind" variant="outline">
-          {{ kind === "pdf" ? t("detail.pdf") : t("detail.image") }}
-        </Badge>
-        <Badge v-if="branch" variant="outline" class="font-mono text-[10px]">
-          {{ branch }}
-        </Badge>
-        <Badge
-          v-if="isInherited"
-          variant="secondary"
-          class="font-mono text-[10px]"
-          :data-testid="TEST_ID.inheritedBadge"
-        >
-          {{ t("detail.inherited", { branch: data?.inheritedFrom }) }}
-        </Badge>
-        <!-- The baseline can be inherited even when the test itself is owned:
-             it then tracks the target branch until an approval pins it here.
-             Without this the reviewer sees a diff against a picture that points
-             at another branch with no indication that it does. -->
-        <Badge
-          v-else-if="data?.baselineInherited"
-          variant="outline"
-          class="font-mono text-[10px]"
-          :title="
-            t('detail.baselineFollowsTitle', {
-              target:
-                data?.inheritTarget ??
-                t('detail.baselineFollows', {
-                  target: '',
-                }),
-            })
-          "
-          :data-testid="TEST_ID.baselineInheritedBadge"
-        >
-          {{
-            t("detail.baselineFollows", {
-              target: data?.inheritTarget ?? "target",
-            })
-          }}
-        </Badge>
-      </div>
-
-      <div class="flex flex-wrap items-center gap-2">
-        <RouterLink
-          v-if="overviewLink"
-          :to="overviewLink"
-          :class="buttonVariants({ variant: 'outline', size: 'sm' })"
-          :data-testid="TEST_ID.testOverviewLink"
-        >
-          <LayoutGrid />
-          {{ t("detail.variantsHeading") }}
-        </RouterLink>
-        <BulkApproveButton
-          v-if="hasPendingVariants && !isInherited"
-          :project-name="projectName"
-          :test-name="testName"
-          :branch="branch"
-          :required-approvals="project?.requiredApprovals"
-          :disabled="isApproving"
-        />
-      </div>
-    </div>
-  </header>
+  <TestDetailsHeader
+    :test-name="testName"
+    :group-name="groupName"
+    :branch="branch"
+    :kind="kind"
+    :is-inherited="isInherited"
+    :inherited-from="data?.inheritedFrom"
+    :baseline-inherited="data?.baselineInherited"
+    :inherit-target="data?.inheritTarget"
+  >
+    <template #actions>
+      <RouterLink
+        v-if="overviewLink"
+        :to="overviewLink"
+        :class="buttonVariants({ variant: 'outline', size: 'sm' })"
+        :data-testid="TEST_ID.testOverviewLink"
+      >
+        <LayoutGrid />
+        {{ t("detail.variantsHeading") }}
+      </RouterLink>
+      <BulkApproveButton
+        v-if="hasPendingVariants && !isInherited"
+        :project-name="projectName"
+        :test-name="testName"
+        :branch="branch"
+        :required-approvals="project?.requiredApprovals"
+        :disabled="isApproving"
+      />
+    </template>
+  </TestDetailsHeader>
 
   <TestMetadataPanel class="px-6 pb-3" />
 
