@@ -41,7 +41,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 045 | [API-Key Scopes on the Route](./ADR-045-api-key-scopes-on-the-route.md)             | Accepted (partially supersedes 035)      |
 | 046 | [PDF Comparison Runs in a Java Sidecar](./ADR-046-pdf-comparison-sidecar.md)        | Accepted                                 |
 | 047 | [Delete Removes an API Key, Used or Not](./ADR-047-delete-removes-an-api-key.md)    | Accepted (partially supersedes 025)      |
-| 048 | [Changed Regions Come From the Worker](./ADR-048-changed-regions.md)                 | Accepted                                 |
+| 048 | [Changed Regions Come From the Worker](./ADR-048-changed-regions.md)                | Accepted                                 |
 
 ## Numbering
 

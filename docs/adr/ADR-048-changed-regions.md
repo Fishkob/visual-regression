@@ -74,7 +74,7 @@ Two details are part of the decision:
   (13–18 ms for 1440×1444 in the prototype measurement), not per review.
 - `changedRegions` is additive: the SDK regenerates, older payloads stay valid,
   and a comparison written before the column existed simply has none.
-- The review page gains a surface that depends on a *good* region list. The
+- The review page gains a surface that depends on a _good_ region list. The
   downsampled discovery, the merge gap and the 40-region cap are the knobs to
   revisit if a real diff floods the rail.
 - Region-level review actions (comments anchored to a region, "ignore this
