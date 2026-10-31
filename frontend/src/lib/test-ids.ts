@@ -222,8 +222,6 @@ export const TEST_ID = {
   changedRegionFocus: "changed-region-focus",
   minimap: "comparison-minimap",
   autoFocusToggle: "comparison-autofocus",
-  variantStrip: "comparison-variant-strip",
-  variantStripItem: "comparison-variant-item",
 
   testOverview: "test-overview",
   testOverviewCard: "test-overview-card",

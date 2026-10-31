@@ -101,66 +101,6 @@ describe("TestComparisonView", () => {
     expect(focusRegionSpy).toHaveBeenCalledWith(1);
   });
 
-  it("lists sibling variants under the stage and forwards the pick", async () => {
-    const variants = [
-      {
-        viewport: "1920x1080",
-        browser: "Chrome",
-        environment: "staging",
-        status: "PENDING_APPROVAL" as const,
-        baselineUrl: "/images/desktop.png",
-        baselineInherited: false,
-      },
-      {
-        viewport: "768x1024",
-        browser: "Chrome",
-        environment: "staging",
-        status: "UNCHANGED" as const,
-        baselineUrl: "/images/tablet.png",
-        baselineInherited: false,
-      },
-    ];
-    const wrapper = mount(TestComparisonView, {
-      props: {
-        comparison: mockComparison,
-        variants,
-        activeVariant: {
-          viewport: "1920x1080",
-          browser: "Chrome",
-          environment: "staging",
-        },
-      },
-    });
-
-    await wrapper
-      .findAll(`[data-testid="${TEST_ID.variantStripItem}"]`)[1]
-      .trigger("click");
-
-    expect(wrapper.emitted("selectVariant")).toEqual([[variants[1]]]);
-  });
-
-  it("shows no variant strip for a single variant", () => {
-    const wrapper = mount(TestComparisonView, {
-      props: {
-        comparison: mockComparison,
-        variants: [
-          {
-            viewport: "1920x1080",
-            browser: "Chrome",
-            environment: "staging",
-            status: "PENDING_APPROVAL" as const,
-            baselineUrl: "/images/desktop.png",
-            baselineInherited: false,
-          },
-        ],
-      },
-    });
-
-    expect(
-      wrapper.find(`[data-testid="${TEST_ID.variantStrip}"]`).exists(),
-    ).toBe(false);
-  });
-
   it("shows no region rail when the comparison has no regions", () => {
     const wrapper = mount(TestComparisonView, {
       props: { comparison: mockComparison },

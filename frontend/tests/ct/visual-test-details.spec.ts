@@ -3,7 +3,6 @@ import { mockApi, mockThresholdBackend } from "./routes/api.routes";
 import {
   PROJECT_TEST_DETAILS_ONLY_BASELINE_RESPONSE,
   VISUAL_TEST_DETAILS_PENDING,
-  VISUAL_TEST_VARIANTS_DEMO,
   VISUAL_TEST_PENDING_META,
   VISUAL_TEST_VARIANTS,
   VISUAL_TEST_VARIANTS_SINGLE,
@@ -100,43 +99,6 @@ test.describe("VisualTestDetails", () => {
     await expect(
       component.getByTestId(TEST_ID.changedRegionFocus),
     ).toContainText("2");
-  });
-
-  test("shows the sibling variants and switches to one", async ({
-    mount,
-    page,
-  }) => {
-    const route = `/projects/checkout-ui/tests/checkout-flow-strip?${CHROME_1920_1080_STAGING}`;
-    await mockApi(page, [
-      [
-        "**/api/v1/projects/checkout-ui/tests/checkout-flow-strip?*",
-        makeReviewableDetailsWithRegions("checkout-flow-strip", [
-          { x: 220, y: 176, width: 134, height: 210, pixelCount: 26460 },
-        ]),
-      ],
-      [PENDING_META_GLOB, VISUAL_TEST_PENDING_META],
-      [
-        "**/api/v1/projects/checkout-ui/tests/checkout-flow-strip/variants*",
-        VISUAL_TEST_VARIANTS_DEMO,
-      ],
-    ]);
-
-    const component = await mount<typeof Routed>(
-      "views/VisualTestDetailsView/Routed",
-      { initialRoute: route },
-    );
-
-    await expect(component.getByTestId(TEST_ID.variantStrip)).toBeVisible();
-    await expect(component.getByTestId(TEST_ID.variantStripItem)).toHaveCount(
-      3,
-    );
-
-    await component
-      .getByTestId(TEST_ID.variantStripItem)
-      .filter({ hasText: "1366x768" })
-      .click();
-
-    await expect.poll(() => page.url()).toContain("viewport=1366x768");
   });
 
   test("renders pending comparison correctly", async ({ mount, page }) => {

@@ -900,9 +900,7 @@
     "wholePage": "Ganze Seite",
     "regionHint": "Klick zoomt zur Stelle · n/p wechselt",
     "minimap": "Übersicht — klick zum Springen",
-    "autoFocus": "Sofort zur größten Änderung",
-    "otherVariants": "Andere Varianten",
-    "variantCurrent": "Wird angezeigt"
+    "autoFocus": "Sofort zur größten Änderung"
   },
   "filterBar": {
     "viewportLabel": "Nach Viewport filtern",

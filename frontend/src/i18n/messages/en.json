@@ -900,9 +900,7 @@
     "wholePage": "Whole page",
     "regionHint": "Click an area to zoom to it · n/p steps through them",
     "minimap": "Overview — click to jump",
-    "autoFocus": "Jump to the largest change",
-    "otherVariants": "Other variants",
-    "variantCurrent": "Shown now"
+    "autoFocus": "Jump to the largest change"
   },
   "filterBar": {
     "viewportLabel": "Filter by viewport",

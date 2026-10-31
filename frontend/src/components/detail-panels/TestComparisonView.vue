@@ -3,14 +3,10 @@ import { computed, ref } from "vue";
 import ApprovalDecisionDialog from "@/components/approvals/ApprovalDecisionDialog.vue";
 import InteractiveImageViewer from "@/components/detail-panels/InteractiveImageViewer.vue";
 import ChangedRegionRail from "@/components/detail-panels/ChangedRegionRail.vue";
-import ComparisonVariantStrip from "@/components/detail-panels/ComparisonVariantStrip.vue";
 import ApproveSkipFooter from "@/components/ApproveSkipFooter.vue";
 import { isApproved } from "@/domains/test-status";
 import { TEST_ID } from "@/lib/test-ids";
-import type {
-  Comparison,
-  VariantSummary,
-} from "@/domains/visual-test/visual-test.model";
+import type { Comparison } from "@/domains/visual-test/visual-test.model";
 import type { ApprovalDecision } from "@/domains/approvals/approval-reason";
 
 const props = defineProps<{
@@ -19,19 +15,11 @@ const props = defineProps<{
   // Inherited baselines are read-only on this branch: the approve/skip actions
   // belong to the branch that owns the baseline.
   readOnly?: boolean;
-  // Sibling variants of the same test, for the strip under the stage.
-  variants?: VariantSummary[];
-  activeVariant?: {
-    viewport?: string;
-    browser?: string;
-    environment?: string;
-  };
 }>();
 
 defineEmits<{
   skip: [];
   approve: [decision: ApprovalDecision];
-  selectVariant: [variant: VariantSummary];
 }>();
 
 const decisionOpen = ref(false);
@@ -70,13 +58,6 @@ function focusRegion(index: number): void {
             :mismatch-pixel-count="comparison.mismatchPixelCount"
             :regions="regions"
             @image-size="imageSize = $event"
-          />
-
-          <ComparisonVariantStrip
-            v-if="variants && variants.length > 1"
-            :variants="variants"
-            :active="activeVariant"
-            @select="$emit('selectVariant', $event)"
           />
         </div>
 

@@ -4,7 +4,6 @@ import { useI18n } from "vue-i18n";
 import { RouterLink, useRouter } from "vue-router";
 import { LayoutGrid } from "@lucide/vue";
 import { useVisualTestDetailsPage } from "@/composables/useTestDetailsPage";
-import { useTestNavigation } from "@/composables/useTestNavigation";
 import { useTestVariantsQuery } from "@/composables/useTestVariants";
 import { useRouteParams } from "@/composables/useRouteParams";
 import { useReviewShortcuts } from "@/composables/useReviewShortcuts";
@@ -35,10 +34,6 @@ const { t } = useI18n();
 const { projectName, testName, filters, branch, fromInbox, assignedToMe } =
   useRouteParams();
 const router = useRouter();
-const { navigateToTest } = useTestNavigation({
-  projectName,
-  branchName: branch,
-});
 
 const { data: project } = useProjectDetailQuery(projectName, branch);
 const groupName = computed(() => project.value?.groupName ?? undefined);
@@ -128,21 +123,6 @@ const showShortcuts = computed(
     !isApproved(data.value.comparison.status),
 );
 
-// The strip switches to a sibling variant of the same test: one route push, so
-// the review pass context (filters, branch, inbox scope) survives the hop.
-function openVariant(variant: {
-  viewport: string;
-  browser: string;
-  environment: string;
-}) {
-  navigateToTest({
-    name: testName.value,
-    viewport: variant.viewport,
-    browser: variant.browser,
-    environment: variant.environment,
-  });
-}
-
 useReviewShortcuts({
   onApprove: handleApprove,
   onSkip: handleSkip,
@@ -225,11 +205,8 @@ useReviewShortcuts({
         :comparison="data.comparison"
         :is-approving="isApproving"
         :read-only="isInherited"
-        :variants="kind === 'pdf' ? [] : variantSummaries"
-        :active-variant="activeVariant"
         @approve="handleApprove"
         @skip="handleSkip"
-        @select-variant="openVariant"
       />
       <TestBaselineView v-else-if="data?.baseline" :baseline="data.baseline" />
     </AsyncState>

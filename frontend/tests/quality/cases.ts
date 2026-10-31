@@ -185,7 +185,7 @@ export const QUALITY_CASES: QualityCase[] = [
       [VISUAL_BASELINE_HISTORY_GLOB, VISUAL_BASELINE_HISTORY],
     ],
     readyTestId: TEST_ID.comparisonView,
-    readyAlsoTestId: [TEST_ID.changedRegionList, TEST_ID.variantStrip],
+    readyAlsoTestId: [TEST_ID.changedRegionList],
   },
   {
     name: "pdf-test-details",
