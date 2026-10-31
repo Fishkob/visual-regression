@@ -16,6 +16,9 @@ spec:
       labels:
         app: worker
     spec:
+      # Above the poller's 30s drain budget, so SIGTERM lets it finish the
+      # in-flight job instead of SIGKILLing it into a phantom retry.
+      terminationGracePeriodSeconds: 60
       securityContext:
         runAsNonRoot: true
         runAsUser: {{ .Values.worker.securityContext.runAsUser }}
@@ -86,6 +89,8 @@ spec:
               value: "{{ .Values.worker.env.PDF_SIDECAR_HEALTH_URL }}"
             - name: LOG_LEVEL
               value: {{ .Values.worker.env.LOG_LEVEL }}
+            - name: DATABASE_POOL_MAX
+              value: "{{ .Values.worker.env.DATABASE_POOL_MAX }}"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "{{ .Values.worker.env.OTEL_EXPORTER_OTLP_ENDPOINT }}"
           resources:

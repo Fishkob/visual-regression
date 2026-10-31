@@ -1,7 +1,11 @@
 import { FileValidationPipe } from '@/common/http/pipes/file-validation.pipe';
 import { BadRequestException } from '@nestjs/common';
 import { AppConfigService } from '@config/app-config.service';
-import { MAX_IMAGE_PIXELS } from '@config/upload-limits';
+import {
+  MAX_IMAGE_PIXELS,
+  MAX_PDF_UPLOAD_BYTES,
+  MAX_PDF_UPLOAD_MB,
+} from '@config/upload-limits';
 
 describe('FileValidationPipe', () => {
   afterEach(() => {
@@ -12,6 +16,24 @@ describe('FileValidationPipe', () => {
   const pipe = new FileValidationPipe({
     screenshotMaxSize: MAX_SIZE,
   } as AppConfigService);
+
+  // A PDF cap tighter than the generic ceiling can only be exercised when the
+  // generic limit does not fire first.
+  const pdfPipe = new FileValidationPipe({
+    screenshotMaxSize: 50 * 1024 * 1024,
+  } as AppConfigService);
+
+  function pdfFile(size: number): Express.Multer.File {
+    const header = Buffer.from('%PDF-1.7\n');
+    return {
+      mimetype: 'application/pdf',
+      size,
+      buffer: Buffer.concat([
+        header,
+        Buffer.alloc(Math.max(0, size - header.length)),
+      ]),
+    } as unknown as Express.Multer.File;
+  }
 
   // A PNG signature plus a complete IHDR chunk header is all the pipe reads; the
   // payload after it is never inspected.
@@ -142,5 +164,17 @@ describe('FileValidationPipe', () => {
     } as unknown as Express.Multer.File;
 
     expect(() => pipe.transform(file)).toThrow('Invalid PDF signature');
+  });
+
+  it('accepts a PDF at the PDF size limit', () => {
+    const file = pdfFile(MAX_PDF_UPLOAD_BYTES);
+
+    expect(pdfPipe.transform(file)).toBe(file);
+  });
+
+  it('rejects a PDF over the PDF size limit even under the generic ceiling', () => {
+    expect(() => pdfPipe.transform(pdfFile(MAX_PDF_UPLOAD_BYTES + 1))).toThrow(
+      `PDF too large. Max size is ${String(MAX_PDF_UPLOAD_MB)} MB`,
+    );
   });
 });

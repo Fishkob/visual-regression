@@ -202,6 +202,14 @@ export class PdfSidecarClient
       }
       // A 4xx from the sidecar means the document was rejected (e.g. a
       // malformed PDF) — a permanent condition that job-level retry cannot fix.
+      // 413 is the one case a user can act on, so it gets a limit-shaped
+      // message instead of the internal route + raw body.
+      if (res.status === 413) {
+        throw new DomainError(
+          'PDF is too large for comparison. Reduce the document size or split it.',
+          'BAD_REQUEST',
+        );
+      }
       throw new DomainError(
         `PDF sidecar rejected ${path} (${res.status}): ${errorBody}`,
         res.status === 404 ? 'NOT_FOUND' : 'BAD_REQUEST',

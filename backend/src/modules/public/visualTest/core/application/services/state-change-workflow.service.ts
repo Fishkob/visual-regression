@@ -89,6 +89,9 @@ export class StateChangeWorkflow {
       () =>
         this.uow.execute(change, {
           isolationLevel: retryPolicy.isolationLevel,
+          ...(options.transactionTimeoutMs
+            ? { timeout: options.transactionTimeoutMs, maxWait: 10_000 }
+            : {}),
         }),
       {
         maxAttempts: retryPolicy.maxAttempts,
@@ -156,7 +159,9 @@ export class StateChangeWorkflow {
     // than in the storage adapter keeps `putObject` policy-free and exempts the
     // pdf-render cache by construction: it never crosses this convention.
     // Best-effort by design — the aggregates are read outside the transaction,
-    // so concurrent writes can overshoot by about one object (ADR-043).
+    // so concurrent writes can overshoot by one object per in-flight upload
+    // (ADR-043). The bound is the API's upload concurrency, not one object: the
+    // multipart limits cap a single request, not how many run at once.
     await this.storageUsage.assertWithinQuota(
       options.charge.projectName,
       options.charge.bytes,

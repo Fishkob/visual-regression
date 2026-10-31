@@ -5,9 +5,13 @@ import { DomainError } from '@common/domain/domain-error';
 // networks, so RFC1918 addresses are legitimate targets; the guard blocks the
 // addresses that turn a webhook into a cloud-metadata or loopback probe:
 // localhost, 0.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16 (incl. the metadata
-// service), ::1, fe80::/10 and IPv4-mapped forms of those. DNS rebinding
-// remains a residual risk (the URL is admin-controlled; the dispatcher uses
-// plain fetch).
+// service), the whole ::/96 range (loopback, unspecified, IPv4-compatible and
+// IPv4-mapped) and fe80::/10.
+//
+// Residual risk, deliberate and documented: the check is hostname-only, so a
+// DNS name that resolves to a blocked address (rebinding or a wildcard service
+// like nip.io) is not caught here. Deliveries also refuse redirects
+// (redirect: 'manual'), because a followed 302 would route around this check.
 const BLOCKED_HOSTNAMES = new Set([
   'localhost',
   'metadata.google.internal',
@@ -30,15 +34,17 @@ function blockedIpv4(ip: string): boolean {
 
 function blockedIpv6(ip: string): boolean {
   const normalized = ip.toLowerCase();
-  if (normalized === '::' || normalized === '::1') return true;
+  // ::/96 is the reserved range holding the unspecified address, loopback,
+  // IPv4-compatible and IPv4-mapped addresses (::ffff:127.0.0.1, and the hex
+  // form ::ffff:7f00:1 the WHATWG URL parser rewrites it to). Matching a
+  // dotted tail missed every mapped address, so the whole prefix is blocked.
+  if (normalized.startsWith('::')) return true;
   if (normalized.startsWith('fe8') || normalized.startsWith('fe9')) {
     return true;
   }
   if (normalized.startsWith('fea') || normalized.startsWith('feb')) {
     return true;
   }
-  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(normalized);
-  if (mapped) return blockedIpv4(mapped[1]);
   return false;
 }
 

@@ -12,7 +12,10 @@
 //   maxPollIntervalMs (30s)     <  pollStallThresholdMs (150s) — a wedged poll
 //                                loop (no cycle completes) is only reported as
 //                                `error` after 5x the max backoff;
-//   drainTimeoutMs (30s)        — graceful-shutdown drain bound.
+//   drainTimeoutMs (30s)        — upper bound on waiting for the in-flight job
+//                                at shutdown; the poller claims nothing after
+//                                SIGTERM, so this only bounds the last job.
+//                                Must stay below the container stop grace period.
 //
 // Any change to one of these deadlines is one edit here, not a hunt across
 // three files that must stay in sync by convention.

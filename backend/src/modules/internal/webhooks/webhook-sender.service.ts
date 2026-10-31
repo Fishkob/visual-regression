@@ -13,6 +13,12 @@ export interface WebhookSendResult {
 }
 
 const DELIVERY_TIMEOUT_MS = 10_000;
+// The receiver's error body is only stored as a 200-char hint for the admin
+// UI, so there is no reason to buffer an unbounded response: a slow or hostile
+// endpoint could otherwise push hundreds of MB into the worker's heap for one
+// delivery attempt.
+const MAX_ERROR_BODY_BYTES = 4096;
+const ERROR_BODY_HINT_CHARS = 200;
 
 // One HTTP delivery attempt. Formatting (json vs Slack) and signing live here;
 // retry/backoff lives in the dispatcher. The consumer verifies the signature
@@ -44,6 +50,10 @@ export class WebhookSender {
           ),
         },
         body,
+        // A followed redirect would route around the SSRF guard, which only
+        // vets the configured URL: a 302 to http://169.254.169.254/ would land
+        // internally. Treat every 3xx as a failed delivery instead.
+        redirect: 'manual',
         signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
       });
 
@@ -51,8 +61,8 @@ export class WebhookSender {
         return { ok: true, status: response.status };
       }
 
-      const text = await response.text().catch(() => '');
-      const suffix = text ? `: ${text.slice(0, 200)}` : '';
+      const text = await readCappedText(response, MAX_ERROR_BODY_BYTES);
+      const suffix = text ? `: ${text.slice(0, ERROR_BODY_HINT_CHARS)}` : '';
       return {
         ok: false,
         status: response.status,
@@ -105,4 +115,30 @@ export class WebhookSender {
     const note = payload.note ? ` — ${payload.note}` : '';
     return `${reason}${note}`;
   }
+}
+
+// Reads at most `cap` bytes of a response body and cancels the rest. Only used
+// for the error hint, so completeness beyond the cap is never needed.
+async function readCappedText(
+  response: Response,
+  cap: number,
+): Promise<string> {
+  const stream = response.body;
+  if (!stream) return '';
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (total < cap) {
+      const { done: isDone, value } = await reader.read();
+      if (isDone) break;
+      const chunk = value.subarray(0, cap - total);
+      chunks.push(chunk);
+      total += chunk.length;
+      if (chunk.length < value.length) break;
+    }
+  } finally {
+    await reader.cancel().catch(() => undefined);
+  }
+  return Buffer.concat(chunks).toString('utf8');
 }

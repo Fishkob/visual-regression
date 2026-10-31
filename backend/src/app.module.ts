@@ -5,7 +5,6 @@ import {
   APP_INTERCEPTOR,
   Reflector,
 } from '@nestjs/core';
-import { ScheduleModule } from '@nestjs/schedule';
 import { CoreInfrastructureModule } from '@/core-infrastructure.module';
 import { VisualTestApplicationModule } from '@public/visualTest/core/visual-test-application.module';
 import { IntakeApplicationModule } from '@public/visualTest/intake/intake-application.module';
@@ -17,7 +16,6 @@ import { NotificationsModule } from '@public/visualTest/notifications/notificati
 
 import { HealthModule } from '@internal/health/health.module';
 import { LogIngestionModule } from '@internal/logging/log-ingestion.module';
-import { DataDeletionModule } from '@internal/data-deletion/data-deletion.module';
 import { DlqModule } from '@internal/dlq/dlq.module';
 import { AuthModule } from '@internal/auth/auth.module';
 import { AdminApiKeysModule } from '@internal/admin/admin-api-keys.module';
@@ -34,7 +32,6 @@ import { HttpMetricsInterceptor } from '@common/http/http-metrics.interceptor';
 @Module({
   imports: [
     CoreInfrastructureModule,
-    ScheduleModule.forRoot(),
     VisualTestApplicationModule,
     IntakeApplicationModule,
     CatalogModule,
@@ -45,7 +42,6 @@ import { HttpMetricsInterceptor } from '@common/http/http-metrics.interceptor';
     HealthModule,
     LogIngestionModule,
     DlqModule,
-    DataDeletionModule,
     AuthModule,
     AdminApiKeysModule,
     ApiKeysModule,

@@ -175,7 +175,7 @@ Delivery is an **outbox**: rows are claimed with `FOR UPDATE SKIP LOCKED`, sent 
 - **At-least-once, not exactly-once.** A timeout after your handler committed looks like a failure to us. Deduplicate on `x-vrt-delivery-id`.
 - **Retries reuse the delivery id** — and so does a manual replay. A consumer that permanently remembers delivery ids will drop a deliberate replay; clear the id in your store before replaying.
 - **Unordered.** Rows are claimed oldest-first, but retries push a delivery back, so `review.requested` can arrive after `comparison.approved` for the same test.
-- **Success is any 2xx.** A non-2xx final response (redirects are followed), a timeout or a network error is a failure; the response body is ignored, apart from the first 200 chars being recorded as `lastError`.
+- **Success is any 2xx.** A 3xx is a failure — redirects are not followed, so an endpoint cannot route the request to a host the SSRF guard rejected. A timeout or a network error is also a failure; the response body is ignored, apart from the first 200 chars being recorded as `lastError` (at most 4 KiB of it is read).
 - **Timeout is 10 s per attempt.** Acknowledge fast and do the slow work asynchronously.
 - **Retry schedule:** 5 attempts total, with delays of **1 m, 5 m, 30 m, 2 h** between them. The fifth failure is terminal (`FAILED` with the last error).
 - **Deliveries need the worker.** The dispatcher starts only in worker mode (`NODE_MODE=worker`, the `worker` Docker service). Without a worker, rows stay `PENDING` forever. It polls every 10 s and claims up to 20 rows per cycle.
@@ -209,9 +209,10 @@ Endpoint create/update/delete are audited (`webhook.create`, `webhook.update`, `
 The URL is admin-controlled, but a webhook turns it into a server-side request, so endpoint URLs are validated on create and update:
 
 - `http`/`https` only, max 2048 characters, no `user:password@` in the URL.
-- Blocked hosts: `localhost`, `*.localhost`, `metadata.google.internal`, `metadata.goog`, `0.0.0.0/8`, `127.0.0.0/8`, `169.254.0.0/16` (cloud metadata), `100.64.100.200`, `::`, `::1`, `fe80::/10`, and IPv4-mapped forms of those.
+- Blocked hosts: `localhost`, `*.localhost`, `metadata.google.internal`, `metadata.goog`, `0.0.0.0/8`, `127.0.0.0/8`, `169.254.0.0/16` (cloud metadata), `100.64.100.200`, the whole `::/96` range (unspecified, loopback, IPv4-compatible and IPv4-mapped — including `[::ffff:127.0.0.1]` and its hex form `[::ffff:7f00:1]`), and `fe80::/10`.
 - **RFC1918 addresses stay allowed** — the product is self-hosted in private networks, so `10.x`, `172.16–31.x` and `192.168.x` receivers are legitimate targets.
-- Residual risk: DNS rebinding (the dispatcher uses plain `fetch` after validation). Keep endpoints inside your network.
+- **Redirects are not followed.** A `301`/`302`/`307`/`308` is recorded as a failed delivery with `HTTP 3xx`, because following it would bypass the host check above.
+- Residual risk: the check is hostname-only and does not resolve DNS, so a name that points at a blocked address (a wildcard resolver such as `nip.io`, or DNS rebinding) is not caught. Keep endpoints inside your network.
 
 There is no per-endpoint rate limit or delivery-count cap; volume follows the review traffic of the project.
 

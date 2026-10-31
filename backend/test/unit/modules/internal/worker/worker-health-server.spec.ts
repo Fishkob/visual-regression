@@ -18,9 +18,14 @@ describe('WorkerHealthServer', () => {
   let baseUrl: string;
   let metrics: Mocked<MetricsService>;
 
-  async function getHealth(path = '/health'): Promise<HealthBody> {
+  async function getHealth(
+    path = '/health',
+  ): Promise<{ statusCode: number; body: HealthBody }> {
     const res = await fetch(`${baseUrl}${path}`);
-    return (await res.json()) as HealthBody;
+    return {
+      statusCode: res.status,
+      body: (await res.json()) as HealthBody,
+    };
   }
 
   beforeEach(async () => {
@@ -52,15 +57,17 @@ describe('WorkerHealthServer', () => {
   it('returns ok with a fresh lastPollAt', async () => {
     healthServer.recordPoll();
 
-    const body = await getHealth();
+    const { statusCode, body } = await getHealth();
 
+    expect(statusCode).toBe(200);
     expect(body.status).toBe('ok');
     expect(body.lastPollAt).toBeTruthy();
   });
 
   it('returns ok before the first poll when started recently', async () => {
-    const body = await getHealth();
+    const { statusCode, body } = await getHealth();
 
+    expect(statusCode).toBe(200);
     expect(body.status).toBe('ok');
     expect(body.lastPollAt).toBeNull();
   });
@@ -70,8 +77,9 @@ describe('WorkerHealthServer', () => {
     const now = Date.now();
     vi.spyOn(Date, 'now').mockReturnValue(now + 200_000);
 
-    const body = await getHealth();
+    const { statusCode, body } = await getHealth();
 
+    expect(statusCode).toBe(503);
     expect(body.status).toBe('error');
     expect(body.lastPollAt).toBeTruthy();
   });
@@ -80,8 +88,9 @@ describe('WorkerHealthServer', () => {
     const now = Date.now();
     vi.spyOn(Date, 'now').mockReturnValue(now + 200_000);
 
-    const body = await getHealth();
+    const { statusCode, body } = await getHealth();
 
+    expect(statusCode).toBe(503);
     expect(body.status).toBe('error');
     expect(body.lastPollAt).toBeNull();
   });
@@ -89,16 +98,18 @@ describe('WorkerHealthServer', () => {
   it('serves the same payload on /api/v1/health', async () => {
     healthServer.recordPoll();
 
-    const body = await getHealth('/api/v1/health');
+    const { statusCode, body } = await getHealth('/api/v1/health');
 
+    expect(statusCode).toBe(200);
     expect(body.status).toBe('ok');
   });
 
   it('recordJobProcessed also refreshes poll liveness', async () => {
     healthServer.recordJobProcessed();
 
-    const body = await getHealth();
+    const { statusCode, body } = await getHealth();
 
+    expect(statusCode).toBe(200);
     expect(body.status).toBe('ok');
     expect(body.jobsProcessed).toBe(1);
     expect(body.lastJobProcessedAt).toBeTruthy();

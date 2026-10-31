@@ -25,7 +25,10 @@ vi.mock('@prisma/adapter-pg', () => ({ PrismaPg: MockPrismaPg }));
 
 describe('PrismaConnection', () => {
   const appConfig = {
-    database: { url: 'postgresql://test:test@localhost:5432/test' },
+    database: {
+      url: 'postgresql://test:test@localhost:5432/test',
+      poolMax: 7,
+    },
   };
 
   function createConnection(): PrismaConnection {
@@ -41,6 +44,7 @@ describe('PrismaConnection', () => {
 
     expect(PrismaPg).toHaveBeenCalledWith({
       connectionString: 'postgresql://test:test@localhost:5432/test',
+      max: 7,
     });
     expect(PrismaClient).toHaveBeenCalledWith({ adapter: expect.anything() });
     expect(connection.client).toBeInstanceOf(PrismaClient);

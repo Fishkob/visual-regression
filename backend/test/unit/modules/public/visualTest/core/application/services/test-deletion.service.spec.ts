@@ -6,6 +6,7 @@ import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastruct
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ReviewArtifactRepository } from '@public/visualTest/core/infrastructure/repositories/review-artifact.repository';
+import { ProjectShareLinkRepository } from '@public/visualTest/core/infrastructure/repositories/project-share-link.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { IJobProducer } from '@common/domain/job-queue.interface';
 import { IStorageProvider } from '@common/domain/storage-provider.interface';
@@ -35,6 +36,7 @@ describe('TestDeletionService', () => {
   let service: TestDeletionService;
   let audit: Mocked<AuditService>;
   let reviewArtifacts: Mocked<ReviewArtifactRepository>;
+  let shareLinks: Mocked<ProjectShareLinkRepository>;
 
   beforeEach(() => {
     tests = createMock<UnifiedTestRepository>();
@@ -74,6 +76,8 @@ describe('TestDeletionService', () => {
     reviewArtifacts = createMock<ReviewArtifactRepository>();
     reviewArtifacts.deleteForTestIds.mockResolvedValue(undefined);
     reviewArtifacts.deleteForProjectName.mockResolvedValue(undefined);
+    shareLinks = createMock<ProjectShareLinkRepository>();
+    shareLinks.deleteForProjectName.mockResolvedValue(undefined);
     service = new TestDeletionService(
       tests,
       screenshots,
@@ -85,6 +89,7 @@ describe('TestDeletionService', () => {
       retirement,
       audit,
       reviewArtifacts,
+      shareLinks,
     );
   });
 
@@ -492,6 +497,11 @@ describe('TestDeletionService', () => {
       ]);
       expect(tests.deleteByIds).toHaveBeenCalledWith(['vt-1', 'vt-2']);
       expect(projects.deleteByName).toHaveBeenCalledWith('my-project');
+      // A share link must not outlive its project: it resolves by name, so a
+      // re-created project would revive the old token.
+      expect(shareLinks.deleteForProjectName).toHaveBeenCalledWith(
+        'my-project',
+      );
       expect(workflow.executeStateChange).toHaveBeenCalledTimes(1);
     });
 

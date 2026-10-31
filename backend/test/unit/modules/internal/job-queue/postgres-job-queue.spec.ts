@@ -428,9 +428,33 @@ describe('PostgresJobQueue', () => {
       await queue.processNext(vi.fn());
 
       const [sql, ...params] = prisma.client.$queryRawUnsafe.mock.calls[0];
-      expect(sql).toContain('"heartbeatAt" < $3');
+      expect(sql).toContain('"heartbeatAt" < $2');
       expect(sql).not.toContain('processingStartedAt');
-      expect(params).toHaveLength(3);
+      expect(params).toHaveLength(2);
+    });
+
+    it('queries the pending branch only when no stalled job was claimable', async () => {
+      prisma.client.$queryRawUnsafe
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 'job-1', status: 'PENDING' }]);
+      prisma.client.comparisonJob.update.mockResolvedValue({});
+      prisma.client.comparisonJob.findUnique.mockResolvedValue({
+        id: 'job-1',
+        status: 'PROCESSING',
+        payload: jobPayload,
+        attempts: 0,
+        maxAttempts: 3,
+      });
+      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
+
+      await queue.processNext(vi.fn().mockResolvedValue(undefined));
+
+      expect(prisma.client.$queryRawUnsafe).toHaveBeenCalledTimes(2);
+      const [stalledSql] = prisma.client.$queryRawUnsafe.mock.calls[0];
+      const [pendingSql] = prisma.client.$queryRawUnsafe.mock.calls[1];
+      expect(stalledSql).toContain('"heartbeatAt"');
+      expect(pendingSql).toContain('"nextAttemptAt"');
+      expect(pendingSql).not.toContain('"heartbeatAt"');
     });
 
     it('also reclaims PROCESSING jobs whose heartbeatAt is NULL (never beat)', async () => {
@@ -480,6 +504,54 @@ describe('PostgresJobQueue', () => {
             attempts: 2,
           }),
         }),
+      );
+    });
+
+    it('falls through to a pending job when the stalled one exhausted its budget', async () => {
+      prisma.client.$queryRawUnsafe.mockImplementation((sql: string) =>
+        Promise.resolve(
+          sql.includes('"nextAttemptAt"')
+            ? [
+                {
+                  id: 'pending-job',
+                  status: 'PENDING',
+                  attempts: 0,
+                  maxAttempts: 3,
+                },
+              ]
+            : [
+                {
+                  id: 'stalled-job',
+                  status: 'PROCESSING',
+                  attempts: 2,
+                  maxAttempts: 3,
+                },
+              ],
+        ),
+      );
+      prisma.client.comparisonJob.update.mockResolvedValue({});
+      prisma.client.comparisonJob.findUnique.mockResolvedValue({
+        id: 'pending-job',
+        status: 'PROCESSING',
+        payload: jobPayload,
+        attempts: 0,
+        maxAttempts: 3,
+      });
+      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
+
+      const processor = vi.fn().mockResolvedValue(undefined);
+      await queue.processNext(processor);
+
+      expect(prisma.client.comparisonJob.update).toHaveBeenCalledWith({
+        where: { id: 'stalled-job' },
+        data: expect.objectContaining({
+          status: 'FAILED',
+          attempts: 3,
+          error: 'Job stalled and exhausted its retry budget',
+        }),
+      });
+      expect(processor).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'pending-job' }),
       );
     });
 

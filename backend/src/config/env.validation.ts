@@ -21,6 +21,15 @@ export const envValidationSchema = Joi.object({
 
   DATABASE_URL: requiredUrl,
 
+  DATABASE_POOL_MAX: Joi.number()
+    .integer()
+    .min(1)
+    .max(100)
+    .default(10)
+    .description(
+      'Max Postgres connections per process (API and worker each hold their own pool). Keep replicas x pool below the database max_connections.',
+    ),
+
   RUSTFS_ENDPOINT: required,
   RUSTFS_PORT: Joi.number().default(9000),
   RUSTFS_ACCESS_KEY: required,
@@ -71,6 +80,14 @@ export const envValidationSchema = Joi.object({
     .default(7)
     .description(
       'How many days to retain failed comparison jobs before cleanup.',
+    ),
+  WEBHOOK_DELIVERY_RETENTION_DAYS: Joi.number()
+    .integer()
+    .min(1)
+    .max(3650)
+    .default(30)
+    .description(
+      'How many days to retain delivered/failed webhook payloads (they contain reviewer text).',
     ),
 
   // Baseline history

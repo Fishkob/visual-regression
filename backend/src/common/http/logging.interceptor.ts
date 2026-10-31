@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { AppLoggerService } from '@common/logging/app-logger.service';
+import { redactUrl } from '@common/logging/redact-url';
 import { RequestContext } from '@common/logging/request-context';
 import { severityForStatus } from '@common/utils/exception-status';
 import { httpRoute, observeFinalStatus } from '@common/http/response-observer';
@@ -33,7 +34,7 @@ export class LoggingInterceptor implements NestInterceptor {
       kind: SpanKind.SERVER,
       attributes: {
         'http.method': req.method,
-        'http.url': req.url,
+        'http.url': redactUrl(req.url),
         'http.route': route,
         'http.host': req.hostname,
       },
@@ -53,7 +54,7 @@ export class LoggingInterceptor implements NestInterceptor {
         msg: 'Incoming request',
         traceId,
         method: req.method,
-        url: req.url,
+        url: redactUrl(req.url),
         ip: req.ip,
       });
 
@@ -79,7 +80,7 @@ export class LoggingInterceptor implements NestInterceptor {
             msg: 'Request failed',
             traceId,
             method: req.method,
-            url: req.url,
+            url: redactUrl(req.url),
             statusCode,
             durationMs: duration,
             error: errMsg,
@@ -105,7 +106,7 @@ export class LoggingInterceptor implements NestInterceptor {
           msg: 'Request completed',
           traceId,
           method: req.method,
-          url: req.url,
+          url: redactUrl(req.url),
           statusCode,
           durationMs: duration,
         });

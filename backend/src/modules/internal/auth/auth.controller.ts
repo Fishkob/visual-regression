@@ -90,7 +90,10 @@ export class AuthController {
     res.cookie(
       SESSION_COOKIE,
       result.token,
-      sessionCookieOptions(this.appConfig.auth.cookieSecure || req.secure),
+      sessionCookieOptions(
+        this.appConfig.auth.cookieSecure || req.secure,
+        this.appConfig.auth.sessionTtlMs,
+      ),
     );
     return {
       username: result.username,
@@ -122,7 +125,10 @@ export class AuthController {
     res.cookie(
       SESSION_COOKIE,
       result.token,
-      sessionCookieOptions(this.appConfig.auth.cookieSecure || req.secure),
+      sessionCookieOptions(
+        this.appConfig.auth.cookieSecure || req.secure,
+        this.appConfig.auth.sessionTtlMs,
+      ),
     );
     return {
       username: result.username,
@@ -292,7 +298,10 @@ export class AuthController {
     res.cookie(
       SESSION_COOKIE,
       token,
-      sessionCookieOptions(this.appConfig.auth.cookieSecure || req.secure),
+      sessionCookieOptions(
+        this.appConfig.auth.cookieSecure || req.secure,
+        this.appConfig.auth.sessionTtlMs,
+      ),
     );
     return {
       username: auth.username,

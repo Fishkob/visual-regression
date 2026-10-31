@@ -8,6 +8,7 @@ import type {
   HealthCheckResult,
 } from '@internal/health/health.types';
 import { createMock } from '@test/utils/create-mock';
+import { AppConfigService } from '@config/app-config.service';
 
 function mockRes(): { status: Mock } {
   return { status: vi.fn().mockReturnThis() };
@@ -29,7 +30,13 @@ describe('HealthController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HealthController],
-      providers: [{ provide: HealthChecker, useValue: checker }],
+      providers: [
+        { provide: HealthChecker, useValue: checker },
+        {
+          provide: AppConfigService,
+          useValue: { metrics: { apiKey: '' } } as AppConfigService,
+        },
+      ],
     }).compile();
 
     controller = module.get(HealthController);
@@ -141,7 +148,12 @@ describe('HealthController', () => {
       const res = mockRes();
       const result = await controller.readiness(res as any);
 
-      expect(result).toBe(response);
+      expect(result).toEqual(response);
+      expect(result.checks).toEqual({
+        database: { status: 'ok' },
+        storage: { status: 'ok' },
+        queues: { status: 'ok' },
+      });
     });
 
     it('sets SERVICE_UNAVAILABLE and returns the DTO when unhealthy', async () => {
@@ -170,8 +182,12 @@ describe('HealthController', () => {
       const res = mockRes();
       const result = await controller.readiness(res as any);
 
-      expect(result).toBe(response);
       expect(res.status).toHaveBeenCalledWith(503);
+      expect(result.status).toBe('unhealthy');
+      // The anonymous readiness body reports WHICH check failed, never the
+      // probe's raw message (it can name an internal endpoint).
+      expect(result.checks.database).toEqual({ status: 'error' });
+      expect(JSON.stringify(result)).not.toContain('Connection failed');
     });
   });
 

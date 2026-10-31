@@ -4,6 +4,10 @@ import type { DetailedHealthDto } from './DetailedHealthDto.gen';
 
 export type HealthControllerCheckErrors = {
     /**
+     * Invalid or missing metrics key
+     */
+    401: unknown;
+    /**
      * One or more systems are unhealthy
      */
     503: DetailedHealthDto;

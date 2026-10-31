@@ -2,6 +2,12 @@
 
 export type HealthControllerCheckStorageData = {
     body?: never;
+    headers: {
+        /**
+         * Same key as the /metrics endpoint
+         */
+        'x-metrics-key': string;
+    };
     path?: never;
     query?: never;
     url: '/health/storage';

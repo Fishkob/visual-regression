@@ -6,7 +6,11 @@ import {
   PipeTransform,
 } from '@nestjs/common';
 import { AppConfigService } from '@config/app-config.service';
-import { MAX_IMAGE_PIXELS } from '@config/upload-limits';
+import {
+  MAX_IMAGE_PIXELS,
+  MAX_PDF_UPLOAD_BYTES,
+  MAX_PDF_UPLOAD_MB,
+} from '@config/upload-limits';
 import { KIND_MIME_TYPES } from '@common/domain/test-kind';
 import { isPngSignature, readPngDimensions } from '@common/utils/png-header';
 
@@ -63,6 +67,16 @@ export class FileValidationPipe implements PipeTransform {
 
     if (value.mimetype === KIND_MIME_TYPES.pdf) {
       const buf = value.buffer;
+      // The sidecar compares baseline and candidate in one request, so it can
+      // only serve documents up to half its request budget. Rejecting here —
+      // instead of storing the file and failing at compare time — keeps the
+      // advertised limit and the limit the pipeline can actually honour equal.
+      if (value.size > MAX_PDF_UPLOAD_BYTES) {
+        throw new HttpException(
+          `PDF too large. Max size is ${String(MAX_PDF_UPLOAD_MB)} MB`,
+          HttpStatus.PAYLOAD_TOO_LARGE,
+        );
+      }
       if (buf.length < 4) {
         throw new BadRequestException('Invalid PDF: buffer too small');
       }

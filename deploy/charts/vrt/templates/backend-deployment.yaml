@@ -89,6 +89,10 @@ spec:
               value: "{{ .Values.backend.env.TRUST_PROXY }}"
             - name: LOG_LEVEL
               value: {{ .Values.backend.env.LOG_LEVEL }}
+            - name: AUTH_COOKIE_SECURE
+              value: "{{ .Values.backend.env.AUTH_COOKIE_SECURE }}"
+            - name: DATABASE_POOL_MAX
+              value: "{{ .Values.backend.env.DATABASE_POOL_MAX }}"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "{{ .Values.backend.env.OTEL_EXPORTER_OTLP_ENDPOINT }}"
             - name: BOOTSTRAP_ADMIN_USERNAME

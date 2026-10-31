@@ -52,6 +52,11 @@ export const METRICS = {
   cleanupReviewCommentsDeleted: 'cleanup_review_comments_deleted',
   cleanupApprovalVotesDeleted: 'cleanup_approval_votes_deleted',
   cleanupReviewArtifactsLastRun: 'cleanup_review_artifacts_last_run',
+  cleanupWebhookDeliveriesDeleted: 'cleanup_webhook_deliveries_deleted',
+  cleanupWebhookDeliveriesLastRun: 'cleanup_webhook_deliveries_last_run',
+  cleanupShareLinksDeleted: 'cleanup_share_links_deleted',
+  cleanupShareLinksLastRun: 'cleanup_share_links_last_run',
+  cleanupTwoFactorChallengesDeleted: 'cleanup_two_factor_challenges_deleted',
   storageSizeBackfilled: 'storage_size_backfilled_total',
 } as const;
 

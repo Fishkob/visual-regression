@@ -1153,13 +1153,13 @@ export const webhooksControllerTest = <ThrowOnError extends boolean = false>(opt
     ...options
 });
 
-export const healthControllerCheck = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckData, ThrowOnError>): RequestResult<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError>({ url: '/health', ...options });
+export const healthControllerCheck = <ThrowOnError extends boolean = false>(options: Options<HealthControllerCheckData, ThrowOnError>): RequestResult<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError> => (options.client ?? client).get<HealthControllerCheckResponses, HealthControllerCheckErrors, ThrowOnError>({ url: '/health', ...options });
 
 export const healthControllerReadiness = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerReadinessData, ThrowOnError>): RequestResult<HealthControllerReadinessResponses, HealthControllerReadinessErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerReadinessResponses, HealthControllerReadinessErrors, ThrowOnError>({ url: '/health/ready', ...options });
 
-export const healthControllerCheckDatabase = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckDatabaseData, ThrowOnError>): RequestResult<HealthControllerCheckDatabaseResponses, HealthControllerCheckDatabaseErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckDatabaseResponses, HealthControllerCheckDatabaseErrors, ThrowOnError>({ url: '/health/db', ...options });
+export const healthControllerCheckDatabase = <ThrowOnError extends boolean = false>(options: Options<HealthControllerCheckDatabaseData, ThrowOnError>): RequestResult<HealthControllerCheckDatabaseResponses, HealthControllerCheckDatabaseErrors, ThrowOnError> => (options.client ?? client).get<HealthControllerCheckDatabaseResponses, HealthControllerCheckDatabaseErrors, ThrowOnError>({ url: '/health/db', ...options });
 
-export const healthControllerCheckStorage = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerCheckStorageData, ThrowOnError>): RequestResult<HealthControllerCheckStorageResponses, HealthControllerCheckStorageErrors, ThrowOnError> => (options?.client ?? client).get<HealthControllerCheckStorageResponses, HealthControllerCheckStorageErrors, ThrowOnError>({ url: '/health/storage', ...options });
+export const healthControllerCheckStorage = <ThrowOnError extends boolean = false>(options: Options<HealthControllerCheckStorageData, ThrowOnError>): RequestResult<HealthControllerCheckStorageResponses, HealthControllerCheckStorageErrors, ThrowOnError> => (options.client ?? client).get<HealthControllerCheckStorageResponses, HealthControllerCheckStorageErrors, ThrowOnError>({ url: '/health/storage', ...options });
 
 export const adminApiKeysControllerCreate = <ThrowOnError extends boolean = false>(options: Options<AdminApiKeysControllerCreateData, ThrowOnError>): RequestResult<AdminApiKeysControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<AdminApiKeysControllerCreateResponses, unknown, ThrowOnError>({
     url: '/admin/api-keys',

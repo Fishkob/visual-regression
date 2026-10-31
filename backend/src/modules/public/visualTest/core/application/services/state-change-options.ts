@@ -24,6 +24,21 @@ export const DELETION_STATE_CHANGE_RETRY: {
   isRetryable: (err) => isSerializationError(err) || isForeignKeyViolation(err),
 };
 
+// Prisma's 5s default is sized for a single-row change. A whole-project delete
+// cascades every test and writes one audit row per test inside the same
+// transaction; on a large project that legitimately runs longer than 5s, and
+// the generic "transaction expired" error is not something a retry can fix
+// reliably. Deletions therefore get their own budget on top of the FK retry.
+export const DELETION_TRANSACTION_TIMEOUT_MS = 60_000;
+
+export const DELETION_STATE_CHANGE_OPTIONS: {
+  retry: { isRetryable: (err: unknown) => boolean };
+  transactionTimeoutMs: number;
+} = {
+  retry: DELETION_STATE_CHANGE_RETRY,
+  transactionTimeoutMs: DELETION_TRANSACTION_TIMEOUT_MS,
+};
+
 // Contract for the transactional state-change convention. A mutation must
 // declare what it did: a change that mutated comparisons/screenshots names the
 // testIds it affected (a non-empty tuple, so "forgot the testId" does not
@@ -89,6 +104,9 @@ export type StateChangeResult<R> = PersistedChange | StateChangeOutcome<R>;
 
 export interface StateChangeOptions<R> {
   onSuccess?: (outcome: StateChangeOutcome<R>) => Promise<void>;
+  // Overrides Prisma's 5s transaction budget. Only a mutation whose work scales
+  // with the size of a project (a cascade delete) needs this.
+  transactionTimeoutMs?: number;
   retry?: {
     isolationLevel?: Prisma.TransactionIsolationLevel;
     maxAttempts?: number;

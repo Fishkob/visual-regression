@@ -27,7 +27,10 @@ class CompareServiceTest {
     private static final byte[] PNG_HEADER = new byte[]{
         (byte)0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
     };
-    private static final long MAX_UPLOAD_SIZE = 20 * 1024 * 1024;
+    // Mirrors App's constants: per-document cap, and a request budget that fits
+    // the baseline + candidate pair posted to /compare.
+    private static final long MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+    private static final long MAX_REQUEST_SIZE = 2 * MAX_UPLOAD_SIZE + 1024 * 1024;
 
     private static Javalin server;
     private static int port;
@@ -41,7 +44,7 @@ class CompareServiceTest {
         var telemetry = new Telemetry(OpenTelemetry.noop().getTracer("test"));
 
         server = Javalin.create(config -> {
-            config.http.maxRequestSize = MAX_UPLOAD_SIZE + 1024;
+            config.http.maxRequestSize = MAX_REQUEST_SIZE;
             Routes.register(config.routes, validator, comparator, renderer, telemetry);
         }).start(0);
         port = server.port();

@@ -53,7 +53,10 @@ USER node
 
 EXPOSE 3000
 
+# Liveness, not the detailed /health: that one now requires the metrics key and
+# probes storage/queue/worker, so a slow dependency would mark the container
+# unhealthy.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:3000/api/v1/health || exit 1
+    CMD curl -f http://localhost:3000/api/v1/health/live || exit 1
 
 CMD ["node", "backend/dist/src/main.js"]

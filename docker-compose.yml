@@ -30,6 +30,11 @@ x-app-env: &app-env
   BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   TRUST_PROXY: ${TRUST_PROXY:-false}
+  # Set to true when the stack is served over TLS (directly or behind a proxy):
+  # the session cookie is then HTTPS-only.
+  AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+  DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
+  WEBHOOK_DELIVERY_RETENTION_DAYS: ${WEBHOOK_DELIVERY_RETENTION_DAYS:-30}
   UPLOAD_RATE_LIMIT_PER_MINUTE: ${UPLOAD_RATE_LIMIT_PER_MINUTE:-60}
   LOGIN_RATE_LIMIT_PER_MINUTE: ${LOGIN_RATE_LIMIT_PER_MINUTE:-5}
   LOG_RATE_LIMIT_PER_MINUTE: ${LOG_RATE_LIMIT_PER_MINUTE:-100}
@@ -111,7 +116,9 @@ services:
       dockerfile: backend/Dockerfile.worker
       <<: *build-cache
     restart: on-failure:10
-    stop_grace_period: 40s
+    # Above the poller's 30s drain budget so SIGTERM lets the last job finish
+    # instead of SIGKILLing it into a phantom retry.
+    stop_grace_period: 60s
     logging: *logging
     environment:
       <<: *app-env

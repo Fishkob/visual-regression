@@ -13,6 +13,7 @@ describe('SessionCleanupTask', () => {
   beforeEach(async () => {
     mockClient = {
       session: { deleteMany: vi.fn() },
+      twoFactorChallenge: { deleteMany: vi.fn() },
     };
     mockConnection = createMock<PrismaConnection>();
     Object.defineProperty(mockConnection, 'client', { get: () => mockClient });
@@ -33,6 +34,7 @@ describe('SessionCleanupTask', () => {
 
   it('deletes sessions whose window has closed and reports the deleted count', async () => {
     mockClient.session.deleteMany.mockResolvedValue({ count: 4 });
+    mockClient.twoFactorChallenge.deleteMany.mockResolvedValue({ count: 0 });
 
     const result = await task.execute();
 
@@ -45,16 +47,42 @@ describe('SessionCleanupTask', () => {
     });
   });
 
+  it('also drops abandoned two-factor challenges', async () => {
+    mockClient.session.deleteMany.mockResolvedValue({ count: 0 });
+    mockClient.twoFactorChallenge.deleteMany.mockResolvedValue({ count: 3 });
+
+    const result = await task.execute();
+
+    expect(mockClient.twoFactorChallenge.deleteMany).toHaveBeenCalledWith({
+      where: { expiresAt: { lt: expect.any(Date) } },
+    });
+    expect(result.gauges).toEqual(
+      expect.arrayContaining([
+        {
+          name: expect.stringContaining(
+            'cleanup_two_factor_challenges_deleted',
+          ),
+          value: 3,
+        },
+      ]),
+    );
+  });
+
   it('emits a zero delete gauge and a last-run gauge when nothing was deleted', async () => {
     mockClient.session.deleteMany.mockResolvedValue({ count: 0 });
+    mockClient.twoFactorChallenge.deleteMany.mockResolvedValue({ count: 0 });
 
     const result = await task.execute();
 
     expect(result.gauges?.[0]?.value).toBe(0);
-    expect(result.gauges?.[1]).toEqual({
-      name: expect.stringContaining('cleanup_sessions_last_run'),
-      value: expect.any(Number),
-    });
+    expect(result.gauges).toEqual(
+      expect.arrayContaining([
+        {
+          name: expect.stringContaining('cleanup_sessions_last_run'),
+          value: expect.any(Number),
+        },
+      ]),
+    );
   });
 
   it('runs under the dedicated session-cleanup lock', () => {

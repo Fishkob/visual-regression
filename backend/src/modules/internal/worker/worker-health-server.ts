@@ -40,14 +40,21 @@ export class WorkerHealthServer implements OnApplicationShutdown {
     this.server = http.createServer((req, res) => {
       const url = req.url ?? '';
       if (url === '/health' || url === '/api/v1/health') {
+        const status = this.deriveStatus();
         const payload: WorkerHealthPayload = {
-          status: this.deriveStatus(),
+          status,
           uptime: Math.floor((Date.now() - this.state.startTime) / 1000),
           lastJobProcessedAt: this.state.lastJobProcessedAt,
           lastPollAt: this.state.lastPollAt,
           jobsProcessed: this.state.jobsProcessed,
         };
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        // A stalled worker has to fail the probe, not just say so in the body:
+        // the liveness probe only inspects the status code, so an always-200
+        // endpoint kept a wedged worker running forever while the queue stood
+        // still. The API-side health check treats a non-2xx as `error` too.
+        res.writeHead(status === 'error' ? 503 : 200, {
+          'Content-Type': 'application/json',
+        });
         res.end(JSON.stringify(payload));
       } else if (url === '/metrics' || url === '/api/v1/metrics') {
         // The diff histograms and queue counters only ever live in the worker's

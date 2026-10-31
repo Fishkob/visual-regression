@@ -19,6 +19,8 @@ import { RunAutoFinishTask } from '@internal/data-deletion/tasks/run-auto-finish
 import { RunHistoryCleanupTask } from '@internal/data-deletion/tasks/run-history-cleanup.task';
 import { StorageSizeBackfillTask } from '@internal/data-deletion/tasks/storage-size-backfill.task';
 import { ReviewArtifactCleanupTask } from '@internal/data-deletion/tasks/review-artifact-cleanup.task';
+import { WebhookDeliveryCleanupTask } from '@internal/data-deletion/tasks/webhook-delivery-cleanup.task';
+import { ShareLinkCleanupTask } from '@internal/data-deletion/tasks/share-link-cleanup.task';
 import { OrphanCleanupService } from './services/orphan-cleanup.service';
 @Module({
   imports: [
@@ -41,6 +43,8 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
     RunHistoryCleanupTask,
     StorageSizeBackfillTask,
     ReviewArtifactCleanupTask,
+    WebhookDeliveryCleanupTask,
+    ShareLinkCleanupTask,
     {
       provide: MAINTENANCE_TASKS,
       useFactory: (
@@ -54,6 +58,8 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         runHistoryCleanupTask: RunHistoryCleanupTask,
         storageSizeBackfillTask: StorageSizeBackfillTask,
         reviewArtifactCleanupTask: ReviewArtifactCleanupTask,
+        webhookDeliveryCleanupTask: WebhookDeliveryCleanupTask,
+        shareLinkCleanupTask: ShareLinkCleanupTask,
       ) =>
         [
           orphanCleanupService,
@@ -66,6 +72,8 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
           runHistoryCleanupTask,
           storageSizeBackfillTask,
           reviewArtifactCleanupTask,
+          webhookDeliveryCleanupTask,
+          shareLinkCleanupTask,
         ] as MaintenanceTask[],
       inject: [
         OrphanCleanupService,
@@ -78,6 +86,8 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         RunHistoryCleanupTask,
         StorageSizeBackfillTask,
         ReviewArtifactCleanupTask,
+        WebhookDeliveryCleanupTask,
+        ShareLinkCleanupTask,
       ],
     },
   ],

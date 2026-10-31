@@ -149,7 +149,23 @@ export class PostgresJobQueue
         Date.now() - WORKER_TIMING.stallTimeoutSeconds * 1000,
       );
 
-      const rows = await tx.$queryRawUnsafe<
+      // Two claims instead of one `status = PENDING OR status = PROCESSING`
+      // query: the OR form cannot use a single ordered index, so it fell back to
+      // scanning "ComparisonJob" in createdAt order and filtering away every
+      // finished row (measured: 200k rows removed, ~20 ms per claim at 200k
+      // retained jobs). Each branch now has an equality prefix and can walk an
+      // index in createdAt order and stop at the first match. Stalled jobs are
+      // tried first because they are the oldest work: they were claimed before
+      // any pending row.
+      const claim = `
+        SELECT id, status, attempts, "maxAttempts" FROM "ComparisonJob"
+         WHERE status = $1
+           AND %CONDITION%
+         ORDER BY "createdAt"
+         LIMIT 1
+         FOR UPDATE SKIP LOCKED`;
+
+      const stalled = await tx.$queryRawUnsafe<
         {
           id: string;
           status: JobStatus;
@@ -157,39 +173,57 @@ export class PostgresJobQueue
           maxAttempts: number | null;
         }[]
       >(
-        `SELECT id, status, attempts, "maxAttempts" FROM "ComparisonJob"
-         WHERE (status = $1 AND ("nextAttemptAt" IS NULL OR "nextAttemptAt" <= NOW()))
-            OR (status = $2 AND ("heartbeatAt" IS NULL OR "heartbeatAt" < $3))
-         ORDER BY "createdAt"
-         LIMIT 1
-         FOR UPDATE SKIP LOCKED`,
-        JobStatus.PENDING,
+        claim.replace(
+          '%CONDITION%',
+          `("heartbeatAt" IS NULL OR "heartbeatAt" < $2)`,
+        ),
         JobStatus.PROCESSING,
         stallThreshold,
       );
 
-      if (rows.length === 0) return null;
-      const row = rows[0];
+      interface ClaimRow {
+        id: string;
+        status: JobStatus;
+        attempts: number;
+        maxAttempts: number | null;
+      }
+
+      const claimPending = (): Promise<ClaimRow[]> =>
+        tx.$queryRawUnsafe<ClaimRow[]>(
+          claim.replace(
+            '%CONDITION%',
+            `("nextAttemptAt" IS NULL OR "nextAttemptAt" <= NOW())`,
+          ),
+          JobStatus.PENDING,
+        );
+
+      let row: ClaimRow | undefined = stalled[0];
+
+      // A stalled job that already burned its budget is failed here and the
+      // claim falls through to the pending branch: returning "no job" would
+      // leave a claimable row waiting behind the poller's exponential backoff.
+      if (row) {
+        const stalledMaxAttempts = row.maxAttempts ?? JOB_MAX_ATTEMPTS;
+        if (decideRetry(row.attempts, stalledMaxAttempts).action === 'failed') {
+          await tx.comparisonJob.update({
+            where: { id: row.id },
+            data: {
+              status: JobStatus.FAILED,
+              attempts: row.attempts + 1,
+              error: 'Job stalled and exhausted its retry budget',
+              completedAt: new Date(),
+            },
+          });
+          row = undefined;
+        }
+      }
+
+      row ??= (await claimPending())[0];
+
+      if (!row) return null;
 
       const isStalledReclaim = row.status === JobStatus.PROCESSING;
       const nextAttempts = row.attempts + (isStalledReclaim ? 1 : 0);
-      const maxAttempts = row.maxAttempts ?? JOB_MAX_ATTEMPTS;
-
-      if (
-        isStalledReclaim &&
-        decideRetry(row.attempts, maxAttempts).action === 'failed'
-      ) {
-        await tx.comparisonJob.update({
-          where: { id: row.id },
-          data: {
-            status: JobStatus.FAILED,
-            attempts: nextAttempts,
-            error: 'Job stalled and exhausted its retry budget',
-            completedAt: new Date(),
-          },
-        });
-        return null;
-      }
 
       await tx.comparisonJob.update({
         where: { id: row.id },

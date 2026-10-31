@@ -114,6 +114,32 @@ describe('WebhookSender', () => {
     expect(result.error).toContain('nope');
   });
 
+  it('caps the stored error body hint instead of buffering the response', async () => {
+    fetchMock.mockResolvedValue(
+      new Response('x'.repeat(200_000), { status: 500 }),
+    );
+
+    const result = await sender.send(endpoint, delivery);
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/^HTTP 500: x{1,200}$/);
+  });
+
+  it('refuses redirects so a 3xx cannot route around the SSRF guard', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { location: 'http://169.254.169.254/latest/meta-data' },
+      }),
+    );
+
+    const result = await sender.send(endpoint, delivery);
+
+    expect(fetchMock.mock.calls[0][1].redirect).toBe('manual');
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe(302);
+  });
+
   it('reports a network error as a failed attempt', async () => {
     fetchMock.mockRejectedValue(new Error('connect ECONNREFUSED'));
 

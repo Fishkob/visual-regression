@@ -9,6 +9,7 @@ export {
   ApprovalReason,
   TestStatus,
   JobStatus,
+  WebhookDeliveryStatus,
   type User,
   type Session,
   type ApiKey,

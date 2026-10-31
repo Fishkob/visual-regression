@@ -36,8 +36,16 @@ describe('Auth (e2e)', () => {
       .expect(200);
   });
 
-  it('keeps health public', async () => {
-    await request(app.getHttpServer()).get('/api/v1/health').expect(200);
+  it('keeps the liveness probe public', async () => {
+    await request(app.getHttpServer()).get('/api/v1/health/live').expect(200);
+  });
+
+  it('keeps the detailed health endpoint behind the metrics key', async () => {
+    await request(app.getHttpServer()).get('/api/v1/health').expect(401);
+    await request(app.getHttpServer())
+      .get('/api/v1/health')
+      .set('x-metrics-key', process.env.METRICS_API_KEY ?? 'test-metrics-key')
+      .expect(200);
   });
 
   it('keeps metrics behind the metrics api key', async () => {

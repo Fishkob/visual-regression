@@ -26,7 +26,18 @@ import {
       imports: [AppConfigModule],
       inject: [AppConfigService],
       useFactory: (appConfig: AppConfigService) => ({
-        limits: { fileSize: appConfig.screenshotMaxSize },
+        // multer's defaults are `fields/files/parts = Infinity`, and every text
+        // part is buffered in memory for the whole request. Uploads run in the
+        // API process with memory storage, so an authenticated caller could
+        // otherwise push an arbitrary number of 1 MB fields into the heap. One
+        // file and the DTO's handful of text fields are all the route accepts.
+        limits: {
+          fileSize: appConfig.screenshotMaxSize,
+          files: 1,
+          fields: 20,
+          parts: 25,
+          fieldSize: 8 * 1024,
+        },
       }),
     }),
     PrismaModule,

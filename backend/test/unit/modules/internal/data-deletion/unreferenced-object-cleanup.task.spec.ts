@@ -12,6 +12,7 @@ import {
   STORAGE_OBJECT_REFERENCEDNESS,
   IStorageObjectReferencedness,
 } from '@common/domain/storage-referencedness.interface';
+import { createHash } from 'node:crypto';
 import { createMock } from '@test/utils/create-mock';
 import { createMockLogger } from '@test/utils/mocks';
 
@@ -61,6 +62,15 @@ describe('UnreferencedObjectCleanupTask', () => {
   const recent = () => new Date();
   const url = (name: string) => `http://localhost:9000/screenshots/${name}`;
 
+  // Every object this app writes is `<sha256>-<uuid>.<ext>` (`.diff` for
+  // comparison diffs). The sweep only deletes names matching that shape.
+  const managedName = (seed: string): string => {
+    const hash = createHash('sha256').update(seed).digest('hex');
+    const uuidHex = createHash('md5').update(seed).digest('hex');
+    const uuid = `${uuidHex.slice(0, 8)}-${uuidHex.slice(8, 12)}-${uuidHex.slice(12, 16)}-${uuidHex.slice(16, 20)}-${uuidHex.slice(20, 32)}`;
+    return `${hash}-${uuid}.png`;
+  };
+
   it('implements MaintenanceTask with its own lock id', () => {
     const asTask = task as unknown as MaintenanceTask;
     expect(asTask.lockId).toBe(1004);
@@ -69,7 +79,7 @@ describe('UnreferencedObjectCleanupTask', () => {
 
   it('lists the whole bucket root to find candidates', async () => {
     storage.listObjectsWithLastModified.mockResolvedValue([
-      { name: 'candidate.png', lastModified: old() },
+      { name: managedName('candidate'), lastModified: old() },
     ]);
     referencedness.findReferencedUrls.mockResolvedValue([]);
 
@@ -95,21 +105,23 @@ describe('UnreferencedObjectCleanupTask', () => {
 
   it('deletes only old and unreferenced objects', async () => {
     storage.listObjectsWithLastModified.mockResolvedValue([
-      { name: 'old-orphan.png', lastModified: old() },
-      { name: 'old-referenced.png', lastModified: old() },
-      { name: 'fresh-orphan.png', lastModified: recent() },
+      { name: managedName('old-orphan'), lastModified: old() },
+      { name: managedName('old-referenced'), lastModified: old() },
+      { name: managedName('fresh-orphan'), lastModified: recent() },
     ]);
     referencedness.findReferencedUrls.mockResolvedValue([
-      url('old-referenced.png'),
+      url(managedName('old-referenced')),
     ]);
     storage.deleteAll.mockResolvedValue({
-      deleted: [url('old-orphan.png')],
+      deleted: [url(managedName('old-orphan'))],
       failed: [],
     });
 
     const result = await task.execute();
 
-    expect(storage.deleteAll).toHaveBeenCalledWith([url('old-orphan.png')]);
+    expect(storage.deleteAll).toHaveBeenCalledWith([
+      url(managedName('old-orphan')),
+    ]);
     expect(result.counters).toEqual([
       { name: 'cleanup_unreferenced_objects_total', value: 1 },
     ]);
@@ -119,18 +131,20 @@ describe('UnreferencedObjectCleanupTask', () => {
   it('skips the pdf-render/ namespace', async () => {
     storage.listObjectsWithLastModified.mockResolvedValue([
       { name: 'pdf-render/base/pagecount', lastModified: old() },
-      { name: 'candidate.png', lastModified: old() },
+      { name: managedName('candidate'), lastModified: old() },
     ]);
     referencedness.findReferencedUrls.mockResolvedValue([]);
 
     await task.execute();
 
-    expect(storage.deleteAll).toHaveBeenCalledWith([url('candidate.png')]);
+    expect(storage.deleteAll).toHaveBeenCalledWith([
+      url(managedName('candidate')),
+    ]);
   });
 
   it('skips objects whose lastModified is unknown', async () => {
     storage.listObjectsWithLastModified.mockResolvedValue([
-      { name: 'no-age.png', lastModified: null },
+      { name: managedName('no-age'), lastModified: null },
     ]);
     referencedness.findReferencedUrls.mockResolvedValue([]);
 
@@ -142,26 +156,28 @@ describe('UnreferencedObjectCleanupTask', () => {
 
   it('keeps URLs referenced by a screenshot or comparison row', async () => {
     storage.listObjectsWithLastModified.mockResolvedValue([
-      { name: 'candidate.png', lastModified: old() },
-      { name: 'screenshot.png', lastModified: old() },
-      { name: 'diff.png', lastModified: old() },
+      { name: managedName('candidate'), lastModified: old() },
+      { name: managedName('screenshot'), lastModified: old() },
+      { name: managedName('diff'), lastModified: old() },
     ]);
     referencedness.findReferencedUrls.mockResolvedValue([
-      url('screenshot.png'),
-      url('diff.png'),
+      url(managedName('screenshot')),
+      url(managedName('diff')),
     ]);
 
     await task.execute();
 
-    expect(storage.deleteAll).toHaveBeenCalledWith([url('candidate.png')]);
+    expect(storage.deleteAll).toHaveBeenCalledWith([
+      url(managedName('candidate')),
+    ]);
   });
 
   it('skips deletion when every candidate is referenced', async () => {
     storage.listObjectsWithLastModified.mockResolvedValue([
-      { name: 'screenshot.png', lastModified: old() },
+      { name: managedName('screenshot'), lastModified: old() },
     ]);
     referencedness.findReferencedUrls.mockResolvedValue([
-      url('screenshot.png'),
+      url(managedName('screenshot')),
     ]);
 
     await task.execute();
@@ -171,21 +187,23 @@ describe('UnreferencedObjectCleanupTask', () => {
 
   it('re-checks the unreferenced predicate at delete time and skips a URL referenced in the window', async () => {
     storage.listObjectsWithLastModified.mockResolvedValue([
-      { name: 'claimed.png', lastModified: old() },
-      { name: 'orphan.png', lastModified: old() },
+      { name: managedName('claimed'), lastModified: old() },
+      { name: managedName('orphan'), lastModified: old() },
     ]);
     referencedness.findReferencedUrls.mockResolvedValueOnce([]);
     referencedness.findReferencedUrls.mockResolvedValueOnce([
-      url('claimed.png'),
+      url(managedName('claimed')),
     ]);
     storage.deleteAll.mockResolvedValue({
-      deleted: [url('orphan.png')],
+      deleted: [url(managedName('orphan'))],
       failed: [],
     });
 
     const result = await task.execute();
 
-    expect(storage.deleteAll).toHaveBeenCalledWith([url('orphan.png')]);
+    expect(storage.deleteAll).toHaveBeenCalledWith([
+      url(managedName('orphan')),
+    ]);
     expect(result.counters).toEqual([
       { name: 'cleanup_unreferenced_objects_total', value: 1 },
     ]);
@@ -193,10 +211,10 @@ describe('UnreferencedObjectCleanupTask', () => {
 
   it('does not re-scan when there is nothing to delete', async () => {
     storage.listObjectsWithLastModified.mockResolvedValue([
-      { name: 'screenshot.png', lastModified: old() },
+      { name: managedName('screenshot'), lastModified: old() },
     ]);
     referencedness.findReferencedUrls.mockResolvedValue([
-      url('screenshot.png'),
+      url(managedName('screenshot')),
     ]);
 
     await task.execute();
@@ -207,28 +225,52 @@ describe('UnreferencedObjectCleanupTask', () => {
 
   it('logs a warning and counts only confirmed deletions on partial failure', async () => {
     storage.listObjectsWithLastModified.mockResolvedValue([
-      { name: 'deleted.png', lastModified: old() },
-      { name: 'failed.png', lastModified: old() },
+      { name: managedName('deleted'), lastModified: old() },
+      { name: managedName('failed'), lastModified: old() },
     ]);
     referencedness.findReferencedUrls.mockResolvedValue([]);
     storage.deleteAll.mockResolvedValue({
-      deleted: [url('deleted.png')],
-      failed: [{ url: url('failed.png'), error: 'rustfs down' }],
+      deleted: [url(managedName('deleted'))],
+      failed: [{ url: url(managedName('failed')), error: 'rustfs down' }],
     });
 
     const result = await task.execute();
 
     expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining(url('failed.png')),
+      expect.stringContaining(url(managedName('failed'))),
     );
     expect(result.counters).toEqual([
       { name: 'cleanup_unreferenced_objects_total', value: 1 },
     ]);
   });
 
+  it('never deletes an object this installation did not write', async () => {
+    storage.listObjectsWithLastModified.mockResolvedValue([
+      { name: 'other-app/report.pdf', lastModified: old() },
+      { name: managedName('ours'), lastModified: old() },
+    ]);
+    referencedness.findReferencedUrls.mockResolvedValue([]);
+    storage.deleteAll.mockResolvedValue({
+      deleted: [url(managedName('ours'))],
+      failed: [],
+    });
+
+    await task.execute();
+
+    // The bucket is listed whole, so a shared bucket must not be emptied: the
+    // foreign object is neither looked up nor deleted.
+    expect(storage.deleteAll).toHaveBeenCalledWith([url(managedName('ours'))]);
+    expect(referencedness.findReferencedUrls).toHaveBeenCalledWith([
+      url(managedName('ours')),
+    ]);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('not created by this installation'),
+    );
+  });
+
   it('reports zero when no old objects exist', async () => {
     storage.listObjectsWithLastModified.mockResolvedValue([
-      { name: 'fresh-orphan.png', lastModified: recent() },
+      { name: managedName('fresh-orphan'), lastModified: recent() },
     ]);
 
     const result = await task.execute();

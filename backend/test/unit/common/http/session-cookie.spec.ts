@@ -80,7 +80,7 @@ describe('session-cookie', () => {
 
   describe('sessionCookieOptions', () => {
     it('builds Set-Cookie attributes', () => {
-      const opts = sessionCookieOptions(false);
+      const opts = sessionCookieOptions(false, 30 * 24 * 60 * 60 * 1000);
       expect(opts.httpOnly).toBe(true);
       expect(opts.sameSite).toBe('lax');
       expect(opts.path).toBe('/');
@@ -88,7 +88,11 @@ describe('session-cookie', () => {
     });
 
     it('sets Secure when requested', () => {
-      expect(sessionCookieOptions(true).secure).toBe(true);
+      expect(sessionCookieOptions(true, 1000).secure).toBe(true);
+    });
+
+    it('gives the cookie the session lifetime so a restart does not log out', () => {
+      expect(sessionCookieOptions(false, 12345).maxAge).toBe(12345);
     });
   });
 });

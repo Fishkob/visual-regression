@@ -12,6 +12,7 @@ import { Prisma } from '@/prisma/client';
 import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { RequestContext } from '@common/logging/request-context';
+import { redactUrl } from '@common/logging/redact-url';
 import {
   classifyException,
   classifyPrismaError,
@@ -218,7 +219,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       statusCode,
       'Internal server error',
       {},
-      (traceId) => `Unhandled server error [${traceId}] ${url}`,
+      (traceId) => `Unhandled server error [${traceId}] ${redactUrl(url)}`,
       exception instanceof Error ? exception.stack : undefined,
     );
   }

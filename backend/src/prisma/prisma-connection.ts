@@ -10,7 +10,15 @@ export class PrismaConnection implements OnModuleInit, OnModuleDestroy {
 
   constructor(appConfig: AppConfigService) {
     const connectionString = appConfig.database.url;
-    const adapter = new PrismaPg({ connectionString });
+    // The pg pool defaults to 10 connections per process and would otherwise be
+    // invisible: with an HPA of 5 API + 5 worker replicas that is 100
+    // connections against Postgres' default max_connections of 100, with none
+    // left for migrations or an operator. The cap is explicit and configurable
+    // so the arithmetic is a deployment decision, not a default.
+    const adapter = new PrismaPg({
+      connectionString,
+      max: appConfig.database.poolMax,
+    });
     this.client = new PrismaClient({ adapter });
   }
 

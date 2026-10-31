@@ -4,6 +4,7 @@ import { createValidationPipe } from '@common/http/validation-pipe';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { AppModule } from '@app';
 import { IntakeWorkerModule } from '@public/visualTest/intake/intake-worker.module';
+import { DataDeletionModule } from '@internal/data-deletion/data-deletion.module';
 import { hashToken } from '@internal/auth/token-hash';
 import { E2E_API_KEY } from './e2e-api-key';
 
@@ -19,7 +20,9 @@ export class TestApp {
    */
   static async init(): Promise<INestApplication> {
     const moduleRef: TestingModule = await Test.createTestingModule({
-      imports: [AppModule, IntakeWorkerModule],
+      // The worker-only modules ride along so a test can drive a sweep or a
+      // queued job in-process; production keeps them in WorkerModule.
+      imports: [AppModule, IntakeWorkerModule, DataDeletionModule],
     }).compile();
 
     const app = moduleRef.createNestApplication();

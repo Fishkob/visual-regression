@@ -11,6 +11,13 @@ import {
   type VariantBaselineRow,
 } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { TransactionContext } from '@/prisma/transaction-context';
+import { chunk } from '@common/utils/chunk';
+
+// A reclaim can cover a whole project (every screenshot and diff URL its tests
+// own), which on a large project is far more values than one `IN (...)` clause
+// can bind. Batches keep the three reference lookups bounded; the caller still
+// receives one decision per input URL.
+const RECLAIM_LOOKUP_BATCH_SIZE = 1000;
 
 @Injectable()
 export class UnifiedScreenshotRepository extends BaseRepository {
@@ -434,11 +441,12 @@ export class UnifiedScreenshotRepository extends BaseRepository {
     imageUrls: string[],
   ): Promise<string[]> {
     if (imageUrls.length === 0) return [];
-    const rows = await this.client.baselineRevision.findMany({
-      where: { imageUrl: { in: imageUrls } },
-      select: { imageUrl: true },
-    });
-    const referenced = new Set(rows.map((row) => row.imageUrl));
+    const referenced = await this.collectReferencedUrls(imageUrls, (batch) =>
+      this.client.baselineRevision.findMany({
+        where: { imageUrl: { in: batch } },
+        select: { imageUrl: true },
+      }),
+    );
     return imageUrls.filter((url) => !referenced.has(url));
   }
 
@@ -449,7 +457,12 @@ export class UnifiedScreenshotRepository extends BaseRepository {
   private async filterOutBaselineSharedUrls(
     imageUrls: string[],
   ): Promise<string[]> {
-    const shared = new Set(await this.findBaselineImageUrls(imageUrls));
+    const shared = await this.collectReferencedUrls(imageUrls, (batch) =>
+      this.client.unifiedScreenshot.findMany({
+        where: { type: 'BASELINE', imageUrl: { in: batch } },
+        select: { imageUrl: true },
+      }),
+    );
     return imageUrls.filter((url) => !shared.has(url));
   }
 
@@ -461,25 +474,30 @@ export class UnifiedScreenshotRepository extends BaseRepository {
     imageUrls: string[],
   ): Promise<string[]> {
     if (imageUrls.length === 0) return [];
-    const rows = await this.client.unifiedScreenshot.findMany({
-      where: {
-        type: 'CURRENT',
-        imageUrl: { in: imageUrls },
-        asCandidateComp: { some: {} },
-      },
-      select: { imageUrl: true },
-    });
-    const referenced = new Set(rows.map((row) => row.imageUrl));
+    const referenced = await this.collectReferencedUrls(imageUrls, (batch) =>
+      this.client.unifiedScreenshot.findMany({
+        where: {
+          type: 'CURRENT',
+          imageUrl: { in: batch },
+          asCandidateComp: { some: {} },
+        },
+        select: { imageUrl: true },
+      }),
+    );
     return imageUrls.filter((url) => !referenced.has(url));
   }
 
-  private async findBaselineImageUrls(imageUrls: string[]): Promise<string[]> {
-    if (imageUrls.length === 0) return [];
-    const rows = await this.client.unifiedScreenshot.findMany({
-      where: { type: 'BASELINE', imageUrl: { in: imageUrls } },
-      select: { imageUrl: true },
-    });
-    return rows.map((row) => row.imageUrl);
+  private async collectReferencedUrls(
+    imageUrls: string[],
+    lookup: (batch: string[]) => Promise<{ imageUrl: string }[]>,
+  ): Promise<Set<string>> {
+    const referenced = new Set<string>();
+    for (const batch of chunk(imageUrls, RECLAIM_LOOKUP_BATCH_SIZE)) {
+      for (const row of await lookup(batch)) {
+        referenced.add(row.imageUrl);
+      }
+    }
+    return referenced;
   }
 
   // The previous threshold values of the baselines a threshold update is about

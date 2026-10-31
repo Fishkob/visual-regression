@@ -180,7 +180,7 @@ describe('ComparisonJobPoller', () => {
       expect(capturedIntervals[0].ms).toBeLessThan(150_000);
 
       capturedIntervals[0].cb();
-      expect(healthServer.recordPoll).toHaveBeenCalledTimes(2);
+      expect(healthServer.recordPoll).toHaveBeenCalledTimes(1);
 
       releaseJob();
       await (poller as any).inFlight;
@@ -246,57 +246,83 @@ describe('ComparisonJobPoller', () => {
       expect(capturedTimeouts).toHaveLength(2);
     });
 
+    it('does not record poll liveness when the claim itself fails', async () => {
+      // A worker whose claims keep failing must look stalled to the probe:
+      // recording the poll before the claim hid exactly that state.
+      queue.processNext.mockRejectedValue(new Error('permission denied'));
+
+      await triggerLatestPoll();
+
+      expect(healthServer.recordPoll).not.toHaveBeenCalled();
+    });
+
     it('does not schedule next poll when shutting down', async () => {
       queue.processNext.mockResolvedValue(false);
 
       await triggerLatestPoll();
-      expect(capturedTimeouts).toHaveLength(2);
+      const claims = queue.processNext.mock.calls.length;
 
       await poller.onModuleDestroy();
-
       await triggerLatestPoll();
 
-      expect(capturedTimeouts).toHaveLength(2);
+      expect(queue.processNext).toHaveBeenCalledTimes(claims);
     });
   });
 
   describe('onModuleDestroy', () => {
-    it('clears the poll timer and drains pending jobs', async () => {
-      queue.processNext
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(false);
+    it('clears the poll timer and claims no new job while shutting down', async () => {
+      queue.processNext.mockResolvedValue(false);
 
       poller.onApplicationBootstrap();
       await triggerLatestPoll();
+      const claimsBeforeShutdown = queue.processNext.mock.calls.length;
+
       await poller.onModuleDestroy();
 
       expect(clearTimeout).toHaveBeenCalled();
-      expect(logger.log).toHaveBeenCalledWith(
-        'Worker drained 1 jobs before shutdown',
+      expect(queue.processNext).toHaveBeenCalledTimes(claimsBeforeShutdown);
+    });
+
+    it('waits for an in-flight job that finishes', async () => {
+      let releaseJob!: () => void;
+      queue.processNext.mockImplementation(
+        () =>
+          new Promise<boolean>((resolve) => {
+            releaseJob = () => resolve(false);
+          }),
+      );
+
+      poller.onApplicationBootstrap();
+      capturedTimeouts[capturedTimeouts.length - 1].cb();
+      await Promise.resolve();
+
+      const destroying = poller.onModuleDestroy();
+      releaseJob();
+      await destroying;
+
+      expect(logger.warn).not.toHaveBeenCalledWith(
+        expect.stringContaining('did not finish'),
       );
     });
 
-    it('does not log drain message when no pending jobs', async () => {
-      queue.processNext.mockResolvedValue(false);
-
-      await poller.onModuleDestroy();
-
-      expect(logger.log).not.toHaveBeenCalledWith(
-        expect.stringContaining('drained'),
+    it('stops waiting for an in-flight job after the drain budget', async () => {
+      queue.processNext.mockImplementation(
+        () => new Promise<boolean>(() => {}),
       );
-    });
 
-    it('handles errors during drain without crashing', async () => {
-      queue.processNext
-        .mockRejectedValueOnce(new Error('drain error'))
-        .mockResolvedValueOnce(false);
+      poller.onApplicationBootstrap();
+      capturedTimeouts[capturedTimeouts.length - 1].cb();
+      await Promise.resolve();
 
-      await poller.onModuleDestroy();
+      const destroying = poller.onModuleDestroy();
+      // The in-flight job never settles; the drain timer is the only way out.
+      const drainTimer = capturedTimeouts[capturedTimeouts.length - 1];
+      drainTimer.cb();
+      await destroying;
 
-      expect(logger.error).toHaveBeenCalledWith(
-        'Drain cycle failed',
-        expect.any(String),
+      expect(drainTimer.ms).toBe(30_000);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('did not finish within 30000ms'),
       );
     });
   });

@@ -4432,7 +4432,17 @@
     "/health": {
       "get": {
         "operationId": "HealthController_check",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-metrics-key",
+            "in": "header",
+            "description": "Same key as the /metrics endpoint",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "All systems operational",
@@ -4443,6 +4453,9 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Invalid or missing metrics key"
           },
           "503": {
             "description": "One or more systems are unhealthy",
@@ -4500,7 +4513,17 @@
     "/health/db": {
       "get": {
         "operationId": "HealthController_checkDatabase",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-metrics-key",
+            "in": "header",
+            "description": "Same key as the /metrics endpoint",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Database connection is healthy"
@@ -4520,7 +4543,17 @@
     "/health/storage": {
       "get": {
         "operationId": "HealthController_checkStorage",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "x-metrics-key",
+            "in": "header",
+            "description": "Same key as the /metrics endpoint",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "RustFS storage is available"

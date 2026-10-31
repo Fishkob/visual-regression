@@ -4,6 +4,7 @@ import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastruct
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ReviewArtifactRepository } from '@public/visualTest/core/infrastructure/repositories/review-artifact.repository';
+import { ProjectShareLinkRepository } from '@public/visualTest/core/infrastructure/repositories/project-share-link.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { JOB_PRODUCER, IJobProducer } from '@common/domain/job-queue.interface';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
@@ -14,7 +15,7 @@ import {
   change,
   noop,
   deleted,
-  DELETION_STATE_CHANGE_RETRY,
+  DELETION_STATE_CHANGE_OPTIONS,
   type PersistedChange,
 } from '@public/visualTest/core/application/services/state-change-options';
 import { DomainError } from '@common/domain/domain-error';
@@ -41,6 +42,7 @@ export class TestDeletionService {
     private readonly retirement: ComparisonRetirementService,
     private readonly audit: AuditService,
     private readonly reviewArtifacts: ReviewArtifactRepository,
+    private readonly shareLinks: ProjectShareLinkRepository,
   ) {}
 
   async deleteScreenshotsByFilters(
@@ -123,7 +125,7 @@ export class TestDeletionService {
         };
       },
       {
-        retry: DELETION_STATE_CHANGE_RETRY,
+        ...DELETION_STATE_CHANGE_OPTIONS,
       },
     );
 
@@ -149,7 +151,7 @@ export class TestDeletionService {
     await this.workflow.executeStateChange(
       async () => this.deleteTestsInTx(testIds, auditContext),
       {
-        retry: DELETION_STATE_CHANGE_RETRY,
+        ...DELETION_STATE_CHANGE_OPTIONS,
       },
     );
   }
@@ -194,6 +196,9 @@ export class TestDeletionService {
       // Backstop for rows whose testId no longer resolves (an earlier failed
       // delete, or a project deleted without tests).
       await this.reviewArtifacts.deleteForProjectName(deleteProjectName);
+      // Same transaction: a share link keyed by the project name must not
+      // survive the project, or recreating the name would revive every old token.
+      await this.shareLinks.deleteForProjectName(deleteProjectName);
       await this.projects.deleteByName(deleteProjectName);
     }
 
@@ -227,7 +232,7 @@ export class TestDeletionService {
         );
       },
       {
-        retry: DELETION_STATE_CHANGE_RETRY,
+        ...DELETION_STATE_CHANGE_OPTIONS,
       },
     );
   }

@@ -395,6 +395,9 @@ model ComparisonJob {
   @@index([status, heartbeatAt])
   @@index([status, candidateId])
   @@index([status, completedAt])
+  // Serves the worker's claim: equality on status + ORDER BY "createdAt", so the
+  // scan stops at the first claimable row instead of filtering retained history.
+  @@index([status, createdAt])
   @@index([testId])
   @@index([createdAt])
   @@index([runId])

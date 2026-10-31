@@ -94,6 +94,12 @@ backend:
     TRUST_PROXY: "false"
     LOG_LEVEL: info
     OTEL_EXPORTER_OTLP_ENDPOINT: ""
+    # Set to "true" when the ingress terminates TLS: the session cookie is
+    # then HTTPS-only.
+    AUTH_COOKIE_SECURE: "false"
+    # Postgres connections per process; keep replicas x pool below the
+    # database's max_connections.
+    DATABASE_POOL_MAX: "10"
   extraEnv: []
   resources:
     requests:
@@ -135,6 +141,7 @@ worker:
     PDF_SIDECAR_HEALTH_URL: http://pdf-sidecar:3001/health
     LOG_LEVEL: info
     OTEL_EXPORTER_OTLP_ENDPOINT: ""
+    DATABASE_POOL_MAX: "10"
   resources:
     requests:
       cpu: 100m
@@ -154,10 +161,12 @@ pdfSidecar:
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 256Mi
+    # The JVM runs with -Xmx512m; a 256Mi container limit OOM-kills the sidecar
+    # on any real PDF, before the heap limit is reached.
     limits:
       cpu: 200m
-      memory: 256Mi
+      memory: 768Mi
   securityContext:
     runAsUser: 1000
     fsGroup: 1000

@@ -88,6 +88,66 @@ API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default 60), login attempts per IP
 (`LOG_RATE_LIMIT_PER_MINUTE`, default 100). Exceeding a limit returns `429` with
 a `Retry-After` header.
 
+## Health Endpoints
+
+| Endpoint       | Auth                | Use                                              |
+| -------------- | ------------------- | ------------------------------------------------ |
+| `/health/live` | anonymous           | liveness probe (also the image `HEALTHCHECK`)    |
+| `/health/ready`| anonymous           | readiness probe; statuses only, no error strings |
+| `/health`      | `x-metrics-key`     | full diagnostics incl. probe latencies/messages  |
+| `/health/db`, `/health/storage` | `x-metrics-key` | single-dependency diagnostics       |
+
+The probe endpoints must stay anonymous (a kubelet carries no key), so they
+report only which dependency is unhealthy. The detailed view names the raw probe
+error, which can include an internal host, so it requires the same key as
+`/metrics`. When `METRICS_API_KEY` is empty the detailed endpoints answer `401`.
+
+Readiness intentionally checks only what the API needs to serve requests
+(database, storage, queue counts). It does **not** depend on the worker or the
+pdf-sidecar: with `WORKER_HEALTH_URL`/`PDF_SIDECAR_HEALTH_URL` set they appear in
+the detailed view, but a dead worker must not drain the API from the Service.
+
+## Postgres Connections
+
+Each process opens its own pool: `DATABASE_POOL_MAX` (default 10, max 100) per
+API and per worker replica. Keep `replicas x pool` below the database's
+`max_connections` (Postgres default: 100, minus superuser reserves):
+
+```
+(backend replicas + worker replicas) x DATABASE_POOL_MAX < max_connections
+```
+
+With the chart's autoscaling default (`maxReplicas: 5` each) and the default pool
+of 10 that is exactly 100 connections, so either cap the HPA, lower
+`DATABASE_POOL_MAX`, or raise `max_connections` on an external database.
+
+## Retention runs in the worker
+
+All scheduled retention (runs, jobs, sessions, share links, webhook payloads,
+orphaned storage objects) lives in the worker process, not the API. A deployment
+without a worker keeps serving requests but never prunes anything; the Helm
+chart and `docker-compose.yml` both ship a worker. Two workers are safe — every
+task takes a Postgres advisory lock before it runs.
+
+Two tables are deliberately **not** pruned: `AuditEvent` (the compliance trail,
+including the IP/user-agent written when a share link is opened) and
+`ComparisonOutcomeEvent` (the trend/flake history). Both are append-only and grow
+with usage; size the database accordingly, or archive/purge them on your own
+schedule if a retention policy requires it. Everything else has a configurable
+window (`RUN_HISTORY_RETENTION_DAYS`, `JOB_RETENTION_DAYS`,
+`WEBHOOK_DELIVERY_RETENTION_DAYS`, session expiry, 7 days for expired share
+links).
+
+## Object Storage Bucket
+
+`RUSTFS_BUCKET` must be **exclusive to this installation**. The daily sweep lists
+the whole bucket and deletes objects that no row references; it now only
+considers keys matching the names this application writes
+(`<sha256>-<uuid>.<png|pdf>` and `<sha256>-<uuid>.diff.<png|pdf>`), so foreign
+objects are skipped and logged rather than deleted. Still, pointing two
+installations at one bucket means each one sees the other's objects as
+unreferenced and the log fills with warnings — use one bucket per installation.
+
 ## k3s Quickstart
 
 For a single-node cluster on a fresh VM:

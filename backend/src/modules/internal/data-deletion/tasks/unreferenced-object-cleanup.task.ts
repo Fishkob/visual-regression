@@ -12,6 +12,7 @@ import type {
 } from '@common/domain/maintenance-task.interface';
 import { METRICS } from '@common/domain/metrics-catalog';
 import { MAINTENANCE_LOCK_IDS } from '@internal/data-deletion/maintenance-lock-ids';
+import { isManagedObjectName } from '@internal/storage/services/managed-object-name';
 import {
   STORAGE_OBJECT_REFERENCEDNESS,
   IStorageObjectReferencedness,
@@ -53,7 +54,23 @@ export class UnreferencedObjectCleanupTask implements MaintenanceTask {
     );
     const ageThreshold = new Date(Date.now() - UNREFERENCED_OBJECT_MAX_AGE_MS);
 
-    const candidateUrls = objects
+    // Only objects this application wrote are ever candidates: the sweep lists
+    // the entire bucket, so a bucket shared with another installation (or any
+    // other data) must not be treated as garbage just because no row of THIS
+    // database references it. Foreign keys are counted and reported, never
+    // deleted.
+    const owned = objects.filter((object) => isManagedObjectName(object.name));
+    const foreignCount = objects.filter(
+      (object) =>
+        !isManagedObjectName(object.name) && !isPdfRenderObject(object.name),
+    ).length;
+    if (foreignCount > 0) {
+      this.logger.warn(
+        `Skipped ${String(foreignCount)} storage object(s) not created by this installation; the bucket should be exclusive to it`,
+      );
+    }
+
+    const candidateUrls = owned
       .filter(
         (object) =>
           !isPdfRenderObject(object.name) &&

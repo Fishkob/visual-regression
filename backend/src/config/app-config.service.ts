@@ -9,7 +9,7 @@ import { ConfigService as NestConfigService } from '@nestjs/config';
 interface AppConfigSnapshot {
   app: { port: number; env: string | undefined };
   storageRetry: { maxAttempts: number; retryDelayMs: number };
-  database: { url: string };
+  database: { url: string; poolMax: number };
   rustfs: {
     endpoint: string;
     port: number;
@@ -23,6 +23,7 @@ interface AppConfigSnapshot {
   };
   pdfSidecar: { url: string; timeout: number; healthUrl: string | undefined };
   jobRetention: { days: number };
+  webhookRetention: { days: number };
   baselineHistory: { limit: number };
   retention: { runHistoryDays: number };
   appPublicUrl: string;
@@ -94,6 +95,10 @@ export class AppConfigService {
 
   get jobRetention() {
     return this.s.jobRetention;
+  }
+
+  get webhookRetention() {
+    return this.s.webhookRetention;
   }
 
   get appPublicUrl() {
@@ -186,7 +191,12 @@ export class AppConfigService {
         maxAttempts: Number(this.config.get<string>('STORAGE_MAX_ATTEMPTS')),
         retryDelayMs: Number(this.config.get<string>('STORAGE_RETRY_DELAY_MS')),
       },
-      database: { url: this.config.getOrThrow<string>('DATABASE_URL') },
+      database: {
+        url: this.config.getOrThrow<string>('DATABASE_URL'),
+        // Falls back to the Joi default on the pre-Joi bootstrap path, like the
+        // other non-critical settings.
+        poolMax: this.config.get<number>('DATABASE_POOL_MAX') ?? 10,
+      },
       rustfs: {
         endpoint: this.config.getOrThrow<string>('RUSTFS_ENDPOINT'),
         port: Number(this.config.getOrThrow<number | string>('RUSTFS_PORT')),
@@ -214,6 +224,9 @@ export class AppConfigService {
       },
       jobRetention: {
         days: this.config.getOrThrow<number>('JOB_RETENTION_DAYS'),
+      },
+      webhookRetention: {
+        days: this.config.get<number>('WEBHOOK_DELIVERY_RETENTION_DAYS') ?? 30,
       },
       baselineHistory: {
         // Falls back to the Joi default on the pre-Joi bootstrap path, like the

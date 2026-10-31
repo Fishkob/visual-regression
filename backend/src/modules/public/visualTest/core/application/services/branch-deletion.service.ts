@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import {
   deleted,
-  DELETION_STATE_CHANGE_RETRY,
+  DELETION_STATE_CHANGE_OPTIONS,
 } from '@public/visualTest/core/application/services/state-change-options';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
@@ -92,7 +92,7 @@ export class BranchDeletionService {
         ]);
         return deleted({ staleUrls });
       },
-      { retry: DELETION_STATE_CHANGE_RETRY },
+      { ...DELETION_STATE_CHANGE_OPTIONS },
     );
   }
 }

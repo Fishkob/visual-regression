@@ -37,6 +37,13 @@ describe('assertSafeWebhookUrl', () => {
     'http://metadata.google.internal/computeMetadata/v1',
     'http://[::1]/hook',
     'http://[fe80::1]/hook',
+    // WHATWG normalizes the mapped forms to hex, so the old dotted-tail check
+    // missed every one of them (each was reachable before the fix).
+    'http://[::ffff:127.0.0.1]:3000/hook',
+    'http://[::ffff:169.254.169.254]/latest/meta-data',
+    'http://[::ffff:7f00:1]/hook',
+    'http://[::ffff:0:7f00:1]/hook',
+    'http://[::7f00:1]/hook',
   ])('rejects the loopback/metadata target %s', (url) => {
     expect(() => assertSafeWebhookUrl(url)).toThrow('is not allowed');
   });

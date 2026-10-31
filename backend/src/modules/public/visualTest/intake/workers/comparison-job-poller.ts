@@ -48,11 +48,15 @@ export class ComparisonJobPoller
   }
 
   private async pollOnce(): Promise<void> {
-    this.health.recordPoll();
     let didProcessJob = false;
 
     try {
       didProcessJob = await this.runNextJob();
+      // Liveness advances only once the queue answered. Recording it before the
+      // claim made a worker whose claims keep failing (revoked DB grants, a
+      // wedged connection) look healthy forever: /health stayed `ok`, so the
+      // liveness probe never restarted it and the queue silently stopped.
+      this.health.recordPoll();
     } catch (err: unknown) {
       this.logger.error(
         'Poll cycle failed',
@@ -95,31 +99,42 @@ export class ComparisonJobPoller
       this.pollTimer = null;
     }
 
-    // Wait for the current in-flight job to complete
+    // No job is claimed while shutting down. The previous drain loop claimed
+    // fresh work with the remaining budget — work the process would be killed
+    // in the middle of, turning a clean deploy into a phantom attempt when the
+    // row is reclaimed. Queued jobs stay PENDING and are picked up by another
+    // replica or after the restart.
+    //
+    // The in-flight job gets the drain budget, never more: an unbounded wait
+    // outlives the container's stop grace period and ends in SIGKILL anyway,
+    // which is strictly worse than exiting cleanly (the row is reclaimed after
+    // the stall timeout either way).
     if (this.inFlight) {
-      await this.inFlight;
+      await this.waitForInFlightJob();
       this.inFlight = null;
     }
+  }
 
-    // Drain loop: process remaining PENDING jobs until empty or timeout
-    const deadline = Date.now() + WORKER_TIMING.drainTimeoutMs;
-    let drained = 0;
+  private async waitForInFlightJob(): Promise<void> {
+    const inFlight = this.inFlight;
+    if (!inFlight) return;
 
-    while (Date.now() < deadline) {
-      try {
-        const didHaveJob = await this.runNextJob();
-        if (!didHaveJob) break;
-        drained++;
-      } catch (err: unknown) {
-        this.logger.error(
-          'Drain cycle failed',
-          err instanceof Error ? err.stack : String(err),
-        );
-      }
-    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const didTimeOut = await Promise.race([
+      inFlight.then(() => false),
+      new Promise<boolean>((resolve) => {
+        timer = setTimeout(() => {
+          resolve(true);
+        }, WORKER_TIMING.drainTimeoutMs);
+      }),
+    ]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
 
-    if (drained > 0) {
-      this.logger.log(`Worker drained ${drained} jobs before shutdown`);
+    if (didTimeOut) {
+      this.logger.warn(
+        `In-flight job did not finish within ${String(WORKER_TIMING.drainTimeoutMs)}ms; leaving it to stall reclaim`,
+      );
     }
   }
 }
