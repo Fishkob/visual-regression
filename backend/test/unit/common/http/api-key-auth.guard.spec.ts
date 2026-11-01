@@ -62,6 +62,12 @@ describe('ApiKeyAuthGuard', () => {
     ).toThrow(UnauthorizedException);
   });
 
+  it('rejects a key that differs in the last character', () => {
+    expect(() =>
+      createGuard().canActivate(mockContext({ 'x-test-key': 'secret124' })),
+    ).toThrow('Invalid API key');
+  });
+
   it('throws when the header is present but not a string', () => {
     expect(() =>
       createGuard().canActivate(mockContext({ 'x-test-key': ['secret123'] })),

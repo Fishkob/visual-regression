@@ -79,6 +79,10 @@ export class RateLimitGuard implements CanActivate {
         return this.appConfig.loginRateLimitPerMinute;
       case 'log':
         return this.appConfig.logRateLimitPerMinute;
+      case 'admin':
+        return this.appConfig.adminRateLimitPerMinute;
+      case 'render':
+        return this.appConfig.renderRateLimitPerMinute;
       case 'upload':
         return this.appConfig.uploadRateLimitPerMinute;
     }
@@ -101,7 +105,14 @@ export class RateLimitGuard implements CanActivate {
       }
       case 'log':
         return [`ip:${request.ip}`];
+      // The operator surfaces authenticate with a single static key and have no
+      // product principal to key on, so the client IP is the only bucket.
+      case 'admin':
+        return [`ip:${request.ip}`];
+      // PDF page rendering is a read for the caller but a write for us (it puts
+      // render-cache objects), so it is throttled like an upload.
       case 'upload':
+      case 'render':
         return [
           request.auth?.apiKeyId
             ? `apikey:${request.auth.apiKeyId}`

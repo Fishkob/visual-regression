@@ -4,6 +4,7 @@ import { Prisma } from '@/prisma/client';
 import type { TestKind } from '@common/domain/test-kind';
 
 export interface ComparisonOutcomeEntry {
+  projectName: string;
   testId: string;
   testName: string;
   kind: TestKind;
@@ -35,7 +36,8 @@ export interface TrendWindow {
 export class ComparisonOutcomeRepository extends BaseRepository {
   // Analytics write, deliberately outside the comparison transaction: losing a
   // trend row must never roll back a comparison, and the row carries everything
-  // the report needs (names, variant, run) so no joins are required later.
+  // the report needs (project, names, variant, run) so no joins are required
+  // later — a join would drop the row once its test is deleted.
   async record(entry: ComparisonOutcomeEntry): Promise<void> {
     await this.client.comparisonOutcomeEvent.create({ data: entry });
   }
@@ -62,10 +64,7 @@ export class ComparisonOutcomeRepository extends BaseRepository {
              COUNT(*) FILTER (WHERE e.outcome = 'unchanged') AS unchanged,
              COUNT(*) FILTER (WHERE e.outcome = 'within_threshold') AS within_threshold
       FROM "ComparisonOutcomeEvent" e
-      JOIN "UnifiedTest" t ON t.id = e."testId"
-      JOIN "Branch" b ON b.id = t."branchId"
-      JOIN "Project" p ON p.id = b."projectId"
-      WHERE p.name = ${projectName} AND e."createdAt" >= ${since}
+      WHERE e."projectName" = ${projectName} AND e."createdAt" >= ${since}
       GROUP BY 1
       ORDER BY 1 ASC
     `);
@@ -105,10 +104,7 @@ export class ComparisonOutcomeRepository extends BaseRepository {
                COUNT(*) FILTER (WHERE e.outcome = 'changed') AS changed,
                COUNT(*) FILTER (WHERE e.outcome IN ('unchanged', 'within_threshold')) AS clean
         FROM "ComparisonOutcomeEvent" e
-        JOIN "UnifiedTest" t ON t.id = e."testId"
-        JOIN "Branch" b ON b.id = t."branchId"
-        JOIN "Project" p ON p.id = b."projectId"
-        WHERE p.name = ${projectName} AND e."createdAt" >= ${since}
+        WHERE e."projectName" = ${projectName} AND e."createdAt" >= ${since}
         GROUP BY e."testId"
       )
       SELECT COUNT(*) FILTER (WHERE changed > 0 AND clean > 0) AS flaky,

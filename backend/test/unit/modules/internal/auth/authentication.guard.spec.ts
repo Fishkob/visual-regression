@@ -23,8 +23,11 @@ describe('AuthenticationGuard', () => {
   const appConfig = {
     auth: {
       apiKeyHeader: 'x-api-key',
+      cookieSecure: false,
       sessionTtlDays: 30,
       sessionTtlMs: 30 * 24 * 60 * 60 * 1000,
+      sessionAbsoluteMaxDays: 90,
+      sessionAbsoluteMaxMs: 90 * 24 * 60 * 60 * 1000,
     },
   } as unknown as AppConfigService;
 
@@ -34,6 +37,8 @@ describe('AuthenticationGuard', () => {
   // own context instead of using apiKeyContext.
   const readScopedHandler = () => {};
   Reflect.defineMetadata(API_KEY_SCOPE_KEY, ['read'], readScopedHandler);
+
+  const response = { cookie: vi.fn() };
 
   const mockContext = (
     headers: Record<string, unknown> = {},
@@ -47,7 +52,9 @@ describe('AuthenticationGuard', () => {
           headers,
           method: 'GET',
           path: '/api/v1/projects',
+          secure: false,
         }),
+        getResponse: () => response,
       }),
     }) as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
 
@@ -64,6 +71,7 @@ describe('AuthenticationGuard', () => {
   });
 
   beforeEach(async () => {
+    response.cookie.mockClear();
     mockRepository = createMock<AuthRepository>();
     mockApiKeyService = createMock<ApiKeyService>();
 
@@ -150,7 +158,10 @@ describe('AuthenticationGuard', () => {
     const ctx = {
       getClass: () => TestController,
       getHandler: () => testHandler,
-      switchToHttp: () => ({ getRequest: () => request }),
+      switchToHttp: () => ({
+        getRequest: () => request,
+        getResponse: () => response,
+      }),
     } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
 
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
@@ -204,7 +215,10 @@ describe('AuthenticationGuard', () => {
     const ctx = {
       getClass: () => TestController,
       getHandler: () => testHandler,
-      switchToHttp: () => ({ getRequest: () => request }),
+      switchToHttp: () => ({
+        getRequest: () => request,
+        getResponse: () => response,
+      }),
     } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
 
     await guard.canActivate(ctx);
@@ -243,7 +257,10 @@ describe('AuthenticationGuard', () => {
     const ctx = {
       getClass: () => TestController,
       getHandler: () => testHandler,
-      switchToHttp: () => ({ getRequest: () => request }),
+      switchToHttp: () => ({
+        getRequest: () => request,
+        getResponse: () => response,
+      }),
     } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
 
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
@@ -278,7 +295,10 @@ describe('AuthenticationGuard', () => {
     const ctx = {
       getClass: () => TestController,
       getHandler: () => testHandler,
-      switchToHttp: () => ({ getRequest: () => request }),
+      switchToHttp: () => ({
+        getRequest: () => request,
+        getResponse: () => response,
+      }),
     } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
 
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
@@ -331,6 +351,50 @@ describe('AuthenticationGuard', () => {
     );
   });
 
+  it('ends a session that outlived the absolute lifetime', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue({
+      ...mockSession(new Date(Date.now() + 60_000)),
+      createdAt: new Date(Date.now() - 91 * 24 * 60 * 60 * 1000),
+    });
+    mockRepository.deleteSessionByTokenHash.mockResolvedValue(undefined);
+
+    await expect(
+      guard.canActivate(mockContext({ cookie: 'vrt_session=tok' })),
+    ).rejects.toThrow(UnauthorizedException);
+
+    expect(mockRepository.deleteSessionByTokenHash).toHaveBeenCalledWith(
+      'hash',
+    );
+    expect(mockRepository.extendSessionExpiry).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the browser cookie when it slides the session', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue(
+      mockSession(new Date(Date.now() + 60_000)),
+    );
+    mockRepository.findUserById.mockResolvedValue({
+      id: 'u1',
+      username: 'alice',
+      passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      totpSecret: null,
+      totpEnabledAt: null,
+      createdAt: new Date(),
+    });
+
+    await guard.canActivate(mockContext({ cookie: 'vrt_session=tok' }));
+
+    expect(response.cookie).toHaveBeenCalledWith(
+      'vrt_session',
+      'tok',
+      expect.objectContaining({ httpOnly: true, sameSite: 'lax', path: '/' }),
+    );
+  });
+
   it('does not write on a freshly-extended session', async () => {
     const fresh = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     mockRepository.findSessionByTokenHash.mockResolvedValue(mockSession(fresh));
@@ -370,7 +434,10 @@ describe('AuthenticationGuard', () => {
     const ctx = {
       getClass: () => TestController,
       getHandler: () => readScopedHandler,
-      switchToHttp: () => ({ getRequest: () => request }),
+      switchToHttp: () => ({
+        getRequest: () => request,
+        getResponse: () => response,
+      }),
     } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
 
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
@@ -438,7 +505,10 @@ describe('AuthenticationGuard', () => {
     const ctx = {
       getClass: () => TestController,
       getHandler: () => testHandler,
-      switchToHttp: () => ({ getRequest: () => request }),
+      switchToHttp: () => ({
+        getRequest: () => request,
+        getResponse: () => response,
+      }),
     } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
 
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
@@ -472,7 +542,10 @@ describe('AuthenticationGuard', () => {
     const ctx = {
       getClass: () => TestController,
       getHandler: () => testHandler,
-      switchToHttp: () => ({ getRequest: () => request }),
+      switchToHttp: () => ({
+        getRequest: () => request,
+        getResponse: () => response,
+      }),
     } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
 
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
@@ -513,7 +586,10 @@ describe('AuthenticationGuard', () => {
     const ctx = {
       getClass: () => TestController,
       getHandler: () => testHandler,
-      switchToHttp: () => ({ getRequest: () => request }),
+      switchToHttp: () => ({
+        getRequest: () => request,
+        getResponse: () => response,
+      }),
     } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
 
     await expect(guard.canActivate(ctx)).rejects.toThrow(
@@ -542,7 +618,10 @@ describe('AuthenticationGuard', () => {
     return {
       getClass: () => TestController,
       getHandler: () => handler,
-      switchToHttp: () => ({ getRequest: () => request }),
+      switchToHttp: () => ({
+        getRequest: () => request,
+        getResponse: () => response,
+      }),
     } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
   }
 
@@ -825,7 +904,10 @@ describe('AuthenticationGuard', () => {
       const ctx = {
         getClass: () => TestController,
         getHandler: () => sessionOnlyHandler,
-        switchToHttp: () => ({ getRequest: () => request }),
+        switchToHttp: () => ({
+          getRequest: () => request,
+          getResponse: () => response,
+        }),
       } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
 
       await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);

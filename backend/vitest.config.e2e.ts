@@ -60,6 +60,8 @@ export default defineConfig({
       METRICS_API_KEY: 'test-metrics-key',
       ADMIN_API_KEY: 'test-admin-key',
       LOGIN_RATE_LIMIT_PER_MINUTE: '1000',
+      ADMIN_RATE_LIMIT_PER_MINUTE: '1000',
+      RENDER_RATE_LIMIT_PER_MINUTE: '1000',
       LOG_RATE_LIMIT_PER_MINUTE: '1000',
       UPLOAD_RATE_LIMIT_PER_MINUTE: '0',
     },

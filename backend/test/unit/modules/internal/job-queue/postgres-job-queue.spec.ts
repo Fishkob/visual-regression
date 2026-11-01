@@ -1009,4 +1009,53 @@ describe('PostgresJobQueue', () => {
       );
     });
   });
+
+  describe('runJob failure classification', () => {
+    it('does not re-queue a job whose completion write failed after the processor resolved', async () => {
+      claimProcessingJob('job-1');
+      prisma.client.comparisonJob.updateMany.mockImplementation(
+        (args: { data?: { status?: string } }) =>
+          args?.data?.status === 'COMPLETED'
+            ? Promise.reject(new Error('bookkeeping down'))
+            : Promise.resolve({ count: 1 }),
+      );
+
+      const processor = vi.fn().mockResolvedValue(undefined);
+      const processed = await queue.processNext(processor);
+
+      expect(processed).toBe(true);
+      expect(processor).toHaveBeenCalledTimes(1);
+      expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledTimes(1);
+      expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'COMPLETED' }),
+        }),
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('bookkeeping write failed'),
+        expect.stringContaining('bookkeeping down'),
+      );
+      expect(logger.error.mock.calls[0][0]).toContain('job-1');
+
+      vi.advanceTimersByTime(10000);
+      expect(heartbeatCalls()).toBe(0);
+    });
+
+    it('still re-queues a job whose processor rejected', async () => {
+      claimProcessingJob('job-1');
+      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
+
+      const processor = vi
+        .fn()
+        .mockRejectedValue(new Error('transient processor failure'));
+      await queue.processNext(processor);
+
+      expect(logger.error).not.toHaveBeenCalled();
+      expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'PENDING', attempts: 1 }),
+        }),
+      );
+    });
+  });
 });

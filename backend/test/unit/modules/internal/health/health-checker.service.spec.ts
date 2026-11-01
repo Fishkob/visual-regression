@@ -1,6 +1,9 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { HealthChecker } from '@internal/health/health-checker.service';
+import {
+  HEALTH_CHECK_CACHE_TTL_MS,
+  HealthChecker,
+} from '@internal/health/health-checker.service';
 import { AppConfigService } from '@config/app-config.service';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import {
@@ -142,6 +145,50 @@ describe('HealthChecker', () => {
       expect(result.checks.database).toEqual(
         expect.objectContaining({ status: 'ok' }),
       );
+    });
+  });
+
+  describe('checkAll caching', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('serves two immediate calls from a single probe fan-out', async () => {
+      const first = await checker.checkAll();
+      const second = await checker.checkAll();
+
+      expect(second).toBe(first);
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(storage.healthCheck).toHaveBeenCalledTimes(1);
+      expect(jobQueue.healthCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('de-duplicates concurrent calls that are still in flight', async () => {
+      const [first, second] = await Promise.all([
+        checker.checkAll(),
+        checker.checkAll(),
+      ]);
+
+      expect(second).toBe(first);
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    });
+
+    it('runs the probes again once the cache TTL has elapsed', async () => {
+      vi.useFakeTimers();
+
+      await checker.checkAll();
+      vi.advanceTimersByTime(HEALTH_CHECK_CACHE_TTL_MS + 1);
+      await checker.checkAll();
+
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
+    });
+
+    it('runs the probes again after resetCache', async () => {
+      await checker.checkAll();
+      checker.resetCache();
+      await checker.checkAll();
+
+      expect(prisma.$queryRaw).toHaveBeenCalledTimes(2);
     });
   });
 

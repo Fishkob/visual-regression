@@ -3,5 +3,5 @@
 import type { RestoreBaselineResultDto } from './RestoreBaselineResultDto.gen';
 
 export type BaselineHistoryControllerRestoreResponses = {
-    200: RestoreBaselineResultDto;
+    201: RestoreBaselineResultDto;
 };

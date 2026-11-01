@@ -3,5 +3,5 @@
 import type { BulkApproveResultDto } from './BulkApproveResultDto.gen';
 
 export type ApprovalsControllerApproveAllPendingResponses = {
-    200: BulkApproveResultDto;
+    201: BulkApproveResultDto;
 };

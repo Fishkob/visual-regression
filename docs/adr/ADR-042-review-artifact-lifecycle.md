@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted — 2026-10-25
+Accepted — 2026-10-25.
+
+Superseded by: ADR-050 (ApprovalVote is retained as audit) and ADR-051
+(a lost webhook lease consumes an attempt). The comment-window and
+reason-propagation decisions remain in force.
 
 ## Context
 

@@ -235,6 +235,18 @@ class CompareServiceTest {
         assertEquals(400, response.statusCode());
     }
 
+    // A PDF whose MediaBox is far larger than any real document. 20000x20000 pt
+    // is ~6.9 GB of raster data at 150 dpi, i.e. an instant OOM without the
+    // geometry guard.
+    private static byte[] createPdfWithPageSize(float width, float height) throws Exception {
+        try (PDDocument doc = new PDDocument()) {
+            doc.addPage(new PDPage(new org.apache.pdfbox.pdmodel.common.PDRectangle(width, height)));
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            doc.save(out);
+            return out.toByteArray();
+        }
+    }
+
     private static byte[] createPdf(String text) throws Exception {
         try (PDDocument doc = new PDDocument()) {
             PDPage page = new PDPage();
@@ -344,5 +356,37 @@ class CompareServiceTest {
         byte[] largePdf = new byte[20 * 1024 * 1024 + 1];
         var response = sendRenderRequest(largePdf, "1");
         assertEquals(413, response.statusCode());
+    }
+
+    // The page geometry is attacker-controlled through the MediaBox: a tiny
+    // file can declare a page that renders into gigabytes. Every rendering
+    // endpoint must reject it before PDFBox allocates the raster.
+    @Test
+    void shouldRejectOversizedPageOnCount() throws Exception {
+        byte[] pdf = createPdfWithPageSize(20000, 20000);
+        var response = sendCountRequest(pdf);
+        assertEquals(422, response.statusCode());
+    }
+
+    @Test
+    void shouldRejectOversizedPageOnRender() throws Exception {
+        byte[] pdf = createPdfWithPageSize(20000, 20000);
+        var response = sendRenderRequest(pdf, "1");
+        assertEquals(422, response.statusCode());
+    }
+
+    @Test
+    void shouldRejectOversizedPageOnCompare() throws Exception {
+        byte[] normal = createPdf("baseline");
+        byte[] oversized = createPdfWithPageSize(20000, 20000);
+        var response = sendRequest(normal, oversized, null);
+        assertEquals(422, response.statusCode());
+    }
+
+    @Test
+    void shouldAcceptA3Page() throws Exception {
+        byte[] pdf = createPdfWithPageSize(842, 1191);
+        var response = sendCountRequest(pdf);
+        assertEquals(200, response.statusCode());
     }
 }

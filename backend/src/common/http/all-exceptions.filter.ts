@@ -15,10 +15,12 @@ import { RequestContext } from '@common/logging/request-context';
 import { redactUrl } from '@common/logging/redact-url';
 import {
   classifyException,
+  classifyMulterError,
   classifyPrismaError,
   domainCodeToHttpStatus,
   finalHttpStatus,
   severityForStatus,
+  type MulterErrorLike,
 } from '@common/utils/exception-status';
 
 @Catch()
@@ -84,7 +86,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       statusCode,
       message: statusCode >= 500 ? 'Internal server error' : message,
       timestamp: new Date().toISOString(),
-      path: request.url,
+      // The path is client-visible (and gets uploaded to /api/v1/log by client
+      // error reporters), so a share token carried in the path is redacted here
+      // exactly like the request log lines.
+      path: redactUrl(request.url),
       traceId,
       ...body,
     };
@@ -118,10 +123,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       (traceId) =>
         severityForStatus(status) === 'error'
           ? `Unhandled Prisma error (code: ${exception.code}) [${traceId}]`
-          : // A handled 4xx (unique-constraint, record-not-found) must be as
-            // visible in request logs as the equivalent HttpException —
-            // otherwise debugging by logs silently misses the most common
-            // Prisma failures.
+          : // A handled 4xx (unique-constraint, record-not-found, serialization
+            // conflict, FK violation) must be as visible in request logs as the
+            // equivalent HttpException — otherwise debugging by logs silently
+            // misses the most common Prisma failures.
             `Handled Prisma error (code: ${exception.code}) [${traceId}] ${message} (${String(status)})`,
       exception.stack,
     );
@@ -196,30 +201,33 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 
   private catchMulterError(
-    exception: { message: string },
+    exception: MulterErrorLike,
     host: ArgumentsHost,
   ): void {
-    const statusCode = HttpStatus.PAYLOAD_TOO_LARGE;
-    const message = exception.message || 'File too large';
+    const { status, message } = classifyMulterError(exception);
     this.sendError(
       host,
-      statusCode,
+      status,
       message,
       {},
-      (traceId) =>
-        `Client error [${traceId}] ${message} (${String(statusCode)})`,
+      (traceId) => `Client error [${traceId}] ${message} (${String(status)})`,
     );
   }
 
   private catchUnknown(exception: unknown, host: ArgumentsHost): void {
     const statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     const url = host.switchToHttp().getRequest<Request & { url: string }>().url;
+    // A non-Error throw (`throw 'boom'`, a rejected plain object) used to log
+    // only the URL, leaving the operator with nothing to debug. Always log a
+    // stringified value while the client body stays generic.
+    const detail = describeThrownValue(exception);
     this.sendError(
       host,
       statusCode,
       'Internal server error',
       {},
-      (traceId) => `Unhandled server error [${traceId}] ${redactUrl(url)}`,
+      (traceId) =>
+        `Unhandled server error [${traceId}] ${redactUrl(url)}: ${detail}`,
       exception instanceof Error ? exception.stack : undefined,
     );
   }
@@ -248,4 +256,19 @@ function splitValidationMessage(msg: unknown): {
     field: text.slice(0, separatorIndex).trim(),
     messages: [text.slice(separatorIndex + 1).trim()],
   };
+}
+
+// A thrown value is not necessarily an Error. Format whatever arrived so the
+// log line always names the failure, and never let a hostile `toString`/getter
+// turn the logging path into a second exception.
+function describeThrownValue(exception: unknown): string {
+  if (exception instanceof Error) {
+    return `${exception.name}: ${exception.message}`;
+  }
+  if (typeof exception === 'string') return exception;
+  try {
+    return String(exception);
+  } catch {
+    return '<unprintable thrown value>';
+  }
 }

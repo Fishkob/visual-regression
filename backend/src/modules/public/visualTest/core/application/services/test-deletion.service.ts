@@ -175,13 +175,17 @@ export class TestDeletionService {
         : [];
 
     if (testIds.length > 0) {
-      // Comments/votes have no FK to the test (their trail deliberately
+      // Comments have no FK to the test (the discussion trail deliberately
       // outlives rows), so deleting the test would silently orphan them.
-      // Same transaction: a rolled-back delete keeps the discussion.
+      // Same transaction: a rolled-back delete keeps the discussion. Votes are
+      // not touched — they are the 4-eyes audit trail and outlive the test.
       await this.reviewArtifacts.deleteForTestIds(testIds);
       await this.tests.deleteByIds(testIds);
-      for (const testId of testIds) {
-        await this.audit.record({
+      // One INSERT for the whole project's trail: a per-test loop inside the
+      // deletion transaction turns a large project delete into N round-trips
+      // and can exhaust the transaction budget before the cascade finishes.
+      await this.audit.recordMany(
+        testIds.map((testId) => ({
           actor: auditContext?.actor ?? null,
           action: AUDIT_ACTIONS.testDelete,
           projectName: auditContext?.projectName ?? null,
@@ -189,8 +193,8 @@ export class TestDeletionService {
           branchName: auditContext?.branchName ?? null,
           targetType: 'test',
           targetId: testId,
-        });
-      }
+        })),
+      );
     }
     if (deleteProjectName) {
       // Backstop for rows whose testId no longer resolves (an earlier failed

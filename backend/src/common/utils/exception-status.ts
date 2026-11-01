@@ -24,7 +24,7 @@ export type ClassifiedException =
   | { kind: 'domain'; error: DomainError }
   | { kind: 'prisma'; error: Prisma.PrismaClientKnownRequestError }
   | { kind: 'http'; error: HttpException }
-  | { kind: 'multer'; error: { message: string } }
+  | { kind: 'multer'; error: MulterErrorLike }
   | { kind: 'unknown'; error: unknown };
 
 export function classifyException(exception: unknown): ClassifiedException {
@@ -37,7 +37,7 @@ export function classifyException(exception: unknown): ClassifiedException {
   if (exception instanceof HttpException) {
     return { kind: 'http', error: exception };
   }
-  if (isMulterFileSizeError(exception)) {
+  if (isMulterError(exception)) {
     return { kind: 'multer', error: exception };
   }
   return { kind: 'unknown', error: exception };
@@ -56,7 +56,7 @@ export function exceptionHttpStatus(err: unknown): number {
     case 'prisma':
       return prismaErrorToHttpStatus(classified.error);
     case 'multer':
-      return HttpStatus.PAYLOAD_TOO_LARGE;
+      return classifyMulterError(classified.error).status;
     case 'unknown':
       return HttpStatus.INTERNAL_SERVER_ERROR;
   }
@@ -86,16 +86,46 @@ export function finalHttpStatus(err: unknown): number {
   return exceptionHttpStatus(err);
 }
 
-export function isMulterFileSizeError(
+// Every code Multer can raise. The intake module deliberately bounds the upload
+// shape (files: 1, fields: 20, parts: 25, fieldSize: 8 KiB), so only
+// LIMIT_FILE_SIZE is a "too large" verdict — the rest mean the request did not
+// match the multipart contract and are client errors (400), not 500s.
+export interface MulterErrorLike {
+  name: 'MulterError';
+  code: string;
+  message?: string;
+}
+
+export function isMulterError(
   exception: unknown,
-): exception is { message: string } {
+): exception is MulterErrorLike {
   if (typeof exception !== 'object' || exception === null) {
     return false;
   }
   const candidate = exception as { name?: unknown; code?: unknown };
-  return (
-    candidate.name === 'MulterError' && candidate.code === 'LIMIT_FILE_SIZE'
-  );
+  return candidate.name === 'MulterError' && typeof candidate.code === 'string';
+}
+
+export interface MulterErrorDetails {
+  status: HttpStatus;
+  message: string;
+}
+
+// The single home for "which status/message does this Multer code get", so the
+// filter's body and the interceptor's recorded status cannot disagree.
+export function classifyMulterError(
+  error: MulterErrorLike,
+): MulterErrorDetails {
+  if (error.code === 'LIMIT_FILE_SIZE') {
+    return {
+      status: HttpStatus.PAYLOAD_TOO_LARGE,
+      message: error.message ?? 'File too large',
+    };
+  }
+  return {
+    status: HttpStatus.BAD_REQUEST,
+    message: `Invalid multipart upload: ${error.code}`,
+  };
 }
 
 export interface PrismaErrorDetails {
@@ -119,6 +149,22 @@ export function classifyPrismaError(
         status: HttpStatus.NOT_FOUND,
         message: 'Record not found',
         code: 'E_RECORD_NOT_FOUND',
+      };
+    // Exhausted serialization conflict: the workflow already retried, so the
+    // client is told to retry — the underlying transaction detail stays out.
+    case 'P2034':
+      return {
+        status: HttpStatus.CONFLICT,
+        message: 'Transaction conflict, please retry',
+        code: 'E_SERIALIZATION_CONFLICT',
+      };
+    // A foreign key the request referenced does not exist (or is still
+    // referenced): a conflicting state of the request, not a server fault.
+    case 'P2003':
+      return {
+        status: HttpStatus.CONFLICT,
+        message: 'Related record constraint violated',
+        code: 'E_FOREIGN_KEY_VIOLATION',
       };
     default:
       return {

@@ -23,7 +23,7 @@ describe('AuthService', () => {
   const authUser = (overrides: Partial<AuthUserRow> = {}): AuthUserRow => ({
     id: 'u1',
     username: 'alice',
-    passwordHash: 'salt:hash',
+    passwordHash: `scrypt$65536$8$1$${'a'.repeat(32)}$${'b'.repeat(128)}`,
     role: 'MEMBER',
     isActive: true,
     mustChangePassword: false,
@@ -57,6 +57,60 @@ describe('AuthService', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('upgrades a legacy password hash on a successful login', async () => {
+    mockRepository.findUserByUsername.mockResolvedValue(
+      authUser({ passwordHash: `legacy-salt:${'c'.repeat(128)}` }),
+    );
+    mockHasher.verifyPassword.mockResolvedValue(true);
+    mockHasher.hashPassword.mockResolvedValue(
+      `scrypt$65536$8$1$${'d'.repeat(32)}$${'e'.repeat(128)}`,
+    );
+    mockRepository.createSession.mockResolvedValue({
+      id: 's1',
+      tokenHash: 'tokhash',
+      userId: 'u1',
+      expiresAt: new Date(Date.now() + 60_000),
+      revokedAt: null,
+      lastSeenAt: new Date(),
+      ip: null,
+      userAgent: null,
+      createdAt: new Date(),
+    });
+
+    await service.login('alice', 'secret');
+
+    expect(mockHasher.hashPassword).toHaveBeenCalledWith('secret');
+    expect(mockRepository.updatePassword).toHaveBeenCalledWith(
+      'u1',
+      expect.stringMatching(/^scrypt\$/),
+      false,
+    );
+  });
+
+  it('still logs in when the legacy hash upgrade fails', async () => {
+    mockRepository.findUserByUsername.mockResolvedValue(
+      authUser({ passwordHash: `legacy-salt:${'c'.repeat(128)}` }),
+    );
+    mockHasher.verifyPassword.mockResolvedValue(true);
+    mockHasher.hashPassword.mockRejectedValue(new Error('boom'));
+    mockRepository.createSession.mockResolvedValue({
+      id: 's1',
+      tokenHash: 'tokhash',
+      userId: 'u1',
+      expiresAt: new Date(Date.now() + 60_000),
+      revokedAt: null,
+      lastSeenAt: new Date(),
+      ip: null,
+      userAgent: null,
+      createdAt: new Date(),
+    });
+
+    const result = await service.login('alice', 'secret');
+
+    expect(result).toEqual(expect.objectContaining({ username: 'alice' }));
+    expect(mockRepository.updatePassword).not.toHaveBeenCalled();
   });
 
   it('returns a session token and username for valid credentials', async () => {
@@ -133,7 +187,7 @@ describe('AuthService', () => {
     expect(mockRepository.updatePassword).not.toHaveBeenCalled();
   });
 
-  it('changes the password, revokes old sessions and issues a new one', async () => {
+  it('changes the password, revokes old sessions and API keys, and issues a new session', async () => {
     mockRepository.findUserById.mockResolvedValue(
       authUser({ mustChangePassword: true }),
     );
@@ -148,6 +202,10 @@ describe('AuthService', () => {
       false,
     );
     expect(mockRepository.deleteSessionsForUser).toHaveBeenCalledWith('u1');
+    expect(mockRepository.revokeApiKeysForOwner).toHaveBeenCalledWith(
+      'u1',
+      'password-changed',
+    );
     expect(mockRepository.createSession).toHaveBeenCalledTimes(1);
     expect(result.token.length).toBeGreaterThan(0);
   });

@@ -83,6 +83,33 @@ function detail(muted = false): RunDetail {
   };
 }
 
+function oneUpload(
+  overrides: {
+    testName?: string;
+    variant?: { viewport: string; browser: string; environment: string };
+  } = {},
+): RunDetail {
+  return {
+    ...detail(),
+    pending: [],
+    approvals: [],
+    failedJobs: [],
+    uploads: [
+      {
+        testName: overrides.testName ?? 'plain',
+        kind: 'image',
+        variant: overrides.variant ?? {
+          viewport: '1920x1080',
+          browser: 'chrome',
+          environment: 'staging',
+        },
+        outcome: 'comparison_queued',
+        createdAt: new Date('2026-01-01'),
+      },
+    ],
+  };
+}
+
 describe('run report builders', () => {
   it('builds JUnit with escaping and pending as failure', () => {
     const xml = buildRunJUnit(detail(), 'checkout', 'ci-1', 'https://vrt.test');
@@ -110,6 +137,37 @@ describe('run report builders', () => {
     expect(lines[1]).toContain('"pending"');
     expect(lines[2]).toContain('"approved"');
     expect(lines[3]).toContain('"failed"');
+  });
+
+  it.each([
+    ['=', "=cmd|' /C calc'!A0"],
+    ['+', '+1+1'],
+    ['-', '-1+1'],
+    ['@', '@SUM(A1)'],
+    ['TAB', '\tcmd'],
+    ['CR', '\rcmd'],
+  ])('neutralises a CSV cell whose value starts with %s', (_label, value) => {
+    const csv = buildRunCsv(
+      oneUpload({
+        variant: { viewport: value, browser: '', environment: '' },
+      }),
+      'checkout',
+    );
+
+    expect(csv).toContain(`"'${value}"`);
+  });
+
+  it('leaves plain CSV values unchanged', () => {
+    const csv = buildRunCsv(oneUpload(), 'checkout');
+
+    expect(csv).toContain('"1920x1080 / chrome / staging"');
+    expect(csv).not.toContain("'");
+  });
+
+  it('still doubles embedded double quotes', () => {
+    const csv = buildRunCsv(oneUpload({ testName: 'say "hi"' }), 'checkout');
+
+    expect(csv).toContain('"say ""hi"""');
   });
 
   it('reports a muted pending comparison without failing the run', () => {

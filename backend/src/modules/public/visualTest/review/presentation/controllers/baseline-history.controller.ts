@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import {
   ApiBody,
+  ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
@@ -60,7 +61,7 @@ export class BaselineHistoryController {
   @Post(':testName/baseline-restore')
   @ApiOperation({ summary: 'Restore a previously replaced baseline' })
   @ApiBody({ type: RestoreBaselineDto })
-  @ApiOkResponse({ type: RestoreBaselineResultDto })
+  @ApiCreatedResponse({ type: RestoreBaselineResultDto })
   async restore(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('testName', ProjectTestNameValidationPipe) testName: string,

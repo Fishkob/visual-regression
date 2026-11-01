@@ -34,6 +34,15 @@ function configureBodyParsers(
   app: NestExpressApplication,
   appConfig: AppConfigService,
 ): void {
+  // Anonymous log ingestion must not accept the full JSON budget: the body is
+  // parsed before the rate-limit guard runs, so a 10 MB limit would let any
+  // client spend real CPU per request. The global parser skips a body that was
+  // already parsed here.
+  app.use('/api/v1/log', bodyParser.json({ limit: '64kb' }));
+  app.use(
+    '/api/v1/log',
+    bodyParser.urlencoded({ limit: '64kb', extended: true }),
+  );
   app.use(bodyParser.json({ limit: appConfig.maxBodySize }));
   app.use(
     bodyParser.urlencoded({ limit: appConfig.maxBodySize, extended: true }),
@@ -142,7 +151,11 @@ async function bootstrapApi(): Promise<INestApplication> {
 
   app.useGlobalPipes(createValidationPipe());
 
-  configureSwagger(app, appConfig);
+  // /docs publishes every route, DTO and admin path anonymously. It stays a
+  // local/e2e convenience unless SWAGGER_ENABLED is set explicitly.
+  if (appConfig.swagger.enabled) {
+    configureSwagger(app, appConfig);
+  }
 
   const port = appConfig.app.port;
 

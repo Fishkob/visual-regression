@@ -3,5 +3,5 @@
 import type { ApproveResultDto } from './ApproveResultDto.gen';
 
 export type ApprovalsControllerApprovePdfTestResponses = {
-    200: ApproveResultDto;
+    201: ApproveResultDto;
 };

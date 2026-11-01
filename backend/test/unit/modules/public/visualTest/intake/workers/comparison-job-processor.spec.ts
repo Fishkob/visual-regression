@@ -611,6 +611,7 @@ describe('ComparisonJobProcessor', () => {
           outcome: 'changed',
           comparisonId: 'comp-1',
           testName: 'checkout',
+          projectName: 'shop',
         }),
       );
     });

@@ -348,8 +348,13 @@ model RunUpload {
 // candidate rows are reclaimed, so the completion outcome (and the run/test
 // context) would otherwise disappear. This table feeds trends and flake rates;
 // it has no foreign keys so deleting a test/run does not erase its history.
+// The project is denormalized at write time for exactly that reason: without
+// it, per-project trends would have to join test -> branch -> project and would
+// silently drop the history of a deleted test. Nullable because rows written
+// before the column existed whose test is already gone cannot be attributed.
 model ComparisonOutcomeEvent {
   id             String   @id @default(cuid())
+  projectName    String?
   testId         String
   testName       String
   kind           TestKind
@@ -367,6 +372,7 @@ model ComparisonOutcomeEvent {
   @@index([testId, createdAt])
   @@index([runKey])
   @@index([comparisonId])
+  @@index([projectName, createdAt])
   @@map("ComparisonOutcomeEvent")
 }
 

@@ -42,6 +42,21 @@ function presentString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+// ciUrl is rendered as an anchor href. The API now rejects non-http(s) values at
+// upload time, but rows written before that validation can still carry a
+// `javascript:` payload, so the read path drops anything that is not an absolute
+// http(s) URL.
+function presentHttpUrl(value: unknown): string | null {
+  const raw = presentString(value);
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
 function presentNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
@@ -83,7 +98,7 @@ export function mapRun(dto: RunSource): Run {
     branchName: dto.branchName ?? "",
     commitSha: presentString(dto.commitSha),
     commitMessage: presentString(dto.commitMessage),
-    ciUrl: presentString(dto.ciUrl),
+    ciUrl: presentHttpUrl(dto.ciUrl),
     createdAt: presentIso(dto.createdAt) ?? "",
     lastActivityAt: presentIso(dto.lastActivityAt) ?? "",
     finishedAt: presentIso(dto.finishedAt),

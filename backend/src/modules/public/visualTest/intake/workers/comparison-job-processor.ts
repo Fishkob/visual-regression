@@ -350,6 +350,7 @@ export class ComparisonJobProcessor {
     comparisonId?: string,
   ): Promise<void> {
     return this.outcomes.record({
+      projectName: data.projectName,
       testId: data.testId,
       testName: data.testName ?? 'unknown',
       kind: data.testKind,

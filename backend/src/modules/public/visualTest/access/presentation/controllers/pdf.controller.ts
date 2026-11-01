@@ -21,6 +21,7 @@ import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testna
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 import type { Response } from 'express';
 
 @ApiTags('Tests')
@@ -69,6 +70,7 @@ export class PdfController {
   }
 
   @Scope('read')
+  @RateLimit('render')
   @Get(':testName/pdf-render')
   @ApiOperation({
     summary: 'Render a single PDF page as PNG (cached in RustFS)',

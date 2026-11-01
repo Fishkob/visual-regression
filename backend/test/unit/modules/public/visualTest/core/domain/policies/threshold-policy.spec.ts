@@ -32,8 +32,9 @@ describe('ThresholdPolicy', () => {
       expect(isThresholdExceeded(50, 50)).toBe(false);
     });
 
-    it('is false when no baseline threshold is set', () => {
-      expect(isThresholdExceeded(40, undefined)).toBe(false);
+    it('treats a missing baseline threshold as 0', () => {
+      expect(isThresholdExceeded(40, undefined)).toBe(true);
+      expect(isThresholdExceeded(0, undefined)).toBe(false);
     });
   });
 

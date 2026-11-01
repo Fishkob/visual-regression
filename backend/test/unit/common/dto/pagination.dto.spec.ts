@@ -64,6 +64,25 @@ describe('PaginationDto', () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
+  it('rejects a page above the documented maximum of 10000', async () => {
+    const dto = plainToInstance(PaginationDto, { page: 10001 });
+    const errors = await validate(dto, { whitelist: true });
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it('rejects a skip above the documented maximum of 1000000', async () => {
+    const dto = plainToInstance(PaginationDto, { skip: 1_000_001 });
+    const errors = await validate(dto, { whitelist: true });
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it('allows the page and skip boundaries', async () => {
+    const dto = await transform({ page: 10_000, skip: 1_000_000, take: 100 });
+
+    expect(dto.page).toBe(10_000);
+    expect(dto.skip).toBe(1_000_000);
+  });
+
   it('rejects a take above the documented maximum of 100', async () => {
     const dto = plainToInstance(PaginationDto, { take: 1000 });
     const errors = await validate(dto, { whitelist: true });

@@ -158,11 +158,15 @@ export class UsersService {
     if (!target) throw new NotFoundException('User not found');
     const temporaryPassword = this.tempPassword();
     const passwordHash = await this.hasher.hashPassword(temporaryPassword);
-    // Password, session revocation and trail are one change: a reset that fails
-    // to revoke the old sessions, or to record itself, is a half-done reset.
+    // Password, session/API-key revocation and trail are one change: a reset
+    // that fails to revoke the old credentials, or to record itself, is a
+    // half-done reset. API keys are included because the reset is the
+    // compromise-remediation action — a leaked CI key that keeps working would
+    // defeat it.
     await this.uow.execute(async () => {
       await this.repo.updatePassword(id, passwordHash, true);
       await this.repo.deleteSessionsForUser(id);
+      await this.repo.revokeApiKeysForOwner(id, 'password-reset');
       await this.audit.record({
         actor: actor.username,
         action: AUDIT_ACTIONS.userResetPassword,

@@ -566,7 +566,7 @@ describe('AllExceptionsFilter', () => {
       );
     });
 
-    it('treats other Multer codes as generic 500', () => {
+    it('treats other Multer codes as a 400 client error', () => {
       const multerError = {
         name: 'MulterError',
         code: 'LIMIT_UNEXPECTED_FILE',
@@ -574,7 +574,13 @@ describe('AllExceptionsFilter', () => {
       };
       filter.catch(multerError, mockHost);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 400,
+          message: 'Invalid multipart upload: LIMIT_UNEXPECTED_FILE',
+        }),
+      );
     });
   });
 
@@ -603,6 +609,25 @@ describe('AllExceptionsFilter', () => {
       );
     });
 
+    it('logs the thrown value when it is not an Error', () => {
+      filter.catch('boom', mockHost);
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('boom'),
+        undefined,
+      );
+    });
+
+    it('logs the type and the stack of a thrown Error', () => {
+      const error = new Error('kaput');
+      filter.catch(error, mockHost);
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Error: kaput'),
+        error.stack,
+      );
+    });
+
     it('uses no-trace-id fallback for unknown exceptions when traceId missing', () => {
       mockRequest.traceId = undefined;
 
@@ -611,6 +636,24 @@ describe('AllExceptionsFilter', () => {
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({ traceId: 'no-trace-id' }),
       );
+    });
+  });
+
+  describe('path redaction', () => {
+    it('redacts a share token from the response path', () => {
+      mockRequest.url = '/api/v1/public/shares/bearer-token-123';
+
+      filter.catch(new DomainError('Wrong passphrase', 'FORBIDDEN'), mockHost);
+
+      const body = vi.mocked(mockResponse.json).mock.calls[0][0] as Record<
+        string,
+        unknown
+      >;
+      expect(body).toMatchObject({
+        statusCode: 403,
+        path: '/api/v1/public/shares/[REDACTED]',
+      });
+      expect(JSON.stringify(body)).not.toContain('bearer-token-123');
     });
   });
 });

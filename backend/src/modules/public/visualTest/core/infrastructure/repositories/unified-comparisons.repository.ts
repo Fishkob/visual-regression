@@ -152,11 +152,20 @@ export class UnifiedComparisonsRepository extends BaseRepository {
   // batch deterministic (the oldest pending review is approved first) so a
   // partial failure leaves a predictable remainder. A read-only projection: it
   // takes no write lock and asserts nothing about writability.
-  async findPendingComparisonIdsForTest(testId: string): Promise<string[]> {
+  async findPendingComparisonIdsForTest(
+    testId: string,
+    limit?: number,
+  ): Promise<string[]> {
     const rows = await this.client.unifiedComparison.findMany({
       where: { testId, ...PENDING_APPROVAL_STATUS_FILTER },
       select: { id: true },
       orderBy: { createdAt: 'asc' },
+      // "Approve all" is a request, not a batch service: without a bound one
+      // HTTP call can drive an unbounded number of Serializable transactions
+      // (each recomputing the test status) and hold a pooled connection for
+      // minutes. The oldest 100 are approved per call; the endpoint is
+      // idempotent, so the caller simply invokes it again.
+      ...(limit === undefined ? {} : { take: limit }),
     });
     return rows.map((row) => row.id);
   }
@@ -471,12 +480,13 @@ export class UnifiedComparisonsRepository extends BaseRepository {
   // the WHERE — a stale target surfaces as a clean CONFLICT. Returns the diff
   // artifact URLs the caller may reclaim post-commit.
   async completePdfApproval(
+    testId: string,
     comparisonId: string,
     diffPdfUrl?: string,
   ): Promise<string[]> {
     this.assertWritable();
     const result = await this.client.unifiedComparison.updateMany({
-      where: { id: comparisonId, ...PENDING_APPROVAL_STATUS_FILTER },
+      where: { id: comparisonId, testId, ...PENDING_APPROVAL_STATUS_FILTER },
       data: {
         status: ComparisonStatus.APPROVED,
         candidateId: null,

@@ -7,8 +7,9 @@ export interface ThresholdComparison {
 export type ThresholdAction = 'DELETE' | 'KEEP';
 
 // The boundary, defined once: a mismatch exceeds the threshold when it is
-// strictly above it, and a missing threshold tolerates nothing (the schema
-// default is 0). Every reader derives from this — the comparison entity's
+// strictly above it, and a missing threshold is read as 0 (the schema default),
+// so it tolerates nothing. Every reader derives from this — the comparison
+// entity's
 // `thresholdExceeded` read flag, the auto-accept decision, and the worker's
 // "within tolerance" branch — so the boundary cannot drift between the update
 // path and the worker.
@@ -16,9 +17,10 @@ export function isThresholdExceeded(
   mismatchPixelCount: number,
   baselineThreshold?: number,
 ): boolean {
-  return baselineThreshold !== undefined
-    ? mismatchPixelCount > baselineThreshold
-    : false;
+  // A missing threshold is 0, i.e. "no tolerance": any mismatch exceeds it.
+  // (Returning false here used to tolerate every change on a legacy row, the
+  // opposite of what this policy and the schema default document.)
+  return mismatchPixelCount > (baselineThreshold ?? 0);
 }
 
 // Threshold is an image-only concept, so a PDF comparison is never tolerated no

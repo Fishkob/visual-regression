@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { AppConfigService } from '@config/app-config.service';
 import { AppLoggerService } from '@common/logging/app-logger.service';
+import { WORKER_TIMING } from '@common/utils/worker-timing';
 import { WebhookDeliveryRepository } from '@internal/webhooks/webhook-delivery.repository';
 import { WebhookEndpointRepository } from '@internal/webhooks/webhook-endpoint.repository';
 import { WebhookSender } from '@internal/webhooks/webhook-sender.service';
@@ -12,6 +13,7 @@ import {
   WEBHOOK_MAX_ATTEMPTS,
   nextAttemptAt,
 } from '@internal/webhooks/webhook-backoff';
+import type { WebhookDeliveryRow } from '@internal/webhooks/webhook.types';
 
 const BATCH_SIZE = 20;
 const POLL_INTERVAL_MS = 10_000;
@@ -31,6 +33,7 @@ export class WebhookDispatcher
 {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private inFlight: Promise<unknown> | null = null;
+  private unprocessedClaimIds: Set<string> | null = null;
   private running = false;
   private shuttingDown = false;
 
@@ -79,84 +82,110 @@ export class WebhookDispatcher
       retried: 0,
       failed: 0,
     };
+    // A batch is up to BATCH_SIZE sequential sends, far longer than the
+    // container's stop grace period. The not-yet-processed ids are tracked so a
+    // drain that overruns its budget can hand exactly those claims back.
+    const unprocessed = new Set(batch.map((delivery) => delivery.id));
+    this.unprocessedClaimIds = unprocessed;
 
-    for (const delivery of batch) {
-      const endpoint = await this.endpoints.findById(delivery.endpointId);
-      if (!endpoint?.active) {
-        await this.deliveries.markTerminalFailure(
-          delivery.id,
-          delivery.attempts + 1,
-          'Endpoint is disabled or deleted',
-          null,
-        );
-        result.failed += 1;
-        continue;
+    try {
+      for (const delivery of batch) {
+        try {
+          await this.attemptDelivery(delivery, result);
+          unprocessed.delete(delivery.id);
+        } catch (err: unknown) {
+          result.failed += 1;
+          this.logger.error(
+            'Webhook delivery write failed',
+            err instanceof Error ? err.stack : String(err),
+            { deliveryId: delivery.id, endpointId: delivery.endpointId },
+          );
+        }
       }
+    } finally {
+      this.unprocessedClaimIds = null;
+    }
 
-      const send = await this.sender.send(endpoint, delivery);
-      const attempts = delivery.attempts + 1;
+    return result;
+  }
 
-      if (send.ok) {
-        await this.deliveries.markDelivered(delivery.id, send.status ?? 200);
-        result.delivered += 1;
-        this.logger.log('Webhook delivered', {
-          deliveryId: delivery.id,
-          endpointId: endpoint.id,
-          event: delivery.event,
-          status: send.status,
-        });
-        continue;
-      }
+  private async attemptDelivery(
+    delivery: WebhookDeliveryRow,
+    result: WebhookDispatchRunResult,
+  ): Promise<void> {
+    const endpoint = await this.endpoints.findById(delivery.endpointId);
+    if (!endpoint?.active) {
+      await this.deliveries.markTerminalFailure(
+        delivery.id,
+        delivery.attempts + 1,
+        'Endpoint is disabled or deleted',
+        null,
+      );
+      result.failed += 1;
+      return;
+    }
 
-      if (attempts >= WEBHOOK_MAX_ATTEMPTS) {
-        await this.deliveries.markTerminalFailure(
-          delivery.id,
-          attempts,
-          send.error ?? 'Delivery failed',
-          send.status ?? null,
-        );
-        result.failed += 1;
-        this.logger.warn('Webhook delivery failed permanently', {
-          deliveryId: delivery.id,
-          endpointId: endpoint.id,
-          event: delivery.event,
-          attempts,
-          error: send.error,
-        });
-        continue;
-      }
+    const send = await this.sender.send(endpoint, delivery);
+    const attempts = delivery.attempts + 1;
 
-      const next = nextAttemptAt(attempts);
-      if (!next) {
-        await this.deliveries.markTerminalFailure(
-          delivery.id,
-          attempts,
-          send.error ?? 'Delivery failed',
-          send.status ?? null,
-        );
-        result.failed += 1;
-        continue;
-      }
+    if (send.ok) {
+      await this.deliveries.markDelivered(delivery.id, send.status ?? 200);
+      result.delivered += 1;
+      this.logger.log('Webhook delivered', {
+        deliveryId: delivery.id,
+        endpointId: endpoint.id,
+        event: delivery.event,
+        status: send.status,
+      });
+      return;
+    }
 
-      await this.deliveries.markForRetry(
+    if (attempts >= WEBHOOK_MAX_ATTEMPTS) {
+      await this.deliveries.markTerminalFailure(
         delivery.id,
         attempts,
         send.error ?? 'Delivery failed',
         send.status ?? null,
-        next,
       );
-      result.retried += 1;
-      this.logger.warn('Webhook delivery will be retried', {
+      result.failed += 1;
+      this.logger.warn('Webhook delivery failed permanently', {
         deliveryId: delivery.id,
         endpointId: endpoint.id,
         event: delivery.event,
         attempts,
-        nextAttemptAt: next.toISOString(),
         error: send.error,
       });
+      return;
     }
 
-    return result;
+    const next = nextAttemptAt(attempts);
+    if (!next) {
+      await this.deliveries.markTerminalFailure(
+        delivery.id,
+        attempts,
+        send.error ?? 'Delivery failed',
+        send.status ?? null,
+      );
+      result.failed += 1;
+      return;
+    }
+
+    await this.deliveries.markForRetry(
+      delivery.id,
+      attempts,
+      send.error ?? 'Delivery failed',
+      send.status ?? null,
+      next,
+    );
+    result.retried += 1;
+    this.logger.warn('Webhook delivery will be retried', {
+      deliveryId: delivery.id,
+      endpointId: endpoint.id,
+      event: delivery.event,
+      attempts,
+      nextAttemptAt: next.toISOString(),
+      error: send.error,
+    });
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -166,8 +195,57 @@ export class WebhookDispatcher
       this.timer = null;
     }
     if (this.inFlight) {
-      await this.inFlight;
+      await this.drainInFlight();
       this.inFlight = null;
+    }
+  }
+
+  // The in-flight batch gets the shared drain budget, never more: an unbounded
+  // wait outlives the stop grace period and ends in SIGKILL with every claimed
+  // row stuck in PROCESSING. When the budget runs out, the claims this cycle
+  // never reached go back to PENDING instead of waiting for the lease.
+  private async drainInFlight(): Promise<void> {
+    const inFlight = this.inFlight;
+    if (!inFlight) return;
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const didTimeOut = await Promise.race([
+      inFlight.then(() => false),
+      new Promise<boolean>((resolve) => {
+        timer = setTimeout(() => {
+          resolve(true);
+        }, WORKER_TIMING.drainTimeoutMs);
+      }),
+    ]).finally(() => {
+      if (timer) clearTimeout(timer);
+    });
+
+    if (didTimeOut) await this.releaseUnprocessedClaims();
+  }
+
+  private async releaseUnprocessedClaims(): Promise<void> {
+    const ids = [...(this.unprocessedClaimIds ?? [])];
+    this.unprocessedClaimIds = null;
+
+    if (ids.length === 0) {
+      this.logger.warn(
+        `Webhook dispatch drain exceeded ${String(WORKER_TIMING.drainTimeoutMs)}ms; no unprocessed claims to release`,
+      );
+      return;
+    }
+
+    try {
+      const released = await this.deliveries.releaseClaims(ids);
+      this.logger.warn(
+        `Webhook dispatch drain exceeded ${String(WORKER_TIMING.drainTimeoutMs)}ms; released ${String(released)} of ${String(ids.length)} claimed deliveries back to PENDING`,
+        { deliveryIds: ids },
+      );
+    } catch (err: unknown) {
+      this.logger.error(
+        'Failed to release unprocessed webhook deliveries',
+        err instanceof Error ? err.stack : String(err),
+        { deliveryIds: ids },
+      );
     }
   }
 }

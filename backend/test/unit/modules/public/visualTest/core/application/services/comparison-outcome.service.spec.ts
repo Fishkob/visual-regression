@@ -19,8 +19,9 @@ describe('ComparisonOutcomeService', () => {
     vi.restoreAllMocks();
   });
 
-  it('records an outcome entry', async () => {
+  it('records an outcome entry with its project', async () => {
     const entry = {
+      projectName: 'shop',
       testId: 't-1',
       testName: 'checkout',
       kind: 'image' as const,
@@ -33,7 +34,9 @@ describe('ComparisonOutcomeService', () => {
 
     await service.record(entry);
 
-    expect(repository.record).toHaveBeenCalledWith(entry);
+    expect(repository.record).toHaveBeenCalledWith(
+      expect.objectContaining({ projectName: 'shop', testId: 't-1' }),
+    );
   });
 
   it('swallows and logs a failed write instead of failing the job', async () => {
@@ -43,6 +46,7 @@ describe('ComparisonOutcomeService', () => {
     // must not be failed by its analytics row.
     await expect(
       service.record({
+        projectName: 'shop',
         testId: 't-1',
         testName: 'checkout',
         kind: 'image' as const,

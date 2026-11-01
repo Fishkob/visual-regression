@@ -33,6 +33,8 @@ interface AppConfigSnapshot {
   auth: {
     sessionTtlDays: number;
     sessionTtlMs: number;
+    sessionAbsoluteMaxDays: number;
+    sessionAbsoluteMaxMs: number;
     cookieSecure: boolean;
     apiKeyHeader: string | undefined;
     bootstrapAdminUsername: string | undefined;
@@ -41,7 +43,7 @@ interface AppConfigSnapshot {
   logging: { level: string | undefined };
   appVersion: { version: string; gitCommit: string; buildTime: string };
   otel: { exporterEndpoint: string };
-  swagger: { baseUrl: string };
+  swagger: { baseUrl: string; enabled: boolean };
   csp: { enabled: boolean | undefined };
   cors: { origin: string | undefined };
 }
@@ -141,6 +143,14 @@ export class AppConfigService {
     return Number(this.config.get<string>('LOG_RATE_LIMIT_PER_MINUTE'));
   }
 
+  get adminRateLimitPerMinute(): number {
+    return Number(this.config.get<string>('ADMIN_RATE_LIMIT_PER_MINUTE'));
+  }
+
+  get renderRateLimitPerMinute(): number {
+    return Number(this.config.get<string>('RENDER_RATE_LIMIT_PER_MINUTE'));
+  }
+
   get logging() {
     return this.s.logging;
   }
@@ -181,6 +191,9 @@ export class AppConfigService {
   private buildSnapshot(): AppConfigSnapshot {
     const sessionTtlDays = Number(
       this.config.get<string>('AUTH_SESSION_TTL_DAYS'),
+    );
+    const sessionAbsoluteMaxDays = Number(
+      this.config.get<string>('AUTH_SESSION_ABSOLUTE_MAX_DAYS') ?? 90,
     );
     return {
       app: {
@@ -257,6 +270,8 @@ export class AppConfigService {
         // sessionCookie name is the SESSION_COOKIE constant, not configurable
         sessionTtlDays,
         sessionTtlMs: sessionTtlDays * 24 * 60 * 60 * 1000,
+        sessionAbsoluteMaxDays,
+        sessionAbsoluteMaxMs: sessionAbsoluteMaxDays * 24 * 60 * 60 * 1000,
         cookieSecure: this.config.get<boolean>('AUTH_COOKIE_SECURE') === true,
         apiKeyHeader: this.config.get<string>('AUTH_API_KEY_HEADER'),
         bootstrapAdminUsername: this.config.get<string>(
@@ -278,7 +293,13 @@ export class AppConfigService {
         exporterEndpoint:
           this.config.get<string>('OTEL_EXPORTER_OTLP_ENDPOINT') ?? '',
       },
-      swagger: { baseUrl: this.config.getOrThrow<string>('SWAGGER_BASE_URL') },
+      swagger: {
+        baseUrl: this.config.getOrThrow<string>('SWAGGER_BASE_URL'),
+        // Anything other than an explicit `false` keeps the docs available for
+        // local/e2e use; the Joi schema already defaults it to false in
+        // production.
+        enabled: this.config.get<boolean>('SWAGGER_ENABLED') !== false,
+      },
       csp: { enabled: this.config.get<boolean>('CSP_ENABLED') },
       cors: { origin: this.config.get<string>('CORS_ORIGIN') },
     };

@@ -22,6 +22,8 @@ describe('RateLimitGuard', () => {
     uploadRateLimitPerMinute: 60,
     loginRateLimitPerMinute: 5,
     logRateLimitPerMinute: 100,
+    adminRateLimitPerMinute: 30,
+    renderRateLimitPerMinute: 120,
   };
 
   const makeContext = (
@@ -102,6 +104,33 @@ describe('RateLimitGuard', () => {
       'login',
       'ip:203.0.113.9:user:alice',
       5,
+    );
+  });
+
+  it('keys the render scope per credential and applies its own limit', async () => {
+    mockRateLimit.tryConsume.mockResolvedValue({ allowed: true, count: 1 });
+    const { context } = makeContext(
+      { ip: '203.0.113.9', auth: { username: 'alice', apiKeyId: 'k1' } },
+      'render',
+    );
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockRateLimit.tryConsume).toHaveBeenCalledWith(
+      'render',
+      'apikey:k1',
+      120,
+    );
+  });
+
+  it('keys the admin scope on the client ip with its own limit', async () => {
+    mockRateLimit.tryConsume.mockResolvedValue({ allowed: true, count: 1 });
+    const { context } = makeContext({ ip: '198.51.100.7' }, 'admin');
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockRateLimit.tryConsume).toHaveBeenCalledWith(
+      'admin',
+      'ip:198.51.100.7',
+      30,
     );
   });
 

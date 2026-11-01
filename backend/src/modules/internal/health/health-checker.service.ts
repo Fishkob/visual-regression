@@ -17,10 +17,19 @@ interface CheckResult {
   warnings: string[];
 }
 
+// The health fan-out costs one DB roundtrip, a storage probe, a queue query and
+// two HTTP probes; /health/ready is anonymous, so without a bound an
+// unauthenticated caller could amplify one request into five downstream probes.
+// A 2 s window is short enough that an operator still sees a fresh failure and
+// long enough to collapse a probe storm (and a kubelet's overlapping probes).
+export const HEALTH_CHECK_CACHE_TTL_MS = 2000;
+
 @Injectable()
 export class HealthChecker {
   private readonly startTime = Date.now();
   private readonly buildInfo: BuildInfo;
+  private cachedResult?: { at: number; result: CheckResult };
+  private inFlight?: Promise<CheckResult>;
 
   constructor(
     private readonly connection: PrismaConnection,
@@ -81,6 +90,29 @@ export class HealthChecker {
   }
 
   async checkAll(): Promise<CheckResult> {
+    if (
+      this.cachedResult &&
+      Date.now() - this.cachedResult.at < HEALTH_CHECK_CACHE_TTL_MS
+    ) {
+      return this.cachedResult.result;
+    }
+    this.inFlight ??= this.runAllChecks()
+      .then((result) => {
+        this.cachedResult = { at: Date.now(), result };
+        return result;
+      })
+      .finally(() => {
+        this.inFlight = undefined;
+      });
+    return this.inFlight;
+  }
+
+  resetCache(): void {
+    this.cachedResult = undefined;
+    this.inFlight = undefined;
+  }
+
+  private async runAllChecks(): Promise<CheckResult> {
     const entries = Object.entries(this.checks);
     const results = await Promise.all(entries.map(([, check]) => check()));
 

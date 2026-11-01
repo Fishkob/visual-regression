@@ -53,27 +53,22 @@ describe('ReviewArtifactCleanupTask', () => {
     expect(comments.values).toEqual([10_000]);
   });
 
-  it('deletes only votes whose test row no longer exists', async () => {
+  it('never deletes approval votes: they are the durable 4-eyes trail', async () => {
     mockClient.$executeRaw.mockResolvedValue(0);
 
     await task.execute();
 
-    const votes = executedSql(1);
-    expect(votes.sql).toContain('DELETE FROM "ApprovalVote"');
-    expect(votes.sql).toContain('NOT EXISTS');
-    expect(votes.sql).toContain('FROM "UnifiedTest"');
-    expect(votes.sql).toContain('LIMIT ?');
-    expect(votes.values).toEqual([10_000]);
+    expect(mockClient.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(executedSql(0).sql).not.toContain('ApprovalVote');
   });
 
-  it('reports the deleted comment and vote counts as gauges', async () => {
-    mockClient.$executeRaw.mockResolvedValueOnce(3).mockResolvedValueOnce(2);
+  it('reports the deleted comment count as a gauge', async () => {
+    mockClient.$executeRaw.mockResolvedValueOnce(3);
 
     const result = await task.execute();
 
     expect(result.gauges).toEqual([
       { name: 'cleanup_review_comments_deleted', value: 3 },
-      { name: 'cleanup_approval_votes_deleted', value: 2 },
       { name: 'cleanup_review_artifacts_last_run', value: expect.any(Number) },
     ]);
     expect(logger.log).toHaveBeenCalledWith(
@@ -87,7 +82,6 @@ describe('ReviewArtifactCleanupTask', () => {
     const result = await task.execute();
 
     expect(result.gauges?.[0]?.value).toBe(0);
-    expect(result.gauges?.[1]?.value).toBe(0);
     expect(logger.log).not.toHaveBeenCalled();
   });
 

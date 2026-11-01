@@ -3,5 +3,5 @@
 import type { BulkDeleteResultDto } from './BulkDeleteResultDto.gen';
 
 export type BulkActionsControllerDeleteTestsResponses = {
-    200: BulkDeleteResultDto;
+    201: BulkDeleteResultDto;
 };

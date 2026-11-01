@@ -59,13 +59,23 @@ public abstract class PdfRequestHandler {
             throw new RequestFailure(413, e.getMessage());
         }
 
+        final byte[] pdfBytes;
         try (InputStream is = file.content()) {
-            return validator.readAndValidatePdfContent(is);
+            pdfBytes = validator.readAndValidatePdfContent(is);
         } catch (final IllegalArgumentException e) {
             throw new RequestFailure(400, e.getMessage());
         } catch (final Exception e) {
             throw new RequestFailure(400, "failed to read uploaded file");
         }
+
+        try {
+            validator.validatePageGeometry(pdfBytes);
+        } catch (final PageGeometryViolation e) {
+            throw new RequestFailure(422, e.getMessage());
+        } catch (final IllegalArgumentException e) {
+            throw new RequestFailure(400, e.getMessage());
+        }
+        return pdfBytes;
     }
 
     protected void badRequestIf(final boolean condition, final String message) {

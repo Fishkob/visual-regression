@@ -27,13 +27,32 @@ describe('assertSafeWebhookUrl', () => {
     ).toThrow('must not contain credentials');
   });
 
+  it('rejects the Alibaba Cloud metadata endpoint in shared address space', () => {
+    expect(() =>
+      assertSafeWebhookUrl(
+        'http://100.100.100.200/latest/meta-data/ram/security-credentials/x',
+      ),
+    ).toThrow('is not allowed');
+    expect(() => assertSafeWebhookUrl('http://100.64.0.1/hook')).toThrow(
+      'is not allowed',
+    );
+  });
+
+  it('still allows the address just above the shared 100.64.0.0/10 range', () => {
+    expect(assertSafeWebhookUrl('http://100.128.0.1/hook').hostname).toBe(
+      '100.128.0.1',
+    );
+  });
+
   it.each([
     'http://localhost/hook',
     'http://foo.localhost/hook',
     'http://127.0.0.1/hook',
     'http://0.0.0.0/hook',
     'http://169.254.169.254/latest/meta-data',
-    'http://100.64.100.200/hook',
+    'http://100.100.100.200/hook',
+    'http://100.64.0.0/hook',
+    'http://100.127.255.255/hook',
     'http://metadata.google.internal/computeMetadata/v1',
     'http://[::1]/hook',
     'http://[fe80::1]/hook',

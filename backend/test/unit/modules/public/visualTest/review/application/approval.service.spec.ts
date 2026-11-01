@@ -1034,6 +1034,7 @@ describe('ApprovalService', () => {
         'pdf-baseline-1',
       );
       expect(comparisons.completePdfApproval).toHaveBeenCalledWith(
+        'test-1',
         'pdf-comp-1',
         undefined,
       );
@@ -1067,6 +1068,7 @@ describe('ApprovalService', () => {
       );
 
       expect(comparisons.completePdfApproval).toHaveBeenCalledWith(
+        'test-1',
         'pdf-comp-1',
         'http://storage/pdf-diff.pdf',
       );
@@ -1094,6 +1096,7 @@ describe('ApprovalService', () => {
       );
 
       expect(comparisons.completePdfApproval).toHaveBeenCalledWith(
+        'test-1',
         'pdf-comp-1',
         undefined,
       );
@@ -1222,6 +1225,7 @@ describe('ApprovalService', () => {
       );
       expect(comparisons.findPendingComparisonIdsForTest).toHaveBeenCalledWith(
         'test-1',
+        100,
       );
       expect(result).toEqual({ approved: 0, pending: [], failed: [] });
       expect(approvalAudit.record).not.toHaveBeenCalled();
@@ -1338,6 +1342,7 @@ describe('ApprovalService', () => {
 
       expect(result).toEqual({ approved: 1, pending: [], failed: [] });
       expect(comparisons.completePdfApproval).toHaveBeenCalledWith(
+        'test-1',
         'pdf-comp-1',
         undefined,
       );

@@ -107,7 +107,21 @@ describe("mapRun", () => {
     expect(runFinishedLabel(run)).toBe("ada");
   });
 
-  it("normalizes the free-form nullable columns", () => {
+  it("drops a ciUrl that is not an absolute http(s) URL", () => {
+    for (const ciUrl of [
+      "javascript:alert(document.cookie)",
+      "data:text/html,<script>alert(1)</script>",
+      "ftp://ci.example.com/builds/42",
+      "/relative/build",
+    ]) {
+      expect(mapRun(runDto({ ciUrl })).ciUrl).toBeNull();
+    }
+    expect(mapRun(runDto({ ciUrl: "http://localhost:8080/ci" })).ciUrl).toBe(
+      "http://localhost:8080/ci",
+    );
+  });
+
+  it("normalizes the metadata columns", () => {
     const run = mapRun(
       runDto({
         commitSha: { unexpected: true },

@@ -107,16 +107,19 @@ export const envValidationSchema = Joi.object({
     .description('Browser-reachable base URL of the dashboard.'),
 
   // App
-  PORT: Joi.number().default(3000),
+  PORT: Joi.number().integer().min(1).max(65535).default(3000),
 
   // Max upload size (MB) for PNG screenshots
   SCREENSHOT_MAX_SIZE_MB: Joi.number()
+    .min(1)
     .default(UPLOAD_HARD_LIMIT_MB)
     .max(UPLOAD_HARD_LIMIT_MB)
     .description('Maximum PNG upload size in megabytes.'),
 
   // Max request body size (MB) for JSON payloads
   MAX_BODY_SIZE_MB: Joi.number()
+    .min(1)
+    .max(100)
     .default(10)
     .description('Maximum JSON request body size in megabytes.'),
 
@@ -134,6 +137,20 @@ export const envValidationSchema = Joi.object({
     .min(0)
     .default(100)
     .description('Max log-ingestion requests per minute per IP'),
+  // PDF page rendering writes render-cache objects that are deliberately not
+  // charged to the project quota, so it is throttled per credential.
+  RENDER_RATE_LIMIT_PER_MINUTE: Joi.number()
+    .min(0)
+    .default(120)
+    .description(
+      'Max PDF page-render requests per minute per credential (render-cache writes are not quota-charged)',
+    ),
+  // Operator surfaces (/admin/api-keys, /admin/dlq) authenticate with a single
+  // static key, so they get their own bucket instead of unlimited guessing.
+  ADMIN_RATE_LIMIT_PER_MINUTE: Joi.number()
+    .min(0)
+    .default(30)
+    .description('Max admin-surface requests per minute per IP'),
 
   // Reverse proxy trust
   TRUST_PROXY: Joi.boolean()
@@ -146,18 +163,43 @@ export const envValidationSchema = Joi.object({
   // Note: the session cookie NAME is deliberately NOT configurable — it is the
   // hardcoded SESSION_COOKIE constant so the controller (write) and guard
   // (read) can never drift.
-  AUTH_SESSION_TTL_DAYS: Joi.number().min(1).default(30),
+  AUTH_SESSION_TTL_DAYS: Joi.number().integer().min(1).default(30),
+  // Hard ceiling for a sliding session, measured from the session row's
+  // createdAt. Without it a stolen cookie that is used once per TTL never
+  // expires. Must be >= AUTH_SESSION_TTL_DAYS in practice; a lower value simply
+  // caps every session earlier.
+  AUTH_SESSION_ABSOLUTE_MAX_DAYS: Joi.number().integer().min(1).default(90),
   AUTH_COOKIE_SECURE: Joi.boolean().default(false),
-  AUTH_API_KEY_HEADER: Joi.string().default('x-api-key'),
+  AUTH_API_KEY_HEADER: Joi.string()
+    .min(1)
+    .pattern(/^[A-Za-z0-9-]+$/)
+    .default('x-api-key'),
   BOOTSTRAP_ADMIN_USERNAME: Joi.string().allow('').default(''),
   BOOTSTRAP_ADMIN_PASSWORD: Joi.string().allow('').default(''),
 
-  // Metrics API key (empty disables the metrics endpoint per metrics-auth.guard)
-  METRICS_API_KEY: Joi.string().allow('').default(''),
+  // Metrics API key (empty disables the metrics endpoint per metrics-auth.guard).
+  // The operator keys are bearer credentials for privileged surfaces, so a
+  // configured production value has a strength floor. Outside production the
+  // length is free so local dev and e2e can keep using short fixtures.
+  METRICS_API_KEY: Joi.string()
+    .allow('')
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.string().allow('').min(32),
+      otherwise: Joi.string().allow(''),
+    })
+    .default(''),
 
   // Admin API key (DLQ endpoints) — empty disables the admin endpoints
   // per admin-auth.guard; docker-compose injects it as "" when unset.
-  ADMIN_API_KEY: Joi.string().allow('').default(''),
+  ADMIN_API_KEY: Joi.string()
+    .allow('')
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.string().allow('').min(32),
+      otherwise: Joi.string().allow(''),
+    })
+    .default(''),
 
   // Metrics
   METRICS_ENABLED: Joi.boolean().default(true),
@@ -167,6 +209,9 @@ export const envValidationSchema = Joi.object({
     .default('http://pdf-sidecar:3001')
     .description('Base URL for PDF sidecar compare endpoint'),
   PDF_SIDECAR_TIMEOUT: Joi.number()
+    .integer()
+    .min(1)
+    .max(300_000)
     .default(30_000)
     .description('Timeout in ms for PDF sidecar compare requests'),
   PDF_SIDECAR_HEALTH_URL: Joi.string().description(
@@ -195,6 +240,9 @@ export const envValidationSchema = Joi.object({
   // Worker health
   WORKER_HEALTH_URL: Joi.string().description('URL for worker health endpoint'),
   WORKER_HEALTH_PORT: Joi.number()
+    .integer()
+    .min(1)
+    .max(65535)
     .default(3003)
     .description('Port for worker health server'),
 
@@ -205,6 +253,14 @@ export const envValidationSchema = Joi.object({
 
   // OpenTelemetry
   OTEL_EXPORTER_OTLP_ENDPOINT: Joi.string().allow('').default(''),
+
+  // Swagger UI + OpenAPI document at /docs. Off in production unless enabled
+  // explicitly: the document publishes every route, DTO and admin path.
+  SWAGGER_ENABLED: Joi.boolean().when('NODE_ENV', {
+    is: 'production',
+    then: Joi.boolean().default(false),
+    otherwise: Joi.boolean().default(true),
+  }),
 
   // Swagger export
   SWAGGER_BASE_URL: Joi.string().default('http://localhost:3000'),

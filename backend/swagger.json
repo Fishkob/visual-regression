@@ -29,6 +29,7 @@
             "description": "Page number (1-based)",
             "schema": {
               "minimum": 1,
+              "maximum": 10000,
               "default": 1,
               "type": "number"
             }
@@ -52,6 +53,7 @@
             "description": "Record offset (0-based), alternative to page",
             "schema": {
               "minimum": 0,
+              "maximum": 1000000,
               "type": "number"
             }
           },
@@ -483,6 +485,7 @@
             "description": "Page number (1-based)",
             "schema": {
               "minimum": 1,
+              "maximum": 10000,
               "default": 1,
               "type": "number"
             }
@@ -506,6 +509,7 @@
             "description": "Record offset (0-based), alternative to page",
             "schema": {
               "minimum": 0,
+              "maximum": 1000000,
               "type": "number"
             }
           },
@@ -684,6 +688,7 @@
             "description": "Page number (1-based)",
             "schema": {
               "minimum": 1,
+              "maximum": 10000,
               "default": 1,
               "type": "number"
             }
@@ -707,6 +712,7 @@
             "description": "Record offset (0-based), alternative to page",
             "schema": {
               "minimum": 0,
+              "maximum": 1000000,
               "type": "number"
             }
           },
@@ -862,6 +868,7 @@
             "description": "Page number (1-based)",
             "schema": {
               "minimum": 1,
+              "maximum": 10000,
               "default": 1,
               "type": "number"
             }
@@ -885,6 +892,7 @@
             "description": "Record offset (0-based), alternative to page",
             "schema": {
               "minimum": 0,
+              "maximum": 1000000,
               "type": "number"
             }
           },
@@ -1297,7 +1305,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -1361,7 +1369,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -1415,7 +1423,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -1435,7 +1443,7 @@
             "description": "Test is inherited from an ancestor branch"
           }
         },
-        "summary": "Approve every pending comparison of a test on a branch",
+        "summary": "Approve pending comparisons of a test on a branch (oldest 100 per call)",
         "tags": [
           "Approvals"
         ]
@@ -1760,7 +1768,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -1801,7 +1809,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -1842,7 +1850,7 @@
           }
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -2069,6 +2077,7 @@
             "description": "Page number (1-based)",
             "schema": {
               "minimum": 1,
+              "maximum": 10000,
               "default": 1,
               "type": "number"
             }
@@ -2092,6 +2101,7 @@
             "description": "Record offset (0-based), alternative to page",
             "schema": {
               "minimum": 0,
+              "maximum": 1000000,
               "type": "number"
             }
           },
@@ -2579,6 +2589,7 @@
             "description": "Page number (1-based)",
             "schema": {
               "minimum": 1,
+              "maximum": 10000,
               "default": 1,
               "type": "number"
             }
@@ -2602,6 +2613,7 @@
             "description": "Record offset (0-based), alternative to page",
             "schema": {
               "minimum": 0,
+              "maximum": 1000000,
               "type": "number"
             }
           },
@@ -2764,6 +2776,7 @@
             "description": "Page number (1-based)",
             "schema": {
               "minimum": 1,
+              "maximum": 10000,
               "default": 1,
               "type": "number"
             }
@@ -2787,6 +2800,7 @@
             "description": "Record offset (0-based), alternative to page",
             "schema": {
               "minimum": 0,
+              "maximum": 1000000,
               "type": "number"
             }
           },
@@ -3198,6 +3212,7 @@
             "description": "Page number (1-based)",
             "schema": {
               "minimum": 1,
+              "maximum": 10000,
               "default": 1,
               "type": "number"
             }
@@ -3221,6 +3236,7 @@
             "description": "Record offset (0-based), alternative to page",
             "schema": {
               "minimum": 0,
+              "maximum": 1000000,
               "type": "number"
             }
           },

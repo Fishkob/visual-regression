@@ -16,7 +16,12 @@ import {
   type ApiKeyScope,
 } from '@common/http/api-key-scope.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
-import { readSessionToken } from '@common/http/session-cookie';
+import {
+  readSessionToken,
+  SESSION_COOKIE,
+  sessionCookieOptions,
+} from '@common/http/session-cookie';
+import type { Response } from 'express';
 import { AppConfigService } from '@config/app-config.service';
 import { AuthRepository } from './auth.repository';
 import { ApiKeyService } from './api-key.service';
@@ -44,6 +49,13 @@ export class AuthenticationGuard implements CanActivate {
     if (cookie) {
       const session = await this.repo.findSessionByTokenHash(hashToken(cookie));
       if (session && isCredentialLive(session)) {
+        // Sliding expiry alone means a stolen cookie that is used once per TTL
+        // never dies. The absolute cap is measured from the row's createdAt and
+        // ends the session regardless of activity.
+        if (this.isBeyondAbsoluteLifetime(session)) {
+          await this.repo.deleteSessionByTokenHash(session.tokenHash);
+          throw new UnauthorizedException('Authentication required');
+        }
         const user = await this.repo.findUserById(session.userId);
         if (!user?.isActive) {
           // Session outlived its user (deleted/deactivated account) — do not
@@ -62,7 +74,7 @@ export class AuthenticationGuard implements CanActivate {
         this.enforceSameOrigin(request);
         this.enforceAccess(context, request);
         await this.touchSession(session, request);
-        await this.slideSessionExpiry(session.tokenHash, session.expiresAt);
+        await this.slideSessionExpiry(session, request, context);
         return true;
       }
     }
@@ -255,19 +267,46 @@ export class AuthenticationGuard implements CanActivate {
     );
   }
 
+  private isBeyondAbsoluteLifetime(session: { createdAt: Date }): boolean {
+    const absoluteMaxMs = this.appConfig.auth.sessionAbsoluteMaxMs;
+    if (!absoluteMaxMs || absoluteMaxMs <= 0) return false;
+    return Date.now() >= session.createdAt.getTime() + absoluteMaxMs;
+  }
+
   // Sliding session expiry: an active session is extended each time it is used,
   // but only once per half of the TTL, so a session that stays in use never
-  // expires while still bounding the write volume to at most two per TTL.
+  // expires while still bounding the write volume to at most two per TTL. The
+  // browser cookie carries the same deadline: refreshing only the row would make
+  // the server slide a session the browser has already dropped.
   private async slideSessionExpiry(
-    tokenHash: string,
-    currentExpiry: Date,
+    session: { tokenHash: string; expiresAt: Date; createdAt: Date },
+    request: AuthenticatedRequest,
+    context: ExecutionContext,
   ): Promise<void> {
     const ttlMs = this.appConfig.auth.sessionTtlMs;
-    if (currentExpiry.getTime() - Date.now() < ttlMs / 2) {
-      await this.repo.extendSessionExpiry(
-        tokenHash,
-        new Date(Date.now() + ttlMs),
-      );
-    }
+    const now = Date.now();
+    if (session.expiresAt.getTime() - now >= ttlMs / 2) return;
+
+    const absoluteMaxMs = this.appConfig.auth.sessionAbsoluteMaxMs;
+    const cap =
+      absoluteMaxMs && absoluteMaxMs > 0
+        ? session.createdAt.getTime() + absoluteMaxMs
+        : Number.MAX_SAFE_INTEGER;
+    const nextExpiry = new Date(Math.min(now + ttlMs, cap));
+    if (nextExpiry.getTime() <= session.expiresAt.getTime()) return;
+
+    await this.repo.extendSessionExpiry(session.tokenHash, nextExpiry);
+
+    const token = readSessionToken(request.headers.cookie);
+    if (!token) return;
+    const response = context.switchToHttp().getResponse<Response>();
+    response.cookie(
+      SESSION_COOKIE,
+      token,
+      sessionCookieOptions(
+        this.appConfig.auth.cookieSecure || request.secure,
+        Math.max(0, nextExpiry.getTime() - now),
+      ),
+    );
   }
 }

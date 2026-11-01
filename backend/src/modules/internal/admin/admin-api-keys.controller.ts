@@ -9,6 +9,7 @@ import {
 import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { PublicEndpoint } from '@common/http/public.decorator';
 import { AdminAuthGuard } from '@internal/dlq/admin-auth.guard';
+import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 import { ApiKeyService } from '@internal/auth/api-key.service';
 import {
   CreateApiKeyDto,
@@ -23,6 +24,7 @@ const ADMIN_KEY_ACTOR = 'admin-api-key';
 @ApiTags('Admin')
 @PublicEndpoint()
 @Controller('admin/api-keys')
+@RateLimit('admin')
 @UseGuards(AdminAuthGuard)
 export class AdminApiKeysController {
   constructor(private readonly apiKeyService: ApiKeyService) {}

@@ -1,16 +1,22 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
+
+export const MAX_PAGE = 10_000;
+export const MAX_SKIP = 1_000_000;
+
 export class PaginationDto {
   @ApiPropertyOptional({
     description: 'Page number (1-based)',
     default: 1,
     minimum: 1,
+    maximum: MAX_PAGE,
   })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(MAX_PAGE)
   page?: number = 1;
 
   @ApiPropertyOptional({
@@ -39,12 +45,14 @@ export class PaginationDto {
   @ApiPropertyOptional({
     description: 'Record offset (0-based), alternative to page',
     minimum: 0,
+    maximum: MAX_SKIP,
     type: Number,
   })
   @Expose()
   @IsOptional()
   @IsInt()
   @Min(0)
+  @Max(MAX_SKIP)
   get skip(): number {
     return this.skipInput ?? ((this.page ?? 1) - 1) * this.take;
   }

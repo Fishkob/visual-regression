@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import {
   ApiConflictResponse,
+  ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -33,7 +34,7 @@ export class ApprovalsController {
   @ApiOperation({
     summary: 'Approve a pending visual comparison',
   })
-  @ApiOkResponse({ type: ApproveResultDto })
+  @ApiCreatedResponse({ type: ApproveResultDto })
   // A 4-eyes project may return the pending-vote shape instead.
   @ApiNotFoundResponse({ description: 'Comparison not found' })
   @ApiUnauthorizedResponse({ description: 'Authentication required' })
@@ -58,7 +59,7 @@ export class ApprovalsController {
   @Scope('approve')
   @Post('pdf-approval')
   @ApiOperation({ summary: 'Approve a pending PDF comparison' })
-  @ApiOkResponse({ type: ApproveResultDto })
+  @ApiCreatedResponse({ type: ApproveResultDto })
   // A 4-eyes project may return the pending-vote shape instead.
   @ApiNotFoundResponse({ description: 'Comparison not found' })
   @ApiUnauthorizedResponse({ description: 'Authentication required' })
@@ -83,9 +84,10 @@ export class ApprovalsController {
   @Scope('approve')
   @Post('approvals/all')
   @ApiOperation({
-    summary: 'Approve every pending comparison of a test on a branch',
+    summary:
+      'Approve pending comparisons of a test on a branch (oldest 100 per call)',
   })
-  @ApiOkResponse({ type: BulkApproveResultDto })
+  @ApiCreatedResponse({ type: BulkApproveResultDto })
   @ApiNotFoundResponse({ description: 'Test not found' })
   @ApiConflictResponse({
     description: 'Test is inherited from an ancestor branch',

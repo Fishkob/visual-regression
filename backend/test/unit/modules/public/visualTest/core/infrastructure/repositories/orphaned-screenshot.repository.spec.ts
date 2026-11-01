@@ -1,7 +1,11 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionContext } from '@/prisma/transaction-context';
-import { OrphanedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/orphaned-screenshot.repository';
+import {
+  ORPHAN_DELETE_CHUNK_SIZE,
+  ORPHAN_SWEEP_BATCH_SIZE,
+  OrphanedScreenshotRepository,
+} from '@public/visualTest/core/infrastructure/repositories/orphaned-screenshot.repository';
 import { createMock } from '@test/utils/create-mock';
 
 // `$queryRaw(Prisma.sql`…`)` hands the mock one Sql object; a tagged template
@@ -9,6 +13,30 @@ import { createMock } from '@test/utils/create-mock';
 function sqlText(call: unknown[]): string {
   const first = call[0] as { sql?: string };
   return typeof first?.sql === 'string' ? first.sql : String(first);
+}
+
+// The bound values of a `$queryRaw(Prisma.sql`…`)` call.
+function sqlValues(call: unknown[]): unknown[] {
+  const first = call[0] as { values?: unknown[] };
+  return first?.values ?? [];
+}
+
+// Counts the bind parameters of a tagged-template call, expanding the `Prisma.sql`
+// fragments a template embeds (`Prisma.join(ids)`, `Prisma.join(statuses)`).
+function bindCount(values: unknown[]): number {
+  let count = 0;
+  for (const value of values) {
+    const nested = (value as { values?: unknown[] }).values;
+    count += Array.isArray(nested) ? nested.length : 1;
+  }
+  return count;
+}
+
+function manyIds(count: number): string[] {
+  return Array.from(
+    { length: count },
+    (_unused, index) => `ss-${String(index)}`,
+  );
 }
 
 describe('OrphanedScreenshotRepository', () => {
@@ -54,57 +82,46 @@ describe('OrphanedScreenshotRepository', () => {
   });
 
   describe('findOrphanedCurrent', () => {
-    it('returns current screenshots with no candidate comparison', async () => {
+    it('returns current screenshots with no candidate comparison or owning job', async () => {
       const screenshots = [
         { id: 'ss-1', imageUrl: 'http://example.com/img.png' },
       ];
-      mockClient.comparisonJob.findMany.mockResolvedValue([]);
-      mockClient.unifiedScreenshot.findMany.mockResolvedValue(screenshots);
+      mockClient.$queryRaw.mockResolvedValue(screenshots);
 
       const result = await repository.findOrphanedCurrent();
 
-      expect(result).toEqual({
-        skipped: false,
-        screenshots: [{ id: 'ss-1', imageUrl: 'http://example.com/img.png' }],
-      });
-      expect(mockClient.unifiedScreenshot.findMany).toHaveBeenCalledWith({
-        where: { type: 'CURRENT', asCandidateComp: { none: {} } },
-        select: { id: true, imageUrl: true },
-      });
+      expect(result).toEqual({ skipped: false, screenshots });
+      const [call] = mockClient.$queryRaw.mock.calls;
+      expect(sqlText(call)).toContain('FROM "UnifiedScreenshot" s');
+      expect(sqlText(call)).toContain('NOT EXISTS');
+      expect(sqlText(call)).toContain('FROM "ComparisonJob" j');
+      expect(sqlText(call)).toContain('FROM "UnifiedComparison" c');
+      expect(sqlText(call)).toContain('LIMIT');
+      expect(sqlValues(call)).toEqual([
+        'PENDING',
+        'PROCESSING',
+        'FAILED',
+        ORPHAN_SWEEP_BATCH_SIZE,
+      ]);
     });
 
-    it('excludes current screenshots a pending, processing or failed job still owns', async () => {
-      mockClient.comparisonJob.findMany.mockResolvedValue([
-        { candidateId: 'ss-inflight' },
-        { candidateId: 'ss-inflight-2' },
-      ]);
-      mockClient.unifiedScreenshot.findMany.mockResolvedValue([
+    it('excludes candidates an owning job references without materializing an id list', async () => {
+      mockClient.$queryRaw.mockResolvedValue([
         { id: 'ss-1', imageUrl: 'http://example.com/img.png' },
       ]);
 
-      const result = await repository.findOrphanedCurrent();
+      await repository.findOrphanedCurrent();
 
-      expect(result).toEqual({
-        skipped: false,
-        screenshots: [{ id: 'ss-1', imageUrl: 'http://example.com/img.png' }],
-      });
-      expect(mockClient.comparisonJob.findMany).toHaveBeenCalledWith({
-        where: { status: { in: ['PENDING', 'PROCESSING', 'FAILED'] } },
-        select: { candidateId: true },
-      });
-      expect(mockClient.unifiedScreenshot.findMany).toHaveBeenCalledWith({
-        where: {
-          type: 'CURRENT',
-          asCandidateComp: { none: {} },
-          id: { notIn: ['ss-inflight', 'ss-inflight-2'] },
-        },
-        select: { id: true, imageUrl: true },
-      });
+      // The exclusion is a correlated subquery in the SELECT, not a findMany
+      // that loads every in-flight candidate id into the statement.
+      expect(mockClient.comparisonJob.findMany).not.toHaveBeenCalled();
+      const [call] = mockClient.$queryRaw.mock.calls;
+      expect(sqlText(call)).toContain('j."candidateId" = s."id"');
+      expect(sqlText(call)).toContain('j."candidateId" IS NULL');
     });
 
     it('returns empty array when no orphaned currents', async () => {
-      mockClient.comparisonJob.findMany.mockResolvedValue([]);
-      mockClient.unifiedScreenshot.findMany.mockResolvedValue([]);
+      mockClient.$queryRaw.mockResolvedValue([]);
 
       const result = await repository.findOrphanedCurrent();
 
@@ -115,10 +132,6 @@ describe('OrphanedScreenshotRepository', () => {
       mockClient.comparisonJob.findFirst.mockResolvedValue({
         id: 'legacy-job',
       });
-      mockClient.comparisonJob.findMany.mockResolvedValue([]);
-      mockClient.unifiedScreenshot.findMany.mockResolvedValue([
-        { id: 'ss-1', imageUrl: 'http://example.com/img.png' },
-      ]);
 
       const result = await repository.findOrphanedCurrent();
 
@@ -130,7 +143,7 @@ describe('OrphanedScreenshotRepository', () => {
         },
         select: { id: true },
       });
-      expect(mockClient.unifiedScreenshot.findMany).not.toHaveBeenCalled();
+      expect(mockClient.$queryRaw).not.toHaveBeenCalled();
     });
   });
 
@@ -163,6 +176,16 @@ describe('OrphanedScreenshotRepository', () => {
 
       const sql = sqlText(mockClient.$queryRaw.mock.calls[0] as unknown[]);
       expect(sql).toContain('COALESCE(p."orphanGraceHours", ?)');
+    });
+
+    it('bounds the scan to one sweep batch instead of returning every orphan', async () => {
+      mockClient.$queryRaw.mockResolvedValue([]);
+
+      await repository.findOrphanedBaseline({ defaultGraceHours: 24 });
+
+      const sql = sqlText(mockClient.$queryRaw.mock.calls[0] as unknown[]);
+      expect(sql).toContain(`LIMIT ${ORPHAN_SWEEP_BATCH_SIZE}`);
+      expect(sql).not.toContain('LIMIT LIMIT');
     });
   });
 
@@ -201,6 +224,36 @@ describe('OrphanedScreenshotRepository', () => {
       expect(result).toEqual([]);
       expect(mockClient.$queryRaw).not.toHaveBeenCalled();
     });
+
+    it('chunks a large id list and returns the union of the deleted URLs', async () => {
+      mockClient.$queryRaw
+        .mockResolvedValueOnce([{ imageUrl: 'http://storage/chunk-1.png' }])
+        .mockResolvedValueOnce([{ imageUrl: 'http://storage/chunk-2.png' }])
+        .mockResolvedValueOnce([{ imageUrl: 'http://storage/chunk-3.png' }]);
+      const ids = manyIds(2500);
+
+      const result = await repository.deleteBaselineOrphansByIdsReturningUrls(
+        ids,
+        { defaultGraceHours: 24 },
+      );
+
+      expect(result).toEqual([
+        'http://storage/chunk-1.png',
+        'http://storage/chunk-2.png',
+        'http://storage/chunk-3.png',
+      ]);
+      expect(mockClient.$queryRaw).toHaveBeenCalledTimes(
+        Math.ceil(2500 / ORPHAN_DELETE_CHUNK_SIZE),
+      );
+      const bindsPerStatement = mockClient.$queryRaw.mock.calls.map(
+        (call: unknown[]) => sqlValues(call).length,
+      );
+      expect(bindsPerStatement).toEqual([
+        ORPHAN_DELETE_CHUNK_SIZE + 1,
+        ORPHAN_DELETE_CHUNK_SIZE + 1,
+        500 + 1,
+      ]);
+    });
   });
 
   describe('deleteCurrentOrphansByIds', () => {
@@ -230,6 +283,29 @@ describe('OrphanedScreenshotRepository', () => {
       await repository.deleteCurrentOrphansByIds([]);
 
       expect(mockClient.$executeRaw).not.toHaveBeenCalled();
+    });
+
+    it('chunks a large id list into bounded statements and sums the deleted rows', async () => {
+      mockClient.$executeRaw
+        .mockResolvedValueOnce(1000)
+        .mockResolvedValueOnce(1000)
+        .mockResolvedValueOnce(500);
+
+      const result = await repository.deleteCurrentOrphansByIds(manyIds(2500));
+
+      expect(result).toBe(2500);
+      expect(mockClient.$executeRaw).toHaveBeenCalledTimes(
+        Math.ceil(2500 / ORPHAN_DELETE_CHUNK_SIZE),
+      );
+      const bindsPerStatement = mockClient.$executeRaw.mock.calls.map(
+        (call: unknown[]) => bindCount(call.slice(1)),
+      );
+      // One bind per id plus the three candidate-owning job statuses.
+      expect(bindsPerStatement).toEqual([
+        ORPHAN_DELETE_CHUNK_SIZE + 3,
+        ORPHAN_DELETE_CHUNK_SIZE + 3,
+        500 + 3,
+      ]);
     });
   });
 });

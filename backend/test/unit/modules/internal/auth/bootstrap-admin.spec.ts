@@ -42,6 +42,7 @@ describe('bootstrap-admin', () => {
     expect(hasher.hashPassword).toHaveBeenCalledWith('pw');
     expect(repo.createUser).toHaveBeenCalledWith('admin', 'salt:hash', {
       role: 'ADMIN',
+      mustChangePassword: true,
     });
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Remove'));
   });

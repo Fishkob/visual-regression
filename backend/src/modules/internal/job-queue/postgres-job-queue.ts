@@ -415,18 +415,33 @@ export class PostgresJobQueue
   ): Promise<void> {
     this.startHeartbeat(job.id, job.processingStartedAt);
     try {
-      await processor(job);
-      await this.markCompleted(job.id, job.processingStartedAt);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      await this.markFailed(
-        job.id,
-        error.message,
-        job.attempts,
-        job.maxAttempts,
-        job.processingStartedAt,
-        isRetryableError(err),
-      );
+      // Only the processor failing is a job failure. Once it resolved, its
+      // transaction has committed, so re-queuing on a bookkeeping error would
+      // re-run the diff: a second comparison (retiring the first, deleting its
+      // diff object) and a second `review.requested` event.
+      try {
+        await processor(job);
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        await this.markFailed(
+          job.id,
+          error.message,
+          job.attempts,
+          job.maxAttempts,
+          job.processingStartedAt,
+          isRetryableError(err),
+        );
+        return;
+      }
+
+      try {
+        await this.markCompleted(job.id, job.processingStartedAt);
+      } catch (err) {
+        this.logger.error(
+          `Job completed but bookkeeping write failed; not re-queuing to avoid duplicate side effects: job ${job.id}`,
+          err instanceof Error ? err.stack : String(err),
+        );
+      }
     } finally {
       this.stopHeartbeat(job.id);
     }

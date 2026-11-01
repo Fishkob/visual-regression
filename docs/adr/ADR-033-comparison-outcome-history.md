@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-10-25
+Accepted — 2026-10-25.
+
+Superseded by: ADR-049 (the project is denormalized onto the outcome row instead of joined from the live schema).
 
 ## Context
 

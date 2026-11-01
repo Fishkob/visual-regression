@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
+import { Expose, Transform } from 'class-transformer';
 import {
   IsBoolean,
   IsDateString,
@@ -91,6 +91,11 @@ export class AssignmentDto {
 export class AssignmentListQueryDto {
   @ApiPropertyOptional({ default: false })
   @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   includeCompleted?: boolean;
 }

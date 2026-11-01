@@ -47,6 +47,27 @@ export class AuditRepository extends BaseRepository {
     });
   }
 
+  // Batched variant of `create` for a mutation whose trail scales with its
+  // input (a whole-project delete writes one row per test). One INSERT instead
+  // of N round-trips keeps that inside the deletion transaction's budget.
+  async createMany(entries: readonly AuditEntry[]): Promise<void> {
+    if (entries.length === 0) return;
+    await this.client.auditEvent.createMany({
+      data: entries.map((entry) => ({
+        actor: entry.actor ?? null,
+        action: entry.action,
+        projectName: entry.projectName ?? null,
+        testName: entry.testName ?? null,
+        branchName: entry.branchName ?? null,
+        targetType: entry.targetType ?? null,
+        targetId: entry.targetId ?? null,
+        ...(entry.metadata
+          ? { metadata: entry.metadata as Prisma.InputJsonValue }
+          : {}),
+      })),
+    });
+  }
+
   async findPage(
     filters: AuditFilters,
     skip: number,

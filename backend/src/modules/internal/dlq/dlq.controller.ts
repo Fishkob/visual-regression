@@ -10,6 +10,7 @@ import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PublicEndpoint } from '@common/http/public.decorator';
 import { DlqService } from './dlq.service';
 import { AdminAuthGuard } from './admin-auth.guard';
+import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 
 // Deliberately outside the product API surface (spec: "narrower than the
 // global guard, not part of the product API surface"): only AdminAuthGuard
@@ -17,6 +18,7 @@ import { AdminAuthGuard } from './admin-auth.guard';
 @ApiTags('DLQ')
 @PublicEndpoint()
 @Controller('admin/dlq')
+@RateLimit('admin')
 @UseGuards(AdminAuthGuard)
 export class DlqController {
   constructor(private readonly dlqService: DlqService) {}

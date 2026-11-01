@@ -36,6 +36,11 @@ import {
   IStorageProvider,
 } from '@common/domain/storage-provider.interface';
 
+// Upper bound for one "approve all pending" request. Mirrors the bulk-endpoint
+// cap (BULK_LIMIT in the presentation layer) without importing presentation
+// code into the application service.
+export const APPROVE_ALL_MAX = 100;
+
 export interface ApprovedResult {
   approved: true;
   newBaselineUrl: string;
@@ -100,6 +105,7 @@ export class ApprovalService {
       // the diff pdf reference (the artifact is reclaimed post-commit).
       completeComparison: (decision) =>
         this.comparisons.completePdfApproval(
+          decision.visualTestId,
           decision.comparisonId,
           decision.diffPdfUrl,
         ),
@@ -476,7 +482,10 @@ export class ApprovalService {
       branchName,
     );
     const comparisonIds =
-      await this.comparisons.findPendingComparisonIdsForTest(test.id);
+      await this.comparisons.findPendingComparisonIdsForTest(
+        test.id,
+        APPROVE_ALL_MAX,
+      );
 
     const batch = await this.approveMany(
       projectName,

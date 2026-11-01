@@ -33,18 +33,22 @@ describe('ReviewArtifactRepository', () => {
   });
 
   describe('deleteForTestIds', () => {
-    it('deletes the comments and votes that name a deleted test', async () => {
+    it('deletes the comments that name a deleted test', async () => {
       mockClient.reviewComment.deleteMany.mockResolvedValue({ count: 2 });
-      mockClient.approvalVote.deleteMany.mockResolvedValue({ count: 1 });
 
       await repository.deleteForTestIds(['test-1', 'test-2']);
 
       expect(mockClient.reviewComment.deleteMany).toHaveBeenCalledWith({
         where: { testId: { in: ['test-1', 'test-2'] } },
       });
-      expect(mockClient.approvalVote.deleteMany).toHaveBeenCalledWith({
-        where: { testId: { in: ['test-1', 'test-2'] } },
-      });
+    });
+
+    it('keeps the approval votes as the durable 4-eyes trail', async () => {
+      mockClient.reviewComment.deleteMany.mockResolvedValue({ count: 0 });
+
+      await repository.deleteForTestIds(['test-1']);
+
+      expect(mockClient.approvalVote.deleteMany).not.toHaveBeenCalled();
     });
 
     it('does not touch the tables for an empty test list', async () => {
@@ -67,18 +71,22 @@ describe('ReviewArtifactRepository', () => {
   });
 
   describe('deleteForProjectName', () => {
-    it('deletes the project-scoped comment and vote rows', async () => {
+    it('deletes the project-scoped comment rows', async () => {
       mockClient.reviewComment.deleteMany.mockResolvedValue({ count: 0 });
-      mockClient.approvalVote.deleteMany.mockResolvedValue({ count: 0 });
 
       await repository.deleteForProjectName('shop');
 
       expect(mockClient.reviewComment.deleteMany).toHaveBeenCalledWith({
         where: { projectName: 'shop' },
       });
-      expect(mockClient.approvalVote.deleteMany).toHaveBeenCalledWith({
-        where: { projectName: 'shop' },
-      });
+    });
+
+    it('keeps the project-scoped approval votes', async () => {
+      mockClient.reviewComment.deleteMany.mockResolvedValue({ count: 0 });
+
+      await repository.deleteForProjectName('shop');
+
+      expect(mockClient.approvalVote.deleteMany).not.toHaveBeenCalled();
     });
   });
 });

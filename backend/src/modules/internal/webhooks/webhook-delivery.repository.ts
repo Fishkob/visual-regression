@@ -5,6 +5,7 @@ import type {
   WebhookDeliveryRow,
   WebhookPayload,
 } from '@internal/webhooks/webhook.types';
+import { WEBHOOK_MAX_ATTEMPTS } from '@internal/webhooks/webhook-backoff';
 
 // A row left in PROCESSING longer than this is presumed abandoned (dispatcher
 // crash, restart, killed process) and is returned to PENDING. The lease bounds
@@ -55,10 +56,28 @@ export class WebhookDeliveryRepository extends BaseRepository {
   // retry budget is the delivery's, not the claim's) and nextAttemptAt is set
   // to NOW() so the row is claimable in the same cycle. Rows claimed before
   // this column existed fall back to createdAt for an age estimate.
+  // A claim whose worker died is returned to PENDING, but the attempt counts:
+  // a delivery that consistently crashes the process must exhaust its budget
+  // instead of looping forever. Rows that would exceed the budget are failed
+  // first, so the second statement only touches the retryable remainder.
   async reclaimExpired(): Promise<number> {
+    await this.client.$executeRaw(Prisma.sql`
+      UPDATE "WebhookDelivery"
+      SET "status" = 'FAILED'::"WebhookDeliveryStatus",
+          "attempts" = "attempts" + 1,
+          "lastError" = 'Delivery lease expired',
+          "nextAttemptAt" = NULL,
+          "claimedAt" = NULL
+      WHERE "status" = 'PROCESSING'::"WebhookDeliveryStatus"
+        AND COALESCE("claimedAt", "createdAt") <
+            NOW() - make_interval(mins => ${WEBHOOK_PROCESSING_LEASE_MINUTES})
+        AND "attempts" + 1 >= ${WEBHOOK_MAX_ATTEMPTS}
+    `);
+
     return this.client.$executeRaw(Prisma.sql`
       UPDATE "WebhookDelivery"
       SET "status" = 'PENDING'::"WebhookDeliveryStatus",
+          "attempts" = "attempts" + 1,
           "nextAttemptAt" = NOW(),
           "claimedAt" = NULL
       WHERE "status" = 'PROCESSING'::"WebhookDeliveryStatus"
@@ -111,9 +130,12 @@ export class WebhookDeliveryRepository extends BaseRepository {
     });
   }
 
+  // Every write is guarded by the PROCESSING status the claim stamped, so a row
+  // that vanished (endpoint deleted, cascade) or whose claim was lost (shutdown
+  // drain released it) is a no-op instead of a P2025 that aborts the batch.
   async markDelivered(id: string, responseStatus: number): Promise<void> {
-    await this.client.webhookDelivery.update({
-      where: { id },
+    await this.client.webhookDelivery.updateMany({
+      where: { id, status: 'PROCESSING' },
       data: {
         status: 'DELIVERED',
         responseStatus,
@@ -130,8 +152,8 @@ export class WebhookDeliveryRepository extends BaseRepository {
     error: string,
     responseStatus: number | null,
   ): Promise<void> {
-    await this.client.webhookDelivery.update({
-      where: { id },
+    await this.client.webhookDelivery.updateMany({
+      where: { id, status: 'PROCESSING' },
       data: {
         status: 'FAILED',
         attempts,
@@ -150,8 +172,8 @@ export class WebhookDeliveryRepository extends BaseRepository {
     responseStatus: number | null,
     nextAttemptAt: Date,
   ): Promise<void> {
-    await this.client.webhookDelivery.update({
-      where: { id },
+    await this.client.webhookDelivery.updateMany({
+      where: { id, status: 'PROCESSING' },
       data: {
         status: 'PENDING',
         attempts,
@@ -161,6 +183,18 @@ export class WebhookDeliveryRepository extends BaseRepository {
         claimedAt: null,
       },
     });
+  }
+
+  // Hand the claims the dispatcher did not get to back to PENDING so a deploy
+  // does not stall them for the whole processing lease. The PROCESSING guard
+  // leaves a concurrently written delivery alone.
+  async releaseClaims(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await this.client.webhookDelivery.updateMany({
+      where: { id: { in: ids }, status: 'PROCESSING' },
+      data: { status: 'PENDING', claimedAt: null },
+    });
+    return result.count;
   }
 
   async replay(id: string): Promise<void> {

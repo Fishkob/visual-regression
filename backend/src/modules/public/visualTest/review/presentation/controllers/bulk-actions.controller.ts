@@ -1,5 +1,10 @@
 import { Body, Controller, Param, Patch, Post, Req } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { requireActor } from '@common/http/authenticated-principal';
@@ -26,7 +31,7 @@ export class BulkActionsController {
   @ApiOperation({
     summary: 'Approve up to 100 comparisons, returning per-item results',
   })
-  @ApiOkResponse({ type: BulkApprovalResultDto })
+  @ApiCreatedResponse({ type: BulkApprovalResultDto })
   async approve(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Body() dto: BulkApprovalDto,
@@ -49,7 +54,7 @@ export class BulkActionsController {
   @ApiOperation({
     summary: 'Delete up to 100 tests, returning per-item results',
   })
-  @ApiOkResponse({ type: BulkDeleteResultDto })
+  @ApiCreatedResponse({ type: BulkDeleteResultDto })
   async deleteTests(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Body() dto: BulkDeleteTestsDto,

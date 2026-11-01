@@ -464,7 +464,7 @@ export const approvalsControllerApprovePdfTest = <ThrowOnError extends boolean =
 });
 
 /**
- * Approve every pending comparison of a test on a branch
+ * Approve pending comparisons of a test on a branch (oldest 100 per call)
  */
 export const approvalsControllerApproveAllPending = <ThrowOnError extends boolean = false>(options: Options<ApprovalsControllerApproveAllPendingData, ThrowOnError>): RequestResult<ApprovalsControllerApproveAllPendingResponses, ApprovalsControllerApproveAllPendingErrors, ThrowOnError> => (options.client ?? client).post<ApprovalsControllerApproveAllPendingResponses, ApprovalsControllerApproveAllPendingErrors, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],

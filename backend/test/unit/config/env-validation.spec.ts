@@ -193,4 +193,207 @@ describe('Environment Validation', () => {
     expect(error).toBeDefined();
     expect(error?.message).toContain('LOGIN_RATE_LIMIT_PER_MINUTE');
   });
+
+  it('rejects an empty or malformed AUTH_API_KEY_HEADER', () => {
+    const base = {
+      DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+      RUSTFS_ENDPOINT: 'localhost',
+      RUSTFS_ACCESS_KEY: 'test-key',
+      RUSTFS_SECRET_KEY: 'test-secret',
+      RUSTFS_BUCKET: 'visual-tests',
+      RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+    };
+
+    for (const header of ['', 'x api key']) {
+      const { error } = envValidationSchema.validate(
+        { ...base, AUTH_API_KEY_HEADER: header },
+        { abortEarly: false },
+      );
+      expect(error).toBeDefined();
+      expect(error?.message).toContain('AUTH_API_KEY_HEADER');
+    }
+
+    const ok = envValidationSchema.validate(
+      { ...base, AUTH_API_KEY_HEADER: 'x-custom-key' },
+      { abortEarly: false },
+    );
+    expect(ok.error).toBeUndefined();
+  });
+
+  it('rejects a port outside 1-65535', () => {
+    const { value, error } = envValidationSchema.validate(
+      {
+        ...{
+          DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+          RUSTFS_ENDPOINT: 'localhost',
+          RUSTFS_ACCESS_KEY: 'test-key',
+          RUSTFS_SECRET_KEY: 'test-secret',
+          RUSTFS_BUCKET: 'visual-tests',
+          RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+        },
+        PORT: 70_000,
+      },
+      { abortEarly: false },
+    );
+    expect(error).toBeDefined();
+    expect(error?.message).toContain('PORT');
+  });
+
+  it('rejects a zero body size', () => {
+    const { value, error } = envValidationSchema.validate(
+      {
+        ...{
+          DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+          RUSTFS_ENDPOINT: 'localhost',
+          RUSTFS_ACCESS_KEY: 'test-key',
+          RUSTFS_SECRET_KEY: 'test-secret',
+          RUSTFS_BUCKET: 'visual-tests',
+          RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+        },
+        MAX_BODY_SIZE_MB: 0,
+      },
+      { abortEarly: false },
+    );
+    expect(error).toBeDefined();
+    expect(error?.message).toContain('MAX_BODY_SIZE_MB');
+  });
+
+  it('rejects an unbounded body size', () => {
+    const { value, error } = envValidationSchema.validate(
+      {
+        ...{
+          DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+          RUSTFS_ENDPOINT: 'localhost',
+          RUSTFS_ACCESS_KEY: 'test-key',
+          RUSTFS_SECRET_KEY: 'test-secret',
+          RUSTFS_BUCKET: 'visual-tests',
+          RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+        },
+        MAX_BODY_SIZE_MB: 1_000,
+      },
+      { abortEarly: false },
+    );
+    expect(error).toBeDefined();
+    expect(error?.message).toContain('MAX_BODY_SIZE_MB');
+  });
+
+  it('rejects a zero screenshot size', () => {
+    const { value, error } = envValidationSchema.validate(
+      {
+        ...{
+          DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+          RUSTFS_ENDPOINT: 'localhost',
+          RUSTFS_ACCESS_KEY: 'test-key',
+          RUSTFS_SECRET_KEY: 'test-secret',
+          RUSTFS_BUCKET: 'visual-tests',
+          RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+        },
+        SCREENSHOT_MAX_SIZE_MB: 0,
+      },
+      { abortEarly: false },
+    );
+    expect(error).toBeDefined();
+    expect(error?.message).toContain('SCREENSHOT_MAX_SIZE_MB');
+  });
+
+  it('rejects a short operator key in production but accepts it locally', () => {
+    const base = {
+      DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+      RUSTFS_ENDPOINT: 'localhost',
+      RUSTFS_ACCESS_KEY: 'test-key',
+      RUSTFS_SECRET_KEY: 'test-secret',
+      RUSTFS_BUCKET: 'visual-tests',
+      RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+      ADMIN_API_KEY: 'short',
+      METRICS_API_KEY: 'short',
+    };
+
+    const production = envValidationSchema.validate(
+      { ...base, NODE_ENV: 'production' },
+      { abortEarly: false },
+    );
+    expect(production.error).toBeDefined();
+    expect(production.error?.message).toContain('ADMIN_API_KEY');
+    expect(production.error?.message).toContain('METRICS_API_KEY');
+
+    const development = envValidationSchema.validate(
+      { ...base, NODE_ENV: 'development' },
+      { abortEarly: false },
+    );
+    expect(development.error).toBeUndefined();
+  });
+
+  it('defaults the absolute session lifetime to 90 days', () => {
+    const { value, error } = envValidationSchema.validate(
+      {
+        ...{
+          DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+          RUSTFS_ENDPOINT: 'localhost',
+          RUSTFS_ACCESS_KEY: 'test-key',
+          RUSTFS_SECRET_KEY: 'test-secret',
+          RUSTFS_BUCKET: 'visual-tests',
+          RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+        },
+        NODE_ENV: 'development',
+      },
+      { abortEarly: false },
+    );
+    expect(error).toBeUndefined();
+    expect(value.AUTH_SESSION_ABSOLUTE_MAX_DAYS).toBe(90);
+  });
+
+  it('enables Swagger outside production', () => {
+    const { value, error } = envValidationSchema.validate(
+      {
+        ...{
+          DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+          RUSTFS_ENDPOINT: 'localhost',
+          RUSTFS_ACCESS_KEY: 'test-key',
+          RUSTFS_SECRET_KEY: 'test-secret',
+          RUSTFS_BUCKET: 'visual-tests',
+          RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+        },
+        NODE_ENV: 'development',
+      },
+      { abortEarly: false },
+    );
+    expect(value.SWAGGER_ENABLED).toBe(true);
+  });
+
+  it('disables Swagger in production by default', () => {
+    const { value, error } = envValidationSchema.validate(
+      {
+        ...{
+          DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+          RUSTFS_ENDPOINT: 'localhost',
+          RUSTFS_ACCESS_KEY: 'test-key',
+          RUSTFS_SECRET_KEY: 'test-secret',
+          RUSTFS_BUCKET: 'visual-tests',
+          RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+        },
+        NODE_ENV: 'production',
+      },
+      { abortEarly: false },
+    );
+    expect(value.SWAGGER_ENABLED).toBe(false);
+  });
+
+  it('keeps Swagger available in production when enabled explicitly', () => {
+    const { value, error } = envValidationSchema.validate(
+      {
+        ...{
+          DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+          RUSTFS_ENDPOINT: 'localhost',
+          RUSTFS_ACCESS_KEY: 'test-key',
+          RUSTFS_SECRET_KEY: 'test-secret',
+          RUSTFS_BUCKET: 'visual-tests',
+          RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+        },
+        NODE_ENV: 'production',
+        SWAGGER_ENABLED: true,
+      },
+      { abortEarly: false },
+    );
+    expect(value.SWAGGER_ENABLED).toBe(true);
+  });
 });

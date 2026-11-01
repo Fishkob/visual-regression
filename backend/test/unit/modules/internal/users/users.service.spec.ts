@@ -110,7 +110,7 @@ describe('UsersService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('resets a password and revokes every session', async () => {
+  it('resets a password and revokes every session and API key', async () => {
     repo.findUserById.mockResolvedValue(user());
 
     const result = await service.resetPassword({ username: 'admin' }, 'u-1');
@@ -118,6 +118,10 @@ describe('UsersService', () => {
     expect(result.temporaryPassword.length).toBeGreaterThan(8);
     expect(repo.updatePassword).toHaveBeenCalledWith('u-1', 'new-hash', true);
     expect(repo.deleteSessionsForUser).toHaveBeenCalledWith('u-1');
+    expect(repo.revokeApiKeysForOwner).toHaveBeenCalledWith(
+      'u-1',
+      'password-reset',
+    );
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'user.reset-password' }),
     );

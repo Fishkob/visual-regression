@@ -2,6 +2,8 @@ import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { DomainError, type DomainErrorCode } from '@common/domain/domain-error';
 import { Prisma } from '@/prisma/client';
 import {
+  classifyException,
+  classifyMulterError,
   classifyPrismaError,
   exceptionHttpStatus,
   finalHttpStatus,
@@ -89,13 +91,19 @@ describe('exceptionHttpStatus', () => {
     expect(exceptionHttpStatus(multerError)).toBe(413);
   });
 
-  it('returns 500 for other Multer codes', () => {
-    const multerError = {
-      name: 'MulterError',
-      code: 'LIMIT_UNEXPECTED_FILE',
-      message: 'Unexpected field',
-    };
-    expect(exceptionHttpStatus(multerError)).toBe(500);
+  it('maps every other Multer code to 400', () => {
+    for (const code of [
+      'LIMIT_FILE_COUNT',
+      'LIMIT_FIELD_COUNT',
+      'LIMIT_PART_COUNT',
+      'LIMIT_FIELD_VALUE',
+      'LIMIT_FIELD_KEY',
+      'LIMIT_UNEXPECTED_FILE',
+    ]) {
+      expect(
+        exceptionHttpStatus({ name: 'MulterError', code, message: code }),
+      ).toBe(400);
+    }
   });
 
   it('maps Prisma unique constraint errors to 409', () => {
@@ -114,9 +122,25 @@ describe('exceptionHttpStatus', () => {
     expect(exceptionHttpStatus(error)).toBe(404);
   });
 
-  it('maps unknown Prisma errors to 500', () => {
+  it('maps Prisma serialization conflicts to 409', () => {
+    const error = new Prisma.PrismaClientKnownRequestError('conflict', {
+      code: 'P2034',
+      clientVersion: 'test',
+    });
+    expect(exceptionHttpStatus(error)).toBe(409);
+  });
+
+  it('maps Prisma foreign-key violations to 409', () => {
     const error = new Prisma.PrismaClientKnownRequestError('fk', {
       code: 'P2003',
+      clientVersion: 'test',
+    });
+    expect(exceptionHttpStatus(error)).toBe(409);
+  });
+
+  it('maps unknown Prisma errors to 500', () => {
+    const error = new Prisma.PrismaClientKnownRequestError('x', {
+      code: 'P2000',
       clientVersion: 'test',
     });
     expect(exceptionHttpStatus(error)).toBe(500);
@@ -188,5 +212,97 @@ describe('classifyPrismaError', () => {
     const result = classifyPrismaError(err);
     expect(result.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
     expect(result.code).toBeUndefined();
+  });
+
+  it('maps P2034 to a conflict that suggests a retry without leaking detail', () => {
+    const err = new Prisma.PrismaClientKnownRequestError(
+      'Transaction failed due to a write conflict or a deadlock',
+      { code: 'P2034', clientVersion: 'x' },
+    );
+
+    expect(classifyPrismaError(err)).toEqual({
+      status: HttpStatus.CONFLICT,
+      message: 'Transaction conflict, please retry',
+      code: 'E_SERIALIZATION_CONFLICT',
+    });
+  });
+
+  it('maps P2003 to a conflict with a foreign-key code', () => {
+    const err = new Prisma.PrismaClientKnownRequestError(
+      'Foreign key constraint failed on the field: `testId`',
+      { code: 'P2003', clientVersion: 'x' },
+    );
+
+    expect(classifyPrismaError(err)).toEqual({
+      status: HttpStatus.CONFLICT,
+      message: 'Related record constraint violated',
+      code: 'E_FOREIGN_KEY_VIOLATION',
+    });
+  });
+});
+
+describe('classifyMulterError', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('keeps the 413 status and limit message for LIMIT_FILE_SIZE', () => {
+    expect(
+      classifyMulterError({
+        name: 'MulterError',
+        code: 'LIMIT_FILE_SIZE',
+        message: 'File too large',
+      }),
+    ).toEqual({
+      status: HttpStatus.PAYLOAD_TOO_LARGE,
+      message: 'File too large',
+    });
+  });
+
+  it('falls back to a limit-shaped message when LIMIT_FILE_SIZE has none', () => {
+    expect(
+      classifyMulterError({ name: 'MulterError', code: 'LIMIT_FILE_SIZE' }),
+    ).toEqual({
+      status: HttpStatus.PAYLOAD_TOO_LARGE,
+      message: 'File too large',
+    });
+  });
+
+  it('turns every other Multer code into a generic 400', () => {
+    for (const code of [
+      'LIMIT_FILE_COUNT',
+      'LIMIT_FIELD_COUNT',
+      'LIMIT_PART_COUNT',
+      'LIMIT_FIELD_VALUE',
+      'LIMIT_FIELD_KEY',
+      'LIMIT_UNEXPECTED_FILE',
+    ]) {
+      expect(
+        classifyMulterError({ name: 'MulterError', code, message: 'raw' }),
+      ).toEqual({
+        status: HttpStatus.BAD_REQUEST,
+        message: `Invalid multipart upload: ${code}`,
+      });
+    }
+  });
+});
+
+describe('classifyException', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('classifies every Multer code as a multer error', () => {
+    for (const code of ['LIMIT_FILE_SIZE', 'LIMIT_UNEXPECTED_FILE']) {
+      expect(
+        classifyException({ name: 'MulterError', code, message: code }),
+      ).toMatchObject({ kind: 'multer' });
+    }
+  });
+
+  it('does not classify a non-Multer object as a multer error', () => {
+    expect(
+      classifyException({ name: 'Error', code: 'LIMIT_FILE_SIZE' }),
+    ).toMatchObject({ kind: 'unknown' });
   });
 });

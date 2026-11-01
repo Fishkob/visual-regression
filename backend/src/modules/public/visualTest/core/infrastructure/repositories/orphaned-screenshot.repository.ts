@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@/prisma/base.repository';
 import { JobStatus, Prisma } from '@/prisma/client';
-import { isString } from '@common/utils/is-string';
 import type {
   IOrphanSweep,
   OrphanBaselineCriteria,
@@ -38,6 +37,29 @@ const CANDIDATE_OWNING_JOB_STATUSES = [
   JobStatus.FAILED,
 ] as const;
 
+// The sweep is a maintenance task under an advisory lock, so it must finish in
+// bounded time and with bounded statements. A batch caps one run's find (memory,
+// and one guard set for the chunked deletes); a larger backlog is drained over
+// the following nightly runs, which is acceptable for orphaned rows. The delete
+// chunk keeps each statement's bind-parameter count far below PostgreSQL's
+// 65535 ceiling — `Prisma.join(ids)` binds one parameter per id, so an unbounded
+// id list made the statement fail on every run once the table grew.
+export const ORPHAN_SWEEP_BATCH_SIZE = 5000;
+export const ORPHAN_DELETE_CHUNK_SIZE = 1000;
+
+// The batch size rendered as SQL text: `LIMIT $n` makes the parameter type
+// inference depend on the driver's number encoding, and the value is never
+// caller-controlled.
+const ORPHAN_SWEEP_LIMIT = Prisma.raw(String(ORPHAN_SWEEP_BATCH_SIZE));
+
+function chunk<T>(items: readonly T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
 @Injectable()
 export class OrphanedScreenshotRepository
   extends BaseRepository
@@ -57,18 +79,27 @@ export class OrphanedScreenshotRepository
       return { skipped: true, screenshots: [] };
     }
 
-    const activeCandidateIds = await this.activeCandidateIds();
-
-    const screenshots = await this.client.unifiedScreenshot.findMany({
-      where: {
-        type: 'CURRENT',
-        asCandidateComp: { none: {} },
-        ...(activeCandidateIds.length > 0
-          ? { id: { notIn: activeCandidateIds } }
-          : {}),
-      },
-      select: { id: true, imageUrl: true },
-    });
+    // The job guard is a NOT EXISTS subquery (the delete-time guard's shape),
+    // not a materialized id list: a project with many in-flight/failed jobs used
+    // to build one bind parameter per candidate id, which turns into an
+    // unbounded parameter list and eventually fails outright.
+    const screenshots = await this.client.$queryRaw<
+      { id: string; imageUrl: string }[]
+    >(Prisma.sql`
+      SELECT s."id", s."imageUrl"
+      FROM "UnifiedScreenshot" s
+      WHERE s."type" = 'CURRENT'
+        AND NOT EXISTS (
+          SELECT 1 FROM "UnifiedComparison" c WHERE c."candidateId" = s."id"
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM "ComparisonJob" j
+          WHERE j."status" IN (${Prisma.join(CANDIDATE_OWNING_JOB_STATUSES)})
+            AND (j."candidateId" = s."id" OR j."candidateId" IS NULL)
+        )
+      ORDER BY s."createdAt"
+      LIMIT ${ORPHAN_SWEEP_BATCH_SIZE}
+    `);
 
     return { skipped: false, screenshots };
   }
@@ -82,6 +113,14 @@ export class OrphanedScreenshotRepository
   async deleteCurrentOrphansByIds(ids: string[]): Promise<number> {
     if (ids.length === 0) return 0;
 
+    let deleted = 0;
+    for (const idChunk of chunk(ids, ORPHAN_DELETE_CHUNK_SIZE)) {
+      deleted += await this.deleteCurrentOrphanChunk(idChunk);
+    }
+    return deleted;
+  }
+
+  private deleteCurrentOrphanChunk(ids: string[]): Promise<number> {
     return this.client.$executeRaw`
       DELETE FROM "UnifiedScreenshot" s
       WHERE s.id IN (${Prisma.join(ids)})
@@ -112,14 +151,6 @@ export class OrphanedScreenshotRepository
     return unknown !== null;
   }
 
-  private async activeCandidateIds(): Promise<string[]> {
-    const activeJobs = await this.client.comparisonJob.findMany({
-      where: { status: { in: [...CANDIDATE_OWNING_JOB_STATUSES] } },
-      select: { candidateId: true },
-    });
-    return activeJobs.map((job) => job.candidateId).filter(isString);
-  }
-
   // Row-first twin of the storage-first flow: deletes the orphaned BASELINE
   // rows and RETURNS the URLs of exactly the rows the guarded DELETE removed.
   // Baseline content is live content — a comparison that re-adopts this
@@ -132,6 +163,17 @@ export class OrphanedScreenshotRepository
     criteria: OrphanBaselineCriteria,
   ): Promise<string[]> {
     if (ids.length === 0) return [];
+    const urls: string[] = [];
+    for (const idChunk of chunk(ids, ORPHAN_DELETE_CHUNK_SIZE)) {
+      urls.push(...(await this.deleteBaselineOrphanChunk(idChunk, criteria)));
+    }
+    return urls;
+  }
+
+  private async deleteBaselineOrphanChunk(
+    ids: string[],
+    criteria: OrphanBaselineCriteria,
+  ): Promise<string[]> {
     const deleted = await this.client.$queryRaw<
       { imageUrl: string }[]
     >(Prisma.sql`
@@ -175,6 +217,7 @@ export class OrphanedScreenshotRepository
           WHERE c."baselineId" = s.id
         )
         AND ${ORPHAN_GRACE_ELAPSED(criteria.defaultGraceHours)}
+      LIMIT ${ORPHAN_SWEEP_LIMIT}
     `);
   }
 }

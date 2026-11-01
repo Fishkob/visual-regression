@@ -73,6 +73,15 @@ describe('session-cookie', () => {
       expect(readSessionToken(`${SESSION_COOKIE}=`)).toBeUndefined();
     });
 
+    it('rejects a duplicated session cookie instead of trusting the last one', () => {
+      expect(
+        readSessionToken(`${SESSION_COOKIE}=evil; ${SESSION_COOKIE}=victim`),
+      ).toBeUndefined();
+      expect(
+        readSessionToken(`${SESSION_COOKIE}=same; ${SESSION_COOKIE}=same`),
+      ).toBeUndefined();
+    });
+
     it('does not throw on a malformed session cookie value', () => {
       expect(readSessionToken(`${SESSION_COOKIE}=%`)).toBe('%');
     });

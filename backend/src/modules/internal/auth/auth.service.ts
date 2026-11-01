@@ -20,6 +20,7 @@ import {
   otpauthUrl,
   verifyTotp,
 } from './totp';
+import { needsRehash } from './password-hasher';
 import type { AuthUserRow } from './auth.repository';
 
 export interface LoginResult {
@@ -86,6 +87,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid username or password');
     }
 
+    // The plaintext is only available here, so this is the one place a legacy
+    // hash can be upgraded in place. A failed upgrade must never fail the login
+    // (the password was already verified); the row simply keeps its old hash.
+    if (needsRehash(user.passwordHash)) {
+      await this.rehashLegacyPassword(user.id, password);
+    }
+
     if (user.totpEnabledAt) {
       const challengeToken =
         randomBytes(SESSION_TOKEN_BYTES).toString('base64url');
@@ -98,6 +106,18 @@ export class AuthService {
     }
 
     return this.issueSession(user, context);
+  }
+
+  private async rehashLegacyPassword(
+    userId: string,
+    password: string,
+  ): Promise<void> {
+    try {
+      const passwordHash = await this.hasher.hashPassword(password);
+      await this.repo.updatePassword(userId, passwordHash, false);
+    } catch {
+      // Best-effort: the hash is still valid at its old cost factor.
+    }
   }
 
   private async issueSession(
@@ -255,6 +275,11 @@ export class AuthService {
     const passwordHash = await this.hasher.hashPassword(newPassword);
     await this.repo.updatePassword(user.id, passwordHash, false);
     await this.repo.deleteSessionsForUser(user.id);
+    // Changing the password rotates every credential derived from the account.
+    // A session stolen before the change could have minted an API key (the key
+    // management surface is session-only); leaving those keys alive would keep
+    // the intruder in after the password was rotated.
+    await this.repo.revokeApiKeysForOwner(user.id, 'password-changed');
     const token = randomBytes(SESSION_TOKEN_BYTES).toString('base64url');
     const expiresAt = new Date(Date.now() + this.appConfig.auth.sessionTtlMs);
     await this.repo.createSession(user.id, hashToken(token), expiresAt);

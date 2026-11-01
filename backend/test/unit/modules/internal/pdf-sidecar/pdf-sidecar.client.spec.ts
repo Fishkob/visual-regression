@@ -115,9 +115,27 @@ describe('PdfSidecarClient', () => {
 
       await expect(client.compare(expected, actual)).rejects.toMatchObject({
         code: 'BAD_REQUEST',
-        message: 'PDF sidecar rejected /compare (400): Invalid PDF',
+        message: 'PDF sidecar rejected /compare (400)',
       });
       expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('surfaces the sidecar rejection text for a 422 page-geometry rejection', async () => {
+      fetchMock.mockResolvedValue({
+        ok: false,
+        status: 422,
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({
+              error: 'PDF page 1 is too large to render: 20000x20000 pt',
+            }),
+          ),
+      });
+
+      await expect(client.count(Buffer.from('%PDF'))).rejects.toMatchObject({
+        code: 'BAD_REQUEST',
+        message: 'PDF page 1 is too large to render: 20000x20000 pt',
+      });
     });
 
     it('fails loud when the sidecar omits the page-count header', async () => {
@@ -177,7 +195,7 @@ describe('PdfSidecarClient', () => {
       });
 
       await expect(client.compare(expected, actual)).rejects.toThrow(
-        'PDF sidecar rejected /compare (400): unknown error',
+        'PDF sidecar rejected /compare (400)',
       );
     });
 
@@ -287,7 +305,7 @@ describe('PdfSidecarClient', () => {
         client.count(Buffer.from('pdf-content')),
       ).rejects.toMatchObject({
         code: 'BAD_REQUEST',
-        message: 'PDF sidecar rejected /count (400): Invalid PDF',
+        message: 'PDF sidecar rejected /count (400)',
       });
     });
 
@@ -395,7 +413,7 @@ describe('PdfSidecarClient', () => {
         client.renderPdfPage(Buffer.from('pdf-content'), 1),
       ).rejects.toMatchObject({
         code: 'NOT_FOUND',
-        message: 'PDF sidecar rejected /render (404): Not Found',
+        message: 'PDF sidecar rejected /render (404)',
       });
       expect(logger.warn).not.toHaveBeenCalled();
     });
@@ -431,7 +449,7 @@ describe('PdfSidecarClient', () => {
 
       await expect(
         client.renderPdfPage(Buffer.from('pdf-content'), 1),
-      ).rejects.toThrow('PDF sidecar rejected /render (404): unknown error');
+      ).rejects.toThrow('PDF sidecar rejected /render (404)');
     });
   });
 });

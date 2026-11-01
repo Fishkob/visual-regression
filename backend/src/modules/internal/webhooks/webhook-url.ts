@@ -5,8 +5,9 @@ import { DomainError } from '@common/domain/domain-error';
 // networks, so RFC1918 addresses are legitimate targets; the guard blocks the
 // addresses that turn a webhook into a cloud-metadata or loopback probe:
 // localhost, 0.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16 (incl. the metadata
-// service), the whole ::/96 range (loopback, unspecified, IPv4-compatible and
-// IPv4-mapped) and fe80::/10.
+// service), 100.64.0.0/10 (RFC 6598 shared space, home of the Alibaba Cloud
+// ECS metadata endpoint 100.100.100.200), the whole ::/96 range (loopback,
+// unspecified, IPv4-compatible and IPv4-mapped) and fe80::/10.
 //
 // Residual risk, deliberate and documented: the check is hostname-only, so a
 // DNS name that resolves to a blocked address (rebinding or a wildcard service
@@ -28,7 +29,7 @@ function blockedIpv4(ip: string): boolean {
     a === 0 ||
     a === 127 ||
     (a === 169 && b === 254) ||
-    (a === 100 && b === 64 && parts[2] === 100 && parts[3] === 200)
+    (a === 100 && b >= 64 && b <= 127)
   );
 }
 

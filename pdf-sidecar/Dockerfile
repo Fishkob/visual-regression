@@ -11,7 +11,9 @@ RUN mvn package -q -DskipTests
 
 FROM eclipse-temurin:25-jre-alpine
 RUN apk upgrade --no-cache
-COPY --from=build /app/target/*.jar /app.jar
+# The shade plugin keeps the pre-shade jar as target/original-*.jar, so a bare
+# *.jar glob matches two files and fails the COPY on a cold build.
+COPY --from=build /app/target/pdf-sidecar-*.jar /app.jar
 COPY --from=agent /opentelemetry-javaagent.jar /opentelemetry-javaagent.jar
 USER 1000:1000
 EXPOSE 3001

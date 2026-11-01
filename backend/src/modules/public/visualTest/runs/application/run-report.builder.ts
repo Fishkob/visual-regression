@@ -120,8 +120,15 @@ function htmlEscape(value: string): string {
   return xmlEscape(value);
 }
 
+const CSV_FORMULA_PREFIX = /^[=+\-@\t\r]/;
+
+// Quoting alone does not stop a spreadsheet: Excel/LibreOffice evaluate a cell
+// whose first character is =, +, -, @, TAB or CR even inside quotes, and the
+// variant/test/detail columns are free-form uploader input. Prefixing a single
+// quote forces the cell to text (the OWASP CSV-injection mitigation).
 function csvCell(value: string): string {
-  return `"${value.replace(/"/g, '""')}"`;
+  const guarded = CSV_FORMULA_PREFIX.test(value) ? `'${value}` : value;
+  return `"${guarded.replace(/"/g, '""')}"`;
 }
 
 function testUrl(

@@ -41,6 +41,13 @@ export class AuditService {
     await this.events.create(entry);
   }
 
+  // Same transaction contract as `record`, one INSERT for the whole set.
+  async recordMany(entries: readonly AuditEntry[]): Promise<void> {
+    if (entries.length === 0) return;
+    this.txCtx.assertInTransaction();
+    await this.events.createMany(entries);
+  }
+
   // A read's access log: there is no domain change to ride, so it writes on its
   // own connection. The one caller is opening a share link, which must not fail
   // because no transaction happens to be open.

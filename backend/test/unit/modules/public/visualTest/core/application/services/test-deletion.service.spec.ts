@@ -73,6 +73,7 @@ describe('TestDeletionService', () => {
     );
     audit = createMock<AuditService>();
     audit.record.mockResolvedValue(undefined);
+    audit.recordMany.mockResolvedValue(undefined);
     reviewArtifacts = createMock<ReviewArtifactRepository>();
     reviewArtifacts.deleteForTestIds.mockResolvedValue(undefined);
     reviewArtifacts.deleteForProjectName.mockResolvedValue(undefined);
@@ -141,12 +142,12 @@ describe('TestDeletionService', () => {
       ]);
       expect(storage.deleteAll).toHaveBeenCalled();
       expect(tests.deleteByIds).toHaveBeenCalledWith(['vt-1']);
-      expect(audit.record).toHaveBeenCalledWith(
+      expect(audit.recordMany).toHaveBeenCalledWith([
         expect.objectContaining({ action: 'test.delete', targetId: 'vt-1' }),
-      );
+      ]);
     });
 
-    it('deletes the comments and votes of the deleted tests before the test rows', async () => {
+    it('deletes the comments (not the audit votes) before the test rows', async () => {
       screenshots.findAllImageUrlsForTests.mockResolvedValue([]);
       comparisons.findDiffImageUrlsByTestIds.mockResolvedValue([]);
 

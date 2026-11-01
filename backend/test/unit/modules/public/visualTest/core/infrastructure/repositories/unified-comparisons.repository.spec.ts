@@ -622,11 +622,15 @@ describe('UnifiedComparisonsRepository', () => {
     it('atomically updates comparison status to APPROVED when pending', async () => {
       mockClient.unifiedComparison.updateMany.mockResolvedValue({ count: 1 });
 
-      const urls = await repository.completePdfApproval('comp-1');
+      const urls = await repository.completePdfApproval('test-1', 'comp-1');
 
       expect(urls).toEqual([]);
       expect(mockClient.unifiedComparison.updateMany).toHaveBeenCalledWith({
-        where: { id: 'comp-1', status: 'PENDING_APPROVAL' },
+        where: {
+          id: 'comp-1',
+          testId: 'test-1',
+          status: 'PENDING_APPROVAL',
+        },
         data: { status: 'APPROVED', candidateId: null },
       });
     });
@@ -635,13 +639,18 @@ describe('UnifiedComparisonsRepository', () => {
       mockClient.unifiedComparison.updateMany.mockResolvedValue({ count: 1 });
 
       const urls = await repository.completePdfApproval(
+        'test-1',
         'comp-1',
         'http://storage/diff.pdf',
       );
 
       expect(urls).toEqual(['http://storage/diff.pdf']);
       expect(mockClient.unifiedComparison.updateMany).toHaveBeenCalledWith({
-        where: { id: 'comp-1', status: 'PENDING_APPROVAL' },
+        where: {
+          id: 'comp-1',
+          testId: 'test-1',
+          status: 'PENDING_APPROVAL',
+        },
         data: {
           status: 'APPROVED',
           candidateId: null,
@@ -654,7 +663,7 @@ describe('UnifiedComparisonsRepository', () => {
       mockClient.unifiedComparison.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(
-        repository.completePdfApproval('comp-1'),
+        repository.completePdfApproval('test-1', 'comp-1'),
       ).rejects.toMatchObject({
         code: 'CONFLICT',
       });

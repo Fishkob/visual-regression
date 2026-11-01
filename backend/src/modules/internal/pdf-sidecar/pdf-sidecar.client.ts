@@ -203,19 +203,36 @@ export class PdfSidecarClient
       // A 4xx from the sidecar means the document was rejected (e.g. a
       // malformed PDF) — a permanent condition that job-level retry cannot fix.
       // 413 is the one case a user can act on, so it gets a limit-shaped
-      // message instead of the internal route + raw body.
+      // message instead of the internal route + raw body. Every other 4xx uses
+      // the sidecar's own `{"error": "..."}` text so a rejected page geometry
+      // reaches the uploader as a readable limit message, not a raw route dump.
       if (res.status === 413) {
         throw new DomainError(
           'PDF is too large for comparison. Reduce the document size or split it.',
           'BAD_REQUEST',
         );
       }
+      const rejection = this.errorMessage(errorBody);
       throw new DomainError(
-        `PDF sidecar rejected ${path} (${res.status}): ${errorBody}`,
+        rejection ?? `PDF sidecar rejected ${path} (${res.status})`,
         res.status === 404 ? 'NOT_FOUND' : 'BAD_REQUEST',
       );
     }
     return res;
+  }
+
+  // The sidecar answers every rejection with `{"error": "..."}`; a non-JSON
+  // body (proxy error page, truncated read) yields no message so the caller
+  // falls back to a generic one instead of leaking HTML into a DomainError.
+  private errorMessage(body: string): string | null {
+    try {
+      const parsed = JSON.parse(body) as { error?: unknown };
+      return typeof parsed.error === 'string' && parsed.error.length > 0
+        ? parsed.error
+        : null;
+    } catch {
+      return null;
+    }
   }
 
   private withRetry<T>(

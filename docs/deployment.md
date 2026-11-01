@@ -56,37 +56,54 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 
 ## Reverse Proxy (TRUST_PROXY)
 
-Only the two anonymous endpoints — `/auth/login` and log ingestion — are keyed
-by client IP. When deploying behind the nginx/ingress reverse proxy (the default
-Helm setup), set `TRUST_PROXY=true` so those per-IP rate limits and client-IP
-logging use the real client IP from `X-Forwarded-For` instead of the proxy's:
+The anonymous login and log-ingestion endpoints are keyed by client IP. Both
+bundled topologies proxy the API — Docker Compose through the nginx frontend,
+Helm through the ingress — so `TRUST_PROXY` defaults to **true** in
+`docker-compose.yml`, the Helm chart and `.env.example`. Without it every request
+reaches Nest from the proxy's IP, which collapses the per-IP login limit into one
+deployment-wide bucket: five failed logins per minute would lock out every user
+(and `Session.ip` would record the proxy for everyone).
 
-```bash
-# Helm
-helm upgrade --install vrt deploy/charts/vrt --namespace vrt --create-namespace \
-  --set backend.env.TRUST_PROXY="true"
-```
+Keep the default when a proxy is in front. Set it to `false` only when the API is
+exposed directly, with no proxy in front — trusting `X-Forwarded-For` from a
+direct client lets that client spoof its IP and bypass the per-IP limits.
+Authenticated product routes are not IP-limited, so the switch does not affect
+them.
 
-For Docker Compose, export it before starting:
-
-```bash
-TRUST_PROXY=true ./scripts/dev.sh docker
-```
-
-Keep `TRUST_PROXY` `false` (the default) when the backend is directly reachable —
-trusting proxy headers from a non-proxy client lets anyone spoof their IP and
-bypass the per-IP limits. Authenticated product routes are not IP-limited, so
-the switch does not affect them.
+The Compose file additionally binds the backend port to `127.0.0.1` so the
+API is reachable for local scripts/CI but not from the network; the frontend is
+the only externally published service. An externally reachable backend port
+would be an origin where a direct client can supply its own `X-Forwarded-For`.
 
 ## Rate Limits
 
 Rate limits are counters per fixed one-minute window in Postgres, so they hold
-across all backend instances. Three rules exist, each configured by a
+across all backend instances. Five rules exist, each configured by a
 `*_RATE_LIMIT_PER_MINUTE` env var and disabled by setting it to `0`: uploads per
-API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default 60), login attempts per IP
-(`LOGIN_RATE_LIMIT_PER_MINUTE`, default 5), and log-ingestion requests per IP
-(`LOG_RATE_LIMIT_PER_MINUTE`, default 100). Exceeding a limit returns `429` with
-a `Retry-After` header.
+API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default 60), PDF page renders per
+credential (`RENDER_RATE_LIMIT_PER_MINUTE`, default 120 — the render cache is
+written outside the storage quota), login attempts per IP
+(`LOGIN_RATE_LIMIT_PER_MINUTE`, default 5), log-ingestion requests per IP
+(`LOG_RATE_LIMIT_PER_MINUTE`, default 100), and the operator surfaces
+`/admin/api-keys` + `/admin/dlq` per IP (`ADMIN_RATE_LIMIT_PER_MINUTE`, default
+30). Exceeding a limit returns `429` with a `Retry-After` header.
+
+## Operator Keys and Session Lifetime
+
+`ADMIN_API_KEY` and `METRICS_API_KEY` are static bearer credentials for the
+privileged surfaces (`/admin/*`, `/metrics`, detailed `/health`). In production a
+configured value must be at least 32 characters; empty disables the surface
+(fail-closed). `install.sh` generates 24-byte keys. The comparison is
+constant-time, and the admin surfaces are rate-limited (see above).
+
+Sessions slide while they are used, but never past
+`AUTH_SESSION_ABSOLUTE_MAX_DAYS` (default 90) measured from first login, so a
+stolen cookie that is used regularly still dies. `AUTH_SESSION_TTL_DAYS`
+(default 30) is the idle timeout.
+
+Swagger UI and the OpenAPI document at `/docs` are enabled outside production and
+disabled in production by default; set `SWAGGER_ENABLED=true` to publish them
+there.
 
 ## Health Endpoints
 
@@ -129,14 +146,24 @@ without a worker keeps serving requests but never prunes anything; the Helm
 chart and `docker-compose.yml` both ship a worker. Two workers are safe — every
 task takes a Postgres advisory lock before it runs.
 
-Two tables are deliberately **not** pruned: `AuditEvent` (the compliance trail,
-including the IP/user-agent written when a share link is opened) and
-`ComparisonOutcomeEvent` (the trend/flake history). Both are append-only and grow
-with usage; size the database accordingly, or archive/purge them on your own
-schedule if a retention policy requires it. Everything else has a configurable
+Three tables are deliberately **not** pruned: `AuditEvent` (the compliance
+trail, including the IP/user-agent written when a share link is opened),
+`ComparisonOutcomeEvent` (the trend/flake history, attributed by project name)
+and `ApprovalVote` (the 4-eyes trail that justifies an approval with
+`requiredApprovals > 1`; see ADR-050). All three are append-only and grow with
+usage; size the database accordingly, or archive/purge them on your own schedule
+if a retention policy requires it. Everything else has a configurable
 window (`RUN_HISTORY_RETENTION_DAYS`, `JOB_RETENTION_DAYS`,
 `WEBHOOK_DELIVERY_RETENTION_DAYS`, session expiry, 7 days for expired share
 links).
+
+## Database Time Zone
+
+The schema stores timestamps as `timestamp(3)` without a zone and writes UTC from
+the application, while several maintenance queries compare with `NOW()`. Run
+Postgres with `timezone = UTC` (the default in the shipped images and compose
+stack) — a non-UTC server session makes "older than N minutes/hours" predicates
+drift by the offset. Do not set `TZ` on the database to a local zone.
 
 ## Object Storage Bucket
 

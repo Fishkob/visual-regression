@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsUrl,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 import { MAX_BRANCH_NAME_LENGTH } from '@public/visualTest/core/domain/constants/branch.constants';
 import {
   ComparisonErrorCode,
@@ -60,6 +66,14 @@ export class UploadDocumentDto extends VariantParamsDto {
   @IsOptional()
   @IsString()
   @MaxLength(2048)
+  // http(s) only: the dashboard links this straight into an href, so a value
+  // like `javascript:...` would be stored XSS. require_tld:false keeps
+  // self-hosted `http://localhost:3001/ci` valid.
+  @IsUrl({
+    protocols: ['http', 'https'],
+    require_protocol: true,
+    require_tld: false,
+  })
   ciUrl?: string;
 }
 
