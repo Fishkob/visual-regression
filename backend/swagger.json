@@ -6097,7 +6097,7 @@
             "type": "string"
           },
           "pageCount": {
-            "type": "object",
+            "type": "number",
             "nullable": true
           },
           "pixelDiffThreshold": {
@@ -6112,7 +6112,7 @@
             ]
           },
           "createdBy": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "createdAt": {

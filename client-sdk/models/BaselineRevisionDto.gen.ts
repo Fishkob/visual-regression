@@ -14,13 +14,9 @@ export type BaselineRevisionDto = {
      */
     signedImageUrl: string;
     imageHash: string;
-    pageCount?: {
-        [key: string]: unknown;
-    } | null;
+    pageCount?: number | null;
     pixelDiffThreshold: number;
     reason: 'approval' | 'restore' | 'import';
-    createdBy?: {
-        [key: string]: unknown;
-    } | null;
+    createdBy?: string | null;
     createdAt: string;
 };

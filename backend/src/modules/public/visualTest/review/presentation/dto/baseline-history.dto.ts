@@ -38,7 +38,7 @@ export class BaselineRevisionDto {
   @Expose()
   imageHash!: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: Number })
   @Expose()
   pageCount?: number | null;
 
@@ -50,7 +50,7 @@ export class BaselineRevisionDto {
   @Expose()
   reason!: BaselineRevisionReason;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   @Expose()
   createdBy?: string | null;
 

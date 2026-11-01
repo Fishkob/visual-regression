@@ -1,12 +1,14 @@
 import type { BaselineRevisionDto } from "@sdk";
 import type { BaselineRevision } from "./baseline-history.model";
 
-// The generated DTO types `pageCount` and `createdBy` as free-form objects: the
-// backend declares both nullable but untyped, so the OpenAPI spec gives the
-// client `{ [key: string]: unknown } | null` where the wire carries
-// `number | null` and `string | null`. The source keeps the generated fields but
-// widens those two to `unknown`, so the mapper accepts the SDK type as-is and
-// still normalizes both spellings to one absent value.
+// The generated DTO now types `pageCount` and `createdBy` correctly
+// (`number | null` / `string | null`); the backend DTO carries `type: Number` /
+// `type: String` for them, which the OpenAPI plugin needs to emit a type at all.
+// The source keeps the generated fields but widens those two to `unknown`: the
+// mapper is the seam that normalizes a wire value in either spelling (a `Date`,
+// a numeric string, an absent key) to one absent value, and the fixtures type
+// themselves against this tolerant input rather than a type they would have to
+// cast into.
 export type BaselineRevisionSource = Omit<
   BaselineRevisionDto,
   "pageCount" | "createdBy"
