@@ -21,14 +21,15 @@ platform release, and its version is the release tag — install the version tha
 matches your server:
 
 ```bash
-# v1.4.0 of the platform → fishkob-vrt-1.4.0.tgz
-npm i https://github.com/Fishkob/visual-regression/releases/download/v1.4.0/fishkob-vrt-1.4.0.tgz
-# or: pnpm add <same url>
+# private repository: the release asset needs an authenticated download
+gh release download v1.4.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
+npm i ./fishkob-vrt-1.4.0.tgz   # or: pnpm add ./fishkob-vrt-1.4.0.tgz
 ```
 
-The package name stays the same across versions, so a bump means editing the URL
-deliberately when the server is upgraded. The asset holds the compiled `dist/`
-only; the licence at the repository root applies.
+The `/releases/download/...` URL answers only a browser session for a private
+repository, so a shell or pipeline has to go through `gh release download` or the
+API asset endpoint (`Accept: application/octet-stream` plus a token). The asset
+holds the compiled `dist/` only; the licence at the repository root applies.
 
 ## Upload one capture
 

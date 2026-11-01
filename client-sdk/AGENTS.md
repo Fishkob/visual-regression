@@ -42,7 +42,7 @@ client-sdk/
 
 ## Distribution
 
-The package is **not published to npm**. It ships as the tarball attached to a GitHub release; the tarball version is the git tag, injected by `.github/workflows/release-client-sdk.yml` (`PACKAGE_VERSION`), so a released artifact always names the platform version it belongs to. Decision and rationale: [ADR-056](../docs/adr/ADR-056-client-sdk-distribution.md).
+The package is **not published to npm**. It ships as the tarball attached to a GitHub release; the tarball version is the git tag, injected by `.github/workflows/release-client-sdk.yml` (`PACKAGE_VERSION`), so a released artifact always names the platform version it belongs to. The repository is private, so the asset is fetched with `gh release download` (or the API asset endpoint) — `/releases/download/...` answers only a browser session. Decision and rationale: [ADR-056](../docs/adr/ADR-056-client-sdk-distribution.md).
 
 ## Build Rules
 

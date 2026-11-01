@@ -160,10 +160,15 @@ The seed scripts authenticate the same way — see [Seed Demo Data](#seed-demo-d
 **TypeScript client:** the API needs no client — any HTTP caller can upload. For typed uploads, batch upload with retries and a Playwright reporter, install the client tarball attached to a release (its version is the release tag, matching the server):
 
 ```bash
-npm i https://github.com/Fishkob/visual-regression/releases/download/v1.4.0/fishkob-vrt-1.4.0.tgz
+# the repository is private, so the asset comes down through gh (or the API)
+gh release download v1.4.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
+npm i ./fishkob-vrt-1.4.0.tgz
 ```
 
-See [client-sdk/README.md](client-sdk/README.md) for the subpath imports, the `uploadMany` API and the reporter configuration.
+The `/releases/download/...` URL of a private repository only answers a browser
+session, so it is not usable from a shell or a pipeline. See
+[client-sdk/README.md](client-sdk/README.md) for the subpath imports, the
+`uploadMany` API and the reporter configuration.
 
 ---
 

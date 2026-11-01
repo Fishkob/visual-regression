@@ -261,7 +261,9 @@ The TypeScript client ships a Playwright reporter that uploads a test's screensh
 The client is not on npm: it is the tarball attached to a platform release, and its version is the release tag. Install the one that matches your server.
 
 ```bash
-npm i https://github.com/Fishkob/visual-regression/releases/download/v1.4.0/fishkob-vrt-1.4.0.tgz
+# private repository: the asset needs an authenticated download
+gh release download v1.4.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
+npm i ./fishkob-vrt-1.4.0.tgz
 ```
 
 ```ts

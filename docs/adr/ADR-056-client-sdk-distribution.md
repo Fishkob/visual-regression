@@ -6,6 +6,18 @@ Accepted — 2026-11-01. Amends
 [ADR-005](./005-openapi-sdk.md), which described `client-sdk` as an unversioned
 workspace package "consumed as source"; that sentence no longer holds.
 
+Amended 2026-11-01, after the first release: the repository is **private**, so
+the install command in the Decision below does not work as written. A private
+repository's `/releases/download/...` URL answers only a browser session — an
+anonymous request and a request carrying a token both return `404`. The asset is
+fetched with `gh release download v1.4.0 -R <owner>/visual-regression -p
+'fishkob-vrt-*.tgz'` and then installed from disk, or through the API asset
+endpoint (`GET /repos/:owner/:repo/releases/assets/:id` with
+`Accept: application/octet-stream` and a token). The rest of the decision — a
+tarball per release, the tag as its version, an optional client — is unchanged;
+`npm i <url>` becomes the documented form again the day the repository is
+public.
+
 ## Context
 
 ADR-005 generates a fully typed TypeScript SDK from the backend's OpenAPI
@@ -88,8 +100,11 @@ a registry encourages `^`-ranges that drift.
 
 ## Consequences
 
-- Consumers must edit the install URL to upgrade. Accepted: it is the same edit
-  as pinning a version, and it makes the coupling explicit.
+- Consumers must edit the version they download to upgrade. Accepted: it is the
+  same edit as pinning a version, and it makes the coupling explicit.
+- The repository is private, so the download is authenticated (see the Status
+  amendment). Installation is a two-step `gh release download` + `npm i <file>`,
+  not a single URL.
 - The tarball lives on the release, so it is not discoverable through `npm view`.
   `README.md`, `docs/ci-integration.md` and `client-sdk/README.md` carry the
   install line instead.
