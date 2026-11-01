@@ -74,20 +74,20 @@
   "lint-staged": {
     "frontend/src/**/*.{ts,vue}": [
       "pnpm -C frontend lint --fix",
-      "pnpm -C frontend typecheck",
+      "bash -c 'pnpm -C frontend typecheck'",
       "pnpm -C frontend test -- --run",
       "prettier --write"
     ],
     "frontend/**/*.json": "prettier --write",
     "backend/src/**/*.ts": [
       "pnpm -C backend lint",
-      "pnpm -C backend typecheck",
+      "bash -c 'pnpm -C backend typecheck'",
       "pnpm -C backend test -- test/unit",
       "prettier --write"
     ],
     "backend/test/**/*.ts": [
       "pnpm -C backend lint",
-      "pnpm -C backend typecheck:test",
+      "bash -c 'pnpm -C backend typecheck:test'",
       "pnpm -C backend test -- test/unit",
       "prettier --write"
     ],
