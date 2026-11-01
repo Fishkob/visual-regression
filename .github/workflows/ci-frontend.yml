@@ -217,7 +217,7 @@ jobs:
       - name: Start full stack (infra + backend + frontend)
         run: docker compose -f docker-compose.yml up -d
         env:
-          ADMIN_API_KEY: ci-frontend-admin
+          ADMIN_API_KEY: ci-frontend-admin-0123456789abcdef
           BOOTSTRAP_ADMIN_USERNAME: ci-admin
           BOOTSTRAP_ADMIN_PASSWORD: ci-admin-secret
 
@@ -282,7 +282,7 @@ jobs:
       - name: Seed E2E test data
         run: cd backend && pnpm exec tsx src/scripts/seeds/seed-e2e.ts
         env:
-          ADMIN_API_KEY: ci-frontend-admin
+          ADMIN_API_KEY: ci-frontend-admin-0123456789abcdef
           E2E_API_KEY_FILE: /tmp/e2e-api-key
 
       - name: Capture e2e API key

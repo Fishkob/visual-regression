@@ -3,7 +3,3 @@
 # Entries here are excluded from the CI dependency-scan gate. Every entry must
 # carry a concrete justification. This allowlist keeps the gate strict (fail on
 # critical+high) while documenting accepted risk.
-
-[[IgnoredVulns]]
-id = "GHSA-vfj7-8cjw-p6xm"
-reason = "braces stack-exhaustion DoS via deeply nested brace patterns. No fixed release exists: 3.0.3 is the latest published version and the advisory lists it as last_affected with no fixed version. Pulled in transitively as a build/dev-time dependency (micromatch). It only ever processes developer-authored glob patterns, never untrusted runtime input, so the DoS path is not reachable. Re-evaluate when a patched braces release ships."
