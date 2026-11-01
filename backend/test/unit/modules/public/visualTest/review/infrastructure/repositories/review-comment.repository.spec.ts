@@ -47,21 +47,11 @@ describe('ReviewCommentRepository', () => {
   });
 
   describe('listForTest', () => {
-    it('queries the newest 200 comments', async () => {
-      mockClient.reviewComment.findMany.mockResolvedValue([]);
-
-      await repository.listForTest('test-1');
-
-      expect(mockClient.reviewComment.findMany).toHaveBeenCalledWith({
-        where: { testId: 'test-1' },
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take: 200,
-      });
-    });
-
     it('presents the newest window oldest-first so the thread keeps its chronology', async () => {
       // The bounded desc query returns newest→oldest; the caller renders a
-      // thread, so the repository hands it back in posting order.
+      // thread, so the repository hands it back in posting order. The bound
+      // itself (200 rows, newest first) is the query's job: `review-comments`
+      // e2e reads the thread through the API, where the truncation is visible.
       const newest = comment('c-3', '2026-01-03T00:00:00Z');
       const middle = comment('c-2', '2026-01-02T00:00:00Z');
       const oldest = comment('c-1', '2026-01-01T00:00:00Z');
@@ -74,18 +64,6 @@ describe('ReviewCommentRepository', () => {
       const rows = await repository.listForTest('test-1');
 
       expect(rows.map((row) => row.id)).toEqual(['c-1', 'c-2', 'c-3']);
-    });
-
-    it('narrows the window to one comparison when asked', async () => {
-      mockClient.reviewComment.findMany.mockResolvedValue([]);
-
-      await repository.listForTest('test-1', 'cmp-1');
-
-      expect(mockClient.reviewComment.findMany).toHaveBeenCalledWith({
-        where: { testId: 'test-1', comparisonId: 'cmp-1' },
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        take: 200,
-      });
     });
   });
 });

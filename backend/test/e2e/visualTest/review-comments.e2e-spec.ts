@@ -225,4 +225,28 @@ describe('Review comments and decision reasons (e2e)', () => {
     expect(await db.approvalVote.count({ where: { testId: test.id } })).toBe(1);
     expect(await db.unifiedTest.count({ where: { id: test.id } })).toBe(0);
   });
+
+  it('deletes the project-scoped comments when the project is deleted', async () => {
+    await upload(baseline).expect(201);
+    const test = await db.unifiedTest.findFirstOrThrow({
+      where: { name: 'login' },
+    });
+    await db.reviewComment.create({
+      data: {
+        projectName: 'shop',
+        testId: test.id,
+        body: 'Deleted with the project',
+        author: 'alice',
+      },
+    });
+
+    await authRequest(app).delete('/api/v1/projects/shop').expect(200);
+
+    // Comments carry the project name denormalized and have no foreign key to
+    // the test, so nothing cascades them away: the delete path has to reach
+    // them by name.
+    expect(
+      await db.reviewComment.count({ where: { projectName: 'shop' } }),
+    ).toBe(0);
+  });
 });

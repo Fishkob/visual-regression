@@ -101,6 +101,12 @@ describe('Share links (e2e)', () => {
       .post(`/api/v1/public/shares/${share.body.token}`)
       .send({})
       .expect(404);
+
+    // The row is gone, not merely unreachable: a project recreated under the
+    // same name must not revive the old token.
+    expect(await db.shareLink.count({ where: { projectName: 'ghost' } })).toBe(
+      0,
+    );
   });
 
   it('enforces an optional passphrase', async () => {
