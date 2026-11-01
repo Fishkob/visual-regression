@@ -34,7 +34,8 @@ Walkthrough: `docs/local-development.md`
 | Command                                | Purpose                                                     |
 | -------------------------------------- | ----------------------------------------------------------- |
 | `pnpm run unitTest`                    | Backend unit tests (vitest)                                 |
-| `pnpm run unitTest:cov`                | Backend unit tests with coverage                            |
+| `pnpm run unitTest:cov`                | Backend unit tests + the per-layer coverage gate            |
+| `pnpm run coverage:all`                | Both backend suites, coverage merged per file               |
 | `pnpm run e2eTest`                     | Backend E2E tests (auto-starts Docker)                      |
 | `cd frontend && pnpm test`             | Frontend unit tests (vitest + jsdom)                        |
 | `cd frontend && pnpm test-e2e`         | Frontend E2E (requires frontend running)                    |
@@ -55,8 +56,9 @@ pnpm run format:check      # Check formatting only
 
 **Order:** `lint` → `typecheck:all` → `format` → `unitTest`
 
-**Local gate:** `./scripts/verify.sh` runs lint + typecheck + format + backend unit +
-frontend unit + the SDK drift check in one command (~2 min). It is wired into
+**Local gate:** `./scripts/verify.sh` runs lint + typecheck + format + backend
+unit with the per-layer coverage gate + frontend unit + the SDK drift check in
+one command (~2 min). It is wired into
 `.husky/pre-push`, so a normal `git push` runs it; `--fast` skips the frontend suite
 and the SDK check, `--with-e2e` adds the backend e2e suite. The CI workflows may be
 disabled — treat `verify.sh` as the gate that must be green before a push.
@@ -146,6 +148,6 @@ Full conventions in `client-sdk/AGENTS.md`. The facts an agent needs before reac
 
 ## Current State
 
-**lint ✓ | typecheck:all ✓ | format ✓ | backend unit 1881/1881 | backend e2e 254/254 | frontend unit 1125/1125 | frontend e2e 64/64 (not re-run this pass)** (last verified; re-run `unitTest`, `e2eTest` + frontend tests for current counts)
+**lint ✓ | typecheck:all ✓ | format ✓ | backend unit 1869/1869 + coverage gate ✓ | backend e2e 265/265 | frontend unit 1125/1125 | frontend e2e 64/64 (not re-run this pass)** (last verified; re-run `unitTest`, `e2eTest` + frontend tests for current counts)
 
 The upload → compare → review → approve pipeline is complete for both image and PDF kinds, including threshold auto-accept, per-variant status derivation, API-key CI authentication, and the self-hosting installer (`./install.sh`).

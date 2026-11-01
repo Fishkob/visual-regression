@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted — 2026-06-20 (revised 2026-07-25).
+Accepted — 2026-06-20 (revised 2026-07-25). Partially superseded by
+[ADR-054](./ADR-054-coverage-per-layer-and-real-database-races.md): the single
+global coverage threshold and the rule that a test may never drive a service
+without HTTP.
 
 ## Context
 

@@ -17,7 +17,12 @@ decision behind this layout — and the alternatives it rejected — is in
 There is no integration-test suite. A repository test against real Postgres
 without HTTP existed once and was dropped on 2026-07-25;
 [ADR-020](adr/020-testing-strategy.md#no-integration-tests) records why and what
-would bring it back.
+would bring it back. [ADR-054](adr/ADR-054-coverage-per-layer-and-real-database-races.md)
+adds the one exception: a test in `test/e2e/` may drive a service or a queue from
+the running application when the property under test is a database guarantee
+(lock behaviour, a unique index, transaction isolation). Two requests arriving at
+the same time cannot be produced through the HTTP surface, and a mocked client
+cannot hold a lock.
 
 ## How the suites are wired
 
@@ -80,19 +85,39 @@ share links, webhook management/delivery/replay, storage/quota, PDF pipeline and
 maintenance sweeps. Each spec resets the `vrt_e2e` database and calls the real
 app through supertest.
 
+Two of them assert database guarantees rather than HTTP contracts, because the
+HTTP surface cannot produce the input: `job-queue-concurrency.e2e-spec.ts` drives
+the queue from the running app (concurrent claims, stall reclaim, ownership
+loss, backoff) and `concurrent-review.e2e-spec.ts` races two uploads and two
+approvals. Both are listed as the exception in
+[ADR-054](adr/ADR-054-coverage-per-layer-and-real-database-races.md), and each
+case was verified to fail when its mechanism is removed.
+
 ## Gates
 
-- The backend coverage thresholds are enforced by the Vitest run itself
-  (`backend/vitest.config.ts`), so CI fails when they are missed — there is no
-  separate coverage step and no second set of numbers to keep in sync.
+- The backend unit run enforces **one coverage threshold per architectural
+  layer** (`backend/vitest.config.ts`): domain, common, application,
+  infrastructure and internal are held separately, and `**/presentation/**` is
+  outside the unit gate because the HTTP suite owns it. A number is raised after
+  closing a gap and never lowered to make a red run green. The rule and its
+  numbers came from [ADR-054](adr/ADR-054-coverage-per-layer-and-real-database-races.md).
+- `scripts/verify.sh` runs the gated variant (`unitTest:cov`), so the numbers are
+  checked on every push — the reason the previous global threshold sat red
+  unnoticed was that the local gate ran `unitTest` without coverage.
+- The e2e run writes its own map (`coverage/e2e`). `pnpm run coverage:all` runs
+  both suites, merges the maps per file and fails when a file with statements is
+  executed by neither suite. That merge is a report, not the gate: it needs
+  Docker and ~3 minutes.
 - The pre-commit hook runs the unit tests of the workspace whose files changed
-  (`lint-staged`).
+  (`lint-staged`), without coverage — the gate is the push hook.
 - The visual and a11y baselines are Linux amd64. Regenerate them with
   `./scripts/quality.sh visual --update`, and do not change the platform without
   regenerating every snapshot — see [`frontend/AGENTS.md`](../frontend/AGENTS.md).
 
 ## Commands
 
-`pnpm run unitTest`, `pnpm run e2eTest`, `cd frontend && pnpm test`,
-`cd frontend && pnpm test-e2e`, and `./scripts/quality.sh visual|a11y`. The
-one-line description of each is in [AGENTS.md](../AGENTS.md#testing).
+`pnpm run unitTest`, `pnpm run unitTest:cov` (the gated variant),
+`pnpm run e2eTest`, `pnpm run coverage:all` (both suites, merged),
+`cd frontend && pnpm test`, `cd frontend && pnpm test-e2e`, and
+`./scripts/quality.sh visual|a11y`. The one-line description of each is in
+[AGENTS.md](../AGENTS.md#testing).

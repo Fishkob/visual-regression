@@ -74,6 +74,9 @@ src/
 - `afterEach`: in jeder Spec `afterEach(() => { vi.restoreAllMocks(); })`.
 - Naming: einklassige Dateien → `describe('ClassName')`; Multi-Funktions-Module → `describe('fileName')` mit innerem `describe('functionName')`. `it()`-Beschreibungen verhaltensorientiert, dritte Person, ohne "should": `it('rejects an unknown kind')`.
 - Assertions: Aufrufe → `toHaveBeenCalledWith(...)`, Ergebnisse → `toEqual(...)`, Fehler → `rejects.toMatchObject({ code: … })` / `rejects.toThrow(...)`.
+- **Repository-Specs prüfen Mapping und Guards, nicht die Query-Form.** Rückgegebene Entities, berechnete Werte und Verweigerungen (`assertInTransaction`) gehören in die Unit-Suite; `expect(client.x.findMany).toHaveBeenCalledWith({ where: … })` ist eine Wiederholung des Quelltextes und gehört in die HTTP-Suite, wo die Wirkung der Query als Zeile sichtbar ist. Siehe ADR-054.
+- **Datenbank-Garantien gehören an die echte Postgres-Instanz.** Sperrverhalten (`FOR UPDATE SKIP LOCKED`), Unique-Indizes, Isolation und Retries lassen sich weder durch HTTP (zwei gleichzeitige Anfragen sind so nicht erzeugbar) noch durch einen Stub beweisen: dafür darf ein Spec in `test/e2e/` einen Service oder die Queue aus der laufenden App heraus treiben. Ein Konkurrenztest muss fehlschlagen, wenn man den Mechanismus entfernt — sonst beweist er nichts.
+- **Coverage-Gate:** `pnpm run unitTest:cov` erzwingt Schwellen pro Schicht (`vitest.config.ts`); `**/presentation/**` ist bewusst ausgenommen, weil die HTTP-Suite die Controller besitzt. Zahlen werden nach dem Schließen einer Lücke angehoben, nie gesenkt. Das zusammengeführte Bild beider Suiten liefert `pnpm run coverage:all`.
 
 ## Prisma
 

@@ -269,7 +269,8 @@ Unit tests run without infrastructure:
 
 ```bash
 pnpm run unitTest                  # Backend unit tests
-pnpm run unitTest:cov              # Backend unit tests with coverage
+pnpm run unitTest:cov              # Backend unit tests + per-layer coverage gate
+pnpm run coverage:all              # Both backend suites, coverage merged per file
 cd frontend && pnpm test           # Frontend unit tests
 ```
 
