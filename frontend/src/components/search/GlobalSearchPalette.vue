@@ -207,6 +207,7 @@ watch(
       <DialogContent
         class="fixed top-[15%] left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 gap-0 overflow-hidden rounded-xl border bg-background shadow-lg"
         :data-testid="TEST_ID.globalSearchDialog"
+        @close-auto-focus="(event: Event) => event.preventDefault()"
       >
         <DialogTitle class="sr-only">{{ t("search.title") }}</DialogTitle>
         <DialogDescription class="sr-only">
