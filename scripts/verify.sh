@@ -90,8 +90,8 @@ run pnpm run typecheck:all
 step "Format check"
 run pnpm run format:check
 
-step "Backend unit tests"
-run pnpm run unitTest
+step "Backend unit tests + coverage gate"
+run pnpm run unitTest:cov
 
 if [ "$FAST" -eq 0 ]; then
   step "Frontend unit tests"

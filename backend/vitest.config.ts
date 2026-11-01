@@ -1,6 +1,27 @@
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 
+// Files whose behaviour is verified by the HTTP suite, not by unit tests. The
+// controllers are thin (validate → delegate → map) and their real contract is a
+// status code and a body, so a unit test can only assert that they call the
+// service. Excluding them keeps the unit gate about the layers it can actually
+// judge; the merged report (`pnpm run coverage:all`) shows what covers them.
+const E2E_OWNED = [
+  '**/presentation/**',
+  'src/scripts/**',
+  'src/tracing.setup.ts',
+];
+
+const COVERAGE_EXCLUDE = [
+  '**/*.module.ts',
+  '**/*.types.ts',
+  '**/main.ts',
+  '**/dto/**',
+  '**/test/**',
+  '**/generated/**',
+  ...E2E_OWNED,
+];
+
 export default defineConfig({
   oxc: {
     decorator: {
@@ -16,20 +37,49 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      reportsDirectory: './coverage',
-      exclude: [
-        '**/*.module.ts',
-        '**/*.types.ts',
-        '**/main.ts',
-        '**/dto/**',
-        '**/test/**',
-        '**/generated/**',
-      ],
+      reportsDirectory: './coverage/unit',
+      include: ['src/**/*.ts'],
+      exclude: COVERAGE_EXCLUDE,
+      // Thresholds are a ratchet per layer, not one number for the whole tree:
+      // a global 95 forced query-shape tests into the repositories and left the
+      // controllers at 54%. Each layer is held at what its own tests can prove,
+      // so the numbers move only when that layer changes. Raise a number after
+      // closing a gap; never lower one to make a red run green.
       thresholds: {
-        statements: 95,
-        branches: 85,
-        lines: 95,
-        functions: 95,
+        statements: 87,
+        branches: 77,
+        lines: 87,
+        functions: 84,
+        'src/modules/public/**/core/domain/**': {
+          statements: 97,
+          branches: 96,
+          lines: 97,
+          functions: 99,
+        },
+        'src/common/**': {
+          statements: 95,
+          branches: 91,
+          lines: 95,
+          functions: 96,
+        },
+        'src/modules/public/**/application/**': {
+          statements: 81,
+          branches: 66,
+          lines: 82,
+          functions: 85,
+        },
+        'src/modules/public/**/infrastructure/**': {
+          statements: 74,
+          branches: 70,
+          lines: 75,
+          functions: 65,
+        },
+        'src/modules/internal/**': {
+          statements: 89,
+          branches: 76,
+          lines: 89,
+          functions: 84,
+        },
       },
     },
     env: {

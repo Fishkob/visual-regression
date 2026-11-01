@@ -11,6 +11,25 @@ export default defineConfig({
     fileParallelism: false,
     globalSetup: ['test/e2e/global/setup.ts'],
     reporters: 'verbose',
+    // The HTTP suite is where the controllers, pipes, guards and the database
+    // behaviour are actually exercised, so its coverage is the other half of the
+    // picture. It is reported into its own directory and merged by
+    // `pnpm run coverage:all`; the gate itself stays on the unit run.
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'json'],
+      reportsDirectory: './coverage/e2e',
+      include: ['src/**/*.ts'],
+      exclude: [
+        '**/*.module.ts',
+        '**/*.types.ts',
+        '**/main.ts',
+        '**/generated/**',
+        '**/test/**',
+        'src/scripts/**',
+        'src/tracing.setup.ts',
+      ],
+    },
     deps: {
       optimizer: {
         ssr: {
