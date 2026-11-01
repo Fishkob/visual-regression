@@ -12,7 +12,13 @@ export class PrismaUnitOfWork {
 
   async execute<T>(
     fn: () => Promise<T>,
-    options?: { isolationLevel?: Prisma.TransactionIsolationLevel },
+    options?: {
+      isolationLevel?: Prisma.TransactionIsolationLevel;
+      // Forwarded verbatim to Prisma's interactive transaction: `timeout` caps
+      // the transaction itself, `maxWait` the wait for a pooled connection.
+      timeout?: number;
+      maxWait?: number;
+    },
   ): Promise<T> {
     // Nesting is not a transaction: `connection.$transaction` would take a
     // second pooled connection and commit it on its own, so an inner failure

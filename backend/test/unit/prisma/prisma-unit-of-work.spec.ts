@@ -46,6 +46,17 @@ describe('PrismaUnitOfWork', () => {
       );
     });
 
+    it('forwards the transaction budget to the underlying transaction', async () => {
+      const fn = vi.fn().mockResolvedValue('done');
+
+      await uow.execute(fn, { timeout: 30_000, maxWait: 10_000 });
+
+      expect(connection.$transaction).toHaveBeenCalledWith(
+        expect.any(Function),
+        { timeout: 30_000, maxWait: 10_000 },
+      );
+    });
+
     it('refuses to nest, because a nested transaction commits on its own connection', async () => {
       txCtx.isInTransaction.mockReturnValue(true);
       const fn = vi.fn().mockResolvedValue('result');
