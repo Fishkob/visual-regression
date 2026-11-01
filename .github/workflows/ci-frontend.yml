@@ -208,6 +208,16 @@ jobs:
     env:
       ADMIN_API_KEY: ci-frontend-admin-0123456789abcdef
       METRICS_API_KEY: ci-frontend-metrics-0123456789abcd
+      # The bootstrap admin carries a temporary password; one step below makes it
+      # permanent and rewrites E2E_ADMIN_PASSWORD, so the UI fixture and the API
+      # helpers keep reading one variable.
+      BOOTSTRAP_ADMIN_USERNAME: ci-admin
+      BOOTSTRAP_ADMIN_PASSWORD: ci-admin-temp-password
+      E2E_ADMIN_USERNAME: ci-admin
+      E2E_ADMIN_PASSWORD: ci-admin-temp-password
+      E2E_ADMIN_PASSWORD_FINAL: ci-admin-final-password
+      # The suite logs in far more often than a browser session ever would.
+      LOGIN_RATE_LIMIT_PER_MINUTE: "1000"
 
     steps:
       - uses: actions/checkout@v7
@@ -223,9 +233,6 @@ jobs:
 
       - name: Start full stack (infra + backend + frontend)
         run: docker compose -f docker-compose.yml up -d
-        env:
-          BOOTSTRAP_ADMIN_USERNAME: ci-admin
-          BOOTSTRAP_ADMIN_PASSWORD: ci-admin-secret
 
       - name: Wait for infrastructure
         run: |
@@ -293,6 +300,19 @@ jobs:
       - name: Capture e2e API key
         run: echo "E2E_API_KEY=$(cat /tmp/e2e-api-key)" >> "$GITHUB_ENV"
 
+      - name: Replace the bootstrap admin's temporary password
+        run: |
+          set -euo pipefail
+          api=http://localhost:3000/api/v1
+          jar="$(mktemp)"
+          curl -fsS -c "$jar" -H 'Content-Type: application/json' \
+            -d "{\"username\":\"$E2E_ADMIN_USERNAME\",\"password\":\"$E2E_ADMIN_PASSWORD\"}" \
+            "$api/auth/login" >/dev/null
+          curl -fsS -b "$jar" -H 'Content-Type: application/json' \
+            -d "{\"currentPassword\":\"$E2E_ADMIN_PASSWORD\",\"newPassword\":\"$E2E_ADMIN_PASSWORD_FINAL\"}" \
+            "$api/auth/change-password" >/dev/null
+          echo "The bootstrap admin's temporary password was replaced."
+
       - name: Install Playwright browsers
         run: |
           cd frontend
@@ -303,8 +323,8 @@ jobs:
         env:
           FRONTEND_URL: http://localhost:80
           E2E_API_KEY: ${{ env.E2E_API_KEY }}
-          E2E_ADMIN_USERNAME: ci-admin
-          E2E_ADMIN_PASSWORD: ci-admin-secret
+          # The permanent one: the step above replaced the temporary password.
+          E2E_ADMIN_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD_FINAL }}
         run: pnpm test-e2e
 
       - name: Dump docker logs on failure
