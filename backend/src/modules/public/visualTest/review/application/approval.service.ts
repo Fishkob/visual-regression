@@ -35,7 +35,10 @@ import {
   STORAGE_PROVIDER,
   IStorageProvider,
 } from '@common/domain/storage-provider.interface';
-import { APPROVAL_TRANSACTION_TIMEOUT_MS } from '@public/visualTest/core/application/services/state-change-options';
+import {
+  APPROVAL_MAX_ATTEMPTS,
+  APPROVAL_TRANSACTION_TIMEOUT_MS,
+} from '@public/visualTest/core/application/services/state-change-options';
 
 // Upper bound for one "approve all pending" request. Mirrors the bulk-endpoint
 // cap (BULK_LIMIT in the presentation layer) without importing presentation
@@ -406,6 +409,7 @@ export class ApprovalService {
               }
             },
             transactionTimeoutMs: APPROVAL_TRANSACTION_TIMEOUT_MS,
+            retry: { maxAttempts: APPROVAL_MAX_ATTEMPTS },
           },
         );
 

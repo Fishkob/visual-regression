@@ -51,6 +51,7 @@ import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referenced
 
 describe('ApprovalService', () => {
   let service: ApprovalService;
+  let workflow: StateChangeWorkflow;
   let statusService: Mocked<TestStatusService>;
   let testResolver: Mocked<TestResolver>;
   let metrics: Mocked<IMetricsRecorder>;
@@ -240,6 +241,7 @@ describe('ApprovalService', () => {
     }).compile();
 
     service = module.get(ApprovalService);
+    workflow = module.get(StateChangeWorkflow);
     uow = uowLocal;
   });
 
@@ -921,6 +923,33 @@ describe('ApprovalService', () => {
         expect.objectContaining({ action: 'approval' }),
       );
       expect(approvalAudit.record).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('transaction budget', () => {
+    it('gives the approval its own retry budget and timeout', async () => {
+      testResolver.findTestOfKind.mockResolvedValue(imageTest);
+      comparisons.findByIdForTest.mockResolvedValue(
+        makeComparison(makeBaseline(), makeCandidate()),
+      );
+      const spy = vi.spyOn(workflow, 'executeStateChange');
+
+      await service.approveImage(
+        'my-project',
+        'my-test',
+        'comp-1',
+        approvedBy,
+        undefined,
+        options(),
+      );
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.objectContaining({
+          transactionTimeoutMs: 30_000,
+          retry: { maxAttempts: 5 },
+        }),
+      );
     });
   });
 

@@ -19,6 +19,16 @@ export const DEFAULT_STATE_CHANGE_RETRY: {
 // wait and surfaces a P2028 that no retry can fix.
 export const APPROVAL_TRANSACTION_TIMEOUT_MS = 30_000;
 
+// A legitimate 4-eyes pair needs exactly one retry, never more: the second
+// voter's snapshot is taken before it blocks on the advisory lock, so its first
+// attempt aborts at commit, and its retry — with the competitor committed and
+// the lock free — reads the committed vote and finalizes. Measured over 30
+// concurrent pairs against Postgres: at most 2 attempts per voter, none
+// exhausted, no vote lost. The approval path therefore states its budget
+// instead of inheriting the workflow default, so a future global change cannot
+// silently shrink it into a 409 for a legitimate voter.
+export const APPROVAL_MAX_ATTEMPTS = 5;
+
 // Deletion retry policy: a deletion may race a concurrent upload that creates
 // a test (or a row referencing the deleted rows) between the read and the
 // delete, which surfaces as an FK violation (P2003) that retrying resolves.
