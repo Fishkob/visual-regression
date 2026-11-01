@@ -307,6 +307,23 @@ export class UnifiedComparisonsRepository extends BaseRepository {
     return this.findLatestComparison({ id: comparisonId, testId });
   }
 
+  // Serializes two approvals of the same comparison: the suite runs on
+  // SERIALIZABLE, where two votes that each read the vote count and then insert
+  // one abort each other, and the loser's retry then found a comparison the
+  // winner had already consumed. An advisory lock is deliberate — a row lock
+  // (`SELECT ... FOR UPDATE`) on a row the other transaction just deleted raises
+  // a 40001 from the lock statement itself, which is not the write conflict the
+  // retry policy retries. This locks without reading, and releases with the
+  // transaction.
+  async lockForApproval(comparisonId: string): Promise<void> {
+    // The function returns void, which Prisma cannot deserialize; selecting a
+    // constant from it keeps the call and gives the row a type.
+    await this.client.$queryRaw`
+      SELECT 1 AS locked
+      FROM (SELECT pg_advisory_xact_lock(hashtext(${comparisonId}))) AS lock_acquired
+    `;
+  }
+
   async findTestOfComparisonById(projectName: string, comparisonId: string) {
     const row = await this.client.unifiedComparison.findFirst({
       where: {

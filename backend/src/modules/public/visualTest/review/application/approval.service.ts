@@ -171,7 +171,6 @@ export class ApprovalService {
         'CONFLICT',
       );
     }
-    const existing = await this.votes.countForComparison(input.comparisonId);
     await this.votes.record({
       comparisonId: input.comparisonId,
       projectName: input.projectName,
@@ -179,7 +178,10 @@ export class ApprovalService {
       userId: input.principal.principalId,
       username: input.approvedBy,
     });
-    const votes = existing + 1;
+    // Counted after the insert, from the rows the database holds: a count read
+    // before it is the value two concurrent voters both saw, and that is what
+    // let a pair of votes fail to reach the total (ADR-050).
+    const votes = await this.votes.countForComparison(input.comparisonId);
     if (votes < required) {
       // The vote row and its audit row commit together, so a partial vote can
       // never exist without the trail that proves who cast it.
@@ -264,6 +266,9 @@ export class ApprovalService {
       const result =
         await this.workflow.executeStateChange<ApprovalChangeResult>(
           async () => {
+            // Hold the comparison for the length of this decision: concurrent
+            // voters queue here instead of aborting each other's transaction.
+            await this.comparisons.lockForApproval(comparisonId);
             const comparison = await this.resolve(test.id, comparisonId);
             if (!comparison.baseline || !comparison.candidate) {
               throw new DomainError(

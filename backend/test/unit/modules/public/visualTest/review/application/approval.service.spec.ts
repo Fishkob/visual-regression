@@ -767,7 +767,7 @@ describe('ApprovalService', () => {
 
     it('waits for the required number of distinct approvers and keys the vote on the principal id', async () => {
       projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
-      votes.countForComparison.mockResolvedValue(0);
+      votes.countForComparison.mockResolvedValue(1);
       mockPendingImage();
 
       const result = await service.approveImage(
@@ -900,7 +900,7 @@ describe('ApprovalService', () => {
 
     it('records the finalizing vote without a review.vote audit row', async () => {
       projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
-      votes.countForComparison.mockResolvedValue(1);
+      votes.countForComparison.mockResolvedValue(2);
       mockPendingImage();
 
       const result = await service.approveImage(
