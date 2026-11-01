@@ -49,6 +49,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 053 | [Sessions Have an Absolute Lifetime](./ADR-053-session-absolute-lifetime.md)                                                           | Accepted (complements 034)                           |
 | 054 | [Coverage Is Gated Per Layer, and Database Races Are Proven Against Postgres](./ADR-054-coverage-per-layer-and-real-database-races.md) | Accepted (partially supersedes 020)                  |
 | 055 | [The Frontend Gate Measures What It Runs](./ADR-055-the-frontend-gate-measures-what-it-runs.md)                                        | Accepted (complements 054, extends 020)              |
+| 056 | [The Client SDK Ships as a Release Asset](./ADR-056-client-sdk-distribution.md)                                                        | Accepted (amends 005)                                |
 
 ## Numbering
 

@@ -256,18 +256,24 @@ Manifest outputs: `upload-count` (successful uploads), `upload-failed-count`, `s
 
 ### Playwright reporter (SDK)
 
-The TypeScript SDK ships a Playwright reporter that uploads a test's screenshot attachment when the test ends. It needs no Playwright dependency at runtime and never fails the test run when VRT is unreachable.
+The TypeScript client ships a Playwright reporter that uploads a test's screenshot attachment when the test ends. It needs no Playwright dependency at runtime and never fails the test run when VRT is unreachable.
+
+The client is not on npm: it is the tarball attached to a platform release, and its version is the release tag. Install the one that matches your server.
+
+```bash
+npm i https://github.com/Fishkob/visual-regression/releases/download/v1.3.0/fishkob-vrt-1.3.0.tgz
+```
 
 ```ts
 // playwright.config.ts
 import { defineConfig } from "@playwright/test";
-import { createVrtReporter } from "client-sdk/playwright";
+import { createVrtReporter } from "@fishkob/vrt/playwright";
 
 export default defineConfig({
   reporter: [
     ["list"],
     [
-      "client-sdk/playwright",
+      "@fishkob/vrt/playwright",
       {
         apiUrl: "https://vrt.example.com/api/v1",
         apiKey: process.env.VRT_API_KEY!,
@@ -285,7 +291,7 @@ export default defineConfig({
 - The reporter uploads the first attachment whose content type or name looks like a screenshot (`image/png`) or PDF, as `<project> / <titlePath joined with " / ">`.
 - `uploadOnFailureOnly: true` uploads only failed/timed-out tests; `skipRetries: true` ignores Playwright's retry attempts so only the final result is uploaded.
 - `concurrency`/`maxAttempts` are forwarded to `uploadMany` (default 4 / 3). Upload failures are collected in `reporter.results()` and via `onUpload`; they do not fail the test run.
-- See [client-sdk/README.md](../client-sdk/README.md) for the full `uploadMany` API and how to import the helpers.
+- See [client-sdk/README.md](../client-sdk/README.md) for the full `uploadMany` API, the other subpath imports and how the tarball is built.
 
 ## 4. Reports and trends
 

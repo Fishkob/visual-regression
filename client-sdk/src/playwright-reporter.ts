@@ -12,7 +12,9 @@ export interface PlaywrightAttachment {
   name: string;
   contentType?: string;
   path?: string;
-  body?: Buffer;
+  // `Uint8Array` rather than `Buffer`: Playwright passes a Buffer, which is
+  // assignable here, and the published types stay free of Node globals.
+  body?: Uint8Array;
 }
 
 export interface PlaywrightTestLike {
@@ -76,7 +78,7 @@ function isScreenshot(attachment: PlaywrightAttachment): boolean {
 
 async function attachmentBody(
   attachment: PlaywrightAttachment,
-): Promise<Buffer | undefined> {
+): Promise<Uint8Array | undefined> {
   if (attachment.body) return attachment.body;
   if (attachment.path) return readFile(attachment.path);
   return undefined;

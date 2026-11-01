@@ -32,3 +32,8 @@ jobs:
             git diff client-sdk/
             exit 1
           fi
+
+      # The sync check proves the sources match the spec; this proves the
+      # artifact users install is loadable (ADR-056).
+      - name: Package and import the client SDK
+        run: ./scripts/check-client-sdk-package.sh

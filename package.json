@@ -26,6 +26,7 @@
     "bootstrap": "pnpm run db:prepare && pnpm run sdk:generate && pnpm run sdk:build",
     "db:prepare": "pnpm --filter ./backend db:prepare",
     "sdk:build": "pnpm --filter ./client-sdk build",
+    "sdk:pack": "./scripts/check-client-sdk-package.sh",
     "start": "./scripts/dev.sh docker",
     "dev": "./scripts/dev.sh infra && concurrently -k -n backend,frontend \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
     "dev:start": "pnpm run dev",

@@ -24,22 +24,37 @@ client-sdk/
   client/               # Generated HTTP client (fetch-based, zero deps)
   core/                 # Runtime utilities (serializers, auth, SSE)
   models/               # One file per DTO
-  src/                 # Manual helpers: upload-many.ts, playwright-reporter.ts
+  src/                  # Manual helpers: upload-many.ts, playwright-reporter.ts
   src/__tests__/        # Manual tests (smoke, upload-many, playwright-reporter)
-  dist/                 # tsc output for external consumers
+  scripts/              # Build step: fix-esm-specifiers.mjs
+  tsconfig.build.json   # Publish build: excludes tests, disables maps
+  dist/                 # tsc output for external consumers (gitignored)
 ```
 
 ## Key Facts
 
 - **Zero runtime dependencies** — uses `globalThis.fetch`
-- For local dev, frontend resolves raw `.ts` source via path alias `@sdk` (no build needed)
-- Build via `pnpm run sdk:build` → `tsc` → `dist/`
-- Tests via `pnpm test` (vitest)
+- Package identity: `@fishkob/vrt`, ESM only, Node >= 20
+- For local dev, frontend and the browser suites resolve raw `.ts` source via the path alias `@sdk` (no build needed). The alias points at `index.ts`, **not** at the package root: `exports` resolve to `dist/`, which is not built for dev.
+- Build via `pnpm run sdk:build` → `tsc -p tsconfig.build.json` + `scripts/fix-esm-specifiers.mjs` → `dist/`
+- Package the release artifact via `pnpm run sdk:pack` (`scripts/check-client-sdk-package.sh`)
+- Tests via `pnpm test` (vitest); `scripts/verify.sh` runs the packaging check
+
+## Distribution
+
+The package is **not published to npm**. It ships as the tarball attached to a GitHub release; the tarball version is the git tag, injected by `.github/workflows/release-client-sdk.yml` (`PACKAGE_VERSION`), so a released artifact always names the platform version it belongs to. Decision and rationale: [ADR-056](../docs/adr/ADR-056-client-sdk-distribution.md).
+
+## Build Rules
+
+- `tsc` does not rewrite import specifiers, and the generator emits them extensionless (`./sdk.gen`, `./client`). Node's ESM resolver infers neither extensions nor a directory `index.js`, so `scripts/fix-esm-specifiers.mjs` rewrites every relative specifier in `dist/` as the last build step. It fails the build on a specifier it cannot resolve — never "fix" a failure by loosening it.
+- `tsconfig.build.json` sets `types: ["node"]` explicitly. The `exclude` list turns implicit `@types` loading off, so without it the build loses `node:` and `Buffer` types.
+- Public types must not name Node globals (`Buffer`, `NodeJS.*`): a consumer type-checking with `lib: dom` fails on them. Use `Uint8Array` and structural interfaces, as `PlaywrightAttachment` does.
+- Anything added to `exports` must be exercised by `scripts/check-client-sdk-package.sh` (import in Node ESM + consumer type check).
 
 ## Conventions
 
 - Generated files have `.gen.ts` suffix — never edit these
-- Only manual files: `package.json`, `tsconfig.json`, `vitest.config.ts`, `README.md`, `src/upload-many.ts`, `src/playwright-reporter.ts`, and the specs under `src/__tests__/`
-- Manual helpers are exposed as subpath exports: `client-sdk/upload-many`, `client-sdk/playwright`
+- Only manual files: `package.json`, `tsconfig.json`, `tsconfig.build.json`, `vitest.config.ts`, `README.md`, `src/upload-many.ts`, `src/playwright-reporter.ts`, `scripts/fix-esm-specifiers.mjs`, and the specs under `src/__tests__/`
+- Manual helpers are exposed as subpath exports: `@fishkob/vrt/upload-many`, `@fishkob/vrt/playwright`, `@fishkob/vrt/client`
 - Frontend wraps SDK responses with `getData()` helper (unwraps `{ data, error }` shape)
 - Regenerate whenever Prisma schema or controller DTOs change

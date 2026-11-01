@@ -1,16 +1,58 @@
 {
-  "name": "client-sdk",
+  "name": "@fishkob/vrt",
+  "version": "1.3.0",
+  "description": "Typed TypeScript client for the Visual Regression API: capture uploads, batch upload with retries and a Playwright reporter",
   "license": "MIT",
   "type": "module",
-  "exports": {
-    ".": "./index.ts",
-    "./upload-many": "./src/upload-many.ts",
-    "./playwright": "./src/playwright-reporter.ts"
+  "engines": {
+    "node": ">=20"
   },
-  "types": "./index.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Fishkob/visual-regression.git",
+    "directory": "client-sdk"
+  },
+  "homepage": "https://github.com/Fishkob/visual-regression#readme",
+  "bugs": {
+    "url": "https://github.com/Fishkob/visual-regression/issues"
+  },
+  "keywords": [
+    "visual-regression",
+    "visual-testing",
+    "screenshot-testing",
+    "playwright-reporter",
+    "openapi",
+    "vrt"
+  ],
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./upload-many": {
+      "types": "./dist/src/upload-many.d.ts",
+      "default": "./dist/src/upload-many.js"
+    },
+    "./playwright": {
+      "types": "./dist/src/playwright-reporter.d.ts",
+      "default": "./dist/src/playwright-reporter.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "prebuild": "rm -rf dist",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json && node ./scripts/fix-esm-specifiers.mjs",
+    "prepack": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

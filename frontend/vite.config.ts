@@ -27,10 +27,22 @@ export default defineConfig({
     host: true,
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@sdk": path.resolve(__dirname, "../client-sdk"),
-    },
+    // `@sdk` resolves to the SDK's source entry, not to its package root: the
+    // package `exports` point at `dist/` (that is what external consumers get),
+    // and the repo does not build the SDK for local dev or the test suites.
+    // The regexes come first so that `@sdk/models/...` still reaches the source
+    // tree instead of being swallowed by the `@` alias below.
+    alias: [
+      {
+        find: /^@sdk$/,
+        replacement: path.resolve(__dirname, "../client-sdk/index.ts"),
+      },
+      {
+        find: /^@sdk\//,
+        replacement: `${path.resolve(__dirname, "../client-sdk")}/`,
+      },
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+    ],
   },
   test: {
     environment: "jsdom",

@@ -108,6 +108,11 @@ if [ "$FAST" -eq 0 ]; then
 
   step "SDK drift (OpenAPI -> client-sdk)"
   run verify_sdk_drift
+
+  # The tarball is the only way users get the SDK, so a bundle that a consumer
+  # cannot import has to fail here and not in their pipeline.
+  step "Client SDK package (release artifact)"
+  run ./scripts/check-client-sdk-package.sh
 fi
 
 if [ "$WITH_E2E" -eq 1 ]; then

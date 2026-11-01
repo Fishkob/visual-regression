@@ -157,6 +157,14 @@ The seed scripts authenticate the same way — see [Seed Demo Data](#seed-demo-d
 
 **Waiting for a comparison / GitHub Action:** see [docs/ci-integration.md](docs/ci-integration.md) for the queued `jobId`, the `wait`-capable job status endpoint, and the composite action.
 
+**TypeScript client:** the API needs no client — any HTTP caller can upload. For typed uploads, batch upload with retries and a Playwright reporter, install the client tarball attached to a release (its version is the release tag, matching the server):
+
+```bash
+npm i https://github.com/Fishkob/visual-regression/releases/download/v1.3.0/fishkob-vrt-1.3.0.tgz
+```
+
+See [client-sdk/README.md](client-sdk/README.md) for the subpath imports, the `uploadMany` API and the reporter configuration.
+
 ---
 
 ### Review Notifications (Webhooks)

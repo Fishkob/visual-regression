@@ -1,0 +1,39 @@
+name: Release client SDK
+
+# The TypeScript client ships as a release asset, not from a registry: the
+# version in the tarball is the git tag, so a consumer pins exactly the build
+# that belongs to their server. See docs/adr/ADR-056-client-sdk-distribution.md.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Package and attach client SDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: ./.github/actions/setup
+
+      # Builds, packs, installs the tarball into an empty project and imports
+      # every subpath — a broken bundle fails here, not in a consumer's CI.
+      - name: Build, pack and verify the tarball
+        env:
+          PACKAGE_VERSION: ${{ github.event.release.tag_name }}
+          PACKAGE_OUT_DIR: ${{ runner.temp }}/client-sdk
+        run: ./scripts/check-client-sdk-package.sh
+
+      - name: Attach the tarball to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            "$RUNNER_TEMP"/client-sdk/*.tgz --clobber

@@ -146,6 +146,11 @@ excluded from the unit gate for that reason, like `src/main.ts`.
   [ADR-055](adr/ADR-055-the-frontend-gate-measures-what-it-runs.md).
 - The pre-commit hook runs the unit tests of the workspace whose files changed
   (`lint-staged`), without coverage — the gate is the push hook.
+- The client SDK is gated as an **artifact**, not only as source:
+  `scripts/verify.sh` builds it, packs the tarball, installs it into an empty
+  project, imports every subpath in Node ESM and type-checks a consumer. A
+  package that a consumer cannot load fails the push instead of the release —
+  see [ADR-056](adr/ADR-056-client-sdk-distribution.md).
 - The visual and a11y baselines are Linux amd64. Regenerate them with
   `./scripts/quality.sh visual --update`, and do not change the platform without
   regenerating every snapshot — see [`frontend/AGENTS.md`](../frontend/AGENTS.md);
@@ -162,7 +167,8 @@ excluded from the unit gate for that reason, like `src/main.ts`.
 `pnpm run e2eTest`, `pnpm run coverage:all` (both suites, merged),
 `cd frontend && pnpm test`, `cd frontend && pnpm test:coverage` (the gated
 variant), `cd frontend && pnpm test-ct`, `cd frontend && pnpm test-e2e`,
-`cd frontend && pnpm i18n:check`, and `./scripts/quality.sh visual|a11y`.
+`cd frontend && pnpm i18n:check`, `pnpm run sdk:pack` (the SDK release
+artifact), and `./scripts/quality.sh visual|a11y`.
 `./scripts/verify.sh --with-browser --with-quality` runs the browser suites
 through the same gate. The one-line description of each is in
 [AGENTS.md](../AGENTS.md#testing).
