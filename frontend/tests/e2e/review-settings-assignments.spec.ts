@@ -3,6 +3,9 @@ import { deleteProject, setupReviewableTest } from "./fixtures/api";
 import { approveCurrentComparison, testUrl } from "./fixtures/review";
 import { TEST_ID } from "@/lib/test-ids";
 
+// Assignments land on "my reviews" below, so the assignee is the session user.
+const ADMIN_USERNAME = process.env.E2E_ADMIN_USERNAME ?? "admin";
+
 let projectName: string;
 
 const TEST_NAME = "login-form";
@@ -77,7 +80,7 @@ test.describe("Review settings and assignments", () => {
 
     await page.getByTestId(TEST_ID.assignAction).click();
     await expect(page.getByTestId(TEST_ID.assignDialog)).toBeVisible();
-    await page.getByTestId(TEST_ID.assignAssignee).fill("alice");
+    await page.getByTestId(TEST_ID.assignAssignee).fill(ADMIN_USERNAME);
     await page.getByTestId(TEST_ID.assignDueAt).fill("2030-06-01");
     await page.getByTestId(TEST_ID.assignSave).click();
 
@@ -86,7 +89,7 @@ test.describe("Review settings and assignments", () => {
       { timeout: 10000 },
     );
     const badge = page.getByTestId(TEST_ID.assignBadge);
-    await expect(badge).toContainText("alice", { timeout: 10000 });
+    await expect(badge).toContainText(ADMIN_USERNAME, { timeout: 10000 });
     await expect(badge).toContainText("Due");
 
     await page.getByTestId(TEST_ID.assignComplete).click();
@@ -108,7 +111,7 @@ test.describe("Review settings and assignments", () => {
       timeout: 10000,
     });
     await page.getByTestId(TEST_ID.assignAction).click();
-    await page.getByTestId(TEST_ID.assignAssignee).fill("alice");
+    await page.getByTestId(TEST_ID.assignAssignee).fill(ADMIN_USERNAME);
     await page.getByTestId(TEST_ID.assignSave).click();
     await expect(page.getByTestId(TEST_ID.assignBadge)).toBeVisible({
       timeout: 10000,

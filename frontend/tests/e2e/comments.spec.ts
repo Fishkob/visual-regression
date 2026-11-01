@@ -14,6 +14,10 @@ let cookie: string;
 
 const TEST_NAME = "login-form";
 
+// The comment author is whoever the session belongs to; no fixture seeds a
+// fixed display name.
+const ADMIN_USERNAME = process.env.E2E_ADMIN_USERNAME ?? "admin";
+
 test.describe("Review comments", () => {
   test.beforeEach(async () => {
     projectName = `e2e-comments-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -51,7 +55,7 @@ test.describe("Review comments", () => {
       .getByTestId(TEST_ID.commentRow)
       .filter({ hasText: commentText });
     await expect(row).toBeVisible({ timeout: 10000 });
-    await expect(row).toContainText("alice");
+    await expect(row).toContainText(ADMIN_USERNAME);
     await expect(page.getByTestId(TEST_ID.commentsBody)).toHaveValue("");
 
     // A comment stored without a comparison id is thread-level: the
@@ -90,7 +94,7 @@ test.describe("Review comments", () => {
     await page.getByTestId(TEST_ID.commentsResolvedToggle).click();
     await expect(row.getByTestId(TEST_ID.commentResolved)).toBeVisible();
     await expect(row.getByTestId(TEST_ID.commentResolve)).toHaveCount(0);
-    await expect(row).toContainText("Resolved by alice");
+    await expect(row).toContainText(`Resolved by ${ADMIN_USERNAME}`);
   });
 
   test("keeps resolved comments after a reload", async ({ page }) => {
