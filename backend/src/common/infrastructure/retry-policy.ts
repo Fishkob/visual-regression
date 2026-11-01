@@ -63,10 +63,19 @@ export async function retry<T>(
   throw lastError;
 }
 
+// Prisma reports a serialization failure of a *raw* statement (`$queryRaw`,
+// `$executeRaw`) as P2010 with the SQLSTATE in `meta.code` instead of P2034. It
+// is the same conflict, so it has to be retryable — otherwise the first
+// statement of a transaction can turn a retryable 40001 into a 500.
+const RAW_SERIALIZATION_FAILURE = 'P2010';
+const SQLSTATE_SERIALIZATION_FAILURE = '40001';
+
 export function isSerializationError(err: unknown): boolean {
-  return (
-    err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2034'
-  );
+  if (!(err instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  if (err.code === 'P2034') return true;
+  if (err.code !== RAW_SERIALIZATION_FAILURE) return false;
+  const code = (err.meta as { code?: unknown } | undefined)?.code;
+  return code === SQLSTATE_SERIALIZATION_FAILURE;
 }
 
 export function isForeignKeyViolation(err: unknown): boolean {

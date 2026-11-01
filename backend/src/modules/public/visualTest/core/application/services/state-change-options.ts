@@ -13,6 +13,12 @@ export const DEFAULT_STATE_CHANGE_RETRY: {
   maxAttempts: 5,
 };
 
+// The approval transaction takes a per-comparison advisory lock first, so its
+// budget has to cover a wait that is not its own work: a second reviewer holds
+// that lock for the length of their decision. Prisma's 5s default counts the
+// wait and surfaces a P2028 that no retry can fix.
+export const APPROVAL_TRANSACTION_TIMEOUT_MS = 30_000;
+
 // Deletion retry policy: a deletion may race a concurrent upload that creates
 // a test (or a row referencing the deleted rows) between the read and the
 // delete, which surfaces as an FK violation (P2003) that retrying resolves.

@@ -144,6 +144,24 @@ describe('exceptionHttpStatus', () => {
     expect(exceptionHttpStatus(error)).toBe(409);
   });
 
+  it('maps a raw statement failing with SQLSTATE 40001 to 409', () => {
+    const error = new Prisma.PrismaClientKnownRequestError('raw', {
+      code: 'P2010',
+      clientVersion: 'test',
+      meta: { code: '40001', message: 'could not serialize access' },
+    });
+    expect(exceptionHttpStatus(error)).toBe(409);
+  });
+
+  it('maps a raw statement failing with another SQLSTATE to 500', () => {
+    const error = new Prisma.PrismaClientKnownRequestError('raw', {
+      code: 'P2010',
+      clientVersion: 'test',
+      meta: { code: '23505', message: 'duplicate key' },
+    });
+    expect(exceptionHttpStatus(error)).toBe(500);
+  });
+
   it('maps Prisma foreign-key violations to 409', () => {
     const error = new Prisma.PrismaClientKnownRequestError('fk', {
       code: 'P2003',

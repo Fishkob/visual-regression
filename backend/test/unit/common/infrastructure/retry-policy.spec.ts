@@ -282,6 +282,24 @@ describe('isSerializationError', () => {
     expect(isSerializationError(error)).toBe(true);
   });
 
+  it('returns true for a raw statement failing with SQLSTATE 40001', () => {
+    const error = new Prisma.PrismaClientKnownRequestError('raw', {
+      code: 'P2010',
+      clientVersion: 'test',
+      meta: { code: '40001', message: 'could not serialize access' },
+    });
+    expect(isSerializationError(error)).toBe(true);
+  });
+
+  it('returns false for a raw statement failing with another SQLSTATE', () => {
+    const error = new Prisma.PrismaClientKnownRequestError('raw', {
+      code: 'P2010',
+      clientVersion: 'test',
+      meta: { code: '23505', message: 'duplicate key' },
+    });
+    expect(isSerializationError(error)).toBe(false);
+  });
+
   it('returns false for other Prisma error codes', () => {
     const error = new Prisma.PrismaClientKnownRequestError('unique', {
       code: 'P2002',

@@ -183,6 +183,21 @@ export function classifyPrismaError(
         message: 'Record not found',
         code: 'E_RECORD_NOT_FOUND',
       };
+    // A raw statement's serialization failure (SQLSTATE 40001 arrives as
+    // P2010 + meta.code): same verdict as P2034 — retried already, tell the
+    // client to retry rather than answering 500.
+    case 'P2010':
+      if ((err.meta as { code?: unknown } | undefined)?.code === '40001') {
+        return {
+          status: HttpStatus.CONFLICT,
+          message: 'Transaction conflict, please retry',
+          code: 'E_SERIALIZATION_CONFLICT',
+        };
+      }
+      return {
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: 'Internal server error',
+      };
     // Exhausted serialization conflict: the workflow already retried, so the
     // client is told to retry — the underlying transaction detail stays out.
     case 'P2034':

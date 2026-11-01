@@ -4,7 +4,7 @@ import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 describe('PrismaUnitOfWork', () => {
   let uow: PrismaUnitOfWork;
   let connection: { $transaction: Mock };
-  let txCtx: { run: Mock };
+  let txCtx: { run: Mock; isInTransaction: Mock };
 
   beforeEach(() => {
     connection = {
@@ -14,6 +14,7 @@ describe('PrismaUnitOfWork', () => {
     };
     txCtx = {
       run: vi.fn(async (_tx: unknown, fn: () => Promise<unknown>) => fn()),
+      isInTransaction: vi.fn().mockReturnValue(false),
     };
 
     uow = new PrismaUnitOfWork(connection as any, txCtx as any);
@@ -43,6 +44,17 @@ describe('PrismaUnitOfWork', () => {
         expect.any(Function),
         { isolationLevel: 'Serializable' },
       );
+    });
+
+    it('refuses to nest, because a nested transaction commits on its own connection', async () => {
+      txCtx.isInTransaction.mockReturnValue(true);
+      const fn = vi.fn().mockResolvedValue('result');
+
+      await expect(uow.execute(fn)).rejects.toThrow(
+        /called inside an active transaction/,
+      );
+      expect(connection.$transaction).not.toHaveBeenCalled();
+      expect(fn).not.toHaveBeenCalled();
     });
   });
 });
