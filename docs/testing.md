@@ -93,6 +93,14 @@ approvals. Both are listed as the exception in
 [ADR-054](adr/ADR-054-coverage-per-layer-and-real-database-races.md), and each
 case was verified to fail when its mechanism is removed.
 
+`health/boot-smoke.e2e-spec.ts` covers the other gap: every other spec boots the
+hand-built `TestApp`, which re-states the global prefix and the validation pipe
+and skips the rest of `bootstrapApi` — trust proxy, the body-size limits, helmet,
+CORS, the Swagger gate, `listen`. The smoke test starts the **production**
+`bootstrapApi` on an ephemeral port and asserts those, including that an
+oversized body on `/api/v1/log` is answered with 413. `src/bootstrap.ts` is
+excluded from the unit gate for that reason, like `src/main.ts`.
+
 ## Gates
 
 - The backend unit run enforces **one coverage threshold per architectural

@@ -148,6 +148,6 @@ Full conventions in `client-sdk/AGENTS.md`. The facts an agent needs before reac
 
 ## Current State
 
-**lint ✓ | typecheck:all ✓ | format ✓ | backend unit 1869/1869 + coverage gate ✓ | backend e2e 265/265 | frontend unit 1125/1125 | frontend e2e 64/64 (not re-run this pass)** (last verified; re-run `unitTest`, `e2eTest` + frontend tests for current counts)
+**lint ✓ | typecheck:all ✓ | format ✓ | backend unit 1873/1873 + coverage gate ✓ | backend e2e 271/271 | frontend unit 1125/1125 | frontend e2e 64/64 (not re-run this pass)** (last verified; re-run `unitTest`, `e2eTest` + frontend tests for current counts)
 
 The upload → compare → review → approve pipeline is complete for both image and PDF kinds, including threshold auto-accept, per-variant status derivation, API-key CI authentication, and the self-hosting installer (`./install.sh`).

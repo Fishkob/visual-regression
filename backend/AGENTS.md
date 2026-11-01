@@ -61,7 +61,7 @@ src/
 ## Error Handling
 
 - Domain errors via `DomainError` with `code` property (`NOT_FOUND`, `CONFLICT`, `BAD_REQUEST`, `INVALID_STATE`, `INTERNAL_ERROR`)
-- `AllExceptionsFilter` catches DomainError → maps code to HTTP status, Prisma `P2002`→409, `P2025`→404, unknown→500
+- `AllExceptionsFilter` catches DomainError → maps code to HTTP status, Prisma `P2002`→409, `P2025`→404, einen 4xx, den eine Middleware an ihren Fehler gehängt hat (z. B. body-parser `413` bei zu großem Body) → dieser Status, unknown→500
 - Response includes `{ statusCode, message, timestamp, path, traceId }`
 
 ## Testing
@@ -76,6 +76,7 @@ src/
 - Assertions: Aufrufe → `toHaveBeenCalledWith(...)`, Ergebnisse → `toEqual(...)`, Fehler → `rejects.toMatchObject({ code: … })` / `rejects.toThrow(...)`.
 - **Repository-Specs prüfen Mapping und Guards, nicht die Query-Form.** Rückgegebene Entities, berechnete Werte und Verweigerungen (`assertInTransaction`) gehören in die Unit-Suite; `expect(client.x.findMany).toHaveBeenCalledWith({ where: … })` ist eine Wiederholung des Quelltextes und gehört in die HTTP-Suite, wo die Wirkung der Query als Zeile sichtbar ist. Siehe ADR-054.
 - **Datenbank-Garantien gehören an die echte Postgres-Instanz.** Sperrverhalten (`FOR UPDATE SKIP LOCKED`), Unique-Indizes, Isolation und Retries lassen sich weder durch HTTP (zwei gleichzeitige Anfragen sind so nicht erzeugbar) noch durch einen Stub beweisen: dafür darf ein Spec in `test/e2e/` einen Service oder die Queue aus der laufenden App heraus treiben. Ein Konkurrenztest muss fehlschlagen, wenn man den Mechanismus entfernt — sonst beweist er nichts.
+- **Bootstrap-Wiring wird von `test/e2e/health/boot-smoke.e2e-spec.ts` geprüft.** `TestApp` stellt Global Prefix und Validation Pipe nach und lässt den Rest von `bootstrapApi` aus (trust proxy, Body-Limits, helmet, CORS, Swagger-Gate, `listen`). Eine Änderung an dieser Verdrahtung gehört in den Smoke-Test, nicht in einen Unit-Test, der den Bootstrap nachbaut. `src/bootstrap.ts` ist deshalb aus dem Unit-Gate ausgenommen.
 - **Coverage-Gate:** `pnpm run unitTest:cov` erzwingt Schwellen pro Schicht (`vitest.config.ts`); `**/presentation/**` ist bewusst ausgenommen, weil die HTTP-Suite die Controller besitzt. Zahlen werden nach dem Schließen einer Lücke angehoben, nie gesenkt. Das zusammengeführte Bild beider Suiten liefert `pnpm run coverage:all`.
 
 ## Prisma
