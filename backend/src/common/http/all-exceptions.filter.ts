@@ -20,6 +20,7 @@ import {
   domainCodeToHttpStatus,
   finalHttpStatus,
   severityForStatus,
+  type ClientStatusError,
   type MulterErrorLike,
 } from '@common/utils/exception-status';
 
@@ -45,6 +46,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
         break;
       case 'multer':
         this.catchMulterError(classified.error, host);
+        break;
+      case 'clientStatus':
+        this.catchClientStatusError(classified.error, host);
         break;
       case 'unknown':
         this.catchUnknown(classified.error, host);
@@ -128,6 +132,25 @@ export class AllExceptionsFilter implements ExceptionFilter {
             // equivalent HttpException — otherwise debugging by logs silently
             // misses the most common Prisma failures.
             `Handled Prisma error (code: ${exception.code}) [${traceId}] ${message} (${String(status)})`,
+      exception.stack,
+    );
+  }
+
+  // A middleware rejected the request (an oversized or malformed body). The
+  // status is the client's, so the message stays and the log stays a warning.
+  private catchClientStatusError(
+    exception: ClientStatusError,
+    host: ArgumentsHost,
+  ): void {
+    const statusCode = exception.status;
+    const message = exception.message ?? 'Request rejected';
+    this.sendError(
+      host,
+      statusCode,
+      message,
+      {},
+      (traceId) =>
+        `Rejected by a request middleware (${String(statusCode)}) [${traceId}] ${message}`,
       exception.stack,
     );
   }

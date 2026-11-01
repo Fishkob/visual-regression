@@ -584,6 +584,36 @@ describe('AllExceptionsFilter', () => {
     });
   });
 
+  describe('Middleware rejections', () => {
+    it('serves the 413 body-parser attaches to an oversized body', () => {
+      // body-parser/raw-body tag the error they throw; the catch-all filter used
+      // to flatten every one of them into a 500.
+      const ex = Object.assign(new Error('request entity too large'), {
+        status: 413,
+        statusCode: 413,
+        type: 'entity.too.large',
+      });
+      filter.catch(ex, mockHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(413);
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 413,
+          message: 'request entity too large',
+        }),
+      );
+      expect(mockLogger.warn).toHaveBeenCalled();
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    it('keeps a status outside the client-error range a 500', () => {
+      const ex = Object.assign(new Error('upstream gone'), { status: 503 });
+      filter.catch(ex, mockHost);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+    });
+  });
+
   describe('Unknown exception handling', () => {
     it('returns 500 for generic Error', () => {
       filter.catch(new Error('Unexpected failure'), mockHost);

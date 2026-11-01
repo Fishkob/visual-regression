@@ -82,6 +82,20 @@ describe('exceptionHttpStatus', () => {
     expect(exceptionHttpStatus(undefined)).toBe(500);
   });
 
+  it('takes a 4xx status a middleware attached to the error', () => {
+    const ex = Object.assign(new Error('request entity too large'), {
+      status: 413,
+    });
+
+    expect(exceptionHttpStatus(ex)).toBe(413);
+  });
+
+  it('keeps a status outside the client-error range a 500', () => {
+    const ex = Object.assign(new Error('nope'), { status: 503 });
+
+    expect(exceptionHttpStatus(ex)).toBe(500);
+  });
+
   it('maps Multer LIMIT_FILE_SIZE to 413', () => {
     const multerError = {
       name: 'MulterError',

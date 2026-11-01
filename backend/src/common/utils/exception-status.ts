@@ -25,6 +25,7 @@ export type ClassifiedException =
   | { kind: 'prisma'; error: Prisma.PrismaClientKnownRequestError }
   | { kind: 'http'; error: HttpException }
   | { kind: 'multer'; error: MulterErrorLike }
+  | { kind: 'clientStatus'; error: ClientStatusError }
   | { kind: 'unknown'; error: unknown };
 
 export function classifyException(exception: unknown): ClassifiedException {
@@ -39,6 +40,9 @@ export function classifyException(exception: unknown): ClassifiedException {
   }
   if (isMulterError(exception)) {
     return { kind: 'multer', error: exception };
+  }
+  if (isClientStatusError(exception)) {
+    return { kind: 'clientStatus', error: exception };
   }
   return { kind: 'unknown', error: exception };
 }
@@ -57,6 +61,8 @@ export function exceptionHttpStatus(err: unknown): number {
       return prismaErrorToHttpStatus(classified.error);
     case 'multer':
       return classifyMulterError(classified.error).status;
+    case 'clientStatus':
+      return classified.error.status;
     case 'unknown':
       return HttpStatus.INTERNAL_SERVER_ERROR;
   }
@@ -126,6 +132,33 @@ export function classifyMulterError(
     status: HttpStatus.BAD_REQUEST,
     message: `Invalid multipart upload: ${error.code}`,
   };
+}
+
+// body-parser (and raw-body under it) rejects a request itself and tags the
+// error with the status the client should see — an oversized body carries 413,
+// a malformed one 400. The catch-all filter sits behind those middlewares, so
+// without this branch the rejection was served as a 500 and logged as a server
+// fault, which is the opposite of what happened: the request was too big.
+export interface ClientStatusError {
+  status: number;
+  message?: string;
+  stack?: string;
+}
+
+export function isClientStatusError(
+  exception: unknown,
+): exception is ClientStatusError {
+  if (typeof exception !== 'object' || exception === null) {
+    return false;
+  }
+  const candidate = exception as { status?: unknown; statusCode?: unknown };
+  const status =
+    typeof candidate.status === 'number'
+      ? candidate.status
+      : candidate.statusCode;
+  // Only a client-error range status is taken on trust; anything else keeps the
+  // generic 500, because a thrown object claiming 503 is not a client verdict.
+  return typeof status === 'number' && status >= 400 && status < 500;
 }
 
 export interface PrismaErrorDetails {
