@@ -206,13 +206,14 @@ describe('Concurrent review paths (e2e)', () => {
     const results = await Promise.all([vote(aliceCookie), vote(bobCookie)]);
     expect(results.map((result) => result.status)).toEqual([201, 201]);
 
-    // Each reviewer's vote is counted from the rows the database actually
-    // holds, not from a count read before the insert: two votes that arrive
-    // together must still reach the required total and complete the review.
-    // Exactly one of them retries once — it took the advisory lock while the
-    // other was committing — and the retry is guaranteed to see that vote; the
-    // approval path states its own retry budget (APPROVAL_MAX_ATTEMPTS) so the
-    // margin cannot be shrunk underneath this test.
+    // Each reviewer's vote is counted after its insert, not from a count read
+    // before it: two votes that arrive together must still reach the required
+    // total and complete the review.
+    // Exactly one of them retries once: its snapshot was fixed before it
+    // waited on the advisory lock while the other was committing, so it cannot
+    // see that vote until the retry. The approval path states its own retry
+    // budget (APPROVAL_MAX_ATTEMPTS) so the margin cannot be shrunk underneath
+    // this test.
     expect(
       await db.approvalVote.count({ where: { comparisonId: comparison.id } }),
     ).toBe(2);

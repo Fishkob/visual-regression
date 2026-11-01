@@ -3,6 +3,7 @@ import {
   isForeignKeyViolation,
   isSerializationError,
 } from '@common/infrastructure/retry-policy';
+import { REQUIRED_APPROVALS_MAX } from '@public/visualTest/core/domain/constants/review-policy.constants';
 import type { Prisma } from '@/prisma/client';
 
 export const DEFAULT_STATE_CHANGE_RETRY: {
@@ -19,15 +20,19 @@ export const DEFAULT_STATE_CHANGE_RETRY: {
 // wait and surfaces a P2028 that no retry can fix.
 export const APPROVAL_TRANSACTION_TIMEOUT_MS = 30_000;
 
-// A legitimate 4-eyes pair needs exactly one retry, never more: the second
-// voter's snapshot is taken before it blocks on the advisory lock, so its first
-// attempt aborts at commit, and its retry — with the competitor committed and
-// the lock free — reads the committed vote and finalizes. Measured over 30
-// concurrent pairs against Postgres: at most 2 attempts per voter, none
-// exhausted, no vote lost. The approval path therefore states its budget
-// instead of inheriting the workflow default, so a future global change cannot
-// silently shrink it into a 409 for a legitimate voter.
-export const APPROVAL_MAX_ATTEMPTS = 5;
+// The approval transaction opens with the per-comparison advisory lock, and
+// PostgreSQL fixes the SERIALIZABLE snapshot at that first statement — before
+// the wait. A voter queued behind another therefore cannot see the votes that
+// commit while it waits: its attempt aborts at commit, and it needs one attempt
+// per vote that committed ahead of it. A gate whose voters all arrive at once
+// then needs up to one attempt per voter — measured against Postgres on
+// simultaneous gates of 2 to 10 voters, the last voter needed exactly N
+// attempts — and REQUIRED_APPROVALS_MAX voters are legal. The budget is derived
+// from that ceiling, one attempt per voter plus one for a conflict unrelated to
+// the queue (such as a concurrent status recompute), instead of inheriting the
+// workflow default, so a later global change cannot silently shrink it into a
+// 409 for a legitimate voter.
+export const APPROVAL_MAX_ATTEMPTS = REQUIRED_APPROVALS_MAX + 1;
 
 // Deletion retry policy: a deletion may race a concurrent upload that creates
 // a test (or a row referencing the deleted rows) between the read and the

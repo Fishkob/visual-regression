@@ -313,8 +313,10 @@ export class UnifiedComparisonsRepository extends BaseRepository {
   // winner had already consumed. An advisory lock is deliberate — a row lock
   // (`SELECT ... FOR UPDATE`) on a row the other transaction just deleted raises
   // a 40001 from the lock statement itself, which is not the write conflict the
-  // retry policy retries. This locks without reading, and releases with the
-  // transaction.
+  // retry policy retries. The lock orders the attempts but cannot refresh the
+  // snapshot a queued voter already holds, so the loser still aborts at commit
+  // and retries (see APPROVAL_MAX_ATTEMPTS). This locks without reading, and
+  // releases with the transaction.
   async lockForApproval(comparisonId: string): Promise<void> {
     // The function returns void, which Prisma cannot deserialize; selecting a
     // constant from it keeps the call and gives the row a type.

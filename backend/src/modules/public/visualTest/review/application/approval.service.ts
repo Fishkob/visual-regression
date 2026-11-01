@@ -182,9 +182,12 @@ export class ApprovalService {
       userId: input.principal.principalId,
       username: input.approvedBy,
     });
-    // Counted after the insert, from the rows the database holds: a count read
-    // before it is the value two concurrent voters both saw, and that is what
-    // let a pair of votes fail to reach the total (ADR-050).
+    // Counted after the insert: a count read before it is the value two
+    // concurrent voters both saw, and that is what let a pair of votes fail to
+    // reach the total (ADR-050). This still counts from the transaction's own
+    // snapshot, so a voter queued on the advisory lock cannot see the vote that
+    // committed while it waited — the retry is what makes the total correct
+    // (see APPROVAL_MAX_ATTEMPTS).
     const votes = await this.votes.countForComparison(input.comparisonId);
     if (votes < required) {
       // The vote row and its audit row commit together, so a partial vote can
@@ -271,7 +274,9 @@ export class ApprovalService {
         await this.workflow.executeStateChange<ApprovalChangeResult>(
           async () => {
             // Hold the comparison for the length of this decision: concurrent
-            // voters queue here instead of aborting each other's transaction.
+            // voters queue here instead of racing the same rows. The snapshot
+            // is fixed before the wait, so the queued voter still aborts at
+            // commit and retries (see APPROVAL_MAX_ATTEMPTS).
             await this.comparisons.lockForApproval(comparisonId);
             const comparison = await this.resolve(test.id, comparisonId);
             if (!comparison.baseline || !comparison.candidate) {

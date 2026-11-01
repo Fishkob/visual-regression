@@ -48,6 +48,11 @@ import {
 } from '@test/utils/mocks';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referencedness.interface';
+import {
+  APPROVAL_MAX_ATTEMPTS,
+  APPROVAL_TRANSACTION_TIMEOUT_MS,
+} from '@public/visualTest/core/application/services/state-change-options';
+import { REQUIRED_APPROVALS_MAX } from '@public/visualTest/core/domain/constants/review-policy.constants';
 
 describe('ApprovalService', () => {
   let service: ApprovalService;
@@ -946,9 +951,18 @@ describe('ApprovalService', () => {
       expect(spy).toHaveBeenCalledWith(
         expect.any(Function),
         expect.objectContaining({
-          transactionTimeoutMs: 30_000,
-          retry: { maxAttempts: 5 },
+          transactionTimeoutMs: APPROVAL_TRANSACTION_TIMEOUT_MS,
+          retry: { maxAttempts: APPROVAL_MAX_ATTEMPTS },
         }),
+      );
+    });
+
+    it('budgets at least one attempt per voter the review policy admits', () => {
+      // The queued voter's snapshot is fixed before it waits on the advisory
+      // lock, so an N-voter gate that arrives at once needs up to N attempts.
+      // A budget below the review-policy ceiling would 409 a legitimate voter.
+      expect(APPROVAL_MAX_ATTEMPTS).toBeGreaterThanOrEqual(
+        REQUIRED_APPROVALS_MAX,
       );
     });
   });
