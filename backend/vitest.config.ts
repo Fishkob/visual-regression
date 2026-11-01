@@ -10,6 +10,11 @@ const E2E_OWNED = [
   '**/presentation/**',
   'src/scripts/**',
   'src/tracing.setup.ts',
+  // Entry wiring: `main.ts` is the entry point, `bootstrap.ts` is what it calls.
+  // `boot-smoke.e2e-spec.ts` starts this and asserts what it configured, so it
+  // is covered where it is written instead of by a unit test that would have to
+  // re-state the bootstrap.
+  'src/bootstrap.ts',
 ];
 
 const COVERAGE_EXCLUDE = [
