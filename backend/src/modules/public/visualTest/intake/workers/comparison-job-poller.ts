@@ -91,13 +91,21 @@ export class ComparisonJobPoller
       });
   }
 
-  async onModuleDestroy(): Promise<void> {
+  // Stops claiming new work. The e2e harness calls this right after boot: the
+  // suite drives queued jobs itself (`drainJobs`/the processor), and a live
+  // poller claims those same jobs from under a test — a comparison job that
+  // finished mid-vote retired the comparison the reviewers were voting on.
+  stop(): void {
     this.shuttingDown = true;
 
     if (this.pollTimer) {
       clearTimeout(this.pollTimer);
       this.pollTimer = null;
     }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    this.stop();
 
     // No job is claimed while shutting down. The previous drain loop claimed
     // fresh work with the remaining budget — work the process would be killed

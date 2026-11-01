@@ -9,6 +9,7 @@ import { ComparisonJobProcessor } from '@public/visualTest/intake/workers/compar
 import { AppConfigService } from '@config/app-config.service';
 import { hashPassword } from '@internal/auth/password-hasher';
 import request from 'supertest';
+import { ComparisonJobPoller } from '@public/visualTest/intake/workers/comparison-job-poller';
 
 // Two requests that arrive at the same time are the one thing a mocked
 // repository can never simulate: the duplicate check, the unique index and the
@@ -61,6 +62,12 @@ describe('Concurrent review paths (e2e)', () => {
   beforeAll(async () => {
     app = await TestApp.init();
     db = app.get(PrismaConnection).client;
+    // This spec processes queued jobs itself (drainJobs). The worker module's
+    // poller rides along in the e2e app and would claim the same jobs: a diff
+    // job that finished while two reviewers were voting retired the comparison
+    // they were voting on, which is how this file flaked in CI and nowhere
+    // locally. Nothing else in this file needs background processing.
+    app.get(ComparisonJobPoller).stop();
   });
 
   beforeEach(async () => {
