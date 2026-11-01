@@ -44,3 +44,13 @@ export async function waitForReady(
   );
   expect(isDark).toBe(theme === "dark");
 }
+
+// An uncaught exception during render leaves the DOM plausible enough for a
+// screenshot and for an axe scan: the case "passes" while the page is broken in
+// a tab or a dialog nobody opened. Collecting them turns that into a failure
+// with the message, for every case the gallery mounts.
+export function collectPageErrors(page: Page): string[] {
+  const messages: string[] = [];
+  page.on("pageerror", (error) => messages.push(error.message));
+  return messages;
+}

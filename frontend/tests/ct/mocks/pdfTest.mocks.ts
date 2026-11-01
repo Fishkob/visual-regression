@@ -1,3 +1,5 @@
+import type { PdfControllerGetPdfTestDetailsResponses } from "@sdk/models/PdfControllerGetPdfTestDetailsResponses.gen";
+
 function jsonResponse(data: unknown, status = 200) {
   return {
     status,
@@ -12,9 +14,13 @@ export const PDF_TEST_DETAILS_EMPTY = jsonResponse({
   status: "PENDING",
   kind: "pdf",
   createdAt: "2026-01-23T14:48:36.276Z",
+  origin: "branch",
+  inheritedFrom: null,
+  baselineInherited: false,
+  inheritTarget: null,
   baseline: null,
   comparison: null,
-});
+} satisfies PdfControllerGetPdfTestDetailsResponses[200]);
 
 export const PDF_TEST_DETAILS_BASELINE_NO_PAGE_COUNT = jsonResponse({
   id: "pdf-1",
@@ -22,6 +28,10 @@ export const PDF_TEST_DETAILS_BASELINE_NO_PAGE_COUNT = jsonResponse({
   status: "PENDING",
   kind: "pdf",
   createdAt: "2026-01-23T14:48:36.276Z",
+  origin: "branch",
+  inheritedFrom: null,
+  baselineInherited: false,
+  inheritTarget: null,
   baseline: {
     id: "b1",
     pdfUrl: "http://localhost:9000/vrt/invoice.pdf",
@@ -32,4 +42,4 @@ export const PDF_TEST_DETAILS_BASELINE_NO_PAGE_COUNT = jsonResponse({
     environment: "staging",
   },
   comparison: null,
-});
+} satisfies PdfControllerGetPdfTestDetailsResponses[200]);

@@ -1,3 +1,7 @@
+import type { PdfTestDetailsDto } from "@sdk/models/PdfTestDetailsDto.gen";
+import type { PendingTestDto } from "@sdk/models/PendingTestDto.gen";
+import type { VisualTestDetailsDto } from "@sdk/models/VisualTestDetailsDto.gen";
+
 import { ONE_PIXEL_PNG_DATA_URL } from "./projects.mocks";
 import { DEMO_BASELINE, DEMO_CANDIDATE, DEMO_DIFF } from "./demoImages.mocks";
 import type { ChangedRegion } from "@/domains/visual-test/visual-test.model";
@@ -59,7 +63,7 @@ function reviewableDetailsBody(name: string) {
       },
       createdAt: "2026-01-23T14:48:36.352Z",
     },
-  };
+  } satisfies VisualTestDetailsDto;
 }
 
 export function makeReviewableDetails(name: string): FulfillResponse {
@@ -83,7 +87,7 @@ export function makeReviewableDetailsWithRegions(
       candidate: { ...body.comparison.candidate, imageUrl: DEMO_CANDIDATE },
       baseline: { ...body.comparison.baseline, imageUrl: DEMO_BASELINE },
     },
-  });
+  } satisfies VisualTestDetailsDto);
 }
 
 export function makeImageKind(): FulfillResponse {
@@ -103,6 +107,10 @@ export function makePdfReviewableDetails(name: string): FulfillResponse {
     status: "PENDING",
     kind: "pdf",
     createdAt: "2026-01-23T14:48:36.276Z",
+    origin: "branch",
+    inheritedFrom: null,
+    baselineInherited: false,
+    inheritTarget: null,
     baseline: {
       id: `pdf-baseline-${name}`,
       pdfUrl: `http://localhost:9000/vrt/${name}-baseline.pdf`,
@@ -129,10 +137,10 @@ export function makePdfReviewableDetails(name: string): FulfillResponse {
         environment: "staging",
       },
     },
-  });
+  } satisfies PdfTestDetailsDto);
 }
 
-export function makePendingItem(name: string) {
+export function makePendingItem(name: string): PendingTestDto {
   return {
     name,
     variant: VARIANT,

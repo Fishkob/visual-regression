@@ -6,6 +6,8 @@
 #   ./scripts/verify.sh             # full local gate, no Docker (~3 min)
 #   ./scripts/verify.sh --fast      # backend only, skips frontend + SDK drift (~1 min)
 #   ./scripts/verify.sh --with-e2e  # also the backend e2e suite (starts Docker, ~2 min more)
+#   ./scripts/verify.sh --with-browser   # also the Playwright CT suite (+ ~2 min)
+#   ./scripts/verify.sh --with-quality   # also visual + a11y in the quality image (+ ~10 min)
 #
 # Wired into .husky/pre-push, so a normal `git push` runs it. Skip deliberately
 # with `git push --no-verify`.
@@ -18,10 +20,14 @@ cd "$PROJECT_ROOT"
 
 FAST=0
 WITH_E2E=0
+WITH_BROWSER=0
+WITH_QUALITY=0
 for arg in "$@"; do
   case "$arg" in
     --fast) FAST=1 ;;
     --with-e2e) WITH_E2E=1 ;;
+    --with-browser) WITH_BROWSER=1 ;;
+    --with-quality) WITH_QUALITY=1 ;;
     -h | --help)
       sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
@@ -94,8 +100,11 @@ step "Backend unit tests + coverage gate"
 run pnpm run unitTest:cov
 
 if [ "$FAST" -eq 0 ]; then
-  step "Frontend unit tests"
-  run pnpm --filter ./frontend test -- --run
+  step "Frontend unit tests + coverage gate"
+  run pnpm --filter ./frontend test:coverage
+
+  step "i18n key parity (frontend)"
+  run pnpm --filter ./frontend i18n:check
 
   step "SDK drift (OpenAPI -> client-sdk)"
   run verify_sdk_drift
@@ -106,7 +115,23 @@ if [ "$WITH_E2E" -eq 1 ]; then
   run pnpm run e2eTest
 fi
 
+if [ "$WITH_BROWSER" -eq 1 ]; then
+  step "Frontend component tests (Playwright CT)"
+  run pnpm --filter ./frontend test-ct
+fi
+
+if [ "$WITH_QUALITY" -eq 1 ]; then
+  step "Theme quality: visual regression (light + dark)"
+  run ./scripts/quality.sh visual
+
+  step "Theme quality: accessibility scan (light + dark)"
+  run ./scripts/quality.sh a11y
+fi
+
 printf '\n\033[0;32mAll checks passed in %ss.\033[0m\n' "$((SECONDS - TOTAL_START))"
 if [ "$FAST" -eq 1 ]; then
   printf '\033[0;33m(--fast skipped the frontend suite and the SDK drift check; the pre-push hook runs the full gate.)\033[0m\n'
+fi
+if [ "$WITH_BROWSER" -eq 0 ] || [ "$WITH_QUALITY" -eq 0 ]; then
+  printf '\033[0;33m(Not run: CT with --with-browser, visual/a11y with --with-quality, backend e2e with --with-e2e.)\033[0m\n'
 fi

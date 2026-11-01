@@ -1,3 +1,5 @@
+import type { ProjectGroupsControllerFindAllResponses } from "@sdk/models/ProjectGroupsControllerFindAllResponses.gen";
+
 export const GROUPS_RESPONSE = {
   status: 200,
   contentType: "application/json",
@@ -14,11 +16,13 @@ export const GROUPS_RESPONSE = {
       createdAt: "2026-10-20T10:00:00.000Z",
       projectCount: 2,
     },
-  ]),
+  ] satisfies ProjectGroupsControllerFindAllResponses[200]),
 };
 
 export const GROUPS_EMPTY_RESPONSE = {
   status: 200,
   contentType: "application/json",
-  body: JSON.stringify([]),
+  body: JSON.stringify(
+    [] satisfies ProjectGroupsControllerFindAllResponses[200],
+  ),
 };

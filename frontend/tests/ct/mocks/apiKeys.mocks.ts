@@ -1,3 +1,6 @@
+import type { ApiKeysControllerCreateResponses } from "@sdk/models/ApiKeysControllerCreateResponses.gen";
+import type { ApiKeysControllerFindAllResponses } from "@sdk/models/ApiKeysControllerFindAllResponses.gen";
+
 export const API_KEYS_RESPONSE = {
   status: 200,
   contentType: "application/json",
@@ -70,13 +73,13 @@ export const API_KEYS_RESPONSE = {
       replacedById: "k1",
       status: "revoked",
     },
-  ]),
+  ] satisfies ApiKeysControllerFindAllResponses[200]),
 };
 
 export const API_KEYS_EMPTY_RESPONSE = {
   status: 200,
   contentType: "application/json",
-  body: JSON.stringify([]),
+  body: JSON.stringify([] satisfies ApiKeysControllerFindAllResponses[200]),
 };
 
 export const CREATED_API_KEY_RESPONSE = {
@@ -90,5 +93,5 @@ export const CREATED_API_KEY_RESPONSE = {
     scopes: ["upload"],
     projectNames: [],
     expiresAt: null,
-  }),
+  } satisfies ApiKeysControllerCreateResponses[201]),
 };

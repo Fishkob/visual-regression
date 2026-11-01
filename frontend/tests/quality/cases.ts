@@ -1,3 +1,5 @@
+import type { StorageControllerGetResponses } from "@sdk/models/StorageControllerGetResponses.gen";
+
 import { TEST_ID } from "@/lib/test-ids";
 
 import {
@@ -27,6 +29,13 @@ import {
   VISUAL_TEST_VARIANTS_BROWSERS_DEMO,
 } from "../ct/mocks/visualTest.mocks";
 import type { FulfillResponse } from "../ct/routes/api.routes";
+import {
+  AUDIT_RESPONSE,
+  RUNS_RESPONSE,
+  SESSIONS_RESPONSE,
+  TRENDS_RESPONSE,
+  USERS_RESPONSE,
+} from "./mocks/pages.mocks";
 
 type MockRoute = [glob: string, response: FulfillResponse];
 
@@ -57,7 +66,7 @@ const PROJECT_DETAILS_GLOB = "**/api/v1/projects/checkout-ui*";
 // wildcard keeps it from being shadowed by the project read above.
 const PROJECT_STORAGE_GLOB = "**/api/v1/projects/checkout-ui/storage";
 const PROJECT_WEBHOOKS_GLOB = "**/api/v1/projects/checkout-ui/webhooks";
-const PROJECT_STORAGE_RESPONSE: FulfillResponse = {
+export const PROJECT_STORAGE_RESPONSE: FulfillResponse = {
   status: 200,
   contentType: "application/json",
   body: JSON.stringify({
@@ -71,7 +80,7 @@ const PROJECT_STORAGE_RESPONSE: FulfillResponse = {
     baselineRevisionLimit: 5,
     runHistoryDays: 30,
     orphanGraceHours: 24,
-  }),
+  } satisfies StorageControllerGetResponses[200]),
 };
 const VISUAL_DETAILS_ROUTE = `/projects/checkout-ui/tests/checkout-flow?${CHROME_1920_1080_STAGING}`;
 // Pinned to the path, tolerant of the query: the variant identity comes from the
@@ -239,5 +248,83 @@ export const QUALITY_CASES: QualityCase[] = [
     ],
     readyTestId: TEST_ID.tableRow,
     maskTestIds: [TEST_ID.inboxBadge],
+  },
+  // The stand-alone screens and the admin surfaces. They were reached by the
+  // e2e suite only, which photographs nothing and scans nothing: an a11y or
+  // layout regression there had no gate. The three auth screens fire no API
+  // call, so their cases need no route mocks at all.
+  {
+    name: "login",
+    story: "views/LoginView/Routed",
+    props: { initialRoute: "/login" },
+    readyTestId: TEST_ID.loginSubmit,
+  },
+  {
+    name: "forbidden",
+    story: "views/ForbiddenView/Routed",
+    props: { initialRoute: "/forbidden" },
+    readyTestId: TEST_ID.forbiddenView,
+  },
+  {
+    name: "change-password",
+    story: "views/ChangePasswordView/Routed",
+    props: { initialRoute: "/change-password" },
+    readyTestId: TEST_ID.changePasswordView,
+  },
+  {
+    name: "users",
+    story: "views/UsersView/Routed",
+    props: { initialRoute: "/users" },
+    routes: [["**/api/v1/users", USERS_RESPONSE]],
+    readyTestId: TEST_ID.userRow,
+  },
+  {
+    name: "security",
+    story: "views/SecurityView/Routed",
+    props: { initialRoute: "/settings/security" },
+    routes: [["**/api/v1/auth/sessions", SESSIONS_RESPONSE]],
+    readyTestId: TEST_ID.sessionRow,
+  },
+  {
+    name: "audit",
+    story: "views/AuditView/Routed",
+    props: { initialRoute: "/audit" },
+    // The same glob also answers the CSV export; the export is a click, not a
+    // page load, so the scan never awaits it.
+    routes: [["**/api/v1/audit*", AUDIT_RESPONSE]],
+    readyTestId: TEST_ID.auditRow,
+  },
+  {
+    name: "webhooks",
+    story: "views/WebhooksView/Routed",
+    props: { initialRoute: "/projects/checkout-ui/webhooks" },
+    routes: [
+      [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
+      [PROJECT_WEBHOOKS_GLOB, WEBHOOKS_RESPONSE],
+    ],
+    readyTestId: TEST_ID.webhookRow,
+  },
+  {
+    name: "runs",
+    story: "views/RunsView/Routed",
+    props: { initialRoute: "/projects/checkout-ui/runs" },
+    routes: [
+      [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+      // Registered after the project read so it wins for the runs request: a
+      // glob without a trailing wildcard would also shadow the detail call.
+      ["**/api/v1/projects/*/runs*", RUNS_RESPONSE],
+    ],
+    readyTestId: TEST_ID.runRow,
+  },
+  {
+    name: "trends",
+    story: "views/TrendsView/Routed",
+    props: { initialRoute: "/projects/checkout-ui/trends" },
+    routes: [
+      [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/projects/*/trends*", TRENDS_RESPONSE],
+    ],
+    readyTestId: TEST_ID.trendsComparisons,
   },
 ];

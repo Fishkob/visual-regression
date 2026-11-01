@@ -1,3 +1,5 @@
+import type { BaselineRevisionSource } from "@/domains/baseline-history/baseline-history.mapper";
+
 import { ONE_PIXEL_PNG_DATA_URL } from "./projects.mocks";
 
 function jsonResponse(data: unknown, status = 200) {
@@ -43,7 +45,7 @@ export const VISUAL_BASELINE_HISTORY = jsonResponse([
     createdBy: null,
     createdAt: "2026-10-19T09:00:00.000Z",
   },
-]);
+] satisfies BaselineRevisionSource[]);
 
 // A PDF baseline revision carries a page count and has no thumbnail to render.
 export const PDF_BASELINE_HISTORY = jsonResponse([
@@ -71,4 +73,4 @@ export const PDF_BASELINE_HISTORY = jsonResponse([
     createdBy: null,
     createdAt: "2026-10-19T09:00:00.000Z",
   },
-]);
+] satisfies BaselineRevisionSource[]);

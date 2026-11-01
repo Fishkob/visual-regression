@@ -31,17 +31,22 @@ Walkthrough: `docs/local-development.md`
 
 ## Testing
 
-| Command                                | Purpose                                                     |
-| -------------------------------------- | ----------------------------------------------------------- |
-| `pnpm run unitTest`                    | Backend unit tests (vitest)                                 |
-| `pnpm run unitTest:cov`                | Backend unit tests + the per-layer coverage gate            |
-| `pnpm run coverage:all`                | Both backend suites, coverage merged per file               |
-| `pnpm run e2eTest`                     | Backend E2E tests (auto-starts Docker)                      |
-| `cd frontend && pnpm test`             | Frontend unit tests (vitest + jsdom)                        |
-| `cd frontend && pnpm test-e2e`         | Frontend E2E (requires frontend running)                    |
-| `./scripts/quality.sh visual`          | Dark/light screenshot suite (Docker, Linux amd64 baselines) |
-| `./scripts/quality.sh a11y`            | Axe WCAG A/AA scan in both themes                           |
-| `./scripts/quality.sh visual --update` | Regenerate visual baselines                                 |
+| Command                                | Purpose                                                           |
+| -------------------------------------- | ----------------------------------------------------------------- |
+| `pnpm run unitTest`                    | Backend unit tests (vitest)                                       |
+| `pnpm run unitTest:cov`                | Backend unit tests + the per-layer coverage gate                  |
+| `pnpm run coverage:all`                | Both backend suites, coverage merged per file                     |
+| `pnpm run e2eTest`                     | Backend E2E tests (auto-starts Docker)                            |
+| `cd frontend && pnpm test`             | Frontend unit tests (vitest + jsdom)                              |
+| `cd frontend && pnpm test:coverage`    | Frontend unit tests + the per-layer coverage gate                 |
+| `cd frontend && pnpm test-ct`          | Playwright component tests incl. keyboard/focus (Vite dev server) |
+| `cd frontend && pnpm test-e2e`         | Frontend E2E (requires frontend running)                          |
+| `./scripts/quality.sh visual`          | Dark/light screenshot suite (Docker, Linux amd64 baselines)       |
+| `./scripts/quality.sh a11y`            | Axe WCAG A/AA scan in both themes                                 |
+| `./scripts/quality.sh visual --update` | Regenerate visual baselines                                       |
+
+`./scripts/verify.sh --with-browser` adds the CT suite to the local gate,
+`--with-quality` adds the visual and a11y runs; the default gate stays browser-free.
 
 Suite layout, the infrastructure each suite needs and the coverage gates: [docs/testing.md](docs/testing.md).
 
@@ -57,11 +62,13 @@ pnpm run format:check      # Check formatting only
 **Order:** `lint` → `typecheck:all` → `format` → `unitTest`
 
 **Local gate:** `./scripts/verify.sh` runs lint + typecheck + format + backend
-unit with the per-layer coverage gate + frontend unit + the SDK drift check in
-one command (~2 min). It is wired into
-`.husky/pre-push`, so a normal `git push` runs it; `--fast` skips the frontend suite
-and the SDK check, `--with-e2e` adds the backend e2e suite. The CI workflows may be
-disabled — treat `verify.sh` as the gate that must be green before a push.
+unit with the per-layer coverage gate + frontend unit with its per-layer coverage
+gate + the i18n parity check + the SDK drift check in one command (~2 min). It is
+wired into `.husky/pre-push`, so a normal `git push` runs it; `--fast` skips the
+frontend suite and the SDK check, `--with-e2e` adds the backend e2e suite,
+`--with-browser` the Playwright CT suite and `--with-quality` the visual + a11y
+runs in the quality image. The CI workflows may be disabled — treat `verify.sh`
+as the gate that must be green before a push.
 
 ## SDK Generation
 
@@ -148,6 +155,6 @@ Full conventions in `client-sdk/AGENTS.md`. The facts an agent needs before reac
 
 ## Current State
 
-**lint ✓ | typecheck:all ✓ | format ✓ | backend unit 1873/1873 + coverage gate ✓ | backend e2e 271/271 | frontend unit 1125/1125 | frontend e2e 64/64 (not re-run this pass)** (last verified; re-run `unitTest`, `e2eTest` + frontend tests for current counts)
+**lint ✓ | typecheck:all ✓ | format ✓ | backend unit 1873/1873 + coverage gate ✓ | backend e2e 271/271 | frontend unit 1176/1176 + coverage gate ✓ | frontend CT 102/102 | frontend visual 44/44 + a11y 44/44 (quality image) | frontend e2e 64/64 (not re-run this pass)** (last verified; re-run `unitTest`, `e2eTest` + frontend tests for current counts)
 
 The upload → compare → review → approve pipeline is complete for both image and PDF kinds, including threshold auto-accept, per-variant status derivation, API-key CI authentication, and the self-hosting installer (`./install.sh`).

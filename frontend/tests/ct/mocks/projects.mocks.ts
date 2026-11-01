@@ -1,3 +1,8 @@
+import type { BranchesControllerListResponses } from "@sdk/models/BranchesControllerListResponses.gen";
+import type { ProjectsControllerGetOneProjectResponses } from "@sdk/models/ProjectsControllerGetOneProjectResponses.gen";
+import type { ProjectsControllerGetProjectsWithPendingFlagResponses } from "@sdk/models/ProjectsControllerGetProjectsWithPendingFlagResponses.gen";
+import type { ReviewInboxControllerGetPendingResponses } from "@sdk/models/ReviewInboxControllerGetPendingResponses.gen";
+
 export const ONE_PIXEL_PNG_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
 
@@ -45,7 +50,7 @@ export const PROJECTS_PENDING_RESPONSE = {
       hasNextPage: false,
       hasPreviousPage: false,
     },
-  }),
+  } satisfies ProjectsControllerGetProjectsWithPendingFlagResponses[200]),
 };
 
 export const PROJECTS_PENDING_EMPTY_RESPONSE = {
@@ -61,7 +66,7 @@ export const PROJECTS_PENDING_EMPTY_RESPONSE = {
       hasNextPage: false,
       hasPreviousPage: false,
     },
-  }),
+  } satisfies ProjectsControllerGetProjectsWithPendingFlagResponses[200]),
 };
 
 export const PROJECT_CHECKOUT_UI_RESPONSE = {
@@ -93,7 +98,6 @@ export const PROJECT_CHECKOUT_UI_RESPONSE = {
           browser: "Safari",
           environment: "staging",
         },
-        latestStatus: null,
       },
       {
         name: "checkout-flow",
@@ -103,7 +107,6 @@ export const PROJECT_CHECKOUT_UI_RESPONSE = {
           browser: "Safari",
           environment: "staging",
         },
-        latestStatus: null,
       },
       {
         name: "checkout-flow",
@@ -113,7 +116,6 @@ export const PROJECT_CHECKOUT_UI_RESPONSE = {
           browser: "Firefox",
           environment: "staging",
         },
-        latestStatus: null,
       },
       {
         name: "checkout-flow",
@@ -123,7 +125,6 @@ export const PROJECT_CHECKOUT_UI_RESPONSE = {
           browser: "Firefox",
           environment: "staging",
         },
-        latestStatus: null,
       },
       {
         name: "checkout-flow",
@@ -133,7 +134,6 @@ export const PROJECT_CHECKOUT_UI_RESPONSE = {
           browser: "Chrome",
           environment: "staging",
         },
-        latestStatus: null,
       },
       {
         name: "login-form",
@@ -143,7 +143,6 @@ export const PROJECT_CHECKOUT_UI_RESPONSE = {
           browser: "Safari",
           environment: "staging",
         },
-        latestStatus: null,
       },
       {
         name: "login-form",
@@ -153,7 +152,6 @@ export const PROJECT_CHECKOUT_UI_RESPONSE = {
           browser: "Firefox",
           environment: "staging",
         },
-        latestStatus: null,
       },
       {
         name: "login-form",
@@ -163,10 +161,9 @@ export const PROJECT_CHECKOUT_UI_RESPONSE = {
           browser: "Firefox",
           environment: "staging",
         },
-        latestStatus: null,
       },
     ],
-  }),
+  } satisfies ProjectsControllerGetOneProjectResponses[200]),
 };
 
 // The branch-scoped read for `feature/checkout-v2`: one variant the branch owns
@@ -204,10 +201,10 @@ export const PROJECT_CHECKOUT_UI_BRANCH_RESPONSE = {
           browser: "Firefox",
           environment: "staging",
         },
-        latestStatus: "APPROVED",
+        latestStatus: "UNCHANGED",
       },
     ],
-  }),
+  } satisfies ProjectsControllerGetOneProjectResponses[200]),
 };
 
 export const PROJECT_EMPTY_RESPONSE = {
@@ -217,7 +214,7 @@ export const PROJECT_EMPTY_RESPONSE = {
     id: "cmiewt8xi0008q35zr1ugreta",
     name: "checkout-ui",
     visualTests: [],
-  }),
+  } satisfies ProjectsControllerGetOneProjectResponses[200]),
 };
 
 export const REVIEW_INBOX_RESPONSE = {
@@ -266,14 +263,31 @@ export const REVIEW_INBOX_RESPONSE = {
         projectBranchCount: 1,
       },
     ],
-    meta: { total: 2 },
-  }),
+    meta: {
+      page: 1,
+      limit: 20,
+      total: 2,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  } satisfies ReviewInboxControllerGetPendingResponses[200]),
 };
 
 export const REVIEW_INBOX_EMPTY_RESPONSE = {
   status: 200,
   contentType: "application/json",
-  body: JSON.stringify({ data: [], meta: { total: 0 } }),
+  body: JSON.stringify({
+    data: [],
+    meta: {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  } satisfies ReviewInboxControllerGetPendingResponses[200]),
 };
 
 export const REVIEW_INBOX_MULTI_RESPONSE = {
@@ -342,8 +356,15 @@ export const REVIEW_INBOX_MULTI_RESPONSE = {
         projectBranchCount: 1,
       },
     ],
-    meta: { total: 3 },
-  }),
+    meta: {
+      page: 1,
+      limit: 20,
+      total: 3,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  } satisfies ReviewInboxControllerGetPendingResponses[200]),
 };
 
 // The branch list every project-detail render asks for. Without it the switcher
@@ -381,7 +402,7 @@ export const BRANCHES_RESPONSE = {
       pendingCount: 0,
       createdAt: "2026-10-21T10:00:00.000Z",
     },
-  ]),
+  ] satisfies BranchesControllerListResponses[200]),
 };
 
 // Two branches in one project: the badge shows for the non-default one and the
@@ -432,6 +453,13 @@ export const REVIEW_INBOX_BRANCHES_RESPONSE = {
         projectBranchCount: 2,
       },
     ],
-    meta: { total: 2 },
-  }),
+    meta: {
+      page: 1,
+      limit: 20,
+      total: 2,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  } satisfies ReviewInboxControllerGetPendingResponses[200]),
 };

@@ -1,3 +1,5 @@
+import type { WebhooksControllerListResponses } from "@sdk/models/WebhooksControllerListResponses.gen";
+
 export const WEBHOOKS_RESPONSE = {
   status: 200,
   contentType: "application/json",
@@ -22,5 +24,5 @@ export const WEBHOOKS_RESPONSE = {
       createdAt: "2026-09-01T10:00:00.000Z",
       updatedAt: "2026-09-02T10:00:00.000Z",
     },
-  ]),
+  ] satisfies WebhooksControllerListResponses[200]),
 };

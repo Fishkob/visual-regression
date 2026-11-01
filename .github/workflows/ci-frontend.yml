@@ -179,7 +179,10 @@ jobs:
         run: ./scripts/quality.sh a11y --no-build
         env:
           QUALITY_IMAGE: visual-regression-frontend-quality:ci
-          QUALITY_PLATFORM: linux/arm64
+          # The image was built and loaded as linux/amd64 above; asking docker
+          # for another platform cannot resolve against a single-arch image and
+          # fails the step before a single scan runs.
+          QUALITY_PLATFORM: linux/amd64
 
       - name: Upload Playwright report
         if: failure()

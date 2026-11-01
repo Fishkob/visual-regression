@@ -7,7 +7,10 @@
     "playwright/gallery/**/*.ts",
     "eslint-rules/**/*.ts",
     "tests/ct/**/*.ts",
+    "tests/e2e/**/*.ts",
     "tests/quality/**/*.ts",
+    "playwright-ct.config.ts",
+    "playwright-e2e.config.ts",
     "playwright-quality.config.ts"
   ],
   "exclude": ["node_modules", "dist"],

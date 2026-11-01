@@ -1,3 +1,8 @@
+import type { TestVariantSummaryDto } from "@sdk/models/TestVariantSummaryDto.gen";
+import type { TestsQueriesControllerGetTestsWithPendingStatusResponses } from "@sdk/models/TestsQueriesControllerGetTestsWithPendingStatusResponses.gen";
+import type { TestsQueriesControllerGetVariantsResponses } from "@sdk/models/TestsQueriesControllerGetVariantsResponses.gen";
+import type { TestsQueriesControllerGetVisualTestDetailsResponses } from "@sdk/models/TestsQueriesControllerGetVisualTestDetailsResponses.gen";
+
 import { ONE_PIXEL_PNG_DATA_URL } from "./projects.mocks";
 import { DEMO_BASELINE, DEMO_CANDIDATE } from "./demoImages.mocks";
 
@@ -19,8 +24,7 @@ export const PROJECT_TEST_DETAILS_ONLY_BASELINE_RESPONSE = {
         environment: "staging",
       },
     },
-    comparison: null,
-  }),
+  } satisfies TestsQueriesControllerGetVisualTestDetailsResponses[200]),
 };
 
 type FulfillResponse = {
@@ -95,7 +99,7 @@ function pendingDetailsBody(
       createdAt: "2026-01-23T14:48:36.352Z",
       ...(changedRegions ? { changedRegions } : {}),
     },
-  };
+  } satisfies TestsQueriesControllerGetVisualTestDetailsResponses[200];
 }
 
 export const VISUAL_TEST_DETAILS_PENDING = jsonResponse(pendingDetailsBody());
@@ -130,16 +134,25 @@ export const VISUAL_TEST_PENDING_META = jsonResponse({
       latestStatus: "PENDING_APPROVAL",
     },
   ],
-  meta: { total: 2 },
-});
+  meta: {
+    page: 1,
+    limit: 20,
+    total: 2,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  },
+} satisfies TestsQueriesControllerGetTestsWithPendingStatusResponses[200]);
 
-const galleryDesktop = {
+const galleryDesktop: TestVariantSummaryDto = {
   viewport: "1920x1080",
   browser: "Chrome",
   environment: "staging",
   status: "PENDING_APPROVAL",
   baselineUrl: "http://localhost:9000/vrt/baseline.png",
   candidateUrl: "http://localhost:9000/vrt/current.png",
+  signedBaselineUrl: null,
+  signedCandidateUrl: null,
   mismatchPixelCount: 157,
   baselineInherited: false,
 };
@@ -158,6 +171,8 @@ export const VISUAL_TEST_VARIANTS = jsonResponse({
       status: "UNCHANGED",
       baselineUrl: "http://localhost:9000/vrt/baseline-tablet.png",
       candidateUrl: null,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: null,
       baselineInherited: false,
     },
@@ -168,11 +183,13 @@ export const VISUAL_TEST_VARIANTS = jsonResponse({
       status: "UNCHANGED",
       baselineUrl: "http://localhost:9000/vrt/baseline-mobile.png",
       candidateUrl: null,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: null,
       baselineInherited: false,
     },
   ],
-});
+} satisfies TestsQueriesControllerGetVariantsResponses[200]);
 
 // The overview's actual job: one resolution captured in three browsers, plus a
 // second resolution with a single browser (a section without anything to
@@ -189,6 +206,8 @@ export const VISUAL_TEST_VARIANTS_BROWSERS = jsonResponse({
       status: "UNCHANGED",
       baselineUrl: "http://localhost:9000/vrt/baseline-chrome.png",
       candidateUrl: null,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: null,
       baselineInherited: false,
     },
@@ -199,6 +218,8 @@ export const VISUAL_TEST_VARIANTS_BROWSERS = jsonResponse({
       status: "UNCHANGED",
       baselineUrl: "http://localhost:9000/vrt/baseline-firefox.png",
       candidateUrl: null,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: null,
       baselineInherited: false,
     },
@@ -209,6 +230,8 @@ export const VISUAL_TEST_VARIANTS_BROWSERS = jsonResponse({
       status: "UNCHANGED",
       baselineUrl: "http://localhost:9000/vrt/baseline-safari.png",
       candidateUrl: null,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: null,
       baselineInherited: false,
     },
@@ -219,11 +242,13 @@ export const VISUAL_TEST_VARIANTS_BROWSERS = jsonResponse({
       status: "UNCHANGED",
       baselineUrl: "http://localhost:9000/vrt/baseline-laptop.png",
       candidateUrl: null,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: null,
       baselineInherited: false,
     },
   ],
-});
+} satisfies TestsQueriesControllerGetVariantsResponses[200]);
 
 // The single-variant read the comparison page needs for its bulk-approve
 // state; the variant tiles themselves live on the overview page.
@@ -231,7 +256,7 @@ export const VISUAL_TEST_VARIANTS_SINGLE = jsonResponse({
   name: "checkout-flow",
   kind: "image",
   variants: [galleryDesktop],
-});
+} satisfies TestsQueriesControllerGetVariantsResponses[200]);
 
 // The strip under the comparison needs thumbnails that actually render, so this
 // set uses the demo screenshot instead of an unreachable storage URL.
@@ -246,6 +271,8 @@ export const VISUAL_TEST_VARIANTS_DEMO = jsonResponse({
       status: "PENDING_APPROVAL",
       baselineUrl: DEMO_BASELINE,
       candidateUrl: DEMO_CANDIDATE,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: 157,
       baselineInherited: false,
     },
@@ -256,6 +283,8 @@ export const VISUAL_TEST_VARIANTS_DEMO = jsonResponse({
       status: "UNCHANGED",
       baselineUrl: DEMO_CANDIDATE,
       candidateUrl: null,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: null,
       baselineInherited: false,
     },
@@ -266,11 +295,13 @@ export const VISUAL_TEST_VARIANTS_DEMO = jsonResponse({
       status: "UNCHANGED",
       baselineUrl: DEMO_BASELINE,
       candidateUrl: null,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: null,
       baselineInherited: false,
     },
   ],
-});
+} satisfies TestsQueriesControllerGetVariantsResponses[200]);
 
 // The overview as a screenshot target: one resolution captured in three
 // browsers (with the demo screenshots, so the panes actually render) plus a
@@ -287,6 +318,8 @@ export const VISUAL_TEST_VARIANTS_BROWSERS_DEMO = jsonResponse({
       status: "UNCHANGED",
       baselineUrl: DEMO_BASELINE,
       candidateUrl: null,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: null,
       baselineInherited: false,
     },
@@ -297,6 +330,8 @@ export const VISUAL_TEST_VARIANTS_BROWSERS_DEMO = jsonResponse({
       status: "UNCHANGED",
       baselineUrl: DEMO_CANDIDATE,
       candidateUrl: null,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: null,
       baselineInherited: false,
     },
@@ -307,6 +342,8 @@ export const VISUAL_TEST_VARIANTS_BROWSERS_DEMO = jsonResponse({
       status: "UNCHANGED",
       baselineUrl: DEMO_CANDIDATE,
       candidateUrl: null,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: null,
       baselineInherited: false,
     },
@@ -317,8 +354,10 @@ export const VISUAL_TEST_VARIANTS_BROWSERS_DEMO = jsonResponse({
       status: "UNCHANGED",
       baselineUrl: DEMO_BASELINE,
       candidateUrl: null,
+      signedBaselineUrl: null,
+      signedCandidateUrl: null,
       mismatchPixelCount: null,
       baselineInherited: false,
     },
   ],
-});
+} satisfies TestsQueriesControllerGetVariantsResponses[200]);

@@ -54,7 +54,7 @@
     "lint": "pnpm --filter ./backend lint",
     "lint:check": "pnpm --filter ./backend lint:check",
     "lint:check:all": "pnpm --filter ./backend lint:check && pnpm --filter ./frontend lint:check",
-    "ci:all": "pnpm run typecheck:all && pnpm run lint:check:all && pnpm run build:frontend && pnpm --filter ./frontend test -- --run && pnpm run format:check",
+    "ci:all": "pnpm run typecheck:all && pnpm run lint:check:all && pnpm run build:frontend && pnpm --filter ./frontend test:coverage && pnpm --filter ./frontend i18n:check && pnpm run format:check",
     "typecheck": "pnpm --filter ./backend typecheck",
     "typecheck:all": "pnpm --filter ./backend typecheck && pnpm --filter ./backend typecheck:test && pnpm --filter ./frontend typecheck",
     "prepare": "husky",

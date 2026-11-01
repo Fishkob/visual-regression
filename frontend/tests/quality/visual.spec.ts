@@ -2,11 +2,13 @@ import { expect, test } from "@playwright/test";
 
 import { mockApi } from "../ct/routes/api.routes";
 import { QUALITY_CASES, THEMES } from "./cases";
-import { preparePage, waitForReady } from "./theme";
+import { collectPageErrors, preparePage, waitForReady } from "./theme";
 
 for (const qualityCase of QUALITY_CASES) {
   for (const theme of THEMES) {
     test(`${qualityCase.name} (${theme})`, async ({ mount, page }) => {
+      const pageErrors = collectPageErrors(page);
+
       if (qualityCase.routes) {
         await mockApi(page, qualityCase.routes);
       }
@@ -25,6 +27,7 @@ for (const qualityCase of QUALITY_CASES) {
         fullPage: true,
         ...(mask && mask.length > 0 ? { mask } : {}),
       });
+      expect(pageErrors, pageErrors.join("\n")).toEqual([]);
     });
   }
 }

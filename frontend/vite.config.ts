@@ -36,6 +36,13 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/__tests__/setup.ts"],
+    // 136 jsdom environments run in parallel and the v8 instrumentation adds
+    // its own load; the 5s default is too tight for the heaviest files and
+    // produced an observed timeout in TestDetailDispatcher while its file ran
+    // green in isolation. This is the ceiling, not the target: a test that
+    // needs seconds is still a bug worth fixing.
+    testTimeout: 15_000,
+    hookTimeout: 15_000,
     exclude: [
       "**/node_modules/**",
       "**/tests/ct/**",
@@ -55,6 +62,13 @@ export default defineConfig({
         "src/main.ts",
         "src/App.vue",
         "src/components/ui/**",
+        // Wiring, not logic: the route table plus createRouter. Every guard it
+        // installs is tested through lib/auth-guard and lib/route-focus, the
+        // table invariants by router-routes.test.ts, and the navigation itself
+        // by the e2e suite against the real router. The lazy `component: () =>
+        // import(...)` entries can never execute under Vitest, so the file
+        // would cap the layer at a number that says nothing about test quality.
+        "src/router/index.ts",
         // Views and .vue components are covered by the page-level Playwright CT
         // suite (tests/ct), not by Vitest — this config has never been able to
         // reach them. Leaving them in the denominator measured a layer this
@@ -67,11 +81,49 @@ export default defineConfig({
         "tests/**",
         "node_modules/**",
       ],
+      // One threshold per layer, raised when a gap is closed and never lowered
+      // to turn a red run green — the rule ADR-054 set for the backend, applied
+      // to the layer this runner actually measures. The single global 60/45 the
+      // suite carried sat ~30 points below its measured value, so a third of the
+      // coverage could disappear without a red gate. Each number is the measured
+      // value of that layer minus 1-2 points of slack for a day's refactoring,
+      // not a target to grow into; the global block stays as the floor for
+      // whatever no glob claims.
       thresholds: {
-        statements: 60,
-        branches: 45,
-        functions: 45,
-        lines: 60,
+        statements: 90,
+        branches: 80,
+        functions: 90,
+        lines: 90,
+        "src/domains/**": {
+          statements: 97,
+          branches: 87,
+          functions: 98,
+          lines: 97,
+        },
+        "src/composables/**": {
+          statements: 91,
+          branches: 77,
+          functions: 90,
+          lines: 91,
+        },
+        "src/lib/**": {
+          statements: 91,
+          branches: 84,
+          functions: 88,
+          lines: 91,
+        },
+        "src/i18n/**": {
+          statements: 93,
+          branches: 60,
+          functions: 98,
+          lines: 93,
+        },
+        "src/components/**": {
+          statements: 90,
+          branches: 80,
+          functions: 85,
+          lines: 90,
+        },
       },
     },
   },

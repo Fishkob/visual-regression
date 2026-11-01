@@ -20,6 +20,16 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [{ name: "quality" }],
+  expect: {
+    toHaveScreenshot: {
+      // Anti-aliasing noise is not a regression. The same baseline rendered by a
+      // rebuilt image differed by 10-33 pixels on glyph and border edges (of
+      // 1.3M), which failed the run with "0 pixels allowed". 0.01% leaves room
+      // for that and stays orders of magnitude below any layout change — a
+      // shifted row, a missing badge or a colour swap still fails.
+      maxDiffPixelRatio: 0.0001,
+    },
+  },
   webServer: {
     command: "pnpm dev",
     url: "http://localhost:5173/playwright/gallery/index.html",

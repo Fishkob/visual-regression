@@ -13,7 +13,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest --run",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest --run --coverage",
     "api:generate": "pnpm run -w sdk:generate",
     "test-ct": "playwright test -c playwright-ct.config.ts",
     "test-e2e": "playwright test -c playwright-e2e.config.ts",

@@ -74,8 +74,39 @@ src/
   Do not switch the platform without regenerating every snapshot.
 - `test-visual` / `test-a11y` are the in-container commands used by
   `scripts/quality.sh`. Run them through the script, not directly on the host.
-- The quality suites cover every gallery story in light and dark mode. Add a
-  case to `tests/quality/cases.ts` when you add a story.
+- The quality suites cover every `QUALITY_CASES` entry in light and dark mode.
+  A new page needs a case there (story + mocks + `readyTestId`) or an explicit
+  opt-out line in `src/__tests__/gallery-coverage.test.ts` with the reason —
+  that test fails the unit suite for a route that has neither.
+- The quality image is pinned to Linux amd64 and `quality.sh` refuses a
+  `--no-build` run against an image of another architecture. Regenerating the
+  baselines on the pinned image must be a no-op; if it is not, the platform or
+  the image changed and every snapshot needs review, not a blind `--update`.
+- Keyboard operation and focus are part of the CT suite
+  (`tests/ct/keyboard.spec.ts`): a dialog or overlay you add needs a case there
+  (focus moves in, Escape closes, focus returns). Axe only sees the page at rest.
+
+### Coverage gate
+
+- `pnpm test:coverage` is the gated variant (`pnpm test` is not): thresholds per
+  layer in `vite.config.ts` (`domains`, `composables`, `lib`, `i18n`,
+  `components`) plus a global floor. Raise a number after closing a gap; never
+  lower one to make a red run green. `scripts/verify.sh` runs this variant.
+- `src/router/index.ts`, `src/views/**` and `src/components/**/*.vue` stay out of
+  the denominator: the router is wiring, the views and components are CT-covered.
+  Non-`.vue` modules under `src/components/` stay in scope.
+
+### Browser fixtures
+
+- `FulfillResponse.body` is a string, so a fixture does not type-check against
+  the API by itself. Every shared fixture used by the gallery is bound to the
+  generated SDK type in `src/__tests__/fixtures-contract.test.ts`; when a DTO
+  changes, that test fails `typecheck` instead of rendering `undefined` into a
+  green screenshot. Add a binding for every new shared fixture.
+- Prefer the existing helpers (`mockApi`, `mockEmptyThreads`,
+  `mockBaselineHistory`, `mockReviewBackend`) over a new `page.route` call — an
+  unmocked request escapes to the Vite proxy and paints an error state into the
+  shot.
 
 ### Component coverage
 
