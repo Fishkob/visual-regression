@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/Fishkob/visual-regression/compare/v1.3.0...v1.4.0) (2026-11-01)
+
+
+### Features
+
+* **sdk:** ship the client SDK as a release tarball ([1eacd09](https://github.com/Fishkob/visual-regression/commit/1eacd09b531e8e0c1174351324cc47c4e32f48d4))
+
 ## [1.3.0](https://github.com/Fishkob/visual-regression/compare/v1.2.1...v1.3.0) (2026-10-24)
 
 

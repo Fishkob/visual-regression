@@ -21,8 +21,8 @@ platform release, and its version is the release tag — install the version tha
 matches your server:
 
 ```bash
-# v1.3.0 of the platform → fishkob-vrt-1.3.0.tgz
-npm i https://github.com/Fishkob/visual-regression/releases/download/v1.3.0/fishkob-vrt-1.3.0.tgz
+# v1.4.0 of the platform → fishkob-vrt-1.4.0.tgz
+npm i https://github.com/Fishkob/visual-regression/releases/download/v1.4.0/fishkob-vrt-1.4.0.tgz
 # or: pnpm add <same url>
 ```
 
