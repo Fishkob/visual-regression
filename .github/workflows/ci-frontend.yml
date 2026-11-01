@@ -201,6 +201,13 @@ jobs:
     timeout-minutes: 40
     needs: [build]
     if: github.event.inputs.skipTests != 'true'
+    # The stack runs NODE_ENV=production, where ADMIN_API_KEY and METRICS_API_KEY
+    # have a 32 character floor (backend/src/config/env.validation.ts). Keeping
+    # them job-wide stops the compose env and the probing steps from drifting
+    # apart — the 17 character admin key used to keep the backend from booting.
+    env:
+      ADMIN_API_KEY: ci-frontend-admin-0123456789abcdef
+      METRICS_API_KEY: ci-frontend-metrics-0123456789abcd
 
     steps:
       - uses: actions/checkout@v7
@@ -217,7 +224,6 @@ jobs:
       - name: Start full stack (infra + backend + frontend)
         run: docker compose -f docker-compose.yml up -d
         env:
-          ADMIN_API_KEY: ci-frontend-admin-0123456789abcdef
           BOOTSTRAP_ADMIN_USERNAME: ci-admin
           BOOTSTRAP_ADMIN_PASSWORD: ci-admin-secret
 
@@ -256,12 +262,12 @@ jobs:
       - name: Wait for backend health
         run: |
           echo "Waiting for backend (DB)..."
-          for i in {1..60}; do curl -sf http://localhost:3000/api/v1/health/db && break; sleep 1; done
-          curl -sf http://localhost:3000/api/v1/health/db
+          for i in {1..60}; do curl -sf -H "x-metrics-key: $METRICS_API_KEY" http://localhost:3000/api/v1/health/db && break; sleep 1; done
+          curl -sf -H "x-metrics-key: $METRICS_API_KEY" http://localhost:3000/api/v1/health/db
 
           echo "Waiting for backend (RustFS)..."
-          for i in {1..60}; do curl -sf http://localhost:3000/api/v1/health/storage && break; sleep 1; done
-          curl -sf http://localhost:3000/api/v1/health/storage
+          for i in {1..60}; do curl -sf -H "x-metrics-key: $METRICS_API_KEY" http://localhost:3000/api/v1/health/storage && break; sleep 1; done
+          curl -sf -H "x-metrics-key: $METRICS_API_KEY" http://localhost:3000/api/v1/health/storage
 
       - name: Wait for frontend
         run: |
@@ -282,7 +288,6 @@ jobs:
       - name: Seed E2E test data
         run: cd backend && pnpm exec tsx src/scripts/seeds/seed-e2e.ts
         env:
-          ADMIN_API_KEY: ci-frontend-admin-0123456789abcdef
           E2E_API_KEY_FILE: /tmp/e2e-api-key
 
       - name: Capture e2e API key
