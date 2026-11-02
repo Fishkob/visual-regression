@@ -174,10 +174,18 @@ export class UnifiedScreenshotRepository extends BaseRepository {
     variant: Variant;
     pageCount?: number;
     sizeBytes?: number;
+    pixelDiffThreshold?: number;
   }): Promise<void> {
     this.assertWritable();
-    const { testId, contentHash, contentUrl, variant, pageCount, sizeBytes } =
-      input;
+    const {
+      testId,
+      contentHash,
+      contentUrl,
+      variant,
+      pageCount,
+      sizeBytes,
+      pixelDiffThreshold,
+    } = input;
     const variantId = await this.variants.ensureVariant(testId, variant);
     const result = await this.client.unifiedScreenshot.upsert({
       where: {
@@ -191,12 +199,14 @@ export class UnifiedScreenshotRepository extends BaseRepository {
         imageUrl: contentUrl,
         ...(pageCount !== undefined ? { pageCount } : {}),
         ...(sizeBytes !== undefined ? { sizeBytes: BigInt(sizeBytes) } : {}),
+        ...(pixelDiffThreshold !== undefined ? { pixelDiffThreshold } : {}),
       },
       update: {
         imageHash: contentHash,
         imageUrl: contentUrl,
         ...(pageCount !== undefined ? { pageCount } : {}),
         ...(sizeBytes !== undefined ? { sizeBytes: BigInt(sizeBytes) } : {}),
+        ...(pixelDiffThreshold !== undefined ? { pixelDiffThreshold } : {}),
       },
     });
     await this.variants.setBaselineId(variantId, result.id);
@@ -205,6 +215,39 @@ export class UnifiedScreenshotRepository extends BaseRepository {
     // first baseline). Keeping the invariant in one place stops reads from
     // labelling an owned baseline as following the target.
     await this.variants.setInherited(variantId, false);
+  }
+
+  // Config-as-code may only tighten an existing baseline: a lower tolerance
+  // cannot auto-accept anything, while raising one retires pendings and is an
+  // ADMIN action (threshold-update.service.ts). Returns the previous value when
+  // it actually changed, null when the baseline was already at or below the
+  // requested tolerance. The update is optimistic on the old value so a
+  // concurrent ADMIN write wins instead of being overwritten.
+  async tightenBaselineThreshold(
+    testId: string,
+    variant: Variant,
+    threshold: number,
+  ): Promise<number | null> {
+    this.assertWritable();
+    const baseline = await this.client.unifiedScreenshot.findFirst({
+      where: {
+        testId,
+        type: 'BASELINE',
+        variant: {
+          viewport: variant.viewport,
+          browser: variant.browser,
+          environment: variant.environment,
+        },
+      },
+      select: { id: true, pixelDiffThreshold: true },
+    });
+    if (!baseline || baseline.pixelDiffThreshold <= threshold) return null;
+    const previous = baseline.pixelDiffThreshold;
+    const updated = await this.client.unifiedScreenshot.updateMany({
+      where: { id: baseline.id, pixelDiffThreshold: previous },
+      data: { pixelDiffThreshold: threshold },
+    });
+    return updated.count === 1 ? previous : null;
   }
 
   async findMissingSizes(projectName: string, limit: number) {

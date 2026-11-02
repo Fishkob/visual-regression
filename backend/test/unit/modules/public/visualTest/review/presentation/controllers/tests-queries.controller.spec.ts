@@ -262,6 +262,7 @@ describe('TestsQueriesController', () => {
         pagination,
         undefined,
         undefined,
+        {},
       );
     });
 

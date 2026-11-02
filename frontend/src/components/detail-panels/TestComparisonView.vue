@@ -24,6 +24,16 @@ defineEmits<{
 
 const decisionOpen = ref(false);
 
+// One entry point for "ask for the approval decision", used by the footer
+// button and by the review shortcut. The `A` key must not commit directly:
+// approving without the reason/note step is exactly what the button prevents
+// (ADR-040), and a keyboard-only reviewer has to get the same dialog.
+function openDecision(): void {
+  decisionOpen.value = true;
+}
+
+defineExpose({ openDecision });
+
 const viewer = ref<InstanceType<typeof InteractiveImageViewer> | null>(null);
 const imageSize = ref<{ width: number; height: number } | null>(null);
 const activeRegion = ref<number | null>(null);

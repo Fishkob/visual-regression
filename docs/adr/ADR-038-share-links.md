@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted — 2026-10-25
+Accepted — 2026-10-25. The "no screenshot URLs in the payload" clause is
+superseded by [ADR-058](ADR-058-share-links-with-pixels.md) (2026-11-21); every
+other rule here (token handling, scopes, expiry, passphrase, audit, public POST
+resolve) still stands.
 
 ## Context
 

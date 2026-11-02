@@ -104,6 +104,7 @@ describe('project-response.mapper', () => {
           groupName: null,
           branchName: 'main',
           requiredApprovals: 1,
+          pixelDiffThreshold: null,
           defaultBranchName: 'main',
           variants: [
             {

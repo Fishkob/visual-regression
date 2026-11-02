@@ -4,7 +4,10 @@ import { testsQueriesControllerGetTestsWithPendingStatus } from "@sdk";
 import type { PendingTestDto } from "@sdk";
 import type { PendingTest } from "@/domains/pending-tests/pending-test";
 import { mapPendingTests } from "@/domains/pending-tests/pending-test";
-import { pendingTestQueryKeys } from "@/domains/pending-tests/query-keys";
+import {
+  pendingTestQueryKeys,
+  type PendingTestFilters,
+} from "@/domains/pending-tests/query-keys";
 import { keyOf } from "@/lib/variant-key";
 import {
   usePaginatedListQuery,
@@ -22,10 +25,12 @@ export function usePendingTestsQuery(
   branchName: MaybeRef<string | undefined> = undefined,
   enabled: MaybeRef<boolean> = true,
   assignedToMe: MaybeRef<boolean> = false,
+  filters: MaybeRef<PendingTestFilters | undefined> = undefined,
 ) {
   const nameRef = computed(() => unref(projectName));
   const branchRef = computed(() => unref(branchName));
   const assignedRef = computed(() => unref(assignedToMe));
+  const filtersRef = computed<PendingTestFilters>(() => unref(filters) ?? {});
   return usePaginatedListQuery<PendingTestDto, PendingTest>({
     queryKey: computed(() =>
       nameRef.value
@@ -33,6 +38,7 @@ export function usePendingTestsQuery(
             nameRef.value,
             branchRef.value,
             assignedRef.value,
+            filtersRef.value,
           )
         : [],
     ),
@@ -45,6 +51,12 @@ export function usePendingTestsQuery(
           take,
           ...(branchRef.value ? { branch: branchRef.value } : {}),
           ...(assignedRef.value ? { assignedToMe: true } : {}),
+          ...(filtersRef.value.kind ? { kind: filtersRef.value.kind } : {}),
+          ...(filtersRef.value.q ? { q: filtersRef.value.q } : {}),
+          ...(filtersRef.value.runKey
+            ? { runKey: filtersRef.value.runKey }
+            : {}),
+          ...(filtersRef.value.tag ? { tag: filtersRef.value.tag } : {}),
         },
       }),
     map: mapPendingTests,
@@ -65,8 +77,14 @@ export async function withPendingTestRemoved(
   branchName: string | undefined,
   currentKey: string,
   assignedToMe = false,
+  filters: PendingTestFilters = {},
 ): Promise<{ restore: () => void }> {
-  const keys = pendingTestQueryKeys.list(projectName, branchName, assignedToMe);
+  const keys = pendingTestQueryKeys.list(
+    projectName,
+    branchName,
+    assignedToMe,
+    filters,
+  );
   await client.cancelQueries({ queryKey: keys });
   const previous = client.getQueryData<PendingTest[]>(keys);
   client.setQueryData<PendingTest[]>(keys, (old) =>

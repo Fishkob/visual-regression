@@ -179,6 +179,7 @@ describe('TestQueryService', () => {
         'br-1',
         expect.anything(),
         undefined,
+        {},
       );
       expect(result.data).toHaveLength(1);
     });
@@ -444,29 +445,24 @@ describe('TestQueryService', () => {
       });
     });
 
-    it('rejects a PDF test', async () => {
+    it('resolves the variants of a PDF test so a deep link can pick one', async () => {
       reviewRead.findTestVariantSummaries.mockResolvedValue({
         name: 'report',
         kind: 'pdf',
-        variants: [],
-      });
-      testResolver.assertTestKind.mockImplementation(() => {
-        throw new DomainError(
-          'Test "report" is not an image test',
-          'BAD_REQUEST',
-        );
+        variants: [variantRow({ baselineUrl: 'http://storage/report.pdf' })],
       });
 
-      await expect(
-        service.getTestVariants('my-project', 'report'),
-      ).rejects.toMatchObject({
-        code: 'BAD_REQUEST',
-        message: 'Test "report" is not an image test',
-      });
-      expect(testResolver.assertTestKind).toHaveBeenCalledWith(
-        { name: 'report', kind: 'pdf' },
-        'image',
-      );
+      const result = await service.getTestVariants('my-project', 'report');
+
+      expect(result.kind).toBe('pdf');
+      expect(result.variants).toEqual([
+        expect.objectContaining({
+          viewport: '1920x1080',
+          browser: 'chrome',
+          environment: 'staging',
+        }),
+      ]);
+      expect(testResolver.assertTestKind).not.toHaveBeenCalled();
     });
   });
 

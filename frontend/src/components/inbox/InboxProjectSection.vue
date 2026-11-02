@@ -42,6 +42,20 @@ function isSelected(comparisonId: string): boolean {
 // details page walks, so the count below describes the assigned subset.
 const assignedToMe = computed(() => route.query.assignedToMe === "1");
 
+// Any filter that narrows the pass *within* the project makes the server's
+// branch-wide pending count the wrong description of the set the pass walks.
+// The section rows are then the honest source (they are what the inbox read
+// returned for this scope), exactly like "My reviews".
+const hasNarrowingFilter = computed(
+  () =>
+    assignedToMe.value ||
+    typeof route.query.q === "string" ||
+    typeof route.query.runKey === "string" ||
+    typeof route.query.tag === "string" ||
+    typeof route.query.kind === "string" ||
+    typeof route.query.group === "string",
+);
+
 const reviewStart = computed<ReviewInboxItem | undefined>(
   () => props.section.items[0],
 );
@@ -55,7 +69,7 @@ const reviewTotal = computed(() => {
   // is the set an unfiltered pass walks. With "My reviews" on the pass walks the
   // assigned subset instead, and the payload carries no assigned count — the
   // section's own (server-filtered) rows are the only honest source.
-  if (assignedToMe.value) return onBranch;
+  if (hasNarrowingFilter.value) return onBranch;
   return start.projectPendingCount ?? onBranch;
 });
 const reviewChangeCount = computed(() =>
@@ -76,15 +90,19 @@ function branchQuery(item: ReviewInboxItem) {
   return item.isDefaultBranch ? {} : { branch: item.branchName };
 }
 
-// The kind/group filters are the rest of the pass's scope: they ride along as
-// `inboxKind`/`inboxGroup` so the "back to inbox" leg can restore the filtered
-// queue instead of widening it to every pending change. "My reviews" keeps its
-// own key on both routes.
+// The inbox filters are the pass's scope: they ride along as `inbox*` keys so
+// the details page walks the same set and the "back to inbox" leg restores the
+// filtered queue instead of widening it to every pending change. "My reviews"
+// keeps its own key on both routes.
 function inboxScopeQuery() {
   const scope: Record<string, string> = {};
-  const { kind, group } = route.query;
+  const { kind, group, q, runKey, tag, page } = route.query;
   if (typeof kind === "string" && kind) scope.inboxKind = kind;
   if (typeof group === "string" && group) scope.inboxGroup = group;
+  if (typeof q === "string" && q) scope.inboxQ = q;
+  if (typeof runKey === "string" && runKey) scope.inboxRunKey = runKey;
+  if (typeof tag === "string" && tag) scope.inboxTag = tag;
+  if (typeof page === "string" && page) scope.inboxPage = page;
   if (assignedToMe.value) scope.assignedToMe = "1";
   return scope;
 }

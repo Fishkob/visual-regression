@@ -21,6 +21,7 @@ export const AUDIT_ACTIONS = [
   "review.comment",
   "review.comment-resolve",
   "project.review-policy",
+  "project.pixel-threshold",
   "test.threshold",
 ] as const;
 

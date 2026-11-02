@@ -10,6 +10,7 @@ import { VisualTestApplicationModule } from '@public/visualTest/core/visual-test
 import { UploadIntake } from '@public/visualTest/intake/application/upload-intake.service';
 import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
 import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
+import { AuditModule } from '@internal/audit/audit.module';
 import { UploadController } from '@public/visualTest/intake/presentation/controllers/upload.controller';
 import { JobStatusController } from '@public/visualTest/intake/presentation/controllers/job-status.controller';
 import { JobStatusService } from '@public/visualTest/intake/application/job-status.service';
@@ -46,6 +47,7 @@ import {
     JobQueueModule,
     VisualTestApplicationModule,
     PdfSidecarModule,
+    AuditModule,
   ],
   controllers: [UploadController, JobStatusController],
   providers: [

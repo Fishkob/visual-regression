@@ -1,17 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsInt,
   IsOptional,
   IsString,
   IsUrl,
   Matches,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 import { MAX_BRANCH_NAME_LENGTH } from '@public/visualTest/core/domain/constants/branch.constants';
 import {
   ComparisonErrorCode,
   ComparisonOutcome,
 } from '@common/domain/upload-outcome';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { VariantParamsDto } from '@public/visualTest/core/presentation/dto/variant-params.dto';
 
 export class UploadDocumentDto extends VariantParamsDto {
@@ -75,6 +78,19 @@ export class UploadDocumentDto extends VariantParamsDto {
     require_tld: false,
   })
   ciUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 25,
+    minimum: 0,
+    description:
+      'Pixel tolerance for this variant from config-as-code. It is applied when the baseline is created; on an existing baseline it can only tighten (lower) the current value. Raising a threshold stays an ADMIN action because it auto-accepts pendings.',
+  })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100000)
+  pixelDiffThreshold?: number;
 }
 
 export class UploadResultDto {

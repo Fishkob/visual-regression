@@ -1,6 +1,11 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { createClient, createConfig } from '../../client';
-import { uploadMany, type CaptureUpload } from '../upload-many';
+import {
+  parseVrtConfig,
+  thresholdForTest,
+  uploadMany,
+  type CaptureUpload,
+} from '../upload-many';
 
 function capture(testName: string, overrides: Partial<CaptureUpload> = {}): CaptureUpload {
   return {
@@ -136,5 +141,54 @@ describe('uploadMany', () => {
       uploadMany([], { apiKey: 'key-1', onProgress, client: client() }),
     ).resolves.toEqual([]);
     expect(onProgress).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('parseVrtConfig', () => {
+  it('keeps valid non-negative integer thresholds', () => {
+    expect(
+      parseVrtConfig({
+        thresholds: { 'cart summary': 12, checkout: 0 },
+      }),
+    ).toEqual({ thresholds: { 'cart summary': 12, checkout: 0 } });
+  });
+
+  it('drops invalid thresholds and empty names', () => {
+    expect(
+      parseVrtConfig({
+        thresholds: { ok: 5, negative: -1, float: 1.5, text: '5', ' ': 3 },
+      }),
+    ).toEqual({ thresholds: { ok: 5 } });
+  });
+
+  it('returns an empty config for a non-object', () => {
+    expect(parseVrtConfig(null)).toEqual({});
+    expect(parseVrtConfig('nope')).toEqual({});
+    expect(parseVrtConfig({})).toEqual({});
+  });
+});
+
+describe('thresholdForTest', () => {
+  const config = {
+    thresholds: {
+      'checkout.spec.ts / cart summary': 9,
+      'login works': 4,
+    },
+  };
+
+  it('matches the canonical title path', () => {
+    expect(
+      thresholdForTest(config, ['checkout.spec.ts / cart summary']),
+    ).toBe(9);
+  });
+
+  it('falls back to the bare test title', () => {
+    expect(thresholdForTest(config, [undefined, 'login works'])).toBe(4);
+  });
+
+  it('returns undefined when no name matches', () => {
+    expect(thresholdForTest(config, ['other'])).toBeUndefined();
+    expect(thresholdForTest({}, ['other'])).toBeUndefined();
   });
 });

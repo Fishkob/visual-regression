@@ -73,6 +73,10 @@ If you already run your own monitoring infrastructure (Prometheus, Loki, Grafana
 
    The `/api/v1/metrics` endpoint is always mounted but returns HTTP 401 until `METRICS_API_KEY` is configured — Prometheus must send it via the `x-metrics-key` header (not Authorization/Bearer). Prometheus does not expand environment variables in `http_headers`; put the raw key (no trailing newline) in the file referenced by `files:`. See `backend/observability/prometheus.yml` for the bundled reference config.
 
+   **Worker metrics need their own target.** The diff histograms, queue depth/age, heartbeat failures and ownership-loss counters live in the worker process, not the API process. Add the same job for the worker health port (`:3003`, same key header); the bundled compose config does, and the alert rules include `Comparison Worker Down`, `Comparison Queue Stalled` and `Comparison Failures Increasing`. Without that target the worker looks healthy by absence: uploads pile up and no alert fires.
+
+   In Kubernetes the chart's worker Service exposes `health` on 3003. Annotation-based scraping cannot send `x-metrics-key`, so use a Prometheus Operator `ScrapeConfig`/`ServiceMonitor` that supports `httpHeaders` (or a scrape config generated from a secret) and point it at that Service. `worker.podAnnotations` is available when your setup injects the header some other way.
+
 3. **Logs** — The app writes structured JSON logs to stdout (Pino fields: `time`, `level`, `msg`, `logger`). Your existing log shipper (Promtail, Fluentd, Vector, etc.) will pick them up from the container runtime. Point it at your Loki and parse/relabel the JSON fields there — `backend/observability/alloy.alloy` (the `loki.process.json_parse` stage) is the reference pipeline.
 
 4. **Dashboards** — Import the 4 pre-built Grafana dashboards from `backend/observability/grafana/dashboards/` into your Grafana instance. They visualize traces (via Tempo), metrics (via Prometheus), and logs (via Loki).

@@ -52,6 +52,58 @@ describe("useTestNavigation", () => {
     });
   });
 
+  describe("inbox scope", () => {
+    it("carries every inbox filter through the pass and back to the inbox", () => {
+      mockRoute.query = {
+        inboxKind: "pdf",
+        inboxGroup: "g-1",
+        inboxQ: "cart",
+        inboxRunKey: "ci-1",
+        inboxTag: "smoke",
+        inboxPage: "2",
+        assignedToMe: "1",
+      };
+      const navigation = useTestNavigation(createOptions());
+
+      navigation.navigateToTest({
+        name: "cart-summary",
+        viewport: "1920x1080",
+        browser: "Chrome",
+        environment: "staging",
+      });
+      expect(mockPush).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({
+            viewport: "1920x1080",
+            browser: "Chrome",
+            environment: "staging",
+            inboxKind: "pdf",
+            inboxGroup: "g-1",
+            inboxQ: "cart",
+            inboxRunKey: "ci-1",
+            inboxTag: "smoke",
+            inboxPage: "2",
+            assignedToMe: "1",
+          }),
+        }),
+      );
+
+      navigation.navigateToInbox();
+      expect(mockPush).toHaveBeenLastCalledWith({
+        name: "review-inbox",
+        query: {
+          kind: "pdf",
+          group: "g-1",
+          q: "cart",
+          runKey: "ci-1",
+          tag: "smoke",
+          page: "2",
+          assignedToMe: "1",
+        },
+      });
+    });
+  });
+
   describe("navigateToTest (direct entry)", () => {
     it("navigates to test detail with variant query params", () => {
       const { navigateToTest } = useTestNavigation(createOptions());

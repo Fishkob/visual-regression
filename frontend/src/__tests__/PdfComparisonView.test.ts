@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import PdfComparisonView from "@/components/pdf/PdfComparisonView.vue";
+import ApprovalDecisionDialog from "@/components/approvals/ApprovalDecisionDialog.vue";
 import type { PdfComparison } from "@/domains/pdf-test/pdf-test.model";
 
 // The review footer's role gate reads the session; these tests exercise the
@@ -219,5 +220,19 @@ describe("PdfComparisonView", () => {
     expect(wrapper.findAll('[data-testid="pdf-viewer-stub"]').length).toBe(3);
     expect(wrapper.find('[data-testid="download-diff"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="mode-diff"]').exists()).toBe(true);
+  });
+
+  it("opens the decision dialog through the exposed review action", async () => {
+    const wrapper = mount(PdfComparisonView, {
+      props: { projectName: "proj", testName: "test", baseline, comparison },
+      global: { stubs },
+    });
+    const dialog = wrapper.findComponent(ApprovalDecisionDialog);
+    expect(dialog.props("open")).toBe(false);
+
+    (wrapper.vm as unknown as { openDecision: () => void }).openDecision();
+    await wrapper.vm.$nextTick();
+
+    expect(dialog.props("open")).toBe(true);
   });
 });

@@ -80,6 +80,20 @@ export class ProjectDto {
   @Expose()
   requiredApprovals?: number;
 
+  @ApiPropertyOptional({
+    type: Number,
+    example: 25,
+    nullable: true,
+    description:
+      'Project-wide default pixel tolerance; a variant threshold of 0 inherits it',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100000)
+  @Expose()
+  pixelDiffThreshold?: number | null;
+
   @ApiPropertyOptional({ type: () => VisualTestDto, isArray: true })
   @IsOptional()
   @Expose()
@@ -266,6 +280,36 @@ export class ProjectReviewPolicyDto {
   @Max(REQUIRED_APPROVALS_MAX)
   @Expose()
   requiredApprovals!: number;
+}
+
+// Its own ADMIN-only surface, like the review policy: a threshold raise
+// auto-accepts the pendings it now tolerates, so it is a governance decision,
+// not a normal project edit.
+export class UpdateProjectPixelThresholdDto {
+  @ApiProperty({
+    type: Number,
+    description:
+      'Project-wide default pixel tolerance, or null to remove the default',
+    nullable: true,
+    example: 25,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100000)
+  pixelDiffThreshold!: number | null;
+}
+
+export class ProjectPixelThresholdDto {
+  @ApiProperty({
+    type: Number,
+    description:
+      'Project-wide default pixel tolerance, or null when no default is set',
+    nullable: true,
+    example: 25,
+  })
+  @Expose()
+  pixelDiffThreshold!: number | null;
 }
 
 export class UpdateThresholdDto {

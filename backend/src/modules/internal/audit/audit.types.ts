@@ -28,6 +28,7 @@ export const AUDIT_ACTIONS = {
   reviewAssign: 'review.assign',
   reviewVote: 'review.vote',
   projectReviewPolicy: 'project.review-policy',
+  projectPixelThreshold: 'project.pixel-threshold',
   storageRetention: 'storage.retention',
   testThreshold: 'test.threshold',
   reviewComplete: 'review.complete',

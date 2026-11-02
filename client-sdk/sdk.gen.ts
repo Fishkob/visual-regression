@@ -131,6 +131,9 @@ import type { ProjectsControllerGetOneProjectErrors } from './models/ProjectsCon
 import type { ProjectsControllerGetOneProjectResponses } from './models/ProjectsControllerGetOneProjectResponses.gen';
 import type { ProjectsControllerGetProjectsWithPendingFlagData } from './models/ProjectsControllerGetProjectsWithPendingFlagData.gen';
 import type { ProjectsControllerGetProjectsWithPendingFlagResponses } from './models/ProjectsControllerGetProjectsWithPendingFlagResponses.gen';
+import type { ProjectsControllerUpdatePixelThresholdData } from './models/ProjectsControllerUpdatePixelThresholdData.gen';
+import type { ProjectsControllerUpdatePixelThresholdErrors } from './models/ProjectsControllerUpdatePixelThresholdErrors.gen';
+import type { ProjectsControllerUpdatePixelThresholdResponses } from './models/ProjectsControllerUpdatePixelThresholdResponses.gen';
 import type { ProjectsControllerUpdateProjectData } from './models/ProjectsControllerUpdateProjectData.gen';
 import type { ProjectsControllerUpdateProjectResponses } from './models/ProjectsControllerUpdateProjectResponses.gen';
 import type { ProjectsControllerUpdateReviewPolicyData } from './models/ProjectsControllerUpdateReviewPolicyData.gen';
@@ -346,6 +349,19 @@ export const projectsControllerCreate = <ThrowOnError extends boolean = false>(o
 export const projectsControllerUpdateReviewPolicy = <ThrowOnError extends boolean = false>(options: Options<ProjectsControllerUpdateReviewPolicyData, ThrowOnError>): RequestResult<ProjectsControllerUpdateReviewPolicyResponses, ProjectsControllerUpdateReviewPolicyErrors, ThrowOnError> => (options.client ?? client).patch<ProjectsControllerUpdateReviewPolicyResponses, ProjectsControllerUpdateReviewPolicyErrors, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/projects/{projectName}/review-policy',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Update the project's default pixel tolerance
+ */
+export const projectsControllerUpdatePixelThreshold = <ThrowOnError extends boolean = false>(options: Options<ProjectsControllerUpdatePixelThresholdData, ThrowOnError>): RequestResult<ProjectsControllerUpdatePixelThresholdResponses, ProjectsControllerUpdatePixelThresholdErrors, ThrowOnError> => (options.client ?? client).patch<ProjectsControllerUpdatePixelThresholdResponses, ProjectsControllerUpdatePixelThresholdErrors, ThrowOnError>({
+    security: [{ name: 'x-api-key', type: 'apiKey' }],
+    url: '/projects/{projectName}/pixel-threshold',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -731,7 +747,7 @@ export const testsQueriesControllerGetKind = <ThrowOnError extends boolean = fal
 });
 
 /**
- * List the variants of an image test with status and thumbnails
+ * List a test’s variants with status and thumbnails (image and PDF)
  */
 export const testsQueriesControllerGetVariants = <ThrowOnError extends boolean = false>(options: Options<TestsQueriesControllerGetVariantsData, ThrowOnError>): RequestResult<TestsQueriesControllerGetVariantsResponses, TestsQueriesControllerGetVariantsErrors, ThrowOnError> => (options.client ?? client).get<TestsQueriesControllerGetVariantsResponses, TestsQueriesControllerGetVariantsErrors, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],

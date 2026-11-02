@@ -14,6 +14,11 @@ import { BranchResolver } from '@public/visualTest/core/application/services/bra
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { RunRepository } from '@public/visualTest/core/infrastructure/repositories/run.repository';
+import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
+import {
+  STORAGE_PROVIDER,
+  type IStorageProvider,
+} from '@common/domain/storage-provider.interface';
 import { decideRunState } from '@public/visualTest/core/domain/policies/run-state.policy';
 import type { RunState } from '@public/visualTest/core/domain/types/run.types';
 import {
@@ -55,6 +60,24 @@ export interface SharePayload {
     branchName: string;
     variantCount: number;
   };
+  // The diff a TEST share opens: presigned, short-lived URLs of the latest
+  // reviewable comparison. Built on every resolve, so a page reload after the
+  // URL TTL gets fresh signatures. Absent when the test has no reviewable
+  // comparison (nothing to show).
+  comparison?: {
+    id: string;
+    status: string;
+    kind: string;
+    mismatchPixelCount: number;
+    mismatchPageCount: number | null;
+    pageCount: number | null;
+    viewport: string;
+    browser: string;
+    environment: string;
+    baselineUrl: string | null;
+    candidateUrl: string | null;
+    diffUrl: string | null;
+  };
   run?: {
     key: string;
     branchName: string;
@@ -89,6 +112,8 @@ export class ShareLinkService {
     private readonly branches: BranchResolver,
     private readonly tests: UnifiedTestRepository,
     private readonly runs: RunRepository,
+    private readonly comparisons: UnifiedComparisonsRepository,
+    @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
     private readonly audit: AuditService,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasherPort,
     private readonly uow: PrismaUnitOfWork,
@@ -276,6 +301,11 @@ export class ShareLinkService {
       );
       if (!test)
         throw new DomainError('Share link target not found', 'NOT_FOUND');
+      const comparison = await this.comparisons.findLatestReviewableByTestId(
+        test.id,
+      );
+      const signed = (url: string | null | undefined): string | null =>
+        url ? this.storage.signUrl(url) : null;
       return {
         ...base,
         test: {
@@ -285,6 +315,29 @@ export class ShareLinkService {
           branchName: branch.branchName,
           variantCount: await this.tests.countVariants(test.id),
         },
+        ...(comparison
+          ? {
+              comparison: {
+                id: comparison.id,
+                status: comparison.status,
+                kind: test.kind,
+                mismatchPixelCount: comparison.mismatchPixelCount,
+                mismatchPageCount: comparison.mismatchPageCount ?? null,
+                pageCount:
+                  comparison.pageCount ??
+                  comparison.baseline?.pageCount ??
+                  null,
+                viewport: comparison.baseline?.viewport ?? '',
+                browser: comparison.baseline?.browser ?? '',
+                environment: comparison.baseline?.environment ?? '',
+                baselineUrl: signed(comparison.baseline?.imageUrl),
+                candidateUrl: signed(comparison.candidate?.imageUrl),
+                diffUrl: signed(
+                  comparison.diffImageUrl ?? comparison.diffPdfUrl,
+                ),
+              },
+            }
+          : {}),
       };
     }
     const branch = await this.branches.resolveRead(

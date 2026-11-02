@@ -1,4 +1,5 @@
 import type { RunDetail } from '@public/visualTest/runs/application/run.service';
+import { escapeCsvCell } from '@common/utils/csv';
 
 interface ReportRow {
   testName: string;
@@ -120,17 +121,6 @@ function htmlEscape(value: string): string {
   return xmlEscape(value);
 }
 
-const CSV_FORMULA_PREFIX = /^[=+\-@\t\r]/;
-
-// Quoting alone does not stop a spreadsheet: Excel/LibreOffice evaluate a cell
-// whose first character is =, +, -, @, TAB or CR even inside quotes, and the
-// variant/test/detail columns are free-form uploader input. Prefixing a single
-// quote forces the cell to text (the OWASP CSV-injection mitigation).
-function csvCell(value: string): string {
-  const guarded = CSV_FORMULA_PREFIX.test(value) ? `'${value}` : value;
-  return `"${guarded.replace(/"/g, '""')}"`;
-}
-
 function testUrl(
   base: string,
   projectName: string,
@@ -194,7 +184,7 @@ export function buildRunCsv(detail: RunDetail, projectName: string): string {
       String(row.mismatch),
       row.detail,
     ]
-      .map(csvCell)
+      .map(escapeCsvCell)
       .join(','),
   );
   return [header, ...lines].join('\n');

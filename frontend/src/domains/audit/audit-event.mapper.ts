@@ -27,6 +27,7 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   "review.comment": "Review comment",
   "review.comment-resolve": "Review comment resolved",
   "project.review-policy": "Review policy changed",
+  "project.pixel-threshold": "Project threshold changed",
   "test.threshold": "Threshold changed",
 };
 

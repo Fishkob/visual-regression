@@ -172,6 +172,33 @@ session, so it is not usable from a shell or a pipeline. See
 
 ---
 
+### Config-as-code thresholds
+
+A repository can carry its pixel tolerances in `.vrt.json`; the Playwright
+reporter and the SDK send the matching value with each upload:
+
+```json
+{ "thresholds": { "checkout.spec.ts / cart summary": 12 } }
+```
+
+The server applies it when the upload creates the baseline. On an existing
+baseline it can only tighten (lower) the value — raising a threshold
+auto-accepts pending comparisons and stays an ADMIN action. A project-wide
+default is set by an ADMIN under **Project settings → Pixel threshold** and
+applies to variants without a threshold of their own. Details:
+[docs/ci-integration.md](docs/ci-integration.md#config-as-code-thresholds-vrtjson)
+and [ADR-057](docs/adr/ADR-057-config-as-code-thresholds.md).
+
+### Share links with pixels
+
+A read-only link for a single test shows the latest reviewable diff: baseline,
+candidate and diff with short-lived presigned URLs, re-signed on every page
+load. Project and run links stay metadata-only. Links expire, can be revoked
+and may require a passphrase; nothing on the page is mutable. See
+[ADR-058](docs/adr/ADR-058-share-links-with-pixels.md).
+
+---
+
 ### Review Notifications (Webhooks)
 
 A project can push review events to an HTTP endpoint or a Slack incoming webhook: `review.requested`, `comparison.approved`, `review.assigned` and `review.comment`. Create one as an **ADMIN** in the dashboard — open the project and click **Webhooks** (`/projects/<project>/webhooks`); an API key cannot administer endpoints.

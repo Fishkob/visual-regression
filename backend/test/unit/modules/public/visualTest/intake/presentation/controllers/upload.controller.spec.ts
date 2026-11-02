@@ -23,6 +23,7 @@ describe('UploadController', () => {
     browser: 'Chrome',
     environment: 'staging',
   };
+  const req = { auth: { username: 'alice', userId: 'user-1' } } as never;
 
   beforeEach(async () => {
     uploadIntake = { upload: vi.fn() } as any;
@@ -63,6 +64,7 @@ describe('UploadController', () => {
         'image',
         mockFile,
         body,
+        req,
       );
 
       expect(result).toBeInstanceOf(BaselineCreatedResultDto);
@@ -85,6 +87,7 @@ describe('UploadController', () => {
         'image',
         mockFile,
         body,
+        req,
       );
 
       expect(result).toBeInstanceOf(IdenticalResultDto);
@@ -108,6 +111,7 @@ describe('UploadController', () => {
         'image',
         mockFile,
         body,
+        req,
       );
 
       expect(result).toBeInstanceOf(ComparisonQueuedResultDto);
@@ -132,6 +136,7 @@ describe('UploadController', () => {
         'pdf',
         mockFile,
         body,
+        req,
       );
 
       expect(result).toBeInstanceOf(BaselineCreatedResultDto);
@@ -150,7 +155,14 @@ describe('UploadController', () => {
         jobId: 'job-1',
       });
 
-      await controller.upload(projectName, testName, 'pdf', mockFile, body);
+      await controller.upload(
+        projectName,
+        testName,
+        'pdf',
+        mockFile,
+        body,
+        req,
+      );
 
       expect(uploadIntake.upload).toHaveBeenCalledWith(
         expect.anything(),
@@ -158,8 +170,12 @@ describe('UploadController', () => {
       );
     });
 
-    it('does not forward a threshold from body to the upload intake', async () => {
-      const bodyWithThreshold = { ...body, threshold: 0.5 };
+    it('forwards a config threshold without forwarding a stray threshold field', async () => {
+      const bodyWithThreshold = {
+        ...body,
+        pixelDiffThreshold: 25,
+        threshold: 0.5,
+      };
       uploadIntake.upload.mockResolvedValue({
         status: 'identical',
         mismatchPixelCount: 0,
@@ -171,12 +187,14 @@ describe('UploadController', () => {
         'image',
         mockFile,
         bodyWithThreshold,
+        req,
       );
 
-      expect(uploadIntake.upload).toHaveBeenCalledWith(
-        expect.not.objectContaining({ threshold: expect.anything() }),
-        'image',
+      const [params] = uploadIntake.upload.mock.calls[0] ?? [];
+      expect(params).toEqual(
+        expect.objectContaining({ pixelDiffThreshold: 25 }),
       );
+      expect(params).not.toHaveProperty('threshold');
     });
 
     it('passes all parameters to the upload intake', async () => {
@@ -185,7 +203,14 @@ describe('UploadController', () => {
         mismatchPixelCount: 0,
       });
 
-      await controller.upload(projectName, testName, 'image', mockFile, body);
+      await controller.upload(
+        projectName,
+        testName,
+        'image',
+        mockFile,
+        body,
+        req,
+      );
 
       expect(uploadIntake.upload).toHaveBeenCalledWith(
         {
@@ -195,6 +220,7 @@ describe('UploadController', () => {
           browser: body.browser,
           environment: body.environment,
           file: mockFile,
+          actor: 'alice',
         },
         'image',
       );

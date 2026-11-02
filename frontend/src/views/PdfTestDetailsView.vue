@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useRouteParams } from "@/composables/useRouteParams";
@@ -24,8 +24,15 @@ import { formatRelativeAge } from "@/lib/format-date";
 defineProps<{ kind?: TestKind }>();
 
 const { t } = useI18n();
-const { projectName, testName, filters, branch, fromInbox, assignedToMe } =
-  useRouteParams();
+const {
+  projectName,
+  testName,
+  filters,
+  branch,
+  fromInbox,
+  assignedToMe,
+  inboxFilters,
+} = useRouteParams();
 const router = useRouter();
 
 const { data: project } = useProjectDetailQuery(projectName, branch);
@@ -48,6 +55,7 @@ const {
   filters,
   returnToInbox: fromInbox,
   assignedToMe,
+  pendingFilters: inboxFilters,
 });
 
 // A test inherited from another branch has no reviewable baseline of its own
@@ -83,8 +91,13 @@ const showShortcuts = computed(
     !isApproved(data.value.comparison.status),
 );
 
+// The decision dialog lives inside the PDF comparison panel, so the shortcut
+// opens it there instead of committing an approval without a reason — the same
+// path the Approve button takes (ADR-040).
+const comparisonView = ref<InstanceType<typeof PdfComparisonView> | null>(null);
+
 useReviewShortcuts({
-  onApprove: handleApprove,
+  onApprove: () => comparisonView.value?.openDecision(),
   onSkip: handleSkip,
   onBack: () => router.back(),
   enabled: () => showShortcuts.value,
@@ -156,6 +169,7 @@ useReviewShortcuts({
 
       <PdfComparisonView
         v-if="data?.comparison && data?.baseline"
+        ref="comparisonView"
         :key="viewKey"
         :project-name="projectName"
         :test-name="testName"

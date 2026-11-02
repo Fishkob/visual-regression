@@ -27,6 +27,10 @@ export type UploadControllerUploadData = {
         commitSha?: string;
         commitMessage?: string;
         ciUrl?: string;
+        /**
+         * Config-as-code pixel tolerance for this variant (applied on baseline creation, can only tighten an existing baseline)
+         */
+        pixelDiffThreshold?: number;
     };
     path: {
         projectName: string;

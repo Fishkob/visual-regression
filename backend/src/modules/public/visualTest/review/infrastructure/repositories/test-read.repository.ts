@@ -429,6 +429,7 @@ export class TestReadRepository {
     branchId: string,
     pagination?: { skip: number; take: number },
     assigneeId?: string,
+    filters: { kind?: string; q?: string; runKey?: string; tag?: string } = {},
   ): Promise<{
     data: PendingApprovalResult[];
     total: number;
@@ -442,8 +443,17 @@ export class TestReadRepository {
       }>
     >(this.client.unifiedComparison, {
       where: reviewablePendingWhere({
+        // The same filters the inbox read applies, so the pass walks the set
+        // the operator filtered — not the whole branch. `runKey` is a column on
+        // the comparison; the rest narrow the test.
+        ...(filters.runKey ? { runKey: filters.runKey } : {}),
         test: {
           branchId,
+          ...(filters.kind ? { kind: filters.kind as TestKind } : {}),
+          ...(filters.q
+            ? { name: { contains: filters.q, mode: 'insensitive' } }
+            : {}),
+          ...(filters.tag ? { tags: { has: filters.tag } } : {}),
           ...(assigneeId
             ? {
                 assignments: {

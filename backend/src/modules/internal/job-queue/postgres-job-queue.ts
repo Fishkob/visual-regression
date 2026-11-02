@@ -10,6 +10,7 @@ import {
 import { METRICS, TRACKED_OPERATIONS } from '@common/domain/metrics-catalog';
 import {
   decideRetry,
+  delay,
   isRetryableError,
   JOB_MAX_ATTEMPTS,
 } from '@common/infrastructure/retry-policy';
@@ -273,7 +274,7 @@ export class PostgresJobQueue
     processing: number;
     failed: number;
   }> {
-    const [pending, processing, failed] = await Promise.all([
+    const [pending, processing, failed, oldestPending] = await Promise.all([
       this.txCtx.client.comparisonJob.count({
         where: { status: JobStatus.PENDING },
       }),
@@ -283,10 +284,35 @@ export class PostgresJobQueue
       this.txCtx.client.comparisonJob.count({
         where: { status: JobStatus.FAILED },
       }),
+      // Oldest queued work, not the oldest row: a backlog is only visible as an
+      // age when a pending job sits unclaimed for minutes. `nextAttemptAt`
+      // delays are excluded so a scheduled retry does not read as a stuck queue.
+      this.txCtx.client.comparisonJob.findFirst({
+        where: {
+          status: JobStatus.PENDING,
+          OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: new Date() } }],
+        },
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true },
+      }),
     ]);
+    const oldestPendingAgeSeconds = oldestPending
+      ? Math.max(0, (Date.now() - oldestPending.createdAt.getTime()) / 1000)
+      : 0;
     this.metrics.setGauge(METRICS.queueFailedJobs, failed, {
       queue: METRICS_QUEUE_LABEL,
     });
+    this.metrics.setGauge(METRICS.queuePendingJobs, pending, {
+      queue: METRICS_QUEUE_LABEL,
+    });
+    this.metrics.setGauge(METRICS.queueProcessingJobs, processing, {
+      queue: METRICS_QUEUE_LABEL,
+    });
+    this.metrics.setGauge(
+      METRICS.queueOldestPendingAgeSeconds,
+      oldestPendingAgeSeconds,
+      { queue: METRICS_QUEUE_LABEL },
+    );
     return { pending, processing, failed };
   }
 
@@ -420,30 +446,112 @@ export class PostgresJobQueue
       // re-run the diff: a second comparison (retiring the first, deleting its
       // diff object) and a second `review.requested` event.
       try {
-        await processor(job);
+        await this.runWithinDeadline(job, processor);
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
+        if (err instanceof JobDeadlineExceededError) {
+          this.metrics.incrementCounter(METRICS.queueJobTimeoutsTotal, {
+            queue: METRICS_QUEUE_LABEL,
+          });
+          this.logger.error(
+            `Job ${job.id} exceeded its ${String(WORKER_TIMING.jobTimeoutMs)} ms deadline; failing it for reclaim`,
+          );
+        }
         await this.markFailed(
           job.id,
           error.message,
           job.attempts,
           job.maxAttempts,
           job.processingStartedAt,
-          isRetryableError(err),
+          err instanceof JobDeadlineExceededError || isRetryableError(err),
         );
         return;
       }
 
-      try {
-        await this.markCompleted(job.id, job.processingStartedAt);
-      } catch (err) {
-        this.logger.error(
-          `Job completed but bookkeeping write failed; not re-queuing to avoid duplicate side effects: job ${job.id}`,
-          err instanceof Error ? err.stack : String(err),
-        );
-      }
+      await this.completeWithRetries(job);
     } finally {
       this.stopHeartbeat(job.id);
     }
+  }
+
+  // A comparison that never settles (a wedged storage call, a hung sidecar)
+  // used to hold the only worker forever: the row heartbeat kept its lease
+  // alive and the poller's liveness heartbeat kept /health `ok`, so nothing
+  // noticed. The deadline turns that into a normal retryable failure and stops
+  // the heartbeat, which lets the stall reclaim take over.
+  //
+  // The handler keeps running after the deadline (JavaScript cannot cancel a
+  // pending promise). Its late rejection is absorbed here instead of becoming
+  // an unhandled rejection; a late commit cannot resurrect the job because
+  // every ownership write matches `processingStartedAt`, and the processor's
+  // diff path refuses to persist when an earlier attempt already left a
+  // pending comparison for the candidate.
+  private async runWithinDeadline(
+    job: ClaimedJob,
+    processor: (job: QueuedJob) => Promise<void>,
+  ): Promise<void> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let hasTimedOut = false;
+    const deadline = new Promise<never>((resolve, reject) => {
+      timer = setTimeout(() => {
+        hasTimedOut = true;
+        reject(
+          new JobDeadlineExceededError(job.id, WORKER_TIMING.jobTimeoutMs),
+        );
+      }, WORKER_TIMING.jobTimeoutMs);
+      timer.unref?.();
+    });
+
+    const work = processor(job);
+    const observed = work.then(
+      () => undefined,
+      (err: unknown) => {
+        if (!hasTimedOut) throw err;
+        this.logger.warn(`Job ${job.id} failed after its deadline`, {
+          error: String(err),
+        });
+      },
+    );
+
+    try {
+      await Promise.race([observed, deadline]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // Bookkeeping is retried instead of swallowed: a transient write failure is
+  // exactly the case a second attempt fixes. Only after all attempts fail does
+  // the row stay PROCESSING (and the stall reclaim re-run it); the processor's
+  // duplicate guard makes that re-run a no-op for an already-persisted diff.
+  private async completeWithRetries(job: ClaimedJob): Promise<void> {
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await this.markCompleted(job.id, job.processingStartedAt);
+        return;
+      } catch (err) {
+        if (attempt === maxAttempts) {
+          this.metrics.incrementCounter(METRICS.queueBookkeepingFailuresTotal, {
+            queue: METRICS_QUEUE_LABEL,
+          });
+          this.logger.error(
+            `Job ${job.id} completed but its bookkeeping write failed after ${String(maxAttempts)} attempts; a stall reclaim will re-run it`,
+            err instanceof Error ? err.stack : String(err),
+          );
+          return;
+        }
+        await delay(200 * attempt);
+      }
+    }
+  }
+}
+
+// Own class so the timeout is distinguishable from a processor failure in the
+// retry decision (`instanceof` is the single test, no string matching).
+export class JobDeadlineExceededError extends Error {
+  constructor(jobId: string, timeoutMs: number) {
+    super(`Job ${jobId} exceeded its ${timeoutMs} ms deadline`);
+    this.name = 'JobDeadlineExceededError';
   }
 }

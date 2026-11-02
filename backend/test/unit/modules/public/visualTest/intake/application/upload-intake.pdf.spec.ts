@@ -47,6 +47,7 @@ import {
   createMockLogger,
 } from '@test/utils/mocks';
 import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referencedness.interface';
+import { AuditService } from '@internal/audit/audit.service';
 
 describe('UploadIntake (pdf kind)', () => {
   let uploadIntake: UploadIntake;
@@ -55,6 +56,7 @@ describe('UploadIntake (pdf kind)', () => {
   let baselines: Mocked<BranchBaselineResolver>;
   let branchTests: Mocked<BranchTestRepository>;
   let screenshots: Mocked<UnifiedScreenshotRepository>;
+  let audit: Mocked<AuditService>;
   let workflow: StateChangeWorkflow;
   let storage: Mocked<IStorageProvider>;
   let jobQueue: Mocked<IJobProducer>;
@@ -142,6 +144,9 @@ describe('UploadIntake (pdf kind)', () => {
       createdAt: new Date('2024-01-01'),
     });
     screenshots = createMock<UnifiedScreenshotRepository>();
+    screenshots.tightenBaselineThreshold.mockResolvedValue(null);
+    audit = createMock<AuditService>();
+    audit.record.mockResolvedValue(undefined);
     screenshots.filterReclaimableUrls.mockImplementation((urls) =>
       Promise.resolve(urls),
     );
@@ -173,6 +178,7 @@ describe('UploadIntake (pdf kind)', () => {
         { provide: BranchBaselineResolver, useValue: baselines },
         { provide: BranchTestRepository, useValue: branchTests },
         { provide: UnifiedScreenshotRepository, useValue: screenshots },
+        { provide: AuditService, useValue: audit },
         { provide: UnifiedComparisonsRepository, useValue: comparisons },
         { provide: ComparisonRetirementService, useValue: retirement },
         StateChangeWorkflow,

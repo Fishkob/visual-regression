@@ -23,6 +23,7 @@ import {
 import { useTestNavigation } from "@/composables/useTestNavigation";
 import type { PendingTest } from "@/domains/pending-tests/pending-test";
 import { withPendingTestRemoved } from "@/composables/usePendingTests";
+import type { PendingTestFilters } from "@/domains/pending-tests/query-keys";
 import { withReviewInboxItemRemoved } from "@/composables/useReviewInbox";
 import { invalidateReviewInbox } from "@/lib/invalidation";
 import { sdkErrorMessage } from "@/lib/sdk";
@@ -55,6 +56,9 @@ export interface ReviewSessionOptions {
   // The pending list is assignment-scoped when the pass started from "My
   // reviews"; the optimistic cache write must target that same entry.
   assignedToMe?: Ref<boolean>;
+  // The inbox filters the pass honours; the optimistic removal must target the
+  // same filtered pending cache entry the list was read into.
+  pendingFilters?: Ref<PendingTestFilters>;
 }
 
 export function useReviewSession(args: ReviewSessionOptions) {
@@ -69,6 +73,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
     invalidateDetails,
     returnToInbox = false,
     assignedToMe,
+    pendingFilters,
   } = args;
   const queryClient = useQueryClient();
   const navigation = useTestNavigation({ projectName, branchName });
@@ -130,6 +135,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
         branchName.value,
         buildCurrentKey(),
         unref(assignedToMe ?? false),
+        pendingFilters?.value ?? {},
       );
       const inboxRemoval =
         shouldReturnToInbox.value && currentComparisonId.value

@@ -23,6 +23,7 @@ export interface ProjectData {
   storageQuotaBytes?: bigint | null;
   quotaSoftPercent?: number | null;
   requiredApprovals?: number;
+  pixelDiffThreshold?: number | null;
 }
 
 @Injectable()
@@ -119,6 +120,16 @@ export class ProjectRepository extends BaseRepository {
     await this.client.project.update({
       where: { name },
       data: { requiredApprovals },
+    });
+  }
+
+  async updatePixelDiffThreshold(
+    name: string,
+    pixelDiffThreshold: number | null,
+  ): Promise<void> {
+    await this.client.project.update({
+      where: { name },
+      data: { pixelDiffThreshold },
     });
   }
 

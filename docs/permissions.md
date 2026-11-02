@@ -10,7 +10,7 @@ authentication guard (ADR-031); the UI mirrors it by hiding controls.
 | Approve comparisons / restore baselines             |  yes  |        yes         |   no   |
 | Approve when `requiredApprovals > 1` (session only) |  yes  |        yes         |   no   |
 | Change review policy (`requiredApprovals`)          |  yes  |         no         |   no   |
-| Change pixel threshold / preview auto-accept        |  yes  |         no         |   no   |
+| Change pixel default or per-variant threshold       |  yes  |         no         |   no   |
 | Assign reviews, complete own assignment             |  yes  |        yes         |   no   |
 | Comment / resolve review threads                    |  yes  |        yes         |   no   |
 | Delete tests/variants                               |  yes  |        yes         |   no   |
@@ -25,9 +25,13 @@ Notes:
 - **4-eyes:** when a project requires more than one approval, only signed-in
   users can vote. API keys are rejected (`403`) for N>1 even with the `approve`
   scope; N=1 keeps API-key approvals working.
-- **Review policy** and the pixel threshold are admin-only and audited
-  (`project.review-policy`, `test.threshold`); a threshold change can
-  auto-accept pending comparisons, so it is treated as a review-policy change.
+- **Review policy** and the pixel thresholds are admin-only and audited
+  (`project.review-policy`, `project.pixel-threshold`, `test.threshold`); a
+  per-variant threshold raise can auto-accept pending comparisons, so the
+  threshold surfaces are treated as review-policy changes. The project default
+  applies prospectively to future comparisons, not to already pending rows. A
+  repository config (`.vrt.json`) can set or tighten a variant threshold but
+  cannot raise it.
 - **API keys** have their own scopes, never the owner's role. Default is
   `upload` (upload + own job status); `read`, `approve` and `admin` are opt-in.
   An optional project allowlist confines the key to those project routes.

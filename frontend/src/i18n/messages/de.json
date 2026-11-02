@@ -673,6 +673,7 @@
       "reviewComment": "Review-Kommentar",
       "reviewCommentResolve": "Review-Kommentar aufgelöst",
       "projectReviewPolicy": "Review-Richtlinie geändert",
+      "projectPixelThreshold": "Projekt-Schwelle geändert",
       "testThreshold": "Schwellenwert geändert"
     }
   },
@@ -839,6 +840,7 @@
     "thresholdTooltip": "{tolerance} Größere Änderungen müssen geprüft werden.",
     "toleranceSet": "Abweichungen bis {threshold} px werden automatisch akzeptiert.",
     "toleranceNone": "Keine Toleranz festgelegt — jede Abweichung muss geprüft werden.",
+    "toleranceProjectDefault": "Keine Varianten-Schwelle: Es gilt der Projekt-Standard von {threshold} px.",
     "confirmContinue": "Ja, fortfahren",
     "replaceTitle": "Vergleich ersetzen?",
     "replaceDescription": "Dadurch bleibt die aktuelle Baseline erhalten und der ausstehende Vergleich wird entfernt.",
@@ -1147,6 +1149,16 @@
     "branchLabel": "Branch (optional)",
     "status": "Status",
     "noTests": "Keine Tests in dieser Freigabe.",
+    "comparisonTitle": "Geänderter Vergleich",
+    "baselineImage": "Baseline",
+    "candidateImage": "Kandidat",
+    "diffImage": "Diff",
+    "imageUnavailable": "Für diesen Teil des Vergleichs gibt es kein Bild.",
+    "mismatchPixels": "{count} px abweichend",
+    "mismatchPages": "{count} von {total} Seiten abweichend",
+    "openBaselinePdf": "Baseline-PDF öffnen",
+    "openCandidatePdf": "Kandidaten-PDF öffnen",
+    "openDiffPdf": "Diff-PDF öffnen",
     "variantCount": "Varianten",
     "mutedPending": "Stummgeschaltet ausstehend",
     "finished": "Abgeschlossen {age}",
@@ -1200,6 +1212,19 @@
     "invalid": "Die erforderlichen Genehmigungen müssen eine ganze Zahl zwischen 1 und 10 sein.",
     "saved": "Prüfeinstellungen gespeichert",
     "saveError": "Prüfeinstellungen konnten nicht gespeichert werden"
+  },
+  "thresholdSettings": {
+    "title": "Pixel-Schwelle",
+    "edit": "Bearbeiten",
+    "description": "Standardtoleranz für Bildvergleiche. Eine Variante mit eigener Schwelle behält sie; eine Variante ohne eigene Schwelle erbt diesen Standard.",
+    "label": "Standardtoleranz in Pixeln (leer = keine)",
+    "none": "Kein Projekt-Standard",
+    "current": "{threshold} px als Standard",
+    "help": "Abweichungen bis zu dieser Pixelzahl werden automatisch akzeptiert. Die Repository-Konfiguration kann eine Varianten-Schwelle setzen oder verschärfen, aber nicht erhöhen.",
+    "futureOnly": "Der Standard gilt für Vergleiche, die nach dem Speichern laufen; bereits ausstehende Vergleiche bleiben prüfbar.",
+    "invalid": "Die Schwelle muss eine ganze Zahl ab 0 sein.",
+    "saved": "Pixel-Schwelle gespeichert",
+    "saveError": "Pixel-Schwelle konnte nicht gespeichert werden"
   },
   "assign": {
     "action": "Zuweisen",

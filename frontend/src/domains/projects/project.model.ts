@@ -40,6 +40,7 @@ export interface Project {
   branchName?: string;
   defaultBranchName?: string;
   requiredApprovals?: number;
+  pixelDiffThreshold?: number | null;
   pendingCount?: number;
   testCount?: number;
   visualTests?: VisualTestItem[];

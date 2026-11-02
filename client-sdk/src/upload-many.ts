@@ -17,6 +17,12 @@ export interface CaptureUpload {
   commitSha?: string;
   commitMessage?: string;
   ciUrl?: string;
+  /**
+   * Pixel tolerance for this variant, usually resolved from `.vrt.json`. The
+   * server applies it when the upload creates the baseline and can only
+   * tighten an existing baseline (raising a threshold is an ADMIN action).
+   */
+  pixelDiffThreshold?: number;
 }
 
 export interface UploadManyOptions {
@@ -96,8 +102,7 @@ function retryDelay(
 async function uploadOnce(
   client: Client,
   capture: CaptureUpload,
-): Promise<unknown> {
-  const result = await uploadControllerUpload({
+): Promise<unknown> {  const result = await uploadControllerUpload({
     client,
     path: {
       projectName: capture.projectName,
@@ -119,6 +124,9 @@ async function uploadOnce(
         ? { commitMessage: capture.commitMessage }
         : {}),
       ...(capture.ciUrl ? { ciUrl: capture.ciUrl } : {}),
+      ...(capture.pixelDiffThreshold !== undefined
+        ? { pixelDiffThreshold: capture.pixelDiffThreshold }
+        : {}),
     },
   });
 
@@ -235,4 +243,60 @@ export async function uploadMany(
     ),
   );
   return results;
+}
+
+// Repository config for CI uploads (`.vrt.json`). It is JSON on purpose: the
+// SDK has zero runtime dependencies, and a YAML parser would be the first one.
+export interface VrtConfig {
+  /**
+   * Pixel tolerance per test name, applied when the upload creates the
+   * baseline. A value can tighten an existing baseline but never raise it —
+   * raising a threshold auto-accepts pending comparisons and stays an ADMIN
+   * action.
+   */
+  thresholds?: Record<string, number>;
+}
+
+export const VRT_CONFIG_FILE = '.vrt.json';
+
+function isThreshold(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+}
+
+export function parseVrtConfig(value: unknown): VrtConfig {
+  if (typeof value !== 'object' || value === null) return {};
+  const raw = (value as { thresholds?: unknown }).thresholds;
+  if (typeof raw !== 'object' || raw === null) return {};
+  const thresholds: Record<string, number> = {};
+  for (const [testName, threshold] of Object.entries(raw)) {
+    if (testName.trim().length > 0 && isThreshold(threshold)) {
+      thresholds[testName] = threshold;
+    }
+  }
+  return Object.keys(thresholds).length > 0 ? { thresholds } : {};
+}
+
+/**
+ * Resolve the configured tolerance for a test. The reporter's canonical name is
+ * the joined title path (`checkout.spec.ts / cart summary`); a repository should
+ * not have to guess that, so the bare title and the last path segment are also
+ * accepted.
+ */
+export function thresholdForTest(
+  config: VrtConfig,
+  names: Array<string | undefined>,
+): number | undefined {
+  const thresholds = config.thresholds;
+  if (!thresholds) return undefined;
+  for (const name of names) {
+    if (!name) continue;
+    const exact = thresholds[name];
+    if (exact !== undefined) return exact;
+    const parts = name.split(' / ');
+    const lastSegment = parts[parts.length - 1];
+    if (lastSegment && thresholds[lastSegment] !== undefined) {
+      return thresholds[lastSegment];
+    }
+  }
+  return undefined;
 }

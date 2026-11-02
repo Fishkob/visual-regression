@@ -63,6 +63,21 @@ export interface PublicShareRun {
   counts: PublicRunCounts;
 }
 
+export interface PublicShareComparison {
+  id: string;
+  status: string;
+  kind: TestKind;
+  mismatchPixelCount: number;
+  mismatchPageCount: number | null;
+  pageCount: number | null;
+  viewport: string;
+  browser: string;
+  environment: string;
+  baselineUrl: string | null;
+  candidateUrl: string | null;
+  diffUrl: string | null;
+}
+
 export interface PublicShare {
   scope: ShareScope;
   projectName: string;
@@ -72,6 +87,7 @@ export interface PublicShare {
   expiresAt: string;
   project: { name: string };
   test?: PublicShareTest;
+  comparison?: PublicShareComparison;
   run?: PublicShareRun;
   tests?: PublicShareTest[];
 }

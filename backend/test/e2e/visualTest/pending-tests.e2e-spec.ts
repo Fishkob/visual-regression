@@ -7,6 +7,7 @@ import { authRequest } from '../_support/utils/authenticated-request';
 describe('GET /projects/:projectName/tests/meta/pending (e2e)', () => {
   let app: INestApplication;
   let prisma: any;
+  let branchId: string;
 
   beforeAll(async () => {
     app = await TestApp.init();
@@ -16,7 +17,7 @@ describe('GET /projects/:projectName/tests/meta/pending (e2e)', () => {
   beforeEach(async () => {
     await TestApp.resetDb();
 
-    const { branchId } = await TestApp.createProject('checkout-ui');
+    ({ branchId } = await TestApp.createProject('checkout-ui'));
 
     const test = await prisma.unifiedTest.create({
       data: {
@@ -86,5 +87,81 @@ describe('GET /projects/:projectName/tests/meta/pending (e2e)', () => {
         latestStatus: 'PENDING_APPROVAL',
       },
     ]);
+  });
+
+  it('filters the pass by kind and by search text', async () => {
+    const pdfTest = await prisma.unifiedTest.create({
+      data: {
+        name: 'Report',
+        branchId,
+        kind: 'pdf',
+        status: TestStatus.PENDING_APPROVAL,
+      },
+    });
+    const pdfVariant = await prisma.unifiedVariant.create({
+      data: {
+        testId: pdfTest.id,
+        viewport: '1920x1080',
+        browser: 'Chrome',
+        environment: 'staging',
+      },
+    });
+    const pdfBaseline = await prisma.unifiedScreenshot.create({
+      data: {
+        testId: pdfTest.id,
+        variantId: pdfVariant.id,
+        type: 'BASELINE',
+        imageHash: 'pdf-base',
+        imageUrl: 'http://rustfs/report.pdf',
+        pageCount: 3,
+      },
+    });
+    await prisma.unifiedVariant.update({
+      where: { id: pdfVariant.id },
+      data: { baselineId: pdfBaseline.id },
+    });
+    const pdfCandidate = await prisma.unifiedScreenshot.create({
+      data: {
+        testId: pdfTest.id,
+        variantId: pdfVariant.id,
+        type: 'CURRENT',
+        imageHash: 'pdf-current',
+        imageUrl: 'http://rustfs/report-current.pdf',
+        pageCount: 3,
+      },
+    });
+    await prisma.unifiedComparison.create({
+      data: {
+        testId: pdfTest.id,
+        baselineId: pdfBaseline.id,
+        candidateId: pdfCandidate.id,
+        diffPdfUrl: 'http://rustfs/report.diff.pdf',
+        mismatchPixelCount: 0,
+        mismatchPageCount: 1,
+        pageCount: 3,
+        status: ComparisonStatus.PENDING_APPROVAL,
+      },
+    });
+
+    const imageOnly = await authRequest(app)
+      .get('/api/v1/projects/checkout-ui/tests/meta/pending?kind=image')
+      .expect(200);
+    expect(
+      imageOnly.body.data.map((row: { name: string }) => row.name),
+    ).toEqual(['LoginForm']);
+
+    const pdfOnly = await authRequest(app)
+      .get('/api/v1/projects/checkout-ui/tests/meta/pending?kind=pdf')
+      .expect(200);
+    expect(pdfOnly.body.data.map((row: { name: string }) => row.name)).toEqual([
+      'Report',
+    ]);
+
+    const searched = await authRequest(app)
+      .get('/api/v1/projects/checkout-ui/tests/meta/pending?q=login')
+      .expect(200);
+    expect(searched.body.data.map((row: { name: string }) => row.name)).toEqual(
+      ['LoginForm'],
+    );
   });
 });

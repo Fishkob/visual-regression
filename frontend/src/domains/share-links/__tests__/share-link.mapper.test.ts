@@ -184,6 +184,65 @@ describe("mapPublicShare", () => {
     });
   });
 
+  it("maps the reviewable comparison of a test share", () => {
+    const share = mapPublicShare(
+      publicProject({
+        scope: "TEST",
+        testName: "login",
+        branchName: "main",
+        tests: undefined,
+        comparison: {
+          id: "cmp-1",
+          status: "PENDING_APPROVAL",
+          kind: "image",
+          mismatchPixelCount: 42,
+          mismatchPageCount: null,
+          pageCount: null,
+          viewport: "1920x1080",
+          browser: "Chrome",
+          environment: "staging",
+          baselineUrl: "https://storage/baseline.png?sig=1",
+          candidateUrl: "https://storage/candidate.png?sig=2",
+          diffUrl: "https://storage/diff.png?sig=3",
+        },
+      }),
+    );
+
+    expect(share?.comparison).toEqual({
+      id: "cmp-1",
+      status: "PENDING_APPROVAL",
+      kind: "image",
+      mismatchPixelCount: 42,
+      mismatchPageCount: null,
+      pageCount: null,
+      viewport: "1920x1080",
+      browser: "Chrome",
+      environment: "staging",
+      baselineUrl: "https://storage/baseline.png?sig=1",
+      candidateUrl: "https://storage/candidate.png?sig=2",
+      diffUrl: "https://storage/diff.png?sig=3",
+    });
+  });
+
+  it("drops a comparison that has no id or no known kind", () => {
+    expect(
+      mapPublicShare(
+        publicProject({
+          scope: "TEST",
+          comparison: { kind: "image", mismatchPixelCount: 1 },
+        }),
+      )?.comparison,
+    ).toBeUndefined();
+    expect(
+      mapPublicShare(
+        publicProject({
+          scope: "TEST",
+          comparison: { id: "cmp-1", kind: "video" },
+        }),
+      )?.comparison,
+    ).toBeUndefined();
+  });
+
   it("maps a run share with every count", () => {
     const share = mapPublicShare(
       publicProject({

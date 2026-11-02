@@ -295,6 +295,37 @@ export default defineConfig({
 - `concurrency`/`maxAttempts` are forwarded to `uploadMany` (default 4 / 3). Upload failures are collected in `reporter.results()` and via `onUpload`; they do not fail the test run.
 - See [client-sdk/README.md](../client-sdk/README.md) for the full `uploadMany` API, the other subpath imports and how the tarball is built.
 
+#### Config-as-code thresholds (`.vrt.json`)
+
+A repository can carry its visual tolerances next to the tests. The reporter
+reads `.vrt.json` from the working directory (override with `configPath`) and
+sends the matching value as the upload's `pixelDiffThreshold`:
+
+```json
+{
+  "thresholds": {
+    "checkout.spec.ts / cart summary": 12,
+    "login works": 4
+  }
+}
+```
+
+- Keys are the reporter's canonical name (`<title path joined with " / ">`); the
+  bare test title and the last path segment are accepted as fallbacks.
+- The server applies the value when the upload creates the baseline. On an
+  existing baseline it can only **tighten** (lower) the threshold — a raise is
+  ignored, because raising a threshold auto-accepts pending comparisons and is
+  an ADMIN action ([ADR-057](adr/ADR-057-config-as-code-thresholds.md)).
+- Any HTTP caller can use the same field: send `pixelDiffThreshold=<pixels>` in
+  the upload multipart body. Thresholds are image-only; a PDF upload ignores
+  them.
+- The file is optional; a missing file means "no thresholds". An unreadable or
+  invalid file is reported through `onConfigError`, and uploads proceed without
+  thresholds.
+- A project-wide default (not per test) is set by an ADMIN in **Project
+  settings → Pixel threshold**; it applies to variants that have no threshold of
+  their own and takes effect for comparisons that run after saving.
+
 ## 4. Reports and trends
 
 Run reports are read-only, project/branch-scoped and use the same authentication as the rest of the API:

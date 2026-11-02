@@ -16,6 +16,13 @@
 //                                at shutdown; the poller claims nothing after
 //                                SIGTERM, so this only bounds the last job.
 //                                Must stay below the container stop grace period.
+//   jobTimeoutMs (600s)         — hard deadline for one comparison. On expiry
+//                                the queue fails the row (retryable) and stops
+//                                its heartbeat, so a wedged engine or storage
+//                                call cannot hold the only worker forever. It
+//                                must stay well above a normal PDF comparison;
+//                                a job that legitimately needs longer belongs
+//                                in the PDF page/pixel budget, not here.
 //
 // Any change to one of these deadlines is one edit here, not a hunt across
 // three files that must stay in sync by convention.
@@ -25,6 +32,7 @@ export const WORKER_TIMING = {
   workerHealthHeartbeatMs: 30_000,
   drainTimeoutMs: 30_000,
   pollStallThresholdMs: 150_000,
+  jobTimeoutMs: 600_000,
   stallTimeoutSeconds: 60,
   heartbeatIntervalMs: 5000,
 } as const;

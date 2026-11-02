@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { RouterLink, useRouter } from "vue-router";
 import { LayoutGrid } from "@lucide/vue";
@@ -31,8 +31,15 @@ defineProps<{ kind?: TestKind }>();
 /* ------------------------------------------------------------- */
 
 const { t } = useI18n();
-const { projectName, testName, filters, branch, fromInbox, assignedToMe } =
-  useRouteParams();
+const {
+  projectName,
+  testName,
+  filters,
+  branch,
+  fromInbox,
+  assignedToMe,
+  inboxFilters,
+} = useRouteParams();
 const router = useRouter();
 
 const { data: project } = useProjectDetailQuery(projectName, branch);
@@ -59,6 +66,7 @@ const {
   filters,
   returnToInbox: fromInbox,
   assignedToMe,
+  pendingFilters: inboxFilters,
 });
 
 // A test inherited from another branch has no reviewable baseline of its own
@@ -123,8 +131,15 @@ const showShortcuts = computed(
     !isApproved(data.value.comparison.status),
 );
 
+// The decision dialog lives inside the comparison view (it is presentational
+// state of that panel). The shortcut asks the panel to open it instead of
+// committing an approval without a reason — the same path the button takes.
+const comparisonView = ref<InstanceType<typeof TestComparisonView> | null>(
+  null,
+);
+
 useReviewShortcuts({
-  onApprove: handleApprove,
+  onApprove: () => comparisonView.value?.openDecision(),
   onSkip: handleSkip,
   onBack: () => router.back(),
   enabled: () => showShortcuts.value,
@@ -196,11 +211,13 @@ useReviewShortcuts({
         :browser="filters.browser"
         :environment="filters.environment"
         :branch-name="branch"
+        :project-pixel-diff-threshold="project?.pixelDiffThreshold ?? null"
         :read-only="isInherited"
       />
 
       <TestComparisonView
         v-if="data?.comparison"
+        ref="comparisonView"
         :key="viewKey"
         :comparison="data.comparison"
         :is-approving="isApproving"

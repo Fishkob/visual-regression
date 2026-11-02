@@ -80,6 +80,13 @@ export const TEST_ID = {
   reviewRequiredApprovalsValue: "review-required-approvals-value",
   reviewSettingsSave: "review-settings-save",
 
+  thresholdSettingsAction: "threshold-settings-action",
+  thresholdSettingsDialog: "threshold-settings-dialog",
+  projectThresholdInput: "project-threshold-input",
+  projectThresholdSave: "project-threshold-save",
+  projectThresholdValue: "project-threshold-value",
+  projectThresholdSection: "project-threshold-section",
+
   projectSettingsAction: "project-settings-action",
   projectSettingsView: "project-settings-view",
   projectSettingsName: "project-settings-name",
@@ -100,6 +107,9 @@ export const TEST_ID = {
   shareError: "share-error",
   shareProjectTests: "share-project-tests",
   shareTestSummary: "share-test-summary",
+  shareComparison: "share-comparison",
+  shareComparisonImage: "share-comparison-image",
+  shareComparisonMismatch: "share-comparison-mismatch",
   shareRunSummary: "share-run-summary",
   shareAction: "share-action",
   shareDialog: "share-dialog",

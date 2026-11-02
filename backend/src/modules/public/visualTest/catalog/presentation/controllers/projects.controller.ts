@@ -32,6 +32,8 @@ import {
   UpdateProjectDto,
   UpdateProjectReviewPolicyDto,
   ProjectReviewPolicyDto,
+  UpdateProjectPixelThresholdDto,
+  ProjectPixelThresholdDto,
   ProjectsListQueryDto,
   ProjectDetailQueryDto,
 } from '@public/visualTest/catalog/presentation/dto/project.dto';
@@ -178,6 +180,34 @@ export class ProjectsController {
     return this.projectService.updateReviewPolicy(
       projectName,
       dto.requiredApprovals,
+      requireActor(req),
+    );
+  }
+
+  @Roles('ADMIN')
+  @Scope('admin')
+  @Patch(':projectName/pixel-threshold')
+  @ApiOperation({ summary: "Update the project's default pixel tolerance" })
+  @ApiParam({
+    name: 'projectName',
+    type: String,
+    description: 'The project whose default threshold to update',
+    example: 'checkout-ui',
+  })
+  @ApiBody({ type: UpdateProjectPixelThresholdDto })
+  @ApiOkResponse({
+    type: ProjectPixelThresholdDto,
+    description: 'The project now applies the returned default threshold',
+  })
+  @ApiNotFoundResponse({ description: 'Project not found' })
+  async updatePixelThreshold(
+    @Param('projectName', ProjectNameValidationPipe) projectName: string,
+    @Body() dto: UpdateProjectPixelThresholdDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ProjectPixelThresholdDto> {
+    return this.projectService.updatePixelThreshold(
+      projectName,
+      dto.pixelDiffThreshold,
       requireActor(req),
     );
   }

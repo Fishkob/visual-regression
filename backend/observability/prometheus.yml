@@ -17,6 +17,19 @@ scrape_configs:
         labels:
           service: visual-regression-api
 
+  # The worker's metrics (diff histograms, queue depth/age, heartbeat and
+  # ownership-loss counters) live in its own process registry; the API never
+  # sees them. Same auth rule, same key file, worker health port.
+  - job_name: visual-regression-worker
+    metrics_path: /api/v1/metrics
+    http_headers:
+      x-metrics-key:
+        files: ["/etc/prometheus/secrets/x-metrics-key"]
+    static_configs:
+      - targets: ["host.docker.internal:3003"]
+        labels:
+          service: visual-regression-worker
+
   - job_name: tempo
     static_configs:
       - targets: ["tempo:3200"]

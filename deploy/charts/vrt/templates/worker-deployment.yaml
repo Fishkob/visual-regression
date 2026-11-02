@@ -15,6 +15,10 @@ spec:
     metadata:
       labels:
         app: worker
+      {{- with .Values.worker.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     spec:
       # Above the poller's 30s drain budget, so SIGTERM lets it finish the
       # in-flight job instead of SIGKILLing it into a phantom retry.

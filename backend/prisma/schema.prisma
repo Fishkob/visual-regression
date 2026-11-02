@@ -21,6 +21,10 @@ model Project {
   storageQuotaBytes     BigInt?
   quotaSoftPercent      Int?          @default(80)
   requiredApprovals     Int           @default(1)
+  // Project-wide fallback tolerance in pixels. A variant whose baseline has no
+  // threshold of its own (0) inherits this value; an explicit per-variant
+  // threshold always wins. Null means "no project default".
+  pixelDiffThreshold    Int?
   branches        Branch[]      @relation("ProjectBranches")
   webhooks        WebhookEndpoint[]
   runs            Run[]
@@ -389,7 +393,7 @@ model ComparisonJob {
   variantEnvironment  String?
   status              JobStatus     @default(PENDING)
   attempts            Int           @default(0)
-  maxAttempts         Int           @default(3)
+  maxAttempts         Int           @default(5)
   nextAttemptAt       DateTime?
   processingStartedAt DateTime?
   heartbeatAt         DateTime?

@@ -86,6 +86,31 @@ const failed = results.filter((result) => !result.ok);
 - A `runKey` on each capture groups the batch into one run.
 - `baseUrl` defaults to `http://localhost:3000/api/v1`.
 
+### Config-as-code (`.vrt.json`)
+
+The reporter reads per-test pixel thresholds from `.vrt.json` in the working
+directory (override with `configPath`); `uploadMany` callers can set the same
+field directly on a capture.
+
+```json
+{
+  "thresholds": {
+    "checkout.spec.ts / cart summary": 12,
+    "login works": 4
+  }
+}
+```
+
+- Keys are the reporter's canonical test name (title path joined with `" / "`);
+  the bare title and the last path segment are accepted as fallbacks.
+- The server applies the value when the upload creates the baseline and can only
+  **tighten** an existing baseline. Raising a threshold auto-accepts pending
+  comparisons and stays an ADMIN action.
+- A missing file means "no thresholds"; a broken file is surfaced through
+  `onConfigError`, and the uploads proceed without thresholds.
+- `parseVrtConfig`, `thresholdForTest` and `VRT_CONFIG_FILE` are exported from
+  `@fishkob/vrt/upload-many` for custom callers.
+
 ## Playwright reporter
 
 ```ts

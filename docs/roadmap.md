@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: living document · Last reviewed: 2026-10-25 · Owner: maintainers
+Status: living document · Last reviewed: 2026-11-21 · Owner: maintainers
 
 This roadmap turns the gap analysis of the current feature set into an ordered,
 independently shippable backlog. It is not a release plan: every item is useful
@@ -64,6 +64,12 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
 | R18 | Share links                              | 5     | M    | R9 · ADR-038                  | Shipped |
 | R19 | Review assignment, due dates & 4-eyes    | 5     | L    | R9, R4 · ADR-039              | Shipped |
 | R20 | Review comments & decision notes         | 5     | M    | R9 · ADR-040                  | Shipped |
+| R21 | Worker reliability & duplicate guard     | 6     | M    | —                             | Shipped |
+| R22 | Worker observability & queue alerts      | 6     | S–M  | R21                           | Shipped |
+| R23 | Share links with pixels                  | 6     | M    | ADR-058                       | Shipped |
+| R24 | Config-as-code & project threshold       | 6     | M    | ADR-057                       | Shipped |
+| R25 | Review-pass filter coherence             | 6     | S–M  | —                             | Shipped |
+| R26 | Review-loop & security fixes             | 6     | S    | —                             | Shipped |
 
 Status is `Planned`, `In progress` or `Shipped`; a shipped item keeps its
 section and checked acceptance criteria so the history stays readable.
@@ -897,6 +903,126 @@ cleans orphans (ADR-042). Decision: ADR-040/042.
 **Size.** M · depends on R9.
 
 ---
+
+## Phase 6 — Hardening (2026-11-21)
+
+The backlog below came out of a code-review pass over the shipped feature set.
+It is deliberately narrow: reliability of the existing pipeline, the CI entry
+point and the operator's ability to see a failure — no new product surface.
+
+### R21 — Worker reliability & duplicate guard
+
+**Why.** The retry budget was seconds (3 attempts, 1 s base), so any outage
+longer than ~3 s failed in-flight jobs into the DLQ. A completed job whose
+bookkeeping write failed stayed `PROCESSING` and was re-run by the stall
+reclaim, producing a second comparison and a second `review.requested`. A hung
+engine held the only worker forever while `/health` stayed green.
+
+**Shipped.** Five attempts at 30/60/120/240 s with a 5 min cap; a per-job
+wall-clock deadline (`WORKER_TIMING.jobTimeoutMs`, 10 min) that fails the row
+retryably and stops its heartbeat; bookkeeping retried three times; and a
+duplicate guard that skips a re-run when a pending comparison already exists for
+the candidate. The job row's `maxAttempts` default moved to 5 (migration).
+
+**Acceptance.**
+
+- [x] A processor failure is retried after 30 s, 60 s, 120 s, 240 s; the fifth
+      failure is final
+- [x] A job that exceeds 10 min is failed retryably and its heartbeat stops
+- [x] A re-run with an existing pending comparison stores no diff and emits no
+      second `review.requested`
+- [x] Ownership writes still match `processingStartedAt` (a late completion
+      cannot overwrite a reclaimed row)
+
+### R22 — Worker observability & queue alerts
+
+**Why.** The worker exposes `/metrics`, but no shipped Prometheus config scraped
+it, no alert covered "worker down" or "queue stalled", and the only queue alert
+read a cumulative FAILED gauge (firing forever after a burst). A wedged worker
+was invisible.
+
+**Shipped.** The queue health check now records pending, processing and
+oldest-pending-age gauges (retry-delayed jobs excluded); the bundled Prometheus
+config scrapes the worker health port with the metrics key; three Grafana alerts
+cover worker down, oldest pending > 10 min and a rising failure rate. The Helm
+chart exposes `worker.podAnnotations` and the docs explain why annotation
+scraping cannot send the key header.
+
+**Acceptance.**
+
+- [x] `queue_pending_jobs`, `queue_processing_jobs` and
+      `queue_oldest_pending_age_seconds` are exported by the worker
+- [x] `visual-regression-worker` is a Prometheus target in the bundled stack
+- [x] Alerts: worker down (2 min), queue stalled (10 min), failures rising
+- [x] The Helm values expose pod annotations for a header-capable scrape config
+
+### R23 — Share links with pixels
+
+**Why.** ADR-038's public payload deliberately contained no images, so the
+"show this diff to design/product" use case showed a status table. ADR-058
+supersedes that clause.
+
+**Shipped.** A TEST share resolves the latest reviewable comparison and includes
+presigned baseline/candidate/diff URLs (re-signed on every resolve), the variant
+coordinates, pixel/page mismatch and page count. Project and run shares stay
+metadata-only. The public page renders the three images (or the three PDF links)
+and keeps the read-only, passphrase and audit rules.
+
+**Acceptance.**
+
+- [x] A TEST share with a pending comparison shows all three images
+- [x] URLs are signed on each resolve; the payload stores none
+- [x] A test without a comparison resolves as before
+- [x] No action, user or API-key data appears in the public payload
+
+### R24 — Config-as-code & project threshold
+
+**Why.** A tolerance lived only in the dashboard, per variant, and a project
+had no default. Teams keep capture configuration in the repository.
+
+**Shipped.** `.vrt.json` (`thresholds` per test) read by the Playwright reporter
+and sent as the upload's `pixelDiffThreshold`; the value applies on baseline
+creation and can only tighten an existing baseline (raising stays the ADMIN
+path). A project default (`Project.pixelDiffThreshold`) is set by an ADMIN via
+`PATCH /projects/:name/pixel-threshold` with a `project.pixel-threshold` audit
+row, and the worker resolves the effective threshold as
+variant → project → 0. ADR-057 records the rules and the consequences.
+
+**Acceptance.**
+
+- [x] A new baseline stores the config threshold; an existing baseline is only
+      lowered, with a `test.threshold` audit row (`source: config`)
+- [x] A raise from config is ignored; the ADMIN threshold path still works
+- [x] A variant at 0 inherits the project default; the review page shows it
+- [x] `missing .vrt.json` means "no thresholds"; a broken file is reported via
+      `onConfigError` and does not drop uploads
+
+### R25 — Review-pass filter coherence
+
+**Why.** "Review N" was branch-wide and ignored the inbox filters, so a pass
+started from a filtered queue walked tests outside that scope; "back to inbox"
+also dropped the page and the free-text filters.
+
+**Shipped.** The project pending endpoint accepts `kind`, `q`, `runKey` and
+`tag`; the details page passes the inbox scope (`inboxKind`, `inboxQ`,
+`inboxRunKey`, `inboxTag`); the inbox search/run/tag filters are URL-bound; the
+back leg restores page and every filter. The section count falls back to the
+visible filtered rows when a narrow filter is active.
+
+**Acceptance.**
+
+- [x] Filtering the inbox by kind/run/tag/q narrows the pending list the pass
+      walks (server query, not just the count)
+- [x] The inbox survives a refresh with all six filters in the URL
+- [x] Approving in a filtered page-2 pass returns to that page and scope
+
+### R26 — Review-loop & security fixes
+
+**Shipped.** PDF deep links resolve (the variants read serves both kinds);
+`A` opens the approval-reason dialog instead of committing reason-less; the
+audit CSV export neutralises spreadsheet formulas through the shared
+`toCsvCell`; the pdf-sidecar publishes on loopback only; the sidecar is no
+longer reachable from the LAN without auth.
 
 ## Considered and rejected
 

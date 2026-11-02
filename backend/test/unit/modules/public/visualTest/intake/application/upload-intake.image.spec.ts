@@ -42,6 +42,7 @@ import {
   createMockLogger,
 } from '@test/utils/mocks';
 import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referencedness.interface';
+import { AuditService } from '@internal/audit/audit.service';
 
 describe('UploadIntake (image kind)', () => {
   let uploadIntake: UploadIntake;
@@ -50,6 +51,7 @@ describe('UploadIntake (image kind)', () => {
   let baselines: Mocked<BranchBaselineResolver>;
   let branchTests: Mocked<BranchTestRepository>;
   let screenshots: Mocked<UnifiedScreenshotRepository>;
+  let audit: Mocked<AuditService>;
   let workflow: StateChangeWorkflow;
   let storage: Mocked<IStorageProvider>;
   let jobQueue: Mocked<IJobProducer>;
@@ -130,6 +132,9 @@ describe('UploadIntake (image kind)', () => {
       createdAt: new Date(testDate),
     });
     screenshots = createMock<UnifiedScreenshotRepository>();
+    screenshots.tightenBaselineThreshold.mockResolvedValue(null);
+    audit = createMock<AuditService>();
+    audit.record.mockResolvedValue(undefined);
     screenshots.filterReclaimableUrls.mockImplementation((urls) =>
       Promise.resolve(urls),
     );
@@ -160,6 +165,7 @@ describe('UploadIntake (image kind)', () => {
         { provide: BranchBaselineResolver, useValue: baselines },
         { provide: BranchTestRepository, useValue: branchTests },
         { provide: UnifiedScreenshotRepository, useValue: screenshots },
+        { provide: AuditService, useValue: audit },
         { provide: UnifiedComparisonsRepository, useValue: comparisons },
         { provide: ComparisonRetirementService, useValue: retirement },
         StateChangeWorkflow,
@@ -434,6 +440,30 @@ describe('UploadIntake (image kind)', () => {
     );
     expect(statusService.recomputeStatus).toHaveBeenCalledWith('test-1');
     expect(storage.deleteQuietly).not.toHaveBeenCalled();
+  });
+
+  it('stores a config-as-code threshold on a new baseline and audits it', async () => {
+    tests.ensureTest.mockResolvedValue({ testId: 'test-1' });
+    screenshots.findBaselineByVariant.mockResolvedValue(null);
+    storage.putObject.mockResolvedValue(
+      `https://storage/${testHash}-${testDate}.png`,
+    );
+
+    await uploadIntake.upload(
+      { ...baseParams, pixelDiffThreshold: 25, actor: 'ci-key' },
+      'image',
+    );
+
+    expect(screenshots.upsertBaselineForVariant).toHaveBeenCalledWith(
+      expect.objectContaining({ pixelDiffThreshold: 25 }),
+    );
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actor: 'ci-key',
+        action: 'test.threshold',
+        metadata: { from: null, to: 25, source: 'config' },
+      }),
+    );
   });
 
   it('cleans up uploaded file when upsertBaseline fails', async () => {

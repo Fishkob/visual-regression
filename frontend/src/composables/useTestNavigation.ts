@@ -30,12 +30,32 @@ export function useTestNavigation(options: TestNavigationOptions) {
   // and the way back carry it unchanged.
   function inboxScopeQuery() {
     const scope: Record<string, string> = {};
-    const { inboxKind, inboxGroup, assignedToMe } = route.query;
+    const {
+      inboxKind,
+      inboxGroup,
+      inboxQ,
+      inboxRunKey,
+      inboxTag,
+      inboxPage,
+      assignedToMe,
+    } = route.query;
     if (typeof inboxKind === "string" && inboxKind) {
       scope.inboxKind = inboxKind;
     }
     if (typeof inboxGroup === "string" && inboxGroup) {
       scope.inboxGroup = inboxGroup;
+    }
+    if (typeof inboxQ === "string" && inboxQ) {
+      scope.inboxQ = inboxQ;
+    }
+    if (typeof inboxRunKey === "string" && inboxRunKey) {
+      scope.inboxRunKey = inboxRunKey;
+    }
+    if (typeof inboxTag === "string" && inboxTag) {
+      scope.inboxTag = inboxTag;
+    }
+    if (typeof inboxPage === "string" && inboxPage) {
+      scope.inboxPage = inboxPage;
     }
     if (assignedToMe === "1") {
       scope.assignedToMe = "1";
@@ -97,6 +117,10 @@ export function useTestNavigation(options: TestNavigationOptions) {
       ...(branchName?.value ? { branch: branchName.value } : {}),
       ...(scope.inboxKind ? { kind: scope.inboxKind } : {}),
       ...(scope.inboxGroup ? { group: scope.inboxGroup } : {}),
+      ...(scope.inboxQ ? { q: scope.inboxQ } : {}),
+      ...(scope.inboxRunKey ? { runKey: scope.inboxRunKey } : {}),
+      ...(scope.inboxTag ? { tag: scope.inboxTag } : {}),
+      ...(scope.inboxPage ? { page: scope.inboxPage } : {}),
       ...(scope.assignedToMe ? { assignedToMe: scope.assignedToMe } : {}),
     };
     router.push({

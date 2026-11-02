@@ -11,6 +11,7 @@ import type { VariantRecord } from '@common/domain/variant-record';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';
 import { createMockLogger } from '@test/utils/mocks';
+import { WORKER_TIMING } from '@common/utils/worker-timing';
 
 function imageJobData(testId: string): JobData {
   return {
@@ -201,7 +202,7 @@ describe('PostgresJobQueue', () => {
       expect(prisma.client.comparisonJob.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           testId: 'vt-1',
-          maxAttempts: 3,
+          maxAttempts: 5,
           payload: expect.objectContaining({
             testKind: 'image',
             projectName: 'shop',
@@ -231,7 +232,7 @@ describe('PostgresJobQueue', () => {
 
       expect(prisma.client.comparisonJob.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          maxAttempts: 3,
+          maxAttempts: 5,
         }),
       });
     });
@@ -1021,11 +1022,15 @@ describe('PostgresJobQueue', () => {
       );
 
       const processor = vi.fn().mockResolvedValue(undefined);
-      const processed = await queue.processNext(processor);
+      const pending = queue.processNext(processor);
+      // The bookkeeping write is retried with a short delay; drive the fake
+      // timers so the test finishes without waiting in real time.
+      await vi.advanceTimersByTimeAsync(2000);
+      const processed = await pending;
 
       expect(processed).toBe(true);
       expect(processor).toHaveBeenCalledTimes(1);
-      expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledTimes(1);
+      expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledTimes(3);
       expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ status: 'COMPLETED' }),
@@ -1039,6 +1044,30 @@ describe('PostgresJobQueue', () => {
 
       vi.advanceTimersByTime(10000);
       expect(heartbeatCalls()).toBe(0);
+    });
+
+    it('fails a job that exceeds its deadline and stops its heartbeat', async () => {
+      claimProcessingJob('job-1');
+      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
+      const processor = vi.fn(() => new Promise<void>(() => {}));
+
+      const pending = queue.processNext(processor);
+      await vi.advanceTimersByTimeAsync(WORKER_TIMING.jobTimeoutMs);
+      expect(await pending).toBe(true);
+
+      expect(prisma.client.comparisonJob.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'PENDING', attempts: 1 }),
+        }),
+      );
+      expect(metrics.incrementCounter).toHaveBeenCalledWith(
+        'queue_job_timeouts_total',
+        { queue: 'comparison' },
+      );
+
+      const heartbeatsAtDeadline = heartbeatCalls();
+      vi.advanceTimersByTime(10000);
+      expect(heartbeatCalls()).toBe(heartbeatsAtDeadline);
     });
 
     it('still re-queues a job whose processor rejected', async () => {

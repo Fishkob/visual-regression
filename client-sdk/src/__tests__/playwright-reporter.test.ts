@@ -2,7 +2,11 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createVrtReporter } from '../playwright-reporter';
 import { uploadMany } from '../upload-many';
 
-vi.mock('../upload-many', () => ({ uploadMany: vi.fn() }));
+// Keep the pure config helpers real; only the network call is mocked.
+vi.mock('../upload-many', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../upload-many')>();
+  return { ...actual, uploadMany: vi.fn() };
+});
 
 const uploadManyMock = vi.mocked(uploadMany);
 
@@ -116,5 +120,86 @@ describe('createVrtReporter', () => {
     await reporter.onEnd();
 
     expect(uploadManyMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('config thresholds', () => {
+  beforeEach(() => {
+    uploadManyMock.mockReset();
+    uploadManyMock.mockResolvedValue([
+      {
+        index: 0,
+        capture: {} as never,
+        ok: true,
+        attempts: 1,
+        data: {},
+      },
+    ]);
+  });
+
+  it('applies the threshold from the repository config', async () => {
+    const { mkdtemp, writeFile } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const dir = await mkdtemp(join(tmpdir(), 'vrt-config-'));
+    const configPath = join(dir, '.vrt.json');
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        thresholds: { 'checkout.spec.ts / login works': 7 },
+      }),
+    );
+
+    const reporter = createVrtReporter({
+      apiUrl: 'http://vrt.test/api/v1',
+      apiKey: 'key-1',
+      project: 'checkout',
+      configPath,
+    });
+
+    reporter.onTestEnd(testLike(), result());
+    await reporter.onEnd();
+
+    const [captures] = uploadManyMock.mock.calls[0]!;
+    expect(captures[0]!.pixelDiffThreshold).toBe(7);
+  });
+
+  it('uploads without a threshold when the config file is missing', async () => {
+    const reporter = createVrtReporter({
+      apiUrl: 'http://vrt.test/api/v1',
+      apiKey: 'key-1',
+      project: 'checkout',
+      configPath: '/nonexistent/vrt/.vrt.json',
+    });
+
+    reporter.onTestEnd(testLike(), result());
+    await reporter.onEnd();
+
+    const [captures] = uploadManyMock.mock.calls[0]!;
+    expect(captures[0]!.pixelDiffThreshold).toBeUndefined();
+  });
+
+  it('reports a broken config instead of silently dropping uploads', async () => {
+    const { mkdtemp, writeFile } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const dir = await mkdtemp(join(tmpdir(), 'vrt-config-'));
+    const configPath = join(dir, '.vrt.json');
+    await writeFile(configPath, '{not json');
+    const onConfigError = vi.fn();
+
+    const reporter = createVrtReporter({
+      apiUrl: 'http://vrt.test/api/v1',
+      apiKey: 'key-1',
+      project: 'checkout',
+      configPath,
+      onConfigError,
+    });
+
+    reporter.onTestEnd(testLike(), result());
+    await reporter.onEnd();
+
+    expect(onConfigError).toHaveBeenCalledTimes(1);
+    expect(uploadManyMock).toHaveBeenCalledTimes(1);
   });
 });

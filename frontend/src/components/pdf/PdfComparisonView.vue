@@ -39,6 +39,16 @@ const emit = defineEmits<{
 }>();
 
 const decisionOpen = ref(false);
+
+// One entry point for "ask for the approval decision": the footer button and
+// the review shortcut both reach it, so `A` cannot commit without the
+// reason/note step the button enforces (ADR-040).
+function openDecision(): void {
+  decisionOpen.value = true;
+}
+
+defineExpose({ openDecision });
+
 const viewMode = ref<ViewMode>("side-by-side");
 const currentPage = ref(1);
 

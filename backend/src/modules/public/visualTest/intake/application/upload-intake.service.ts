@@ -31,6 +31,8 @@ import {
   ComparisonErrorCode,
 } from '@common/domain/upload-outcome';
 import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
+import { AuditService } from '@internal/audit/audit.service';
+import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import type { JobData } from '@common/domain/job-data.types';
 import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
 import { ImageNormalizer } from '@public/visualTest/core/application/services/image-normalizer.service';
@@ -93,6 +95,7 @@ export class UploadIntake {
     private readonly runs: RunResolver,
     private readonly images: ImageNormalizer,
     private readonly tests: UnifiedTestRepository,
+    private readonly audit: AuditService,
   ) {}
 
   async upload(input: UploadParams, kind: TestKind): Promise<AnyUploadResult> {
@@ -283,7 +286,7 @@ export class UploadIntake {
         };
       }
       case ComparisonOutcome.BASELINE_CREATED: {
-        await this.writeBaseline(fresh, params, fileUrl, pageCount);
+        await this.writeBaseline(fresh, params, fileUrl, pageCount, kind);
         return {
           change: change([fresh.testId], {
             events: [
@@ -400,7 +403,8 @@ export class UploadIntake {
     decision: BaselineCreatedUploadDecision,
     params: UploadParams,
     fileUrl: string,
-    pageCount?: number,
+    pageCount: number | undefined,
+    kind: TestKind,
   ): Promise<void> {
     await this.screenshots.upsertBaselineForVariant({
       testId: decision.testId,
@@ -409,7 +413,26 @@ export class UploadIntake {
       variant: toVariant(params),
       pageCount,
       sizeBytes: params.file.size,
+      ...(kind === 'image' && params.pixelDiffThreshold !== undefined
+        ? { pixelDiffThreshold: params.pixelDiffThreshold }
+        : {}),
     });
+    if (kind === 'image' && params.pixelDiffThreshold !== undefined) {
+      await this.audit.record({
+        actor: params.actor ?? null,
+        action: AUDIT_ACTIONS.testThreshold,
+        projectName: params.projectName,
+        testName: params.testName,
+        branchName: params.branch ?? null,
+        targetType: 'test',
+        targetId: decision.testId,
+        metadata: {
+          from: null,
+          to: params.pixelDiffThreshold,
+          source: 'config',
+        },
+      });
+    }
   }
 
   private async writeComparisonAndEnqueue(
@@ -424,6 +447,31 @@ export class UploadIntake {
       decision.testId,
       toVariant(params),
     );
+    // A repo-defined tolerance may tighten an existing baseline, never widen
+    // it: widening retires pendings and belongs to the ADMIN threshold path.
+    if (kind === 'image' && params.pixelDiffThreshold !== undefined) {
+      const previous = await this.screenshots.tightenBaselineThreshold(
+        decision.testId,
+        toVariant(params),
+        params.pixelDiffThreshold,
+      );
+      if (previous !== null) {
+        await this.audit.record({
+          actor: params.actor ?? null,
+          action: AUDIT_ACTIONS.testThreshold,
+          projectName: params.projectName,
+          testName: params.testName,
+          branchName: params.branch ?? null,
+          targetType: 'test',
+          targetId: decision.testId,
+          metadata: {
+            from: previous,
+            to: params.pixelDiffThreshold,
+            source: 'config',
+          },
+        });
+      }
+    }
     const prepared = await this.prepareComparison(
       kind,
       decision,

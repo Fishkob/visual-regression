@@ -163,7 +163,9 @@ describe("InboxView run filter", () => {
     );
     // Applying the filter returns to page 1, which is what drops the page
     // parameter from the URL.
-    expect(mockReplace).toHaveBeenCalledWith({ query: {} });
+    expect(mockReplace).toHaveBeenCalledWith({
+      query: { runKey: "ci-42" },
+    });
   });
 
   it("sends the tag filter to the server and returns to the first page", async () => {
@@ -184,7 +186,9 @@ describe("InboxView run filter", () => {
         tag: "smoke",
       }),
     );
-    expect(mockReplace).toHaveBeenCalledWith({ query: {} });
+    expect(mockReplace).toHaveBeenCalledWith({
+      query: { tag: "smoke" },
+    });
   });
 
   it("combines the tag filter with the other filters", async () => {
@@ -329,7 +333,7 @@ describe("InboxView assignments", () => {
       }),
     );
     expect(mockReplace).toHaveBeenCalledWith({
-      query: { assignedToMe: "1" },
+      query: { assignedToMe: "1", tag: "smoke" },
     });
   });
 

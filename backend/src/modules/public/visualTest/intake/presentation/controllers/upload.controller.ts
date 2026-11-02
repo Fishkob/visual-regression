@@ -4,6 +4,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -41,6 +42,8 @@ import { Scope } from '@common/http/api-key-scope.decorator';
 import type { AnyUploadResult } from '@common/domain/unified-upload-result.type';
 import { ComparisonOutcome } from '@common/domain/upload-outcome';
 import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
+import { requireActor } from '@common/http/authenticated-principal';
+import type { AuthenticatedRequest } from '@common/http/authenticated-request';
 
 @ApiTags('Upload')
 @RateLimit('upload')
@@ -107,6 +110,14 @@ export class UploadController {
           type: 'string',
           example: 'https://github.com/org/repo/actions/runs/1',
         },
+        pixelDiffThreshold: {
+          type: 'integer',
+          minimum: 0,
+          maximum: 100000,
+          example: 25,
+          description:
+            'Config-as-code pixel tolerance for this variant (applied on baseline creation, can only tighten an existing baseline)',
+        },
       },
     },
   })
@@ -139,6 +150,7 @@ export class UploadController {
     @UploadedFile(FileValidationPipe)
     file: Express.Multer.File,
     @Body() body: UploadDocumentDto,
+    @Req() req: AuthenticatedRequest,
   ) {
     const result = await this.uploadIntake.upload(
       {
@@ -154,6 +166,10 @@ export class UploadController {
         commitSha: body.commitSha,
         commitMessage: body.commitMessage,
         ciUrl: body.ciUrl,
+        actor: requireActor(req),
+        ...(body.pixelDiffThreshold !== undefined
+          ? { pixelDiffThreshold: body.pixelDiffThreshold }
+          : {}),
       },
       testKind,
     );

@@ -94,12 +94,18 @@ export class TestQueryService {
     pagination: PaginationDto,
     branchName?: string,
     assigneeId?: string,
+    filters: { kind?: string; q?: string; runKey?: string; tag?: string } = {},
   ) {
     const branch = await this.branches.resolveRead(projectName, branchName);
 
     return paginatedQuery(
       (args) =>
-        this.testRead.getPendingApproval(branch.branchId, args, assigneeId),
+        this.testRead.getPendingApproval(
+          branch.branchId,
+          args,
+          assigneeId,
+          filters,
+        ),
       pagination,
       (row) =>
         plainToInstance(PendingTestDto, row, {
@@ -194,11 +200,12 @@ export class TestQueryService {
         'NOT_FOUND',
       );
     }
-    this.testResolver.assertTestKind(
-      { name: testName, kind: result.kind },
-      'image',
-    );
-
+    // The variant coordinates are kind-agnostic (a PDF test has the same
+    // viewport/browser/environment dimensions as an image test), so this read
+    // deliberately serves both kinds: a variant-less deep link to a PDF test
+    // resolves its variant through it. The image-specific fields of the DTO are
+    // empty (or carry the PDF object URL) for a PDF test; the review page does
+    // not render the image gallery for that kind.
     return mapTestVariantsToDto(result, this.signUrl);
   }
 

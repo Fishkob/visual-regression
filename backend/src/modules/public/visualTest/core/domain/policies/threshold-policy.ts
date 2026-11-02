@@ -23,6 +23,24 @@ export function isThresholdExceeded(
   return mismatchPixelCount > (baselineThreshold ?? 0);
 }
 
+// The effective tolerance for a variant: an explicit per-variant threshold
+// wins, a variant still at 0 (the schema's "not configured") inherits the
+// project default. Null/undefined both mean "no default". The worker, the
+// comparison read flag and the review UI read this one rule so the number shown
+// and the number applied cannot drift.
+//
+// Consequence to know: an explicit per-variant 0 is indistinguishable from an
+// unset threshold and therefore also inherits the project default. Setting a
+// project default is a deliberate policy change for the whole project; the UI
+// states that.
+export function effectivePixelThreshold(
+  variantThreshold?: number | null,
+  projectThreshold?: number | null,
+): number {
+  const variant = variantThreshold ?? 0;
+  return variant > 0 ? variant : (projectThreshold ?? 0);
+}
+
 // Threshold is an image-only concept, so a PDF comparison is never tolerated no
 // matter what its row carries. `threshold` is the baseline's raw value, which
 // may be missing on a legacy row or a partial double — the same 0 default the
@@ -31,9 +49,13 @@ export function isWithinThreshold(
   kind: TestKind,
   mismatchPixelCount: number,
   threshold?: number | null,
+  projectThreshold?: number | null,
 ): boolean {
   if (kind !== 'image') return false;
-  return !isThresholdExceeded(mismatchPixelCount, threshold ?? 0);
+  return !isThresholdExceeded(
+    mismatchPixelCount,
+    effectivePixelThreshold(threshold, projectThreshold),
+  );
 }
 
 // CONTEXT.md: when a user raises the threshold, existing PENDING_APPROVAL

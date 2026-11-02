@@ -9,6 +9,16 @@ import { RUN_STATES } from "@/domains/runs/run.model";
 import type { PublicShare } from "@/domains/share-links/share-link.model";
 import { TEST_ID } from "@/lib/test-ids";
 
+const shareImages = computed(() => {
+  const comparison = share.value?.comparison;
+  if (!comparison) return [];
+  return [
+    { label: t("share.baselineImage"), url: comparison.baselineUrl },
+    { label: t("share.candidateImage"), url: comparison.candidateUrl },
+    { label: t("share.diffImage"), url: comparison.diffUrl },
+  ];
+});
+
 const route = useRoute();
 const { t } = useI18n();
 
@@ -224,6 +234,112 @@ onMounted(() => {
               <dd>{{ share.test.variantCount ?? 0 }}</dd>
             </div>
           </dl>
+
+          <!-- The point of sharing a test: the stakeholder sees the pixels, not
+               just the test's metadata. URLs are presigned per resolve, so a
+               reload after the signature expires gets fresh ones. -->
+          <div
+            v-if="share.comparison"
+            class="mt-4 space-y-3 border-t pt-4"
+            :data-testid="TEST_ID.shareComparison"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h2 class="text-base font-semibold">
+                {{ t("share.comparisonTitle") }}
+              </h2>
+              <span class="font-mono text-xs text-muted-foreground">
+                {{ share.comparison.viewport }} ·
+                {{ share.comparison.browser }} ·
+                {{ share.comparison.environment }}
+              </span>
+            </div>
+            <p
+              class="text-sm text-muted-foreground"
+              :data-testid="TEST_ID.shareComparisonMismatch"
+            >
+              <template v-if="share.comparison.kind === 'pdf'">
+                {{
+                  t("share.mismatchPages", {
+                    count: share.comparison.mismatchPageCount ?? 0,
+                    total: share.comparison.pageCount ?? 0,
+                  })
+                }}
+              </template>
+              <template v-else>
+                {{
+                  t("share.mismatchPixels", {
+                    count: share.comparison.mismatchPixelCount,
+                  })
+                }}
+              </template>
+            </p>
+
+            <div
+              v-if="share.comparison.kind === 'image'"
+              class="grid gap-3 md:grid-cols-3"
+            >
+              <figure
+                v-for="image in shareImages"
+                :key="image.label"
+                class="space-y-1"
+              >
+                <figcaption class="text-xs font-medium text-muted-foreground">
+                  {{ image.label }}
+                </figcaption>
+                <a
+                  v-if="image.url"
+                  :href="image.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    :src="image.url"
+                    :alt="image.label"
+                    class="w-full rounded-md border bg-muted"
+                    loading="eager"
+                    :data-testid="TEST_ID.shareComparisonImage"
+                  />
+                </a>
+                <p
+                  v-else
+                  class="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground"
+                >
+                  {{ t("share.imageUnavailable") }}
+                </p>
+              </figure>
+            </div>
+
+            <div v-else class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              <a
+                v-if="share.comparison.baselineUrl"
+                :href="share.comparison.baselineUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="underline underline-offset-4"
+                :data-testid="TEST_ID.shareComparisonImage"
+              >
+                {{ t("share.openBaselinePdf") }}
+              </a>
+              <a
+                v-if="share.comparison.candidateUrl"
+                :href="share.comparison.candidateUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="underline underline-offset-4"
+              >
+                {{ t("share.openCandidatePdf") }}
+              </a>
+              <a
+                v-if="share.comparison.diffUrl"
+                :href="share.comparison.diffUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="underline underline-offset-4"
+              >
+                {{ t("share.openDiffPdf") }}
+              </a>
+            </div>
+          </div>
         </section>
 
         <section

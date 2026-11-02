@@ -66,6 +66,7 @@ const ACTION_KEY: Record<AuditAction, string> = {
   "review.comment": "audit.actions.reviewComment",
   "review.comment-resolve": "audit.actions.reviewCommentResolve",
   "project.review-policy": "audit.actions.projectReviewPolicy",
+  "project.pixel-threshold": "audit.actions.projectPixelThreshold",
   "test.threshold": "audit.actions.testThreshold",
 };
 

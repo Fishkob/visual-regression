@@ -4,6 +4,7 @@ import {
   type CreatedShareLink,
   type PublicRunCounts,
   type PublicShare,
+  type PublicShareComparison,
   type PublicShareRun,
   type PublicShareTest,
   type PublicShareTest as PublicTest,
@@ -130,14 +131,40 @@ function mapPublicRun(
   };
 }
 
+function mapPublicComparison(
+  value: unknown,
+): PublicShareComparison | undefined {
+  const raw = record(value);
+  if (!raw) return undefined;
+  const id = text(raw.id);
+  const kind = presentKind(raw.kind);
+  if (!id || !kind) return undefined;
+  return {
+    id,
+    status: text(raw.status) ?? "",
+    kind,
+    mismatchPixelCount: count(raw.mismatchPixelCount),
+    mismatchPageCount:
+      typeof raw.mismatchPageCount === "number" ? raw.mismatchPageCount : null,
+    pageCount: typeof raw.pageCount === "number" ? raw.pageCount : null,
+    viewport: text(raw.viewport) ?? "",
+    browser: text(raw.browser) ?? "",
+    environment: text(raw.environment) ?? "",
+    baselineUrl: text(raw.baselineUrl),
+    candidateUrl: text(raw.candidateUrl),
+    diffUrl: text(raw.diffUrl),
+  };
+}
+
 export type PublicShareSource = Omit<
   PublicShareDto,
-  "project" | "test" | "run" | "tests"
+  "project" | "test" | "run" | "tests" | "comparison"
 > & {
   project?: unknown;
   test?: unknown;
   run?: unknown;
   tests?: unknown;
+  comparison?: unknown;
 };
 
 // Nested public payloads are typed as free-form records by the generated SDK,
@@ -156,6 +183,7 @@ export function mapPublicShare(
     key: dto.runKey,
     branchName: dto.branchName,
   });
+  const comparison = mapPublicComparison(dto.comparison);
   return {
     scope: presentScope(dto.scope),
     projectName,
@@ -165,6 +193,7 @@ export function mapPublicShare(
     expiresAt: presentIso(dto.expiresAt) ?? "",
     project: { name: projectName },
     ...(test ? { test } : {}),
+    ...(comparison ? { comparison } : {}),
     ...(run ? { run } : {}),
     ...(Array.isArray(dto.tests) ? { tests: mapPublicTests(dto.tests) } : {}),
   };

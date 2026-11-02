@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { TransactionContext } from '@/prisma/transaction-context';
+import { toCsvCell } from '@common/utils/csv';
 import { AuditRepository } from '@internal/audit/audit.repository';
 import type {
   AuditEntry,
@@ -8,21 +9,6 @@ import type {
 } from '@internal/audit/audit.types';
 
 const EXPORT_LIMIT = 10_000;
-
-function csvCell(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  let text: string;
-  if (typeof value === 'string') {
-    text = value;
-  } else if (typeof value === 'number' || typeof value === 'boolean') {
-    text = String(value);
-  } else if (value instanceof Date) {
-    text = value.toISOString();
-  } else {
-    text = JSON.stringify(value);
-  }
-  return `"${text.replace(/"/g, '""')}"`;
-}
 
 @Injectable()
 export class AuditService {
@@ -88,7 +74,7 @@ export class AuditService {
         row.targetId,
         row.metadata,
       ]
-        .map(csvCell)
+        .map(toCsvCell)
         .join(','),
     );
     return [header, ...lines].join('\n');

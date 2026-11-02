@@ -110,33 +110,58 @@ const group = computed<string>({
   },
 });
 
-// Local input, debounced query value: the server does the searching, so an
-// un-debounced input would issue one request per keystroke.
-const searchInput = ref("");
-const searchQuery = ref("");
-let searchTimer: ReturnType<typeof setTimeout> | undefined;
+// The free-text filters are part of the review scope, not a local preference:
+// the pass started from a filtered inbox must walk the same set, so the values
+// live in the URL like branch/kind/group. The input stays local (and debounced)
+// so typing does not push a history entry per keystroke.
+function setFilterQuery(key: "q" | "runKey" | "tag", value: string): void {
+  const query = { ...route.query };
+  if (value) query[key] = value;
+  else delete query[key];
+  delete query.page;
+  void router.replace({ query });
+}
 
+const searchQuery = computed(() =>
+  typeof route.query.q === "string" ? route.query.q : "",
+);
+const searchInput = ref(searchQuery.value);
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
 watch(searchInput, (value) => {
   if (searchTimer) clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    searchQuery.value = value;
-    if (page.value !== 1) page.value = 1;
-  }, 300);
+  searchTimer = setTimeout(() => setFilterQuery("q", value.trim()), 300);
+});
+watch(searchQuery, (value) => {
+  if (searchInput.value.trim() !== value) searchInput.value = value;
 });
 
-// The run filter is the same shape as the search box — free text answered by the
-// server — so it debounces too, and applying a new run key returns to the first
-// page because the previous page may not exist for the narrower queue.
-const runInput = ref("");
-const runFilter = ref("");
+const runFilter = computed(() =>
+  typeof route.query.runKey === "string" ? route.query.runKey : "",
+);
+const runInput = ref(runFilter.value);
 let runTimer: ReturnType<typeof setTimeout> | undefined;
-
 watch(runInput, (value) => {
   if (runTimer) clearTimeout(runTimer);
-  runTimer = setTimeout(() => {
-    runFilter.value = value.trim();
-    if (page.value !== 1) page.value = 1;
-  }, 300);
+  runTimer = setTimeout(() => setFilterQuery("runKey", value.trim()), 300);
+});
+watch(runFilter, (value) => {
+  if (runInput.value.trim() !== value) runInput.value = value;
+});
+
+const tagFilter = computed(() =>
+  typeof route.query.tag === "string" ? route.query.tag : "",
+);
+const tagInput = ref(tagFilter.value);
+let tagTimer: ReturnType<typeof setTimeout> | undefined;
+watch(tagInput, (value) => {
+  if (tagTimer) clearTimeout(tagTimer);
+  tagTimer = setTimeout(
+    () => setFilterQuery("tag", value.trim().toLowerCase()),
+    300,
+  );
+});
+watch(tagFilter, (value) => {
+  if (tagInput.value.trim() !== value) tagInput.value = value;
 });
 
 // "My reviews" is review scope, not a local toggle: it narrows the server query,
@@ -160,20 +185,6 @@ const overdueCount = computed(() => overdueAssignments.value?.length ?? 0);
 function toggleAssignedToMe(event: Event): void {
   assignedToMe.value = (event.target as HTMLInputElement).checked;
 }
-
-// The tag filter is answered server-side like the other text filters, so it
-// debounces and resets the page when a new tag is applied.
-const tagInput = ref("");
-const tagFilter = ref("");
-let tagTimer: ReturnType<typeof setTimeout> | undefined;
-
-watch(tagInput, (value) => {
-  if (tagTimer) clearTimeout(tagTimer);
-  tagTimer = setTimeout(() => {
-    tagFilter.value = value.trim().toLowerCase();
-    if (page.value !== 1) page.value = 1;
-  }, 300);
-});
 
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer);

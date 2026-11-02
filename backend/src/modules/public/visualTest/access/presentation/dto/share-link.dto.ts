@@ -123,6 +123,64 @@ export class ResolveShareDto {
   passphrase?: string;
 }
 
+export class PublicComparisonDto {
+  @ApiProperty()
+  @Expose()
+  id!: string;
+
+  @ApiProperty({ enum: ['PENDING_APPROVAL', 'APPROVED'] })
+  @Expose()
+  status!: string;
+
+  @ApiProperty({ enum: ['image', 'pdf'] })
+  @Expose()
+  kind!: string;
+
+  @ApiProperty()
+  @Expose()
+  mismatchPixelCount!: number;
+
+  @ApiProperty({ type: Number, nullable: true })
+  @Expose()
+  mismatchPageCount!: number | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  @Expose()
+  pageCount!: number | null;
+
+  @ApiProperty()
+  @Expose()
+  viewport!: string;
+
+  @ApiProperty()
+  @Expose()
+  browser!: string;
+
+  @ApiProperty()
+  @Expose()
+  environment!: string;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Short-lived presigned URL of the baseline',
+  })
+  @Expose()
+  baselineUrl!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  @Expose()
+  candidateUrl!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Short-lived presigned URL of the diff artifact',
+  })
+  @Expose()
+  diffUrl!: string | null;
+}
+
 export class PublicShareDto {
   @ApiProperty({ enum: ['PROJECT', 'TEST', 'RUN'] })
   @Expose()
@@ -155,6 +213,15 @@ export class PublicShareDto {
   @ApiPropertyOptional({ type: Object })
   @Expose()
   test?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    type: PublicComparisonDto,
+    description:
+      'The latest reviewable diff of a TEST share, with presigned image URLs',
+  })
+  @Expose()
+  @Type(() => PublicComparisonDto)
+  comparison?: PublicComparisonDto;
 
   @ApiPropertyOptional({ type: Object })
   @Expose()

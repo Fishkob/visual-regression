@@ -25,6 +25,7 @@ import { useSdkQuery } from "@/composables/useDomainQuery";
 import { useReviewSession } from "@/composables/useReviewSession";
 import type { ApprovalDecision } from "@/domains/approvals/approval-reason";
 import { usePendingTestsQuery } from "@/composables/usePendingTests";
+import type { PendingTestFilters } from "@/domains/pending-tests/query-keys";
 
 // The reviewable-details query surface both kinds share: the detail query plus
 // the approve/skip session wiring. Declared once here so the shell below and
@@ -165,6 +166,9 @@ export function useKindDetailsPage<
   // A pass started from "My reviews" walks only the reviewer's assignments, so
   // the pending list (and its cache key) carries the flag too.
   assignedToMe?: Ref<boolean>;
+  // The inbox filters the pass must keep walking (kind/search/run/tag). The
+  // group filter is project-scoped and already expressed by the current project.
+  pendingFilters?: Ref<PendingTestFilters>;
 }) {
   const { adapter, projectName, testName, branchName, filters, assignedToMe } =
     args;
@@ -188,6 +192,7 @@ export function useKindDetailsPage<
     branchName,
     pendingEnabled,
     assignedToMe,
+    args.pendingFilters,
   );
   const pendingTests = computed(() => pendingQuery.data.value ?? []);
 
@@ -217,6 +222,7 @@ export function useKindDetailsPage<
       invalidateDetails: adapter.invalidateDetails,
       returnToInbox: args.returnToInbox,
       ...(assignedToMe ? { assignedToMe } : {}),
+      ...(args.pendingFilters ? { pendingFilters: args.pendingFilters } : {}),
     },
   );
 
@@ -250,6 +256,7 @@ export function useVisualTestDetailsPage(args: {
   filters: Ref<VariantParams>;
   returnToInbox?: Ref<boolean>;
   assignedToMe?: Ref<boolean>;
+  pendingFilters?: Ref<PendingTestFilters>;
 }) {
   return useKindDetailsPage({ ...args, adapter: IMAGE_ADAPTER });
 }
@@ -261,6 +268,7 @@ export function usePdfTestDetailsPage(args: {
   filters: Ref<VariantParams>;
   returnToInbox?: Ref<boolean>;
   assignedToMe?: Ref<boolean>;
+  pendingFilters?: Ref<PendingTestFilters>;
 }) {
   return useKindDetailsPage({ ...args, adapter: PDF_ADAPTER });
 }

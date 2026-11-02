@@ -107,6 +107,7 @@
                 "review.assign",
                 "review.vote",
                 "project.review-policy",
+                "project.pixel-threshold",
                 "storage.retention",
                 "test.threshold",
                 "review.complete",
@@ -209,6 +210,7 @@
                 "review.assign",
                 "review.vote",
                 "project.review-policy",
+                "project.pixel-threshold",
                 "storage.retention",
                 "test.threshold",
                 "review.complete",
@@ -354,6 +356,13 @@
                   "ciUrl": {
                     "type": "string",
                     "example": "https://github.com/org/repo/actions/runs/1"
+                  },
+                  "pixelDiffThreshold": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100000,
+                    "example": 25,
+                    "description": "Config-as-code pixel tolerance for this variant (applied on baseline creation, can only tighten an existing baseline)"
                   }
                 }
               }
@@ -960,6 +969,52 @@
           }
         },
         "summary": "Update how many approvals a comparison needs in a project",
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/projects/{projectName}/pixel-threshold": {
+      "patch": {
+        "operationId": "ProjectsController_updatePixelThreshold",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "description": "The project whose default threshold to update",
+            "schema": {
+              "example": "checkout-ui",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectPixelThresholdDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The project now applies the returned default threshold",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectPixelThresholdDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found"
+          }
+        },
+        "summary": "Update the project's default pixel tolerance",
         "tags": [
           "Projects"
         ]
@@ -2751,7 +2806,7 @@
             "description": "Test not found"
           }
         },
-        "summary": "List the variants of an image test with status and thumbnails",
+        "summary": "List a test’s variants with status and thumbnails (image and PDF)",
         "tags": [
           "Tests"
         ]
@@ -2829,6 +2884,46 @@
             "required": false,
             "in": "query",
             "description": "Branch to read or act on (defaults to the project default branch)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "description": "Filter by test kind",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "image",
+                "pdf"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive search across the test name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runKey",
+            "required": false,
+            "in": "query",
+            "description": "Only pending reviews of this run key",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "required": false,
+            "in": "query",
+            "description": "Filter pending reviews by test tag",
             "schema": {
               "type": "string"
             }
@@ -5467,6 +5562,12 @@
             "example": 1,
             "description": "Approvals needed to finalize a comparison"
           },
+          "pixelDiffThreshold": {
+            "type": "number",
+            "example": 25,
+            "nullable": true,
+            "description": "Project-wide default pixel tolerance; a variant threshold of 0 inherits it"
+          },
           "visualTests": {
             "type": "array",
             "items": {
@@ -5570,6 +5671,34 @@
         },
         "required": [
           "requiredApprovals"
+        ]
+      },
+      "UpdateProjectPixelThresholdDto": {
+        "type": "object",
+        "properties": {
+          "pixelDiffThreshold": {
+            "type": "number",
+            "description": "Project-wide default pixel tolerance, or null to remove the default",
+            "nullable": true,
+            "example": 25
+          }
+        },
+        "required": [
+          "pixelDiffThreshold"
+        ]
+      },
+      "ProjectPixelThresholdDto": {
+        "type": "object",
+        "properties": {
+          "pixelDiffThreshold": {
+            "type": "number",
+            "description": "Project-wide default pixel tolerance, or null when no default is set",
+            "nullable": true,
+            "example": 25
+          }
+        },
+        "required": [
+          "pixelDiffThreshold"
         ]
       },
       "ProjectGroupDto": {
@@ -8083,6 +8212,76 @@
           }
         }
       },
+      "PublicComparisonDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING_APPROVAL",
+              "APPROVED"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image",
+              "pdf"
+            ]
+          },
+          "mismatchPixelCount": {
+            "type": "number"
+          },
+          "mismatchPageCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "pageCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "viewport": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "baselineUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Short-lived presigned URL of the baseline"
+          },
+          "candidateUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "diffUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Short-lived presigned URL of the diff artifact"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "kind",
+          "mismatchPixelCount",
+          "mismatchPageCount",
+          "pageCount",
+          "viewport",
+          "browser",
+          "environment",
+          "baselineUrl",
+          "candidateUrl",
+          "diffUrl"
+        ]
+      },
       "PublicShareDto": {
         "type": "object",
         "properties": {
@@ -8118,6 +8317,14 @@
           },
           "test": {
             "type": "object"
+          },
+          "comparison": {
+            "description": "The latest reviewable diff of a TEST share, with presigned image URLs",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PublicComparisonDto"
+              }
+            ]
           },
           "run": {
             "type": "object"

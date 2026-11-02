@@ -493,6 +493,57 @@ describe('UnifiedScreenshotRepository', () => {
     });
   });
 
+  describe('tightenBaselineThreshold', () => {
+    it('lowers a baseline threshold and reports the previous value', async () => {
+      mockClient.unifiedScreenshot.findFirst.mockResolvedValue({
+        id: 'base-1',
+        pixelDiffThreshold: 40,
+      });
+      mockClient.unifiedScreenshot.updateMany.mockResolvedValue({ count: 1 });
+
+      const previous = await repository.tightenBaselineThreshold(
+        'test-1',
+        variant,
+        10,
+      );
+
+      expect(previous).toBe(40);
+      expect(mockClient.unifiedScreenshot.updateMany).toHaveBeenCalledWith({
+        where: { id: 'base-1', pixelDiffThreshold: 40 },
+        data: { pixelDiffThreshold: 10 },
+      });
+    });
+
+    it('does nothing when the baseline is already at or below the value', async () => {
+      mockClient.unifiedScreenshot.findFirst.mockResolvedValue({
+        id: 'base-1',
+        pixelDiffThreshold: 5,
+      });
+
+      const previous = await repository.tightenBaselineThreshold(
+        'test-1',
+        variant,
+        10,
+      );
+
+      expect(previous).toBeNull();
+      expect(mockClient.unifiedScreenshot.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when the variant has no baseline', async () => {
+      mockClient.unifiedScreenshot.findFirst.mockResolvedValue(null);
+
+      const previous = await repository.tightenBaselineThreshold(
+        'test-1',
+        variant,
+        10,
+      );
+
+      expect(previous).toBeNull();
+      expect(mockClient.unifiedScreenshot.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('updateBaselineScreenshot', () => {
     it('updates the baseline screenshot image hash and url without pageCount', async () => {
       mockClient.unifiedScreenshot.update.mockResolvedValue(undefined);

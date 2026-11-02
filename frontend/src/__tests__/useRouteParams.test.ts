@@ -55,6 +55,32 @@ describe("useRouteParams", () => {
     expect(projectName.value).toBe(123);
   });
 
+  it("maps the inbox scope keys to pending filters", () => {
+    mockRoute.query = {
+      inboxKind: "pdf",
+      inboxQ: "cart",
+      inboxRunKey: "ci-1",
+      inboxTag: "smoke",
+    };
+
+    expect(useRouteParams().inboxFilters.value).toEqual({
+      kind: "pdf",
+      q: "cart",
+      runKey: "ci-1",
+      tag: "smoke",
+    });
+  });
+
+  it("drops an unknown inbox kind and non-string filter values", () => {
+    mockRoute.query = {
+      inboxKind: "video",
+      inboxQ: ["a", "b"],
+      inboxTag: 42,
+    };
+
+    expect(useRouteParams().inboxFilters.value).toEqual({});
+  });
+
   it("returns filters as a variant triple from query params", () => {
     mockRoute.query = {
       viewport: "1920x1080",

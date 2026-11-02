@@ -352,6 +352,52 @@ describe('ProjectService', () => {
     });
   });
 
+  describe('updatePixelThreshold', () => {
+    it('updates the default and audits old → new', async () => {
+      projects.findByName.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt: new Date('2024-01-01'),
+        pixelDiffThreshold: 10,
+      });
+
+      const result = await service.updatePixelThreshold(
+        'my-project',
+        25,
+        'jane',
+      );
+
+      expect(projects.updatePixelDiffThreshold).toHaveBeenCalledWith(
+        'my-project',
+        25,
+      );
+      expect(audit.record).toHaveBeenCalledWith({
+        actor: 'jane',
+        action: AUDIT_ACTIONS.projectPixelThreshold,
+        projectName: 'my-project',
+        targetType: 'project',
+        targetId: 'proj-1',
+        metadata: { from: 10, to: 25 },
+      });
+      expect(result).toEqual({ pixelDiffThreshold: 25 });
+    });
+
+    it('audits a missing default as a null previous value', async () => {
+      projects.findByName.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt: new Date('2024-01-01'),
+        pixelDiffThreshold: null,
+      });
+
+      await service.updatePixelThreshold('my-project', 0, 'jane');
+
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ metadata: { from: null, to: 0 } }),
+      );
+    });
+  });
+
   describe('updateReviewPolicy', () => {
     it('loads the old value, updates the project and audits from/to', async () => {
       projects.findByName.mockResolvedValue({
@@ -524,6 +570,7 @@ describe('ProjectService', () => {
         groupName: null,
         branchName: 'main',
         requiredApprovals: 1,
+        pixelDiffThreshold: null,
         defaultBranchName: 'main',
         variants: [
           {

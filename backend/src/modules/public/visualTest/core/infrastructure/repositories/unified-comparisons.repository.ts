@@ -94,6 +94,34 @@ export class UnifiedComparisonsRepository extends BaseRepository {
     return this.mapComparisonResults([result])[0] ?? null;
   }
 
+  // The latest reviewable comparison of a test, for the public share payload.
+  // It deliberately composes the same reviewable status set as the authenticated
+  // review read, so a share link shows exactly the diff a reviewer would see —
+  // never an arbitrary historical row.
+  async findLatestReviewableByTestId(
+    testId: string,
+  ): Promise<ComparisonEntity | null> {
+    return this.findLatestComparison({
+      testId,
+      ...REVIEWABLE_COMPARISON_STATUS_FILTER,
+    });
+  }
+
+  // The duplicate guard for a re-run comparison job: an earlier attempt (whose
+  // bookkeeping write failed) may already have committed the pending comparison
+  // for this candidate. The candidate row is reused in place by newer uploads,
+  // but a newer upload also retires the pending comparison, so a pending row for
+  // this candidate can only describe the content the job was queued for.
+  async findPendingIdByCandidateId(
+    candidateId: string,
+  ): Promise<string | null> {
+    const row = await this.client.unifiedComparison.findFirst({
+      where: { candidateId, status: ComparisonStatus.PENDING_APPROVAL },
+      select: { id: true },
+    });
+    return row?.id ?? null;
+  }
+
   // The latest comparison a reviewer can act on for a baseline: PENDING_APPROVAL
   // or APPROVED (PDF approval keeps the APPROVED row as history, image approval
   // deletes it). Single owner of the entity-level read — the review read model

@@ -168,6 +168,8 @@ const props = defineProps<{
   browser?: string;
   environment?: string;
   branchName?: string;
+  // The project default shown when this variant has no threshold of its own.
+  projectPixelDiffThreshold?: number | null;
   // Inherited baselines belong to another branch: the threshold cannot be
   // edited here (the backend rejects the mutation with 409).
   readOnly?: boolean;
@@ -189,17 +191,31 @@ const baselineThreshold = computed(
   () => props.baseline?.pixelDiffThreshold ?? 0,
 );
 
+// The tolerance actually applied by the worker: the variant threshold when it
+// has one, else the project default. The input below still edits the variant
+// value, so clearing it back to 0 returns the variant to "inherits".
+const projectThreshold = computed(() => props.projectPixelDiffThreshold ?? 0);
+const effectiveThreshold = computed(() =>
+  baselineThreshold.value > 0
+    ? baselineThreshold.value
+    : projectThreshold.value,
+);
+
 const withinTolerance = computed(
   () =>
     props.comparison != null &&
     props.comparison.thresholdExceeded === false &&
-    baselineThreshold.value > 0,
+    effectiveThreshold.value > 0,
 );
 
 const toleranceHint = computed(() =>
   baselineThreshold.value > 0
     ? t("comparison.toleranceSet", { threshold: baselineThreshold.value })
-    : t("comparison.toleranceNone"),
+    : projectThreshold.value > 0
+      ? t("comparison.toleranceProjectDefault", {
+          threshold: projectThreshold.value,
+        })
+      : t("comparison.toleranceNone"),
 );
 
 const {

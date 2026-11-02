@@ -156,6 +156,51 @@ describe("usePendingTestsQuery", () => {
     });
   });
 
+  it("sends the inbox filters with the pending read and keys them", async () => {
+    mockGetTestsWithPendingStatus.mockResolvedValue({
+      data: { data: [], meta: { page: 1, limit: 100, total: 0 } },
+    });
+    const filters = {
+      kind: "pdf" as const,
+      q: "cart",
+      runKey: "ci-1",
+      tag: "smoke",
+    };
+
+    usePendingTestsQuery(
+      ref("checkout-ui"),
+      ref(undefined),
+      ref(true),
+      ref(false),
+      ref(filters),
+    );
+
+    await vi.waitFor(() => {
+      expect(mockGetTestsWithPendingStatus).toHaveBeenCalledWith({
+        path: { projectName: "checkout-ui" },
+        query: {
+          skip: 0,
+          take: 100,
+          kind: "pdf",
+          q: "cart",
+          runKey: "ci-1",
+          tag: "smoke",
+        },
+      });
+    });
+    expect(
+      pendingTestQueryKeys.list("checkout-ui", undefined, false, filters),
+    ).toEqual([
+      "pending-tests",
+      "list",
+      "checkout-ui",
+      "kind:pdf",
+      "q:cart",
+      "run:ci-1",
+      "tag:smoke",
+    ]);
+  });
+
   it("keeps the assigned scope in the cache key", async () => {
     mockGetTestsWithPendingStatus.mockResolvedValue({
       data: { data: [], meta: { page: 1, limit: 100, total: 0 } },

@@ -30,6 +30,22 @@ export type TestsQueriesControllerGetTestsWithPendingStatusData = {
          * Branch to read or act on (defaults to the project default branch)
          */
         branch?: string;
+        /**
+         * Filter by test kind
+         */
+        kind?: 'image' | 'pdf';
+        /**
+         * Case-insensitive search across the test name
+         */
+        q?: string;
+        /**
+         * Only pending reviews of this run key
+         */
+        runKey?: string;
+        /**
+         * Filter pending reviews by test tag
+         */
+        tag?: string;
     };
     url: '/projects/{projectName}/tests/meta/pending';
 };

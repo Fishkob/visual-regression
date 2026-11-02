@@ -20,6 +20,12 @@ import { ComparisonRetirementService } from '@public/visualTest/core/application
 import { CandidateReclamationService } from '@public/visualTest/core/application/services/candidate-reclamation.service';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
+import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
+import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import {
+  METRICS_RECORDER,
+  IMetricsRecorder,
+} from '@common/domain/metrics-recorder.interface';
 import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
 import { ComparisonOutcomeService } from '@public/visualTest/core/application/services/comparison-outcome.service';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
@@ -32,7 +38,7 @@ import {
 } from '@common/domain/test-kind';
 import type { QueuedJob } from '@common/domain/job-queue.interface';
 import type { JobData } from '@common/domain/job-data.types';
-import { TRACKED_OPERATIONS } from '@common/domain/metrics-catalog';
+import { TRACKED_OPERATIONS, METRICS } from '@common/domain/metrics-catalog';
 
 // One class owns the full comparison job lifecycle: the mootness gate, the
 // downloads, the engine dispatch, and the persist-or-retire outcome. The
@@ -48,10 +54,13 @@ export class ComparisonJobProcessor {
     private readonly retirement: ComparisonRetirementService,
     private readonly reclamation: CandidateReclamationService,
     private readonly screenshots: UnifiedScreenshotRepository,
+    private readonly comparisons: UnifiedComparisonsRepository,
+    private readonly projects: ProjectRepository,
     private readonly webhooks: WebhookDispatchService,
     private readonly outcomes: ComparisonOutcomeService,
     @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
     @Inject(COMPARISON_ENGINES) private readonly engines: ComparisonEngines,
+    @Inject(METRICS_RECORDER) private readonly metrics: IMetricsRecorder,
   ) {}
 
   async processJob(job: QueuedJob): Promise<void> {
@@ -69,6 +78,18 @@ export class ComparisonJobProcessor {
     await this.tracker.track(TRACKED_OPERATIONS.comparisonWorker, async () => {
       await this.processWithEngine(job.payload);
     });
+  }
+
+  // The project default is read at comparison time, like the baseline
+  // threshold: a default lowered while a job was queued applies to this diff.
+  // PDF has no threshold concept, so the lookup is skipped entirely.
+  private async projectDefaultThreshold(
+    kind: TestKind,
+    projectName: string,
+  ): Promise<number | null> {
+    if (kind !== 'image') return null;
+    const project = await this.projects.findByName(projectName);
+    return project?.pixelDiffThreshold ?? null;
   }
 
   private getEngine(kind: string): IComparisonEngine {
@@ -92,6 +113,22 @@ export class ComparisonJobProcessor {
       // threshold raised while the job is queued is honoured.
       const { baseline } = await this.loadCurrentCandidateOrFail(data);
 
+      // Idempotency: a re-run of a job whose earlier attempt already committed
+      // its pending comparison must not diff again. The queue's bookkeeping
+      // write can fail after the domain transaction committed; the stall reclaim
+      // then re-claims the row. Without this guard the re-run would create a
+      // second comparison (retiring the first and its diff) and emit a second
+      // `review.requested` — for a diff reviewers may already be voting on.
+      const alreadyPending = await this.comparisons.findPendingIdByCandidateId(
+        data.candidate.id,
+      );
+      if (alreadyPending) {
+        this.metrics.incrementCounter(METRICS.queueDuplicateJobSkippedTotal, {
+          queue: 'comparison',
+        });
+        return;
+      }
+
       const candidateBuffer = await this.getCandidateOrHandleMissing(data);
       if (candidateBuffer === null) return;
 
@@ -105,7 +142,12 @@ export class ComparisonJobProcessor {
       if (mismatch === 0) {
         await this.completeWithoutComparison(data, 'unchanged', 0);
       } else if (
-        isWithinThreshold(data.testKind, mismatch, baseline.pixelDiffThreshold)
+        isWithinThreshold(
+          data.testKind,
+          mismatch,
+          baseline.pixelDiffThreshold,
+          await this.projectDefaultThreshold(data.testKind, data.projectName),
+        )
       ) {
         await this.completeWithoutComparison(
           data,

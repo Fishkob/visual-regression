@@ -178,3 +178,112 @@ groups:
         labels:
           severity: warning
           team: platform
+
+  - name: VRT Worker Alerts
+    folder: VRT
+    interval: 30s
+    rules:
+      - uid: worker_down
+        title: Comparison Worker Down
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: 'up{job="visual-regression-worker"}'
+              intervalMs: 10000
+              maxDataPoints: 100
+              refId: A
+            relativeTimeRange:
+              from: 120
+              to: 0
+            queryType: ''
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: $A == 0
+              refId: B
+              type: math
+            relativeTimeRange:
+              from: 120
+              to: 0
+            queryType: ''
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          summary: Comparison worker is not being scraped or is down
+          description: 'The worker metrics target has been unavailable for over 2 minutes; uploads queue up without a comparison.'
+        labels:
+          severity: critical
+          team: platform
+
+      - uid: queue_stalled
+        title: Comparison Queue Stalled
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: queue_oldest_pending_age_seconds{queue="comparison"}
+              intervalMs: 10000
+              maxDataPoints: 100
+              refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            queryType: ''
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: $A > 600
+              refId: B
+              type: math
+            relativeTimeRange:
+              from: 300
+              to: 0
+            queryType: ''
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: The oldest queued comparison is older than 10 minutes
+          description: 'Oldest pending job age is {{ printf "%.0f" $A }} seconds; the worker is not draining the queue.'
+        labels:
+          severity: warning
+          team: platform
+
+      - uid: queue_failures_increasing
+        title: Comparison Failures Increasing
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: delta(queue_failed_jobs{queue="comparison"}[10m])
+              intervalMs: 10000
+              maxDataPoints: 100
+              refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            queryType: ''
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: $A > 5
+              refId: B
+              type: math
+            relativeTimeRange:
+              from: 900
+              to: 0
+            queryType: ''
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: More than five comparison jobs failed in the last 10 minutes
+          description: '{{ printf "%.0f" $A }} new failed jobs in the window; check the DLQ and the worker log.'
+        labels:
+          severity: warning
+          team: platform

@@ -133,6 +133,11 @@ frontend:
 worker:
   enabled: true
   replicas: 1
+  # Extra pod annotations, e.g. prometheus.io/scrape for a scrape-config-based
+  # Prometheus. The worker metrics endpoint needs the x-metrics-key header, so a
+  # Prometheus Operator setup should use a ScrapeConfig with httpHeaders rather
+  # than annotation scraping.
+  podAnnotations: {}
   env:
     NODE_ENV: production
     POSTGRES_HOST: postgres

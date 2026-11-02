@@ -31,7 +31,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 035 | [API Key Scopes](./ADR-035-api-key-scopes.md)                                                                                          | Accepted (enforcement superseded by 045)             |
 | 036 | [Test Lifecycle](./ADR-036-test-lifecycle.md)                                                                                          | Accepted                                             |
 | 037 | [Internationalization](./ADR-037-i18n.md)                                                                                              | Accepted                                             |
-| 038 | [Share Links](./ADR-038-share-links.md)                                                                                                | Accepted                                             |
+| 038 | [Share Links](./ADR-038-share-links.md)                                                                                                | Accepted (image payload superseded by 058)           |
 | 039 | [Review Assignment, Due Dates & 4-Eyes](./ADR-039-review-assignment-four-eyes.md)                                                      | Accepted (partially superseded by 041)               |
 | 040 | [Review Comments & Reasons](./ADR-040-review-comments-reasons.md)                                                                      | Accepted                                             |
 | 041 | [Review Governance & Human 4-Eyes](./ADR-041-review-governance-human-4-eyes.md)                                                        | Accepted                                             |
@@ -50,6 +50,8 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 054 | [Coverage Is Gated Per Layer, and Database Races Are Proven Against Postgres](./ADR-054-coverage-per-layer-and-real-database-races.md) | Accepted (partially supersedes 020)                  |
 | 055 | [The Frontend Gate Measures What It Runs](./ADR-055-the-frontend-gate-measures-what-it-runs.md)                                        | Accepted (complements 054, extends 020)              |
 | 056 | [The Client SDK Ships as a Release Asset](./ADR-056-client-sdk-distribution.md)                                                        | Accepted (amends 005)                                |
+| 057 | [Config-as-Code Thresholds & Project Default](./ADR-057-config-as-code-thresholds.md)                                                  | Accepted                                             |
+| 058 | [Share Links with Pixels](./ADR-058-share-links-with-pixels.md)                                                                        | Accepted (supersedes the image clause of 038)        |
 
 ## Numbering
 

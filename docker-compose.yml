@@ -110,7 +110,11 @@ services:
     restart: on-failure:5
     logging: *logging
     ports:
-      - "${PDF_SIDECAR_PORT:-3001}:3001"
+      # Loopback-only, like the backend: the sidecar has no authentication of
+      # its own, so publishing it on 0.0.0.0 turns any LAN host into a client of
+      # an unauthenticated PDF parser. The backend/worker reach it over the
+      # compose network; a host port is only for local debugging.
+      - "127.0.0.1:${PDF_SIDECAR_PORT:-3001}:3001"
     environment:
       OTEL_SERVICE_NAME: pdf-sidecar
       OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318

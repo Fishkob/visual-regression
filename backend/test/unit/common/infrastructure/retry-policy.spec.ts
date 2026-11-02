@@ -3,6 +3,9 @@ import {
   isRetryableError,
   isSerializationError,
   retry,
+  JOB_MAX_ATTEMPTS,
+  JOB_RETRY_BASE_DELAY_MS,
+  JOB_RETRY_MAX_DELAY_MS,
 } from '@common/infrastructure/retry-policy';
 import { Prisma } from '@/prisma/client';
 import { DomainError } from '@common/domain/domain-error';
@@ -43,9 +46,9 @@ describe('decideRetry', () => {
     const result = decideRetry(0, 3);
     expect(result.action).toBe('retry');
     expect(result.nextAttemptAt).toBeDefined();
-    // The first scheduled delay equals the base (2^0 * 1000) so
-    // tuning the base sets the actual delay between retries.
-    const expectedDelay = Math.pow(2, 0) * 1000;
+    // The first scheduled delay equals the base (2^0 × base) so tuning the
+    // base sets the actual delay between retries.
+    const expectedDelay = Math.pow(2, 0) * JOB_RETRY_BASE_DELAY_MS;
     expect(result.nextAttemptAt!.getTime()).toBe(
       new Date('2025-01-01T00:00:00Z').getTime() + expectedDelay,
     );
@@ -60,13 +63,21 @@ describe('decideRetry', () => {
     const delay2 = attempt2.nextAttemptAt!.getTime() - Date.now();
     const delay3 = attempt3.nextAttemptAt!.getTime() - Date.now();
 
-    expect(delay1).toBe(Math.pow(2, 0) * 1000);
-    expect(delay2).toBe(Math.pow(2, 1) * 1000);
-    expect(delay3).toBe(Math.pow(2, 2) * 1000);
+    expect(delay1).toBe(Math.pow(2, 0) * JOB_RETRY_BASE_DELAY_MS);
+    expect(delay2).toBe(Math.pow(2, 1) * JOB_RETRY_BASE_DELAY_MS);
+    expect(delay3).toBe(Math.pow(2, 2) * JOB_RETRY_BASE_DELAY_MS);
   });
 
-  it('uses default maxAttempts of 3 when maxAttempts is null', () => {
-    const result = decideRetry(3, null);
+  it('caps the retry delay so a long budget cannot outlive the operator', () => {
+    const result = decideRetry(6, 10);
+    expect(result.action).toBe('retry');
+    const delay = result.nextAttemptAt!.getTime() - Date.now();
+    expect(delay).toBe(JOB_RETRY_MAX_DELAY_MS);
+  });
+
+  it('uses the job default of 5 attempts when maxAttempts is null', () => {
+    expect(JOB_MAX_ATTEMPTS).toBe(5);
+    const result = decideRetry(JOB_MAX_ATTEMPTS - 1, null);
     expect(result).toEqual({ action: 'failed' });
   });
 

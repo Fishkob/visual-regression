@@ -12,6 +12,10 @@ export type ProjectDto = {
      * Approvals needed to finalize a comparison
      */
     requiredApprovals?: number;
+    /**
+     * Project-wide default pixel tolerance; a variant threshold of 0 inherits it
+     */
+    pixelDiffThreshold?: number | null;
     visualTests?: Array<VisualTestDto>;
     groupId?: string | null;
     groupName?: string | null;

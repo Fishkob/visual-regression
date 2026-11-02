@@ -15,7 +15,7 @@ import {
   TestVariantsDto,
   VisualTestDetailsDto,
 } from '@public/visualTest/review/presentation/dto/visual-test.dto';
-import { BranchPaginationDto } from '@common/dto/branch-pagination.dto';
+import { PendingTestsQueryDto } from '@public/visualTest/review/presentation/dto/pending-tests-query.dto';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import { PendingTestDto } from '@public/visualTest/review/presentation/dto/review-responses.dto';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
@@ -62,7 +62,8 @@ export class TestsQueriesController {
   @Scope('read')
   @Get(':testName/variants')
   @ApiOperation({
-    summary: 'List the variants of an image test with status and thumbnails',
+    summary:
+      'List a test’s variants with status and thumbnails (image and PDF)',
   })
   @ApiOkResponse({ type: TestVariantsDto })
   @ApiNotFoundResponse({ description: 'Test not found' })
@@ -80,15 +81,21 @@ export class TestsQueriesController {
   @ApiOkResponse({ type: PaginatedResponseDto(PendingTestDto) })
   async getTestsWithPendingStatus(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
-    @Query() pagination: BranchPaginationDto,
+    @Query() query: PendingTestsQueryDto,
     @BranchQuery() branch?: string,
     @Req() req?: AuthenticatedRequest,
   ) {
     return this.testQuery.getTestsWithPendingStatus(
       projectName,
-      pagination,
+      query,
       branch,
-      pagination.assignedToMe ? req?.auth?.userId : undefined,
+      query.assignedToMe ? req?.auth?.userId : undefined,
+      {
+        ...(query.kind ? { kind: query.kind } : {}),
+        ...(query.q ? { q: query.q } : {}),
+        ...(query.runKey ? { runKey: query.runKey } : {}),
+        ...(query.tag ? { tag: query.tag } : {}),
+      },
     );
   }
 

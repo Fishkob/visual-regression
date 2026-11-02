@@ -1,6 +1,8 @@
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 import type { VariantParams } from "@/lib/variant-key";
+import { isTestKind } from "@/domains/test-kind";
+import type { PendingTestFilters } from "@/domains/pending-tests/query-keys";
 
 function queryString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
@@ -22,6 +24,23 @@ export function useRouteParams() {
   // assigned set.
   const assignedToMe = computed(() => route.query.assignedToMe === "1");
 
+  // The inbox filters that narrow the pass *within* the project. The inbox
+  // carries them as `inbox*` keys on the detail route so the loop and its
+  // "back to inbox" leg can restore them without colliding with the detail
+  // route's own parameters.
+  const inboxFilters = computed<PendingTestFilters>(() => {
+    const kind = queryString(route.query.inboxKind);
+    const q = queryString(route.query.inboxQ);
+    const runKey = queryString(route.query.inboxRunKey);
+    const tag = queryString(route.query.inboxTag);
+    return {
+      ...(kind && isTestKind(kind) ? { kind } : {}),
+      ...(q ? { q } : {}),
+      ...(runKey ? { runKey } : {}),
+      ...(tag ? { tag } : {}),
+    };
+  });
+
   const filters = computed<VariantParams>(() => ({
     viewport: viewport.value,
     browser: browser.value,
@@ -36,5 +55,6 @@ export function useRouteParams() {
     branch,
     fromInbox,
     assignedToMe,
+    inboxFilters,
   };
 }

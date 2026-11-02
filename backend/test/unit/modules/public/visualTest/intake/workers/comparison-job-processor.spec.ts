@@ -17,6 +17,8 @@ import { ComparisonOutcomeService } from '@public/visualTest/core/application/se
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
+import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
+import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import type { QueuedJob } from '@common/domain/job-queue.interface';
 import type { JobData } from '@common/domain/job-data.types';
@@ -44,6 +46,8 @@ describe('ComparisonJobProcessor', () => {
   let webhooks: Mocked<WebhookDispatchService>;
   let outcomes: Mocked<ComparisonOutcomeService>;
   let screenshots: Mocked<UnifiedScreenshotRepository>;
+  let comparisons: Mocked<UnifiedComparisonsRepository>;
+  let projects: Mocked<ProjectRepository>;
   let metrics: Mocked<IMetricsRecorder>;
   let uow: Mocked<PrismaUnitOfWork>;
   let storageUsage: Mocked<StorageUsageService>;
@@ -131,6 +135,15 @@ describe('ComparisonJobProcessor', () => {
     outcomes = createMock<ComparisonOutcomeService>();
     outcomes.record.mockResolvedValue(undefined);
     screenshots = createMock<UnifiedScreenshotRepository>();
+    comparisons = createMock<UnifiedComparisonsRepository>();
+    comparisons.findPendingIdByCandidateId.mockResolvedValue(null);
+    projects = createMock<ProjectRepository>();
+    projects.findByName.mockResolvedValue({
+      id: 'project-1',
+      name: 'shop',
+      createdAt: new Date(),
+      pixelDiffThreshold: null,
+    });
     metrics = createMock<IMetricsRecorder>();
     metrics.incrementCounter.mockReturnValue(undefined);
     metrics.observeHistogram.mockReturnValue(undefined);
@@ -187,6 +200,8 @@ describe('ComparisonJobProcessor', () => {
         { provide: STORAGE_PROVIDER, useValue: storage },
         { provide: Tracker, useValue: tracker },
         { provide: UnifiedScreenshotRepository, useValue: screenshots },
+        { provide: UnifiedComparisonsRepository, useValue: comparisons },
+        { provide: ProjectRepository, useValue: projects },
         { provide: PrismaUnitOfWork, useValue: uow },
         { provide: AppLoggerService, useValue: createMockLogger() },
         { provide: TestStatusService, useValue: statusService },
@@ -307,6 +322,8 @@ describe('ComparisonJobProcessor', () => {
           { provide: STORAGE_PROVIDER, useValue: storage },
           { provide: Tracker, useValue: tracker2 },
           { provide: UnifiedScreenshotRepository, useValue: screenshots },
+          { provide: UnifiedComparisonsRepository, useValue: comparisons },
+          { provide: ProjectRepository, useValue: projects },
           { provide: PrismaUnitOfWork, useValue: uow },
           { provide: AppLoggerService, useValue: createMockLogger() },
           {
@@ -382,6 +399,56 @@ describe('ComparisonJobProcessor', () => {
           mismatchMetric: 15,
         }),
       );
+    });
+
+    it('inherits the project default when the variant threshold is unset', async () => {
+      screenshots.findCurrentByVariant.mockResolvedValue({
+        id: 'candidate-1',
+        imageHash: 'hash-from-upload',
+      });
+      setBaselineThreshold(0);
+      projects.findByName.mockResolvedValue({
+        id: 'project-1',
+        name: 'shop',
+        createdAt: new Date(),
+        pixelDiffThreshold: 50,
+      });
+      imageEngine.compare.mockResolvedValue({
+        ...imageDiff,
+        mismatchPixelCount: 15,
+      });
+
+      await processor.processJob(makeJob(imageJobData));
+
+      expect(reclamation.reclaimCandidateInChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          events: [expect.objectContaining({ outcome: 'within_threshold' })],
+        }),
+      );
+      expect(retirement.createPendingForVariant).not.toHaveBeenCalled();
+    });
+
+    it('lets an explicit variant threshold win over the project default', async () => {
+      screenshots.findCurrentByVariant.mockResolvedValue({
+        id: 'candidate-1',
+        imageHash: 'hash-from-upload',
+      });
+      setBaselineThreshold(5);
+      projects.findByName.mockResolvedValue({
+        id: 'project-1',
+        name: 'shop',
+        createdAt: new Date(),
+        pixelDiffThreshold: 50,
+      });
+      imageEngine.compare.mockResolvedValue({
+        ...imageDiff,
+        mismatchPixelCount: 15,
+      });
+      storage.putObject.mockResolvedValue('http://storage/diff.png');
+
+      await processor.processJob(makeJob(imageJobData));
+
+      expect(retirement.createPendingForVariant).toHaveBeenCalled();
     });
 
     it('auto-accepts an exact boundary match', async () => {
@@ -815,6 +882,23 @@ describe('ComparisonJobProcessor', () => {
         expectedUrl: 'http://storage/candidate.png',
       });
       expect(storage.get).not.toHaveBeenCalled();
+    });
+
+    it('skips a re-run whose comparison is already pending', async () => {
+      screenshots.findCurrentByVariant.mockResolvedValue({
+        id: 'candidate-1',
+        imageHash: 'hash-from-upload',
+      });
+      comparisons.findPendingIdByCandidateId.mockResolvedValue('comp-existing');
+
+      await processor.processJob(makeJob(imageJobData));
+
+      expect(storage.get).not.toHaveBeenCalled();
+      expect(retirement.createPendingForVariant).not.toHaveBeenCalled();
+      expect(metrics.incrementCounter).toHaveBeenCalledWith(
+        'queue_duplicate_job_skipped_total',
+        { queue: 'comparison' },
+      );
     });
 
     it('retires the orphaned candidate when a diff is superseded mid-compare', async () => {

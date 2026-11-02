@@ -206,6 +206,33 @@ export class ProjectService {
     return { requiredApprovals };
   }
 
+  async updatePixelThreshold(
+    projectName: string,
+    pixelDiffThreshold: number | null,
+    actor: string,
+  ): Promise<{ pixelDiffThreshold: number | null }> {
+    const project = await this.projects.requireByName(projectName);
+    const from = project.pixelDiffThreshold ?? null;
+    // The write and its trail commit together: raising the default tolerates
+    // diffs that were reviewable before, so a change without a record of who
+    // made it would be a silent policy shift.
+    await this.uow.execute(async () => {
+      await this.projects.updatePixelDiffThreshold(
+        projectName,
+        pixelDiffThreshold,
+      );
+      await this.audit.record({
+        actor: actor ?? null,
+        action: AUDIT_ACTIONS.projectPixelThreshold,
+        projectName,
+        targetType: 'project',
+        targetId: project.id,
+        metadata: { from, to: pixelDiffThreshold },
+      });
+    });
+    return { pixelDiffThreshold };
+  }
+
   async updateProjectGroup(
     projectName: string,
     dto: UpdateProjectDto,

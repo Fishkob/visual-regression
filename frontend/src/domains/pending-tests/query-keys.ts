@@ -27,6 +27,15 @@ export const reviewInboxQueryKeys = {
   count: () => [...reviewInboxQueryKeys.all(), "count"] as const,
 } as const;
 
+// The inbox filters the review pass can honour (group is project-scoped and is
+// already resolved by which project the pass runs in).
+export interface PendingTestFilters {
+  kind?: TestKind;
+  q?: string;
+  runKey?: string;
+  tag?: string;
+}
+
 export const pendingTestQueryKeys = {
   all: () => ["pending-tests"] as const,
   lists: () => [...pendingTestQueryKeys.all(), "list"] as const,
@@ -34,11 +43,20 @@ export const pendingTestQueryKeys = {
   // project-default read keeps its stable key while a branch-scoped read gets
   // its own cache entry (and lists() prefix-matches both). The assigned-only
   // scope is its own read too: it walks a subset of the branch's pending tests.
-  list: (projectName: string, branchName?: string, assignedToMe = false) =>
+  list: (
+    projectName: string,
+    branchName?: string,
+    assignedToMe = false,
+    filters: PendingTestFilters = {},
+  ) =>
     [
       ...pendingTestQueryKeys.lists(),
       projectName,
       ...(branchName ? [branchName] : []),
       ...(assignedToMe ? ["assigned-to-me"] : []),
+      ...(filters.kind ? [`kind:${filters.kind}`] : []),
+      ...(filters.q ? [`q:${filters.q}`] : []),
+      ...(filters.runKey ? [`run:${filters.runKey}`] : []),
+      ...(filters.tag ? [`tag:${filters.tag}`] : []),
     ] as const,
 } as const;

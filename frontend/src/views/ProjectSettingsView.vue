@@ -6,6 +6,7 @@ import { RouterLink } from "vue-router";
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import ProjectWebhooksPanel from "@/components/webhooks/ProjectWebhooksPanel.vue";
 import ReviewSettingsDialog from "@/components/projects/ReviewSettingsDialog.vue";
+import ThresholdSettingsDialog from "@/components/projects/ThresholdSettingsDialog.vue";
 import ProjectStoragePanel from "@/components/storage/ProjectStoragePanel.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -24,7 +25,11 @@ const { isAdmin } = useCurrentRole();
 const { project } = useProjectDetailPage(projectName);
 
 const reviewSettingsOpen = ref(false);
+const thresholdSettingsOpen = ref(false);
 const requiredApprovals = computed(() => project.value?.requiredApprovals ?? 1);
+const projectThreshold = computed(
+  () => project.value?.pixelDiffThreshold ?? null,
+);
 </script>
 
 <template>
@@ -83,6 +88,43 @@ const requiredApprovals = computed(() => project.value?.requiredApprovals ?? 1);
       </div>
     </section>
 
+    <section
+      class="rounded-xl border bg-card p-4 shadow-sm"
+      :data-testid="TEST_ID.projectThresholdSection"
+    >
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h3 class="font-medium">{{ t("thresholdSettings.title") }}</h3>
+          <p class="text-sm text-muted-foreground">
+            {{ t("thresholdSettings.description") }}
+          </p>
+          <p
+            v-if="project"
+            class="mt-2 text-sm font-medium"
+            :data-testid="TEST_ID.projectThresholdValue"
+          >
+            {{
+              projectThreshold === null
+                ? t("thresholdSettings.none")
+                : t("thresholdSettings.current", {
+                    threshold: projectThreshold,
+                  })
+            }}
+          </p>
+        </div>
+        <Button
+          v-if="isAdmin && project"
+          type="button"
+          variant="outline"
+          size="sm"
+          :data-testid="TEST_ID.thresholdSettingsAction"
+          @click="thresholdSettingsOpen = true"
+        >
+          {{ t("thresholdSettings.edit") }}
+        </Button>
+      </div>
+    </section>
+
     <ProjectStoragePanel :project-name="projectName" />
 
     <!-- Endpoint administration is ADMIN-only in the API, so a MEMBER/VIEWER
@@ -109,6 +151,14 @@ const requiredApprovals = computed(() => project.value?.requiredApprovals ?? 1);
       :project-name="projectName"
       :required-approvals="requiredApprovals"
       @update:open="reviewSettingsOpen = $event"
+    />
+
+    <ThresholdSettingsDialog
+      v-if="thresholdSettingsOpen && project"
+      :open="thresholdSettingsOpen"
+      :project-name="projectName"
+      :pixel-diff-threshold="projectThreshold"
+      @update:open="thresholdSettingsOpen = $event"
     />
   </div>
 </template>

@@ -1,7 +1,14 @@
 import { Prisma } from '@/prisma/client';
 import { DomainError, type DomainErrorCode } from '@common/domain/domain-error';
 
-export const JOB_MAX_ATTEMPTS = 3;
+// A comparison job's retry budget is minutes, not seconds: the failures it must
+// survive are infrastructure blips (a Postgres restart, a storage or sidecar
+// outage), and a budget that expires before the outage does turns every
+// in-flight job into a DLQ row. Five attempts at 30 s, 60 s, 120 s and 240 s
+// give the stack roughly 7.5 minutes to come back before the job is failed.
+export const JOB_MAX_ATTEMPTS = 5;
+export const JOB_RETRY_BASE_DELAY_MS = 30_000;
+export const JOB_RETRY_MAX_DELAY_MS = 5 * 60_000;
 
 export interface RetryDecision {
   action: 'retry' | 'failed';
@@ -23,12 +30,23 @@ export function decideRetry(
     action: 'retry',
     // newAttempts is 1 on the first failure — delay by the base (2^0 × base),
     // not 2× the base, so the configured delay matches the doc.
-    nextAttemptAt: new Date(Date.now() + exponentialBackoffMs(newAttempts - 1)),
+    nextAttemptAt: new Date(
+      Date.now() +
+        exponentialBackoffMs(
+          newAttempts - 1,
+          JOB_RETRY_BASE_DELAY_MS,
+          JOB_RETRY_MAX_DELAY_MS,
+        ),
+    ),
   };
 }
 
-export function exponentialBackoffMs(attempt: number, baseMs = 1000): number {
-  return Math.pow(2, attempt) * baseMs;
+export function exponentialBackoffMs(
+  attempt: number,
+  baseMs = 1000,
+  maxMs = Number.POSITIVE_INFINITY,
+): number {
+  return Math.min(Math.pow(2, attempt) * baseMs, maxMs);
 }
 
 export interface RetryPolicy {

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import TestComparisonView from "@/components/detail-panels/TestComparisonView.vue";
+import ApprovalDecisionDialog from "@/components/approvals/ApprovalDecisionDialog.vue";
 import { TEST_ID } from "@/lib/test-ids";
 
 // The footer's role gate reads the session; these tests are about the view's
@@ -163,5 +164,18 @@ describe("TestComparisonView", () => {
     expect(wrapper.find('[data-testid="interactive-viewer"]').exists()).toBe(
       true,
     );
+  });
+
+  it("opens the decision dialog through the exposed review action", async () => {
+    const wrapper = mount(TestComparisonView, {
+      props: { comparison: mockComparison },
+    });
+    const dialog = wrapper.findComponent(ApprovalDecisionDialog);
+    expect(dialog.props("open")).toBe(false);
+
+    (wrapper.vm as unknown as { openDecision: () => void }).openDecision();
+    await wrapper.vm.$nextTick();
+
+    expect(dialog.props("open")).toBe(true);
   });
 });

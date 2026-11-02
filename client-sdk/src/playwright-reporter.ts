@@ -1,8 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import {
+  VRT_CONFIG_FILE,
+  parseVrtConfig,
+  thresholdForTest,
   uploadMany,
   type CaptureUpload,
   type CaptureUploadResult,
+  type VrtConfig,
 } from './upload-many';
 
 // Structural subset of Playwright's reporter API. Deliberately no dependency on
@@ -50,6 +54,13 @@ export interface PlaywrightReporterOptions {
   maxAttempts?: number;
   /** Called after each upload; handy for logging. */
   onUpload?: (result: CaptureUploadResult) => void;
+  /**
+   * Repository config with per-test pixel thresholds. Defaults to `.vrt.json`
+   * in the process working directory; a missing file is not an error.
+   */
+  configPath?: string;
+  /** Called when the config file exists but cannot be read or parsed. */
+  onConfigError?: (error: unknown) => void;
 }
 
 export interface VrtPlaywrightReporter {
@@ -84,6 +95,23 @@ async function attachmentBody(
   return undefined;
 }
 
+async function readConfig(
+  options: PlaywrightReporterOptions,
+): Promise<VrtConfig> {
+  try {
+    const text = await readFile(
+      options.configPath ?? VRT_CONFIG_FILE,
+      'utf8',
+    );
+    return parseVrtConfig(JSON.parse(text) as unknown);
+  } catch (error) {
+    if ((error as { code?: string }).code !== 'ENOENT') {
+      options.onConfigError?.(error);
+    }
+    return {};
+  }
+}
+
 // Playwright reporter that uploads the first screenshot/PDF attachment of each
 // test into a VRT run. Test name defaults to the title path joined with " / ",
 // which keeps tests from different files unique inside the project.
@@ -92,6 +120,11 @@ export function createVrtReporter(
 ): VrtPlaywrightReporter {
   const pending: Promise<void>[] = [];
   const collected: CaptureUploadResult[] = [];
+
+  // One read per reporter: every capture resolves its threshold against the
+  // same config. A broken config must not silently drop uploads, so it is
+  // reported and treated as "no thresholds".
+  const configPromise: Promise<VrtConfig> = readConfig(options);
 
   function testName(test: PlaywrightTestLike): string {
     const path = test.titlePath().filter((part) => part.length > 0);
@@ -111,9 +144,15 @@ export function createVrtReporter(
         (async () => {
           const body = await attachmentBody(attachment);
           if (!body) return;
+          const config = await configPromise;
+          const canonicalName = testName(test);
+          const threshold = thresholdForTest(config, [
+            canonicalName,
+            test.title,
+          ]);
           const capture: CaptureUpload = {
             projectName: options.project,
-            testName: testName(test),
+            testName: canonicalName,
             kind: attachment.contentType === 'application/pdf' ? 'pdf' : 'image',
             file: new Blob([new Uint8Array(body)], {
               type: attachment.contentType ?? 'image/png',
@@ -128,6 +167,9 @@ export function createVrtReporter(
               ? { commitMessage: options.commitMessage }
               : {}),
             ...(options.ciUrl ? { ciUrl: options.ciUrl } : {}),
+            ...(threshold !== undefined
+              ? { pixelDiffThreshold: threshold }
+              : {}),
           };
           const [uploaded] = await uploadMany([capture], {
             apiKey: options.apiKey,
