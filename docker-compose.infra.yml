@@ -20,7 +20,7 @@ services:
       start_period: 10s
 
   rustfs:
-    image: rustfs/rustfs:1.0.2
+    image: rustfs/rustfs:1.0.4
     restart: always
     depends_on:
       volume-permission-helper:
@@ -47,7 +47,7 @@ services:
       start_period: 40s
 
   volume-permission-helper:
-    image: alpine:3.24.2
+    image: alpine:3.24.3
     volumes:
       - rustfsdata:/data
       - rustfslogs:/logs
