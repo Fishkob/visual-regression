@@ -29,6 +29,11 @@ updates:
       npm-minor-patch:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+    ignore:
+      # 3.3.14 fails the frontend type check with TS2339 "Property 'value' does
+      # not exist" on template reads through a component slot; lift when fixed.
+      - dependency-name: "vue-tsc"
+        versions: ["3.3.14"]
 
   - package-ecosystem: docker
     directory: /backend
