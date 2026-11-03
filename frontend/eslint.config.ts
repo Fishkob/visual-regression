@@ -60,8 +60,12 @@ const config: Linter.FlatConfig[] = [
     ignores: ["playwright/.cache/**"],
   },
   {
+    // A disable comment that suppresses nothing is a lie about the code.
+    linterOptions: { reportUnusedDisableDirectives: "error" },
+  },
+  {
     files: ["**/*.vue"],
-    ignores: ["src/api/**", "src/components/**/ui/**"],
+    ignores: ["src/components/**/ui/**"],
     languageOptions: {
       parser: vueParser,
       parserOptions: {
@@ -85,7 +89,7 @@ const config: Linter.FlatConfig[] = [
   },
   {
     files: ["**/*.ts"],
-    ignores: ["**/*.vue", "src/api/**"],
+    ignores: ["**/*.vue"],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -121,7 +125,6 @@ const config: Linter.FlatConfig[] = [
   {
     files: ["src/**/*.ts"],
     ignores: [
-      "src/api/**",
       "src/**/__tests__/**",
       "src/**/*.test.ts",
       "src/lib/raw-color-utilities.ts",
@@ -135,7 +138,7 @@ const config: Linter.FlatConfig[] = [
   },
   {
     files: ["src/**/*.vue"],
-    ignores: ["src/api/**", "src/**/__tests__/**"],
+    ignores: ["src/**/__tests__/**"],
     // UI files are excluded from the base Vue block, so this block must
     // supply the Vue parser itself.
     languageOptions: {

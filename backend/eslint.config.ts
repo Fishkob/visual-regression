@@ -114,10 +114,6 @@ export default tseslint.config(
         {
           selector: 'typeLike',
           format: ['PascalCase'],
-          filter: {
-            regex: '\\d{10}$',
-            match: false,
-          },
         },
         {
           selector: 'property',
@@ -171,7 +167,14 @@ export default tseslint.config(
       '@typescript-eslint/no-confusing-void-expression': 'off',
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/dot-notation': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
+      // An unused import in a spec is a leftover from a refactor, not a style
+      // choice: tsconfig has no noUnusedLocals, so nothing else would catch it.
+      // A leading underscore is the way to keep an argument that must match a
+      // signature (`_variables`, `_error`).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
     },
   },
   {
@@ -190,8 +193,10 @@ export default tseslint.config(
     },
   },
   {
+    // A disable comment that no longer suppresses anything is a lie about the
+    // code. There was one (rustfs-storage.service.ts) when this was switched on.
     linterOptions: {
-      reportUnusedDisableDirectives: false,
+      reportUnusedDisableDirectives: 'error',
     },
   },
 );

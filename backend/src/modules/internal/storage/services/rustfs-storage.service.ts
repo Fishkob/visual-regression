@@ -503,7 +503,6 @@ export class RustFsStorageService
     mimeType?: string,
   ): Promise<string> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const lookup = mime.lookup;
       const lookupResult = lookup(filename);
       const contentType: string =
