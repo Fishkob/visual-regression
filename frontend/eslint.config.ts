@@ -113,6 +113,7 @@ const config: Linter.FlatConfig[] = [
         { argsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/no-unsafe-argument": "error",
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-misused-promises": "warn",
       "no-console": ["error", { allow: ["error", "warn"] }],
     },

@@ -32,7 +32,7 @@ import { useSdkMutation } from "@/composables/useSdkMutation";
 // The skip-memory + fresh/continued-pass rule lives in lib/review-pass — see
 // CONTEXT.md for the pass semantics.
 
-interface ReviewSessionContext {
+export interface ReviewSessionContext {
   restore: () => void;
   restoreInbox?: () => void;
   currentVariant: VariantParams;

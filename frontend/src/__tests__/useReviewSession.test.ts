@@ -1,13 +1,33 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ref } from "vue";
-import { useReviewSession } from "@/composables/useReviewSession";
+import {
+  useReviewSession,
+  type ReviewSessionContext,
+} from "@/composables/useReviewSession";
 import { isSeen, resetReviewSeen } from "@/lib/review-pass";
 import { invalidateVisualTestDetails } from "@/lib/invalidation";
 import { keyOf } from "@/lib/variant-key";
 import type { PendingTest } from "@/domains/pending-tests/pending-test";
 import { toast } from "vue-sonner";
 
-let mutationOptions: Record<string, any> = {};
+// What the session handed to `useMutation`, captured so the assertions can drive
+// its callbacks. The context is partial because a spec passes `{}` to model a
+// failed mutation that had no cache work to roll back.
+type CapturedMutation = {
+  onSuccess: (
+    data: unknown,
+    error: unknown,
+    context?: Partial<ReviewSessionContext>,
+  ) => void;
+  onError: (
+    error: unknown,
+    variables: unknown,
+    context?: Partial<ReviewSessionContext>,
+  ) => void;
+  onMutate: () => Promise<ReviewSessionContext>;
+};
+
+let mutationOptions = {} as CapturedMutation;
 const mockMutate = vi.fn();
 const mockCancelQueries = vi.fn();
 const mockGetQueryData = vi.fn();
@@ -49,7 +69,7 @@ vi.mock("vue-sonner", () => ({
 describe("useReviewSession", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mutationOptions = {};
+    mutationOptions = {} as CapturedMutation;
     resetReviewSeen();
   });
 

@@ -13,9 +13,17 @@ import { TEST_ID } from "@/lib/test-ids";
 // The project overview filters and pages on the server now, so the CT mock must
 // answer the query it receives (search, kind, status, variant, skip/take) and
 // return the branch-wide filter options.
+// The columns the mock filters on; the rest of the row passes through untouched.
+type ProjectRow = {
+  name: string;
+  kind?: string;
+  latestStatus?: string;
+  variant?: { viewport?: string; browser?: string; environment?: string };
+};
+
 async function mockProjectFilters(page: import("@playwright/test").Page) {
   const body = JSON.parse(PROJECT_CHECKOUT_UI_RESPONSE.body) as {
-    visualTests: Array<Record<string, any>>;
+    visualTests: ProjectRow[];
   };
   const rows = body.visualTests;
 

@@ -7,10 +7,18 @@ import {
   usePaginatedListQuery,
   previewSdkRead,
 } from "@/composables/useDomainQuery";
+// What the composable handed to `useQuery`, captured so the assertions can read
+// it back. Only the two members the specs touch are named.
+type CapturedQuery = {
+  queryKey: { value: unknown };
+  queryFn: () => Promise<unknown>;
+  retry?: unknown;
+};
+
 const { mockUseQuery, queryOptions } = vi.hoisted(() => {
-  const queryOptions: { current?: Record<string, any> } = {};
+  const queryOptions: { current?: CapturedQuery } = {};
   const mockUseQuery = vi.fn((opts: Record<string, unknown>) => {
-    queryOptions.current = opts;
+    queryOptions.current = opts as unknown as CapturedQuery;
     return {
       data: undefined,
       isLoading: false,
