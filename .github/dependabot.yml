@@ -34,6 +34,11 @@ updates:
       # not exist" on template reads through a component slot; lift when fixed.
       - dependency-name: "vue-tsc"
         versions: ["3.3.14"]
+      # TypeScript 7 is the native compiler port. The backend pins TS 6 through
+      # npm:@typescript/typescript6 plus its tsc6 binary, and vue-tsc's Volar
+      # layer declares typescript <7, so 7 needs a migration of its own.
+      - dependency-name: "typescript"
+        versions: [">=7.0.0 <8"]
 
   - package-ecosystem: docker
     directory: /backend
