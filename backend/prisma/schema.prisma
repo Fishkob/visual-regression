@@ -31,6 +31,11 @@ model Project {
   assignments     ReviewAssignment[]
 
   @@index([groupId])
+  // Trigram index for the case-insensitive substring search (project list,
+  // global search): `ILIKE '%q%'` cannot use a btree, so without it every search
+  // is a sequential scan. Requires the `pg_trgm` extension, which the
+  // query_performance_indexes migration creates.
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Project_name_trgm_idx")
 }
 
 model Branch {
@@ -49,6 +54,8 @@ model Branch {
 
   @@unique([projectId, name])
   @@index([targetBranchId])
+  // Substring search on the branch name (global search).
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Branch_name_trgm_idx")
   @@map("Branch")
 }
 
@@ -75,6 +82,10 @@ model UnifiedTest {
   assignments   ReviewAssignment[]
 
   @@unique([branchId, name])
+  // Substring search on the test name: the global search, the inbox `q` filter,
+  // the project overview's variant page and "approve all" all match with
+  // `ILIKE '%q%'`, which no btree can serve.
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "UnifiedTest_name_trgm_idx")
   @@map("UnifiedTest")
 }
 
@@ -275,6 +286,9 @@ model WebhookDelivery {
 
   @@index([status, nextAttemptAt])
   @@index([status, claimedAt])
+  // Serves the retention sweep (`status IN (DELIVERED, FAILED) AND createdAt <
+  // cutoff`), which otherwise scans the whole outbox once a day.
+  @@index([status, createdAt])
   @@index([endpointId, createdAt])
   @@map("WebhookDelivery")
 }
