@@ -22,6 +22,8 @@ export interface ProjectData {
   orphanGraceHours?: number | null;
   storageQuotaBytes?: bigint | null;
   quotaSoftPercent?: number | null;
+  storageUsedBytes?: bigint | null;
+  storageUsageComputedAt?: Date | null;
   requiredApprovals?: number;
   pixelDiffThreshold?: number | null;
 }
@@ -144,6 +146,34 @@ export class ProjectRepository extends BaseRepository {
     },
   ): Promise<void> {
     await this.client.project.update({ where: { name }, data });
+  }
+
+  // Standalone write by design: the cached usage is derived state, so it is
+  // written on the bare connection by the quota check that just recomputed it —
+  // never inside the upload's transaction, where the Project row would serialize
+  // every concurrent upload of the same project. See ADR-060.
+  async recordStorageUsage(
+    projectId: string,
+    bytes: bigint,
+    computedAt: Date,
+  ): Promise<void> {
+    await this.client.project.update({
+      where: { id: projectId },
+      data: { storageUsedBytes: bytes, storageUsageComputedAt: computedAt },
+    });
+  }
+
+  // Integral charge for bytes the quota check just admitted. A single statement
+  // outside the upload's transaction: the row lock is held for microseconds,
+  // not for the length of the upload, so concurrent uploads of one project are
+  // not serialized. `increment` keeps two concurrent charges from overwriting
+  // each other. Null is never incremented into: the check derives and records a
+  // value before it charges.
+  async addStorageUsage(projectId: string, bytes: bigint): Promise<void> {
+    await this.client.project.updateMany({
+      where: { id: projectId },
+      data: { storageUsedBytes: { increment: bytes } },
+    });
   }
 
   async getOrCreate(name: string): Promise<ProjectData> {

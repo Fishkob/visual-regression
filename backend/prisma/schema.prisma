@@ -20,6 +20,14 @@ model Project {
   orphanGraceHours      Int?
   storageQuotaBytes     BigInt?
   quotaSoftPercent      Int?          @default(80)
+  // Cached byte total of this project's evidence (screenshot rows + diff
+  // artifacts), written ONLY by the quota check in StorageUsageService when the
+  // value is older than its refresh window. The rows stay the truth: the cached
+  // number is a `SUM` over them, re-derived from scratch on every refresh, so a
+  // stale value can only be conservative (it over-reports after a deletion) or
+  // lag the uploads of one window. Null means "never computed". See ADR-060.
+  storageUsedBytes      BigInt?
+  storageUsageComputedAt DateTime?
   requiredApprovals     Int           @default(1)
   // Project-wide fallback tolerance in pixels. A variant whose baseline has no
   // threshold of its own (0) inherits this value; an explicit per-variant

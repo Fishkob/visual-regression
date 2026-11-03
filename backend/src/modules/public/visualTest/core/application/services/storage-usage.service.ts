@@ -1,8 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { DomainError } from '@common/domain/domain-error';
-import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import {
+  ProjectRepository,
+  type ProjectData,
+} from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
+
+// How long a computed evidence total is trusted by the quota check. Short on
+// purpose: the bound on a burst is the evidence one window writes, and a
+// refresh costs one aggregate per project, not per upload. See ADR-060.
+const USAGE_CACHE_TTL_MS = 5_000;
 
 export interface StorageUsageView {
   usageBytes: string;
@@ -73,26 +81,59 @@ export class StorageUsageService {
   // succeeds); only a hard ceiling rejects, with 413.
   //
   // The project row is loaded once: this used to call `get()`, which loaded the
-  // same row a second time.
+  // same row a second time. The byte total comes from the project's cached
+  // `storageUsedBytes` (ADR-060) — a `SUM` over every evidence row of the
+  // project on every upload grew linear with the project (68 ms of database
+  // time at 500k screenshot rows, measured) and no index helps, because the
+  // aggregate has to visit the rows. The cache is re-derived from those rows
+  // whenever it is older than USAGE_CACHE_TTL_MS and advanced by each admitted
+  // charge, so a burst still sees its own bytes; what it can lag is a deletion
+  // or a store that failed after its charge, and both over-report — the safe
+  // direction for a ceiling — for at most one window.
   async assertWithinQuota(
     projectName: string,
     incomingBytes: number,
   ): Promise<void> {
     const project = await this.projects.findByName(projectName);
-    const quota = project?.storageQuotaBytes ?? null;
+    // A project that does not exist yet is not enforced: the upload that would
+    // create it runs its own transaction after this check, and its bytes are
+    // accounted by the next one.
+    if (!project) return;
+    const quota = project.storageQuotaBytes ?? null;
     if (quota === null) return;
     // A stored 0 predates the DTO's positive-integer rule and has always meant
     // "no quota" (the old falsy test). Keep reading it that way instead of
     // bricking a project that carries one; the DTO no longer lets a new 0 in.
     if (quota <= 0n) return;
-    const usage = await this.sumEvidence(projectName);
-    const projected = usage.bytes + BigInt(incomingBytes);
-    if (projected > quota) {
+    const used = await this.currentUsageBytes(project);
+    const incoming = BigInt(incomingBytes);
+    if (used + incoming > quota) {
       throw new DomainError(
-        `Storage quota exceeded for project "${projectName}" (${toMb(usage.bytes)} of ${toMb(quota)} MB used)`,
+        `Storage quota exceeded for project "${projectName}" (${toMb(used)} of ${toMb(quota)} MB used)`,
         'QUOTA_EXCEEDED',
       );
     }
+    // Charge the admitted bytes into the cached total so the next upload of this
+    // project sees them: without it every upload of one window would be decided
+    // against the same total and a burst would land as a block. A charge that
+    // never reaches storage (a failed store) or a deletion stays in the total
+    // until the next re-derive, which is why the window is short — the error is
+    // always "over-reports", the safe direction for a ceiling.
+    await this.projects.addStorageUsage(project.id, incoming);
+  }
+
+  // The cached total, re-derived from the rows when it is missing or stale.
+  // Deliberately NOT written inside the upload's transaction: the Project row is
+  // shared by every concurrent upload, so a write there would serialize them.
+  private async currentUsageBytes(project: ProjectData): Promise<bigint> {
+    const computedAt = project.storageUsageComputedAt;
+    const cached = project.storageUsedBytes;
+    if (cached !== null && cached !== undefined && computedAt) {
+      if (Date.now() - computedAt.getTime() < USAGE_CACHE_TTL_MS) return cached;
+    }
+    const usage = await this.sumEvidence(project.name);
+    await this.projects.recordStorageUsage(project.id, usage.bytes, new Date());
+    return usage.bytes;
   }
 }
 
