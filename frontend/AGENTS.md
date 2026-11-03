@@ -86,6 +86,24 @@ src/
   (`tests/ct/keyboard.spec.ts`): a dialog or overlay you add needs a case there
   (focus moves in, Escape closes, focus returns). Axe only sees the page at rest.
 
+### Domain mapper tests
+
+- One test per mapper pins the **wiring** — a full `toEqual` on a fully
+  populated DTO. It catches a field copied from the wrong source, which the
+  model type cannot see.
+- Every further test pins **behaviour the type system cannot**: a field the wire
+  leaves out (`→ null` / `→ []` / `→ 0` / `→ default`), an unknown enum value, a
+  `Date` handed over where a string is declared (`→ ISO`), or a precedence rule
+  between two source fields. Those cases pass a payload the DTO type does not
+  promise, which is why they cast (`as unknown as Dto`): the type is not the
+  contract under test.
+- Do not test `Array.prototype.map` separately. A list assertion belongs in the
+  wiring test; a second spec that maps an array back adds maintenance, not
+  signal.
+- A mapper with no fallback, coercion or precedence rule needs the wiring test
+  only — and a mapper test that asserts nothing beyond the mapper body is a
+  candidate for deletion, not for a new `describe`.
+
 ### Coverage gate
 
 - `pnpm test:coverage` is the gated variant (`pnpm test` is not): thresholds per
