@@ -206,7 +206,7 @@ test.describe("Review inbox", () => {
     await expect(component.getByTestId(TEST_ID.inboxItem)).toHaveCount(1);
   });
 
-  test("keeps the full project review count while entering at a visible item", async ({
+  test("scopes the review count to the kind filter and enters at a visible item", async ({
     mount,
     page,
   }) => {
@@ -224,21 +224,20 @@ test.describe("Review inbox", () => {
     await expect(section).toContainText("checkout-pdf");
 
     const review = section.getByTestId(TEST_ID.reviewProjectButton);
-    // The count describes the branch-wide set the details page walks, so the
-    // kind filter must not shrink it to 1.
-    await expect(review).toHaveText("Review 2");
+    // The inbox filters are the pass's scope: they ride along as `inbox*` keys,
+    // so the count describes the set the details page will actually walk. After
+    // the kind filter that is one change, not the branch-wide two.
+    await expect(review).toHaveText("Review 1");
     await review.click();
 
-    // The entry item comes from the filtered list: the pass walks the project's
-    // pending list on the details page, so it still covers both changes, but it
-    // must not land on a test the kind filter just hid. Before filtering moved
-    // to the server this section received the unfiltered project section as a
-    // prop and entered at its first item; that input no longer exists in the
-    // inbox payload, and starting "invisibly" is not worth new API surface.
+    // The entry item is the only visible one, and the scope rides along so the
+    // pass does not silently widen back to both changes.
     await page.waitForURL(
       (url) => url.pathname === "/projects/checkout-ui/tests/checkout-pdf",
     );
-    expect(new URL(page.url()).searchParams.get("from")).toBeNull();
+    const url = new URL(page.url());
+    expect(url.searchParams.get("inboxKind")).toBe("pdf");
+    expect(url.searchParams.get("from")).toBeNull();
   });
 
   test("starts the project review loop without the inbox marker", async ({

@@ -166,7 +166,7 @@ describe('Test variant gallery (e2e)', () => {
     ]);
   });
 
-  it('answers 404 for an unknown test and 400 for a PDF test', async () => {
+  it('answers 404 for an unknown test and serves a PDF test through the same read', async () => {
     await variants().expect(404);
     await authRequest(app)
       .get('/api/v1/projects/shop/tests/missing/variants')
@@ -180,9 +180,18 @@ describe('Test variant gallery (e2e)', () => {
       .attach('file', fs.createReadStream(pdf))
       .expect(201);
 
-    const rejected = await authRequest(app)
+    // The variant coordinates are kind-agnostic, so a PDF test resolves its own
+    // variant through this read instead of a 400 (see getTestVariants): a
+    // variant-less deep link to a PDF test needs it.
+    const pdfVariants = await authRequest(app)
       .get('/api/v1/projects/shop/tests/report/variants')
-      .expect(400);
-    expect(rejected.body.message).toBe('Test "report" is not an image test');
+      .expect(200);
+    expect(pdfVariants.body.kind).toBe('pdf');
+    expect(pdfVariants.body.variants).toHaveLength(1);
+    expect(pdfVariants.body.variants[0]).toMatchObject({
+      viewport: 'A4',
+      browser: 'pdf',
+      environment: 'production',
+    });
   });
 });
