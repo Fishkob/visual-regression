@@ -82,13 +82,13 @@ export class BranchTestRepository {
     testName: string,
   ): Promise<EffectiveTest | null> {
     const rows = await this.client.$queryRaw<EffectiveTestRow[]>(Prisma.sql`
-      ${RANKED_CTE(branchId)}
+      ${RANKED_CTE(branchId, testName)}
       SELECT r."id", r."name", r."kind", r."status", r."createdAt",
              r."branchId", b."name" AS "branchName",
              (r."depth" = 0) AS "isOwn"
       FROM ranked r
       JOIN "Branch" b ON b."id" = r."branchId"
-      WHERE r."rn" = 1 AND r."name" = ${testName}
+      WHERE r."rn" = 1
       LIMIT 1
     `);
     return rows[0] ? toEffectiveTest(rows[0]) : null;

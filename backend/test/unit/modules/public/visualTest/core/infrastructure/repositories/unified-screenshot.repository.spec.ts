@@ -8,6 +8,7 @@ import { createMock } from '@test/utils/create-mock';
 
 function makeMockClient() {
   return {
+    $queryRaw: vi.fn(),
     unifiedScreenshot: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
@@ -957,7 +958,7 @@ describe('UnifiedScreenshotRepository', () => {
       });
     });
 
-    it('applies the baseline filter before the comparison-referenced filter', async () => {
+    it('asks every reference table about the full input, not a narrowed remainder', async () => {
       mockClient.unifiedScreenshot.findMany
         .mockResolvedValueOnce([
           { imageUrl: 'http://example.com/baseline.png' },
@@ -966,37 +967,32 @@ describe('UnifiedScreenshotRepository', () => {
           { imageUrl: 'http://example.com/comparison.png' },
         ]);
 
-      const result = await repository.filterReclaimableUrls([
+      const input = [
         'http://example.com/baseline.png',
         'http://example.com/comparison.png',
         'http://example.com/free.png',
-      ]);
+      ];
+      const result = await repository.filterReclaimableUrls(input);
 
+      // The three filters are independent safety questions about the input, so
+      // they run concurrently and each sees the whole list. The narrowing a
+      // sequential chain used to do is gone on purpose: it only shrank the
+      // bind-parameter list, which the batching already bounds.
       expect(result).toEqual(['http://example.com/free.png']);
       expect(mockClient.unifiedScreenshot.findMany).toHaveBeenNthCalledWith(1, {
-        where: {
-          type: 'BASELINE',
-          imageUrl: {
-            in: [
-              'http://example.com/baseline.png',
-              'http://example.com/comparison.png',
-              'http://example.com/free.png',
-            ],
-          },
-        },
+        where: { type: 'BASELINE', imageUrl: { in: input } },
         select: { imageUrl: true },
       });
       expect(mockClient.unifiedScreenshot.findMany).toHaveBeenNthCalledWith(2, {
         where: {
           type: 'CURRENT',
-          imageUrl: {
-            in: [
-              'http://example.com/comparison.png',
-              'http://example.com/free.png',
-            ],
-          },
+          imageUrl: { in: input },
           asCandidateComp: { some: {} },
         },
+        select: { imageUrl: true },
+      });
+      expect(mockClient.baselineRevision.findMany).toHaveBeenCalledWith({
+        where: { imageUrl: { in: input } },
         select: { imageUrl: true },
       });
     });
@@ -1035,22 +1031,21 @@ describe('UnifiedScreenshotRepository', () => {
     });
   });
 
-  describe('findBaselineForBranch', () => {
+  describe('findBaselineOnChain', () => {
     const variant = Variant.fromStrings('1920x1080', 'chromium', 'staging');
 
     it('resolves the ancestor baseline of the test with the same name', async () => {
-      mockClient.unifiedVariant.findFirst.mockResolvedValue({
-        baseline: {
-          id: 'base-1',
+      mockClient.$queryRaw.mockResolvedValue([
+        {
           testId: 'main-test-1',
           imageHash: 'hash',
           imageUrl: 'http://storage/baseline.pdf',
           pageCount: 2,
           pixelDiffThreshold: 3,
         },
-      });
+      ]);
 
-      const result = await repository.findBaselineForBranch(
+      const result = await repository.findBaselineOnChain(
         'br-main',
         'pdf-report',
         variant,
@@ -1063,24 +1058,16 @@ describe('UnifiedScreenshotRepository', () => {
         pageCount: 2,
         pixelDiffThreshold: 3,
       });
-      expect(mockClient.unifiedVariant.findFirst).toHaveBeenCalledWith({
-        where: {
-          test: { branchId: 'br-main', name: 'pdf-report' },
-          viewport: '1920x1080',
-          browser: 'chromium',
-          environment: 'staging',
-          isInherited: false,
-          baselineId: { not: null },
-        },
-        include: { baseline: true },
-      });
+      // One statement: the ancestor walk is the recursive CTE, not a loop.
+      expect(mockClient.$queryRaw).toHaveBeenCalledTimes(1);
+      expect(mockClient.unifiedVariant.findFirst).not.toHaveBeenCalled();
     });
 
     it('returns null when the ancestor has no baseline for that variant', async () => {
-      mockClient.unifiedVariant.findFirst.mockResolvedValue(null);
+      mockClient.$queryRaw.mockResolvedValue([]);
 
       await expect(
-        repository.findBaselineForBranch('br-main', 'login', variant),
+        repository.findBaselineOnChain('br-main', 'login', variant),
       ).resolves.toBeNull();
     });
   });

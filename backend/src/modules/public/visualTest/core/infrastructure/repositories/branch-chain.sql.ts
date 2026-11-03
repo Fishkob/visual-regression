@@ -31,12 +31,19 @@ export const CHAIN_CTE = (branchId: string) => Prisma.sql`
 // applied here — filtering before the ranking would drop the branch's own row
 // for a name and surface a shadowed ancestor row of a different kind, which is
 // not the test this branch has.
-export const RANKED_CTE = (branchId: string) => Prisma.sql`
+//
+// `testName` narrows the ranked set to a single name. A single-test lookup (the
+// review read seam, the PDF reads) would otherwise rank every test of the whole
+// chain — the entire project — to keep one row. The name is an equality on the
+// branch's unique (branchId, name) key, so pushing it into the ranking does not
+// change what "nearest occurrence" means.
+export const RANKED_CTE = (branchId: string, testName?: string) => Prisma.sql`
   ${CHAIN_CTE(branchId)}
   , ranked AS (
     SELECT t."id", t."name", t."kind", t."status", t."createdAt", t."branchId", c."depth",
            ROW_NUMBER() OVER (PARTITION BY t."name" ORDER BY c."depth" ASC) AS rn
     FROM "UnifiedTest" t
     JOIN chain c ON t."branchId" = c."id"
+    ${testName === undefined ? Prisma.empty : Prisma.sql`WHERE t."name" = ${testName}`}
   )
 `;

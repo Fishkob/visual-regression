@@ -1,6 +1,5 @@
 import type { Mocked } from 'vitest';
 import { BranchBaselineResolver } from '@public/visualTest/core/application/services/branch-baseline-resolver.service';
-import { BranchRepository } from '@public/visualTest/core/infrastructure/repositories/branch.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
@@ -10,14 +9,12 @@ describe('BranchBaselineResolver', () => {
   let resolver: BranchBaselineResolver;
   let variants: Mocked<VariantStore>;
   let screenshots: Mocked<UnifiedScreenshotRepository>;
-  let branches: Mocked<BranchRepository>;
   const variant = Variant.fromStrings('1920x1080', 'chromium', 'staging');
 
   beforeEach(() => {
     variants = createMock<VariantStore>();
     screenshots = createMock<UnifiedScreenshotRepository>();
-    branches = createMock<BranchRepository>();
-    resolver = new BranchBaselineResolver(variants, screenshots, branches);
+    resolver = new BranchBaselineResolver(variants, screenshots);
   });
 
   afterEach(() => {
@@ -49,12 +46,14 @@ describe('BranchBaselineResolver', () => {
 
     expect(result).toMatchObject({ id: 'base-1', imageHash: 'h' });
     expect(screenshots.cloneInheritedBaseline).not.toHaveBeenCalled();
+    // An owned baseline never asks the chain: the lookup is the second read of
+    // the upload path and must not run for the branch's own content.
+    expect(screenshots.findBaselineOnChain).not.toHaveBeenCalled();
   });
 
   it('clones the nearest target baseline when the branch has none', async () => {
     variants.findVariantWithBaseline.mockResolvedValue(null);
-    branches.findTargetChainIds.mockResolvedValue(['br-main']);
-    screenshots.findBaselineForBranch.mockResolvedValue({
+    screenshots.findBaselineOnChain.mockResolvedValue({
       testId: 'test-main',
       imageHash: 'main-hash',
       imageUrl: 'main-url',
@@ -79,8 +78,8 @@ describe('BranchBaselineResolver', () => {
       variant,
     });
 
-    expect(screenshots.findBaselineForBranch).toHaveBeenCalledWith(
-      'br-main',
+    expect(screenshots.findBaselineOnChain).toHaveBeenCalledWith(
+      'br-feature',
       'login',
       variant,
     );
@@ -98,29 +97,20 @@ describe('BranchBaselineResolver', () => {
     expect(result).toMatchObject({ id: 'base-clone' });
   });
 
-  // "Nearest ancestor wins" is the whole point of the chain lookup; a reversed
-  // iteration (or taking the last element) would still pass a one-element test.
-  it('uses the nearest ancestor when several of them have a baseline', async () => {
+  // "Nearest ancestor wins" is now decided by the chain query's ORDER BY depth
+  // (see branch-baselines.e2e-spec "surfaces the nearest ancestor for a
+  // two-level chain"). What this unit test still guards is the calling
+  // convention: the whole chain is resolved in ONE lookup from the branch the
+  // caller named, not walked hop by hop from the caller.
+  it('resolves the whole chain in a single lookup', async () => {
     variants.findVariantWithBaseline.mockResolvedValue(null);
-    branches.findTargetChainIds.mockResolvedValue(['br-parent', 'br-main']);
-    screenshots.findBaselineForBranch.mockImplementation(
-      async (branchId: string) =>
-        branchId === 'br-parent'
-          ? {
-              testId: 'test-parent',
-              imageHash: 'parent-hash',
-              imageUrl: 'parent-url',
-              pageCount: 1,
-              pixelDiffThreshold: 5,
-            }
-          : {
-              testId: 'test-main',
-              imageHash: 'main-hash',
-              imageUrl: 'main-url',
-              pageCount: 1,
-              pixelDiffThreshold: 3,
-            },
-    );
+    screenshots.findBaselineOnChain.mockResolvedValue({
+      testId: 'test-parent',
+      imageHash: 'parent-hash',
+      imageUrl: 'parent-url',
+      pageCount: 1,
+      pixelDiffThreshold: 5,
+    });
     screenshots.cloneInheritedBaseline.mockResolvedValue({
       id: 'base-clone',
       testId: 'test-1',
@@ -139,32 +129,19 @@ describe('BranchBaselineResolver', () => {
       variant,
     });
 
-    expect(screenshots.findBaselineForBranch).toHaveBeenCalledTimes(1);
-    expect(screenshots.findBaselineForBranch).toHaveBeenNthCalledWith(
-      1,
-      'br-parent',
+    expect(screenshots.findBaselineOnChain).toHaveBeenCalledTimes(1);
+    expect(screenshots.findBaselineOnChain).toHaveBeenCalledWith(
+      'br-feature',
       'login',
       variant,
     );
-    expect(screenshots.cloneInheritedBaseline).toHaveBeenCalledWith({
-      testId: 'test-1',
-      source: {
-        testId: 'test-parent',
-        imageHash: 'parent-hash',
-        imageUrl: 'parent-url',
-        pageCount: 1,
-        pixelDiffThreshold: 5,
-      },
-      variant,
-    });
   });
 
   it('only inherits from the ancestor test with the same name', async () => {
     variants.findVariantWithBaseline.mockResolvedValue(null);
-    branches.findTargetChainIds.mockResolvedValue(['br-main']);
     // The repository answers with the ancestor of the requested name; a
     // sibling test's baseline is not considered (the query filters by name).
-    screenshots.findBaselineForBranch.mockResolvedValue(null);
+    screenshots.findBaselineOnChain.mockResolvedValue(null);
 
     await expect(
       resolver.resolveForVariant({
@@ -175,8 +152,8 @@ describe('BranchBaselineResolver', () => {
       }),
     ).resolves.toBeNull();
 
-    expect(screenshots.findBaselineForBranch).toHaveBeenCalledWith(
-      'br-main',
+    expect(screenshots.findBaselineOnChain).toHaveBeenCalledWith(
+      'br-feature',
       'pdf-report',
       variant,
     );
@@ -185,8 +162,7 @@ describe('BranchBaselineResolver', () => {
 
   it('returns null when neither the branch nor its chain has a baseline', async () => {
     variants.findVariantWithBaseline.mockResolvedValue(null);
-    branches.findTargetChainIds.mockResolvedValue(['br-main']);
-    screenshots.findBaselineForBranch.mockResolvedValue(null);
+    screenshots.findBaselineOnChain.mockResolvedValue(null);
 
     await expect(
       resolver.resolveForVariant({
@@ -214,8 +190,7 @@ describe('BranchBaselineResolver', () => {
         createdAt: new Date(),
       },
     });
-    branches.findTargetChainIds.mockResolvedValue(['br-main']);
-    screenshots.findBaselineForBranch.mockResolvedValue({
+    screenshots.findBaselineOnChain.mockResolvedValue({
       testId: 'test-main',
       imageHash: 'new',
       imageUrl: 'new-url',
@@ -264,8 +239,7 @@ describe('BranchBaselineResolver', () => {
         createdAt: new Date(),
       },
     });
-    branches.findTargetChainIds.mockResolvedValue(['br-main']);
-    screenshots.findBaselineForBranch.mockResolvedValue(null);
+    screenshots.findBaselineOnChain.mockResolvedValue(null);
 
     const result = await resolver.resolveForVariant({
       testId: 'test-1',
@@ -309,7 +283,7 @@ describe('BranchBaselineResolver', () => {
         imageHash: 'owned',
         needsRefresh: false,
       });
-      expect(branches.findTargetChainIds).not.toHaveBeenCalled();
+      expect(screenshots.findBaselineOnChain).not.toHaveBeenCalled();
     });
 
     // The gate must see the chain's content, and must know that the clone is
@@ -323,8 +297,7 @@ describe('BranchBaselineResolver', () => {
           imageUrl: 'http://s/old.png',
         }),
       } as never);
-      branches.findTargetChainIds.mockResolvedValue(['br-main']);
-      screenshots.findBaselineForBranch.mockResolvedValue({
+      screenshots.findBaselineOnChain.mockResolvedValue({
         testId: 'test-main',
         imageHash: 'new',
         imageUrl: 'http://s/new.png',
@@ -347,8 +320,7 @@ describe('BranchBaselineResolver', () => {
           imageUrl: 'http://s/same.png',
         }),
       } as never);
-      branches.findTargetChainIds.mockResolvedValue(['br-main']);
-      screenshots.findBaselineForBranch.mockResolvedValue({
+      screenshots.findBaselineOnChain.mockResolvedValue({
         testId: 'test-main',
         imageHash: 'same',
         imageUrl: 'http://s/same.png',
@@ -368,8 +340,7 @@ describe('BranchBaselineResolver', () => {
         isInherited: true,
         baseline: baselineRow({ imageHash: 'pinned' }),
       } as never);
-      branches.findTargetChainIds.mockResolvedValue(['br-main']);
-      screenshots.findBaselineForBranch.mockResolvedValue(null);
+      screenshots.findBaselineOnChain.mockResolvedValue(null);
 
       await expect(resolver.peekEffectiveBaseline(input)).resolves.toEqual({
         imageHash: 'pinned',
@@ -379,8 +350,7 @@ describe('BranchBaselineResolver', () => {
 
     it('returns null when nothing on the chain has a baseline', async () => {
       variants.findVariantWithBaseline.mockResolvedValue(null);
-      branches.findTargetChainIds.mockResolvedValue(['br-main']);
-      screenshots.findBaselineForBranch.mockResolvedValue(null);
+      screenshots.findBaselineOnChain.mockResolvedValue(null);
 
       await expect(resolver.peekEffectiveBaseline(input)).resolves.toBeNull();
     });

@@ -1,29 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import { BranchRepository } from '@public/visualTest/core/infrastructure/repositories/branch.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import type { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 import type { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { toScreenshotEntity } from '@public/visualTest/core/infrastructure/mappers/screenshot.mapper';
 
-interface ChainBaseline {
-  testId: string;
-  imageHash: string;
-  imageUrl: string;
-  pageCount: number | null;
-  pixelDiffThreshold: number;
-}
-
 // Single owner of "which baseline does this variant compare against on this
 // branch": an owned baseline is used as-is, an inherited clone follows the
 // target chain (refreshed on every upload) until an approval pins it, and a
 // variant without a baseline clones the nearest ancestor's baseline once.
+//
+// The chain lookup is one statement (UnifiedScreenshotRepository.
+// findBaselineOnChain), not a per-ancestor walk: this runs twice per upload —
+// once for the identical-upload gate, once for the stored path — so a walk
+// would multiply the round-trips on the product's hottest request.
 @Injectable()
 export class BranchBaselineResolver {
   constructor(
     private readonly variants: VariantStore,
     private readonly screenshots: UnifiedScreenshotRepository,
-    private readonly branches: BranchRepository,
   ) {}
 
   async resolveForVariant(input: {
@@ -40,9 +35,8 @@ export class BranchBaselineResolver {
       return toScreenshotEntity(own.baseline, input.variant);
     }
 
-    const chain = await this.branches.findTargetChainIds(input.branchId);
-    const source = await this.findChainBaseline(
-      chain,
+    const source = await this.screenshots.findBaselineOnChain(
+      input.branchId,
       input.testName,
       input.variant,
     );
@@ -93,9 +87,8 @@ export class BranchBaselineResolver {
     if (own?.baseline && !own.isInherited) {
       return { imageHash: own.baseline.imageHash, needsRefresh: false };
     }
-    const chain = await this.branches.findTargetChainIds(input.branchId);
-    const source = await this.findChainBaseline(
-      chain,
+    const source = await this.screenshots.findBaselineOnChain(
+      input.branchId,
       input.testName,
       input.variant,
     );
@@ -112,21 +105,5 @@ export class BranchBaselineResolver {
     return own?.baseline
       ? { imageHash: own.baseline.imageHash, needsRefresh: false }
       : null;
-  }
-
-  private async findChainBaseline(
-    branchIds: string[],
-    testName: string,
-    variant: Variant,
-  ): Promise<ChainBaseline | null> {
-    for (const branchId of branchIds) {
-      const source = await this.screenshots.findBaselineForBranch(
-        branchId,
-        testName,
-        variant,
-      );
-      if (source) return source;
-    }
-    return null;
   }
 }

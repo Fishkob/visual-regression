@@ -123,6 +123,21 @@ describe('Run grouping (e2e)', () => {
     });
   });
 
+  // The gate reports TESTS, not uploads: a run that uploads the same test
+  // twice (a retried variant, a re-uploaded baseline) must still say "2 tests".
+  // Pins the COUNT(DISTINCT testId) the status read uses.
+  it('counts a test once when one run uploads it twice', async () => {
+    await uploadTest('login-form', 'ci-2');
+    await uploadTest('login-form', 'ci-2');
+    await uploadTest('signup-form', 'ci-2');
+    expect(await prisma.runUpload.count()).toBe(3);
+
+    const status = await authRequest(app)
+      .get('/api/v1/projects/checkout-ui/runs/ci-2/status?branch=main')
+      .expect(200);
+    expect(status.body.status.testCount).toBe(2);
+  });
+
   it('keeps uploads without a run key outside every run', async () => {
     const result = await uploadTest('login-form');
     expect(result.body.runKey).toBeUndefined();

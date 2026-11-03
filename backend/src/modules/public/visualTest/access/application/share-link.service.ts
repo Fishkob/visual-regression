@@ -279,10 +279,13 @@ export class ShareLinkService {
       // the branch first makes a vanished target a 404, the same answer TEST and
       // RUN links give (ADR-038).
       await this.branches.resolveRead(row.projectName, undefined);
-      const tests = await this.tests.listForProject(row.projectName);
+      // The bound belongs in the query: a project-wide link renders MAX_TESTS
+      // entries, and loading every test of the project to slice it afterwards
+      // made the payload cost grow with the project, not with the response.
+      const tests = await this.tests.listForProject(row.projectName, MAX_TESTS);
       return {
         ...base,
-        tests: tests.slice(0, MAX_TESTS).map((test) => ({
+        tests: tests.map((test) => ({
           name: test.name,
           kind: test.kind,
           status: test.status,

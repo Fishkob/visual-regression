@@ -51,14 +51,17 @@ export class ComparisonOutcomeRepository extends BaseRepository {
   }
 
   async trends(projectName: string, since: Date): Promise<TrendWindow> {
-    const daily = await this.client.$queryRaw<
-      {
-        date: Date;
-        changed: bigint;
-        unchanged: bigint;
-        within_threshold: bigint;
-      }[]
-    >(Prisma.sql`
+    // Four independent aggregates over three tables; they used to run one after
+    // another, so the trends page paid four round-trips in series.
+    const [daily, pending, approval, flake] = await Promise.all([
+      this.client.$queryRaw<
+        {
+          date: Date;
+          changed: bigint;
+          unchanged: bigint;
+          within_threshold: bigint;
+        }[]
+      >(Prisma.sql`
       SELECT date_trunc('day', e."createdAt") AS date,
              COUNT(*) FILTER (WHERE e.outcome = 'changed') AS changed,
              COUNT(*) FILTER (WHERE e.outcome = 'unchanged') AS unchanged,
@@ -67,15 +70,14 @@ export class ComparisonOutcomeRepository extends BaseRepository {
       WHERE e."projectName" = ${projectName} AND e."createdAt" >= ${since}
       GROUP BY 1
       ORDER BY 1 ASC
-    `);
-
-    const pending = await this.client.$queryRaw<
-      {
-        count: bigint;
-        avg_seconds: number | null;
-        max_seconds: number | null;
-      }[]
-    >(Prisma.sql`
+    `),
+      this.client.$queryRaw<
+        {
+          count: bigint;
+          avg_seconds: number | null;
+          max_seconds: number | null;
+        }[]
+      >(Prisma.sql`
       SELECT COUNT(*) AS count,
              AVG(EXTRACT(EPOCH FROM (NOW() - c."createdAt"))) AS avg_seconds,
              MAX(EXTRACT(EPOCH FROM (NOW() - c."createdAt"))) AS max_seconds
@@ -84,21 +86,17 @@ export class ComparisonOutcomeRepository extends BaseRepository {
       JOIN "Branch" b ON b.id = t."branchId"
       JOIN "Project" p ON p.id = b."projectId"
       WHERE p.name = ${projectName} AND c.status = 'PENDING_APPROVAL'
-    `);
-
-    const approval = await this.client.$queryRaw<
-      { count: bigint; avg_seconds: number | null }[]
-    >(Prisma.sql`
+    `),
+      this.client.$queryRaw<
+        { count: bigint; avg_seconds: number | null }[]
+      >(Prisma.sql`
       SELECT COUNT(*) AS count,
              AVG(EXTRACT(EPOCH FROM (a."approvedAt" - e."createdAt"))) AS avg_seconds
       FROM "Approval" a
       JOIN "ComparisonOutcomeEvent" e ON e."comparisonId" = a."comparisonId"
       WHERE a."projectName" = ${projectName} AND a."approvedAt" >= ${since}
-    `);
-
-    const flake = await this.client.$queryRaw<
-      { flaky: bigint; total: bigint }[]
-    >(Prisma.sql`
+    `),
+      this.client.$queryRaw<{ flaky: bigint; total: bigint }[]>(Prisma.sql`
       WITH per_test AS (
         SELECT e."testId",
                COUNT(*) FILTER (WHERE e.outcome = 'changed') AS changed,
@@ -110,7 +108,8 @@ export class ComparisonOutcomeRepository extends BaseRepository {
       SELECT COUNT(*) FILTER (WHERE changed > 0 AND clean > 0) AS flaky,
              COUNT(*) AS total
       FROM per_test
-    `);
+    `),
+    ]);
 
     const flakyTests = Number(flake[0]?.flaky ?? 0);
     const totalTests = Number(flake[0]?.total ?? 0);

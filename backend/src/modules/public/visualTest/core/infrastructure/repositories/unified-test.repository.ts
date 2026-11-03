@@ -40,7 +40,10 @@ export class UnifiedTestRepository extends BaseRepository {
     return row?.sizePolicy ?? null;
   }
 
-  async listForProject(projectName: string) {
+  // `take` bounds the read at the source: the share payload renders a fixed
+  // number of tests, and slicing a fully materialized project in the service
+  // moved every test of the project over the wire first.
+  async listForProject(projectName: string, take: number) {
     return this.client.unifiedTest.findMany({
       where: { branch: { project: { name: projectName } } },
       select: {
@@ -50,6 +53,7 @@ export class UnifiedTestRepository extends BaseRepository {
         branch: { select: { name: true } },
       },
       orderBy: [{ name: 'asc' }],
+      take,
     });
   }
 

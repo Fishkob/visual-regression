@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@/prisma/base.repository';
+import { Prisma } from '@/prisma/client';
 import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 import {
   Variant,
   type VariantFilter,
 } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { toScreenshotEntity } from '@public/visualTest/core/infrastructure/mappers/screenshot.mapper';
+import { CHAIN_CTE } from '@public/visualTest/core/infrastructure/repositories/branch-chain.sql';
 import {
   VariantStore,
   type VariantBaselineRow,
@@ -283,7 +285,7 @@ export class UnifiedScreenshotRepository extends BaseRepository {
     };
   }
 
-  async findBaselineForBranch(
+  async findBaselineOnChain(
     branchId: string,
     testName: string,
     variant: Variant,
@@ -297,25 +299,45 @@ export class UnifiedScreenshotRepository extends BaseRepository {
     // The ancestor test is resolved by NAME, not just by variant: a branch
     // inherits the baseline of the test with the same name, never a sibling
     // test's baseline that happens to share the viewport/browser/environment.
-    const row = await this.client.unifiedVariant.findFirst({
-      where: {
-        test: { branchId, name: testName },
-        viewport: variant.viewport,
-        browser: variant.browser,
-        environment: variant.environment,
-        isInherited: false,
-        baselineId: { not: null },
-      },
-      include: { baseline: true },
-    });
-    if (!row?.baseline) return null;
-    return {
-      testId: row.baseline.testId,
-      imageHash: row.baseline.imageHash,
-      imageUrl: row.baseline.imageUrl,
-      pageCount: row.baseline.pageCount,
-      pixelDiffThreshold: row.baseline.pixelDiffThreshold,
-    };
+    //
+    // SQL rather than Prisma because the lookup is recursive: the chain is data
+    // (each branch names its target, an unset target means "the project's
+    // default"), and Prisma cannot express a recursive CTE. The chain definition
+    // is not new here either — CHAIN_CTE is the single owner every branch-scoped
+    // read model already selects from. What changed is the shape: one statement
+    // over the whole chain instead of a round-trip per ancestor (the caller used
+    // to walk `findTargetChainIds` and query each hop, 2×depth+1 round-trips on
+    // every upload of an inherited branch — the normal CI case).
+    //
+    // depth > 0 keeps this an ANCESTORS-only lookup, exactly like the walk it
+    // replaces: depth 0 is the branch's own test, whose baseline the caller has
+    // already resolved. "Nearest occurrence wins" stays the ORDER BY depth the
+    // read models use.
+    const { viewport, browser, environment } = variant.toRecord();
+    const rows = await this.client.$queryRaw<
+      {
+        testId: string;
+        imageHash: string;
+        imageUrl: string;
+        pageCount: number | null;
+        pixelDiffThreshold: number;
+      }[]
+    >(Prisma.sql`
+      ${CHAIN_CTE(branchId)}
+      SELECT s."testId", s."imageHash", s."imageUrl", s."pageCount", s."pixelDiffThreshold"
+      FROM chain c
+      JOIN "UnifiedTest" t ON t."branchId" = c."id" AND t."name" = ${testName}
+      JOIN "UnifiedVariant" v ON v."testId" = t."id"
+        AND v."viewport" = ${viewport}
+        AND v."browser" = ${browser}
+        AND v."environment" = ${environment}
+      JOIN "UnifiedScreenshot" s ON s."id" = v."baselineId"
+      WHERE v."isInherited" = false
+        AND c."depth" > 0
+      ORDER BY c."depth" ASC
+      LIMIT 1
+    `);
+    return rows[0] ?? null;
   }
 
   async cloneInheritedBaseline(input: {
@@ -468,11 +490,28 @@ export class UnifiedScreenshotRepository extends BaseRepository {
   // downstream filters are no-ops for callers that already removed their own
   // references, but keeping the full chain in one place means the safety rule
   // has one home.
+  //
+  // The three filters ask three independent tables and each one answers for the
+  // input list, so they run concurrently: this is the post-commit effect of
+  // every upload, approval and deletion, where three sequential round-trips per
+  // URL batch were pure added latency. The result is the intersection, in the
+  // caller's order — identical to chaining them.
   async filterReclaimableUrls(imageUrls: string[]): Promise<string[]> {
-    return this.filterOutRevisionSharedUrls(
-      await this.filterOutComparisonReferencedUrls(
-        await this.filterOutBaselineSharedUrls(imageUrls),
-      ),
+    if (imageUrls.length === 0) return [];
+    const [notBaselineShared, notComparisonReferenced, notRevisionShared] =
+      await Promise.all([
+        this.filterOutBaselineSharedUrls(imageUrls),
+        this.filterOutComparisonReferencedUrls(imageUrls),
+        this.filterOutRevisionSharedUrls(imageUrls),
+      ]);
+    const baselineFree = new Set(notBaselineShared);
+    const comparisonFree = new Set(notComparisonReferenced);
+    const revisionFree = new Set(notRevisionShared);
+    return imageUrls.filter(
+      (url) =>
+        baselineFree.has(url) &&
+        comparisonFree.has(url) &&
+        revisionFree.has(url),
     );
   }
 
@@ -530,13 +569,19 @@ export class UnifiedScreenshotRepository extends BaseRepository {
     return imageUrls.filter((url) => !referenced.has(url));
   }
 
+  // The batches are independent lookups over disjoint URL sets, so they run
+  // concurrently: a project-wide reclaim spans several batches and used to pay
+  // one round-trip per batch in sequence.
   private async collectReferencedUrls(
     imageUrls: string[],
     lookup: (batch: string[]) => Promise<{ imageUrl: string }[]>,
   ): Promise<Set<string>> {
+    const batches = chunk(imageUrls, RECLAIM_LOOKUP_BATCH_SIZE);
     const referenced = new Set<string>();
-    for (const batch of chunk(imageUrls, RECLAIM_LOOKUP_BATCH_SIZE)) {
-      for (const row of await lookup(batch)) {
+    for (const rows of await Promise.all(
+      batches.map((batch) => lookup(batch)),
+    )) {
+      for (const row of rows) {
         referenced.add(row.imageUrl);
       }
     }

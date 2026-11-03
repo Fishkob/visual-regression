@@ -149,6 +149,7 @@ export class RunRepository extends BaseRepository {
       pendingJobs,
       failedJobs,
       approved,
+      uploadedTests,
     ] = await Promise.all([
       this.client.unifiedComparison.count({
         where: { runId, status: 'PENDING_APPROVAL' },
@@ -167,15 +168,15 @@ export class RunRepository extends BaseRepository {
         where: { runId, status: 'FAILED' },
       }),
       this.client.approval.count({ where: { runId } }),
+      // RunUpload is the durable "this run touched that test" record: baseline
+      // uploads have no job/comparison, and approvals delete comparisons. The
+      // gate counts TESTS, not uploads, so the grouping runs in the sixth slot
+      // of the same wave — a test uploaded twice in one run counts once.
+      this.client.runUpload.groupBy({
+        by: ['testId'],
+        where: { runId },
+      }),
     ]);
-
-    // RunUpload is the durable "this run touched that test" record: baseline
-    // uploads have no job/comparison, and approvals delete comparisons.
-    const uploads = await this.client.runUpload.findMany({
-      where: { runId },
-      distinct: ['testId'],
-      select: { testId: true },
-    });
 
     return {
       pendingComparisons,
@@ -183,7 +184,7 @@ export class RunRepository extends BaseRepository {
       pendingJobs,
       failedJobs,
       approved,
-      testCount: uploads.length,
+      testCount: uploadedTests.length,
     };
   }
 
