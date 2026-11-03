@@ -5,9 +5,13 @@
 Accepted — 2026-11-03. Partially supersedes
 [ADR-054](./ADR-054-coverage-per-layer-and-real-database-races.md) decision 5.
 
-Enforced by: review — no automated check can tell a policy assertion from a
-mechanism assertion. The one exception (decision 4) is tracked as a gap in
-[`docs/testing.md`](../testing.md) instead of being implied here.
+Enforced by: `backend/eslint.config.ts` — the local rule
+`no-locking-clause-assertions` rejects a locking token inside a `toContain` /
+`toMatch` literal in `test/unit/`, so decision 2's mechanism half cannot come
+back. The policy-versus-mechanism line beyond those tokens is review: no rule can
+tell a policy predicate from a mechanism one. The exception in decision 4 carries
+an `eslint-disable-next-line` with its reason, and the gap is recorded in
+[`docs/testing.md`](../testing.md) rather than implied here.
 
 ## Context
 

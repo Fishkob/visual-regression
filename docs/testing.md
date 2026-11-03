@@ -119,7 +119,8 @@ One mechanism assertion is still in the unit suite:
 `webhook-delivery.repository.spec.ts` asserts the claim SQL contains
 `FOR UPDATE SKIP LOCKED`, because no concurrency case exists for the webhook
 lease yet. [ADR-059](adr/ADR-059-query-policy-vs-mechanism.md) names it as the
-exception; it goes when the case arrives, not before.
+exception; it carries an `eslint-disable-next-line` with that reason in the code
+and goes when the case arrives, not before.
 
 `health/boot-smoke.e2e-spec.ts` covers the other gap: every other spec boots the
 hand-built `TestApp`, which re-states the global prefix and the validation pipe
@@ -162,6 +163,13 @@ excluded from the unit gate for that reason, like `src/main.ts`.
   a copy is a second number that will be wrong. Re-measure when you touch a
   config — a gate that sits far below its layer was widened silently, not
   set generously.
+- The backend test tree is linted like `src/` (`lint:check` covers
+  `{src,test}/**/*.ts`) with a relaxed rule set for test doubles, which are
+  loosely typed on purpose. One rule is specific to it:
+  `local/no-locking-clause-assertions` rejects a locking token inside a
+  `toContain` / `toMatch` literal in `test/unit/` — the mechanism half of
+  [ADR-059](adr/ADR-059-query-policy-vs-mechanism.md), enforced instead of
+  remembered.
 - The pre-commit hook runs the unit tests of the workspace whose files changed
   (`lint-staged`), without coverage — the gate is the push hook.
 - The client SDK is gated as an **artifact**, not only as source:
