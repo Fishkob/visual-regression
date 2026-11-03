@@ -4,6 +4,11 @@
 
 Accepted — 2026-10-26
 
+Superseded by: [ADR-060](ADR-060-storage-usage-is-a-cached-total.md) for how the
+check obtains the used byte total (a cached `SUM` instead of an aggregate per
+upload). The rest of this decision — the stored-write seam, the `charge`
+convention, `QUOTA_EXCEEDED`/`413` — stands.
+
 ## Context
 
 The per-project storage quota (R20) was checked at exactly one of the four

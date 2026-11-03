@@ -53,6 +53,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 057 | [Config-as-Code Thresholds & Project Default](./ADR-057-config-as-code-thresholds.md)                                                  | Accepted                                               |
 | 058 | [Share Links with Pixels](./ADR-058-share-links-with-pixels.md)                                                                        | Accepted (supersedes the image clause of 038)          |
 | 059 | [A Repository Unit Test Asserts Query Policy, the Database Proves Mechanism](./ADR-059-query-policy-vs-mechanism.md)                   | Accepted (partially supersedes 054 decision 5)         |
+| 060 | [The Storage Quota Check Reads a Cached Byte Total](./ADR-060-storage-usage-is-a-cached-total.md)                                      | Accepted (partially supersedes 043)                    |
 
 ## Numbering
 
