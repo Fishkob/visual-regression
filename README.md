@@ -410,20 +410,25 @@ Recommended order: `lint` → `typecheck:all` → `format` → `unitTest`
 
 ## Deployment
 
-| Goal                                 | Path                                      | Requires              |
-| ------------------------------------ | ----------------------------------------- | --------------------- |
-| **Self-hosting** (default)           | `./install.sh`                            | Docker only           |
-| **Local development** (hot reload)   | `./scripts/dev.sh reset` → `pnpm run dev` | Docker + Node ≥ 24    |
-| **Kubernetes** (Helm chart / ArgoCD) | [docs/deployment.md](docs/deployment.md)  | kubectl + Helm/ArgoCD |
+| Goal                                 | Path                                      | Support     | Requires              |
+| ------------------------------------ | ----------------------------------------- | ----------- | --------------------- |
+| **Self-hosting** (default)           | `./install.sh`                            | Supported   | Docker only           |
+| **Local development** (hot reload)   | `./scripts/dev.sh reset` → `pnpm run dev` | Supported   | Docker + Node ≥ 24    |
+| **Kubernetes** (Helm chart / ArgoCD) | [docs/deployment.md](docs/deployment.md)  | Best effort | kubectl + Helm/ArgoCD |
 
 Docker Compose is the self-hosting path — `./install.sh` (or plain
 `docker compose up -d --build`) runs the full stack: PostgreSQL, RustFS,
 backend, worker, pdf-sidecar, and frontend. Migrations and the RustFS bucket
-setup run automatically on startup.
+setup run automatically on startup. It is the path CI exercises end to end, and
+the one that gets fixed first when something breaks.
 
 For Kubernetes, a Helm chart ships in `deploy/charts/vrt/` with an ArgoCD
 Application manifest and helper scripts in `deploy/scripts/`. That path is
-documented separately in [docs/deployment.md](docs/deployment.md).
+**best effort**: it is validated by `helm lint` and `helm template` only
+([chart-validate.yml](.github/workflows/chart-validate.yml)), not by the local
+gate, the e2e suite or a deployed smoke test. Use it as a starting point and
+expect to own the operational edge. Details in
+[docs/deployment.md](docs/deployment.md).
 
 ---
 

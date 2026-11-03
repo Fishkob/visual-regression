@@ -2,6 +2,8 @@
 
 Deploys the full stack (backend, worker, frontend, pdf-sidecar, PostgreSQL, RustFS) into a Kubernetes cluster via the Helm chart in `deploy/charts/vrt/`, including an ingress, optional HPA/PDB, NetworkPolicy, and a `db-migrate` job that applies the schema before the backend starts.
 
+> **Support status: best effort.** The supported deployment path is Docker Compose (`./install.sh`) — it is the one CI exercises end to end and the one that gets fixed first. The chart here is checked by `helm lint` and `helm template` ([chart-validate.yml](../.github/workflows/chart-validate.yml)) and by nothing else: no deployed smoke test, no cluster in CI, no coverage by `./scripts/verify.sh`. Treat this page as a well-tested starting point, not as a guarantee.
+>
 > **Not using Kubernetes?** For a single-host production-like setup, use Docker Compose instead: `./scripts/dev.sh docker` (see the root README).
 
 ## Prerequisites
