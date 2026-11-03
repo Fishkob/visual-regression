@@ -54,36 +54,51 @@ export class WebhookDeliveryRepository extends BaseRepository {
   // Reclaim expired claims before claiming: a row whose dispatcher died stays
   // PROCESSING forever otherwise. Attempts are deliberately NOT reset (the
   // retry budget is the delivery's, not the claim's) and nextAttemptAt is set
-  // to NOW() so the row is claimable in the same cycle. Rows claimed before
-  // this column existed fall back to createdAt for an age estimate.
+  // to now so the row is claimable in the same cycle. Rows claimed before this
+  // column existed fall back to createdAt for an age estimate.
   // A claim whose worker died is returned to PENDING, but the attempt counts:
   // a delivery that consistently crashes the process must exhaust its budget
   // instead of looping forever. Rows that would exceed the budget are failed
   // first, so the second statement only touches the retryable remainder.
+  //
+  // Prisma rather than SQL: the lease age is a plain timestamp comparison and
+  // the budget check is `attempts >= MAX - 1`, the same integer arithmetic as
+  // the SQL's `attempts + 1 >= MAX`. Only the claim below needs raw SQL
+  // (FOR UPDATE SKIP LOCKED + RETURNING).
   async reclaimExpired(): Promise<number> {
-    await this.client.$executeRaw(Prisma.sql`
-      UPDATE "WebhookDelivery"
-      SET "status" = 'FAILED'::"WebhookDeliveryStatus",
-          "attempts" = "attempts" + 1,
-          "lastError" = 'Delivery lease expired',
-          "nextAttemptAt" = NULL,
-          "claimedAt" = NULL
-      WHERE "status" = 'PROCESSING'::"WebhookDeliveryStatus"
-        AND COALESCE("claimedAt", "createdAt") <
-            NOW() - make_interval(mins => ${WEBHOOK_PROCESSING_LEASE_MINUTES})
-        AND "attempts" + 1 >= ${WEBHOOK_MAX_ATTEMPTS}
-    `);
+    const now = new Date();
+    const leaseCutoff = new Date(
+      now.getTime() - WEBHOOK_PROCESSING_LEASE_MINUTES * 60_000,
+    );
+    const expiredLease = {
+      status: 'PROCESSING' as const,
+      OR: [
+        { claimedAt: { lt: leaseCutoff } },
+        { claimedAt: null, createdAt: { lt: leaseCutoff } },
+      ],
+    };
 
-    return this.client.$executeRaw(Prisma.sql`
-      UPDATE "WebhookDelivery"
-      SET "status" = 'PENDING'::"WebhookDeliveryStatus",
-          "attempts" = "attempts" + 1,
-          "nextAttemptAt" = NOW(),
-          "claimedAt" = NULL
-      WHERE "status" = 'PROCESSING'::"WebhookDeliveryStatus"
-        AND COALESCE("claimedAt", "createdAt") <
-            NOW() - make_interval(mins => ${WEBHOOK_PROCESSING_LEASE_MINUTES})
-    `);
+    await this.client.webhookDelivery.updateMany({
+      where: { ...expiredLease, attempts: { gte: WEBHOOK_MAX_ATTEMPTS - 1 } },
+      data: {
+        status: 'FAILED',
+        attempts: { increment: 1 },
+        lastError: 'Delivery lease expired',
+        nextAttemptAt: null,
+        claimedAt: null,
+      },
+    });
+
+    const requeued = await this.client.webhookDelivery.updateMany({
+      where: expiredLease,
+      data: {
+        status: 'PENDING',
+        attempts: { increment: 1 },
+        nextAttemptAt: now,
+        claimedAt: null,
+      },
+    });
+    return requeued.count;
   }
 
   // Atomic claim: expired claims are returned to PENDING first, then the

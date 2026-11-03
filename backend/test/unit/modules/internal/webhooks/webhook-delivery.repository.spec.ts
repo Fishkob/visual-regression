@@ -1,13 +1,10 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionContext } from '@/prisma/transaction-context';
-import {
-  WEBHOOK_PROCESSING_LEASE_MINUTES,
-  WebhookDeliveryRepository,
-} from '@internal/webhooks/webhook-delivery.repository';
+import { WebhookDeliveryRepository } from '@internal/webhooks/webhook-delivery.repository';
+import { WEBHOOK_MAX_ATTEMPTS } from '@internal/webhooks/webhook-backoff';
 import type { WebhookDeliveryRow } from '@internal/webhooks/webhook.types';
 import { createMock } from '@test/utils/create-mock';
-import { sqlText, sqlValues } from '@test/utils/raw-sql';
 
 function makeMockClient() {
   return {
@@ -60,50 +57,22 @@ describe('WebhookDeliveryRepository', () => {
   });
 
   describe('claimDue', () => {
-    it('reclaims expired PROCESSING claims before claiming', async () => {
-      mockClient.$executeRaw.mockResolvedValue(2);
+    it('reclaims expired claims before claiming the due rows', async () => {
+      mockClient.webhookDelivery.updateMany.mockResolvedValue({ count: 0 });
       mockClient.$queryRawUnsafe.mockResolvedValue([delivery()]);
 
-      await repository.claimDue(20);
-
-      // Two statements: fail the exhausted leases, requeue the rest.
-      expect(mockClient.$executeRaw).toHaveBeenCalledTimes(2);
-      const requeue = mockClient.$executeRaw.mock.calls[1][0];
-      expect(requeue.sql).toContain('UPDATE "WebhookDelivery"');
-      expect(requeue.sql).toContain('"claimedAt" = NULL');
-      expect(requeue.sql).toContain('"nextAttemptAt" = NOW()');
-      expect(requeue.sql).toContain(
-        `"status" = 'PROCESSING'::"WebhookDeliveryStatus"`,
-      );
-      expect(requeue.sql).toContain('COALESCE("claimedAt", "createdAt")');
-      expect(requeue.sql).toContain('make_interval(mins => ?)');
-      expect(requeue.values).toEqual([WEBHOOK_PROCESSING_LEASE_MINUTES]);
-    });
-
-    it('counts a lost lease as an attempt and never deletes the row', async () => {
-      mockClient.$executeRaw.mockResolvedValue(1);
-      mockClient.$queryRawUnsafe.mockResolvedValue([]);
-
       await repository.claimDue(10);
 
-      const requeue = mockClient.$executeRaw.mock.calls[1][0];
-      expect(requeue.sql).toContain('"attempts" + 1');
-      expect(requeue.sql).not.toContain('DELETE');
-    });
-
-    it('runs the reclaim before the claim query', async () => {
-      mockClient.$executeRaw.mockResolvedValue(0);
-      mockClient.$queryRawUnsafe.mockResolvedValue([]);
-
-      await repository.claimDue(10);
-
-      expect(mockClient.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
-        mockClient.$queryRawUnsafe.mock.invocationCallOrder[0],
-      );
+      // Two updates — fail the exhausted leases, requeue the rest — before the
+      // claim: a row whose dispatcher died must not block the queue.
+      expect(mockClient.webhookDelivery.updateMany).toHaveBeenCalledTimes(2);
+      expect(
+        mockClient.webhookDelivery.updateMany.mock.invocationCallOrder[1],
+      ).toBeLessThan(mockClient.$queryRawUnsafe.mock.invocationCallOrder[0]);
     });
 
     it('stamps claimedAt on the claimed rows and returns it', async () => {
-      mockClient.$executeRaw.mockResolvedValue(0);
+      mockClient.webhookDelivery.updateMany.mockResolvedValue({ count: 0 });
       mockClient.$queryRawUnsafe.mockResolvedValue([delivery()]);
 
       const rows = await repository.claimDue(20);
@@ -123,7 +92,7 @@ describe('WebhookDeliveryRepository', () => {
     });
 
     it('keeps the claim bounded even when the caller asks for more', async () => {
-      mockClient.$executeRaw.mockResolvedValue(0);
+      mockClient.webhookDelivery.updateMany.mockResolvedValue({ count: 0 });
       mockClient.$queryRawUnsafe.mockResolvedValue([]);
 
       await repository.claimDue(5_000);
@@ -133,7 +102,7 @@ describe('WebhookDeliveryRepository', () => {
     });
 
     it('still selects only due PENDING rows', async () => {
-      mockClient.$executeRaw.mockResolvedValue(0);
+      mockClient.webhookDelivery.updateMany.mockResolvedValue({ count: 0 });
       mockClient.$queryRawUnsafe.mockResolvedValue([]);
 
       await repository.claimDue(10);
@@ -147,20 +116,56 @@ describe('WebhookDeliveryRepository', () => {
   });
 
   describe('reclaimExpired', () => {
+    // A lost lease must consume the delivery's retry budget: both statements
+    // increment attempts, and an exhausted one is failed instead of requeued.
     it('counts the lost lease as an attempt and fails an exhausted delivery', async () => {
-      mockClient.$executeRaw.mockResolvedValueOnce(1).mockResolvedValueOnce(4);
+      mockClient.webhookDelivery.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 4 });
 
       await expect(repository.reclaimExpired()).resolves.toBe(4);
 
-      expect(mockClient.$executeRaw).toHaveBeenCalledTimes(2);
-      const [failCall] = mockClient.$executeRaw.mock.calls;
-      const [requeueCall] = mockClient.$executeRaw.mock.calls.slice(1);
-      expect(sqlText(failCall)).toContain('"status" = \'FAILED\'');
-      expect(sqlText(failCall)).toContain('"attempts" + 1 >=');
-      expect(sqlText(requeueCall)).toContain('"status" = \'PENDING\'');
-      expect(sqlText(requeueCall)).toContain('"attempts" + 1');
-      expect(sqlValues(requeueCall)).toEqual([
-        WEBHOOK_PROCESSING_LEASE_MINUTES,
+      const calls = mockClient.webhookDelivery.updateMany.mock.calls;
+      expect(calls).toHaveLength(2);
+      const [failCall, requeueCall] = calls;
+
+      expect(failCall[0].data).toEqual(
+        expect.objectContaining({
+          status: 'FAILED',
+          attempts: { increment: 1 },
+          lastError: 'Delivery lease expired',
+        }),
+      );
+      expect(failCall[0].where).toEqual(
+        expect.objectContaining({
+          attempts: { gte: WEBHOOK_MAX_ATTEMPTS - 1 },
+        }),
+      );
+
+      expect(requeueCall[0].data).toEqual(
+        expect.objectContaining({
+          status: 'PENDING',
+          attempts: { increment: 1 },
+          claimedAt: null,
+          nextAttemptAt: expect.any(Date),
+        }),
+      );
+      // The requeue takes whatever is left PROCESSING — any attempt filter here
+      // would strand a row the fail-statement missed.
+      expect(requeueCall[0].where).not.toHaveProperty('attempts');
+    });
+
+    it('treats a claim without claimedAt as expired by its createdAt', async () => {
+      mockClient.webhookDelivery.updateMany.mockResolvedValue({ count: 0 });
+
+      await repository.reclaimExpired();
+
+      const [failCall] = mockClient.webhookDelivery.updateMany.mock.calls;
+      const { where } = failCall[0] as { where: Record<string, unknown> };
+      expect(where.status).toBe('PROCESSING');
+      expect(where.OR).toEqual([
+        { claimedAt: { lt: expect.any(Date) } },
+        { claimedAt: null, createdAt: { lt: expect.any(Date) } },
       ]);
     });
   });
