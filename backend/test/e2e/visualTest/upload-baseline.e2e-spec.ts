@@ -1,19 +1,15 @@
 import { INestApplication } from '@nestjs/common';
 import { TestApp } from '../_support/utils/test-app';
-import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonOutcome } from '@public/visualTest/core/domain/types/visual-test.types';
 import * as path from 'path';
 import * as fs from 'fs';
 import { authRequest } from '../_support/utils/authenticated-request';
-import type { PrismaClient } from '@/prisma/client';
 
 describe('Upload Baseline (e2e)', () => {
   let app: INestApplication;
-  let prisma: PrismaClient;
 
   beforeAll(async () => {
     app = await TestApp.init();
-    prisma = app.get(PrismaConnection).client;
   });
 
   beforeEach(async () => {

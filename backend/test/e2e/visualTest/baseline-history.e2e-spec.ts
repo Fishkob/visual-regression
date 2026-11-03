@@ -1,7 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import request from 'supertest';
 import { TestApp } from '../_support/utils/test-app';
 import { authRequest } from '../_support/utils/authenticated-request';
 import { PrismaConnection } from '@/prisma/prisma-connection';

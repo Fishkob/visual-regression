@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import type { Mocked } from 'vitest';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { AppConfigService } from '@config/app-config.service';
 import { WebhookDeliveryCleanupTask } from '@internal/data-deletion/tasks/webhook-delivery-cleanup.task';

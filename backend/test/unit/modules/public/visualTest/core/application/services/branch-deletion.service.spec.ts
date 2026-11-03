@@ -10,7 +10,7 @@ import {
   toOutcome,
   type StateChangeResult,
 } from '@public/visualTest/core/application/services/state-change-options';
-import { JOB_PRODUCER, IJobProducer } from '@common/domain/job-queue.interface';
+import { IJobProducer } from '@common/domain/job-queue.interface';
 import { createMock } from '@test/utils/create-mock';
 
 describe('BranchDeletionService', () => {

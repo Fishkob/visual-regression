@@ -1,8 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { TestApp } from '../_support/utils/test-app';
 import { waitForComparison } from '../_support/utils/wait-for-comparison';
-import { PrismaConnection } from '@/prisma/prisma-connection';
-import type { PrismaClient } from '@/prisma/client';
 import {
   ComparisonErrorCode,
   ComparisonOutcome,
@@ -13,11 +11,9 @@ import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Threshold Update (e2e)', () => {
   let app: INestApplication;
-  let prisma: PrismaClient;
 
   beforeAll(async () => {
     app = await TestApp.init();
-    prisma = app.get(PrismaConnection).client;
   });
 
   beforeEach(async () => {

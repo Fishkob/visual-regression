@@ -1,21 +1,17 @@
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TestApp } from '../_support/utils/test-app';
-import { PrismaConnection } from '@/prisma/prisma-connection';
-import type { PrismaClient } from '@/prisma/client';
 const MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024;
 import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Upload Baseline (e2e)', () => {
   let app: INestApplication;
-  let prisma: PrismaClient;
 
   beforeAll(async () => {
     app = await TestApp.init();
     // ConfigModule.forRoot() reads process.env at module import time,
     // before beforeAll runs. Override the cached value after init.
     app.get(ConfigService).set('SCREENSHOT_MAX_SIZE_MB', 5);
-    prisma = app.get(PrismaConnection).client;
   });
 
   beforeEach(async () => {

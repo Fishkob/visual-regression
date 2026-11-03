@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import type { Mocked } from 'vitest';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ShareLinkCleanupTask } from '@internal/data-deletion/tasks/share-link-cleanup.task';
 import { MAINTENANCE_LOCK_IDS } from '@internal/data-deletion/maintenance-lock-ids';

@@ -8,10 +8,7 @@ import {
   STORAGE_PROVIDER,
   IStorageProvider,
 } from '@common/domain/storage-provider.interface';
-import {
-  ComparisonErrorCode,
-  ComparisonOutcome,
-} from '@public/visualTest/core/domain/types/visual-test.types';
+import { ComparisonOutcome } from '@public/visualTest/core/domain/types/visual-test.types';
 import * as path from 'path';
 import * as fs from 'fs';
 import { authRequest } from '../_support/utils/authenticated-request';

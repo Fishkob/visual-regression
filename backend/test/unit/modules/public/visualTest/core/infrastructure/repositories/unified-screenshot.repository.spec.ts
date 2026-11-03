@@ -4,7 +4,6 @@ import { TransactionContext } from '@/prisma/transaction-context';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
-import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
 
 function makeMockClient() {

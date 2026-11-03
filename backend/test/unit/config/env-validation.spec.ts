@@ -221,7 +221,7 @@ describe('Environment Validation', () => {
   });
 
   it('rejects a port outside 1-65535', () => {
-    const { value, error } = envValidationSchema.validate(
+    const { error } = envValidationSchema.validate(
       {
         ...{
           DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
@@ -240,7 +240,7 @@ describe('Environment Validation', () => {
   });
 
   it('rejects a zero body size', () => {
-    const { value, error } = envValidationSchema.validate(
+    const { error } = envValidationSchema.validate(
       {
         ...{
           DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
@@ -259,7 +259,7 @@ describe('Environment Validation', () => {
   });
 
   it('rejects an unbounded body size', () => {
-    const { value, error } = envValidationSchema.validate(
+    const { error } = envValidationSchema.validate(
       {
         ...{
           DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
@@ -278,7 +278,7 @@ describe('Environment Validation', () => {
   });
 
   it('rejects a zero screenshot size', () => {
-    const { value, error } = envValidationSchema.validate(
+    const { error } = envValidationSchema.validate(
       {
         ...{
           DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
@@ -343,7 +343,7 @@ describe('Environment Validation', () => {
   });
 
   it('enables Swagger outside production', () => {
-    const { value, error } = envValidationSchema.validate(
+    const { value } = envValidationSchema.validate(
       {
         ...{
           DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
@@ -361,7 +361,7 @@ describe('Environment Validation', () => {
   });
 
   it('disables Swagger in production by default', () => {
-    const { value, error } = envValidationSchema.validate(
+    const { value } = envValidationSchema.validate(
       {
         ...{
           DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
@@ -379,7 +379,7 @@ describe('Environment Validation', () => {
   });
 
   it('keeps Swagger available in production when enabled explicitly', () => {
-    const { value, error } = envValidationSchema.validate(
+    const { value } = envValidationSchema.validate(
       {
         ...{
           DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',

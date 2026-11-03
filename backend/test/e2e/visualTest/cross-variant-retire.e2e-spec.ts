@@ -7,7 +7,6 @@ import { ComparisonOutcome } from '@public/visualTest/core/domain/types/visual-t
 import * as path from 'path';
 import * as fs from 'fs';
 import { authRequest } from '../_support/utils/authenticated-request';
-import type { PrismaClient } from '@/prisma/client';
 
 // A queued job stores its payload as JSON; the processor takes it typed.
 const payloadOf = (job: { payload: unknown }): JobData =>
@@ -15,7 +14,6 @@ const payloadOf = (job: { payload: unknown }): JobData =>
 
 describe('Cross-variant retirement (e2e)', () => {
   let app: INestApplication;
-  let prisma: PrismaClient;
 
   const uploadUrl = (testName: string) =>
     `/api/v1/projects/checkout-ui/tests/${testName}/upload?testKind=image`;
@@ -32,7 +30,6 @@ describe('Cross-variant retirement (e2e)', () => {
 
   beforeAll(async () => {
     app = await TestApp.init();
-    prisma = app.get(PrismaConnection).client;
   });
 
   beforeEach(async () => {

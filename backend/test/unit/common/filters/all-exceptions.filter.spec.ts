@@ -6,13 +6,11 @@ import {
   ConflictException,
   HttpException,
   HttpStatus,
-  Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { DomainError } from '@common/domain/domain-error';
 import { Prisma } from '@/prisma/client';
-import { RequestContext } from '@common/logging/request-context';
 import { createMockLogger } from '@test/utils/mocks';
 import type { Request, Response } from 'express';
 

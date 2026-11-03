@@ -459,7 +459,7 @@ describe('PdfTest queries (e2e)', () => {
         data: { name: 'TestA', branchId: branchA, kind: 'pdf' },
       });
       const { branchId: branchB } = await TestApp.createProject('project-b');
-      const testB = await prisma.unifiedTest.create({
+      await prisma.unifiedTest.create({
         data: { name: 'TestB', branchId: branchB, kind: 'pdf' },
       });
       await prisma.unifiedScreenshot.create({
@@ -486,7 +486,7 @@ describe('PdfTest queries (e2e)', () => {
       const testOne = await prisma.unifiedTest.create({
         data: { name: 'TestOne', branchId, kind: 'pdf' },
       });
-      const testTwo = await prisma.unifiedTest.create({
+      await prisma.unifiedTest.create({
         data: { name: 'TestTwo', branchId, kind: 'pdf' },
       });
       await prisma.unifiedScreenshot.create({

@@ -2,7 +2,6 @@ import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
-import { PrismaConnection } from '@/prisma/prisma-connection';
 import { TestApp } from '../_support/utils/test-app';
 import { authRequest } from '../_support/utils/authenticated-request';
 
@@ -17,7 +16,6 @@ describe('Upload rate limit (e2e)', () => {
     // ConfigService.set() which wins over the validated env at read time.
     app.get(ConfigService).set('UPLOAD_RATE_LIMIT_PER_MINUTE', '5');
     await TestApp.resetDb();
-    const db = app.get(PrismaConnection).client;
     await TestApp.createProject('rate-limit-proj');
   });
 

@@ -27,10 +27,7 @@ import {
 } from '@common/domain/metrics-recorder.interface';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { AppLoggerService } from '@common/logging/app-logger.service';
-import {
-  ComparisonErrorCode,
-  ComparisonOutcome,
-} from '@public/visualTest/core/domain/types/visual-test.types';
+import { ComparisonErrorCode } from '@public/visualTest/core/domain/types/visual-test.types';
 import { PDF_PAGE_COUNTER } from '@common/domain/pdf-sidecar.interface';
 import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';

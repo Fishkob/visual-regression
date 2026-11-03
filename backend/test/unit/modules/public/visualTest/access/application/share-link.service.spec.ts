@@ -7,14 +7,8 @@ import { BranchResolver } from '@public/visualTest/core/application/services/bra
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { RunRepository } from '@public/visualTest/core/infrastructure/repositories/run.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
-import {
-  PASSWORD_HASHER,
-  PasswordHasherPort,
-} from '@common/domain/password-hasher.interface';
-import {
-  STORAGE_PROVIDER,
-  IStorageProvider,
-} from '@common/domain/storage-provider.interface';
+import { PasswordHasherPort } from '@common/domain/password-hasher.interface';
+import { IStorageProvider } from '@common/domain/storage-provider.interface';
 import { AuditService } from '@internal/audit/audit.service';
 import { createMock } from '@test/utils/create-mock';
 

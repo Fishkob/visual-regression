@@ -1,7 +1,5 @@
 import { MetricsService } from '@internal/metrics/metrics.service';
 
-type MockMetric = ReturnType<typeof createMockFn>;
-
 const createMockFn = () => ({ inc: vi.fn(), set: vi.fn(), observe: vi.fn() });
 
 const { mockMetrics, mockRegistry, collectDefaultMetrics, histogramBuckets } =
