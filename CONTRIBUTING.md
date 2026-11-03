@@ -54,6 +54,28 @@ ADRs written before this rule still carry dated amendment notes and merged
 subjects; treat that as history, not as a template. Numbering is append-only
 (see the index for the numbers that were consolidated away in the past).
 
+## Where a Rule Lives
+
+A rule is stated in exactly **one** document; everything else links to it.
+
+| Question the document answers                   | Document                           | Updated when                                                     |
+| ----------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------- |
+| What does this term mean, and what is the rule? | [CONTEXT.md](CONTEXT.md)           | A term or a rule changes — always                                |
+| Why was this decided, and what was rejected?    | [`docs/adr/`](docs/adr/README.md)  | Never (frozen); a changed decision is a new ADR                  |
+| What is planned, in progress or shipped?        | [docs/roadmap.md](docs/roadmap.md) | Status changes; a shipped section is frozen history, not updated |
+| How do I run, configure or operate it?          | `README.md`, [`docs/`](docs/)      | Only when user-facing behavior or setup changes                  |
+
+Consequences:
+
+- A change updates **one** document, plus CONTEXT.md when it introduces a term
+  or changes a rule. It is not a defect that the README does not explain the
+  threshold rule; the README links to it.
+- An ADR never becomes the current spec. If an ADR and CONTEXT.md disagree
+  about today's behavior, CONTEXT.md is right: either the code has a bug or the
+  decision changed (then a new ADR, per the rules above).
+- Do not copy a rule into a second document "for convenience". A copied rule is
+  a rule that will be wrong in one place.
+
 ## Code Quality Gates
 
 Run these before submitting a change, in this order:

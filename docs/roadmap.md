@@ -17,18 +17,19 @@ Related: [CONTEXT.md](../CONTEXT.md) (domain language), [docs/adr/](adr/),
   hold it for the next phase.
 - Every item follows the same **definition of done**:
 
-  - [ ] Backend unit tests + E2E coverage for new/changed API behavior
-  - [ ] Frontend unit tests; axe WCAG A/AA scan for new views
-        (`./scripts/quality.sh a11y`)
-  - [ ] SDK regenerated and built when the API changes (`sdk:generate`,
-        `sdk:build`)
-  - [ ] `CONTEXT.md` updated when the item introduces a domain term
-  - [ ] ADR added/updated for cross-cutting decisions
-  - [ ] Docs updated (`ci-integration.md`, `local-development.md` for new env
-        vars, `README.md` for user-facing workflows)
-  - [ ] `lint` → `typecheck:all` → `format` → `unitTest` green
-  - [ ] Forward-only Prisma migration (`prisma migrate`), no data rewrite in
-        application code
+  - [ ] Tests for the behavior you changed — backend unit + e2e for an API
+        change, frontend unit, `./scripts/quality.sh a11y` for a new view
+  - [ ] `./scripts/verify.sh` green (lint → typecheck → format → unit with the
+        coverage gates); SDK regenerated when the API surface moved
+  - [ ] Exactly one doc touched, and only the one that owns it: `CONTEXT.md` for
+        a new term or rule, an ADR only for a decision that is hard to reverse,
+        `README.md`/`docs/` only when user-facing behavior changed
+        ([ownership table](../CONTRIBUTING.md#where-a-rule-lives))
+  - [ ] A schema change is a forward-only `prisma migrate`, with no data
+        rewrite in application code
+
+  Size includes tests and that one document; it does not include a rewrite of
+  the docs a change is only related to.
 
 ## What this roadmap optimizes
 

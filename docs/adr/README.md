@@ -76,5 +76,6 @@ ADR numbers reflect the order of original creation. Gaps were created before the
 
 - ADRs document decisions that are **hard to reverse**, **surprising without context**, or the **result of a real trade-off**
 - An accepted ADR is frozen: a changed decision becomes a new ADR that supersedes it, and the old text stays as written (the rules live in [CONTRIBUTING.md](../../CONTRIBUTING.md#architecture-decision-records))
+- An ADR is the record of a decision, never the current spec: the rule as it stands today lives in [CONTEXT.md](../../CONTEXT.md), and an ADR is not updated to match the code (see [Where a Rule Lives](../../CONTRIBUTING.md#where-a-rule-lives))
 - A superseded ADR keeps a file that points at its successor (for example [017](./017-backend-module-consolidation.md)); nothing under `docs/adr/` is deleted
 - The removal table above records what happened before the freeze; it does not grow. ADRs written earlier still carry dated amendment notes and merged subjects — treat that as history, not as a template
