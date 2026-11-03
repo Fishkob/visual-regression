@@ -49,10 +49,27 @@ How they are maintained:
   wording).
 - **Status is a state, not a changelog:** `Accepted — <date>` plus
   `Superseded by: ADR-NNN` where it applies. Date the decision, not the edit.
+- **An ADR says how it is enforced.** Every decision names the thing that keeps
+  it true — a config value, a test, a script — or states plainly that nothing
+  does. The line belongs in the status block: `Enforced by: <what>` or
+  `Not enforced: <why, and what would change that>`. A decision with no
+  enforcement hook is a wish, and a wish quoted in review is worse than no ADR.
+- **An ADR carries no inventory.** Which tests exist, how many, which thresholds
+  are set, which files are excluded: that belongs to the document that owns the
+  current state (`docs/testing.md`, the workspace `AGENTS.md`, the config). A
+  dated measurement may appear as the evidence a decision was made on ("the gate
+  failed at 86.9% on 2026-11-01"); an undated count a reader would take as
+  today's does not.
+- **When code and an ADR disagree, say which one moves.** Either the code is
+  fixed and the ADR stands, or a new ADR supersedes the decision, or the
+  deviation is recorded as a named exception in the ADR plus a gap in the owning
+  document. Silence is not one of the three.
 
 ADRs written before this rule still carry dated amendment notes and merged
-subjects; treat that as history, not as a template. Numbering is append-only
-(see the index for the numbers that were consolidated away in the past).
+subjects; treat that as history, not as a template. Some also carry counts that
+have since drifted — history too, not a licence to add more. Numbering is
+append-only (see the index for the numbers that were consolidated away in the
+past).
 
 ## Where a Rule Lives
 
