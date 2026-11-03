@@ -12,6 +12,12 @@ import { createMockLogger } from '@test/utils/mocks';
 import { createMock } from '@test/utils/create-mock';
 import type { JobData } from '@common/domain/job-data.types';
 
+// `inFlight` is private to the poller; the specs only need to await it so the
+// assertions observe the poll after it settled.
+function inFlightOf(poller: ComparisonJobPoller): Promise<void> | null {
+  return (poller as unknown as { inFlight: Promise<void> | null }).inFlight;
+}
+
 const jobPayload: JobData = {
   testKind: 'image',
   projectName: 'shop',
@@ -51,7 +57,7 @@ describe('ComparisonJobPoller', () => {
   async function triggerLatestPoll(): Promise<void> {
     const timer = capturedTimeouts[capturedTimeouts.length - 1];
     timer.cb();
-    await (poller as any).inFlight;
+    await inFlightOf(poller);
   }
 
   beforeEach(async () => {
@@ -183,7 +189,7 @@ describe('ComparisonJobPoller', () => {
       expect(healthServer.recordPoll).toHaveBeenCalledTimes(1);
 
       releaseJob();
-      await (poller as any).inFlight;
+      await inFlightOf(poller);
       expect(clearInterval).toHaveBeenCalledWith(1);
     });
 

@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
 import { DlqService } from '@/modules/internal/dlq/dlq.service';
-import { IFailedJobStore } from '@common/domain/job-queue.interface';
+import {
+  IFailedJobStore,
+  type FailedJobRecord,
+} from '@common/domain/job-queue.interface';
 import { createMock } from '@test/utils/create-mock';
 
 describe('DlqService', () => {
@@ -36,7 +39,9 @@ describe('DlqService', () => {
         createdAt: new Date('2026-07-12'),
       },
     ];
-    failedJobs.listFailed.mockResolvedValue(mockJobs as any);
+    failedJobs.listFailed.mockResolvedValue(
+      mockJobs as unknown as FailedJobRecord[],
+    );
 
     const result = await service.listFailedJobs();
 
@@ -63,7 +68,7 @@ describe('DlqService', () => {
         attempts: 1,
         maxAttempts: 3,
         createdAt: new Date('2026-07-12'),
-      } as any,
+      },
     ]);
 
     const result = await service.listFailedJobs();

@@ -8,35 +8,39 @@ import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo
 import { ComparisonStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    unifiedComparison: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+      count: vi.fn(),
+      findUnique: vi.fn(),
+    },
+    unifiedScreenshot: {
+      delete: vi.fn(),
+      findMany: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+    unifiedVariant: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+    },
+  };
+}
+
 describe('UnifiedComparisonsRepository', () => {
   let repository: UnifiedComparisonsRepository;
   let mockTxCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
   const now = new Date('2025-01-01T00:00:00Z');
 
   beforeEach(async () => {
-    mockClient = {
-      unifiedComparison: {
-        findFirst: vi.fn(),
-        findMany: vi.fn(),
-        create: vi.fn(),
-        delete: vi.fn(),
-        deleteMany: vi.fn(),
-        update: vi.fn(),
-        updateMany: vi.fn(),
-        count: vi.fn(),
-        findUnique: vi.fn(),
-      },
-      unifiedScreenshot: {
-        delete: vi.fn(),
-        findMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-      unifiedVariant: {
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-      },
-    };
+    mockClient = makeMockClient();
 
     mockTxCtx = createMock<TransactionContext>();
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });

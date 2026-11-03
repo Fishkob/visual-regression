@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, type ExecutionContext } from '@nestjs/common';
 import { AdminAuthGuard } from '@internal/dlq/admin-auth.guard';
 
 describe('AdminAuthGuard', () => {
@@ -14,7 +14,7 @@ describe('AdminAuthGuard', () => {
       switchToHttp: () => ({
         getRequest: () => ({ headers }),
       }),
-    } as any;
+    } as unknown as ExecutionContext;
   };
 
   beforeEach(() => {

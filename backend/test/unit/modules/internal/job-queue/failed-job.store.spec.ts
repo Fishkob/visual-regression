@@ -13,25 +13,29 @@ const jobPayload: JobData = {
   variant: { viewport: 'v', browser: 'c', environment: 'e' },
 };
 
+function makeMockPrisma() {
+  return {
+    client: {
+      comparisonJob: {
+        findMany: vi.fn(),
+        updateMany: vi.fn(),
+        findUnique: vi.fn(),
+        deleteMany: vi.fn(),
+      },
+      $queryRawUnsafe: vi.fn(),
+    },
+  };
+}
+
 describe('FailedJobStore', () => {
   let service: FailedJobStore;
-  let prisma: any;
+  let prisma: ReturnType<typeof makeMockPrisma>;
 
   beforeEach(async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
 
-    prisma = {
-      client: {
-        comparisonJob: {
-          findMany: vi.fn(),
-          updateMany: vi.fn(),
-          findUnique: vi.fn(),
-          deleteMany: vi.fn(),
-        },
-        $queryRawUnsafe: vi.fn(),
-      },
-    };
+    prisma = makeMockPrisma();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

@@ -129,7 +129,7 @@ describe('PdfAccessService', () => {
 
   it('throws BadRequest for invalid type', async () => {
     await expect(
-      service.download('proj', 'test', 'invalid' as any, {
+      service.download('proj', 'test', 'invalid', {
         viewport: '1920x1080',
       }),
     ).rejects.toEqual(

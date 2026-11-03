@@ -1,4 +1,5 @@
 import type { Mock } from 'vitest';
+import type { PinoLogger } from 'nestjs-pino';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { RequestContext } from '@common/logging/request-context';
 vi.mock('@common/logging/request-context', () => ({
@@ -26,9 +27,9 @@ describe('AppLoggerService', () => {
       error: vi.fn(),
     };
 
-    (RequestContext.traceId as any).mockReturnValue('trace-123');
+    vi.mocked(RequestContext.traceId).mockReturnValue('trace-123');
 
-    logger = new AppLoggerService(pino as any);
+    logger = new AppLoggerService(pino as unknown as PinoLogger);
   });
 
   afterEach(() => {

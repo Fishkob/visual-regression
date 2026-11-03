@@ -7,16 +7,18 @@ import { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';
 import { createMockLogger } from '@test/utils/mocks';
 
+function makeMockClient() {
+  return { $executeRaw: vi.fn() };
+}
+
 describe('ReviewArtifactCleanupTask', () => {
   let task: ReviewArtifactCleanupTask;
   let mockConnection: Mocked<PrismaConnection>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
   let logger: Mocked<AppLoggerService>;
 
   beforeEach(async () => {
-    mockClient = {
-      $executeRaw: vi.fn(),
-    };
+    mockClient = makeMockClient();
     mockConnection = createMock<PrismaConnection>();
     Object.defineProperty(mockConnection, 'client', { get: () => mockClient });
     logger = createMockLogger() as unknown as Mocked<AppLoggerService>;

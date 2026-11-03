@@ -3,10 +3,17 @@ import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ReviewInboxRepository } from '@public/visualTest/review/infrastructure/repositories/review-inbox.repository';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    unifiedComparison: { findMany: vi.fn(), count: vi.fn() },
+    $queryRaw: vi.fn().mockResolvedValue([]),
+  };
+}
+
 describe('ReviewInboxRepository', () => {
   let repository: ReviewInboxRepository;
   let connection: Mocked<PrismaConnection>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   const createdAt = new Date('2026-10-20T10:00:00Z');
 
@@ -46,10 +53,7 @@ describe('ReviewInboxRepository', () => {
   }
 
   beforeEach(() => {
-    mockClient = {
-      unifiedComparison: { findMany: vi.fn(), count: vi.fn() },
-      $queryRaw: vi.fn().mockResolvedValue([]),
-    };
+    mockClient = makeMockClient();
     connection = createMock<PrismaConnection>();
     Object.defineProperty(connection, 'client', { get: () => mockClient });
     repository = new ReviewInboxRepository(connection);

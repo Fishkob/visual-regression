@@ -17,17 +17,48 @@ import {
   type ComparisonRow,
 } from '@public/visualTest/core/infrastructure/mappers/comparison.mapper';
 
+function makeMockClient() {
+  return {
+    project: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+    },
+    unifiedTest: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+    },
+    unifiedVariant: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+    },
+    unifiedComparison: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+      groupBy: vi.fn(),
+    },
+    unifiedScreenshot: {
+      count: vi.fn(),
+    },
+    $queryRaw: vi.fn(),
+  };
+}
+
 describe('TestReadRepository', () => {
   let repository: TestReadRepository;
   let mockConnection: Mocked<PrismaConnection>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
   let variants: Mocked<VariantStore>;
   let comparisons: Mocked<UnifiedComparisonsRepository>;
   let branches: Mocked<BranchResolver>;
   let branchTests: Mocked<BranchTestRepository>;
   const now = new Date('2025-01-01T00:00:00Z');
 
-  function baselineRow(overrides: Record<string, unknown> = {}): any {
+  function baselineRow(overrides: Record<string, unknown> = {}) {
     return {
       id: 'base-1',
       testId: 'test-1',
@@ -46,7 +77,7 @@ describe('TestReadRepository', () => {
     };
   }
 
-  function candidateRow(overrides: Record<string, unknown> = {}): any {
+  function candidateRow(overrides: Record<string, unknown> = {}) {
     return {
       id: 'cand-1',
       testId: 'test-1',
@@ -62,7 +93,7 @@ describe('TestReadRepository', () => {
 
   // The COMPARISON_INCLUDE shape `findLatestReviewableByBaselineId` maps to a
   // ComparisonEntity: the row carries its own baseline/candidate/test relations.
-  function comparisonRow(overrides: Record<string, unknown> = {}): any {
+  function comparisonRow(overrides: Record<string, unknown> = {}) {
     return {
       id: 'comp-1',
       testId: 'test-1',
@@ -83,34 +114,7 @@ describe('TestReadRepository', () => {
   }
 
   beforeEach(async () => {
-    mockClient = {
-      project: {
-        findUnique: vi.fn(),
-        findMany: vi.fn(),
-        count: vi.fn(),
-      },
-      unifiedTest: {
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-        findMany: vi.fn(),
-        count: vi.fn(),
-      },
-      unifiedVariant: {
-        findFirst: vi.fn(),
-        findMany: vi.fn(),
-        count: vi.fn(),
-      },
-      unifiedComparison: {
-        findFirst: vi.fn(),
-        findMany: vi.fn(),
-        count: vi.fn(),
-        groupBy: vi.fn(),
-      },
-      unifiedScreenshot: {
-        count: vi.fn(),
-      },
-      $queryRaw: vi.fn(),
-    };
+    mockClient = makeMockClient();
 
     mockConnection = createMock<PrismaConnection>();
     Object.defineProperty(mockConnection, 'client', {

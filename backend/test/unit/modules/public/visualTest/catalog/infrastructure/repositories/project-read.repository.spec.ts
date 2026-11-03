@@ -6,22 +6,26 @@ import { VariantStore } from '@public/visualTest/core/infrastructure/repositorie
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    project: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+    },
+    $queryRaw: vi.fn(),
+  };
+}
+
 describe('ProjectReadRepository', () => {
   let repository: ProjectReadRepository;
   let mockConnection: Mocked<PrismaConnection>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
   let variants: Mocked<VariantStore>;
   let branchResolver: Mocked<BranchResolver>;
 
   beforeEach(async () => {
-    mockClient = {
-      project: {
-        findUnique: vi.fn(),
-        findMany: vi.fn(),
-        count: vi.fn(),
-      },
-      $queryRaw: vi.fn(),
-    };
+    mockClient = makeMockClient();
 
     mockConnection = createMock<PrismaConnection>();
     Object.defineProperty(mockConnection, 'client', {

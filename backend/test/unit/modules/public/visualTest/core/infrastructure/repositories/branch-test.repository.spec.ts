@@ -3,13 +3,17 @@ import { BranchTestRepository } from '@public/visualTest/core/infrastructure/rep
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return { $queryRaw: vi.fn() };
+}
+
 describe('BranchTestRepository', () => {
   let repository: BranchTestRepository;
   let connection: Mocked<PrismaConnection>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   beforeEach(() => {
-    mockClient = { $queryRaw: vi.fn() };
+    mockClient = makeMockClient();
     connection = createMock<PrismaConnection>();
     Object.defineProperty(connection, 'client', { get: () => mockClient });
     repository = new BranchTestRepository(connection);

@@ -5,10 +5,11 @@ import { ComparisonOutcome } from '@public/visualTest/core/domain/types/visual-t
 import * as path from 'path';
 import * as fs from 'fs';
 import { authRequest } from '../_support/utils/authenticated-request';
+import type { PrismaClient } from '@/prisma/client';
 
 describe('Upload Baseline (e2e)', () => {
   let app: INestApplication;
-  let prisma: any;
+  let prisma: PrismaClient;
 
   beforeAll(async () => {
     app = await TestApp.init();

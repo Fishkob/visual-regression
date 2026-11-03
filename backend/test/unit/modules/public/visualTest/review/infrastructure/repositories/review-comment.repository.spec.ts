@@ -4,10 +4,16 @@ import { TransactionContext } from '@/prisma/transaction-context';
 import { ReviewCommentRepository } from '@public/visualTest/review/infrastructure/repositories/review-comment.repository';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    reviewComment: { findMany: vi.fn() },
+  };
+}
+
 describe('ReviewCommentRepository', () => {
   let repository: ReviewCommentRepository;
   let mockTxCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   function comment(id: string, createdAt: string) {
     return {
@@ -26,9 +32,7 @@ describe('ReviewCommentRepository', () => {
   }
 
   beforeEach(async () => {
-    mockClient = {
-      reviewComment: { findMany: vi.fn() },
-    };
+    mockClient = makeMockClient();
     mockTxCtx = createMock<TransactionContext>();
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });
 

@@ -7,46 +7,50 @@ import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo
 import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    unifiedScreenshot: {
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      upsert: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+      deleteMany: vi.fn(),
+      count: vi.fn(),
+    },
+    unifiedVariant: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      upsert: vi.fn(),
+      update: vi.fn(),
+    },
+    unifiedTest: {
+      findUnique: vi.fn(),
+    },
+    unifiedComparison: {
+      count: vi.fn(),
+      findMany: vi.fn(),
+    },
+    baselineRevision: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+  };
+}
+
 describe('UnifiedScreenshotRepository', () => {
   let repository: UnifiedScreenshotRepository;
   let mockTxCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
   const now = new Date('2025-01-01T00:00:00Z');
 
   beforeEach(async () => {
     vi.useFakeTimers();
     vi.setSystemTime(now);
 
-    mockClient = {
-      unifiedScreenshot: {
-        findMany: vi.fn(),
-        findFirst: vi.fn(),
-        findUnique: vi.fn(),
-        create: vi.fn(),
-        upsert: vi.fn(),
-        update: vi.fn(),
-        updateMany: vi.fn(),
-        deleteMany: vi.fn(),
-        count: vi.fn(),
-      },
-      unifiedVariant: {
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-        findMany: vi.fn(),
-        upsert: vi.fn(),
-        update: vi.fn(),
-      },
-      unifiedTest: {
-        findUnique: vi.fn(),
-      },
-      unifiedComparison: {
-        count: vi.fn(),
-        findMany: vi.fn(),
-      },
-      baselineRevision: {
-        findMany: vi.fn().mockResolvedValue([]),
-      },
-    };
+    mockClient = makeMockClient();
 
     mockTxCtx = createMock<TransactionContext>();
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });

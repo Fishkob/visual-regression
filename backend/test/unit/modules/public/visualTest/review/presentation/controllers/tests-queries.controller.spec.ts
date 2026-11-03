@@ -16,6 +16,15 @@ import {
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';
 import { createMockLogger } from '@test/utils/mocks';
+
+type TestNamesResult = Awaited<ReturnType<TestQueryService['getTestNames']>>;
+type VisualTestDetailsResult = Awaited<
+  ReturnType<TestQueryService['getVisualTestDetails']>
+>;
+type PendingStatusResult = Awaited<
+  ReturnType<TestQueryService['getTestsWithPendingStatus']>
+>;
+
 describe('TestsQueriesController', () => {
   let controller: TestsQueriesController;
   let testQuery: Mocked<TestQueryService>;
@@ -50,7 +59,7 @@ describe('TestsQueriesController', () => {
           hasNextPage: false,
           hasPreviousPage: false,
         },
-      } as any);
+      } as unknown as TestNamesResult);
 
       const result = await controller.getTestsForProject(
         'checkout-ui',
@@ -79,7 +88,7 @@ describe('TestsQueriesController', () => {
           hasNextPage: false,
           hasPreviousPage: false,
         },
-      } as any);
+      } as unknown as TestNamesResult);
 
       const result = await controller.getTestsForProject(
         'checkout-ui',
@@ -180,7 +189,7 @@ describe('TestsQueriesController', () => {
         name: 'login-form',
         baseline: mockBaseline,
         comparison: mockComparison,
-      } as any);
+      } as unknown as VisualTestDetailsResult);
 
       const result = await controller.getVisualTestDetails(
         'checkout-ui',
@@ -199,7 +208,7 @@ describe('TestsQueriesController', () => {
         name: 'login-form',
         baseline: mockBaseline,
         comparison: undefined,
-      } as any);
+      } as unknown as VisualTestDetailsResult);
 
       const result = await controller.getVisualTestDetails(
         'checkout-ui',
@@ -245,7 +254,7 @@ describe('TestsQueriesController', () => {
           hasNextPage: false,
           hasPreviousPage: false,
         },
-      } as any);
+      } as unknown as PendingStatusResult);
 
       const pagination = new PaginationDto();
       const result = await controller.getTestsWithPendingStatus(

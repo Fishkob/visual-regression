@@ -4,22 +4,26 @@ import { TransactionContext } from '@/prisma/transaction-context';
 import { ProjectGroupRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-group.repository';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    projectGroup: {
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+}
+
 describe('ProjectGroupRepository', () => {
   let repository: ProjectGroupRepository;
   let txCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   beforeEach(async () => {
-    mockClient = {
-      projectGroup: {
-        findMany: vi.fn(),
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-        create: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-      },
-    };
+    mockClient = makeMockClient();
 
     // Transaction-aware: the repository asks the ambient context for its
     // client, which is the bare connection when no transaction is open.

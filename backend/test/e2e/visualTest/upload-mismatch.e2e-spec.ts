@@ -3,6 +3,7 @@ import { TestApp } from '../_support/utils/test-app';
 import { waitForComparison } from '../_support/utils/wait-for-comparison';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ScreenshotType } from '@/prisma/client';
+import type { PrismaClient } from '@/prisma/client';
 import {
   ComparisonErrorCode,
   ComparisonOutcome,
@@ -15,7 +16,7 @@ import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Upload Mismatch (e2e)', () => {
   let app: INestApplication;
-  let prisma: any;
+  let prisma: PrismaClient;
 
   beforeAll(async () => {
     app = await TestApp.init();

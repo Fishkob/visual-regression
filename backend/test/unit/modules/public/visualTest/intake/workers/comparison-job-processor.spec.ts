@@ -160,7 +160,7 @@ describe('ComparisonJobProcessor', () => {
     storage.deleteAll.mockResolvedValue({ deleted: [], failed: [] });
 
     const tracker = createMock<Tracker>();
-    tracker.track.mockImplementation((_: string, fn: () => Promise<any>) =>
+    tracker.track.mockImplementation((_: string, fn: () => Promise<unknown>) =>
       fn(),
     );
 
@@ -308,8 +308,8 @@ describe('ComparisonJobProcessor', () => {
         imageHash: 'hash-from-upload',
       });
       const tracker2 = createMock<Tracker>();
-      tracker2.track.mockImplementation((_: string, fn: () => Promise<any>) =>
-        fn(),
+      tracker2.track.mockImplementation(
+        (_: string, fn: () => Promise<unknown>) => fn(),
       );
       const module2 = await Test.createTestingModule({
         providers: [

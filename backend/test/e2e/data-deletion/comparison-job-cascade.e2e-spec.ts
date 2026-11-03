@@ -1,10 +1,11 @@
 import { INestApplication } from '@nestjs/common';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { TestApp } from '../_support/utils/test-app';
+import type { PrismaClient } from '@/prisma/client';
 
 describe('ComparisonJob cleanup on VisualTest delete', () => {
   let app: INestApplication;
-  let prisma: any;
+  let prisma: PrismaClient;
 
   beforeAll(async () => {
     app = await TestApp.init();

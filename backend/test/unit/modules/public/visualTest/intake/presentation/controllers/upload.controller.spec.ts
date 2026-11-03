@@ -1,4 +1,3 @@
-import type { Mock, Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { UploadController } from '@public/visualTest/intake/presentation/controllers/upload.controller';
 import { UploadIntake } from '@public/visualTest/intake/application/upload-intake.service';
@@ -14,7 +13,7 @@ import { createMockFile, createMockLogger } from '@test/utils/mocks';
 
 describe('UploadController', () => {
   let controller: UploadController;
-  let uploadIntake: Mocked<{ upload: Mock }>;
+  let uploadIntake: { upload: ReturnType<typeof vi.fn> };
 
   const projectName = 'my-project';
   const testName = 'my-test';
@@ -26,7 +25,7 @@ describe('UploadController', () => {
   const req = { auth: { username: 'alice', userId: 'user-1' } } as never;
 
   beforeEach(async () => {
-    uploadIntake = { upload: vi.fn() } as any;
+    uploadIntake = { upload: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UploadController],

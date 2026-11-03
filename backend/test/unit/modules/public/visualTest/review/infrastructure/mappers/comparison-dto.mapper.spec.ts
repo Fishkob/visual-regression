@@ -9,6 +9,8 @@ import {
 
 const identitySigner = (url: string): string => url;
 
+type ComparisonParams = ConstructorParameters<typeof ComparisonEntity>[0];
+
 function createComparison(
   overrides: Partial<ComparisonEntity> = {},
 ): ComparisonEntity {
@@ -44,7 +46,7 @@ function createComparison(
     baseline,
     candidate,
     ...overrides,
-  } as any);
+  } as unknown as ComparisonParams);
 }
 describe('mapComparisonToDto', () => {
   afterEach(() => {

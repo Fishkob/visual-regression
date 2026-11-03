@@ -53,9 +53,31 @@ const jobPayload: JobData = {
   variant: { viewport: 'v', browser: 'c', environment: 'e' },
 };
 
+function makeMockPrisma() {
+  const client = {
+    comparisonJob: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+      deleteMany: vi.fn(),
+      count: vi.fn(),
+    },
+    $queryRawUnsafe: vi.fn(),
+    $executeRaw: vi.fn(),
+    $transaction: vi.fn(),
+  };
+  client.$transaction.mockImplementation((cb: (tx: typeof client) => unknown) =>
+    cb(client),
+  );
+  return { client, assertInTransaction: vi.fn() };
+}
+
 describe('PostgresJobQueue', () => {
   let queue: PostgresJobQueue;
-  let prisma: any;
+  let prisma: ReturnType<typeof makeMockPrisma>;
   let tracker: Mocked<Tracker>;
   let metrics: Mocked<MetricsService>;
   let logger: Mocked<AppLoggerService>;
@@ -64,24 +86,7 @@ describe('PostgresJobQueue', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
 
-    prisma = {
-      client: {
-        comparisonJob: {
-          findUnique: vi.fn(),
-          findFirst: vi.fn(),
-          findMany: vi.fn(),
-          create: vi.fn(),
-          update: vi.fn(),
-          updateMany: vi.fn(),
-          deleteMany: vi.fn(),
-          count: vi.fn(),
-        },
-        $queryRawUnsafe: vi.fn(),
-        $executeRaw: vi.fn(),
-        $transaction: vi.fn((cb: (tx: any) => any) => cb(prisma.client)),
-      },
-      assertInTransaction: vi.fn(),
-    };
+    prisma = makeMockPrisma();
 
     tracker = createMock<Tracker>();
     tracker.track.mockImplementation(

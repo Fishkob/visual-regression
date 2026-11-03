@@ -5,22 +5,26 @@ import { VariantStore } from '@public/visualTest/core/infrastructure/repositorie
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    unifiedVariant: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      upsert: vi.fn(),
+      update: vi.fn(),
+      findMany: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+  };
+}
+
 describe('VariantStore', () => {
   let store: VariantStore;
   let mockTxCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   beforeEach(async () => {
-    mockClient = {
-      unifiedVariant: {
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-        upsert: vi.fn(),
-        update: vi.fn(),
-        findMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-    };
+    mockClient = makeMockClient();
 
     mockTxCtx = createMock<TransactionContext>();
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });

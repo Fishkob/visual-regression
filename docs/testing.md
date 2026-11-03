@@ -164,8 +164,10 @@ excluded from the unit gate for that reason, like `src/main.ts`.
   config — a gate that sits far below its layer was widened silently, not
   set generously.
 - The backend test tree is linted like `src/` (`lint:check` covers
-  `{src,test}/**/*.ts`) with a relaxed rule set for test doubles, which are
-  loosely typed on purpose. One rule is specific to it:
+  `{src,test}/**/*.ts`). A few rules are relaxed for test doubles — non-null
+  assertions, void-returning mocks, unsafe assignment; `no-explicit-any` is
+  **on**, so a fixture names the type it stands in for. One rule is specific to
+  it:
   `local/no-locking-clause-assertions` rejects a locking token inside a
   `toContain` / `toMatch` literal in `test/unit/` — the mechanism half of
   [ADR-059](adr/ADR-059-query-policy-vs-mechanism.md), enforced instead of

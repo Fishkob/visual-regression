@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PdfController } from '@public/visualTest/access/presentation/controllers/pdf.controller';
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
 import { PdfAccessService } from '@public/visualTest/access/application/pdf-access.service';
+import type { PdfTestDetailsDto } from '@public/visualTest/access/presentation/dto/pdf-test-details.dto';
 import { Response } from 'express';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';
@@ -35,7 +36,9 @@ describe('PdfController', () => {
   describe('getPdfTestDetails', () => {
     it('delegates to test query service with optional filters', async () => {
       const expected = { id: 'test-1' };
-      testQuery.getPdfTestDetails.mockResolvedValue(expected as any);
+      testQuery.getPdfTestDetails.mockResolvedValue(
+        expected as unknown as PdfTestDetailsDto,
+      );
 
       const result = await controller.getPdfTestDetails(
         'proj',

@@ -10,6 +10,11 @@ import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/var
 import { createMock } from '@test/utils/create-mock';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY, type AppRole } from '@common/http/roles.decorator';
+
+type ThresholdUpdateResult = Awaited<
+  ReturnType<TestCommandService['updateThreshold']>
+>;
+
 describe('TestCommandsController', () => {
   let controller: TestCommandsController;
   let testCommandService: Mocked<TestCommandService>;
@@ -52,7 +57,9 @@ describe('TestCommandsController', () => {
         test: 'login-form',
         threshold: 50,
       };
-      testCommandService.updateThreshold.mockResolvedValue(expected as any);
+      testCommandService.updateThreshold.mockResolvedValue(
+        expected as unknown as ThresholdUpdateResult,
+      );
 
       const result = await controller.updateThreshold(
         'checkout-ui',
@@ -87,7 +94,7 @@ describe('TestCommandsController', () => {
         test: 'login-form',
         threshold: 50,
         autoAcceptedCount: 2,
-      } as any);
+      } as unknown as ThresholdUpdateResult);
 
       await controller.updateThreshold(
         'checkout-ui',
@@ -114,7 +121,7 @@ describe('TestCommandsController', () => {
       testCommandService.deleteTest.mockResolvedValue({
         success: true,
         scope: 'test',
-      } as any);
+      });
 
       const filterDto = new VariantFilterDto();
       filterDto.viewport = '1920x1080';

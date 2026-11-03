@@ -6,7 +6,10 @@ import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/re
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
-import { toOutcome } from '@public/visualTest/core/application/services/state-change-options';
+import {
+  toOutcome,
+  type StateChangeResult,
+} from '@public/visualTest/core/application/services/state-change-options';
 import { JOB_PRODUCER, IJobProducer } from '@common/domain/job-queue.interface';
 import { createMock } from '@test/utils/create-mock';
 
@@ -43,7 +46,8 @@ describe('BranchDeletionService', () => {
     branches.findDependentNames.mockResolvedValue([]);
     workflow = createMock<StateChangeWorkflow>();
     workflow.executeStateChange.mockImplementation(
-      async (fn: () => Promise<any>) => toOutcome(await fn()),
+      async (fn: () => Promise<StateChangeResult<unknown>>) =>
+        toOutcome(await fn()),
     );
     audit = createMock<AuditService>();
     audit.record.mockResolvedValue(undefined);

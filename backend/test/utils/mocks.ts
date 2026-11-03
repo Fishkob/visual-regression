@@ -3,6 +3,8 @@ import { AppLoggerService } from '@common/logging/app-logger.service';
 import { Readable } from 'node:stream';
 import { createMock } from './create-mock';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
+import type { IStorageProvider } from '@common/domain/storage-provider.interface';
 import { DomainError } from '@common/domain/domain-error';
 export function createMockFile(
   overrides: Partial<Express.Multer.File> = {},
@@ -42,8 +44,8 @@ export function createMockLogger(): Mocked<AppLoggerService> {
   } as unknown as Mocked<AppLoggerService>;
 }
 
-export function createMockStorage() {
-  const mock = createMock();
+export function createMockStorage(): Mocked<IStorageProvider> {
+  const mock = createMock<IStorageProvider>();
   mock.get = vi.fn();
   mock.putObject = vi.fn();
   mock.exists = vi.fn();
@@ -76,8 +78,13 @@ export function createMockProjectRepository(): Mocked<ProjectRepository> {
   return mock;
 }
 
-export function createMockUoW() {
-  const mock = createMock();
-  mock.execute = vi.fn(async (fn) => fn());
+export function createMockUoW(): Mocked<PrismaUnitOfWork> {
+  const mock = createMock<PrismaUnitOfWork>();
+  // Runs the work in place: a spec that does not care about transactions sees
+  // the callback's result, and one that does overrides the implementation. The
+  // cast is the transaction options, which this double never reads.
+  mock.execute = vi.fn(async <T>(fn: () => Promise<T>): Promise<T> =>
+    fn(),
+  ) as unknown as Mocked<PrismaUnitOfWork>['execute'];
   return mock;
 }

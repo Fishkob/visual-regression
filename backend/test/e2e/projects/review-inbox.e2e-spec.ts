@@ -3,12 +3,13 @@ import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonStatus, TestStatus } from '@/prisma/client';
 import { authRequest } from '../_support/utils/authenticated-request';
+import type { PrismaClient } from '@/prisma/client';
 
 const OLDER_CREATED_AT = new Date('2026-10-01T10:00:00.000Z');
 const NEWER_CREATED_AT = new Date('2026-10-02T10:00:00.000Z');
 
 async function seedTestWithBaseline(
-  prisma: any,
+  prisma: PrismaClient,
   options: {
     projectName: string;
     testName: string;
@@ -70,7 +71,7 @@ async function seedTestWithBaseline(
 }
 
 async function seedComparison(
-  prisma: any,
+  prisma: PrismaClient,
   options: {
     projectName: string;
     testName: string;
@@ -117,7 +118,7 @@ async function seedComparison(
 
 describe('Review inbox (e2e)', () => {
   let app: INestApplication;
-  let prisma: any;
+  let prisma: PrismaClient;
 
   beforeAll(async () => {
     app = await TestApp.init();

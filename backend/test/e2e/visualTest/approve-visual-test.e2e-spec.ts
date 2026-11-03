@@ -3,6 +3,7 @@ import { TestApp } from '../_support/utils/test-app';
 import { waitForComparison } from '../_support/utils/wait-for-comparison';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { TestStatus } from '@/prisma/client';
+import type { PrismaClient } from '@/prisma/client';
 import {
   ComparisonErrorCode,
   ComparisonOutcome,
@@ -14,7 +15,7 @@ import { AppConfigService } from '@config/app-config.service';
 
 describe('Approve Visual Test (e2e)', () => {
   let app: INestApplication;
-  let prisma: any;
+  let prisma: PrismaClient;
   let storagePrefix: string;
 
   beforeAll(async () => {

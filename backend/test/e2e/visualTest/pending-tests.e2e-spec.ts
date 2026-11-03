@@ -3,10 +3,11 @@ import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonStatus, TestStatus } from '@/prisma/client';
 import { authRequest } from '../_support/utils/authenticated-request';
+import type { PrismaClient } from '@/prisma/client';
 
 describe('GET /projects/:projectName/tests/meta/pending (e2e)', () => {
   let app: INestApplication;
-  let prisma: any;
+  let prisma: PrismaClient;
   let branchId: string;
 
   beforeAll(async () => {

@@ -161,11 +161,10 @@ export default tseslint.config(
 
       // Test doubles are loosely typed by design: a fixture builds a payload the
       // production type would fight, and a mock stands in for a dependency it
-      // does not implement. These six rules accounted for 483 of the 485 errors
-      // the first run over the suite produced, and none of them says anything
-      // about whether a test is right — the type checker and the suite itself
-      // still catch a real mistake in a spec.
-      '@typescript-eslint/no-explicit-any': 'off',
+      // does not implement. These five rules carried 342 of the 485 errors the
+      // first run over the suite produced; the 143 `any`s they hid were removed
+      // and the rule is on again. None of the five says anything about whether a
+      // test is right — the type checker and the suite still catch a mistake.
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-unnecessary-type-assertion': 'off',

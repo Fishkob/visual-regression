@@ -1,10 +1,14 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
-import { TestReadRepository } from '@public/visualTest/review/infrastructure/repositories/test-read.repository';
+import {
+  TestReadRepository,
+  type TestWithVariantsResult,
+} from '@public/visualTest/review/infrastructure/repositories/test-read.repository';
 import { TestResolver } from '@public/visualTest/core/application/services/test-resolver.service';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { DomainError } from '@common/domain/domain-error';
+import { PaginationDto } from '@common/dto/pagination.dto';
 import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 import { ComparisonEntity } from '@public/visualTest/core/domain/entities/comparison.entity';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
@@ -108,7 +112,11 @@ describe('TestQueryService', () => {
         total: 2,
       });
 
-      const result = await service.getTestNames('proj', {} as any, 'image');
+      const result = await service.getTestNames(
+        'proj',
+        new PaginationDto(),
+        'image',
+      );
 
       expect(branches.resolveRead).toHaveBeenCalledWith('proj', undefined);
       expect(reviewRead.getTestNames).toHaveBeenCalledWith(
@@ -136,7 +144,7 @@ describe('TestQueryService', () => {
 
     it('rejects an invalid kind filter instead of silently returning empty', async () => {
       await expect(
-        service.getTestNames('proj', {} as any, 'nonsense'),
+        service.getTestNames('proj', new PaginationDto(), 'nonsense'),
       ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
       expect(reviewRead.getTestNames).not.toHaveBeenCalled();
     });
@@ -148,7 +156,7 @@ describe('TestQueryService', () => {
         id: 'test-1',
         name: 'my-test',
         kind: 'pdf',
-      } as any);
+      } as unknown as Awaited<ReturnType<TestResolver['findTest']>>);
 
       const result = await service.getKind('proj', 'my-test');
 
@@ -173,7 +181,10 @@ describe('TestQueryService', () => {
         total: 1,
       });
 
-      const result = await service.getTestsWithPendingStatus('proj', {} as any);
+      const result = await service.getTestsWithPendingStatus(
+        'proj',
+        new PaginationDto(),
+      );
 
       expect(reviewRead.getPendingApproval).toHaveBeenCalledWith(
         'br-1',
@@ -469,7 +480,9 @@ describe('TestQueryService', () => {
   describe('getPdfTestDetails', () => {
     const createdAt = new Date('2024-01-01');
 
-    function entityResult(overrides: Record<string, unknown> = {}) {
+    function entityResult(
+      overrides: Record<string, unknown> = {},
+    ): TestWithVariantsResult {
       return {
         test: {
           id: 'test-1',
@@ -481,11 +494,11 @@ describe('TestQueryService', () => {
         baseline: null,
         comparison: null,
         ...overrides,
-      };
+      } as unknown as TestWithVariantsResult;
     }
 
     it('maps entities to pdf test details when found', async () => {
-      reviewRead.findTestWithVariants.mockResolvedValue(entityResult() as any);
+      reviewRead.findTestWithVariants.mockResolvedValue(entityResult());
 
       const result = await service.getPdfTestDetails('my-project', 'my-test', {
         viewport: '1920x1080',
@@ -541,7 +554,7 @@ describe('TestQueryService', () => {
               pixelDiffThreshold: 0,
             }),
           }),
-        }) as any,
+        }),
       );
 
       const result = await service.getPdfTestDetails('my-project', 'my-test', {
@@ -577,7 +590,7 @@ describe('TestQueryService', () => {
     });
 
     it('leaves comparison null when absent', async () => {
-      reviewRead.findTestWithVariants.mockResolvedValue(entityResult() as any);
+      reviewRead.findTestWithVariants.mockResolvedValue(entityResult());
 
       const result = await service.getPdfTestDetails('my-project', 'my-test', {
         viewport: '1920x1080',
@@ -587,7 +600,7 @@ describe('TestQueryService', () => {
     });
 
     it('passes filters to repository', async () => {
-      reviewRead.findTestWithVariants.mockResolvedValue(entityResult() as any);
+      reviewRead.findTestWithVariants.mockResolvedValue(entityResult());
 
       await service.getPdfTestDetails('my-project', 'my-test', {
         viewport: '1920x1080',
@@ -613,7 +626,7 @@ describe('TestQueryService', () => {
 
     it('rejects an image test through the PDF details endpoint', async () => {
       reviewRead.findTestWithVariants.mockResolvedValue(
-        entityResult({ test: { kind: 'image' } }) as any,
+        entityResult({ test: { kind: 'image' } }),
       );
       testResolver.assertTestKind.mockImplementation(() => {
         throw new DomainError(

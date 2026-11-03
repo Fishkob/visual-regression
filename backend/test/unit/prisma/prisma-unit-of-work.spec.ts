@@ -1,5 +1,7 @@
 import type { Mock } from 'vitest';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
+import type { PrismaConnection } from '@/prisma/prisma-connection';
+import type { TransactionContext } from '@/prisma/transaction-context';
 
 describe('PrismaUnitOfWork', () => {
   let uow: PrismaUnitOfWork;
@@ -17,7 +19,10 @@ describe('PrismaUnitOfWork', () => {
       isInTransaction: vi.fn().mockReturnValue(false),
     };
 
-    uow = new PrismaUnitOfWork(connection as any, txCtx as any);
+    uow = new PrismaUnitOfWork(
+      connection as unknown as PrismaConnection,
+      txCtx as unknown as TransactionContext,
+    );
   });
 
   afterEach(() => {

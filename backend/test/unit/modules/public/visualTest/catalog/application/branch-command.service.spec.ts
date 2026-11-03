@@ -5,6 +5,10 @@ import { BranchResolver } from '@public/visualTest/core/application/services/bra
 import { BranchDeletionService } from '@public/visualTest/core/application/services/branch-deletion.service';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
+import type {
+  PersistedChange,
+  StateChangeResult,
+} from '@public/visualTest/core/application/services/state-change-options';
 import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
 import { createMockProjectRepository } from '@test/utils/mocks';
@@ -40,10 +44,12 @@ describe('BranchCommandService', () => {
     branchResolver = createMock<BranchResolver>();
     deletion = createMock<BranchDeletionService>();
     workflow = createMock<StateChangeWorkflow>();
-    workflow.executeStateChange.mockImplementation(async (fn: any) => ({
-      change: await fn(),
-      result: undefined,
-    }));
+    workflow.executeStateChange.mockImplementation(
+      async (fn: () => Promise<StateChangeResult<unknown>>) => ({
+        change: (await fn()) as PersistedChange,
+        result: undefined,
+      }),
+    );
     service = new BranchCommandService(
       projects,
       branches,
@@ -240,14 +246,16 @@ describe('BranchCommandService', () => {
     });
     branches.findDefault.mockResolvedValue(main);
     let transactionOpen = false;
-    workflow.executeStateChange.mockImplementation(async (fn: any) => {
-      transactionOpen = true;
-      try {
-        return { change: await fn(), result: undefined };
-      } finally {
-        transactionOpen = false;
-      }
-    });
+    workflow.executeStateChange.mockImplementation(
+      async (fn: () => Promise<StateChangeResult<unknown>>) => {
+        transactionOpen = true;
+        try {
+          return { change: (await fn()) as PersistedChange, result: undefined };
+        } finally {
+          transactionOpen = false;
+        }
+      },
+    );
     let validatedInsideTransaction: boolean | undefined;
     branchResolver.assertValidTarget.mockImplementation(async () => {
       validatedInsideTransaction = transactionOpen;

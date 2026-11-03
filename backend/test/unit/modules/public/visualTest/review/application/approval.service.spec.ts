@@ -136,7 +136,7 @@ describe('ApprovalService', () => {
     });
   }
 
-  function makePdfComparison() {
+  function makePdfComparison(overrides = {}) {
     const baseline = new ScreenshotEntity({
       id: 'pdf-baseline-1',
       visualTestId: 'test-1',
@@ -170,6 +170,7 @@ describe('ApprovalService', () => {
       createdAt: new Date(),
       baseline,
       candidate,
+      ...overrides,
     });
   }
 
@@ -202,7 +203,7 @@ describe('ApprovalService', () => {
     approvalAudit = createMock<ApprovalAuditRepository>();
     approvalAudit.record.mockResolvedValue(undefined);
     const tracker = createMock<Tracker>();
-    tracker.track.mockImplementation((_: string, fn: () => Promise<any>) =>
+    tracker.track.mockImplementation((_: string, fn: () => Promise<unknown>) =>
       fn(),
     );
     const uowLocal = createMockUoW() as unknown as Mocked<PrismaUnitOfWork>;
@@ -646,8 +647,9 @@ describe('ApprovalService', () => {
 
     it('throws when comparison missing baseline', async () => {
       mockResolvedTest();
-      const comparison = makeComparison(makeBaseline(), makeCandidate()) as any;
-      comparison.baseline = null;
+      const comparison = makeComparison(makeBaseline(), makeCandidate(), {
+        baseline: null,
+      });
       comparisons.findByIdForTest.mockResolvedValue(comparison);
       await expect(
         service.approveImage(
@@ -663,8 +665,9 @@ describe('ApprovalService', () => {
 
     it('throws when comparison missing candidate', async () => {
       mockResolvedTest();
-      const comparison = makeComparison(makeBaseline(), makeCandidate()) as any;
-      comparison.candidate = null;
+      const comparison = makeComparison(makeBaseline(), makeCandidate(), {
+        candidate: null,
+      });
       comparisons.findByIdForTest.mockResolvedValue(comparison);
       await expect(
         service.approveImage(
@@ -1093,8 +1096,9 @@ describe('ApprovalService', () => {
 
     it('clears and reclaims the diff pdf file after approval', async () => {
       mockResolvedPdfTest();
-      const comparison = makePdfComparison() as any;
-      comparison.diffPdfUrl = 'http://storage/pdf-diff.pdf';
+      const comparison = makePdfComparison({
+        diffPdfUrl: 'http://storage/pdf-diff.pdf',
+      });
       comparisons.findByIdForTest.mockResolvedValue(comparison);
       comparisons.completePdfApproval.mockResolvedValue([
         'http://storage/pdf-diff.pdf',
@@ -1181,8 +1185,7 @@ describe('ApprovalService', () => {
 
     it('throws when pending comparison missing candidate', async () => {
       mockResolvedPdfTest();
-      const comparison = makePdfComparison() as any;
-      comparison.candidate = null;
+      const comparison = makePdfComparison({ candidate: null });
       comparisons.findByIdForTest.mockResolvedValue(comparison);
       await expect(
         service.approvePdf(

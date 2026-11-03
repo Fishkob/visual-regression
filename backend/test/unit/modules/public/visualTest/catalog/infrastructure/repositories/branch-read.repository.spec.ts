@@ -4,19 +4,23 @@ import { BranchResolver } from '@public/visualTest/core/application/services/bra
 import { BranchReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/branch-read.repository';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    branch: { findMany: vi.fn() },
+    $queryRaw: vi.fn(),
+  };
+}
+
 describe('BranchReadRepository', () => {
   let repository: BranchReadRepository;
   let connection: Mocked<PrismaConnection>;
   let branchResolver: Mocked<BranchResolver>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   const createdAt = new Date('2026-01-01T00:00:00Z');
 
   beforeEach(() => {
-    mockClient = {
-      branch: { findMany: vi.fn() },
-      $queryRaw: vi.fn(),
-    };
+    mockClient = makeMockClient();
     connection = createMock<PrismaConnection>();
     Object.defineProperty(connection, 'client', { get: () => mockClient });
     branchResolver = createMock<BranchResolver>();

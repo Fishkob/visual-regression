@@ -1,7 +1,10 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DlqController } from '@/modules/internal/dlq/dlq.controller';
-import { DlqService } from '@/modules/internal/dlq/dlq.service';
+import {
+  DlqService,
+  type FailedJobDto,
+} from '@/modules/internal/dlq/dlq.service';
 import { AdminAuthGuard } from '@/modules/internal/dlq/admin-auth.guard';
 import { AppConfigService } from '@config/app-config.service';
 import { createMock } from '@test/utils/create-mock';
@@ -32,7 +35,9 @@ describe('DlqController', () => {
   describe('listFailedJobs', () => {
     it('returns failed jobs list', async () => {
       const mockJobs = [{ id: 'job-1', testId: 'test-1', testKind: 'image' }];
-      dlqService.listFailedJobs.mockResolvedValue(mockJobs as any);
+      dlqService.listFailedJobs.mockResolvedValue(
+        mockJobs as unknown as FailedJobDto[],
+      );
 
       const result = await controller.listFailedJobs();
 

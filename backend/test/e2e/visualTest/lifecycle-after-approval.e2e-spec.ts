@@ -3,6 +3,7 @@ import { TestApp } from '../_support/utils/test-app';
 import { waitForComparison } from '../_support/utils/wait-for-comparison';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { OrphanCleanupService } from '@internal/data-deletion/services/orphan-cleanup.service';
+import type { PrismaClient } from '@/prisma/client';
 import {
   STORAGE_PROVIDER,
   IStorageProvider,
@@ -17,7 +18,7 @@ import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Comparison lifecycle after approval (e2e)', () => {
   let app: INestApplication;
-  let prisma: any;
+  let prisma: PrismaClient;
   let storage: IStorageProvider;
   let cleanupService: OrphanCleanupService;
 
@@ -67,7 +68,7 @@ describe('Comparison lifecycle after approval (e2e)', () => {
       .send({ comparisonId: comparison.body.comparison.id })
       .expect(201);
 
-    const baseline = await prisma.unifiedScreenshot.findFirst({
+    const baseline = await prisma.unifiedScreenshot.findFirstOrThrow({
       where: { type: 'BASELINE' },
     });
     return { baselineUrl: baseline.imageUrl };
@@ -135,7 +136,7 @@ describe('Comparison lifecycle after approval (e2e)', () => {
     const baselineStillExists = await storage.exists(baselineUrl);
     expect(baselineStillExists).toBe(true);
 
-    const baselineRow = await prisma.unifiedScreenshot.findFirst({
+    const baselineRow = await prisma.unifiedScreenshot.findFirstOrThrow({
       where: { type: 'BASELINE' },
     });
     expect(baselineRow.imageUrl).toBe(baselineUrl);

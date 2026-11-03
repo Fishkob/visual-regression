@@ -7,29 +7,33 @@ import type { TestKind, TestStatus } from '@/prisma/client';
 import { createMock } from '@test/utils/create-mock';
 import { createMockProjectRepository } from '@test/utils/mocks';
 
+function makeMockClient() {
+  return {
+    unifiedTest: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      upsert: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
+      count: vi.fn(),
+    },
+    unifiedVariant: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+    },
+  };
+}
+
 describe('UnifiedTestRepository', () => {
   let repository: UnifiedTestRepository;
   let mockTxCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
   let mockProjects: Mocked<ProjectRepository>;
 
   beforeEach(async () => {
-    mockClient = {
-      unifiedTest: {
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-        findMany: vi.fn(),
-        upsert: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-        deleteMany: vi.fn(),
-        count: vi.fn(),
-      },
-      unifiedVariant: {
-        findUnique: vi.fn(),
-        findFirst: vi.fn(),
-      },
-    };
+    mockClient = makeMockClient();
 
     mockTxCtx = createMock<TransactionContext>();
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });

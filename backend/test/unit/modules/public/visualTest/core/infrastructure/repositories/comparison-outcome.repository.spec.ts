@@ -8,10 +8,17 @@ import {
 import { createMock } from '@test/utils/create-mock';
 import { sqlText, sqlValues } from '@test/utils/raw-sql';
 
+function makeMockClient() {
+  return {
+    comparisonOutcomeEvent: { create: vi.fn(), findMany: vi.fn() },
+    $queryRaw: vi.fn().mockResolvedValue([]),
+  };
+}
+
 describe('ComparisonOutcomeRepository', () => {
   let repository: ComparisonOutcomeRepository;
   let mockTxCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   const since = new Date('2026-01-01T00:00:00Z');
 
@@ -36,10 +43,7 @@ describe('ComparisonOutcomeRepository', () => {
   }
 
   beforeEach(async () => {
-    mockClient = {
-      comparisonOutcomeEvent: { create: vi.fn(), findMany: vi.fn() },
-      $queryRaw: vi.fn().mockResolvedValue([]),
-    };
+    mockClient = makeMockClient();
 
     mockTxCtx = createMock<TransactionContext>();
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });

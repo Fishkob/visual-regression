@@ -364,7 +364,7 @@ describe('HealthChecker', () => {
             lastPollAt: '2024-01-01T00:00:00Z',
             jobsProcessed: 42,
           }),
-      }) as any;
+      }) as unknown as typeof fetch;
 
       const result = await checker.runCheck('worker');
 
@@ -383,7 +383,7 @@ describe('HealthChecker', () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 503,
-      }) as any;
+      }) as unknown as typeof fetch;
 
       const result = await checker.runCheck('worker');
 
@@ -396,7 +396,9 @@ describe('HealthChecker', () => {
         'http://worker:3002/health';
       globalThis.fetch = vi
         .fn()
-        .mockRejectedValue(new Error('Worker unreachable')) as any;
+        .mockRejectedValue(
+          new Error('Worker unreachable'),
+        ) as unknown as typeof fetch;
 
       const result = await checker.runCheck('worker');
 
@@ -414,7 +416,7 @@ describe('HealthChecker', () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ status: 'UP' }),
-      }) as any;
+      }) as unknown as typeof fetch;
 
       const result = await checker.runCheck('pdf-sidecar');
 
@@ -429,7 +431,7 @@ describe('HealthChecker', () => {
       globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ status: 'DOWN' }),
-      }) as any;
+      }) as unknown as typeof fetch;
 
       const result = await checker.runCheck('pdf-sidecar');
 
@@ -445,7 +447,9 @@ describe('HealthChecker', () => {
       ).pdfSidecar.healthUrl = 'http://sidecar:3001/health';
       globalThis.fetch = vi
         .fn()
-        .mockRejectedValue(new Error('Connection timeout')) as any;
+        .mockRejectedValue(
+          new Error('Connection timeout'),
+        ) as unknown as typeof fetch;
 
       const result = await checker.runCheck('pdf-sidecar');
 

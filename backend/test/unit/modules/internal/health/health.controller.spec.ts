@@ -9,9 +9,12 @@ import type {
 } from '@internal/health/health.types';
 import { createMock } from '@test/utils/create-mock';
 import { AppConfigService } from '@config/app-config.service';
+import type { Response } from 'express';
 
-function mockRes(): { status: Mock } {
-  return { status: vi.fn().mockReturnThis() };
+type MockResponse = Response & { status: Mock };
+
+function mockRes(): MockResponse {
+  return { status: vi.fn().mockReturnThis() } as unknown as MockResponse;
 }
 
 describe('HealthController', () => {
@@ -85,7 +88,7 @@ describe('HealthController', () => {
       checker.buildResponse.mockReturnValue(response);
 
       const res = mockRes();
-      const result = await controller.check(res as any);
+      const result = await controller.check(res);
 
       expect(result).toBe(response);
     });
@@ -114,7 +117,7 @@ describe('HealthController', () => {
       checker.buildResponse.mockReturnValue(response);
 
       const res = mockRes();
-      const result = await controller.check(res as any);
+      const result = await controller.check(res);
 
       expect(result).toBe(response);
       expect(res.status).toHaveBeenCalledWith(503);
@@ -146,7 +149,7 @@ describe('HealthController', () => {
       checker.buildResponse.mockReturnValue(response);
 
       const res = mockRes();
-      const result = await controller.readiness(res as any);
+      const result = await controller.readiness(res);
 
       expect(result).toEqual(response);
       expect(result.checks).toEqual({
@@ -180,7 +183,7 @@ describe('HealthController', () => {
       checker.buildResponse.mockReturnValue(response);
 
       const res = mockRes();
-      const result = await controller.readiness(res as any);
+      const result = await controller.readiness(res);
 
       expect(res.status).toHaveBeenCalledWith(503);
       expect(result.status).toBe('unhealthy');
@@ -197,7 +200,7 @@ describe('HealthController', () => {
       checker.runCheck.mockResolvedValue(dbResult);
 
       const res = mockRes();
-      const result = await controller.checkDatabase(res as any);
+      const result = await controller.checkDatabase(res);
 
       expect(result).toBe(dbResult);
       expect(checker.runCheck).toHaveBeenCalledWith('database');
@@ -210,7 +213,7 @@ describe('HealthController', () => {
       });
 
       const res = mockRes();
-      const result = await controller.checkDatabase(res as any);
+      const result = await controller.checkDatabase(res);
 
       expect(result).toEqual({
         status: 'error',
@@ -226,7 +229,7 @@ describe('HealthController', () => {
       checker.runCheck.mockResolvedValue(storageResult);
 
       const res = mockRes();
-      const result = await controller.checkStorage(res as any);
+      const result = await controller.checkStorage(res);
 
       expect(result).toBe(storageResult);
       expect(checker.runCheck).toHaveBeenCalledWith('storage');
@@ -239,7 +242,7 @@ describe('HealthController', () => {
       });
 
       const res = mockRes();
-      const result = await controller.checkStorage(res as any);
+      const result = await controller.checkStorage(res);
 
       expect(result).toEqual({ status: 'error', message: 'bucket missing' });
       expect(res.status).toHaveBeenCalledWith(503);

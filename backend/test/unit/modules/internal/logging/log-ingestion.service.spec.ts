@@ -10,7 +10,9 @@ describe('LogIngestionService', () => {
   let logger: Mocked<AppLoggerService>;
 
   function mockReq(headers?: Record<string, string>): Request {
-    return { headers: { 'x-trace-id': undefined, ...headers } } as any;
+    return {
+      headers: { 'x-trace-id': undefined, ...headers },
+    } as unknown as Request;
   }
 
   beforeEach(async () => {

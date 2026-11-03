@@ -1,15 +1,21 @@
 import { INestApplication } from '@nestjs/common';
 import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
+import type { JobData } from '@common/domain/job-data.types';
 import { ComparisonJobProcessor } from '@public/visualTest/intake/workers/comparison-job-processor';
 import { ComparisonOutcome } from '@public/visualTest/core/domain/types/visual-test.types';
 import * as path from 'path';
 import * as fs from 'fs';
 import { authRequest } from '../_support/utils/authenticated-request';
+import type { PrismaClient } from '@/prisma/client';
+
+// A queued job stores its payload as JSON; the processor takes it typed.
+const payloadOf = (job: { payload: unknown }): JobData =>
+  job.payload as JobData;
 
 describe('Cross-variant retirement (e2e)', () => {
   let app: INestApplication;
-  let prisma: any;
+  let prisma: PrismaClient;
 
   const uploadUrl = (testName: string) =>
     `/api/v1/projects/checkout-ui/tests/${testName}/upload?testKind=image`;
@@ -61,7 +67,7 @@ describe('Cross-variant retirement (e2e)', () => {
       orderBy: { createdAt: 'asc' },
     });
     for (const job of jobs) {
-      await processor.processJob({ id: job.id, payload: job.payload as any });
+      await processor.processJob({ id: job.id, payload: payloadOf(job) });
       await db.comparisonJob
         .delete({ where: { id: job.id } })
         .catch(() => undefined);
@@ -110,17 +116,17 @@ describe('Cross-variant retirement (e2e)', () => {
     });
     expect(jobs).toHaveLength(2);
     const variantAJob = jobs.find(
-      (j) => (j.payload as any).variant.viewport === '1920x1080',
+      (j) => payloadOf(j).variant.viewport === '1920x1080',
     );
     const variantBJob = jobs.find(
-      (j) => (j.payload as any).variant.viewport === '1366x768',
+      (j) => payloadOf(j).variant.viewport === '1366x768',
     );
     expect(variantAJob).toBeDefined();
     expect(variantBJob).toBeDefined();
 
     const processor = app.get(ComparisonJobProcessor);
     for (const job of jobs) {
-      await processor.processJob({ id: job.id, payload: job.payload as any });
+      await processor.processJob({ id: job.id, payload: payloadOf(job) });
     }
 
     const pending = await db.unifiedComparison.findMany({

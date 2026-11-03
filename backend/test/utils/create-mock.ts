@@ -44,9 +44,10 @@ function createMockHandler(target: object): ProxyHandler<object> {
   };
 }
 
-export function createMock<
-  T = Record<string, (...args: any[]) => any>,
->(): Mocked<T> {
+// The type argument is required: a bare `createMock()` would have to invent a
+// shape, and the shape it used to invent was `Record<string, (...args: any[]) =>
+// any>` — which is why every call site now names the interface it stands in for.
+export function createMock<T>(): Mocked<T> {
   const target = Object.create(null);
   return new Proxy(target, createMockHandler(target)) as unknown as Mocked<T>;
 }

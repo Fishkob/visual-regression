@@ -4,15 +4,19 @@ import { PrismaConnection } from '@/prisma/prisma-connection';
 import { RateLimitBucketCleanupTask } from '@internal/data-deletion/tasks/rate-limit-bucket-cleanup.task';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    rateLimitBucket: { deleteMany: vi.fn() },
+  };
+}
+
 describe('RateLimitBucketCleanupTask', () => {
   let task: RateLimitBucketCleanupTask;
   let mockConnection: Mocked<PrismaConnection>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   beforeEach(async () => {
-    mockClient = {
-      rateLimitBucket: { deleteMany: vi.fn() },
-    };
+    mockClient = makeMockClient();
     mockConnection = createMock<PrismaConnection>();
     Object.defineProperty(mockConnection, 'client', { get: () => mockClient });
 

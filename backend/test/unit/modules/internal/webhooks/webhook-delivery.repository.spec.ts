@@ -9,10 +9,18 @@ import type { WebhookDeliveryRow } from '@internal/webhooks/webhook.types';
 import { createMock } from '@test/utils/create-mock';
 import { sqlText, sqlValues } from '@test/utils/raw-sql';
 
+function makeMockClient() {
+  return {
+    $executeRaw: vi.fn(),
+    $queryRawUnsafe: vi.fn(),
+    webhookDelivery: { update: vi.fn(), updateMany: vi.fn() },
+  };
+}
+
 describe('WebhookDeliveryRepository', () => {
   let repository: WebhookDeliveryRepository;
   let mockTxCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   function delivery(overrides: Partial<WebhookDeliveryRow> = {}) {
     return {
@@ -33,11 +41,7 @@ describe('WebhookDeliveryRepository', () => {
   }
 
   beforeEach(async () => {
-    mockClient = {
-      $executeRaw: vi.fn(),
-      $queryRawUnsafe: vi.fn(),
-      webhookDelivery: { update: vi.fn(), updateMany: vi.fn() },
-    };
+    mockClient = makeMockClient();
     mockTxCtx = createMock<TransactionContext>();
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });
 

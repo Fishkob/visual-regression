@@ -5,33 +5,38 @@ import { ProjectRepository } from '@public/visualTest/core/infrastructure/reposi
 import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    project: {
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      count: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+    unifiedVariant: {
+      findMany: vi.fn(),
+      count: vi.fn(),
+    },
+    unifiedComparison: {
+      groupBy: vi.fn(),
+    },
+    unifiedTest: {
+      findMany: vi.fn(),
+    },
+    $queryRaw: vi.fn(),
+    $transaction: vi.fn(),
+  };
+}
+
 describe('ProjectRepository', () => {
   let repository: ProjectRepository;
   let mockTxCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   beforeEach(async () => {
-    mockClient = {
-      project: {
-        findUnique: vi.fn(),
-        findMany: vi.fn(),
-        count: vi.fn(),
-        create: vi.fn(),
-        delete: vi.fn(),
-      },
-      unifiedVariant: {
-        findMany: vi.fn(),
-        count: vi.fn(),
-      },
-      unifiedComparison: {
-        groupBy: vi.fn(),
-      },
-      unifiedTest: {
-        findMany: vi.fn(),
-      },
-      $queryRaw: vi.fn(),
-    };
-    mockClient.$transaction = vi.fn();
+    mockClient = makeMockClient();
 
     mockTxCtx = createMock<TransactionContext>();
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });
@@ -133,14 +138,15 @@ describe('ProjectRepository', () => {
       };
       mockClient.project.findUnique.mockResolvedValue(null);
       mockClient.project.create.mockResolvedValue(project);
-      mockClient.project.update = vi.fn().mockResolvedValue({
+      mockClient.project.update.mockResolvedValue({
         id: 'proj-1',
         name: 'checkout-ui',
         createdAt: new Date(),
         defaultBranchId: 'branch-1',
       });
-      mockClient.$transaction.mockImplementation(async (fn: any) =>
-        fn(mockClient),
+      mockClient.$transaction.mockImplementation(
+        async (fn: (tx: typeof mockClient) => Promise<unknown>) =>
+          fn(mockClient),
       );
 
       await repository.create('checkout-ui');

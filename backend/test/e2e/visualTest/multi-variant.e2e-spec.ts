@@ -8,10 +8,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 import request from 'supertest';
 import { authRequest } from '../_support/utils/authenticated-request';
+import type { PrismaClient } from '@/prisma/client';
 
 describe('Multi-variant screenshots (e2e)', () => {
   let app: INestApplication;
-  let prisma: any;
+  let prisma: PrismaClient;
 
   const uploadUrl = (testName: string) =>
     `/api/v1/projects/checkout-ui/tests/${testName}/upload?testKind=image`;
@@ -78,14 +79,9 @@ describe('Multi-variant screenshots (e2e)', () => {
       },
     });
     expect(baselines).toHaveLength(2);
-    expect(new Set(baselines.map((b: { id: string }) => b.id)).size).toBe(2);
+    expect(new Set(baselines.map((b) => b.id)).size).toBe(2);
 
-    const byVariant = new Map(
-      variants.map((v: { id: string; baselineId: string }) => [
-        v.id,
-        v.baselineId,
-      ]),
-    );
+    const byVariant = new Map(variants.map((v) => [v.id, v.baselineId]));
     const uniqueBaselineIds = new Set(byVariant.values());
     expect(uniqueBaselineIds.size).toBe(2);
   });
@@ -97,15 +93,16 @@ describe('Multi-variant screenshots (e2e)', () => {
       'Chrome',
       'baseline_black.png',
     ).expect(201);
-    const chromeVariant = await prisma.unifiedVariant.findFirst({
+    const chromeVariant = await prisma.unifiedVariant.findFirstOrThrow({
       where: {
         test: { name: 'MultiVariantTest' },
         browser: 'Chrome',
       },
     });
-    const chromeBaselineBefore = await prisma.unifiedScreenshot.findUnique({
-      where: { id: chromeVariant.baselineId },
-    });
+    const chromeBaselineBefore =
+      await prisma.unifiedScreenshot.findUniqueOrThrow({
+        where: { id: chromeVariant.baselineId! },
+      });
 
     await upload(
       'MultiVariantTest',
@@ -114,15 +111,16 @@ describe('Multi-variant screenshots (e2e)', () => {
       'baseline_blue.png',
     ).expect(201);
 
-    const chromeVariantAfter = await prisma.unifiedVariant.findFirst({
+    const chromeVariantAfter = await prisma.unifiedVariant.findFirstOrThrow({
       where: {
         test: { name: 'MultiVariantTest' },
         browser: 'Chrome',
       },
     });
-    const chromeBaselineAfter = await prisma.unifiedScreenshot.findUnique({
-      where: { id: chromeVariantAfter.baselineId },
-    });
+    const chromeBaselineAfter =
+      await prisma.unifiedScreenshot.findUniqueOrThrow({
+        where: { id: chromeVariantAfter.baselineId! },
+      });
 
     expect(chromeVariantAfter.baselineId).toBe(chromeVariant.baselineId);
     expect(chromeBaselineAfter.imageHash).toBe(chromeBaselineBefore.imageHash);
@@ -242,12 +240,7 @@ describe('Multi-variant screenshots (e2e)', () => {
     });
     expect(variantsAfter).toHaveLength(3);
     expect(
-      variantsAfter
-        .map(
-          (variant: { baseline: { imageUrl: string } }) =>
-            variant.baseline.imageUrl,
-        )
-        .sort(),
+      variantsAfter.map((variant) => variant.baseline!.imageUrl).sort(),
     ).toEqual(pending.map((entry) => entry.candidateUrl).sort());
     for (const entry of pending) {
       expect(

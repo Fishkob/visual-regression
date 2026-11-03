@@ -3,10 +3,29 @@ import { TransactionContext } from '@/prisma/transaction-context';
 import { BranchRepository } from '@public/visualTest/core/infrastructure/repositories/branch.repository';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    branch: {
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+    project: {
+      update: vi.fn(),
+    },
+    unifiedVariant: {
+      updateMany: vi.fn(),
+    },
+  };
+}
+
 describe('BranchRepository', () => {
   let repository: BranchRepository;
   let txCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   const branch = {
     id: 'br-1',
@@ -18,22 +37,7 @@ describe('BranchRepository', () => {
   };
 
   beforeEach(() => {
-    mockClient = {
-      branch: {
-        findFirst: vi.fn(),
-        findUnique: vi.fn(),
-        findMany: vi.fn(),
-        create: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-      },
-      project: {
-        update: vi.fn(),
-      },
-      unifiedVariant: {
-        updateMany: vi.fn(),
-      },
-    };
+    mockClient = makeMockClient();
     txCtx = createMock<TransactionContext>();
     Object.defineProperty(txCtx, 'client', { get: () => mockClient });
     repository = new BranchRepository(txCtx);

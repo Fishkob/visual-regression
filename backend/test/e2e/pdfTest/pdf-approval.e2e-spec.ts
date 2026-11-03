@@ -3,6 +3,7 @@ import { TestApp } from '../_support/utils/test-app';
 import { waitForComparison } from '../_support/utils/wait-for-comparison';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonOutcome } from '@public/visualTest/core/domain/types/visual-test.types';
+import type { PrismaClient } from '@/prisma/client';
 import {
   STORAGE_PROVIDER,
   IStorageProvider,
@@ -13,7 +14,7 @@ import { authRequest } from '../_support/utils/authenticated-request';
 
 describe('Approve PDF Test (e2e)', () => {
   let app: INestApplication;
-  let prisma: any;
+  let prisma: PrismaClient;
   let storage: IStorageProvider;
 
   const samplePdf = path.join(__dirname, 'fixtures', 'sample-v1.pdf');
@@ -61,12 +62,11 @@ describe('Approve PDF Test (e2e)', () => {
       environment: 'production',
     });
 
-    const comparison = await prisma.unifiedComparison.findFirst({
+    const comparison = await prisma.unifiedComparison.findFirstOrThrow({
       where: { status: 'PENDING_APPROVAL' },
     });
-    expect(comparison).not.toBeNull();
     expect(comparison.diffPdfUrl).toBeTruthy();
-    return { diffUrl: comparison.diffPdfUrl, comparisonId: comparison.id };
+    return { diffUrl: comparison.diffPdfUrl!, comparisonId: comparison.id };
   }
 
   it('should approve the pending comparison and keep the comparison row as history', async () => {
@@ -77,10 +77,9 @@ describe('Approve PDF Test (e2e)', () => {
       .send({ comparisonId })
       .expect(201);
 
-    const approved = await prisma.unifiedComparison.findFirst({
+    const approved = await prisma.unifiedComparison.findFirstOrThrow({
       where: { status: 'APPROVED' },
     });
-    expect(approved).not.toBeNull();
 
     // The PDF approval keeps the comparison row but clears the diff reference.
     expect(approved.diffPdfUrl).toBeNull();
@@ -142,10 +141,9 @@ describe('Approve PDF Test (e2e)', () => {
 
     // The PDF kind keeps the comparison row as history (APPROVED) and promotes
     // the candidate PDF to the baseline.
-    const approved = await prisma.unifiedComparison.findUnique({
+    const approved = await prisma.unifiedComparison.findUniqueOrThrow({
       where: { id: comparisonId },
     });
-    expect(approved).not.toBeNull();
     expect(approved.status).toBe('APPROVED');
     expect(approved.diffPdfUrl).toBeNull();
 

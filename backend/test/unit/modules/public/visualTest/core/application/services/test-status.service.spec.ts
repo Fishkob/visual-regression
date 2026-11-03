@@ -54,7 +54,7 @@ describe('TestStatusService', () => {
         signal({ latestComparisonStatus: ComparisonStatus.PENDING_APPROVAL }),
         signal({ latestComparisonStatus: ComparisonStatus.APPROVED }),
       ]);
-      tests.updateStatus.mockResolvedValue(undefined as any);
+      tests.updateStatus.mockResolvedValue(undefined);
 
       await service.recomputeStatus('test-1');
 
@@ -72,7 +72,7 @@ describe('TestStatusService', () => {
         signal({ latestComparisonStatus: ComparisonStatus.APPROVED }),
         signal(),
       ]);
-      tests.updateStatus.mockResolvedValue(undefined as any);
+      tests.updateStatus.mockResolvedValue(undefined);
 
       await service.recomputeStatus('test-1');
 
@@ -84,7 +84,7 @@ describe('TestStatusService', () => {
         signal(),
         signal({ hasBaseline: false }),
       ]);
-      tests.updateStatus.mockResolvedValue(undefined as any);
+      tests.updateStatus.mockResolvedValue(undefined);
 
       await service.recomputeStatus('test-1');
 
@@ -93,7 +93,7 @@ describe('TestStatusService', () => {
 
     it('derives PENDING for a test with no variants', async () => {
       variants.findVariantStatusSignalsFor.mockResolvedValue([]);
-      tests.updateStatus.mockResolvedValue(undefined as any);
+      tests.updateStatus.mockResolvedValue(undefined);
 
       await service.recomputeStatus('test-1');
 

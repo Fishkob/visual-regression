@@ -27,28 +27,32 @@ function manyIds(count: number): string[] {
   );
 }
 
+function makeMockClient() {
+  return {
+    unifiedScreenshot: {
+      findMany: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+    comparisonJob: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+    },
+    $executeRaw: vi.fn(),
+    $queryRaw: vi.fn(),
+  };
+}
+
 describe('OrphanedScreenshotRepository', () => {
   let repository: OrphanedScreenshotRepository;
   let mockTxCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
   const now = new Date('2025-01-01T00:00:00Z');
 
   beforeEach(async () => {
     vi.useFakeTimers();
     vi.setSystemTime(now);
 
-    mockClient = {
-      unifiedScreenshot: {
-        findMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-      comparisonJob: {
-        findFirst: vi.fn(),
-        findMany: vi.fn(),
-      },
-      $executeRaw: vi.fn(),
-      $queryRaw: vi.fn(),
-    };
+    mockClient = makeMockClient();
 
     mockTxCtx = createMock<TransactionContext>();
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });

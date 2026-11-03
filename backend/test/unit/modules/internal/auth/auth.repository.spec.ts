@@ -4,29 +4,33 @@ import { TransactionContext } from '@/prisma/transaction-context';
 import { AuthRepository } from '@internal/auth/auth.repository';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    user: { findUnique: vi.fn(), create: vi.fn(), count: vi.fn() },
+    session: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      deleteMany: vi.fn(),
+      update: vi.fn(),
+    },
+    apiKey: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+    $transaction: vi.fn(),
+  };
+}
+
 describe('AuthRepository', () => {
   let repository: AuthRepository;
   let txCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   beforeEach(async () => {
-    mockClient = {
-      user: { findUnique: vi.fn(), create: vi.fn(), count: vi.fn() },
-      session: {
-        create: vi.fn(),
-        findUnique: vi.fn(),
-        deleteMany: vi.fn(),
-        update: vi.fn(),
-      },
-      apiKey: {
-        create: vi.fn(),
-        findUnique: vi.fn(),
-        findMany: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-      },
-      $transaction: vi.fn(),
-    };
+    mockClient = makeMockClient();
     mockClient.$transaction.mockImplementation(
       (callback: (tx: unknown) => unknown) => callback(mockClient),
     );

@@ -1,6 +1,9 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProjectDetailQueryDto } from '@public/visualTest/catalog/presentation/dto/project.dto';
+import {
+  ProjectDetailQueryDto,
+  type ProjectDto,
+} from '@public/visualTest/catalog/presentation/dto/project.dto';
 import { ProjectsController } from '@public/visualTest/catalog/presentation/controllers/projects.controller';
 import { ProjectService } from '@public/visualTest/catalog/application/project.service';
 import { DomainError } from '@common/domain/domain-error';
@@ -55,7 +58,7 @@ describe('ProjectsController', () => {
           hasNextPage: false,
           hasPreviousPage: false,
         },
-      } as any);
+      });
 
       const result = await controller.getProjectsWithPendingFlag(
         new PaginationDto(),
@@ -188,7 +191,7 @@ describe('ProjectsController', () => {
           hasNextPage: false,
           hasPreviousPage: false,
         },
-      } as any);
+      });
 
       const result = await controller.getAllProjects(new PaginationDto());
 
@@ -203,7 +206,7 @@ describe('ProjectsController', () => {
       projectService.getWithLatestVariantStatuses.mockResolvedValue({
         id: 'proj-1',
         name: 'checkout-ui',
-      } as any);
+      });
       const query = Object.assign(new ProjectDetailQueryDto(), {
         q: '  login  ',
         kind: 'pdf',
@@ -244,7 +247,7 @@ describe('ProjectsController', () => {
             latestStatus: 'UNCHANGED',
           },
         ],
-      } as any);
+      } as unknown as ProjectDto);
 
       const result = await controller.getOneProject(
         'checkout-ui',

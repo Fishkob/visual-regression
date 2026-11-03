@@ -5,16 +5,20 @@ import { SessionCleanupTask } from '@internal/data-deletion/tasks/session-cleanu
 import { MAINTENANCE_LOCK_IDS } from '@internal/data-deletion/maintenance-lock-ids';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    session: { deleteMany: vi.fn() },
+    twoFactorChallenge: { deleteMany: vi.fn() },
+  };
+}
+
 describe('SessionCleanupTask', () => {
   let task: SessionCleanupTask;
   let mockConnection: Mocked<PrismaConnection>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
 
   beforeEach(async () => {
-    mockClient = {
-      session: { deleteMany: vi.fn() },
-      twoFactorChallenge: { deleteMany: vi.fn() },
-    };
+    mockClient = makeMockClient();
     mockConnection = createMock<PrismaConnection>();
     Object.defineProperty(mockConnection, 'client', { get: () => mockClient });
 

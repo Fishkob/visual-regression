@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, type ExecutionContext } from '@nestjs/common';
 import { MetricsAuthGuard } from '@internal/metrics/metrics-auth.guard';
 
 describe('MetricsAuthGuard', () => {
@@ -14,7 +14,7 @@ describe('MetricsAuthGuard', () => {
       switchToHttp: () => ({
         getRequest: () => ({ headers }),
       }),
-    } as any;
+    } as unknown as ExecutionContext;
   };
 
   beforeEach(() => {

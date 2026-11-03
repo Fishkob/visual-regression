@@ -3,9 +3,10 @@ import { PrismaConnection } from '@/prisma/prisma-connection';
 import { RustFsStorageService } from '@internal/storage/services/rustfs-storage.service';
 import { OrphanCleanupService } from '@internal/data-deletion/services/orphan-cleanup.service';
 import { TestApp } from '../_support/utils/test-app';
+import type { PrismaClient } from '@/prisma/client';
 describe('OrphanCleanupService (integration)', () => {
   let app: INestApplication;
-  let prisma: any;
+  let prisma: PrismaClient;
   let cleanupService: OrphanCleanupService;
 
   beforeAll(async () => {

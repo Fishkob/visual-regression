@@ -4,10 +4,11 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonStatus, TestStatus } from '@/prisma/client';
 import { authRequest } from '../_support/utils/authenticated-request';
+import type { PrismaClient } from '@/prisma/client';
 
 describe('ProjectsController (e2e)', () => {
   let app: INestApplication;
-  let prisma: any;
+  let prisma: PrismaClient;
 
   async function createProject(name: string) {
     const { projectId, branchId } = await TestApp.createProject(name);

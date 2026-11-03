@@ -11,7 +11,10 @@ import { VariantStore } from '@public/visualTest/core/infrastructure/repositorie
 import { IJobProducer } from '@common/domain/job-queue.interface';
 import { IStorageProvider } from '@common/domain/storage-provider.interface';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
-import { toOutcome } from '@public/visualTest/core/application/services/state-change-options';
+import {
+  toOutcome,
+  type StateChangeResult,
+} from '@public/visualTest/core/application/services/state-change-options';
 import { AuditService } from '@internal/audit/audit.service';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { TestStatusService } from '@public/visualTest/core/application/services/test-status.service';
@@ -59,7 +62,7 @@ describe('TestDeletionService', () => {
       Promise.resolve(urls),
     );
     workflow.executeStateChange.mockImplementation(
-      async (fn: () => Promise<any>) => {
+      async (fn: () => Promise<StateChangeResult<unknown>>) => {
         const outcome = toOutcome(await fn());
         if (outcome.change.kind === 'change') {
           for (const testId of outcome.change.affectedTestIds) {

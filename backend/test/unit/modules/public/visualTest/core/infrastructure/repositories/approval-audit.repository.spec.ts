@@ -9,19 +9,23 @@ import {
 } from '@public/visualTest/core/infrastructure/repositories/approval-audit.repository';
 import { createMock } from '@test/utils/create-mock';
 
+function makeMockClient() {
+  return {
+    approval: {
+      create: vi.fn(),
+      findMany: vi.fn(),
+    },
+  };
+}
+
 describe('ApprovalAuditRepository', () => {
   let repository: ApprovalAuditRepository;
   let mockTxCtx: Mocked<TransactionContext>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof makeMockClient>;
   const approvedAt = new Date('2025-01-01T00:00:00Z');
 
   beforeEach(async () => {
-    mockClient = {
-      approval: {
-        create: vi.fn(),
-        findMany: vi.fn(),
-      },
-    };
+    mockClient = makeMockClient();
 
     mockTxCtx = createMock<TransactionContext>();
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });

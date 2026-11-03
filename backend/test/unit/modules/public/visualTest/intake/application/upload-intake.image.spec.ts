@@ -43,6 +43,7 @@ import {
 } from '@test/utils/mocks';
 import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referencedness.interface';
 import { AuditService } from '@internal/audit/audit.service';
+import type { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 
 describe('UploadIntake (image kind)', () => {
   let uploadIntake: UploadIntake;
@@ -226,7 +227,7 @@ describe('UploadIntake (image kind)', () => {
       imageUrl: 'https://storage/baseline.png',
       imageHash: testHash,
       pixelDiffThreshold: undefined,
-    } as any);
+    } as unknown as ScreenshotEntity);
     retirement.supersedeIdenticalForVariant.mockResolvedValue([
       'https://storage/old-diff.png',
     ]);
@@ -253,7 +254,7 @@ describe('UploadIntake (image kind)', () => {
       imageUrl: 'https://storage/baseline.png',
       imageHash: testHash,
       pixelDiffThreshold: undefined,
-    } as any);
+    } as unknown as ScreenshotEntity);
     retirement.supersedeIdenticalForVariant.mockResolvedValue([
       'https://storage/old-diff.png',
     ]);
@@ -295,7 +296,7 @@ describe('UploadIntake (image kind)', () => {
         imageUrl: 'https://storage/baseline.png',
         imageHash: testHash,
         pixelDiffThreshold: undefined,
-      } as any)
+      } as unknown as ScreenshotEntity)
       .mockResolvedValue(null);
     storage.putObject.mockResolvedValue(
       `https://storage/${testHash}-${testDate}.png`,
@@ -323,13 +324,13 @@ describe('UploadIntake (image kind)', () => {
       imageUrl: 'https://storage/baseline.png',
       imageHash: testHash,
       pixelDiffThreshold: 0.5,
-    } as any;
+    } as unknown as ScreenshotEntity;
     const changedBaseline = {
       id: 'base-1',
       imageUrl: 'https://storage/baseline.png',
       imageHash: differentHash,
       pixelDiffThreshold: 0.5,
-    } as any;
+    } as unknown as ScreenshotEntity;
     screenshots.findBaselineByVariant
       .mockResolvedValueOnce(identicalBaseline)
       .mockResolvedValueOnce(changedBaseline)
@@ -341,7 +342,8 @@ describe('UploadIntake (image kind)', () => {
     retirement.supersedeForVariant.mockResolvedValue([]);
     screenshots.upsertCandidateForVariant.mockResolvedValue({
       id: 'candidate-1',
-    } as any);
+      replacedUrl: null,
+    });
 
     const result = await uploadIntake.upload(baseParams, 'image');
 
@@ -363,13 +365,13 @@ describe('UploadIntake (image kind)', () => {
       imageUrl: 'https://storage/baseline.png',
       imageHash: testHash,
       pixelDiffThreshold: 0.5,
-    } as any;
+    } as unknown as ScreenshotEntity;
     const changedBaseline = {
       id: 'base-1',
       imageUrl: 'https://storage/baseline.png',
       imageHash: differentHash,
       pixelDiffThreshold: 0.5,
-    } as any;
+    } as unknown as ScreenshotEntity;
     screenshots.findBaselineByVariant
       .mockResolvedValueOnce(identicalBaseline)
       .mockResolvedValueOnce(changedBaseline)
@@ -526,7 +528,7 @@ describe('UploadIntake (image kind)', () => {
       imageUrl: 'https://storage/baseline.png',
       imageHash: differentHash,
       pixelDiffThreshold: 0.5,
-    } as any);
+    } as unknown as ScreenshotEntity);
     storage.putObject.mockResolvedValue(
       `https://storage/${testHash}-${testDate}.png`,
     );
@@ -536,7 +538,8 @@ describe('UploadIntake (image kind)', () => {
     ]);
     screenshots.upsertCandidateForVariant.mockResolvedValue({
       id: 'candidate-1',
-    } as any);
+      replacedUrl: null,
+    });
 
     const result = await uploadIntake.upload(baseParams, 'image');
 
@@ -608,7 +611,7 @@ describe('UploadIntake (image kind)', () => {
       imageUrl: 'https://storage/baseline.png',
       imageHash: differentHash,
       pixelDiffThreshold: 0.5,
-    } as any);
+    } as unknown as ScreenshotEntity);
     storage.putObject.mockResolvedValue(
       `https://storage/${testHash}-${testDate}.png`,
     );
@@ -618,7 +621,7 @@ describe('UploadIntake (image kind)', () => {
     screenshots.upsertCandidateForVariant.mockResolvedValue({
       id: 'candidate-1',
       replacedUrl: 'https://storage/old-candidate.png',
-    } as any);
+    });
 
     const result = await uploadIntake.upload(baseParams, 'image');
 
@@ -636,14 +639,15 @@ describe('UploadIntake (image kind)', () => {
       imageUrl: 'https://storage/baseline.png',
       imageHash: differentHash,
       pixelDiffThreshold: 0.5,
-    } as any);
+    } as unknown as ScreenshotEntity);
     storage.putObject.mockResolvedValue(
       `https://storage/${testHash}-${testDate}.png`,
     );
     retirement.supersedeForVariant.mockResolvedValue([]);
     screenshots.upsertCandidateForVariant.mockResolvedValue({
       id: 'candidate-1',
-    } as any);
+      replacedUrl: null,
+    });
 
     await uploadIntake.upload(baseParams, 'image');
 
@@ -663,14 +667,15 @@ describe('UploadIntake (image kind)', () => {
       imageUrl: 'https://storage/baseline.png',
       imageHash: differentHash,
       pixelDiffThreshold: 0.5,
-    } as any);
+    } as unknown as ScreenshotEntity);
     storage.putObject.mockResolvedValue(
       `https://storage/${testHash}-${testDate}.png`,
     );
     retirement.supersedeForVariant.mockResolvedValue([]);
     screenshots.upsertCandidateForVariant.mockResolvedValue({
       id: 'candidate-1',
-    } as any);
+      replacedUrl: null,
+    });
     const enqueueError = new Error('Queue full');
     jobQueue.enqueue.mockRejectedValue(enqueueError);
 
@@ -693,14 +698,15 @@ describe('UploadIntake (image kind)', () => {
         imageUrl: 'https://storage/baseline.png',
         imageHash: differentHash,
         pixelDiffThreshold: 0.5,
-      } as any);
+      } as unknown as ScreenshotEntity);
     storage.putObject.mockResolvedValue(
       `https://storage/${testHash}-${testDate}.png`,
     );
     retirement.supersedeForVariant.mockResolvedValue([]);
     screenshots.upsertCandidateForVariant.mockResolvedValue({
       id: 'candidate-1',
-    } as any);
+      replacedUrl: null,
+    });
 
     const result = await uploadIntake.upload(baseParams, 'image');
 
@@ -733,13 +739,13 @@ describe('UploadIntake (image kind)', () => {
         imageUrl: 'https://storage/baseline.png',
         imageHash: differentHash,
         pixelDiffThreshold: 0.5,
-      } as any)
+      } as unknown as ScreenshotEntity)
       .mockResolvedValueOnce({
         id: 'base-1',
         imageUrl: 'https://storage/baseline.png',
         imageHash: testHash,
         pixelDiffThreshold: 0.5,
-      } as any);
+      } as unknown as ScreenshotEntity);
     storage.putObject.mockResolvedValue(
       `https://storage/${testHash}-${testDate}.png`,
     );
