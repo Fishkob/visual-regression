@@ -54,7 +54,7 @@ describe('PrismaConnection', () => {
     const connection = createConnection();
     const fn = vi.fn();
 
-    connection.$transaction(fn, { isolationLevel: 'Serializable' });
+    void connection.$transaction(fn, { isolationLevel: 'Serializable' });
 
     expect(connection.client.$transaction).toHaveBeenCalledWith(fn, {
       isolationLevel: 'Serializable',
@@ -65,7 +65,7 @@ describe('PrismaConnection', () => {
     const connection = createConnection();
     const query = 'SELECT 1' as unknown as Prisma.Sql;
 
-    connection.$queryRaw(query, 'arg');
+    void connection.$queryRaw(query, 'arg');
 
     expect(connection.client.$queryRaw).toHaveBeenCalledWith(query, 'arg');
   });

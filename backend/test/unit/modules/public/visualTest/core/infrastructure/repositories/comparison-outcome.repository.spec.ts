@@ -6,18 +6,7 @@ import {
   type ComparisonOutcomeEntry,
 } from '@public/visualTest/core/infrastructure/repositories/comparison-outcome.repository';
 import { createMock } from '@test/utils/create-mock';
-
-// `$queryRaw(Prisma.sql`…`)` hands the mock one Sql object whose `sql` getter
-// renders the statement and whose `values` holds the binds.
-function sqlText(call: unknown[]): string {
-  const first = call[0] as { sql?: string };
-  return typeof first?.sql === 'string' ? first.sql : String(first);
-}
-
-function sqlValues(call: unknown[]): unknown[] {
-  const first = call[0] as { values?: unknown[] };
-  return first?.values ?? [];
-}
+import { sqlText, sqlValues } from '@test/utils/raw-sql';
 
 describe('ComparisonOutcomeRepository', () => {
   let repository: ComparisonOutcomeRepository;

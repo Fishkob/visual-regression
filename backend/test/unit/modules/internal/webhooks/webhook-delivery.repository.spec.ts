@@ -7,16 +7,7 @@ import {
 } from '@internal/webhooks/webhook-delivery.repository';
 import type { WebhookDeliveryRow } from '@internal/webhooks/webhook.types';
 import { createMock } from '@test/utils/create-mock';
-
-function sqlText(call: unknown[]): string {
-  const first = call[0] as { sql?: string };
-  return typeof first?.sql === 'string' ? first.sql : String(first);
-}
-
-function sqlValues(call: unknown[]): unknown[] {
-  const first = call[0] as { values?: unknown[] };
-  return first?.values ?? [];
-}
+import { sqlText, sqlValues } from '@test/utils/raw-sql';
 
 describe('WebhookDeliveryRepository', () => {
   let repository: WebhookDeliveryRepository;
@@ -118,6 +109,11 @@ describe('WebhookDeliveryRepository', () => {
       expect(sql).toContain('"claimedAt" = NOW()');
       expect(sql).toContain('RETURNING "id"');
       expect(sql).toContain('"claimedAt"');
+      // The named exception in ADR-059: the lease has no concurrency case yet,
+      // so this is the only check that the lock is still in the statement. It
+      // goes when a race case in webhook-delivery.e2e-spec.ts arrives; the gap
+      // is recorded in docs/testing.md.
+      // eslint-disable-next-line local/no-locking-clause-assertions
       expect(sql).toContain('FOR UPDATE SKIP LOCKED');
       expect(sql).toContain('LIMIT 20');
     });

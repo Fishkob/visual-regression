@@ -36,7 +36,10 @@ vi.mock('@aws-sdk/client-s3', () => {
   };
 });
 
-type MockCommand = { __name: string; input: Record<string, unknown> };
+interface MockCommand {
+  __name: string;
+  input: Record<string, unknown>;
+}
 
 function sentCommands(name: string): MockCommand[] {
   return mockClient.send.mock.calls

@@ -55,12 +55,12 @@ describe('loadEnv', () => {
 
   beforeEach(() => {
     cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'vrt-env-'));
-    MANAGED_KEYS.forEach((key) => delete process.env[key]);
+    MANAGED_KEYS.forEach((key) => Reflect.deleteProperty(process.env, key));
   });
 
   afterEach(() => {
     fs.rmSync(cwd, { recursive: true, force: true });
-    MANAGED_KEYS.forEach((key) => delete process.env[key]);
+    MANAGED_KEYS.forEach((key) => Reflect.deleteProperty(process.env, key));
     process.env.NODE_ENV = originalNodeEnv;
     vi.restoreAllMocks();
   });

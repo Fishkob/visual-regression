@@ -1,4 +1,4 @@
-import type { Mock, Mocked } from 'vitest';
+import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { OrphanCleanupService } from '@internal/data-deletion/services/orphan-cleanup.service';
 import {
@@ -12,6 +12,7 @@ import {
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { STORAGE_PROVIDER } from '@common/domain/storage-provider.interface';
+import type { IStorageProvider } from '@common/domain/storage-provider.interface';
 import type { MaintenanceTask } from '@common/domain/maintenance-task.interface';
 import { ScreenshotEntity } from '@public/visualTest/core/domain/entities/screenshot.entity';
 import { ScreenshotType } from '@public/visualTest/core/domain/types/visual-test.types';
@@ -23,7 +24,7 @@ describe('OrphanCleanupService', () => {
   let service: OrphanCleanupService;
   let referencedness: Mocked<IStorageObjectReferencedness>;
   let orphaned: Mocked<IOrphanSweep>;
-  let storage: Mocked<{ deleteAll: Mock }>;
+  let storage: Mocked<Pick<IStorageProvider, 'deleteAll'>>;
   let uow: Mocked<PrismaUnitOfWork>;
   let logger: Mocked<AppLoggerService>;
 
@@ -52,7 +53,7 @@ describe('OrphanCleanupService', () => {
     orphaned.deleteBaselineOrphansByIdsReturningUrls.mockImplementation(
       async (ids) => ids.map((id) => `http://storage/${id}.png`),
     );
-    storage = createMock<{ deleteAll: Mock }>();
+    storage = createMock<Pick<IStorageProvider, 'deleteAll'>>();
     uow = createMock<PrismaUnitOfWork>();
     uow.execute.mockImplementation(async (fn: () => Promise<unknown>) => fn());
     logger = createMockLogger();

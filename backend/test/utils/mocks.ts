@@ -18,6 +18,9 @@ export function createMockFile(
   return {
     fieldname: 'image',
     originalname: 'screenshot.png',
+    // Deprecated by RFC 7578 in 2015, still a required field of the type we
+    // stand in for, so the mock has to fill it.
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     encoding: '7bit',
     mimetype: 'image/png',
     size: buffer.length,

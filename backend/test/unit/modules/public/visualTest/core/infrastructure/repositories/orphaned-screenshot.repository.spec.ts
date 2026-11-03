@@ -7,19 +7,7 @@ import {
   OrphanedScreenshotRepository,
 } from '@public/visualTest/core/infrastructure/repositories/orphaned-screenshot.repository';
 import { createMock } from '@test/utils/create-mock';
-
-// `$queryRaw(Prisma.sql`…`)` hands the mock one Sql object; a tagged template
-// hands it the strings array plus values. Read whichever arrived.
-function sqlText(call: unknown[]): string {
-  const first = call[0] as { sql?: string };
-  return typeof first?.sql === 'string' ? first.sql : String(first);
-}
-
-// The bound values of a `$queryRaw(Prisma.sql`…`)` call.
-function sqlValues(call: unknown[]): unknown[] {
-  const first = call[0] as { values?: unknown[] };
-  return first?.values ?? [];
-}
+import { sqlText, sqlValues } from '@test/utils/raw-sql';
 
 // Counts the bind parameters of a tagged-template call, expanding the `Prisma.sql`
 // fragments a template embeds (`Prisma.join(ids)`, `Prisma.join(statuses)`).
