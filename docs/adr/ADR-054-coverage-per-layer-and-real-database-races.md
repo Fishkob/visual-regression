@@ -4,7 +4,11 @@
 
 Accepted — 2026-11-01. Partially supersedes
 [ADR-020](./020-testing-strategy.md): the single global coverage threshold and
-the rule that a test may never touch a service without HTTP.
+the rule that a test may never touch a service without HTTP. Decision 5 is
+partially superseded by
+[ADR-059](./ADR-059-query-policy-vs-mechanism.md): a repository unit test keeps
+its query-policy assertions, and only the mechanism assertion moves to the
+database-race suite.
 
 ## Context
 

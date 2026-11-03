@@ -18,7 +18,8 @@ This strategy validates the architecture described across multiple ADRs: the fro
 We use two test runners in parallel:
 
 - **Vitest** — unit tests for both backend and frontend, and the backend E2E suite (`*.e2e-spec.ts`), which is a supertest round-trip against a real app instance.
-- **Playwright** — E2E tests (backend + frontend via UI) and component tests (frontend only).
+- **Playwright** — E2E tests (the frontend UI driving the real stack) and
+  component tests (frontend only).
 
 ## Rationale
 

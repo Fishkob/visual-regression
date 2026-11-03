@@ -109,9 +109,17 @@ Two of them assert database guarantees rather than HTTP contracts, because the
 HTTP surface cannot produce the input: `job-queue-concurrency.e2e-spec.ts` drives
 the queue from the running app (concurrent claims, stall reclaim, ownership
 loss, backoff) and `concurrent-review.e2e-spec.ts` races two uploads and two
-approvals. Both are listed as the exception in
-[ADR-054](adr/ADR-054-coverage-per-layer-and-real-database-races.md), and each
-case was verified to fail when its mechanism is removed.
+approvals. The two specs carry eleven cases today, and each was checked to fail
+when its mechanism is removed. They are the exception
+[ADR-054](adr/ADR-054-coverage-per-layer-and-real-database-races.md) allows and
+the evidence [ADR-059](adr/ADR-059-query-policy-vs-mechanism.md) points at when it
+forbids a unit test to assert a locking mechanism.
+
+One mechanism assertion is still in the unit suite:
+`webhook-delivery.repository.spec.ts` asserts the claim SQL contains
+`FOR UPDATE SKIP LOCKED`, because no concurrency case exists for the webhook
+lease yet. [ADR-059](adr/ADR-059-query-policy-vs-mechanism.md) names it as the
+exception; it goes when the case arrives, not before.
 
 `health/boot-smoke.e2e-spec.ts` covers the other gap: every other spec boots the
 hand-built `TestApp`, which re-states the global prefix and the validation pipe
@@ -144,6 +152,16 @@ excluded from the unit gate for that reason, like `src/main.ts`.
   have their own tests, the views are covered by the CT suite. A number is raised
   after closing a gap and never lowered. See
   [ADR-055](adr/ADR-055-the-frontend-gate-measures-what-it-runs.md).
+- A repository unit test asserts the **visibility policy** the query encodes —
+  which rows are in scope, in what order, up to what bound — and not the
+  mechanism behind it. Locking and isolation are proved in `test/e2e/`, because a
+  string assertion survives exactly the bugs it is meant to catch. The line and
+  its one exception: [ADR-059](adr/ADR-059-query-policy-vs-mechanism.md).
+- The numeric thresholds live in the configs, one block per layer, and each is
+  the measured value of its layer minus 1-2 points. They are not repeated here:
+  a copy is a second number that will be wrong. Re-measure when you touch a
+  config — a gate that sits far below its layer was widened silently, not
+  set generously.
 - The pre-commit hook runs the unit tests of the workspace whose files changed
   (`lint-staged`), without coverage — the gate is the push hook.
 - The client SDK is gated as an **artifact**, not only as source:
