@@ -86,6 +86,12 @@ src/
 - Enums: `TestKind` (image/pdf), `ScreenshotType` (BASELINE/CURRENT), `ComparisonStatus` (PENDING_APPROVAL/APPROVED), `TestStatus` (PENDING/UNCHANGED/PENDING_APPROVAL)
 - Client re-exported from `src/prisma/client.ts`
 - Repositories extend `BaseRepository`, use `PrismaUnitOfWork.execute()`
+- **ORM first.** A query is written with the Prisma client (`findMany`/`count`/`aggregate`/`groupBy`,
+  relation filters) unless Prisma cannot express it — recursive branch chains, `FILTER` aggregates
+  over several tables, `= ANY(array)` guards, `ON CONFLICT`/`RETURNING` primitives. A raw query then
+  lives in the repository that owns the rule, as a `Prisma.sql` fragment with its parameters bound —
+  never a hand-built string. Do not reach for raw SQL to save a round-trip: parallelise the ORM calls
+  (`Promise.all`) or batch them first.
 
 ## State-Change Conventions
 
