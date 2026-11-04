@@ -1,5 +1,40 @@
 # Changelog
 
+## [2.0.0](https://github.com/Fishkob/visual-regression/compare/v1.4.0...v2.0.0) (2026-11-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **db:** TOTP_ENCRYPTION_KEY is now required. Existing installations must set it (openssl rand -hex 32) before upgrading. Seeds written before the upgrade keep working and are re-encrypted on the next successful TOTP login.
+
+### Features
+
+* **db:** cache the project's evidence total for the quota check ([2418cf6](https://github.com/Fishkob/visual-regression/commit/2418cf6cdbe8b2874ea5b262ad76b6107dacdeea))
+* harden the worker and finish the threshold/share/review backlog ([11ee756](https://github.com/Fishkob/visual-regression/commit/11ee7566c737ef19e52a9c0a54d6088fc1808581))
+
+
+### Bug Fixes
+
+* **ci:** authenticate the frontend e2e health probes ([8ad263c](https://github.com/Fishkob/visual-regression/commit/8ad263cd7a80bd710cc0d79bb35e27fb2cde6c31))
+* **ci:** provide TOTP_ENCRYPTION_KEY to the test jobs ([70206d0](https://github.com/Fishkob/visual-regression/commit/70206d0b960cdeeae61145af3bd5d623b49279bd))
+* **ci:** start the pdf sidecar for the backend e2e job ([93eb68e](https://github.com/Fishkob/visual-regression/commit/93eb68e0b58bd022caa64b223e5284084f571a17))
+* **db:** enforce cross-row identities and cascade review comments ([1b6812c](https://github.com/Fishkob/visual-regression/commit/1b6812cd3fd029b6533fbc323edd27e35a5d7490))
+* **db:** enforce the schema's invariants and key projects by id ([7754683](https://github.com/Fishkob/visual-regression/commit/7754683e7aee0abd8dcd490b889e8ea0c785aab8))
+* **e2e:** complete the forced password change when logging in as admin ([24827e5](https://github.com/Fishkob/visual-regression/commit/24827e55dd9403b75af10cdb5418a45f18a7fcc7))
+* **e2e:** replace the bootstrap admin's temporary password before the suite ([1511858](https://github.com/Fishkob/visual-regression/commit/15118585e0a19806dbb085d2d0f8693d03b64b49))
+* **review:** close the gaps the approval-race investigation found ([b11533d](https://github.com/Fishkob/visual-regression/commit/b11533d92b6a5b1a8ed2953d2a389f87c411c0ad))
+* **review:** serialize concurrent approvals instead of letting them abort ([7f5fdce](https://github.com/Fishkob/visual-regression/commit/7f5fdceb6fb431c073b62c8815e4919908fb038d))
+* **review:** size the approval retry budget for the legal voter count ([6f0b83f](https://github.com/Fishkob/visual-regression/commit/6f0b83fba55e056d309afe474bdab9bbc3a4658c))
+* **review:** state the approval path's own retry budget ([2755a64](https://github.com/Fishkob/visual-regression/commit/2755a6416eb7b80d57cde062a9b2513439854d6d))
+* **scripts:** name only the checks the gate actually skipped ([34f798a](https://github.com/Fishkob/visual-regression/commit/34f798a083b20e136ccbe5e20252841b153efed4))
+* **scripts:** regenerate the prisma client before the gate reads it ([4d8f2b2](https://github.com/Fishkob/visual-regression/commit/4d8f2b24b005d38d4593792617f34f4de8b6998f))
+
+
+### Performance Improvements
+
+* **db:** cut round-trips and unbounded reads on the hot paths ([3a5da00](https://github.com/Fishkob/visual-regression/commit/3a5da006da40418e50735bb79159fe87fc09d6d1))
+* **db:** index the substring searches and the webhook outbox sweep ([14a5372](https://github.com/Fishkob/visual-regression/commit/14a537249bc9e2f3999f7b81d2c40fd7ff4541e6))
+
 ## [1.4.0](https://github.com/Fishkob/visual-regression/compare/v1.3.0...v1.4.0) (2026-11-01)
 
 
