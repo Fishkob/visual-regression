@@ -48,11 +48,13 @@ export class TestApp {
 
     const db = app.get(PrismaConnection).client;
 
-    // The approval audit rows and the review artifacts deliberately have no
-    // foreign key to the test, so the cascading deletes below cannot reach
-    // them: clear them explicitly. The same is true for the global trail, share
-    // links and outcome events, whose rows outlive the project they name —
-    // leaving them behind made list assertions depend on earlier test files.
+    // The approval audit rows and the outcome trail deliberately have no foreign
+    // key to the test, so the cascading deletes below cannot reach them: clear
+    // them explicitly. Comments are cleared here as well, even though
+    // `ReviewComment.testId` now cascades — the reset should not depend on a
+    // constraint to be complete. The same is true for the global trail and share
+    // links, whose rows outlive the project they name — leaving them behind made
+    // list assertions depend on earlier test files.
     await db.approval.deleteMany();
     await db.approvalVote.deleteMany();
     await db.reviewComment.deleteMany();

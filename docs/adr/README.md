@@ -35,7 +35,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 039 | [Review Assignment, Due Dates & 4-Eyes](./ADR-039-review-assignment-four-eyes.md)                                                      | Accepted (partially superseded by 041)                 |
 | 040 | [Review Comments & Reasons](./ADR-040-review-comments-reasons.md)                                                                      | Accepted                                               |
 | 041 | [Review Governance & Human 4-Eyes](./ADR-041-review-governance-human-4-eyes.md)                                                        | Accepted                                               |
-| 042 | [Review Artifact Lifecycle & Webhook Lease](./ADR-042-review-artifact-lifecycle.md)                                                    | Accepted (artifacts superseded by 050, lease by 051)   |
+| 042 | [Review Artifact Lifecycle & Webhook Lease](./ADR-042-review-artifact-lifecycle.md)                                                    | Accepted (votes by 050, lease by 051, comments by 064) |
 | 043 | [Storage Quota Enforcement](./ADR-043-storage-quota-enforcement.md)                                                                    | Accepted                                               |
 | 044 | [A Failed Job Owns Its Candidate](./ADR-044-failed-job-candidate-ownership.md)                                                         | Accepted                                               |
 | 045 | [API-Key Scopes on the Route](./ADR-045-api-key-scopes-on-the-route.md)                                                                | Accepted (partially supersedes 035)                    |
@@ -57,6 +57,8 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 061 | [A Project Is Named, but Its Identity Is the Id](./ADR-061-project-identity-is-the-id.md)                                              | Accepted (supersedes 035/038/049 in part)              |
 | 062 | [TOTP Seeds Are Encrypted at Rest](./ADR-062-totp-seeds-are-encrypted.md)                                                              | Accepted                                               |
 | 063 | [The Database Enforces One Reviewable Comparison per Variant](./ADR-063-single-pending-comparison-is-a-database-guarantee.md)          | Accepted                                               |
+| 064 | [The Discussion Cascades with Its Test](./ADR-064-review-comments-cascade-with-their-test.md)                                          | Accepted (supersedes the comment half of 042)          |
+| 065 | [Cross-Row Identities Are Database Guarantees](./ADR-065-cross-row-identities-are-database-guarantees.md)                              | Accepted (narrows the rule in CONTEXT.md)              |
 
 ## Numbering
 

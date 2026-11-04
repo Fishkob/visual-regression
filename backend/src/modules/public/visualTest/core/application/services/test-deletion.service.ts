@@ -3,7 +3,6 @@ import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/re
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
-import { ReviewArtifactRepository } from '@public/visualTest/core/infrastructure/repositories/review-artifact.repository';
 import { ProjectShareLinkRepository } from '@public/visualTest/core/infrastructure/repositories/project-share-link.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { JOB_PRODUCER, IJobProducer } from '@common/domain/job-queue.interface';
@@ -41,7 +40,6 @@ export class TestDeletionService {
     private readonly workflow: StateChangeWorkflow,
     private readonly retirement: ComparisonRetirementService,
     private readonly audit: AuditService,
-    private readonly reviewArtifacts: ReviewArtifactRepository,
     private readonly shareLinks: ProjectShareLinkRepository,
   ) {}
 
@@ -175,11 +173,10 @@ export class TestDeletionService {
         : [];
 
     if (testIds.length > 0) {
-      // Comments have no FK to the test (the discussion trail deliberately
-      // outlives rows), so deleting the test would silently orphan them.
-      // Same transaction: a rolled-back delete keeps the discussion. Votes are
-      // not touched — they are the 4-eyes audit trail and outlive the test.
-      await this.reviewArtifacts.deleteForTestIds(testIds);
+      // The discussion dies with the test: `ReviewComment.testId` is a foreign
+      // key with ON DELETE CASCADE, so the row delete below takes it in the same
+      // transaction. Votes are not touched — they are the 4-eyes audit trail and
+      // outlive the test.
       await this.tests.deleteByIds(testIds);
       // One INSERT for the whole project's trail: a per-test loop inside the
       // deletion transaction turns a large project delete into N round-trips
@@ -197,9 +194,6 @@ export class TestDeletionService {
       );
     }
     if (deleteProjectName) {
-      // Backstop for rows whose testId no longer resolves (an earlier failed
-      // delete, or a project deleted without tests).
-      await this.reviewArtifacts.deleteForProjectName(deleteProjectName);
       // Same transaction: a share link keyed by the project name must not
       // survive the project, or recreating the name would revive every old token.
       await this.shareLinks.deleteForProjectName(deleteProjectName);

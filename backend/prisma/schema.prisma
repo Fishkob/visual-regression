@@ -89,6 +89,7 @@ model UnifiedTest {
   runUploads        RunUpload[]
   comparisonJobs    ComparisonJob[]
   assignments       ReviewAssignment[]
+  comments          ReviewComment[]
 
   @@unique([branchId, name])
   // Substring search on the test name: the global search, the inbox `q` filter,
@@ -195,6 +196,12 @@ model UnifiedComparison {
 model ApprovalVote {
   id           String   @id @default(cuid())
   comparisonId String
+  // Same split as Approval and the other history tables: the id is resolved
+  // from projectName by the 20261124100000_project_identity trigger so a rename
+  // cannot split the four-eyes trail, and the name stays as the write-time
+  // display value. Votes are read by comparisonId today, so there is no
+  // project-scoped index yet — add one with the reader that needs it.
+  projectId    String?
   projectName  String
   testId       String
   userId       String
@@ -202,7 +209,6 @@ model ApprovalVote {
   approvedAt   DateTime @default(now())
 
   @@unique([comparisonId, userId])
-  @@index([projectName, approvedAt])
   @@index([comparisonId])
   @@map("ApprovalVote")
 }
@@ -617,6 +623,11 @@ model ReviewComment {
   id           String    @id @default(cuid())
   projectName  String
   branchName   String?
+  // The test owns the discussion: the row dies with it (ON DELETE CASCADE), and
+  // the database — not a maintenance sweep — is what says so. `comparisonId`
+  // deliberately has NO foreign key: approval deletes the comparison row while
+  // the discussion that led to it must survive.
+  test         UnifiedTest @relation(fields: [testId], references: [id], onDelete: Cascade)
   testId       String
   comparisonId String?
   body         String

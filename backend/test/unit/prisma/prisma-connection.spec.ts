@@ -45,9 +45,22 @@ describe('PrismaConnection', () => {
     expect(PrismaPg).toHaveBeenCalledWith({
       connectionString: 'postgresql://test:test@localhost:5432/test',
       max: 7,
+      options: '-c timezone=UTC',
     });
     expect(PrismaClient).toHaveBeenCalledWith({ adapter: expect.anything() });
     expect(connection.client).toBeInstanceOf(PrismaClient);
+  });
+
+  // A `timestamp(3)` column carries no zone, so the session's zone is what turns
+  // a `Date` into the stored value. The pin is the only thing keeping every
+  // timestamp in the schema UTC on a database whose server zone is not, and the
+  // adapter config is where it is stated — which is what this asserts.
+  it('pins the session time zone of every pooled connection to UTC', () => {
+    createConnection();
+
+    expect(PrismaPg).toHaveBeenCalledWith(
+      expect.objectContaining({ options: '-c timezone=UTC' }),
+    );
   });
 
   it('forwards transactions to the underlying client', () => {

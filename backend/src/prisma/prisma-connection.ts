@@ -15,9 +15,17 @@ export class PrismaConnection implements OnModuleInit, OnModuleDestroy {
     // connections against Postgres' default max_connections of 100, with none
     // left for migrations or an operator. The cap is explicit and configurable
     // so the arithmetic is a deployment decision, not a default.
+    //
+    // The session time zone is pinned for the same reason the cap is: the
+    // default is whatever the server or the role says, and Prisma maps DateTime
+    // to `timestamp(3)` WITHOUT time zone. A database that is not UTC would
+    // store local wall time in columns the schema treats as UTC, and read
+    // `NOW()` defaults back shifted. `options` is the one place the adapter
+    // lets us state it for every connection the pool opens.
     const adapter = new PrismaPg({
       connectionString,
       max: appConfig.database.poolMax,
+      options: '-c timezone=UTC',
     });
     this.client = new PrismaClient({ adapter });
   }

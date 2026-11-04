@@ -55,8 +55,6 @@ export const METRICS = {
   cleanupSessionsLastRun: 'cleanup_sessions_last_run',
   cleanupRunsAutoFinished: 'cleanup_runs_auto_finished',
   cleanupRunsRetained: 'cleanup_runs_retained_total',
-  cleanupReviewCommentsDeleted: 'cleanup_review_comments_deleted',
-  cleanupReviewArtifactsLastRun: 'cleanup_review_artifacts_last_run',
   cleanupWebhookDeliveriesDeleted: 'cleanup_webhook_deliveries_deleted',
   cleanupWebhookDeliveriesLastRun: 'cleanup_webhook_deliveries_last_run',
   cleanupShareLinksDeleted: 'cleanup_share_links_deleted',

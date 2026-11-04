@@ -12,7 +12,6 @@ import { RunRepository } from '@public/visualTest/core/infrastructure/repositori
 import { BaselineRevisionRepository } from '@public/visualTest/core/infrastructure/repositories/baseline-revision.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { OrphanedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/orphaned-screenshot.repository';
-import { ReviewArtifactRepository } from '@public/visualTest/core/infrastructure/repositories/review-artifact.repository';
 import { ProjectShareLinkRepository } from '@public/visualTest/core/infrastructure/repositories/project-share-link.repository';
 import { StorageObjectReferencednessService } from '@public/visualTest/core/infrastructure/repositories/storage-object-referencedness.service';
 import { STORAGE_OBJECT_REFERENCEDNESS } from '@common/domain/storage-referencedness.interface';
@@ -33,7 +32,6 @@ import { ORPHAN_SWEEP } from '@common/domain/orphan-sweep.interface';
     ComparisonOutcomeRepository,
     VariantStore,
     OrphanedScreenshotRepository,
-    ReviewArtifactRepository,
     ProjectShareLinkRepository,
     StorageObjectReferencednessService,
     {
@@ -58,7 +56,6 @@ import { ORPHAN_SWEEP } from '@common/domain/orphan-sweep.interface';
     ComparisonOutcomeRepository,
     VariantStore,
     OrphanedScreenshotRepository,
-    ReviewArtifactRepository,
     ProjectShareLinkRepository,
     STORAGE_OBJECT_REFERENCEDNESS,
     ORPHAN_SWEEP,

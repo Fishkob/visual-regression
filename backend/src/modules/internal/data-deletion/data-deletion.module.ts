@@ -18,7 +18,6 @@ import { SessionCleanupTask } from '@internal/data-deletion/tasks/session-cleanu
 import { RunAutoFinishTask } from '@internal/data-deletion/tasks/run-auto-finish.task';
 import { RunHistoryCleanupTask } from '@internal/data-deletion/tasks/run-history-cleanup.task';
 import { StorageSizeBackfillTask } from '@internal/data-deletion/tasks/storage-size-backfill.task';
-import { ReviewArtifactCleanupTask } from '@internal/data-deletion/tasks/review-artifact-cleanup.task';
 import { WebhookDeliveryCleanupTask } from '@internal/data-deletion/tasks/webhook-delivery-cleanup.task';
 import { ShareLinkCleanupTask } from '@internal/data-deletion/tasks/share-link-cleanup.task';
 import { OrphanCleanupService } from './services/orphan-cleanup.service';
@@ -42,7 +41,6 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
     RunAutoFinishTask,
     RunHistoryCleanupTask,
     StorageSizeBackfillTask,
-    ReviewArtifactCleanupTask,
     WebhookDeliveryCleanupTask,
     ShareLinkCleanupTask,
     {
@@ -57,7 +55,6 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         runAutoFinishTask: RunAutoFinishTask,
         runHistoryCleanupTask: RunHistoryCleanupTask,
         storageSizeBackfillTask: StorageSizeBackfillTask,
-        reviewArtifactCleanupTask: ReviewArtifactCleanupTask,
         webhookDeliveryCleanupTask: WebhookDeliveryCleanupTask,
         shareLinkCleanupTask: ShareLinkCleanupTask,
       ) =>
@@ -71,7 +68,6 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
           runAutoFinishTask,
           runHistoryCleanupTask,
           storageSizeBackfillTask,
-          reviewArtifactCleanupTask,
           webhookDeliveryCleanupTask,
           shareLinkCleanupTask,
         ] as MaintenanceTask[],
@@ -85,7 +81,6 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         RunAutoFinishTask,
         RunHistoryCleanupTask,
         StorageSizeBackfillTask,
-        ReviewArtifactCleanupTask,
         WebhookDeliveryCleanupTask,
         ShareLinkCleanupTask,
       ],

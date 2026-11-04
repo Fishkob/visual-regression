@@ -5,7 +5,6 @@ import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/re
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
-import { ReviewArtifactRepository } from '@public/visualTest/core/infrastructure/repositories/review-artifact.repository';
 import { ProjectShareLinkRepository } from '@public/visualTest/core/infrastructure/repositories/project-share-link.repository';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { IJobProducer } from '@common/domain/job-queue.interface';
@@ -38,7 +37,6 @@ describe('TestDeletionService', () => {
   let retirement: Mocked<ComparisonRetirementService>;
   let service: TestDeletionService;
   let audit: Mocked<AuditService>;
-  let reviewArtifacts: Mocked<ReviewArtifactRepository>;
   let shareLinks: Mocked<ProjectShareLinkRepository>;
 
   beforeEach(() => {
@@ -77,9 +75,6 @@ describe('TestDeletionService', () => {
     audit = createMock<AuditService>();
     audit.record.mockResolvedValue(undefined);
     audit.recordMany.mockResolvedValue(undefined);
-    reviewArtifacts = createMock<ReviewArtifactRepository>();
-    reviewArtifacts.deleteForTestIds.mockResolvedValue(undefined);
-    reviewArtifacts.deleteForProjectName.mockResolvedValue(undefined);
     shareLinks = createMock<ProjectShareLinkRepository>();
     shareLinks.deleteForProjectName.mockResolvedValue(undefined);
     service = new TestDeletionService(
@@ -92,7 +87,6 @@ describe('TestDeletionService', () => {
       workflow,
       retirement,
       audit,
-      reviewArtifacts,
       shareLinks,
     );
   });
@@ -148,29 +142,6 @@ describe('TestDeletionService', () => {
       expect(audit.recordMany).toHaveBeenCalledWith([
         expect.objectContaining({ action: 'test.delete', targetId: 'vt-1' }),
       ]);
-    });
-
-    it('deletes the comments (not the audit votes) before the test rows', async () => {
-      screenshots.findAllImageUrlsForTests.mockResolvedValue([]);
-      comparisons.findDiffImageUrlsByTestIds.mockResolvedValue([]);
-
-      await service.deleteTest('vt-1');
-
-      expect(reviewArtifacts.deleteForTestIds).toHaveBeenCalledWith(['vt-1']);
-      expect(
-        reviewArtifacts.deleteForTestIds.mock.invocationCallOrder[0],
-      ).toBeLessThan(tests.deleteByIds.mock.invocationCallOrder[0]);
-    });
-
-    it('does not delete the test row when the review-artifact cleanup fails', async () => {
-      reviewArtifacts.deleteForTestIds.mockRejectedValue(
-        new Error('artifact cleanup failed'),
-      );
-
-      await expect(service.deleteTest('vt-1')).rejects.toThrow(
-        'artifact cleanup failed',
-      );
-      expect(tests.deleteByIds).not.toHaveBeenCalled();
     });
 
     it('does not call deletion when no images exist', async () => {
@@ -533,44 +504,6 @@ describe('TestDeletionService', () => {
 
       expect(jobQueue.cancelByTestIds).not.toHaveBeenCalled();
       expect(tests.deleteByIds).not.toHaveBeenCalled();
-      expect(projects.deleteByName).toHaveBeenCalledWith('my-project');
-    });
-
-    it('deletes review artifacts for the project testIds and runs a projectName backstop', async () => {
-      projects.findByName.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt: new Date(),
-      });
-      tests.findIdsByProjectId.mockResolvedValue(['vt-1', 'vt-2']);
-      screenshots.findAllImageUrlsForTests.mockResolvedValue([]);
-      comparisons.findDiffImageUrlsByTestIds.mockResolvedValue([]);
-
-      await service.deleteProject('my-project', 'jane');
-
-      expect(reviewArtifacts.deleteForTestIds).toHaveBeenCalledWith([
-        'vt-1',
-        'vt-2',
-      ]);
-      expect(reviewArtifacts.deleteForProjectName).toHaveBeenCalledWith(
-        'my-project',
-      );
-    });
-
-    it('runs the projectName artifact backstop when the project has no tests', async () => {
-      projects.findByName.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt: new Date(),
-      });
-      tests.findIdsByProjectId.mockResolvedValue([]);
-
-      await service.deleteProject('my-project', 'jane');
-
-      expect(reviewArtifacts.deleteForTestIds).not.toHaveBeenCalled();
-      expect(reviewArtifacts.deleteForProjectName).toHaveBeenCalledWith(
-        'my-project',
-      );
       expect(projects.deleteByName).toHaveBeenCalledWith('my-project');
     });
 
