@@ -137,6 +137,12 @@ printf '\n\033[0;32mAll checks passed in %ss.\033[0m\n' "$((SECONDS - TOTAL_STAR
 if [ "$FAST" -eq 1 ]; then
   printf '\033[0;33m(--fast skipped the frontend suite and the SDK drift check; the pre-push hook runs the full gate.)\033[0m\n'
 fi
-if [ "$WITH_BROWSER" -eq 0 ] || [ "$WITH_QUALITY" -eq 0 ]; then
-  printf '\033[0;33m(Not run: CT with --with-browser, visual/a11y with --with-quality, backend e2e with --with-e2e.)\033[0m\n'
+# Name only what this invocation actually skipped. The line used to be a fixed
+# string, so a run with --with-e2e still reported the e2e suite as not run.
+NOT_RUN=""
+if [ "$WITH_E2E" -eq 0 ]; then NOT_RUN="backend e2e with --with-e2e"; fi
+if [ "$WITH_BROWSER" -eq 0 ]; then NOT_RUN="${NOT_RUN:+$NOT_RUN, }CT with --with-browser"; fi
+if [ "$WITH_QUALITY" -eq 0 ]; then NOT_RUN="${NOT_RUN:+$NOT_RUN, }visual/a11y with --with-quality"; fi
+if [ -n "$NOT_RUN" ]; then
+  printf '\033[0;33m(Not run: %s.)\033[0m\n' "$NOT_RUN"
 fi
