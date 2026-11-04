@@ -93,6 +93,10 @@ jobs:
     timeout-minutes: 40
     needs: backend-unit
     if: github.event.inputs.skipTests != 'true'
+    # docker compose interpolates x-app-env for the whole file, so the required
+    # TOTP key must be set even when only the infra services are started.
+    env:
+      TOTP_ENCRYPTION_KEY: ci-backend-totp-key-0123456789abcdef
 
     steps:
       - uses: actions/checkout@v7
