@@ -144,6 +144,16 @@ Recommended order: `lint` → `typecheck:all` → `format` → `unitTest`
 
 **Database out of sync**: Run `pnpm run db:prepare` to apply pending migrations. For a new schema change, run `cd backend && pnpm run db:migrate` (creates + applies a migration).
 
+**`prisma migrate dev` reports "migration ... was modified after it was applied"**: the dev database was created from an older revision of the repo (for example before a migration file was force-pushed). Migrations are append-only (ADR-024), so the file is the truth and the recorded checksum is stale. For a disposable database, `./scripts/dev.sh reset` is the clean fix. To keep the data, check that every statement of the migration is reflected in the catalog (columns, constraints, indexes), apply whatever is missing, then set the recorded checksum to the file's hash:
+
+```sql
+UPDATE _prisma_migrations
+SET checksum = '<sha256 of the migration.sql>'
+WHERE migration_name = '<timestamp_name>';
+```
+
+Only do that after checking the effects — the checksum describes the file, not the data.
+
 **Pre-commit hook slow**: Only unit tests run on commit. E2E tests run separately via `pnpm run e2eTest`.
 
 ## Environment Files
