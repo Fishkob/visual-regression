@@ -78,6 +78,7 @@ export default defineConfig({
       PDF_SIDECAR_TIMEOUT: '30000',
       METRICS_API_KEY: 'test-metrics-key',
       ADMIN_API_KEY: 'test-admin-key',
+      TOTP_ENCRYPTION_KEY: 'e2e-totp-encryption-key-0123456789abcdef',
       LOGIN_RATE_LIMIT_PER_MINUTE: '1000',
       ADMIN_RATE_LIMIT_PER_MINUTE: '1000',
       RENDER_RATE_LIMIT_PER_MINUTE: '1000',

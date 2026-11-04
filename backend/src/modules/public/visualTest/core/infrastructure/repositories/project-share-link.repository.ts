@@ -1,20 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@/prisma/base.repository';
 
-// Share links carry a project NAME instead of a foreign key (the access module
-// resolves them by token, then by name). That makes them outlive their project:
-// deleting "acme" and later creating a new "acme" would re-validate every old,
-// unexpired token against the new project's data, so a URL pasted into a ticket
-// or a Slack thread would start serving someone else's evidence.
+// Share links name their project by id (foreign key, ON DELETE CASCADE), so a
+// deleted project takes its links with it — a name-keyed link would outlive the
+// project and re-validate against a new project that recycles the name. The
+// explicit delete stays as a backstop for rows an older schema version wrote
+// before the projectId migration moved them onto the FK.
 //
-// The delete therefore rides the project-deletion transaction (this repository
-// extends BaseRepository, so it resolves to the ambient transaction). It lives
-// in core next to the deletion service that owns that transaction rather than in
-// the access module, which already depends on core.
+// It rides the project-deletion transaction (this repository extends
+// BaseRepository, so it resolves to the ambient transaction). It lives in core
+// next to the deletion service that owns that transaction rather than in the
+// access module, which already depends on core.
 @Injectable()
 export class ProjectShareLinkRepository extends BaseRepository {
   async deleteForProjectName(projectName: string): Promise<void> {
     this.assertWritable();
-    await this.client.shareLink.deleteMany({ where: { projectName } });
+    await this.client.shareLink.deleteMany({
+      where: { project: { name: projectName } },
+    });
   }
 }

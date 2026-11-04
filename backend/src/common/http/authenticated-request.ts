@@ -12,6 +12,6 @@ export interface AuthenticatedRequest extends Request {
     totpEnabled?: boolean;
     apiKeyId?: string;
     scopes?: string[];
-    projectNames?: string[];
+    projectIds?: string[];
   };
 }

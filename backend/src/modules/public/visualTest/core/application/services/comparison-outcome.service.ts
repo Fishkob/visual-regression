@@ -57,11 +57,11 @@ export class ComparisonOutcomeService {
   }
 
   async trends(
-    projectName: string,
+    projectId: string,
     days: number,
     now: Date = new Date(),
   ): Promise<TrendWindow> {
     const since = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    return this.outcomes.trends(projectName, since);
+    return this.outcomes.trends(projectId, since);
   }
 }

@@ -40,9 +40,19 @@ describe('OrphanCleanupService (integration)', () => {
       },
     });
 
+    const orphanVariant = await prisma.unifiedVariant.create({
+      data: {
+        testId: orphanTest.id,
+        viewport: '1920x1080',
+        browser: 'chrome',
+        environment: 'staging',
+      },
+    });
+
     await prisma.unifiedScreenshot.create({
       data: {
         testId: orphanTest.id,
+        variantId: orphanVariant.id,
         type: 'CURRENT',
         imageHash: 'hash-orphan',
         imageUrl: 'http://rustfs/orphan.png',
@@ -59,27 +69,33 @@ describe('OrphanCleanupService (integration)', () => {
       },
     });
 
-    const baseline = await prisma.unifiedScreenshot.create({
-      data: {
-        testId: keptTest.id,
-        type: 'BASELINE',
-        imageHash: 'hash-baseline',
-        imageUrl: 'http://rustfs/baseline.png',
-      },
-    });
-    await prisma.unifiedVariant.create({
+    const keptVariant = await prisma.unifiedVariant.create({
       data: {
         testId: keptTest.id,
         viewport: '1920x1080',
         browser: 'chrome',
         environment: 'staging',
-        baselineId: baseline.id,
       },
+    });
+
+    const baseline = await prisma.unifiedScreenshot.create({
+      data: {
+        testId: keptTest.id,
+        variantId: keptVariant.id,
+        type: 'BASELINE',
+        imageHash: 'hash-baseline',
+        imageUrl: 'http://rustfs/baseline.png',
+      },
+    });
+    await prisma.unifiedVariant.update({
+      where: { id: keptVariant.id },
+      data: { baselineId: baseline.id },
     });
 
     const candidate = await prisma.unifiedScreenshot.create({
       data: {
         testId: keptTest.id,
+        variantId: keptVariant.id,
         type: 'CURRENT',
         imageHash: 'hash-kept',
         imageUrl: 'http://rustfs/used.png',
@@ -144,9 +160,18 @@ describe('OrphanCleanupService (integration)', () => {
           status: 'PENDING',
         },
       });
+      const variant = await prisma.unifiedVariant.create({
+        data: {
+          testId: test.id,
+          viewport: '1920x1080',
+          browser: 'chrome',
+          environment: 'staging',
+        },
+      });
       const baseline = await prisma.unifiedScreenshot.create({
         data: {
           testId: test.id,
+          variantId: variant.id,
           type: 'BASELINE',
           imageHash: 'hash-baseline',
           imageUrl: 'http://rustfs/orphan-baseline.png',

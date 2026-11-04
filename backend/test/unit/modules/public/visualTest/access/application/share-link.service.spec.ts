@@ -24,7 +24,7 @@ describe('ShareLinkService', () => {
   const row = {
     id: 'share-1',
     scope: 'TEST',
-    projectName: 'shop',
+    project: { name: 'shop' },
     testName: 'login',
     branchName: 'main',
     runKey: null,

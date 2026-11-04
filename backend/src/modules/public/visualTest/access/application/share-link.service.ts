@@ -24,8 +24,8 @@ import type { RunState } from '@public/visualTest/core/domain/types/run.types';
 import {
   ShareLinkRepository,
   type CreateShareLinkInput,
+  type ShareLinkWithProject,
 } from '@public/visualTest/access/infrastructure/repositories/share-link.repository';
-import type { ShareLink } from '@/prisma/client';
 
 export type ShareScopeValue = 'PROJECT' | 'TEST' | 'RUN';
 
@@ -165,6 +165,10 @@ export class ShareLinkService {
         .branchName;
     }
 
+    // The row stores the id, not the name, so the link dies with its project and
+    // survives a rename. Resolving here also turns an unknown project into a 404
+    // before a token is minted.
+    const project = await this.projects.requireByName(projectName);
     const days = Math.min(
       Math.max(input.expiresInDays ?? DEFAULT_DAYS, 1),
       365,
@@ -179,7 +183,7 @@ export class ShareLinkService {
       const row = await this.links.create({
         tokenHash: hashToken(token),
         scope: input.scope,
-        projectName,
+        projectId: project.id,
         testName: input.testName ?? null,
         branchName,
         runKey: input.runKey ?? null,
@@ -221,7 +225,7 @@ export class ShareLinkService {
       await this.audit.record({
         actor,
         action: AUDIT_ACTIONS.shareRevoke,
-        projectName: row.projectName,
+        projectName: row.project.name,
         testName: row.testName,
         branchName: row.branchName,
         targetType: 'share-link',
@@ -251,7 +255,7 @@ export class ShareLinkService {
     await this.audit.recordAccess({
       actor: null,
       action: AUDIT_ACTIONS.shareAccess,
-      projectName: row.projectName,
+      projectName: row.project.name,
       testName: row.testName,
       branchName: row.branchName,
       targetType: 'share-link',
@@ -264,25 +268,29 @@ export class ShareLinkService {
     return payload;
   }
 
-  private async buildPayload(row: ShareLink): Promise<SharePayload> {
+  private async buildPayload(row: ShareLinkWithProject): Promise<SharePayload> {
+    const projectName = row.project.name;
     const base = {
       scope: row.scope,
-      projectName: row.projectName,
+      projectName,
       testName: row.testName,
       branchName: row.branchName,
       runKey: row.runKey,
       expiresAt: row.expiresAt,
-      project: { name: row.projectName },
+      project: { name: projectName },
     } as const;
     if (row.scope === 'PROJECT') {
       // A deleted project must not read as "a project with no tests": resolving
       // the branch first makes a vanished target a 404, the same answer TEST and
       // RUN links give (ADR-038).
-      await this.branches.resolveRead(row.projectName, undefined);
+      await this.branches.resolveRead(row.project.name, undefined);
       // The bound belongs in the query: a project-wide link renders MAX_TESTS
       // entries, and loading every test of the project to slice it afterwards
       // made the payload cost grow with the project, not with the response.
-      const tests = await this.tests.listForProject(row.projectName, MAX_TESTS);
+      const tests = await this.tests.listForProject(
+        row.project.name,
+        MAX_TESTS,
+      );
       return {
         ...base,
         tests: tests.map((test) => ({
@@ -295,7 +303,7 @@ export class ShareLinkService {
     }
     if (row.scope === 'TEST') {
       const branch = await this.branches.resolveRead(
-        row.projectName,
+        row.project.name,
         row.branchName ?? undefined,
       );
       const test = await this.tests.findByBranchAndTestName(
@@ -344,7 +352,7 @@ export class ShareLinkService {
       };
     }
     const branch = await this.branches.resolveRead(
-      row.projectName,
+      row.project.name,
       row.branchName ?? undefined,
     );
     const run = await this.runs.findByBranchKey(
@@ -366,11 +374,11 @@ export class ShareLinkService {
     };
   }
 
-  private toView(row: ShareLink): ShareLinkView {
+  private toView(row: ShareLinkWithProject): ShareLinkView {
     return {
       id: row.id,
       scope: row.scope,
-      projectName: row.projectName,
+      projectName: row.project.name,
       testName: row.testName,
       branchName: row.branchName,
       runKey: row.runKey,

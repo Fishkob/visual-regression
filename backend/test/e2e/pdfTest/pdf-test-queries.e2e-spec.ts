@@ -3,6 +3,7 @@ import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { TestStatus } from '@/prisma/client';
 import { authRequest } from '../_support/utils/authenticated-request';
+import { createBaselineWithVariant } from '../_support/utils/screenshot-fixtures';
 import type { PrismaClient } from '@/prisma/client';
 
 describe('PdfTest queries (e2e)', () => {
@@ -117,23 +118,14 @@ describe('PdfTest queries (e2e)', () => {
       const test = await prisma.unifiedTest.create({
         data: { name: 'DetailTest', branchId, kind: 'pdf' },
       });
-      const screenshot = await prisma.unifiedScreenshot.create({
-        data: {
-          testId: test.id,
-          type: 'BASELINE',
-          imageHash: 'abc123',
-          imageUrl: 'http://rustfs/report.pdf',
-          pageCount: 3,
-        },
-      });
-      await prisma.unifiedVariant.create({
-        data: {
-          testId: test.id,
-          viewport: '1920x1080',
-          browser: 'Chrome',
-          environment: 'staging',
-          baselineId: screenshot.id,
-        },
+      await createBaselineWithVariant(prisma, {
+        testId: test.id,
+        viewport: '1920x1080',
+        browser: 'Chrome',
+        environment: 'staging',
+        imageHash: 'abc123',
+        imageUrl: 'http://rustfs/report.pdf',
+        pageCount: 3,
       });
 
       const res = await authRequest(app)
@@ -152,27 +144,19 @@ describe('PdfTest queries (e2e)', () => {
       const test = await prisma.unifiedTest.create({
         data: { name: 'CompareTest', branchId, kind: 'pdf' },
       });
-      const baseline = await prisma.unifiedScreenshot.create({
-        data: {
-          testId: test.id,
-          type: 'BASELINE',
-          imageHash: 'baseline-hash',
-          imageUrl: 'http://rustfs/baseline.pdf',
-          pageCount: 5,
-        },
-      });
-      await prisma.unifiedVariant.create({
-        data: {
-          testId: test.id,
-          viewport: '1280x720',
-          browser: 'Firefox',
-          environment: 'production',
-          baselineId: baseline.id,
-        },
+      const { variantId, baseline } = await createBaselineWithVariant(prisma, {
+        testId: test.id,
+        viewport: '1280x720',
+        browser: 'Firefox',
+        environment: 'production',
+        imageHash: 'baseline-hash',
+        imageUrl: 'http://rustfs/baseline.pdf',
+        pageCount: 5,
       });
       const candidate = await prisma.unifiedScreenshot.create({
         data: {
           testId: test.id,
+          variantId,
           type: 'CURRENT',
           imageHash: 'candidate-hash',
           imageUrl: 'http://rustfs/candidate.pdf',
@@ -248,23 +232,14 @@ describe('PdfTest queries (e2e)', () => {
       const test = await prisma.unifiedTest.create({
         data: { name: 'FilterTest', branchId, kind: 'pdf' },
       });
-      const baseline = await prisma.unifiedScreenshot.create({
-        data: {
-          testId: test.id,
-          type: 'BASELINE',
-          imageHash: 'desktop',
-          imageUrl: 'http://rustfs/desktop.pdf',
-          pageCount: 1,
-        },
-      });
-      await prisma.unifiedVariant.create({
-        data: {
-          testId: test.id,
-          viewport: '375x667',
-          browser: 'Safari',
-          environment: 'staging',
-          baselineId: baseline.id,
-        },
+      await createBaselineWithVariant(prisma, {
+        testId: test.id,
+        viewport: '375x667',
+        browser: 'Safari',
+        environment: 'staging',
+        imageHash: 'desktop',
+        imageUrl: 'http://rustfs/desktop.pdf',
+        pageCount: 1,
       });
 
       const res = await authRequest(app)
@@ -344,15 +319,19 @@ describe('PdfTest queries (e2e)', () => {
       const testA = await prisma.unifiedTest.create({
         data: { name: 'TestA', branchId: branchA, kind: 'pdf' },
       });
-      const screenshotA = await prisma.unifiedScreenshot.create({
-        data: {
+      const { baseline: screenshotA } = await createBaselineWithVariant(
+        prisma,
+        {
           testId: testA.id,
-          type: 'BASELINE',
+          viewport: '1920x1080',
+          browser: 'Chrome',
+          environment: 'staging',
           imageHash: 'hash123',
           imageUrl: 'http://localhost:9000/vrt/project-a/report.pdf',
           pageCount: 1,
+          adoptBaseline: false,
         },
-      });
+      );
       const { branchId: branchB } = await TestApp.createProject('dl-proj-b');
       const testB = await prisma.unifiedTest.create({
         data: { name: 'TestB', branchId: branchB, kind: 'pdf' },
@@ -378,15 +357,19 @@ describe('PdfTest queries (e2e)', () => {
       const testOne = await prisma.unifiedTest.create({
         data: { name: 'TestOne', branchId, kind: 'pdf' },
       });
-      const screenshotOne = await prisma.unifiedScreenshot.create({
-        data: {
+      const { baseline: screenshotOne } = await createBaselineWithVariant(
+        prisma,
+        {
           testId: testOne.id,
-          type: 'BASELINE',
+          viewport: '1920x1080',
+          browser: 'Chrome',
+          environment: 'staging',
           imageHash: 'hash456',
           imageUrl: 'http://localhost:9000/vrt/same-proj/report.pdf',
           pageCount: 1,
+          adoptBaseline: false,
         },
-      });
+      );
       const testTwo = await prisma.unifiedTest.create({
         data: { name: 'TestTwo', branchId, kind: 'pdf' },
       });
@@ -462,14 +445,11 @@ describe('PdfTest queries (e2e)', () => {
       await prisma.unifiedTest.create({
         data: { name: 'TestB', branchId: branchB, kind: 'pdf' },
       });
-      await prisma.unifiedScreenshot.create({
-        data: {
-          testId: testA.id,
-          type: 'BASELINE',
-          imageHash: 'hash123',
-          imageUrl: 'http://localhost:9000/vrt/project-a/report.pdf',
-          pageCount: 3,
-        },
+      await createBaselineWithVariant(prisma, {
+        testId: testA.id,
+        imageHash: 'hash123',
+        imageUrl: 'http://localhost:9000/vrt/project-a/report.pdf',
+        pageCount: 3,
       });
 
       await authRequest(app)
@@ -489,14 +469,11 @@ describe('PdfTest queries (e2e)', () => {
       await prisma.unifiedTest.create({
         data: { name: 'TestTwo', branchId, kind: 'pdf' },
       });
-      await prisma.unifiedScreenshot.create({
-        data: {
-          testId: testOne.id,
-          type: 'BASELINE',
-          imageHash: 'hash456',
-          imageUrl: 'http://localhost:9000/vrt/same-proj/report.pdf',
-          pageCount: 3,
-        },
+      await createBaselineWithVariant(prisma, {
+        testId: testOne.id,
+        imageHash: 'hash456',
+        imageUrl: 'http://localhost:9000/vrt/same-proj/report.pdf',
+        pageCount: 3,
       });
 
       await authRequest(app)

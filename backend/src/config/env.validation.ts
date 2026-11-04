@@ -45,6 +45,12 @@ export const envValidationSchema = Joi.object({
     .description(
       'Lifetime of the presigned URLs the API returns for screenshots and rendered PDF pages. SigV4 caps this at seven days (604800).',
     ),
+  TOTP_ENCRYPTION_KEY: required
+    .description(
+      "Key material for encrypting TOTP seeds at rest (AES-256-GCM, key derived with SHA-256). Any high-entropy string; generate with `openssl rand -hex 32`. Required: a bare seed in the database hands out every user's second factor.",
+    )
+    .min(16),
+
   RUSTFS_ENSURE_PUBLIC_BUCKET: Joi.boolean()
     .default(false)
     .description(

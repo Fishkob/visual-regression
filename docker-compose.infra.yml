@@ -6,6 +6,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-vrt}
+      # Timestamps are `timestamp(3)` without a zone and the app writes UTC;
+      # maintenance predicates compare with NOW(). Pin the server session so an
+      # operator's TZ preference cannot shift them (docs/deployment.md#database-time-zone).
+      TZ: UTC
     # Local-only: bound to 127.0.0.1 so the DB isn't reachable from the LAN.
     # The backend/worker connect via the compose network, not this host port.
     ports:

@@ -423,7 +423,7 @@ describe('AuthenticationGuard', () => {
       name: 'ci',
       ownerId: 'u1',
       scopes: ['upload', 'read', 'approve'],
-      projectNames: [],
+      projectIds: [],
     });
 
     const request = {
@@ -449,7 +449,7 @@ describe('AuthenticationGuard', () => {
       role: 'MEMBER',
       apiKeyId: 'k1',
       scopes: ['upload', 'read', 'approve'],
-      projectNames: [],
+      projectIds: [],
     });
   });
 
@@ -631,7 +631,7 @@ describe('AuthenticationGuard', () => {
       name: 'ci',
       ownerId: 'u1',
       scopes: ['upload'],
-      projectNames: [],
+      projectIds: [],
     });
 
     await expect(
@@ -651,7 +651,7 @@ describe('AuthenticationGuard', () => {
       name: 'ci',
       ownerId: 'u1',
       scopes: ['upload'],
-      projectNames: [],
+      projectIds: [],
     });
 
     await expect(
@@ -680,7 +680,7 @@ describe('AuthenticationGuard', () => {
       name: 'ci',
       ownerId: 'u1',
       scopes: ['upload', 'read'],
-      projectNames: [],
+      projectIds: [],
     });
 
     await expect(
@@ -709,7 +709,7 @@ describe('AuthenticationGuard', () => {
       name: 'ci',
       ownerId: 'u1',
       scopes: ['approve'],
-      projectNames: [],
+      projectIds: [],
     });
 
     // The old path table matched '/approval' only, so the hyphenated
@@ -732,7 +732,7 @@ describe('AuthenticationGuard', () => {
       name: 'ci',
       ownerId: 'u1',
       scopes: ['read', 'upload', 'approve', 'admin'],
-      projectNames: [],
+      projectIds: [],
     });
 
     // Fail closed: the old table defaulted an unannotated write to admin, so a
@@ -750,8 +750,11 @@ describe('AuthenticationGuard', () => {
       name: 'ci',
       ownerId: 'u1',
       scopes: ['read'],
-      projectNames: ['allowed'],
+      projectIds: ['p-allowed'],
     });
+    mockRepository.findProjectIdByName.mockImplementation((name: string) =>
+      Promise.resolve(name === 'allowed' ? 'p-allowed' : null),
+    );
 
     await expect(
       guard.canActivate(
@@ -790,7 +793,7 @@ describe('AuthenticationGuard', () => {
       name: 'ci',
       ownerId: 'u1',
       scopes: ['read'],
-      projectNames: ['allowed'],
+      projectIds: ['p-allowed'],
     });
 
     // Neither route names a project, so an allowlist cannot filter them: they
@@ -821,7 +824,7 @@ describe('AuthenticationGuard', () => {
       name: 'ci',
       ownerId: 'u1',
       scopes: ['admin'],
-      projectNames: [],
+      projectIds: [],
     });
 
     await expect(
@@ -852,7 +855,7 @@ describe('AuthenticationGuard', () => {
       name: 'ci',
       ownerId: 'u1',
       scopes: ['upload', 'read', 'approve'],
-      projectNames: [],
+      projectIds: [],
     });
 
     await expect(
@@ -876,7 +879,7 @@ describe('AuthenticationGuard', () => {
         name: 'ci',
         ownerId: 'u1',
         scopes: ['upload', 'read', 'approve'],
-        projectNames: [],
+        projectIds: [],
       });
 
       await expect(
@@ -893,7 +896,7 @@ describe('AuthenticationGuard', () => {
         name: 'ci',
         ownerId: 'u1',
         scopes: ['upload', 'read', 'approve'],
-        projectNames: [],
+        projectIds: [],
       });
 
       const request = {
@@ -947,7 +950,7 @@ describe('AuthenticationGuard', () => {
         name: 'ci',
         ownerId: 'u1',
         scopes: ['upload', 'read', 'approve'],
-        projectNames: [],
+        projectIds: [],
       });
 
       await expect(

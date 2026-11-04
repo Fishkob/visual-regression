@@ -54,14 +54,14 @@ export class ApprovalAuditRepository extends BaseRepository {
   }
 
   async findForTest(input: {
-    projectName: string;
+    projectId: string;
     testName: string;
     branchName?: string;
     take?: number;
   }): Promise<ApprovalAuditRecord[]> {
     return this.client.approval.findMany({
       where: {
-        projectName: input.projectName,
+        projectId: input.projectId,
         testName: input.testName,
         ...(input.branchName ? { branchName: input.branchName } : {}),
       },

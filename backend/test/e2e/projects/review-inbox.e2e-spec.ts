@@ -3,6 +3,7 @@ import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonStatus, TestStatus } from '@/prisma/client';
 import { authRequest } from '../_support/utils/authenticated-request';
+import { createBaselineWithVariant } from '../_support/utils/screenshot-fixtures';
 import type { PrismaClient } from '@/prisma/client';
 
 const OLDER_CREATED_AT = new Date('2026-10-01T10:00:00.000Z');
@@ -50,24 +51,12 @@ async function seedTestWithBaseline(
       status: options.testStatus ?? TestStatus.PENDING_APPROVAL,
     },
   });
-  const baseline = await prisma.unifiedScreenshot.create({
-    data: {
-      testId: test.id,
-      type: 'BASELINE',
-      imageHash: `${options.projectName}-${options.testName}-base`,
-      imageUrl: 'http://rustfs/base.png',
-    },
+  const { baseline, variantId } = await createBaselineWithVariant(prisma, {
+    testId: test.id,
+    imageHash: `${options.projectName}-${options.testName}-base`,
+    imageUrl: 'http://rustfs/base.png',
   });
-  await prisma.unifiedVariant.create({
-    data: {
-      testId: test.id,
-      viewport: '1920x1080',
-      browser: 'Chrome',
-      environment: 'staging',
-      baselineId: baseline.id,
-    },
-  });
-  return { project, test, baseline };
+  return { project, test, baseline, variantId };
 }
 
 async function seedComparison(
@@ -83,20 +72,24 @@ async function seedComparison(
     archived?: boolean;
   },
 ) {
-  const { project, test, baseline } = await seedTestWithBaseline(prisma, {
-    projectName: options.projectName,
-    testName: options.testName,
-    groupId: options.groupId,
-    branchName: options.branchName,
-    archived: options.archived,
-    testStatus:
-      options.status === ComparisonStatus.PENDING_APPROVAL
-        ? TestStatus.PENDING_APPROVAL
-        : TestStatus.UNCHANGED,
-  });
+  const { project, test, baseline, variantId } = await seedTestWithBaseline(
+    prisma,
+    {
+      projectName: options.projectName,
+      testName: options.testName,
+      groupId: options.groupId,
+      branchName: options.branchName,
+      archived: options.archived,
+      testStatus:
+        options.status === ComparisonStatus.PENDING_APPROVAL
+          ? TestStatus.PENDING_APPROVAL
+          : TestStatus.UNCHANGED,
+    },
+  );
   const candidate = await prisma.unifiedScreenshot.create({
     data: {
       testId: test.id,
+      variantId,
       type: 'CURRENT',
       imageHash: `${options.projectName}-${options.testName}-curr`,
       imageUrl: 'http://rustfs/curr.png',

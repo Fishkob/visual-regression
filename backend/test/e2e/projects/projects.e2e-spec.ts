@@ -4,6 +4,10 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonStatus, TestStatus } from '@/prisma/client';
 import { authRequest } from '../_support/utils/authenticated-request';
+import {
+  createBaselineWithVariant,
+  variantIdForBaseline,
+} from '../_support/utils/screenshot-fixtures';
 import type { PrismaClient } from '@/prisma/client';
 
 describe('ProjectsController (e2e)', () => {
@@ -73,27 +77,16 @@ describe('ProjectsController (e2e)', () => {
       },
     });
 
-    const baseline = await prisma.unifiedScreenshot.create({
-      data: {
-        testId: test.id,
-        type: 'BASELINE',
-        imageHash: 'abc',
-        imageUrl: 'http://rustfs/base.png',
-      },
-    });
-    await prisma.unifiedVariant.create({
-      data: {
-        testId: test.id,
-        viewport: '1920x1080',
-        browser: 'Chrome',
-        environment: 'staging',
-        baselineId: baseline.id,
-      },
+    const { baseline } = await createBaselineWithVariant(prisma, {
+      testId: test.id,
+      imageHash: 'abc',
+      imageUrl: 'http://rustfs/base.png',
     });
 
     const candidate = await prisma.unifiedScreenshot.create({
       data: {
         testId: test.id,
+        variantId: await variantIdForBaseline(prisma, baseline.id),
         type: 'CURRENT',
         imageHash: 'def',
         imageUrl: 'http://rustfs/curr.png',
@@ -170,27 +163,16 @@ describe('ProjectsController (e2e)', () => {
       },
     });
 
-    const baseline = await prisma.unifiedScreenshot.create({
-      data: {
-        testId: test.id,
-        type: 'BASELINE',
-        imageHash: 'abc',
-        imageUrl,
-      },
-    });
-    await prisma.unifiedVariant.create({
-      data: {
-        testId: test.id,
-        viewport: '1920x1080',
-        browser: 'Chrome',
-        environment: 'staging',
-        baselineId: baseline.id,
-      },
+    const { baseline } = await createBaselineWithVariant(prisma, {
+      testId: test.id,
+      imageHash: 'abc',
+      imageUrl,
     });
 
     const candidate = await prisma.unifiedScreenshot.create({
       data: {
         testId: test.id,
+        variantId: await variantIdForBaseline(prisma, baseline.id),
         type: 'CURRENT',
         imageHash: 'def',
         imageUrl: currUrl,
@@ -257,27 +239,16 @@ describe('ProjectsController (e2e)', () => {
       },
     });
 
-    const baseline = await prisma.unifiedScreenshot.create({
-      data: {
-        testId: test.id,
-        type: 'BASELINE',
-        imageHash: 'hash1',
-        imageUrl: baselineUrl,
-      },
-    });
-    await prisma.unifiedVariant.create({
-      data: {
-        testId: test.id,
-        viewport: '1920x1080',
-        browser: 'Chrome',
-        environment: 'staging',
-        baselineId: baseline.id,
-      },
+    const { baseline } = await createBaselineWithVariant(prisma, {
+      testId: test.id,
+      imageHash: 'hash1',
+      imageUrl: baselineUrl,
     });
 
     const candidate = await prisma.unifiedScreenshot.create({
       data: {
         testId: test.id,
+        variantId: await variantIdForBaseline(prisma, baseline.id),
         type: 'CURRENT',
         imageHash: 'hash2',
         imageUrl: candidateUrl,

@@ -35,7 +35,7 @@ export interface ApiKeyRow {
   keyHint: string | null;
   ownerId: string | null;
   scopes: string[];
-  projectNames: string[];
+  projectIds: string[];
   owner?: { username: string } | null;
   createdBy: string | null;
   createdAt: Date;
@@ -52,7 +52,7 @@ export interface CreateApiKeyInput {
   keyHint: string;
   ownerId: string | null;
   scopes: string[];
-  projectNames: string[];
+  projectIds: string[];
   createdBy: string | null;
   expiresAt: Date | null;
 }
@@ -260,6 +260,15 @@ export class AuthRepository extends BaseRepository {
     });
   }
 
+  // Re-encryption of a legacy plaintext seed. Unlike setTotpSecret it must not
+  // reset totpEnabledAt: the account is already using the second factor.
+  async updateTotpSecret(userId: string, secret: string): Promise<void> {
+    await this.client.user.update({
+      where: { id: userId },
+      data: { totpSecret: secret },
+    });
+  }
+
   async enableTotp(userId: string): Promise<void> {
     await this.client.user.update({
       where: { id: userId },
@@ -388,5 +397,35 @@ export class AuthRepository extends BaseRepository {
 
   async countUsers(): Promise<number> {
     return this.client.user.count();
+  }
+
+  // The api-key allowlist is stored as project ids. These three lookups are the
+  // only place the auth layer touches the project table: create/rotate resolve
+  // names to ids, the guard resolves a request's :projectName to its id, and the
+  // list view resolves ids back to names.
+  async findProjectIdsByNames(names: string[]): Promise<string[]> {
+    if (names.length === 0) return [];
+    const rows = await this.client.project.findMany({
+      where: { name: { in: names } },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
+  }
+
+  async findProjectNamesByIds(ids: string[]): Promise<Map<string, string>> {
+    if (ids.length === 0) return new Map();
+    const rows = await this.client.project.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true },
+    });
+    return new Map(rows.map((row) => [row.id, row.name]));
+  }
+
+  async findProjectIdByName(name: string): Promise<string | null> {
+    const row = await this.client.project.findUnique({
+      where: { name },
+      select: { id: true },
+    });
+    return row?.id ?? null;
   }
 }

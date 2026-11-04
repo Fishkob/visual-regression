@@ -8,11 +8,22 @@ import type {
   AuditFilters,
 } from '@internal/audit/audit.types';
 
-function whereFor(filters: AuditFilters): Prisma.AuditEventWhereInput {
+// `projectId` is the resolved id of `filters.projectName` (undefined when no
+// project filter was asked for, null when the name names no live project). A
+// resolved id keeps a renamed project's trail reachable; the name fallback keeps
+// the trail of a deleted project findable.
+function whereFor(
+  filters: AuditFilters,
+  projectId?: string | null,
+): Prisma.AuditEventWhereInput {
   return {
     ...(filters.actor ? { actor: filters.actor } : {}),
     ...(filters.action ? { action: filters.action } : {}),
-    ...(filters.projectName ? { projectName: filters.projectName } : {}),
+    ...(filters.projectName
+      ? projectId
+        ? { projectId }
+        : { projectName: filters.projectName }
+      : {}),
     ...(filters.from || filters.to
       ? {
           createdAt: {
@@ -74,7 +85,7 @@ export class AuditRepository extends BaseRepository {
     take: number,
   ): Promise<{ data: AuditEventRow[]; total: number }> {
     return findManyWithCount<AuditEventRow>(this.client.auditEvent, {
-      where: whereFor(filters),
+      where: whereFor(filters, await this.resolveProjectId(filters)),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip,
       take,
@@ -88,9 +99,20 @@ export class AuditRepository extends BaseRepository {
     take: number,
   ): Promise<AuditEventRow[]> {
     return this.client.auditEvent.findMany({
-      where: whereFor(filters),
+      where: whereFor(filters, await this.resolveProjectId(filters)),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take,
     });
+  }
+
+  private async resolveProjectId(
+    filters: AuditFilters,
+  ): Promise<string | null | undefined> {
+    if (!filters.projectName) return undefined;
+    const project = await this.client.project.findUnique({
+      where: { name: filters.projectName },
+      select: { id: true },
+    });
+    return project?.id ?? null;
   }
 }

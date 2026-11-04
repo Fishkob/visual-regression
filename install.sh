@@ -62,6 +62,7 @@ ensure_env() {
         -e "s|^RUSTFS_ROOT_PASSWORD=.*|RUSTFS_ROOT_PASSWORD=$(gen_secret)|" \
         -e "s|^BOOTSTRAP_ADMIN_PASSWORD=.*|BOOTSTRAP_ADMIN_PASSWORD=$(gen_secret)|" \
         -e "s|^ADMIN_API_KEY=.*|ADMIN_API_KEY=$(gen_secret)|" \
+        -e "s|^TOTP_ENCRYPTION_KEY=.*|TOTP_ENCRYPTION_KEY=$(gen_secret)$(gen_secret)|" \
         .env.tmp
     rm -f .env.tmp.bak
     mv .env.tmp .env

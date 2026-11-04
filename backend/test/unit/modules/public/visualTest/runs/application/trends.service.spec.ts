@@ -48,20 +48,20 @@ describe('TrendsService', () => {
     );
     expect(result.from).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(result.to).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(outcomes.trends).toHaveBeenCalledWith('shop', 30, expect.any(Date));
+    expect(outcomes.trends).toHaveBeenCalledWith('p-1', 30, expect.any(Date));
   });
 
   it('clamps the window to 1..365 days', async () => {
     await service.get('shop', 0);
     expect(outcomes.trends).toHaveBeenLastCalledWith(
-      'shop',
+      'p-1',
       1,
       expect.any(Date),
     );
 
     await service.get('shop', 1000);
     expect(outcomes.trends).toHaveBeenLastCalledWith(
-      'shop',
+      'p-1',
       365,
       expect.any(Date),
     );

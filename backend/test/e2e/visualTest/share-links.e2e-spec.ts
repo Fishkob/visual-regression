@@ -102,11 +102,14 @@ describe('Share links (e2e)', () => {
       .send({})
       .expect(404);
 
-    // The row is gone, not merely unreachable: a project recreated under the
-    // same name must not revive the old token.
-    expect(await db.shareLink.count({ where: { projectName: 'ghost' } })).toBe(
-      0,
-    );
+    // The row is gone, not merely unreachable: the link dies with its project
+    // by foreign key, so a project recreated under the same name cannot revive
+    // the old token.
+    expect(
+      await db.shareLink.findUnique({
+        where: { id: share.body.link.id },
+      }),
+    ).toBeNull();
   });
 
   it('enforces an optional passphrase', async () => {

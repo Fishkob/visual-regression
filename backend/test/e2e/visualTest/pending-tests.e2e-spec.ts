@@ -3,6 +3,10 @@ import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ComparisonStatus, TestStatus } from '@/prisma/client';
 import { authRequest } from '../_support/utils/authenticated-request';
+import {
+  createBaselineWithVariant,
+  variantIdForBaseline,
+} from '../_support/utils/screenshot-fixtures';
 import type { PrismaClient } from '@/prisma/client';
 
 describe('GET /projects/:projectName/tests/meta/pending (e2e)', () => {
@@ -29,27 +33,16 @@ describe('GET /projects/:projectName/tests/meta/pending (e2e)', () => {
       },
     });
 
-    const baseline = await prisma.unifiedScreenshot.create({
-      data: {
-        testId: test.id,
-        type: 'BASELINE',
-        imageHash: 'abc',
-        imageUrl: 'http://rustfs/baseline.png',
-      },
-    });
-    await prisma.unifiedVariant.create({
-      data: {
-        testId: test.id,
-        viewport: '1920x1080',
-        browser: 'Chrome',
-        environment: 'staging',
-        baselineId: baseline.id,
-      },
+    const { baseline } = await createBaselineWithVariant(prisma, {
+      testId: test.id,
+      imageHash: 'abc',
+      imageUrl: 'http://rustfs/baseline.png',
     });
 
     const candidate = await prisma.unifiedScreenshot.create({
       data: {
         testId: test.id,
+        variantId: await variantIdForBaseline(prisma, baseline.id),
         type: 'CURRENT',
         imageHash: 'def',
         imageUrl: 'http://rustfs/current.png',

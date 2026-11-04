@@ -91,45 +91,45 @@ describe('ComparisonOutcomeRepository', () => {
   });
 
   describe('trends', () => {
-    it('counts the daily outcomes by the denormalized project name', async () => {
-      await repository.trends('shop', since);
+    it('counts the daily outcomes by the denormalized project id', async () => {
+      await repository.trends('p-shop', since);
 
       const sql = sqlText(statement('date_trunc'));
       expect(sql).toContain('FROM "ComparisonOutcomeEvent" e');
-      expect(sql).toContain('e."projectName" = ?');
+      expect(sql).toContain('e."projectId" = ?');
       // A join would drop the history of a test that has since been deleted.
       expect(sql).not.toContain('"UnifiedTest"');
       expect(sql).not.toContain('"Branch"');
       expect(sql).not.toContain('"Project"');
-      expect(sqlValues(statement('date_trunc'))).toEqual(['shop', since]);
+      expect(sqlValues(statement('date_trunc'))).toEqual(['p-shop', since]);
     });
 
     it('computes the flake rate without joining the live test tree', async () => {
-      await repository.trends('shop', since);
+      await repository.trends('p-shop', since);
 
       const sql = sqlText(statement('per_test'));
       expect(sql).toContain('FROM "ComparisonOutcomeEvent" e');
-      expect(sql).toContain('e."projectName" = ?');
+      expect(sql).toContain('e."projectId" = ?');
       expect(sql).not.toContain('"UnifiedTest"');
       expect(sql).not.toContain('"Branch"');
       expect(sql).not.toContain('"Project"');
-      expect(sqlValues(statement('per_test'))).toEqual(['shop', since]);
+      expect(sqlValues(statement('per_test'))).toEqual(['p-shop', since]);
     });
 
     it('keeps reading the pending-review queue from the live comparison tree', async () => {
-      await repository.trends('shop', since);
+      await repository.trends('p-shop', since);
 
       const sql = sqlText(statement('PENDING_APPROVAL'));
       expect(sql).toContain('FROM "UnifiedComparison" c');
       expect(sql).toContain('"UnifiedTest"');
-      expect(sql).toContain('p.name = ?');
+      expect(sql).toContain('p.id = ?');
     });
 
     it('keeps reading approval latency from the durable Approval rows', async () => {
-      await repository.trends('shop', since);
+      await repository.trends('p-shop', since);
 
       const sql = sqlText(statement('"Approval" a'));
-      expect(sql).toContain('a."projectName" = ?');
+      expect(sql).toContain('a."projectId" = ?');
     });
   });
 });

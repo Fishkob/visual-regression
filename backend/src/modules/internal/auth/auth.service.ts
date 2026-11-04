@@ -21,6 +21,7 @@ import {
   verifyTotp,
 } from './totp';
 import { needsRehash } from './password-hasher';
+import { TotpSecretCipher } from './totp-secret-cipher';
 import type { AuthUserRow } from './auth.repository';
 
 export interface LoginResult {
@@ -71,6 +72,7 @@ export class AuthService {
     private readonly repo: AuthRepository,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasherPort,
     private readonly appConfig: AppConfigService,
+    private readonly totpCipher: TotpSecretCipher,
   ) {}
 
   async login(
@@ -159,7 +161,8 @@ export class AuthService {
       throw new UnauthorizedException('Authentication required');
     }
 
-    const isTotpValid = verifyTotp(user.totpSecret, code);
+    const storedSecret = user.totpSecret;
+    const isTotpValid = verifyTotp(this.totpCipher.decrypt(storedSecret), code);
     let isRecoveryValid = false;
     if (!isTotpValid) {
       const recovery = await this.repo.findUnusedRecoveryCode(
@@ -177,6 +180,20 @@ export class AuthService {
     }
 
     await this.repo.deleteTwoFactorChallenge(challenge.id);
+    // A seed written before encryption existed is upgraded here, once, after a
+    // code proved that this key belongs to this seed. The login must not fail
+    // for it: the code was valid, so a failed rewrite only leaves plaintext for
+    // the next successful login.
+    if (!this.totpCipher.isEncrypted(storedSecret)) {
+      try {
+        await this.repo.updateTotpSecret(
+          user.id,
+          this.totpCipher.encrypt(storedSecret),
+        );
+      } catch {
+        // Retried on the next login.
+      }
+    }
     return this.issueSession(user, context);
   }
 
@@ -191,7 +208,7 @@ export class AuthService {
       );
     }
     const secret = generateTotpSecret();
-    await this.repo.setTotpSecret(user.id, secret);
+    await this.repo.setTotpSecret(user.id, this.totpCipher.encrypt(secret));
     return {
       secret,
       otpauthUrl: otpauthUrl(TOTP_ISSUER, user.username, secret),
@@ -203,7 +220,7 @@ export class AuthService {
     if (!user?.totpSecret) {
       throw new BadRequestException('Start the two-factor setup first');
     }
-    if (!verifyTotp(user.totpSecret, code)) {
+    if (!verifyTotp(this.totpCipher.decrypt(user.totpSecret), code)) {
       throw new BadRequestException('Invalid two-factor code');
     }
     await this.repo.enableTotp(user.id);

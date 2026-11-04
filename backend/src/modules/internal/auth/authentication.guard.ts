@@ -96,10 +96,10 @@ export class AuthenticationGuard implements CanActivate {
           role: resolved.scopes.includes('admin') ? 'ADMIN' : 'MEMBER',
           apiKeyId: resolved.id,
           scopes: resolved.scopes,
-          projectNames: resolved.projectNames,
+          projectIds: resolved.projectIds,
         };
         this.enforceAccess(context, request);
-        this.enforceApiKeyAccess(context, request);
+        await this.enforceApiKeyAccess(context, request);
         return true;
       }
     }
@@ -109,10 +109,10 @@ export class AuthenticationGuard implements CanActivate {
 
   // API keys carry explicit scopes and an optional project allowlist. Sessions
   // are governed by the R9 role matrix; keys never inherit the owner's role.
-  private enforceApiKeyAccess(
+  private async enforceApiKeyAccess(
     context: ExecutionContext,
     request: AuthenticatedRequest,
-  ): void {
+  ): Promise<void> {
     const auth = request.auth;
     if (!auth?.apiKeyId) return;
     const scopes = auth.scopes ?? [];
@@ -136,12 +136,16 @@ export class AuthenticationGuard implements CanActivate {
         `API key is missing the "${required.join('" or "')}" scope`,
       );
     }
-    const allowlist = auth.projectNames ?? [];
+    // The allowlist holds ids, so a rename neither narrows nor widens a key and
+    // a recycled name cannot inherit another project's access. The route only
+    // knows the name, so it is resolved once here.
+    const allowlist = auth.projectIds ?? [];
     if (allowlist.length === 0) return;
     const rawProject = request.params?.projectName;
     const projectName = Array.isArray(rawProject) ? rawProject[0] : rawProject;
     if (projectName) {
-      if (!allowlist.includes(projectName)) {
+      const projectId = await this.repo.findProjectIdByName(projectName);
+      if (!projectId || !allowlist.includes(projectId)) {
         throw new ForbiddenException(
           `API key is not allowed to access project "${projectName}"`,
         );

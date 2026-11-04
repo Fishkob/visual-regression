@@ -11,6 +11,7 @@ import { AuthService } from './auth.service';
 import { AuthRepository } from './auth.repository';
 import { ApiKeyService } from './api-key.service';
 import { AuthenticationGuard } from './authentication.guard';
+import { TotpSecretCipher } from './totp-secret-cipher';
 import { hashPassword, verifyPassword } from './password-hasher';
 
 @Module({
@@ -20,6 +21,7 @@ import { hashPassword, verifyPassword } from './password-hasher';
     AuthService,
     AuthRepository,
     ApiKeyService,
+    TotpSecretCipher,
     AuthenticationGuard,
     {
       provide: PASSWORD_HASHER,

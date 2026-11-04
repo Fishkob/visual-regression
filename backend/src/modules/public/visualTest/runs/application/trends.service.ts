@@ -17,10 +17,10 @@ export class TrendsService {
   ) {}
 
   async get(projectName: string, days = 30): Promise<ProjectTrends> {
-    await this.projects.requireByName(projectName);
+    const project = await this.projects.requireByName(projectName);
     const windowDays = Math.min(Math.max(days, 1), 365);
     const now = new Date();
-    const trends = await this.outcomes.trends(projectName, windowDays, now);
+    const trends = await this.outcomes.trends(project.id, windowDays, now);
     const from = new Date(now.getTime() - windowDays * 24 * 60 * 60 * 1000);
     return {
       from: from.toISOString().slice(0, 10),

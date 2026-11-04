@@ -524,8 +524,11 @@ export class ApprovalService {
     testName: string,
     branchName?: string,
   ): Promise<ApprovalAuditRecord[]> {
+    // The trail is filtered by the stable id: a rename must not hide the
+    // project's own approval history.
+    const project = await this.projects.requireByName(projectName);
     return this.approvalAudit.findForTest({
-      projectName,
+      projectId: project.id,
       testName,
       branchName,
     });

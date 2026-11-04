@@ -8,35 +8,36 @@ model ProjectGroup {
 }
 
 model Project {
-  id              String        @id @default(cuid())
-  name            String        @unique
-  createdAt       DateTime      @default(now())
-  groupId         String?
-  group           ProjectGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  defaultBranchId String?       @unique
-  defaultBranch   Branch?       @relation("DefaultBranch", fields: [defaultBranchId], references: [id], onDelete: SetNull)
-  baselineRevisionLimit Int?
-  runHistoryDays        Int?
-  orphanGraceHours      Int?
-  storageQuotaBytes     BigInt?
-  quotaSoftPercent      Int?          @default(80)
+  id                     String             @id @default(cuid())
+  name                   String             @unique
+  createdAt              DateTime           @default(now())
+  groupId                String?
+  group                  ProjectGroup?      @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  defaultBranchId        String?            @unique
+  defaultBranch          Branch?            @relation("DefaultBranch", fields: [defaultBranchId], references: [id], onDelete: SetNull)
+  baselineRevisionLimit  Int?
+  runHistoryDays         Int?
+  orphanGraceHours       Int?
+  storageQuotaBytes      BigInt?
+  quotaSoftPercent       Int?               @default(80)
   // Cached byte total of this project's evidence (screenshot rows + diff
   // artifacts), written ONLY by the quota check in StorageUsageService when the
   // value is older than its refresh window. The rows stay the truth: the cached
   // number is a `SUM` over them, re-derived from scratch on every refresh, so a
   // stale value can only be conservative (it over-reports after a deletion) or
   // lag the uploads of one window. Null means "never computed". See ADR-060.
-  storageUsedBytes      BigInt?
+  storageUsedBytes       BigInt?
   storageUsageComputedAt DateTime?
-  requiredApprovals     Int           @default(1)
+  requiredApprovals      Int                @default(1)
   // Project-wide fallback tolerance in pixels. A variant whose baseline has no
   // threshold of its own (0) inherits this value; an explicit per-variant
   // threshold always wins. Null means "no project default".
-  pixelDiffThreshold    Int?
-  branches        Branch[]      @relation("ProjectBranches")
-  webhooks        WebhookEndpoint[]
-  runs            Run[]
-  assignments     ReviewAssignment[]
+  pixelDiffThreshold     Int?
+  branches               Branch[]           @relation("ProjectBranches")
+  webhooks               WebhookEndpoint[]
+  runs                   Run[]
+  assignments            ReviewAssignment[]
+  shareLinks             ShareLink[]
 
   @@index([groupId])
   // Trigram index for the case-insensitive substring search (project list,
@@ -47,16 +48,16 @@ model Project {
 }
 
 model Branch {
-  id              String       @id @default(cuid())
-  project         Project      @relation("ProjectBranches", fields: [projectId], references: [id], onDelete: Cascade)
+  id              String        @id @default(cuid())
+  project         Project       @relation("ProjectBranches", fields: [projectId], references: [id], onDelete: Cascade)
   projectId       String
   name            String
   targetBranchId  String?
-  targetBranch    Branch?      @relation("BranchTarget", fields: [targetBranchId], references: [id], onDelete: SetNull)
-  derivedBranches Branch[]     @relation("BranchTarget")
-  defaultFor      Project?     @relation("DefaultBranch")
-  isArchived      Boolean      @default(false)
-  createdAt       DateTime     @default(now())
+  targetBranch    Branch?       @relation("BranchTarget", fields: [targetBranchId], references: [id], onDelete: SetNull)
+  derivedBranches Branch[]      @relation("BranchTarget")
+  defaultFor      Project?      @relation("DefaultBranch")
+  isArchived      Boolean       @default(false)
+  createdAt       DateTime      @default(now())
   tests           UnifiedTest[]
   runs            Run[]
 
@@ -68,46 +69,50 @@ model Branch {
 }
 
 model UnifiedTest {
-  id        String     @id @default(cuid())
-  branch    Branch     @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  branchId  String
-  name      String
-  kind      TestKind   @default(image)
-  status      TestStatus @default(PENDING)
+  id          String          @id @default(cuid())
+  branch      Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branchId    String
+  name        String
+  kind        TestKind        @default(image)
+  status      TestStatus      @default(PENDING)
   description String?
-  tags        String[]   @default([])
+  tags        String[]        @default([])
   mutedUntil  DateTime?
   muteReason  String?
   sizePolicy  ImageSizePolicy @default(FAIL)
-  createdAt   DateTime   @default(now())
+  createdAt   DateTime        @default(now())
 
-  variants     UnifiedVariant[]
-  screenshots  UnifiedScreenshot[]
-  comparisons  UnifiedComparison[]
+  variants          UnifiedVariant[]
+  screenshots       UnifiedScreenshot[]
+  comparisons       UnifiedComparison[]
   baselineRevisions BaselineRevision[]
-  runUploads   RunUpload[]
-  comparisonJobs ComparisonJob[]
-  assignments   ReviewAssignment[]
+  runUploads        RunUpload[]
+  comparisonJobs    ComparisonJob[]
+  assignments       ReviewAssignment[]
 
   @@unique([branchId, name])
   // Substring search on the test name: the global search, the inbox `q` filter,
   // the project overview's variant page and "approve all" all match with
   // `ILIKE '%q%'`, which no btree can serve.
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "UnifiedTest_name_trgm_idx")
+  // The inbox and the pending-tests list filter with `tags: { has: tag }`,
+  // which Postgres answers with an array-containment operator: btree cannot
+  // serve it, GIN can.
+  @@index([tags], type: Gin)
   @@map("UnifiedTest")
 }
 
 model UnifiedVariant {
-  id          String             @id @default(cuid())
-  test        UnifiedTest        @relation(fields: [testId], references: [id], onDelete: Cascade)
-  testId      String
-  viewport    String
-  browser     String
-  environment String
-  baselineId  String?            @unique
-  baseline    UnifiedScreenshot? @relation("BaselineVariant", fields: [baselineId], references: [id])
-  isInherited Boolean            @default(false)
-  screenshots UnifiedScreenshot[]
+  id                String              @id @default(cuid())
+  test              UnifiedTest         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  testId            String
+  viewport          String
+  browser           String
+  environment       String
+  baselineId        String?             @unique
+  baseline          UnifiedScreenshot?  @relation("BaselineVariant", fields: [baselineId], references: [id])
+  isInherited       Boolean             @default(false)
+  screenshots       UnifiedScreenshot[]
   baselineRevisions BaselineRevision[]
 
   @@unique([testId, viewport, browser, environment])
@@ -115,39 +120,46 @@ model UnifiedVariant {
 }
 
 model UnifiedScreenshot {
-  sizeBytes BigInt @default(0)
-  id                 String            @id @default(cuid())
-  test               UnifiedTest       @relation(fields: [testId], references: [id], onDelete: Cascade)
+  sizeBytes          BigInt         @default(0)
+  id                 String         @id @default(cuid())
+  test               UnifiedTest    @relation(fields: [testId], references: [id], onDelete: Cascade)
   testId             String
-  variantId          String?
-  variant            UnifiedVariant?   @relation(fields: [variantId], references: [id])
+  // A screenshot always belongs to a variant: the row is read through it and
+  // the (testId, variantId, type) unique key is the only thing that keeps a
+  // test from holding two CURRENT rows. Nullable would make that key ignore
+  // the row (Postgres treats NULLs as distinct) and leave a variant delete
+  // with rows no reader can reach. Legacy rows without a variant are cleared
+  // by the 20261124090000_schema_hardening migration.
+  variantId          String
+  variant            UnifiedVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
   type               ScreenshotType
   imageHash          String
   imageUrl           String
   pageCount          Int?
-  pixelDiffThreshold Int               @default(0)
-  createdAt          DateTime          @default(now())
+  pixelDiffThreshold Int            @default(0)
+  createdAt          DateTime       @default(now())
 
-  asBaseline         UnifiedVariant?       @relation("BaselineVariant")
-  asBaselineComp     UnifiedComparison[]   @relation("BaselineComparison")
-  asCandidateComp    UnifiedComparison[]   @relation("CandidateComparison")
+  asBaseline      UnifiedVariant?     @relation("BaselineVariant")
+  asBaselineComp  UnifiedComparison[] @relation("BaselineComparison")
+  asCandidateComp UnifiedComparison[] @relation("CandidateComparison")
 
+  // testId is the leading column, so this also serves the old
+  // `(testId, type)` lookups — that separate index was pure write cost.
   @@unique([testId, variantId, type])
-  @@index([testId, type])
   @@index([imageUrl])
   @@map("UnifiedScreenshot")
 }
 
 model UnifiedComparison {
-  id                 String              @id @default(cuid())
-  test               UnifiedTest         @relation(fields: [testId], references: [id], onDelete: Cascade)
+  id                 String           @id @default(cuid())
+  test               UnifiedTest      @relation(fields: [testId], references: [id], onDelete: Cascade)
   testId             String
   runId              String?
   runKey             String?
   pageCount          Int?
   mismatchPixelCount Int
   mismatchPageCount  Int?
-  diffSizeBytes      BigInt @default(0)
+  diffSizeBytes      BigInt           @default(0)
   diffImageUrl       String?
   diffPdfUrl         String?
   // Changed areas of the diff, for the review page (see ChangedRegion): the
@@ -157,10 +169,10 @@ model UnifiedComparison {
   status             ComparisonStatus
   baselineId         String
   candidateId        String?
-  createdAt          DateTime            @default(now())
+  createdAt          DateTime         @default(now())
 
-  baseline  UnifiedScreenshot             @relation("BaselineComparison", fields: [baselineId], references: [id])
-  candidate UnifiedScreenshot?            @relation("CandidateComparison", fields: [candidateId], references: [id])
+  baseline  UnifiedScreenshot  @relation("BaselineComparison", fields: [baselineId], references: [id])
+  candidate UnifiedScreenshot? @relation("CandidateComparison", fields: [candidateId], references: [id])
 
   @@index([testId])
   @@index([status, createdAt])
@@ -196,7 +208,12 @@ model ApprovalVote {
 }
 
 model Approval {
-  id                 String   @id @default(cuid())
+  id                 String          @id @default(cuid())
+  // Stable project identity for filtering the trail; `projectName` stays as the
+  // name at approval time for display. projectId is resolved from the name by
+  // the 20261124100000_project_identity trigger, so a writer cannot forget it
+  // and a rename cannot split the trail.
+  projectId          String?
   projectName        String
   testName           String
   branchName         String?
@@ -216,11 +233,11 @@ model Approval {
   mismatchPageCount  Int?
   pageCount          Int?
   approvedBy         String
-  approvedAt         DateTime @default(now())
+  approvedAt         DateTime        @default(now())
   reason             ApprovalReason?
   note               String?
 
-  @@index([projectName, testName, approvedAt])
+  @@index([projectId, testName, approvedAt])
   @@index([approvedAt])
   @@index([runId])
   @@index([runKey])
@@ -271,6 +288,9 @@ model WebhookEndpoint {
   updatedAt  DateTime          @updatedAt
   deliveries WebhookDelivery[]
 
+  // One endpoint per URL per project: two rows for the same target double every
+  // delivery and are always a mistake, never a feature.
+  @@unique([projectId, url])
   @@index([projectId])
   @@map("WebhookEndpoint")
 }
@@ -308,6 +328,10 @@ model AuditEvent {
   id          String   @id @default(cuid())
   actor       String?
   action      String
+  // Resolved at insert time from projectName by the project-identity trigger;
+  // null for actions that name no project (or a project that no longer exists).
+  // Filtering uses the id so a rename does not hide the project's own trail.
+  projectId   String?
   projectName String?
   testName    String?
   branchName  String?
@@ -317,25 +341,25 @@ model AuditEvent {
   createdAt   DateTime @default(now())
 
   @@index([createdAt])
-  @@index([projectName, createdAt])
+  @@index([projectId, createdAt])
   @@index([actor, createdAt])
   @@index([action, createdAt])
   @@map("AuditEvent")
 }
 
 model Run {
-  id             String    @id @default(cuid())
-  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id             String             @id @default(cuid())
+  project        Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId      String
-  branch         Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branch         Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
   branchId       String
   key            String
   commitSha      String?
   commitMessage  String?
   ciUrl          String?
   metadata       Json?
-  createdAt      DateTime  @default(now())
-  lastActivityAt DateTime  @default(now())
+  createdAt      DateTime           @default(now())
+  lastActivityAt DateTime           @default(now())
   finishedAt     DateTime?
   finishedBy     String?
   uploads        RunUpload[]
@@ -352,8 +376,8 @@ model Run {
 // test/variant" record — run grouping must survive baseline-only uploads and
 // approvals.
 model RunUpload {
-  id          String    @id @default(cuid())
-  run         Run       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  id          String      @id @default(cuid())
+  run         Run         @relation(fields: [runId], references: [id], onDelete: Cascade)
   runId       String
   test        UnifiedTest @relation(fields: [testId], references: [id], onDelete: Cascade)
   testId      String
@@ -363,7 +387,7 @@ model RunUpload {
   environment String
   contentHash String
   outcome     String
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime    @default(now())
 
   @@index([runId, testId])
   @@index([testId])
@@ -380,6 +404,10 @@ model RunUpload {
 // before the column existed whose test is already gone cannot be attributed.
 model ComparisonOutcomeEvent {
   id             String   @id @default(cuid())
+  // Resolved at insert time from projectName by the project-identity trigger.
+  // Trends filter by this id, so a rename keeps the history and a recycled name
+  // does not inherit another project's numbers. projectName stays for display.
+  projectId      String?
   projectName    String?
   testId         String
   testName       String
@@ -398,13 +426,13 @@ model ComparisonOutcomeEvent {
   @@index([testId, createdAt])
   @@index([runKey])
   @@index([comparisonId])
-  @@index([projectName, createdAt])
+  @@index([projectId, createdAt])
   @@map("ComparisonOutcomeEvent")
 }
 
 model ComparisonJob {
-  id                  String        @id @default(cuid())
-  test                UnifiedTest   @relation(fields: [testId], references: [id], onDelete: Cascade)
+  id                  String      @id @default(cuid())
+  test                UnifiedTest @relation(fields: [testId], references: [id], onDelete: Cascade)
   testId              String
   runId               String?
   runKey              String?
@@ -413,14 +441,14 @@ model ComparisonJob {
   variantViewport     String?
   variantBrowser      String?
   variantEnvironment  String?
-  status              JobStatus     @default(PENDING)
-  attempts            Int           @default(0)
-  maxAttempts         Int           @default(5)
+  status              JobStatus   @default(PENDING)
+  attempts            Int         @default(0)
+  maxAttempts         Int         @default(5)
   nextAttemptAt       DateTime?
   processingStartedAt DateTime?
   heartbeatAt         DateTime?
   error               String?
-  createdAt           DateTime      @default(now())
+  createdAt           DateTime    @default(now())
   completedAt         DateTime?
 
   @@index([status, nextAttemptAt])
@@ -431,9 +459,10 @@ model ComparisonJob {
   // scan stops at the first claimable row instead of filtering retained history.
   @@index([status, createdAt])
   @@index([testId])
-  @@index([createdAt])
+  // Every retained `createdAt` / `runKey` lookup starts with `status` (claim,
+  // failed list) or names `runId` (run status), so the single-column indexes on
+  // those two columns only cost writes on the queue's hottest table.
   @@index([runId])
-  @@index([runKey])
 }
 
 enum ApprovalReason {
@@ -475,25 +504,25 @@ model User {
   createdAt          DateTime  @default(now())
 
   sessions            Session[]
-  assignments         ReviewAssignment[] @relation("AssignmentAssignee")
+  assignments         ReviewAssignment[]   @relation("AssignmentAssignee")
   recoveryCodes       RecoveryCode[]
   twoFactorChallenges TwoFactorChallenge[]
-  apiKeys             ApiKey[]            @relation("ApiKeyOwner")
+  apiKeys             ApiKey[]             @relation("ApiKeyOwner")
 
   @@index([role, isActive])
   @@map("User")
 }
 
 model Session {
-  id          String    @id @default(cuid())
-  tokenHash   String    @unique
-  userId      String
-  expiresAt   DateTime
-  revokedAt   DateTime?
-  lastSeenAt  DateTime?
-  ip          String?
-  userAgent   String?
-  createdAt   DateTime  @default(now())
+  id         String    @id @default(cuid())
+  tokenHash  String    @unique
+  userId     String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  lastSeenAt DateTime?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -543,7 +572,10 @@ model ApiKey {
   owner         User?     @relation("ApiKeyOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   ownerId       String?
   scopes        String[]  @default(["upload", "read", "approve"])
-  projectNames  String[]  @default([])
+  // Project allowlist as ids, not names: a rename must not silently narrow the
+  // key (the name no longer matches) and a deleted-then-recreated project name
+  // must not silently widen it. Empty means "all projects".
+  projectIds    String[]  @default([])
   createdBy     String?
   createdAt     DateTime  @default(now())
   lastUsedAt    DateTime?
@@ -560,7 +592,11 @@ model ShareLink {
   id             String     @id @default(cuid())
   tokenHash      String     @unique
   scope          ShareScope
-  projectName    String
+  // The link names its project by id and dies with it: a name-keyed link would
+  // outlive the project and re-validate against a new project that recycles the
+  // name, serving someone else's evidence (ADR-038).
+  project        Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId      String
   testName       String?
   branchName     String?
   runKey         String?
@@ -572,7 +608,7 @@ model ShareLink {
   accessCount    Int        @default(0)
   createdAt      DateTime   @default(now())
 
-  @@index([projectName])
+  @@index([projectId])
   @@index([expiresAt])
   @@map("ShareLink")
 }
@@ -597,21 +633,21 @@ model ReviewComment {
 }
 
 model ReviewAssignment {
-  id               String    @id @default(cuid())
-  project          Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id               String       @id @default(cuid())
+  project          Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId        String
   branchName       String?
   test             UnifiedTest? @relation(fields: [testId], references: [id], onDelete: Cascade)
   testId           String?
-  run              Run?      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  run              Run?         @relation(fields: [runId], references: [id], onDelete: Cascade)
   runId            String?
-  assignee         User      @relation("AssignmentAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+  assignee         User         @relation("AssignmentAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
   assigneeId       String
   assigneeUsername String
   assignedBy       String
   dueAt            DateTime?
   completedAt      DateTime?
-  createdAt        DateTime  @default(now())
+  createdAt        DateTime     @default(now())
 
   @@index([assigneeId, completedAt])
   @@index([projectId])
@@ -622,8 +658,8 @@ model ReviewAssignment {
 
 model RateLimitBucket {
   id          String   @id @default(cuid())
-  scope       String   // "login" | "log" | "upload"
-  key         String   // login/log: "ip:<ip>", upload: "apikey:<id>"
+  scope       String // "login" | "log" | "upload"
+  key         String // login/log: "ip:<ip>", upload: "apikey:<id>"
   windowStart DateTime // minute-aligned
   count       Int      @default(0)
   createdAt   DateTime @default(now())

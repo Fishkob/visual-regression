@@ -13,6 +13,7 @@ import {
   type AuthUserRow,
 } from '@internal/auth/auth.repository';
 import { AuthService } from '@internal/auth/auth.service';
+import { TotpSecretCipher } from '@internal/auth/totp-secret-cipher';
 import { createMock } from '@test/utils/create-mock';
 
 describe('AuthService', () => {
@@ -36,7 +37,11 @@ describe('AuthService', () => {
   });
 
   const mockAppConfig = {
-    auth: { sessionTtlDays: 7, sessionTtlMs: 7 * 24 * 60 * 60 * 1000 },
+    auth: {
+      sessionTtlDays: 7,
+      sessionTtlMs: 7 * 24 * 60 * 60 * 1000,
+      totpEncryptionKey: 'test-totp-encryption-key',
+    },
   } as unknown as AppConfigService;
 
   beforeEach(async () => {
@@ -49,6 +54,7 @@ describe('AuthService', () => {
         { provide: AuthRepository, useValue: mockRepository },
         { provide: PASSWORD_HASHER, useValue: mockHasher },
         { provide: AppConfigService, useValue: mockAppConfig },
+        TotpSecretCipher,
       ],
     }).compile();
 

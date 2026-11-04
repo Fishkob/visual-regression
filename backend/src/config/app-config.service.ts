@@ -39,6 +39,7 @@ interface AppConfigSnapshot {
     apiKeyHeader: string | undefined;
     bootstrapAdminUsername: string | undefined;
     bootstrapAdminPassword: string | undefined;
+    totpEncryptionKey: string;
   };
   logging: { level: string | undefined };
   appVersion: { version: string; gitCommit: string; buildTime: string };
@@ -279,6 +280,9 @@ export class AppConfigService {
         ),
         bootstrapAdminPassword: this.config.get<string>(
           'BOOTSTRAP_ADMIN_PASSWORD',
+        ),
+        totpEncryptionKey: this.config.getOrThrow<string>(
+          'TOTP_ENCRYPTION_KEY',
         ),
       },
       logging: { level: this.config.get<string>('LOG_LEVEL') },

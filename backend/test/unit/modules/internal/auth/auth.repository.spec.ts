@@ -232,7 +232,7 @@ describe('AuthRepository', () => {
       keyHint: '7f3a',
       ownerId: 'u1',
       scopes: ['upload'],
-      projectNames: [],
+      projectIds: [],
       createdBy: 'alice',
       expiresAt: null,
     };
@@ -323,7 +323,7 @@ describe('AuthRepository', () => {
       keyHint: 'ab12',
       ownerId: 'u1',
       scopes: ['upload'],
-      projectNames: [],
+      projectIds: [],
       createdBy: 'alice',
       expiresAt: null,
     };
@@ -358,7 +358,7 @@ describe('AuthRepository', () => {
       keyHint: 'ab12',
       ownerId: 'u1',
       scopes: ['upload'],
-      projectNames: [],
+      projectIds: [],
       createdBy: 'alice',
       expiresAt: null,
     };

@@ -46,6 +46,20 @@ log() { echo -e "${CYAN}==>${NC} $1"; }
 warn() { echo -e "${YELLOW}==> Warning:${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
 
+# docker-compose interpolates TOTP_ENCRYPTION_KEY for every service, including an
+# `infra`-only start. A local stack without a .env gets a fixed development key
+# (the backend refuses to start without one); a real installation generates it
+# into .env via install.sh.
+ensure_totp_key() {
+    if [ -f .env ]; then
+        set -a && source .env && set +a
+    fi
+    if [ -z "${TOTP_ENCRYPTION_KEY:-}" ]; then
+        export TOTP_ENCRYPTION_KEY="dev-stack-totp-key-not-for-production"
+        warn "TOTP_ENCRYPTION_KEY is not set — using the development key for this stack."
+    fi
+}
+
 require_docker() {
     if ! command -v docker &> /dev/null; then
         warn "Docker is required but was not found. Install it: https://docs.docker.com/get-docker/"
@@ -70,6 +84,7 @@ require_node() {
 
 cmd_infra() {
     require_docker
+    ensure_totp_key
 
     log "Starting infrastructure services..."
     docker compose -f docker-compose.yml up -d postgres rustfs pdf-sidecar
@@ -102,6 +117,7 @@ cmd_infra() {
 
 cmd_docker() {
     require_docker
+    ensure_totp_key
 
     log "Building and starting all services..."
     docker compose build

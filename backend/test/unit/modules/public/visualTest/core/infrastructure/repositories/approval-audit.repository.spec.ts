@@ -46,7 +46,7 @@ describe('ApprovalAuditRepository', () => {
 
   function entry(overrides: Partial<ApprovalAuditEntry> = {}) {
     return {
-      projectName: 'checkout-ui',
+      projectId: 'p-checkout-ui',
       testName: 'login-form',
       branchName: null,
       testId: 'test-1',
@@ -98,14 +98,14 @@ describe('ApprovalAuditRepository', () => {
       mockClient.approval.findMany.mockResolvedValue(rows);
 
       const result = await repository.findForTest({
-        projectName: 'checkout-ui',
+        projectId: 'p-checkout-ui',
         testName: 'login-form',
         branchName: 'feature/x',
       });
 
       expect(mockClient.approval.findMany).toHaveBeenCalledWith({
         where: {
-          projectName: 'checkout-ui',
+          projectId: 'p-checkout-ui',
           testName: 'login-form',
           branchName: 'feature/x',
         },
@@ -119,14 +119,14 @@ describe('ApprovalAuditRepository', () => {
       mockClient.approval.findMany.mockResolvedValue([]);
 
       await repository.findForTest({
-        projectName: 'checkout-ui',
+        projectId: 'p-checkout-ui',
         testName: 'login-form',
       });
 
       expect(mockClient.approval.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            projectName: 'checkout-ui',
+            projectId: 'p-checkout-ui',
             testName: 'login-form',
           },
         }),
@@ -137,7 +137,7 @@ describe('ApprovalAuditRepository', () => {
       mockClient.approval.findMany.mockResolvedValue([]);
 
       await repository.findForTest({
-        projectName: 'checkout-ui',
+        projectId: 'p-checkout-ui',
         testName: 'login-form',
         take: MAX_APPROVAL_HISTORY_LIMIT + 500,
       });
@@ -151,7 +151,7 @@ describe('ApprovalAuditRepository', () => {
       mockClient.approval.findMany.mockResolvedValue([]);
 
       await repository.findForTest({
-        projectName: 'checkout-ui',
+        projectId: 'p-checkout-ui',
         testName: 'login-form',
         take: 5,
       });

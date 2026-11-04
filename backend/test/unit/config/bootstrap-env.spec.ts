@@ -10,6 +10,7 @@ const REQUIRED_ENV: Record<string, string> = {
   RUSTFS_SECRET_KEY: 'test-secret',
   RUSTFS_BUCKET: 'visual-tests',
   RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+  TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
 };
 
 describe('readBootstrapEnv', () => {

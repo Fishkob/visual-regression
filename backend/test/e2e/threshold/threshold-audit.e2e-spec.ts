@@ -4,6 +4,10 @@ import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { PrismaClient } from '@/prisma/client';
 import { hashPassword } from '@internal/auth/password-hasher';
+import {
+  createBaselineWithVariant,
+  variantIdForBaseline,
+} from '../_support/utils/screenshot-fixtures';
 
 describe('Threshold update policy (e2e)', () => {
   let app: INestApplication;
@@ -67,23 +71,11 @@ describe('Threshold update policy (e2e)', () => {
     const test = await db.unifiedTest.create({
       data: { name: 'login', branchId, kind: 'image' },
     });
-    const baseline = await db.unifiedScreenshot.create({
-      data: {
-        testId: test.id,
-        type: 'BASELINE',
-        imageHash: 'baseline-hash',
-        imageUrl: 'http://rustfs/baseline.png',
-        pixelDiffThreshold: 0,
-      },
-    });
-    await db.unifiedVariant.create({
-      data: {
-        testId: test.id,
-        viewport: '1920x1080',
-        browser: 'Chrome',
-        environment: 'staging',
-        baselineId: baseline.id,
-      },
+    const { baseline } = await createBaselineWithVariant(db, {
+      testId: test.id,
+      imageHash: 'baseline-hash',
+      imageUrl: 'http://rustfs/baseline.png',
+      pixelDiffThreshold: 0,
     });
     return { testId: test.id, baselineId: baseline.id };
   }
@@ -92,6 +84,7 @@ describe('Threshold update policy (e2e)', () => {
     const candidate = await db.unifiedScreenshot.create({
       data: {
         testId,
+        variantId: await variantIdForBaseline(db, baselineId),
         type: 'CURRENT',
         imageHash: 'candidate-hash',
         imageUrl: 'http://rustfs/candidate.png',

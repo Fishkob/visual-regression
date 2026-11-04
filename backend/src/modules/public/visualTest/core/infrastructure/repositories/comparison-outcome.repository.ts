@@ -50,7 +50,7 @@ export class ComparisonOutcomeRepository extends BaseRepository {
     });
   }
 
-  async trends(projectName: string, since: Date): Promise<TrendWindow> {
+  async trends(projectId: string, since: Date): Promise<TrendWindow> {
     // Four independent aggregates over three tables; they used to run one after
     // another, so the trends page paid four round-trips in series.
     const [daily, pending, approval, flake] = await Promise.all([
@@ -67,7 +67,7 @@ export class ComparisonOutcomeRepository extends BaseRepository {
              COUNT(*) FILTER (WHERE e.outcome = 'unchanged') AS unchanged,
              COUNT(*) FILTER (WHERE e.outcome = 'within_threshold') AS within_threshold
       FROM "ComparisonOutcomeEvent" e
-      WHERE e."projectName" = ${projectName} AND e."createdAt" >= ${since}
+      WHERE e."projectId" = ${projectId} AND e."createdAt" >= ${since}
       GROUP BY 1
       ORDER BY 1 ASC
     `),
@@ -85,7 +85,7 @@ export class ComparisonOutcomeRepository extends BaseRepository {
       JOIN "UnifiedTest" t ON t.id = c."testId"
       JOIN "Branch" b ON b.id = t."branchId"
       JOIN "Project" p ON p.id = b."projectId"
-      WHERE p.name = ${projectName} AND c.status = 'PENDING_APPROVAL'
+      WHERE p.id = ${projectId} AND c.status = 'PENDING_APPROVAL'
     `),
       this.client.$queryRaw<
         { count: bigint; avg_seconds: number | null }[]
@@ -94,7 +94,7 @@ export class ComparisonOutcomeRepository extends BaseRepository {
              AVG(EXTRACT(EPOCH FROM (a."approvedAt" - e."createdAt"))) AS avg_seconds
       FROM "Approval" a
       JOIN "ComparisonOutcomeEvent" e ON e."comparisonId" = a."comparisonId"
-      WHERE a."projectName" = ${projectName} AND a."approvedAt" >= ${since}
+      WHERE a."projectId" = ${projectId} AND a."approvedAt" >= ${since}
     `),
       this.client.$queryRaw<{ flaky: bigint; total: bigint }[]>(Prisma.sql`
       WITH per_test AS (
@@ -102,7 +102,7 @@ export class ComparisonOutcomeRepository extends BaseRepository {
                COUNT(*) FILTER (WHERE e.outcome = 'changed') AS changed,
                COUNT(*) FILTER (WHERE e.outcome IN ('unchanged', 'within_threshold')) AS clean
         FROM "ComparisonOutcomeEvent" e
-        WHERE e."projectName" = ${projectName} AND e."createdAt" >= ${since}
+        WHERE e."projectId" = ${projectId} AND e."createdAt" >= ${since}
         GROUP BY e."testId"
       )
       SELECT COUNT(*) FILTER (WHERE changed > 0 AND clean > 0) AS flaky,

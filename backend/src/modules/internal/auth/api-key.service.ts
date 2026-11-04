@@ -100,7 +100,8 @@ export class ApiKeyService {
     options: CreateApiKeyOptions,
   ): Promise<IssuedApiKey> {
     const issued = this.generate();
-    const input = this.toInput(issued, options);
+    const projectIds = await this.resolveProjectIds(options.projectNames ?? []);
+    const input = this.toInput(issued, { ...options, projectIds });
     // Issuing a credential and recording who issued it are one change: a key
     // that exists without a trail is exactly what the audit log must not miss.
     return this.uow.execute(async () => {
@@ -118,7 +119,7 @@ export class ApiKeyService {
         metadata: {
           name: row.name,
           scopes: input.scopes,
-          projectNames: input.projectNames,
+          projectNames: options.projectNames ?? [],
           ...(row.ownerId ? { ownerId: row.ownerId } : {}),
         },
       });
@@ -128,7 +129,7 @@ export class ApiKeyService {
         rawKey: issued.rawKey,
         keyHint: input.keyHint,
         scopes: input.scopes as ApiKeyScope[],
-        projectNames: input.projectNames,
+        projectNames: options.projectNames ?? [],
         expiresAt: input.expiresAt,
       };
     });
@@ -137,7 +138,10 @@ export class ApiKeyService {
   async listKeys(): Promise<ApiKeyView[]> {
     const rows = await this.repo.listApiKeys();
     const now = Date.now();
-    return rows.map((row) => this.toView(row, now));
+    const namesById = await this.repo.findProjectNamesByIds(
+      rows.flatMap((row) => row.projectIds),
+    );
+    return rows.map((row) => this.toView(row, now, namesById));
   }
 
   // Idempotent by design: revoking an already-revoked key reports the existing
@@ -228,7 +232,7 @@ export class ApiKeyService {
         // remaining lifetime unless the caller asks for an explicit one —
         // rotating must not silently widen or narrow access.
         scopes: current.scopes as ApiKeyScope[],
-        projectNames: current.projectNames,
+        projectIds: current.projectIds,
         // A successor inherits the predecessor's remaining lifetime unless the
         // caller asks for an explicit one — rotating must not silently grant a
         // key that never expires to a key that did. Only an explicit null turns
@@ -265,7 +269,7 @@ export class ApiKeyService {
         rawKey: issued.rawKey,
         keyHint: input.keyHint,
         scopes: input.scopes as ApiKeyScope[],
-        projectNames: input.projectNames,
+        projectNames: await this.projectNamesFor(input.projectIds),
         expiresAt: input.expiresAt,
         replacesId: current.id,
         replacesKeyHint: current.keyHint,
@@ -282,7 +286,7 @@ export class ApiKeyService {
     name: string;
     ownerId: string | null;
     scopes: ApiKeyScope[];
-    projectNames: string[];
+    projectIds: string[];
   } | null> {
     const row = await this.repo.findApiKeyByHash(hashToken(rawKey));
     if (!row || !this.isActive(row)) return null;
@@ -292,7 +296,7 @@ export class ApiKeyService {
       name: row.name,
       ownerId: row.ownerId,
       scopes: row.scopes as ApiKeyScope[],
-      projectNames: row.projectNames,
+      projectIds: row.projectIds,
     };
   }
 
@@ -307,7 +311,7 @@ export class ApiKeyService {
 
   private toInput(
     issued: { keyHash: string; keyHint: string },
-    options: CreateApiKeyOptions,
+    options: CreateApiKeyOptions & { projectIds: string[] },
     now = new Date(),
   ): CreateApiKeyInput {
     const days = options.expiresInDays;
@@ -317,7 +321,7 @@ export class ApiKeyService {
       keyHint: issued.keyHint,
       ownerId: options.ownerId ?? null,
       scopes: options.scopes ?? DEFAULT_API_KEY_SCOPES,
-      projectNames: options.projectNames ?? [],
+      projectIds: options.projectIds,
       createdBy: options.createdBy ?? null,
       expiresAt: days && days > 0 ? this.plusDays(now, days) : null,
     };
@@ -335,7 +339,11 @@ export class ApiKeyService {
     return isCredentialLive(row, now);
   }
 
-  private toView(row: ApiKeyRow, now = Date.now()): ApiKeyView {
+  private toView(
+    row: ApiKeyRow,
+    now = Date.now(),
+    namesById: Map<string, string> = new Map<string, string>(),
+  ): ApiKeyView {
     return {
       id: row.id,
       name: row.name,
@@ -343,7 +351,7 @@ export class ApiKeyService {
       ownerId: row.ownerId,
       ownerUsername: row.owner?.username ?? null,
       scopes: row.scopes as ApiKeyScope[],
-      projectNames: row.projectNames,
+      projectNames: row.projectIds.map((id) => namesById.get(id) ?? id),
       createdBy: row.createdBy,
       createdAt: row.createdAt,
       lastUsedAt: row.lastUsedAt,
@@ -374,6 +382,28 @@ export class ApiKeyService {
     } catch {
       // Intentionally ignored — see comment above.
     }
+  }
+
+  // Names stay the public surface; the row stores ids. An unknown name is a
+  // client error instead of a silently useless allowlist entry.
+  private async resolveProjectIds(projectNames: string[]): Promise<string[]> {
+    const unique = [...new Set(projectNames)];
+    if (unique.length === 0) return [];
+    const ids = await this.repo.findProjectIdsByNames(unique);
+    if (ids.length === unique.length) return ids;
+    const resolved = await this.repo.findProjectNamesByIds(ids);
+    const resolvedNames = new Set(resolved.values());
+    const unknown = unique.filter((name) => !resolvedNames.has(name));
+    throw new DomainError(
+      `Unknown project${unknown.length === 1 ? '' : 's'}: ${unknown.join(', ')}`,
+      'BAD_REQUEST',
+    );
+  }
+
+  private async projectNamesFor(projectIds: string[]): Promise<string[]> {
+    if (projectIds.length === 0) return [];
+    const names = await this.repo.findProjectNamesByIds(projectIds);
+    return projectIds.map((id) => names.get(id) ?? id);
   }
 
   private rethrowNameConflict(error: unknown, name: string): never {

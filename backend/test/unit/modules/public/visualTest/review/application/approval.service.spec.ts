@@ -177,6 +177,7 @@ describe('ApprovalService', () => {
   beforeEach(async () => {
     projects = createMockProjectRepository();
     projects.findByName.mockResolvedValue({ requiredApprovals: 1 } as never);
+    projects.requireByName.mockResolvedValue({ id: 'p-my-project' } as never);
     votes = createMock<ApprovalVoteRepository>();
     votes.hasVoted.mockResolvedValue(false);
     votes.countForComparison.mockResolvedValue(0);
@@ -1461,7 +1462,7 @@ describe('ApprovalService', () => {
       );
 
       expect(approvalAudit.findForTest).toHaveBeenCalledWith({
-        projectName: 'my-project',
+        projectId: 'p-my-project',
         testName: 'my-test',
         branchName: 'feature/x',
       });

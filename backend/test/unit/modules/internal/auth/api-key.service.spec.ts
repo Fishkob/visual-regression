@@ -20,7 +20,7 @@ function makeRow(overrides: Partial<ApiKeyRow> = {}): ApiKeyRow {
     keyHint: '7f3a',
     ownerId: 'u1',
     scopes: ['upload', 'read', 'approve'],
-    projectNames: [],
+    projectIds: [],
     owner: { username: 'alice' },
     createdBy: 'alice',
     createdAt: new Date('2026-01-01T00:00:00Z'),
@@ -75,7 +75,7 @@ describe('ApiKeyService', () => {
         expect.objectContaining({
           ownerId: 'u1',
           scopes: ['upload'],
-          projectNames: [],
+          projectIds: [],
         }),
       );
       expect(result.scopes).toEqual(['upload']);
@@ -95,8 +95,10 @@ describe('ApiKeyService', () => {
 
     it('stores explicit scopes and a project allowlist', async () => {
       mockRepository.createApiKey.mockResolvedValue(
-        makeRow({ scopes: ['read'], projectNames: ['checkout'] }),
+        makeRow({ scopes: ['read'], projectIds: ['p-checkout'] }),
       );
+
+      mockRepository.findProjectIdsByNames.mockResolvedValue(['p-checkout']);
 
       await service.createKey('alice', {
         name: 'reader',
@@ -104,10 +106,13 @@ describe('ApiKeyService', () => {
         projectNames: ['checkout'],
       });
 
+      expect(mockRepository.findProjectIdsByNames).toHaveBeenCalledWith([
+        'checkout',
+      ]);
       expect(mockRepository.createApiKey).toHaveBeenCalledWith(
         expect.objectContaining({
           scopes: ['read'],
-          projectNames: ['checkout'],
+          projectIds: ['p-checkout'],
         }),
       );
     });
@@ -350,10 +355,13 @@ describe('ApiKeyService', () => {
   describe('rotateKey', () => {
     it('inherits scopes, project allowlist and owner', async () => {
       mockRepository.findApiKeyById.mockResolvedValue(
-        makeRow({ scopes: ['upload'], projectNames: ['checkout'] }),
+        makeRow({ scopes: ['upload'], projectIds: ['p-checkout'] }),
       );
       mockRepository.replaceApiKey.mockResolvedValue(
-        makeRow({ scopes: ['upload'], projectNames: ['checkout'] }),
+        makeRow({ scopes: ['upload'], projectIds: ['p-checkout'] }),
+      );
+      mockRepository.findProjectNamesByIds.mockResolvedValue(
+        new Map([['p-checkout', 'checkout']]),
       );
 
       await service.rotateKey('alice', 'k1');
@@ -370,7 +378,7 @@ describe('ApiKeyService', () => {
         expect.objectContaining({
           ownerId: 'u1',
           scopes: ['upload'],
-          projectNames: ['checkout'],
+          projectIds: ['p-checkout'],
         }),
         'k1',
         expect.anything(),
@@ -516,7 +524,7 @@ describe('ApiKeyService', () => {
         name: 'ci-upload',
         ownerId: 'u1',
         scopes: ['upload', 'read', 'approve'],
-        projectNames: [],
+        projectIds: [],
       });
     });
 
@@ -544,7 +552,7 @@ describe('ApiKeyService', () => {
         name: 'ci-upload',
         ownerId: 'u1',
         scopes: ['upload', 'read', 'approve'],
-        projectNames: [],
+        projectIds: [],
       });
     });
 
@@ -606,7 +614,7 @@ describe('ApiKeyService', () => {
         name: 'ci-upload',
         ownerId: 'u1',
         scopes: ['upload', 'read', 'approve'],
-        projectNames: [],
+        projectIds: [],
       });
     });
   });

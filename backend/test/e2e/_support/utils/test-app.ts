@@ -59,8 +59,12 @@ export class TestApp {
     await db.shareLink.deleteMany();
     await db.auditEvent.deleteMany();
     await db.comparisonOutcomeEvent.deleteMany();
-    await db.unifiedVariant.deleteMany();
+    // Comparisons first: a variant delete cascades into its screenshots, and a
+    // comparison still pointing at one of them is a RESTRICT violation. The
+    // application retires comparisons before removing screenshots for the same
+    // reason; the reset has to use that order too.
     await db.unifiedComparison.deleteMany();
+    await db.unifiedVariant.deleteMany();
     await db.unifiedScreenshot.deleteMany();
     await db.unifiedTest.deleteMany();
     await db.comparisonJob.deleteMany();
@@ -112,7 +116,7 @@ export class TestApp {
         name: 'e2e',
         keyHash,
         scopes: ['upload', 'read', 'approve', 'admin'],
-        projectNames: [],
+        projectIds: [],
       },
       update: {},
     });
