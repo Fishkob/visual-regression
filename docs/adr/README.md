@@ -54,6 +54,9 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 058 | [Share Links with Pixels](./ADR-058-share-links-with-pixels.md)                                                                        | Accepted (supersedes the image clause of 038)          |
 | 059 | [A Repository Unit Test Asserts Query Policy, the Database Proves Mechanism](./ADR-059-query-policy-vs-mechanism.md)                   | Accepted (partially supersedes 054 decision 5)         |
 | 060 | [The Storage Quota Check Reads a Cached Byte Total](./ADR-060-storage-usage-is-a-cached-total.md)                                      | Accepted (partially supersedes 043)                    |
+| 061 | [A Project Is Named, but Its Identity Is the Id](./ADR-061-project-identity-is-the-id.md)                                              | Accepted (supersedes 035/038/049 in part)              |
+| 062 | [TOTP Seeds Are Encrypted at Rest](./ADR-062-totp-seeds-are-encrypted.md)                                                              | Accepted                                               |
+| 063 | [The Database Enforces One Reviewable Comparison per Variant](./ADR-063-single-pending-comparison-is-a-database-guarantee.md)          | Accepted                                               |
 
 ## Numbering
 

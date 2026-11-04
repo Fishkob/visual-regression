@@ -167,6 +167,20 @@ Postgres with `timezone = UTC` (the default in the shipped images and compose
 stack) — a non-UTC server session makes "older than N minutes/hours" predicates
 drift by the offset. Do not set `TZ` on the database to a local zone.
 
+## Encryption at Rest
+
+`TOTP_ENCRYPTION_KEY` encrypts every user's TOTP seed with AES-256-GCM (the
+32-byte key is derived from it with SHA-256; a stored seed is
+`v1:<iv>:<tag>:<ciphertext>`). It is required: `docker compose` refuses to start
+without it and the API fails env validation. Generate one with
+`openssl rand -hex 32` (install.sh generates it for a new installation).
+
+Keep it stable. A different key cannot decrypt existing seeds, and such a login
+fails closed instead of ignoring the second factor. Seeds written before
+encryption existed are read as plaintext and re-encrypted on the next successful
+TOTP login, so an upgrade does not lock anyone out. Rotating the key means
+re-enrolling TOTP for every user.
+
 ## Object Storage Bucket
 
 `RUSTFS_BUCKET` must be **exclusive to this installation**. The daily sweep lists
