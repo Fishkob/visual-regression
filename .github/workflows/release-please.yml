@@ -12,8 +12,10 @@ jobs:
   release-please:
     name: Release Please
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@v5
         id: release
@@ -25,6 +27,7 @@ jobs:
     needs: release-please
     if: needs.release-please.outputs.releases_created == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -47,3 +50,7 @@ jobs:
       contents: write
       packages: write
     uses: ./.github/workflows/release-images.yml
+    # Build what the tag points at, not whatever main has become since the
+    # release was cut: the tag is the artifact users pin.
+    with:
+      ref: ${{ needs.release-please.outputs.tag_name }}

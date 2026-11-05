@@ -2,6 +2,7 @@ name: CI (Frontend)
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-frontend-${{ github.workflow }}-${{ github.ref }}
@@ -17,47 +18,57 @@ on:
         type: boolean
   push:
     branches: [main, develop]
-    paths:
-      - "frontend/**"
-      - "docker-compose*.yml"
-      - "scripts/quality.sh"
-      - "frontend/Dockerfile.quality"
-      - "client-sdk/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - ".npmrc"
-      - ".dockerignore"
-      - ".github/actions/setup/**"
-      - ".github/workflows/ci-frontend.yml"
-      - ".github/workflows/sdk-sync-check.yml"
-      - "openapi-ts.config.ts"
-      - "!README.md"
   pull_request:
     branches: [main, develop]
-    paths:
-      - "frontend/**"
-      - "docker-compose*.yml"
-      - "scripts/quality.sh"
-      - "frontend/Dockerfile.quality"
-      - "client-sdk/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - ".npmrc"
-      - ".dockerignore"
-      - ".github/actions/setup/**"
-      - ".github/workflows/ci-frontend.yml"
-      - ".github/workflows/sdk-sync-check.yml"
-      - "openapi-ts.config.ts"
-      - "!README.md"
 
 jobs:
+  # The trigger has no path filter on purpose: a filtered-out workflow never
+  # starts, so its required status check stays pending and blocks a PR that
+  # touches nothing in frontend/. A gated job still reports (as skipped) and the
+  # gate below is the single check to require.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      # A manual run is an explicit request to run the checks; the filter would
+      # compare against the previous commit on the branch and skip everything.
+      frontend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v4
+        id: filter
+        if: github.event_name != 'workflow_dispatch'
+        with:
+          filters: |
+            frontend:
+              - "frontend/**"
+              - "docker-compose*.yml"
+              - "scripts/quality.sh"
+              - "client-sdk/**"
+              - "pdf-sidecar/**"
+              - "package.json"
+              - "pnpm-lock.yaml"
+              - "pnpm-workspace.yaml"
+              - ".npmrc"
+              - ".dockerignore"
+              - ".github/actions/setup/**"
+              - ".github/workflows/ci-frontend.yml"
+              - ".github/workflows/sdk-sync-check.yml"
+              - "openapi-ts.config.ts"
+
   lint-and-typecheck:
     name: Lint & TypeCheck
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event.inputs.skipTests != 'true'
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' && github.event.inputs.skipTests != 'true'
 
     steps:
       - uses: actions/checkout@v7
@@ -81,8 +92,8 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [lint-and-typecheck]
-    if: github.event.inputs.skipTests != 'true'
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' && github.event.inputs.skipTests != 'true'
 
     steps:
       - uses: actions/checkout@v7
@@ -97,8 +108,8 @@ jobs:
     name: Frontend Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [build]
-    if: github.event.inputs.skipTests != 'true'
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' && github.event.inputs.skipTests != 'true'
 
     steps:
       - uses: actions/checkout@v7
@@ -106,9 +117,11 @@ jobs:
         with:
           generate-prisma: "false"
 
+      # No working-directory: `--filter ./frontend` resolves against the current
+      # directory, so running this from frontend/ matches no project and pnpm
+      # exits 0 without running a single test.
       - name: Run Unit Tests
         run: pnpm --filter ./frontend test:coverage
-        working-directory: frontend
 
       - name: Upload coverage
         uses: actions/upload-artifact@v7
@@ -116,13 +129,14 @@ jobs:
           name: frontend-coverage
           path: frontend/coverage
           retention-days: 7
+          if-no-files-found: error
 
   frontend-ct:
     name: Frontend Component Tests
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    needs: [build]
-    if: github.event.inputs.skipTests != 'true'
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' && github.event.inputs.skipTests != 'true'
 
     steps:
       - uses: actions/checkout@v7
@@ -144,8 +158,8 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
-    needs: [build]
-    if: github.event.inputs.skipTests != 'true'
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' && github.event.inputs.skipTests != 'true'
 
     steps:
       - uses: actions/checkout@v7
@@ -199,8 +213,8 @@ jobs:
     name: Frontend E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    needs: [build]
-    if: github.event.inputs.skipTests != 'true'
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' && github.event.inputs.skipTests != 'true'
     # The stack runs NODE_ENV=production, where ADMIN_API_KEY and METRICS_API_KEY
     # have a 32 character floor (backend/src/config/env.validation.ts). Keeping
     # them job-wide stops the compose env and the probing steps from drifting
@@ -338,3 +352,32 @@ jobs:
       - name: Stop stack
         if: always()
         run: docker compose -f docker-compose.yml down -v
+
+  gate:
+    name: Frontend CI Gate
+    # The one status a branch protection rule has to require: it runs even when
+    # every other job was skipped for an unrelated change, and fails when one of
+    # them failed or was cancelled. The name carries the area because required
+    # checks match on the job name only, not on the workflow that produced it.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      [
+        changes,
+        lint-and-typecheck,
+        build,
+        frontend-unit-tests,
+        frontend-ct,
+        frontend-quality,
+        frontend-e2e,
+      ]
+    if: always()
+    steps:
+      - name: Job results
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: echo "$RESULTS"
+
+      - name: Fail on a failed or cancelled job
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

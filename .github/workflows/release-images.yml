@@ -2,6 +2,12 @@ name: Release Images
 
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: "Git ref (release tag) to build; empty builds the triggering ref"
+        required: false
+        type: string
+        default: ""
   workflow_dispatch:
 
 permissions:
@@ -20,6 +26,7 @@ jobs:
   build:
     name: Build ${{ matrix.image }}
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     permissions:
       contents: read
       packages: write
@@ -44,6 +51,8 @@ jobs:
             file: ./backend/Dockerfile.migrate
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Read version
         id: version
@@ -77,13 +86,14 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
   bump-chart:
     name: Bump chart image tags
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:

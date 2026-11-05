@@ -2,6 +2,7 @@ name: CI (Backend)
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-backend-${{ github.workflow }}-${{ github.ref }}
@@ -17,45 +18,60 @@ on:
         type: boolean
   push:
     branches: [main, develop]
-    paths:
-      - "backend/**"
-      - "client-sdk/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - ".npmrc"
-      - "docker-compose*.yml"
-      - ".github/actions/setup/**"
-      - ".github/workflows/ci-backend.yml"
-      - ".github/workflows/sdk-sync-check.yml"
-      - "openapi-ts.config.ts"
-      - "!frontend/**"
-      - "!README.md"
   pull_request:
     branches: [main, develop]
-    paths:
-      - "backend/**"
-      - "client-sdk/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - ".npmrc"
-      - "docker-compose*.yml"
-      - ".github/actions/setup/**"
-      - ".github/workflows/ci-backend.yml"
-      - ".github/workflows/sdk-sync-check.yml"
-      - "openapi-ts.config.ts"
-      - "!frontend/**"
-      - "!README.md"
 
 jobs:
+  # The trigger has no path filter on purpose: a filtered-out workflow never
+  # starts, so its required status check stays pending and blocks a PR that
+  # touches nothing in backend/. A gated job still reports (as skipped) and the
+  # gate below is the single check to require.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      # A manual run is an explicit request to run the checks; the filter would
+      # compare against the previous commit on the branch and skip everything.
+      backend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v4
+        id: filter
+        if: github.event_name != 'workflow_dispatch'
+        with:
+          filters: |
+            backend:
+              - "backend/**"
+              - "client-sdk/**"
+              - "pdf-sidecar/**"
+              - "package.json"
+              - "pnpm-lock.yaml"
+              - "pnpm-workspace.yaml"
+              - ".npmrc"
+              - "docker-compose*.yml"
+              - ".github/actions/setup/**"
+              - ".github/workflows/ci-backend.yml"
+              - ".github/workflows/sdk-sync-check.yml"
+              - "openapi-ts.config.ts"
+
   sdk-sync-check:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     uses: ./.github/workflows/sdk-sync-check.yml
 
   lint-and-typecheck:
     name: Lint & TypeCheck
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
 
     steps:
       - uses: actions/checkout@v7
@@ -74,8 +90,8 @@ jobs:
     name: Backend Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [lint-and-typecheck, sdk-sync-check]
-    if: github.event.inputs.skipTests != 'true'
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' && github.event.inputs.skipTests != 'true'
 
     steps:
       - uses: actions/checkout@v7
@@ -91,8 +107,8 @@ jobs:
     name: Backend E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    needs: backend-unit
-    if: github.event.inputs.skipTests != 'true'
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' && github.event.inputs.skipTests != 'true'
     # docker compose interpolates x-app-env for the whole file, so the required
     # TOTP key must be set even when only the infra services are started.
     env:
@@ -179,24 +195,7 @@ jobs:
         run: |
           set -e
 
-          echo "Starting Postgres for drift check..."
-          docker compose up -d postgres
-
-          echo "Waiting for Postgres..."
-          READY=0
-          for i in {1..60}; do
-            if docker compose exec -T postgres pg_isready -h 127.0.0.1 -p 5432 -U postgres; then
-              READY=1
-              break
-            fi
-            sleep 1
-          done
-          if [ "$READY" -ne 1 ]; then
-            docker compose logs postgres
-            echo "Postgres did not become ready in time"
-            exit 1
-          fi
-
+          # Postgres is already up and awaited by the infra step above.
           cd backend
           pnpm exec prisma migrate deploy
 
@@ -231,3 +230,24 @@ jobs:
       - name: Shutdown infra
         if: always()
         run: docker compose down -v
+
+  gate:
+    name: Backend CI Gate
+    # The one status a branch protection rule has to require: it runs even when
+    # every other job was skipped for an unrelated change, and fails when one of
+    # them failed or was cancelled. The name carries the area because required
+    # checks match on the job name only, not on the workflow that produced it.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      [changes, sdk-sync-check, lint-and-typecheck, backend-unit, backend-e2e]
+    if: always()
+    steps:
+      - name: Job results
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: echo "$RESULTS"
+
+      - name: Fail on a failed or cancelled job
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

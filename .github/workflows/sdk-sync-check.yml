@@ -25,11 +25,11 @@ jobs:
 
       - name: Check for SDK diff
         run: |
-          if ! git diff --stat client-sdk/ | grep -q .; then
+          if ! git diff --stat backend/swagger.json client-sdk/ | grep -q .; then
             echo "SDK is in sync with API"
           else
             echo "SDK is out of sync! Run 'pnpm run sdk:generate' to update."
-            git diff client-sdk/
+            git diff backend/swagger.json client-sdk/
             exit 1
           fi
 

@@ -40,6 +40,16 @@ updates:
       - dependency-name: "typescript"
         versions: [">=7.0.0 <8"]
 
+  - package-ecosystem: maven
+    directory: /pdf-sidecar
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      maven-pdf-sidecar:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
   - package-ecosystem: docker
     directory: /backend
     schedule:

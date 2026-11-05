@@ -2,6 +2,10 @@ name: Security (Dependency Scan)
 
 on:
   workflow_dispatch:
+  # Weekly, so an advisory against an unchanged lockfile still surfaces instead
+  # of waiting for the next dependency bump.
+  schedule:
+    - cron: "0 4 * * 1"
   push:
     branches: [main]
     paths:
@@ -31,6 +35,7 @@ jobs:
   dependency-scan:
     name: Dependency Scan (osv-scanner)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 

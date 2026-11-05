@@ -106,7 +106,10 @@ cd frontend && pnpm test   # Frontend unit tests
 ```
 
 CI also runs these, plus backend e2e tests (`pnpm run e2eTest`) and frontend
-Playwright tests.
+Playwright tests. Both CI workflows start on every pull request and skip the
+jobs whose `changes` filter finds the change unrelated; require the
+`Backend CI Gate` and `Frontend CI Gate` checks in branch protection, because
+those two report on every run.
 
 ## Committing
 

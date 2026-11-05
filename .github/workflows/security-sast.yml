@@ -29,6 +29,7 @@ jobs:
   semgrep:
     name: Semgrep (security-audit)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
