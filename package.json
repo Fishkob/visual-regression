@@ -7,9 +7,9 @@
   "packageManager": "pnpm@10.34.5",
   "repository": {
     "type": "git",
-    "url": "https://github.com/<owner>/visual-regression.git"
+    "url": "https://github.com/Fishkob/visual-regression.git"
   },
-  "homepage": "https://github.com/<owner>/visual-regression",
+  "homepage": "https://github.com/Fishkob/visual-regression",
   "keywords": [
     "visual-regression",
     "visual-testing",
