@@ -26,16 +26,15 @@ including tests, docs and review (`S` ≈ 1–3 days, `M` ≈ 1–2 weeks, `L` �
 2–4 weeks). `Priority` is `now` (next up), `on demand` (starts when a deployment
 asks for it) or `trigger` (starts when the named condition holds).
 
-| ID  | Item                                  | Why now / who asks                                                                                    | Size | Priority  |
-| --- | ------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---- | --------- |
-| N7  | `job.failed` webhook                  | A comparison that dies in the worker is silent until someone opens the run page (ADR-029).            | S–M  | now       |
-| N11 | Measure the "known noise" share       | The ignore-region trigger is unmeasured; `Approval.reason` already records `FLAKE`/`INFRA` (ADR-040). | S    | now       |
-| N4  | Typed-confirmation bulk delete        | Bulk test deletion has an API but no multi-row UI, and the delete is irreversible.                    | S–M  | now       |
-| N3  | Project-rename UI                     | The API, the audit row and the slug rules exist; only the dialog is missing (ADR-061).                | S    | on demand |
-| N2  | Cursor pagination for review comments | The read is capped at the newest 200 per test, with no way past them (ADR-040).                       | S    | on demand |
-| N10 | Variant-level mute                    | Mute is per test, so it covers every variant; the run gate has no rule for a muted one.               | M    | on demand |
-| N12 | Trusted-header auth behind a proxy    | An IdP proxy authenticates, the guard trusts a header: no dependency, so ADR-025 holds.               | S    | on demand |
-| N9  | OIDC / SAML login                     | Trigger, not a plan: a deployment that must use an IdP and refuses a proxy (ADR-025).                 | L    | trigger   |
+| ID  | Item                                  | Why now / who asks                                                                         | Size | Priority  |
+| --- | ------------------------------------- | ------------------------------------------------------------------------------------------ | ---- | --------- |
+| N7  | `job.failed` webhook                  | A comparison that dies in the worker is silent until someone opens the run page (ADR-029). | S–M  | now       |
+| N4  | Typed-confirmation bulk delete        | Bulk test deletion has an API but no multi-row UI, and the delete is irreversible.         | S–M  | now       |
+| N3  | Project-rename UI                     | The API, the audit row and the slug rules exist; only the dialog is missing (ADR-061).     | S    | on demand |
+| N2  | Cursor pagination for review comments | The read is capped at the newest 200 per test, with no way past them (ADR-040).            | S    | on demand |
+| N10 | Variant-level mute                    | Mute is per test, so it covers every variant; the run gate has no rule for a muted one.    | M    | on demand |
+| N12 | Trusted-header auth behind a proxy    | An IdP proxy authenticates, the guard trusts a header: no dependency, so ADR-025 holds.    | S    | on demand |
+| N9  | OIDC / SAML login                     | Trigger, not a plan: a deployment that must use an IdP and refuses a proxy (ADR-025).      | L    | trigger   |
 
 N7 is the seam, not the event: `run.finished` and `quota.exceeded` ride the same
 queue observer, so building it once is what makes the following events cheap. N12
@@ -82,8 +81,7 @@ with the decision: dynamic content keeps producing pendings, the threshold only
 absorbs global noise, and tests must be made deterministic on the capture side.
 **Revisit trigger:** if false positives from dynamic regions dominate review time
 (more than a third of pendings are "known noise"), reconsider — the comparison
-engine and the variant/baseline config are the seams to extend. The trigger is
-currently unmeasured; N11 supplies the number.
+engine and the variant/baseline config are the seams to extend.
 
 ### Email notifications — dropped (2026-11-05)
 
