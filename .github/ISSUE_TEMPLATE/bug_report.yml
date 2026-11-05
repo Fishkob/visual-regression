@@ -1,0 +1,51 @@
+name: Bug report
+description: Something behaves differently than documented
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security issues do not belong here — [SECURITY.md](../SECURITY.md) has the
+        private reporting channel.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The release tag or commit you are running (`APP_VERSION` in the stack, or the tag you pulled).
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Docker Compose (install.sh)
+        - Docker Compose (dev.sh)
+        - Kubernetes (Helm chart)
+        - Local pnpm dev
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Relevant container output. Redact API keys, cookies and presigned URLs.
+      render: shell
+    validations:
+      required: false

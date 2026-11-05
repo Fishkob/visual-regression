@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/Fishkob/visual-regression/security/advisories/new
+    about: Report it privately instead of opening a public issue.
+  - name: Deployment and usage questions
+    url: https://github.com/Fishkob/visual-regression/blob/main/docs/deployment.md
+    about: Install, environment variables and the Helm chart.
