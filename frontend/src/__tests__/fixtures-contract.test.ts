@@ -9,6 +9,8 @@ import type { PendingTestDto } from "@sdk/models/PendingTestDto.gen";
 import type { ProjectGroupsControllerFindAllResponses } from "@sdk/models/ProjectGroupsControllerFindAllResponses.gen";
 import type { ProjectsControllerGetOneProjectResponses } from "@sdk/models/ProjectsControllerGetOneProjectResponses.gen";
 import type { ProjectsControllerGetProjectsWithPendingFlagResponses } from "@sdk/models/ProjectsControllerGetProjectsWithPendingFlagResponses.gen";
+import type { PublicShareControllerResolveResponses } from "@sdk/models/PublicShareControllerResolveResponses.gen";
+import type { RunsControllerDetailResponses } from "@sdk/models/RunsControllerDetailResponses.gen";
 import type { ReviewInboxControllerGetPendingResponses } from "@sdk/models/ReviewInboxControllerGetPendingResponses.gen";
 import type { StorageControllerGetResponses } from "@sdk/models/StorageControllerGetResponses.gen";
 import type { TestVariantsDto } from "@sdk/models/TestVariantsDto.gen";
@@ -65,6 +67,10 @@ import {
   VISUAL_TEST_VARIANTS_SINGLE,
 } from "../../tests/ct/mocks/visualTest.mocks";
 import { WEBHOOKS_RESPONSE } from "../../tests/ct/mocks/webhooks.mocks";
+import {
+  PUBLIC_SHARE_TEST_RESPONSE,
+  RUN_DETAIL_RESPONSE,
+} from "../../tests/quality/mocks/pages.mocks";
 import { PROJECT_STORAGE_RESPONSE } from "../../tests/quality/cases";
 
 // `FulfillResponse.body` is a string, so `JSON.parse` alone cannot tie a fixture
@@ -370,5 +376,38 @@ describe("visual test variant fixtures", () => {
     expectVariantGallery(
       parse<TestsQueriesControllerGetVariantsResponses[200]>(response),
     );
+  });
+});
+
+describe("run detail fixtures", () => {
+  it("binds the run detail to RunDetailDto", () => {
+    const body = parse<RunsControllerDetailResponses[200]>(RUN_DETAIL_RESPONSE);
+    expect(body.run.key).toBe("ci-1042");
+    expect(["open", "pending", "failed", "passed"]).toContain(
+      body.status.state,
+    );
+    // The counts have to explain the gate: a muted pending comparison is still
+    // counted, and only the difference may hold the run.
+    expect(body.status.mutedPending).toBeLessThanOrEqual(
+      body.status.pendingComparisons,
+    );
+    expect(body.pending.length).toBeGreaterThan(0);
+    for (const row of body.pending) {
+      expect(typeof row.comparisonId).toBe("string");
+      expect(row.variant.viewport).toMatch(/^\d+x\d+$/);
+      expect(typeof row.muted).toBe("boolean");
+    }
+    expect(body.failedJobs.length).toBeGreaterThan(0);
+  });
+});
+
+describe("public share fixtures", () => {
+  it("binds a shared test to PublicShareDto", () => {
+    const body = parse<PublicShareControllerResolveResponses[200]>(
+      PUBLIC_SHARE_TEST_RESPONSE,
+    );
+    expect(body.scope).toBe("TEST");
+    expect(body.comparison?.baselineUrl).toBeTruthy();
+    expect(body.comparison?.candidateUrl).toBeTruthy();
   });
 });

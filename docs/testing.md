@@ -50,16 +50,18 @@ cannot hold a lock.
 `tests/quality/cases.ts` holds one case per page the gallery can render: a story
 id, the API mocks it needs, a `readyTestId` the shot waits for, and optional
 masks. Both quality specs iterate the list, so a case is photographed and scanned
-in light and dark at once. The cases cover the review surfaces, the admin pages
-and the three stand-alone screens (login, forbidden, change password); the
-fixtures for the admin pages live in `tests/quality/mocks/pages.mocks.ts`.
+in light and dark at once. The cases cover **every route** in
+`src/router/index.ts`: the review surfaces, the admin pages, the three stand-alone
+screens (login, forbidden, change password), the public share page and the run
+detail. The fixtures for the pages the gallery reaches only through it live in
+`tests/quality/mocks/pages.mocks.ts`.
 
-`src/__tests__/gallery-coverage.test.ts` requires every route in
-`src/router/index.ts` to be either backed by a case or listed in that test as an
-opt-out with a reason. Two routes are opted out on purpose — the share page and
-the run detail — because the gallery has no fixture for their nested payloads;
-the e2e suite drives them instead. Adding a route therefore fails the unit suite
-until the author either writes a case or records why not.
+`src/__tests__/gallery-coverage.test.ts` requires every route to be either backed
+by a case or listed in that test as an opt-out with a reason. That opt-out list is
+empty today: the last two entries — the share page and the run detail — got
+fixtures, so a layout or axe regression there is gated like everywhere else.
+Adding a route therefore fails the unit suite until the author either writes a
+case or records why not.
 
 ## Frontend E2E coverage
 

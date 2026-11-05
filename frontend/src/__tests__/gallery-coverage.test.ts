@@ -24,6 +24,7 @@ const ROUTE_CASES: Record<string, string[]> = {
   "project-settings": ["project-settings"],
   "project-webhooks": ["webhooks"],
   "project-runs": ["runs"],
+  "run-detail": ["run-detail"],
   "project-trends": ["trends"],
   // One route, two kinds: the dispatcher renders the image or the PDF view.
   "test-detail": [
@@ -34,20 +35,17 @@ const ROUTE_CASES: Record<string, string[]> = {
   "test-overview": ["test-overview"],
   "approval-done": ["approval-done"],
   "not-found": ["not-found"],
+  // Rendered outside the shell, which is why it stayed un-gated the longest: the
+  // public resolve endpoint answers a free-form payload, so its case builds the
+  // fixture against the mapper's source type.
+  share: ["share"],
 };
 
-// Routes without a case. Both render a page whose fixtures the gallery cannot
-// express yet: the share page resolves a free-form PublicShareDto through an
-// unauthenticated endpoint, and the run detail needs five nested collections
-// plus a live status poll. Both are driven by the e2e suite (share-links.spec,
-// runs.spec), which asserts behaviour but photographs nothing — until a case
-// exists, a regression in their layout or their axe score has no gate.
-const NOT_IN_GALLERY: Record<string, string> = {
-  share:
-    "e2e-only: public share resolution returns free-form DTOs, no gallery fixture yet",
-  "run-detail":
-    "e2e-only: needs run/status/uploads/approvals/failedJobs fixtures plus a status poll",
-};
+// Routes without a case, each with the reason it has none. Empty on purpose:
+// every route is photographed and scanned in both themes today. A new route
+// needs a case above — or an entry here that says why not, which the suite
+// keeps up to date.
+const NOT_IN_GALLERY: Record<string, string> = {};
 
 const routeNames = router
   .getRoutes()

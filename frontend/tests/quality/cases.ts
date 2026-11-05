@@ -31,6 +31,8 @@ import {
 import type { FulfillResponse } from "../ct/routes/api.routes";
 import {
   AUDIT_RESPONSE,
+  PUBLIC_SHARE_TEST_RESPONSE,
+  RUN_DETAIL_RESPONSE,
   RUNS_RESPONSE,
   SESSIONS_RESPONSE,
   TRENDS_RESPONSE,
@@ -316,6 +318,35 @@ export const QUALITY_CASES: QualityCase[] = [
       ["**/api/v1/projects/*/runs*", RUNS_RESPONSE],
     ],
     readyTestId: TEST_ID.runRow,
+  },
+  {
+    // A run that ended with a failed job: the gate card, the pending table (with
+    // its muted row) and the failed-jobs table in one shot. The state is
+    // terminal on purpose, so the status poll stays out of the screenshot.
+    name: "run-detail",
+    story: "views/RunDetailView/Routed",
+    props: { initialRoute: "/projects/checkout-ui/runs/ci-1042" },
+    routes: [
+      [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/projects/*/runs/ci-1042*", RUN_DETAIL_RESPONSE],
+    ],
+    readyTestId: TEST_ID.runDetail,
+    readyAlsoTestId: [
+      TEST_ID.runPendingRow,
+      TEST_ID.runApprovalRow,
+      TEST_ID.runFailedJobRow,
+    ],
+  },
+  {
+    // The share page is mounted outside the shell, so this case is its only
+    // layout gate: the public resolve endpoint answers a free-form payload and
+    // the page renders the pixels of the latest reviewable comparison.
+    name: "share",
+    story: "views/ShareView/Routed",
+    props: { initialRoute: "/share/gallery-share-token" },
+    routes: [["**/api/v1/public/shares/*", PUBLIC_SHARE_TEST_RESPONSE]],
+    readyTestId: TEST_ID.shareComparison,
+    readyAlsoTestId: TEST_ID.shareComparisonImage,
   },
   {
     name: "trends",

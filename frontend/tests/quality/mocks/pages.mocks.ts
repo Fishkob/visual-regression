@@ -1,12 +1,23 @@
 import type {
   AuditControllerListResponses,
   PaginationMetaDto,
+  RunApprovalDto,
+  RunFailedJobDto,
+  RunPendingDto,
+  RunStatusDto,
+  RunUploadDto,
   TrendsControllerGetResponses,
 } from "@sdk";
 
 import type { FulfillResponse } from "../../ct/routes/api.routes";
+import {
+  DEMO_BASELINE,
+  DEMO_CANDIDATE,
+  DEMO_DIFF,
+} from "../../ct/mocks/demoImages.mocks";
 import type { RunSource } from "@/domains/runs/run.mapper";
 import type { SessionSource } from "@/domains/security/security.mapper";
+import type { PublicShareSource } from "@/domains/share-links/share-link.mapper";
 import type { UserSource } from "@/domains/users/user.mapper";
 
 // The list endpoints are typed through their generated response type, so a DTO
@@ -16,9 +27,10 @@ import type { UserSource } from "@/domains/users/user.mapper";
 // widening the production mappers use.
 
 // Fixtures for the pages the gallery reached only through the e2e suite: the
-// admin surfaces and the three stand-alone screens (login, forbidden, change
-// password). Every value is absolute so the frozen clock in
-// `tests/quality/theme.ts` renders the same strings on every run.
+// admin surfaces, the three stand-alone screens (login, forbidden, change
+// password), the public share page and the run detail. Every value is absolute
+// so the frozen clock in `tests/quality/theme.ts` renders the same strings on
+// every run.
 export function json(body: unknown, status = 200): FulfillResponse {
   return {
     status,
@@ -192,3 +204,138 @@ export const TRENDS_RESPONSE = json({
   approvalLatency: { count: 34, avgSeconds: 7200 },
   flakeRate: { flakyTests: 3, totalTests: 48, rate: 0.0625 },
 } satisfies TrendsControllerGetResponses[200]);
+
+// The public share page in its TEST scope — the case that shows pixels, which
+// is the point of a share link. The resolve endpoint answers a free-form nested
+// payload, so the fixture is bound to the mapper's own source type; the three
+// images reuse the demo pair the review page renders.
+export const PUBLIC_SHARE_TEST_RESPONSE = json({
+  scope: "TEST",
+  projectName: "checkout-ui",
+  testName: "checkout-flow",
+  branchName: "main",
+  runKey: null,
+  expiresAt: "2026-10-29T12:00:00.000Z",
+  project: { name: "checkout-ui" },
+  test: {
+    name: "checkout-flow",
+    kind: "image",
+    status: "PENDING_APPROVAL",
+    branchName: "main",
+    variantCount: 6,
+  },
+  comparison: {
+    id: "cmp-share-1",
+    status: "PENDING_APPROVAL",
+    kind: "image",
+    mismatchPixelCount: 26460,
+    mismatchPageCount: null,
+    pageCount: null,
+    viewport: "1920x1080",
+    browser: "Chrome",
+    environment: "staging",
+    baselineUrl: DEMO_BASELINE,
+    candidateUrl: DEMO_CANDIDATE,
+    diffUrl: DEMO_DIFF,
+  },
+} satisfies PublicShareSource);
+
+// One run that ended badly: a failed job, two pending comparisons (one muted, so
+// the counts explain what holds the gate) and one recorded approval. The state is
+// terminal on purpose — a live one would start the status poll under the shot.
+export const RUN_DETAIL_RESPONSE = json({
+  run: {
+    id: "run-1",
+    key: "ci-1042",
+    branchName: "main",
+    commitSha: "9f2c8b71d4e5a0c6f3b8d1e4a7c0b5f2d8e1a4c7",
+    commitMessage: "Rebuild checkout summary card",
+    ciUrl: "https://ci.example.com/pipeline/1042",
+    createdAt: "2026-10-22T08:30:00.000Z",
+    lastActivityAt: "2026-10-22T10:12:00.000Z",
+    finishedAt: "2026-10-22T11:05:00.000Z",
+    finishedBy: "admin",
+  } satisfies RunSource,
+  status: {
+    state: "failed",
+    pendingComparisons: 2,
+    mutedPending: 1,
+    pendingJobs: 0,
+    failedJobs: 1,
+    approved: 3,
+    testCount: 6,
+  } satisfies RunStatusDto,
+  pending: [
+    {
+      comparisonId: "cmp-run-1",
+      testName: "checkout-flow",
+      kind: "image",
+      branchName: "main",
+      variant: {
+        viewport: "1920x1080",
+        browser: "Chrome",
+        environment: "staging",
+      },
+      mismatchPixelCount: 26460,
+      mismatchPageCount: null,
+      muted: false,
+      createdAt: "2026-10-22T09:40:00.000Z",
+    },
+    {
+      comparisonId: "cmp-run-2",
+      testName: "cart-summary",
+      kind: "image",
+      branchName: "main",
+      variant: {
+        viewport: "1366x768",
+        browser: "Firefox",
+        environment: "staging",
+      },
+      mismatchPixelCount: 157,
+      mismatchPageCount: null,
+      muted: true,
+      createdAt: "2026-10-22T09:52:00.000Z",
+    },
+  ] satisfies RunPendingDto[],
+  approvals: [
+    {
+      comparisonId: "cmp-run-0",
+      testName: "login-form",
+      approvedBy: "jane.doe",
+      approvedAt: "2026-10-22T10:20:00.000Z",
+    },
+  ] satisfies RunApprovalDto[],
+  uploads: [
+    {
+      testName: "checkout-flow",
+      kind: "image",
+      variant: {
+        viewport: "1920x1080",
+        browser: "Chrome",
+        environment: "staging",
+      },
+      outcome: "COMPARISON_QUEUED",
+      createdAt: "2026-10-22T09:38:00.000Z",
+    },
+    {
+      testName: "login-form",
+      kind: "image",
+      variant: {
+        viewport: "1920x1080",
+        browser: "Chrome",
+        environment: "staging",
+      },
+      outcome: "BASELINE_CREATED",
+      createdAt: "2026-10-22T09:12:00.000Z",
+    },
+  ] satisfies RunUploadDto[],
+  failedJobs: [
+    {
+      id: "job-1",
+      testName: "payment-form",
+      branchName: "main",
+      error: "QUOTA_EXCEEDED: the project storage quota is exhausted",
+      createdAt: "2026-10-22T09:58:00.000Z",
+    },
+  ] satisfies RunFailedJobDto[],
+});
