@@ -34,12 +34,11 @@ asks for it) or `trigger` (starts when the named condition holds).
 | N2  | Cursor pagination for review comments | The read is capped at the newest 200 per test, with no way past them (ADR-040).            | S    | on demand |
 | N10 | Variant-level mute                    | Mute is per test, so it covers every variant; the run gate has no rule for a muted one.    | M    | on demand |
 | N12 | Trusted-header auth behind a proxy    | An IdP proxy authenticates, the guard trusts a header: no dependency, so ADR-025 holds.    | S    | on demand |
-| N9  | OIDC / SAML login                     | Trigger, not a plan: a deployment that must use an IdP and refuses a proxy (ADR-025).      | L    | trigger   |
 
 N7 is the seam, not the event: `run.finished` and `quota.exceeded` ride the same
 queue observer, so building it once is what makes the following events cheap. N12
-is the cheap half of N9 — it covers a deployment that has an IdP proxy but not one
-that insists on OIDC in the app itself.
+covers the deployment that already runs an IdP proxy; one that insists on OIDC or
+SAML inside the app itself stays out of scope.
 
 ### Shipped
 
@@ -105,9 +104,9 @@ auto-archiving, a branch-level threshold. Commit metadata landed at run level
 
 ### Also deferred
 
-SSO/OIDC/SAML (see N9 and N12), a built-in crawler or browser capture (the platform
-stays capture-agnostic), and multi-tenancy/orgs (single-tenant self-hosting is the
-product).
+SSO/OIDC/SAML beyond an IdP proxy in front (N12), a built-in crawler or browser
+capture (the platform stays capture-agnostic), and multi-tenancy/orgs
+(single-tenant self-hosting is the product).
 
 ## Maintaining this document
 
