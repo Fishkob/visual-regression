@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The local gate: the same checks the CI workflows run, executable in one
-# command. It exists because the GitHub workflows may be switched off, and a
-# branch that nothing verifies is only as good as the last manual check.
+# command. CI is the backstop, not the first line: a branch that only CI
+# verifies costs a review round-trip for a lint error.
 #
 #   ./scripts/verify.sh             # full local gate, no Docker (~3 min)
 #   ./scripts/verify.sh --fast      # backend only, skips frontend + SDK drift (~1 min)

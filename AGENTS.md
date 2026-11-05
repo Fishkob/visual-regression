@@ -67,8 +67,8 @@ gate + the i18n parity check + the SDK drift check in one command (~2 min). It i
 wired into `.husky/pre-push`, so a normal `git push` runs it; `--fast` skips the
 frontend suite and the SDK check, `--with-e2e` adds the backend e2e suite,
 `--with-browser` the Playwright CT suite and `--with-quality` the visual + a11y
-runs in the quality image. The CI workflows may be disabled — treat `verify.sh`
-as the gate that must be green before a push.
+runs in the quality image. CI runs the same checks on every push and pull
+request; `verify.sh` is what must be green before you push.
 
 ## SDK Generation
 
