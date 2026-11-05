@@ -18,14 +18,25 @@ on:
         type: boolean
   push:
     branches: [main, develop]
+    # A docs-only push starts neither CI workflow: no branch protection depends
+    # on a push run, so it only spends runner minutes on markdown. The
+    # pull_request trigger below stays unfiltered — see the comment on `changes`.
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+      - "NOTICE"
+      - ".github/ISSUE_TEMPLATE/**"
+      - "skills-lock.json"
   pull_request:
     branches: [main, develop]
 
 jobs:
-  # The trigger has no path filter on purpose: a filtered-out workflow never
-  # starts, so its required status check stays pending and blocks a PR that
-  # touches nothing in frontend/. A gated job still reports (as skipped) and the
-  # gate below is the single check to require.
+  # The pull_request trigger has no path filter on purpose: a filtered-out
+  # workflow never starts, so its required status check stays pending and blocks
+  # a PR that touches nothing in frontend/. A gated job still reports (as
+  # skipped) and the gate below is the single check to require. Only the push
+  # trigger is filtered, where that trade does not exist.
   changes:
     name: Detect changes
     runs-on: ubuntu-latest

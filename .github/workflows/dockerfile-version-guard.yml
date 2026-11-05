@@ -2,8 +2,20 @@ name: Dockerfile Version Guard
 
 on:
   pull_request:
+    paths:
+      - "**/Dockerfile"
+      - "**/Dockerfile.*"
+      - "package.json"
+      - ".github/actions/setup/action.yml"
+      - ".github/workflows/dockerfile-version-guard.yml"
   push:
     branches: [main]
+    paths:
+      - "**/Dockerfile"
+      - "**/Dockerfile.*"
+      - "package.json"
+      - ".github/actions/setup/action.yml"
+      - ".github/workflows/dockerfile-version-guard.yml"
 
 permissions:
   contents: read

@@ -109,7 +109,11 @@ CI also runs these, plus backend e2e tests (`pnpm run e2eTest`) and frontend
 Playwright tests. Both CI workflows start on every pull request and skip the
 jobs whose `changes` filter finds the change unrelated; require the
 `Backend CI Gate` and `Frontend CI Gate` checks in branch protection, because
-those two report on every run.
+those two report on every run. A push to `main`/`develop` that only touches
+documentation (markdown, `docs/`, `LICENSE`, `NOTICE`, the issue template) starts
+neither workflow: branch protection does not depend on a push run, so filtering
+there costs nothing. The `pull_request` trigger stays unfiltered on purpose — a
+filtered-out run never reports its required gate, and the PR stays blocked.
 
 ## Committing
 
