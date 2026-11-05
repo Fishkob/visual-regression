@@ -69,7 +69,9 @@ set `FRONTEND_PORT` in `.env` and rerun `./install.sh up`.
 
 Day to day: `./install.sh up`, `down` and `logs` start, stop and tail the stack; an
 upgrade is `git pull && ./install.sh up` — the migration job runs before the new
-backend. `./install.sh --fresh` wipes the database and storage volumes and starts
+backend. An existing `.env` from before `v2.0.0` also needs a `TOTP_ENCRYPTION_KEY`
+(`openssl rand -hex 32`); compose refuses to start without it and names the
+variable. `./install.sh --fresh` wipes the database and storage volumes and starts
 clean.
 
 Ports and the service layout: [docs/local-development.md](docs/local-development.md#ports).
@@ -81,10 +83,10 @@ Production setup (TLS, reverse proxy, backups, Kubernetes):
 Create an API key under **API keys** in the dashboard and store it as a repository
 secret ([scopes and rotation](docs/ci-integration.md#1-authenticate)). The
 repository ships a composite action, so a pipeline needs no SDK. The example pins
-the `v1.4.0` tag; use the release you deploy:
+the `v2.1.0` tag; use the release you deploy:
 
 ```yaml
-- uses: Fishkob/visual-regression@v1.4.0
+- uses: Fishkob/visual-regression@v2.1.0
   with:
     api-url: https://vrt.example.com
     api-key: ${{ secrets.VRT_API_KEY }}
@@ -132,7 +134,7 @@ More detail and diagrams: [docs/architecture/overview.md](docs/architecture/over
 
 ## Status
 
-Released as `v1.4.0`; the changelog is generated from conventional commits and
+Released as `v2.1.0`; the changelog is generated from conventional commits and
 every release is a semver tag. The local gate
 (`./scripts/verify.sh`) runs lint, typecheck, the backend and frontend unit suites
 with a per-layer coverage gate, the i18n parity check and the SDK drift check;

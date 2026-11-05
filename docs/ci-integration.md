@@ -114,7 +114,7 @@ Job states: `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`. `COMPLETED` with `co
 
 ## 3. GitHub Action
 
-The repository ships a composite action at the root. Reference it by tag or SHA (replace `Fishkob/visual-regression` with the ref you deploy; the examples pin `v1.4.0`):
+The repository ships a composite action at the root. Reference it by tag or SHA (replace `Fishkob/visual-regression` with the ref you deploy; the examples pin `v2.1.0`):
 
 ```yaml
 name: Visual regression
@@ -129,7 +129,7 @@ jobs:
       - name: Capture login
         run: ./scripts/capture-login.sh # writes artifacts/login.png
 
-      - uses: Fishkob/visual-regression@v1.4.0
+      - uses: Fishkob/visual-regression@v2.1.0
         with:
           api-url: https://vrt.example.com
           api-key: ${{ secrets.VRT_API_KEY }}
@@ -177,7 +177,7 @@ Set `run-key` to group the uploads of one pipeline into a run and gate the step 
 | `concurrency`    | `"4"`    | Maximum parallel manifest uploads, 1-16.                                |
 
 ```yaml
-- uses: Fishkob/visual-regression@v1.4.0
+- uses: Fishkob/visual-regression@v2.1.0
   with:
     api-url: https://vrt.example.com
     api-key: ${{ secrets.VRT_API_KEY }}
@@ -250,7 +250,7 @@ https://vrt.example.com/projects/checkout/runs/12345?branch=feature%2Fx
 ```
 
 ```yaml
-- uses: Fishkob/visual-regression@v1.4.0
+- uses: Fishkob/visual-regression@v2.1.0
   with:
     api-url: https://vrt.example.com
     api-key: ${{ secrets.VRT_API_KEY }}
@@ -288,8 +288,8 @@ The client is not on npm: it is the tarball attached to a platform release, and 
 
 ```bash
 # private repository: the asset needs an authenticated download
-gh release download v1.4.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
-npm i ./fishkob-vrt-1.4.0.tgz
+gh release download v2.1.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
+npm i ./fishkob-vrt-2.1.0.tgz
 ```
 
 ```ts

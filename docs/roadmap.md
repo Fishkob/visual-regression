@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: living document · Last reviewed: 2026-11-04 · Owner: maintainers
+Status: living document · Last reviewed: 2026-11-05 · Owner: maintainers
 
 Phases 1–6 are shipped (R1–R26), and the phase-by-phase record — scope,
 acceptance criteria, verification notes, design sketches, the alternatives that
@@ -19,23 +19,36 @@ what shipped at 80 %, and the long-tail items a real deployment asks for.
 
 ## Candidates
 
-Not commitments: pick by demand. Size is for one developer including tests, docs
-and review (`S` ≈ 1–3 days, `M` ≈ 1–2 weeks, `L` ≈ 2–4 weeks).
+Not commitments: the order is a priority, not a promise. Every row names what
+asks for it — a user symptom, an operator symptom or the ADR it closes; a row that
+can only cite an ADR is tolerated, not justified. Size is for one developer
+including tests, docs and review (`S` ≈ 1–3 days, `M` ≈ 1–2 weeks, `L` ≈
+2–4 weeks). `Priority` is `now` (next up), `on demand` (starts when a deployment
+asks for it) or `trigger` (starts when the named condition holds).
 
-| ID  | Item                                        | Why now                                                                                                         | Size |
-| --- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---- |
-| N2  | Cursor pagination for review comments       | The read is capped at the newest 200 with no way past them (ADR-040 names it).                                  | S    |
-| N3  | Project-rename UI                           | The API, the audit row and the slug rules exist; only the dialog is missing.                                    | S    |
-| N4  | Typed-confirmation bulk delete              | Bulk test deletion has an API but no multi-row UI; the delete is irreversible.                                  | S–M  |
-| N5  | Per-project orphan grace                    | Grace is global because a storage object carries no project attribution; needs an object→project mapping first. | M    |
-| N6  | Retention window for share-link access rows | `share.access` rows are audit and grow without a bound.                                                         | S    |
-| N7  | `job.failed` webhook                        | ADR-029 leaves it out until the queue's failure path has an observer seam.                                      | S–M  |
-| N8  | Email notifications                         | Webhooks reach Slack/Teams; email is a separate infrastructure decision (SMTP, no vendor).                      | M    |
-| N9  | OIDC / SAML login                           | Trigger, not a plan: a deployment that must use an IdP. Zero-dependency stance until then (ADR-025).            | L    |
-| N10 | Variant-level mute                          | Mute is per test today, so it covers every variant. Needs a rule for a muted variant in the run gate.           | M    |
+| ID  | Item                                  | Why now / who asks                                                                                    | Size | Priority  |
+| --- | ------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---- | --------- |
+| N7  | `job.failed` webhook                  | A comparison that dies in the worker is silent until someone opens the run page (ADR-029).            | S–M  | now       |
+| N11 | Measure the "known noise" share       | The ignore-region trigger is unmeasured; `Approval.reason` already records `FLAKE`/`INFRA` (ADR-040). | S    | now       |
+| N4  | Typed-confirmation bulk delete        | Bulk test deletion has an API but no multi-row UI, and the delete is irreversible.                    | S–M  | now       |
+| N3  | Project-rename UI                     | The API, the audit row and the slug rules exist; only the dialog is missing (ADR-061).                | S    | on demand |
+| N2  | Cursor pagination for review comments | The read is capped at the newest 200 per test, with no way past them (ADR-040).                       | S    | on demand |
+| N10 | Variant-level mute                    | Mute is per test, so it covers every variant; the run gate has no rule for a muted one.               | M    | on demand |
+| N12 | Trusted-header auth behind a proxy    | An IdP proxy authenticates, the guard trusts a header: no dependency, so ADR-025 holds.               | S    | on demand |
+| N9  | OIDC / SAML login                     | Trigger, not a plan: a deployment that must use an IdP and refuses a proxy (ADR-025).                 | L    | trigger   |
+
+N7 is the seam, not the event: `run.finished` and `quota.exceeded` ride the same
+queue observer, so building it once is what makes the following events cheap. N12
+is the cheap half of N9 — it covers a deployment that has an IdP proxy but not one
+that insists on OIDC in the app itself.
 
 ### Shipped
 
+- **N5 — per-project orphan grace** (2026-10-25). `Project.orphanGraceHours`
+  governs the row-level orphan sweeps (screenshots and baselines) and is set
+  through `PATCH /storage` and shown by the retention preview. The
+  unreferenced-object sweep stays global on purpose: an object with no row has no
+  project to read a grace from.
 - **N1 — quality-gallery gaps** (2026-11-04). The share page and the run detail
   got gallery cases (story, fixture, `readyTestId`), so every route now has a
   pixel baseline and an axe scan in both themes and the opt-out list in
@@ -53,7 +66,10 @@ and review (`S` ≈ 1–3 days, `M` ≈ 1–2 weeks, `L` ≈ 2–4 weeks).
    when a pipeline is done — and a wrong guess reads as a passing gate.
 3. **Does the audit trail need a retention policy?** `AuditEvent`,
    `ComparisonOutcomeEvent` and `ApprovalVote` are append-only by design
-   (ADR-050) and grow with usage; see
+   (ADR-050) and grow with usage. `share.access` rows are the fastest-growing case
+   (formerly candidate N6): they come from every share-link open, so they are worth
+   deciding here rather than pruning alone, which would break append-only for one
+   action type. See
    [deployment.md](deployment.md#retention-runs-in-the-worker) for the operator's
    side of that trade.
 
@@ -66,7 +82,17 @@ with the decision: dynamic content keeps producing pendings, the threshold only
 absorbs global noise, and tests must be made deterministic on the capture side.
 **Revisit trigger:** if false positives from dynamic regions dominate review time
 (more than a third of pendings are "known noise"), reconsider — the comparison
-engine and the variant/baseline config are the seams to extend.
+engine and the variant/baseline config are the seams to extend. The trigger is
+currently unmeasured; N11 supplies the number.
+
+### Email notifications — dropped (2026-11-05)
+
+Webhooks reach Slack, Teams and any endpoint a deployment runs, and they are the
+channel a review team already watches. SMTP would add a surface the product owns
+and must keep correct — deliverability, bounces, addresses, unsubscribe — for a
+person-reach that an integration covers today. **Revisit trigger:** a deployment
+needs to reach a **person** (a named reviewer, a digest, an escalation) rather than
+a channel, and cannot do it with the webhook they already receive.
 
 ### Reject endpoint — out of scope (ADR-023)
 
@@ -81,9 +107,9 @@ auto-archiving, a branch-level threshold. Commit metadata landed at run level
 
 ### Also deferred
 
-Email/SMTP (webhooks cover the reach), SSO/OIDC/SAML (see N9), a built-in crawler
-or browser capture (the platform stays capture-agnostic), and multi-tenancy/orgs
-(single-tenant self-hosting is the product).
+SSO/OIDC/SAML (see N9 and N12), a built-in crawler or browser capture (the platform
+stays capture-agnostic), and multi-tenancy/orgs (single-tenant self-hosting is the
+product).
 
 ## Maintaining this document
 
@@ -91,5 +117,10 @@ or browser capture (the platform stays capture-agnostic), and multi-tenancy/orgs
   table; the acceptance criteria live in the commit and the ADR, not here.
 - A dropped candidate goes to **Considered and rejected** with the reason and a
   revisit trigger — never deleted.
+- Re-read the code when this page is reviewed. A candidate whose feature already
+  exists is shipped, not open, and a candidate whose reason has expired is
+  rewritten or dropped (N5 was built while it still sat in the table).
+- An entry needs a demand or a trigger sentence. "An ADR names it" is not a
+  demand; it is how the list fills up with things nobody misses.
 - A rule change belongs in [CONTEXT.md](../CONTEXT.md), a hard-to-reverse decision
   in [`docs/adr/`](adr/). This page only tracks status.
