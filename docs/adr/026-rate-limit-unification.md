@@ -12,8 +12,8 @@ per-IP) applied a `default` flood guard to every route plus route-scoped
 (`ApiKeyRateLimitBucket`) capped uploads per API key. Operators had to reason
 about five env knobs, a TTL-seconds↔milliseconds conversion, a per-IP
 `TRUST_PROXY` switch that silently affected the whole API, and an odd split
-("browser uploads are not counted per-key"). See
-`docs/superpowers/specs/2026-09-05-rate-limit-unification-design.md`.
+("browser uploads are not counted per-key"). The audit that prompted this was
+an internal working document and is not part of this repository.
 
 ## Decision
 

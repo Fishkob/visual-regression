@@ -12,7 +12,8 @@ The platform originally stored exactly one BASELINE per `(UnifiedTest, Variant)`
 - two branches uploading the same variant superseded each other's pending comparisons, so reviews silently disappeared;
 - there was no way to review a branch's changes in isolation or to tell which branch a pending comparison came from.
 
-The design spec is `docs/superpowers/specs/2026-10-24-branch-support-design.md`; the implementation plan is `docs/superpowers/plans/2026-10-24-branch-support.md`.
+The design spec and the implementation plan for this change were internal
+working documents and are not part of this repository.
 
 ## Decision
 
