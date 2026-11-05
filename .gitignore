@@ -30,6 +30,7 @@ backend/observability/secrets/x-metrics-key
 
 # Local screenshots, prototypes and scratch from design work
 /.preview/
+/.tmp/
 
 # Generated Prisma client — regenerate via `pnpm run db:prepare`
 /backend/prisma/generated/
