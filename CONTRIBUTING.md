@@ -75,12 +75,12 @@ past).
 
 A rule is stated in exactly **one** document; everything else links to it.
 
-| Question the document answers                   | Document                           | Updated when                                                     |
-| ----------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------- |
-| What does this term mean, and what is the rule? | [CONTEXT.md](CONTEXT.md)           | A term or a rule changes — always                                |
-| Why was this decided, and what was rejected?    | [`docs/adr/`](docs/adr/README.md)  | Never (frozen); a changed decision is a new ADR                  |
-| What is planned, in progress or shipped?        | [docs/roadmap.md](docs/roadmap.md) | Status changes; a shipped section is frozen history, not updated |
-| How do I run, configure or operate it?          | `README.md`, [`docs/`](docs/)      | Only when user-facing behavior or setup changes                  |
+| Question the document answers                   | Document                           | Updated when                                                                 |
+| ----------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------- |
+| What does this term mean, and what is the rule? | [CONTEXT.md](CONTEXT.md)           | A term or a rule changes — always                                            |
+| Why was this decided, and what was rejected?    | [`docs/adr/`](docs/adr/README.md)  | Never (frozen); a changed decision is a new ADR                              |
+| What is planned or in progress?                 | [docs/roadmap.md](docs/roadmap.md) | A candidate is added, shipped or dropped; shipped rounds live in git history |
+| How do I run, configure or operate it?          | `README.md`, [`docs/`](docs/)      | Only when user-facing behavior or setup changes                              |
 
 Consequences:
 

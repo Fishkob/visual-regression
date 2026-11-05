@@ -16,9 +16,35 @@ curl -X POST http://localhost:3000/api/v1/admin/api-keys \
   -d '{"name":"github-actions"}'
 ```
 
-The response contains `rawKey`, shown exactly once. Send it as `x-api-key` on every product request. Pass `scopes` (for example `["upload","read"]`, or `["upload","read","approve","admin"]` for scripting) and `projectNames` to narrow the key; the default is `upload` only. See [CI Authentication](../README.md#ci-authentication) for key rotation and scope details.
+The response contains `rawKey`, shown exactly once. Send it as `x-api-key` on every product request. Pass `scopes` (for example `["upload","read"]`, or `["upload","read","approve","admin"]` for scripting) and `projectNames` to narrow the key; the default is `upload` only.
+
+A single-file upload needs `upload`; `run-key` mode also needs `read` for the status poll and, while `finish-run` is on (the default), `admin` to finish the run.
+
+### Key lifecycle
+
+Create one key per pipeline, so a leak is revoked without touching the others.
+Listing, creating, rotating, revoking and deleting keys all require a **browser
+session** — an API key cannot manage keys, so a leaked CI key cannot escalate into
+permanent access:
+
+```bash
+# Both require a browser session — an API key cannot manage keys.
+POST /api/v1/api-keys/:id/rotate   {"graceMinutes": 60}
+POST /api/v1/api-keys/:id/revoke   {"reason": "rotated in CI"}
+```
+
+Rotation keeps the scopes and the project allowlist and returns the new `rawKey`
+once. `graceMinutes` (default 0) keeps the previous key working for that long, so a
+pipeline can be switched without a failed build; omitting `expiresInDays` inherits
+the predecessor's remaining lifetime. Revocation is immediate and records the
+reason in the audit trail. The dashboard shows owner, scopes, project badge, last
+use and expiry per key and offers the one action it should: delete.
 
 ## 2. Upload and wait
+
+Project and test names use letters, digits, `-` and `_`. The first upload creates
+the project, its default branch and the test, so a fresh install needs no manual
+setup — a name nobody has used yet is fine.
 
 ```bash
 # 1) Upload the capture.
@@ -88,7 +114,7 @@ Job states: `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`. `COMPLETED` with `co
 
 ## 3. GitHub Action
 
-The repository ships a composite action at the root. Reference it by tag or SHA (replace `Fishkob/visual-regression` with the ref you deploy):
+The repository ships a composite action at the root. Reference it by tag or SHA (replace `Fishkob/visual-regression` with the ref you deploy; the examples pin `v1.4.0`):
 
 ```yaml
 name: Visual regression
@@ -103,7 +129,7 @@ jobs:
       - name: Capture login
         run: ./scripts/capture-login.sh # writes artifacts/login.png
 
-      - uses: Fishkob/visual-regression@v1
+      - uses: Fishkob/visual-regression@v1.4.0
         with:
           api-url: https://vrt.example.com
           api-key: ${{ secrets.VRT_API_KEY }}
@@ -151,7 +177,7 @@ Set `run-key` to group the uploads of one pipeline into a run and gate the step 
 | `concurrency`    | `"4"`    | Maximum parallel manifest uploads, 1-16.                                |
 
 ```yaml
-- uses: Fishkob/visual-regression@v1
+- uses: Fishkob/visual-regression@v1.4.0
   with:
     api-url: https://vrt.example.com
     api-key: ${{ secrets.VRT_API_KEY }}
@@ -224,7 +250,7 @@ https://vrt.example.com/projects/checkout/runs/12345?branch=feature%2Fx
 ```
 
 ```yaml
-- uses: Fishkob/visual-regression@v1
+- uses: Fishkob/visual-regression@v1.4.0
   with:
     api-url: https://vrt.example.com
     api-key: ${{ secrets.VRT_API_KEY }}
@@ -250,7 +276,7 @@ If any capture fails the step fails with the run link, the number of failures an
 
 Manifest outputs: `upload-count` (successful uploads), `upload-failed-count`, `status` (`batch_completed` or `batch_failed`), `run-key`, and (after a successful batch) `run-state` and `run-pending-count`. The step summary lists the capture count, uploaded/failed counts, the failures and the run state.
 
-**JUnit report.** Set `report-path` to write the run's JUnit XML to disk (for example `reports/vrt-junit.xml`). The action downloads it after the run status is read, so the file exists for both a passing and a failing gate; a download problem is a warning, not a second failure. JUnit is the CI contract; see [Reports and trends](#reports-and-trends) for the other formats.
+**JUnit report.** Set `report-path` to write the run's JUnit XML to disk (for example `reports/vrt-junit.xml`). The action downloads it after the run status is read, so the file exists for both a passing and a failing gate; a download problem is a warning, not a second failure. JUnit is the CI contract; see [Reports and trends](#4-reports-and-trends) for the other formats.
 
 **Single file or manifest.** Uploading one file per step is still supported and behaves exactly as described above. Use the manifest for multi-capture runs. A run groups and gates; it does not isolate candidates — two uploads for the same variant still follow latest-wins, so parallel jobs for the same test can supersede each other.
 

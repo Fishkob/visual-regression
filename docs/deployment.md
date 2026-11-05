@@ -4,7 +4,41 @@ Deploys the full stack (backend, worker, frontend, pdf-sidecar, PostgreSQL, Rust
 
 > **Support status: best effort.** The supported deployment path is Docker Compose (`./install.sh`) — it is the one CI exercises end to end and the one that gets fixed first. The chart here is checked by `helm lint` and `helm template` ([chart-validate.yml](../.github/workflows/chart-validate.yml)) and by nothing else: no deployed smoke test, no cluster in CI, no coverage by `./scripts/verify.sh`. Treat this page as a well-tested starting point, not as a guarantee.
 >
-> **Not using Kubernetes?** For a single-host production-like setup, use Docker Compose instead: `./scripts/dev.sh docker` (see the root README).
+> **Not using Kubernetes?** For a single host, use the Compose installer: `./install.sh` — install, upgrade and day-to-day commands are in the [README quick start](../README.md#quick-start).
+
+## Environment Variables
+
+Both deployment paths read the same variables. [`.env.example`](../.env.example)
+documents every one of them inline and is the reference to copy for Compose; the
+table below is the subset a first deployment usually has to change.
+
+| Variable                                              | Controls                                                                         |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | PostgreSQL container and the backend connection                                  |
+| `RUSTFS_ROOT_USER` / `RUSTFS_ROOT_PASSWORD`           | RustFS root credentials (server and app)                                         |
+| `RUSTFS_BUCKET`                                       | Storage bucket name                                                              |
+| `RUSTFS_PUBLIC_URL`                                   | Browser-reachable storage base — the host of every presigned screenshot/PDF URL  |
+| `CORS_ORIGIN`                                         | Browser origins allowed to call the API (see below)                              |
+| `TRUST_PROXY`                                         | Trust `X-Forwarded-For` from the reverse proxy (see above)                       |
+| `TOTP_ENCRYPTION_KEY`                                 | Required; AES-256-GCM key for the TOTP seeds at rest                             |
+| `BASELINE_HISTORY_LIMIT`                              | Replaced baselines kept per test variant for restore (default 10, max 100)       |
+| `APP_PUBLIC_URL`                                      | Dashboard base used to build links in webhook payloads                           |
+| `AUTH_COOKIE_SECURE`                                  | `Secure` flag on the session cookie — set it in every deployment served over TLS |
+
+Compose interpolates these for the containers **and** passes them to the app, so a
+mismatch (for example the Postgres container and the backend's `DATABASE_URL`)
+breaks startup silently. For the local resolution order across `.env`,
+`backend/.env` and `backend/.env.local`, see
+[local-development.md](local-development.md#environment-files).
+
+### CORS
+
+`CORS_ORIGIN` is a comma-separated list of origins
+(`CORS_ORIGIN=http://localhost,http://localhost:80`); the backend splits it and
+sends `Access-Control-Allow-Credentials`, so the frontend origin must be listed
+exactly. The default is `http://localhost:5173` (the Vite dev server). A single `*`
+allows any origin, but without credentials — do not use it for a logged-in UI. Set
+the value explicitly in production.
 
 ## Prerequisites
 
