@@ -11,7 +11,6 @@ import { sqlText, sqlValues } from '@test/utils/raw-sql';
 function makeMockClient() {
   return {
     comparisonOutcomeEvent: { create: vi.fn(), findMany: vi.fn() },
-    approval: { groupBy: vi.fn().mockResolvedValue([]) },
     $queryRaw: vi.fn().mockResolvedValue([]),
   };
 }
@@ -131,51 +130,6 @@ describe('ComparisonOutcomeRepository', () => {
 
       const sql = sqlText(statement('"Approval" a'));
       expect(sql).toContain('a."projectId" = ?');
-    });
-
-    it('counts the approval reasons by project and window', async () => {
-      mockClient.approval.groupBy.mockResolvedValue([
-        { reason: 'INTENDED_CHANGE', _count: { _all: 6 } },
-        { reason: 'FLAKE', _count: { _all: 2 } },
-        { reason: 'INFRA', _count: { _all: 1 } },
-        { reason: null, _count: { _all: 3 } },
-      ]);
-
-      const trends = await repository.trends('p-shop', since);
-
-      expect(mockClient.approval.groupBy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          by: ['reason'],
-          where: { projectId: 'p-shop', approvedAt: { gte: since } },
-        }),
-      );
-      expect(trends.reviewReasons).toEqual({
-        intendedChange: 6,
-        flake: 2,
-        infra: 1,
-        noReason: 3,
-        withReason: 9,
-        knownNoise: 3,
-        knownNoiseRate: 3 / 9,
-      });
-    });
-
-    it('reports no noise share when only reason-less approvals exist', async () => {
-      mockClient.approval.groupBy.mockResolvedValue([
-        { reason: null, _count: { _all: 4 } },
-      ]);
-
-      const trends = await repository.trends('p-shop', since);
-
-      expect(trends.reviewReasons).toEqual({
-        intendedChange: 0,
-        flake: 0,
-        infra: 0,
-        noReason: 4,
-        withReason: 0,
-        knownNoise: 0,
-        knownNoiseRate: 0,
-      });
     });
   });
 });

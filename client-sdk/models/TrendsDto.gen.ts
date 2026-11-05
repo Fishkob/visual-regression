@@ -4,7 +4,6 @@ import type { ApprovalLatencyDto } from './ApprovalLatencyDto.gen';
 import type { DailyOutcomeDto } from './DailyOutcomeDto.gen';
 import type { FlakeRateDto } from './FlakeRateDto.gen';
 import type { PendingReviewTrendDto } from './PendingReviewTrendDto.gen';
-import type { ReviewReasonBreakdownDto } from './ReviewReasonBreakdownDto.gen';
 
 export type TrendsDto = {
     from: string;
@@ -14,5 +13,4 @@ export type TrendsDto = {
     pendingReview: PendingReviewTrendDto;
     approvalLatency: ApprovalLatencyDto;
     flakeRate: FlakeRateDto;
-    reviewReasons: ReviewReasonBreakdownDto;
 };

@@ -71,15 +71,6 @@ describe('ComparisonOutcomeService', () => {
       pendingReview: { count: 0, avgSeconds: 0, maxSeconds: 0 },
       approvalLatency: { count: 0, avgSeconds: 0 },
       flakeRate: { flakyTests: 0, totalTests: 0, rate: 0 },
-      reviewReasons: {
-        intendedChange: 0,
-        flake: 0,
-        infra: 0,
-        noReason: 0,
-        withReason: 0,
-        knownNoise: 0,
-        knownNoiseRate: 0,
-      },
     });
 
     await service.trends('shop', 7, now);

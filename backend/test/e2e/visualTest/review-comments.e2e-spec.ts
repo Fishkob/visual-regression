@@ -163,23 +163,6 @@ describe('Review comments and decision reasons (e2e)', () => {
         note: 'Flaky animation on the promo banner',
       }),
     );
-
-    // The reasoning behind the mask decision, read back as a number: a FLAKE
-    // approval is known noise, and the rate is over the reviews that carried a
-    // reason, not over every approval.
-    const trends = await request(app.getHttpServer())
-      .get('/api/v1/projects/shop/trends?days=30')
-      .set('Cookie', cookie)
-      .expect(200);
-    expect(trends.body.reviewReasons).toEqual({
-      intendedChange: 0,
-      flake: 1,
-      infra: 0,
-      noReason: 0,
-      withReason: 1,
-      knownNoise: 1,
-      knownNoiseRate: 1,
-    });
   });
 
   it('returns the newest 200 comments oldest-first', async () => {

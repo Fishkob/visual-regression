@@ -203,15 +203,6 @@ export const TRENDS_RESPONSE = json({
   pendingReview: { count: 12, avgSeconds: 5400, maxSeconds: 172800 },
   approvalLatency: { count: 34, avgSeconds: 7200 },
   flakeRate: { flakyTests: 3, totalTests: 48, rate: 0.0625 },
-  reviewReasons: {
-    intendedChange: 36,
-    flake: 3,
-    infra: 1,
-    noReason: 4,
-    withReason: 40,
-    knownNoise: 4,
-    knownNoiseRate: 0.1,
-  },
 } satisfies TrendsControllerGetResponses[200]);
 
 // The public share page in its TEST scope — the case that shows pixels, which

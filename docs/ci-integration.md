@@ -373,9 +373,8 @@ The run detail page has the same three downloads. `GET /api/v1/projects/{project
 - `pendingReview` — count plus average/max age of comparisons awaiting review, in seconds.
 - `approvalLatency` — count plus average time from comparison completion to approval, in seconds (matched through the durable outcome history).
 - `flakeRate` — tests with both changed and clean outcomes in the window vs. all tests.
-- `reviewReasons` — approvals by decision reason (`intendedChange`, `flake`, `infra`), plus `noReason` for the approvals that recorded none (a bulk "approve all" deliberately writes no reason) and `knownNoise` / `knownNoiseRate` = `(flake + infra) / withReason`. That rate is the number behind the platform's ignore-region decision: if a third of the reviewed changes are known noise, masks come back on the table.
 
-The dashboard shows these on the project's Trends page (the review-reason breakdown is API-only today). The underlying `ComparisonOutcomeEvent` rows are written after each comparison completes (outside the comparison transaction) and survive test/branch deletion, so trends do not depend on comparisons that approval deletes. The `reviewReasons` block reads the durable `Approval` rows instead, because the reason lives with the approval (ADR-040), not with the comparison outcome.
+The dashboard shows these on the project's Trends page. The underlying `ComparisonOutcomeEvent` rows are written after each comparison completes (outside the comparison transaction) and survive test/branch deletion, so trends do not depend on comparisons that approval deletes.
 
 ## 5. Notes and limits
 

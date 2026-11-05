@@ -22,15 +22,6 @@ describe('TrendsService', () => {
     pendingReview: { count: 1, avgSeconds: 60, maxSeconds: 120 },
     approvalLatency: { count: 2, avgSeconds: 30 },
     flakeRate: { flakyTests: 1, totalTests: 4, rate: 0.25 },
-    reviewReasons: {
-      intendedChange: 3,
-      flake: 1,
-      infra: 1,
-      noReason: 2,
-      withReason: 5,
-      knownNoise: 2,
-      knownNoiseRate: 0.4,
-    },
   };
 
   beforeEach(() => {
