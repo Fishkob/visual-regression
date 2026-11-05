@@ -1,5 +1,9 @@
 # Local Development Guide
 
+> **Self-hosting?** This guide is the developer setup (pnpm, hot reload,
+> `./scripts/dev.sh reset` wipes data). To run the Docker stack, use `./install.sh`
+> — see the [README quick start](../README.md#quick-start).
+
 ## Prerequisites
 
 - Docker & Docker Compose
@@ -44,8 +48,45 @@ pnpm run dev:frontend   # Frontend on :5173
 | Full clean restart             | `./scripts/dev.sh reset`                          |
 | Nuke everything                | `./scripts/dev.sh delete`                         |
 | Seed test data                 | `./scripts/dev.sh seed`                           |
+| Install deps + SDK + build     | `pnpm run bootstrap`                              |
+| Build all packages             | `pnpm run build`                                  |
 | Open database UI               | `pnpm run db:prepare && cd backend && pnpm db:ui` |
 | Generate SDK                   | `pnpm run sdk:generate && pnpm run sdk:build`     |
+
+## Seeding demo data
+
+`./scripts/dev.sh seed` runs three seeders against the authenticated REST API: a
+demo set (projects, tests, variants, groups, CI runs and feature branches), the
+e2e fixtures, and a dev project. `./install.sh --seed` runs the same three inside a
+Docker stack.
+
+All three authenticate with an API key, so they need `SEED_API_KEY`:
+
+- `./scripts/dev.sh seed` sources `backend/.env.local` — set `SEED_API_KEY` there,
+  or set `ADMIN_API_KEY` and `dev.sh` provisions a `dev-seed` key with every scope
+  through the admin endpoint and persists it to `backend/.env.local`, so later runs
+  reuse it instead of minting another one.
+- Running `pnpm run seed:*` directly requires `export SEED_API_KEY=<rawKey>`
+  first, because the scripts do not load dotenv files themselves.
+
+The demo seed deletes existing projects before it writes, so a repeated run
+replaces the dataset instead of piling up. Every image test is seeded in one of the
+four review states — pending, unchanged, muted or approved — so the inbox, the
+project table and the run gate show what the product distinguishes instead of a
+dozen identical pendings; the map is `DEMO_STORY`. The seed also creates **feature
+branches** to exercise branch-scoped baselines: each branch carries one pending
+review whose first upload inherited the target branch's baseline, tests that were
+never uploaded on the branch read as `inherited`, and one branch is archived
+(`admin-ui/experiment/old-header`). The scenarios live in
+[`backend/src/scripts/seeds/fixtures.ts`](../backend/src/scripts/seeds/fixtures.ts)
+(`DEMO_STORY`, `DEMO_BRANCH_SEEDS`, `DEV_BRANCH_SEEDS`). The local `.env.local`
+ships with `UPLOAD_RATE_LIMIT_PER_MINUTE=0`, because a full seed uploads hundreds of
+screenshots; the seeders also retry on `429`, so seeding works either way, just
+slower with the limit enabled.
+
+Approving a seeded test waits for the worker to produce the comparison (the demo
+seed polls the variant read) — a seed run therefore needs the worker up, just like
+the review UI does.
 
 ## Testing
 

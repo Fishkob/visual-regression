@@ -62,6 +62,135 @@ export const DEV_TESTS: Record<string, readonly string[]> = {
   'dev-project': ['smoke-test', 'pdf-report'],
 } as const;
 
+export type DemoStoryState = 'pending' | 'unchanged' | 'muted' | 'approved';
+
+// One state per demo test, so a fresh demo shows what the product distinguishes
+// instead of a dozen identical pendings: a reviewable change, a clean test, a
+// muted pending (which the run gate does not hold against you) and a test whose
+// change was approved — that one also gets a baseline revision and an approval
+// history row.
+export const DEMO_STORY: Record<string, Record<string, DemoStoryState>> = {
+  'checkout-ui': {
+    'login-form': 'pending',
+    'checkout-flow': 'unchanged',
+    'payment-form': 'approved',
+    'cart-summary': 'muted',
+  },
+  'dashboard-ui': {
+    overview: 'pending',
+    analytics: 'unchanged',
+    settings: 'approved',
+    'user-profile': 'muted',
+  },
+  'admin-ui': {
+    'user-list': 'pending',
+    roles: 'unchanged',
+    permissions: 'approved',
+    'audit-log': 'muted',
+  },
+};
+
+export function demoStoryState(project: string, test: string): DemoStoryState {
+  return DEMO_STORY[project]?.[test] ?? 'pending';
+}
+
+const MUTE_WINDOW_DAYS = 14;
+const APPROVAL_POLL_MS = 1_000;
+const APPROVAL_TIMEOUT_MS = 90_000;
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+export async function muteTest(
+  apiKey: string,
+  project: string,
+  test: string,
+  reason: string,
+): Promise<void> {
+  process.stdout.write(`  Muting "${test}"... `);
+  const mutedUntil = new Date(
+    Date.now() + MUTE_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  const res = await withRateLimitRetry(`muting "${test}"`, () =>
+    request(BASE_URL)
+      .patch(
+        `/api/v1/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(test)}/metadata`,
+      )
+      .set('Content-Type', 'application/json')
+      .set(seedAuth(apiKey))
+      .send({ mutedUntil, muteReason: reason }),
+  );
+
+  console.log(String(res.status));
+  if (res.status !== 200) {
+    throw new Error(`Muting "${test}" failed (HTTP ${res.status}).`);
+  }
+}
+
+/**
+ * Waits for the worker to turn the test's upload into a pending comparison, then
+ * approves it through the same endpoint the UI uses ("approve all pending" for
+ * the test), so the demo ends up with an approval, a baseline revision and a
+ * clean test instead of another pending row.
+ */
+export async function approvePendingTest(
+  apiKey: string,
+  project: string,
+  test: string,
+  timeoutMs = APPROVAL_TIMEOUT_MS,
+): Promise<void> {
+  process.stdout.write(`  Approving "${test}"... `);
+  const basePath = `/api/v1/projects/${encodeURIComponent(project)}/tests/${encodeURIComponent(test)}`;
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const variants = await request(BASE_URL)
+      .get(`${basePath}/variants`)
+      .set(seedAuth(apiKey));
+    if (variants.status === 401 || variants.status === 403) {
+      console.log(
+        `skipped (the seed API key needs read and approve scopes, got HTTP ${variants.status})`,
+      );
+      return;
+    }
+    const rows =
+      (variants.body as { variants?: { status?: string }[] } | undefined)
+        ?.variants ?? [];
+
+    if (rows.some((row) => row.status === 'PENDING_APPROVAL')) {
+      const approved = await withRateLimitRetry(`approving "${test}"`, () =>
+        request(BASE_URL)
+          .post(`${basePath}/approvals/all`)
+          .set(seedAuth(apiKey)),
+      );
+      if (approved.status === 403) {
+        console.log(
+          'skipped (the seed API key needs the approve scope for this one)',
+        );
+        return;
+      }
+      const count =
+        (approved.body as { approved?: number } | undefined)?.approved ?? 0;
+      console.log(`${approved.status} -> ${count} approved`);
+      if (approved.status !== 201) {
+        throw new Error(
+          `Approving "${test}" failed (HTTP ${approved.status}).`,
+        );
+      }
+      return;
+    }
+
+    await sleep(APPROVAL_POLL_MS);
+  }
+
+  throw new Error(
+    `No pending comparison for "${test}" appeared within ${Math.round(
+      timeoutMs / 1000,
+    )}s — is the worker running?`,
+  );
+}
+
 export type Browser = (typeof BROWSERS)[number];
 export type Viewport = (typeof VIEWPORTS)[number];
 export type Environment = (typeof ENVIRONMENTS)[number];
