@@ -38,11 +38,11 @@ jobs:
       # compare against the previous commit on the branch and skip everything.
       backend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.backend }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         if: github.event_name != 'workflow_dispatch'
         with:
@@ -74,7 +74,7 @@ jobs:
     if: needs.changes.outputs.backend == 'true'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
 
       - name: Run ESLint & TypeCheck (Backend)
@@ -94,7 +94,7 @@ jobs:
     if: needs.changes.outputs.backend == 'true' && github.event.inputs.skipTests != 'true'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
 
       - name: Run unit tests with coverage
@@ -115,7 +115,7 @@ jobs:
       TOTP_ENCRYPTION_KEY: ci-backend-totp-key-0123456789abcdef
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
 
       # The e2e bootstrap (backend/test/e2e/global/setup.ts) refuses to run

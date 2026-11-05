@@ -38,11 +38,11 @@ jobs:
       # compare against the previous commit on the branch and skip everything.
       frontend: ${{ github.event_name == 'workflow_dispatch' && 'true' || steps.filter.outputs.frontend }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         if: github.event_name != 'workflow_dispatch'
         with:
@@ -71,7 +71,7 @@ jobs:
     if: needs.changes.outputs.frontend == 'true' && github.event.inputs.skipTests != 'true'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
         with:
           generate-prisma: "false"
@@ -96,7 +96,7 @@ jobs:
     if: needs.changes.outputs.frontend == 'true' && github.event.inputs.skipTests != 'true'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
         with:
           generate-prisma: "false"
@@ -112,7 +112,7 @@ jobs:
     if: needs.changes.outputs.frontend == 'true' && github.event.inputs.skipTests != 'true'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
         with:
           generate-prisma: "false"
@@ -124,7 +124,7 @@ jobs:
         run: pnpm --filter ./frontend test:coverage
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-coverage
           path: frontend/coverage
@@ -139,7 +139,7 @@ jobs:
     if: needs.changes.outputs.frontend == 'true' && github.event.inputs.skipTests != 'true'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
         with:
           generate-prisma: "false"
@@ -162,13 +162,13 @@ jobs:
     if: needs.changes.outputs.frontend == 'true' && github.event.inputs.skipTests != 'true'
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Verify x86_64 runner
         run: test "$(uname -m)" = "x86_64"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Build quality image
         run: >
@@ -200,7 +200,7 @@ jobs:
 
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-quality-report
           path: |
@@ -238,13 +238,13 @@ jobs:
       LOGIN_RATE_LIMIT_PER_MINUTE: "1000"
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
         with:
           generate-prisma: "false"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Build app images (gha-cached)
         run: docker buildx bake -f docker-compose.yml --load
