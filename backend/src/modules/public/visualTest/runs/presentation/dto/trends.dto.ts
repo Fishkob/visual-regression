@@ -68,6 +68,45 @@ export class FlakeRateDto {
   rate!: number;
 }
 
+export class ReviewReasonBreakdownDto {
+  @ApiProperty()
+  @Expose()
+  intendedChange!: number;
+
+  @ApiProperty()
+  @Expose()
+  flake!: number;
+
+  @ApiProperty()
+  @Expose()
+  infra!: number;
+
+  @ApiProperty({
+    description:
+      'Approvals without a reason: bulk approvals deliberately record none',
+  })
+  @Expose()
+  noReason!: number;
+
+  @ApiProperty({
+    description:
+      'Approvals that carried a reason — the denominator of knownNoiseRate',
+  })
+  @Expose()
+  withReason!: number;
+
+  @ApiProperty({ description: 'flake + infra' })
+  @Expose()
+  knownNoise!: number;
+
+  @ApiProperty({
+    description:
+      'knownNoise / withReason, 0 when no approval in the window carried a reason',
+  })
+  @Expose()
+  knownNoiseRate!: number;
+}
+
 export class TrendsDto {
   @ApiProperty()
   @Expose()
@@ -100,4 +139,9 @@ export class TrendsDto {
   @Expose()
   @Type(() => FlakeRateDto)
   flakeRate!: FlakeRateDto;
+
+  @ApiProperty({ type: ReviewReasonBreakdownDto })
+  @Expose()
+  @Type(() => ReviewReasonBreakdownDto)
+  reviewReasons!: ReviewReasonBreakdownDto;
 }

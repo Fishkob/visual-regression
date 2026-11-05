@@ -25,11 +25,22 @@ export interface DailyOutcomeCount {
   withinThreshold: number;
 }
 
+export interface ReviewReasonBreakdown {
+  intendedChange: number;
+  flake: number;
+  infra: number;
+  noReason: number;
+  withReason: number;
+  knownNoise: number;
+  knownNoiseRate: number;
+}
+
 export interface TrendWindow {
   daily: DailyOutcomeCount[];
   pendingReview: { count: number; avgSeconds: number; maxSeconds: number };
   approvalLatency: { count: number; avgSeconds: number };
   flakeRate: { flakyTests: number; totalTests: number; rate: number };
+  reviewReasons: ReviewReasonBreakdown;
 }
 
 @Injectable()
@@ -51,9 +62,9 @@ export class ComparisonOutcomeRepository extends BaseRepository {
   }
 
   async trends(projectId: string, since: Date): Promise<TrendWindow> {
-    // Four independent aggregates over three tables; they used to run one after
-    // another, so the trends page paid four round-trips in series.
-    const [daily, pending, approval, flake] = await Promise.all([
+    // Five independent aggregates over four tables; they used to run one after
+    // another, so the trends page paid a round-trip per aggregate in series.
+    const [daily, pending, approval, flake, reasons] = await Promise.all([
       this.client.$queryRaw<
         {
           date: Date;
@@ -109,10 +120,29 @@ export class ComparisonOutcomeRepository extends BaseRepository {
              COUNT(*) AS total
       FROM per_test
     `),
+      this.client.approval.groupBy({
+        by: ['reason'],
+        where: { projectId, approvedAt: { gte: since } },
+        _count: { _all: true },
+      }),
     ]);
 
     const flakyTests = Number(flake[0]?.flaky ?? 0);
     const totalTests = Number(flake[0]?.total ?? 0);
+
+    // A bulk approval deliberately writes no reason (ADR-040), so "no reason" is
+    // its own bucket: the noise share only means something over the reviews that
+    // made a statement, and a pending nobody has judged yet is not part of it.
+    const counted = { intendedChange: 0, flake: 0, infra: 0, noReason: 0 };
+    for (const row of reasons) {
+      const count = row._count._all;
+      if (row.reason === 'INTENDED_CHANGE') counted.intendedChange += count;
+      else if (row.reason === 'FLAKE') counted.flake += count;
+      else if (row.reason === 'INFRA') counted.infra += count;
+      else counted.noReason += count;
+    }
+    const withReason = counted.intendedChange + counted.flake + counted.infra;
+    const knownNoise = counted.flake + counted.infra;
 
     return {
       daily: daily.map((row) => ({
@@ -134,6 +164,12 @@ export class ComparisonOutcomeRepository extends BaseRepository {
         flakyTests,
         totalTests,
         rate: totalTests === 0 ? 0 : flakyTests / totalTests,
+      },
+      reviewReasons: {
+        ...counted,
+        withReason,
+        knownNoise,
+        knownNoiseRate: withReason === 0 ? 0 : knownNoise / withReason,
       },
     };
   }

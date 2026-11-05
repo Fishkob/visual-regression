@@ -24,6 +24,15 @@ const trendsDto = (overrides: Partial<TrendsDto> = {}): TrendsDto => ({
   pendingReview: { count: 3, avgSeconds: 11_520, maxSeconds: 172_800 },
   approvalLatency: { count: 4, avgSeconds: 720 },
   flakeRate: { flakyTests: 1, totalTests: 4, rate: 0.25 },
+  reviewReasons: {
+    intendedChange: 3,
+    flake: 1,
+    infra: 0,
+    noReason: 0,
+    withReason: 4,
+    knownNoise: 1,
+    knownNoiseRate: 0.25,
+  },
   ...overrides,
 });
 

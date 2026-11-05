@@ -7686,6 +7686,45 @@
           "rate"
         ]
       },
+      "ReviewReasonBreakdownDto": {
+        "type": "object",
+        "properties": {
+          "intendedChange": {
+            "type": "number"
+          },
+          "flake": {
+            "type": "number"
+          },
+          "infra": {
+            "type": "number"
+          },
+          "noReason": {
+            "type": "number",
+            "description": "Approvals without a reason: bulk approvals deliberately record none"
+          },
+          "withReason": {
+            "type": "number",
+            "description": "Approvals that carried a reason — the denominator of knownNoiseRate"
+          },
+          "knownNoise": {
+            "type": "number",
+            "description": "flake + infra"
+          },
+          "knownNoiseRate": {
+            "type": "number",
+            "description": "knownNoise / withReason, 0 when no approval in the window carried a reason"
+          }
+        },
+        "required": [
+          "intendedChange",
+          "flake",
+          "infra",
+          "noReason",
+          "withReason",
+          "knownNoise",
+          "knownNoiseRate"
+        ]
+      },
       "TrendsDto": {
         "type": "object",
         "properties": {
@@ -7712,6 +7751,9 @@
           },
           "flakeRate": {
             "$ref": "#/components/schemas/FlakeRateDto"
+          },
+          "reviewReasons": {
+            "$ref": "#/components/schemas/ReviewReasonBreakdownDto"
           }
         },
         "required": [
@@ -7721,7 +7763,8 @@
           "daily",
           "pendingReview",
           "approvalLatency",
-          "flakeRate"
+          "flakeRate",
+          "reviewReasons"
         ]
       },
       "PdfVariantDetailsDto": {

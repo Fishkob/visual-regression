@@ -282,6 +282,7 @@ export type { ReviewInboxControllerGetBranchesResponses } from './models/ReviewI
 export type { ReviewInboxControllerGetPendingData } from './models/ReviewInboxControllerGetPendingData.gen';
 export type { ReviewInboxControllerGetPendingResponse } from './models/ReviewInboxControllerGetPendingResponse.gen';
 export type { ReviewInboxControllerGetPendingResponses } from './models/ReviewInboxControllerGetPendingResponses.gen';
+export type { ReviewReasonBreakdownDto } from './models/ReviewReasonBreakdownDto.gen';
 export type { RevokeApiKeyDto } from './models/RevokeApiKeyDto.gen';
 export type { RotateApiKeyDto } from './models/RotateApiKeyDto.gen';
 export type { RunApprovalDto } from './models/RunApprovalDto.gen';
