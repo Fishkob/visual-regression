@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/Fishkob/visual-regression/compare/v2.0.0...v2.1.0) (2026-11-05)
+
+
+### Features
+
+* **seeds:** give the demo one test per review state ([3dc43ad](https://github.com/Fishkob/visual-regression/commit/3dc43ad88b5cf7183a4fcb279c50f5a925fa825d))
+
 ## [2.0.0](https://github.com/Fishkob/visual-regression/compare/v1.4.0...v2.0.0) (2026-11-04)
 
 
