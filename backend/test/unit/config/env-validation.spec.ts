@@ -168,9 +168,11 @@ describe('Environment Validation', () => {
       { abortEarly: false },
     );
     expect(error).toBeUndefined();
-    expect(value.UPLOAD_RATE_LIMIT_PER_MINUTE).toBe(60);
-    expect(value.LOGIN_RATE_LIMIT_PER_MINUTE).toBe(5);
-    expect(value.LOG_RATE_LIMIT_PER_MINUTE).toBe(100);
+    expect(value.UPLOAD_RATE_LIMIT_PER_MINUTE).toBe(240);
+    expect(value.LOGIN_RATE_LIMIT_PER_MINUTE).toBe(10);
+    expect(value.LOG_RATE_LIMIT_PER_MINUTE).toBe(400);
+    expect(value.RENDER_RATE_LIMIT_PER_MINUTE).toBe(240);
+    expect(value.ADMIN_RATE_LIMIT_PER_MINUTE).toBe(120);
   });
 
   it('defaults TRUST_PROXY to false', () => {

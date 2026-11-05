@@ -97,7 +97,7 @@ bundled topologies proxy the API — Docker Compose through the nginx frontend,
 Helm through the ingress — so `TRUST_PROXY` defaults to **true** in
 `docker-compose.yml`, the Helm chart and `.env.example`. Without it every request
 reaches Nest from the proxy's IP, which collapses the per-IP login limit into one
-deployment-wide bucket: five failed logins per minute would lock out every user
+deployment-wide bucket: ten failed logins per minute would lock out every user
 (and `Session.ip` would record the proxy for everyone).
 
 Keep the default when a proxy is in front. Set it to `false` only when the API is
@@ -116,13 +116,19 @@ would be an origin where a direct client can supply its own `X-Forwarded-For`.
 Rate limits are counters per fixed one-minute window in Postgres, so they hold
 across all backend instances. Five rules exist, each configured by a
 `*_RATE_LIMIT_PER_MINUTE` env var and disabled by setting it to `0`: uploads per
-API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default 60), PDF page renders per
-credential (`RENDER_RATE_LIMIT_PER_MINUTE`, default 120 — the render cache is
+API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default 240), PDF page renders per
+credential (`RENDER_RATE_LIMIT_PER_MINUTE`, default 240 — the render cache is
 written outside the storage quota), login attempts per IP
-(`LOGIN_RATE_LIMIT_PER_MINUTE`, default 5), log-ingestion requests per IP
-(`LOG_RATE_LIMIT_PER_MINUTE`, default 100), and the operator surfaces
+(`LOGIN_RATE_LIMIT_PER_MINUTE`, default 10), log-ingestion requests per IP
+(`LOG_RATE_LIMIT_PER_MINUTE`, default 400), and the operator surfaces
 `/admin/api-keys` + `/admin/dlq` per IP (`ADMIN_RATE_LIMIT_PER_MINUTE`, default
-30). Exceeding a limit returns `429` with a `Retry-After` header.
+120). Exceeding a limit returns `429` with a `Retry-After` header.
+
+The render rule is unbilled on purpose (render-cache objects bypass the project
+quota), so it stays deliberately tighter than the upload rule. The defaults are
+also what an installation gets that never sets the vars — the Helm chart sets
+none of them — so a deployment that depends on a specific value must pin it
+explicitly in its env/`values.yaml`.
 
 ## Operator Keys and Session Lifetime
 

@@ -133,21 +133,21 @@ export const envValidationSchema = Joi.object({
   // "requests per minute" for its scope; 0 disables the rule.
   UPLOAD_RATE_LIMIT_PER_MINUTE: Joi.number()
     .min(0)
-    .default(60)
+    .default(240)
     .description('Max upload requests per minute per API key'),
   LOGIN_RATE_LIMIT_PER_MINUTE: Joi.number()
     .min(0)
-    .default(5)
+    .default(10)
     .description('Max login attempts per minute per IP'),
   LOG_RATE_LIMIT_PER_MINUTE: Joi.number()
     .min(0)
-    .default(100)
+    .default(400)
     .description('Max log-ingestion requests per minute per IP'),
   // PDF page rendering writes render-cache objects that are deliberately not
   // charged to the project quota, so it is throttled per credential.
   RENDER_RATE_LIMIT_PER_MINUTE: Joi.number()
     .min(0)
-    .default(120)
+    .default(240)
     .description(
       'Max PDF page-render requests per minute per credential (render-cache writes are not quota-charged)',
     ),
@@ -155,7 +155,7 @@ export const envValidationSchema = Joi.object({
   // static key, so they get their own bucket instead of unlimited guessing.
   ADMIN_RATE_LIMIT_PER_MINUTE: Joi.number()
     .min(0)
-    .default(30)
+    .default(120)
     .description('Max admin-surface requests per minute per IP'),
 
   // Reverse proxy trust
