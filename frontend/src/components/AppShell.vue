@@ -12,15 +12,10 @@
     >
       {{ t("common.skipToContent") }}
     </a>
-    <AppSidebar v-if="!isBare && routeReady" />
+    <AppSidebar v-if="!isBare && routeReady && !isFullscreen" />
     <div class="flex min-w-0 flex-col" :class="{ 'flex-1': !isBare }">
-      <AppHeader v-if="!isBare && routeReady" />
-      <main
-        id="main-content"
-        tabindex="-1"
-        class="p-4 md:p-6"
-        :class="{ 'flex-1': !isBare }"
-      >
+      <AppHeader v-if="!isBare && routeReady && !isFullscreen" />
+      <main id="main-content" tabindex="-1" :class="mainClass">
         <ErrorBoundary>
           <RouterView />
         </ErrorBoundary>
@@ -40,6 +35,8 @@ import AppSidebar from "@/components/AppSidebar.vue";
 import ErrorBoundary from "@/components/ErrorBoundary.vue";
 import GlobalSearchPalette from "@/components/search/GlobalSearchPalette.vue";
 import { Toaster } from "@/components/ui/sonner";
+import { useFullscreen } from "@/composables/useFullscreen";
+import { cn } from "@/lib/utils";
 import { TEST_ID } from "@/lib/test-ids";
 
 // Login and the forced password change are pre-shell pages: there is nothing to
@@ -50,4 +47,17 @@ const route = useRoute();
 const { t } = useI18n();
 const isBare = computed(() => BARE_ROUTES.has(String(route.name)));
 const routeReady = computed(() => route.matched.length > 0);
+
+// A page that asks for the whole window (the test overview) owns the mode and
+// gives it back on unmount; the shell only gets out of the way. The padding
+// rides along, because a two-rem frame around a screen-sized comparison is
+// exactly the room the mode just won.
+const { isFullscreen } = useFullscreen();
+const mainClass = computed(() =>
+  cn({
+    "flex-1": !isBare.value,
+    "p-4 md:p-6": !isFullscreen.value,
+    "p-2": isFullscreen.value,
+  }),
+);
 </script>

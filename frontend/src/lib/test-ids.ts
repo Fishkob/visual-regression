@@ -235,6 +235,8 @@ export const TEST_ID = {
   testOverviewVariantCount: "test-overview-variant-count",
   testOverviewViewportGroup: "test-overview-viewport-group",
   testOverviewPdfNote: "test-overview-pdf-note",
+  testOverviewFullscreen: "test-overview-fullscreen",
+  testOverviewRow: "test-overview-row",
   testOverviewStage: "test-overview-stage",
   testOverviewReference: "test-overview-reference",
   testOverviewTarget: "test-overview-target",

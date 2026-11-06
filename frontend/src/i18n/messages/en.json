@@ -996,7 +996,9 @@
     "wipeHint": "Drag or use the arrow keys to move the divider",
     "blinkHint": "Alternates between the browsers",
     "opacity": "Opacity of the top layer",
-    "modeHint": "Applies to every viewport"
+    "modeHint": "Applies to every viewport",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen"
   },
   "approval": {
     "approvedBy": "Approved by {user} · {age}",

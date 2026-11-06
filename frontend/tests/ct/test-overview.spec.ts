@@ -267,6 +267,51 @@ test.describe("TestOverview", () => {
     await expect.poll(() => page.url()).not.toContain("/overview");
   });
 
+  test("gives the window to the comparison and takes it back on Escape", async ({
+    mount,
+    page,
+  }) => {
+    await mockOverview(page, VISUAL_TEST_VARIANTS_BROWSERS);
+
+    // The document request is best-effort: a headless browser has no window to
+    // give up, and the layout alone is what the mode promises. Stub it so a
+    // real fullscreen transition cannot race the assertions.
+    await page.evaluate(() => {
+      Object.defineProperty(document, "fullscreenElement", {
+        configurable: true,
+        get: () => null,
+      });
+      document.documentElement.requestFullscreen = () => Promise.resolve();
+      document.exitFullscreen = () => Promise.resolve();
+    });
+
+    const component = await mount<typeof Routed>(
+      "views/TestOverviewView/Routed",
+      { initialRoute: OVERVIEW_ROUTE },
+    );
+    await expect(component.getByTestId(TEST_ID.testOverview)).toBeVisible();
+
+    const toggle = component.getByTestId(TEST_ID.testOverviewFullscreen);
+    const row = component.getByTestId(TEST_ID.testOverviewRow).first();
+
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    // Every row keeps its viewport-relative width while the mode is off.
+    await expect(row).not.toHaveAttribute("style", /--variant-row-width: 100%/);
+
+    await toggle.click();
+
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(toggle).toContainText("Exit fullscreen");
+    await expect(row).toHaveAttribute("style", /--variant-row-width: 100%/);
+
+    // Escape is the way out that does not require finding the button again.
+    await page.keyboard.press("Escape");
+
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(toggle).toContainText("Fullscreen");
+    await expect(row).not.toHaveAttribute("style", /--variant-row-width: 100%/);
+  });
+
   test("sends a PDF test back to its comparison", async ({ mount, page }) => {
     await mockApi(page, [
       [PROJECT_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],

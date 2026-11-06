@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { useFullscreen } from "@/composables/useFullscreen";
 import { useRouteParams } from "@/composables/useRouteParams";
 import { useTestKind } from "@/composables/useTestKind";
 import { useTestNavigation } from "@/composables/useTestNavigation";
@@ -26,8 +27,9 @@ import {
   type ViewMode,
 } from "@/components/ui/view-mode-toggle";
 import VariantCompareStage from "@/components/variants/VariantCompareStage.vue";
+import { cn } from "@/lib/utils";
 import { TEST_ID } from "@/lib/test-ids";
-import { ArrowLeft } from "@lucide/vue";
+import { ArrowLeft, Maximize2, Minimize2 } from "@lucide/vue";
 
 // The variant surface of one image test: one section per viewport, and inside it
 // the browsers of that viewport compared with each other. The question the page
@@ -40,6 +42,15 @@ const { projectName, testName, branch } = useRouteParams();
 const { navigateToTest } = useTestNavigation({
   projectName,
   branchName: branch,
+});
+
+// The overview is the one page that is about the pictures, not the navigation:
+// in fullscreen the shell gives up the room, the width caps below are lifted and
+// the rows use the whole window. Leaving the page gives the mode back, so the
+// next page never arrives without a sidebar.
+const { isFullscreen, toggleFullscreen, exitFullscreen } = useFullscreen();
+onBeforeUnmount(() => {
+  void exitFullscreen();
 });
 
 const { data: project } = useProjectDetailQuery(projectName, branch);
@@ -92,6 +103,14 @@ const MAX_ROW_WIDTH_REM = 72;
 const MAX_PANE_WIDTH_REM = 24;
 
 function rowStyle(group: ViewportGroup): Record<string, string> {
+  // Fullscreen means the honest size comparison is the only thing left to keep:
+  // every row takes the window, and the panes inside it share that width.
+  if (isFullscreen.value) {
+    return {
+      "--variant-row-width": "100%",
+      "--variant-row-max": "100%",
+    };
+  }
   const count = group.variants.length;
   const ratio = Math.max(MIN_RELATIVE_WIDTH, group.relativeWidth);
   const maxRowWidth = `min(${MAX_ROW_WIDTH_REM}rem, ${count} * ${MAX_PANE_WIDTH_REM}rem)`;
@@ -122,7 +141,10 @@ function openVariant(variant: VariantSummary) {
 </script>
 
 <template>
-  <div class="space-y-6 p-6" :data-testid="TEST_ID.testOverview">
+  <div
+    :class="cn(isFullscreen ? 'space-y-4 p-2' : 'space-y-6 p-6')"
+    :data-testid="TEST_ID.testOverview"
+  >
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div class="min-w-0 space-y-2">
         <Breadcrumbs :group-name="groupName" />
@@ -141,16 +163,33 @@ function openVariant(variant: VariantSummary) {
         </div>
       </div>
 
-      <Button
-        v-if="comparisonTarget"
-        variant="outline"
-        size="sm"
-        :data-testid="TEST_ID.testOverviewBack"
-        @click="openVariant(comparisonTarget)"
-      >
-        <ArrowLeft />
-        {{ t("detail.comparison") }}
-      </Button>
+      <div class="flex flex-wrap items-center gap-2">
+        <Button
+          v-if="comparisonTarget"
+          variant="outline"
+          size="sm"
+          :data-testid="TEST_ID.testOverviewBack"
+          @click="openVariant(comparisonTarget)"
+        >
+          <ArrowLeft />
+          {{ t("detail.comparison") }}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          :aria-pressed="isFullscreen"
+          :data-testid="TEST_ID.testOverviewFullscreen"
+          @click="toggleFullscreen"
+        >
+          <Minimize2 v-if="isFullscreen" aria-hidden="true" />
+          <Maximize2 v-else aria-hidden="true" />
+          {{
+            isFullscreen
+              ? t("overview.exitFullscreen")
+              : t("overview.fullscreen")
+          }}
+        </Button>
+      </div>
     </div>
 
     <div
@@ -246,6 +285,7 @@ function openVariant(variant: VariantSummary) {
           <div
             class="lg:w-[var(--variant-row-width)] lg:max-w-[var(--variant-row-max)]"
             :style="rowStyle(group)"
+            :data-testid="TEST_ID.testOverviewRow"
           >
             <VariantCompareStage
               :variants="group.variants"

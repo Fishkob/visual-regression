@@ -996,7 +996,9 @@
     "wipeHint": "Ziehen oder Pfeiltasten bewegen die Trennlinie",
     "blinkHint": "Wechselt zwischen den Browsern",
     "opacity": "Deckkraft der oberen Ebene",
-    "modeHint": "Gilt für alle Auflösungen"
+    "modeHint": "Gilt für alle Auflösungen",
+    "fullscreen": "Vollbild",
+    "exitFullscreen": "Vollbild schließen"
   },
   "approval": {
     "approvedBy": "Genehmigt von {user} · {age}",
