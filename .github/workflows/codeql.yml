@@ -1,0 +1,87 @@
+name: CodeQL
+
+# Advanced setup, not default setup. The pdf sidecar sets
+# maven.compiler.release=25, which the JDK bundled in the runner image cannot
+# build, and default setup has no hook for installing a JDK before the
+# autobuild — so java-kotlin needs this workflow.
+#
+# GitHub allows one setup type per repository: while default setup is enabled,
+# every SARIF upload from an advanced workflow is refused at processing time
+# (after the runner minutes are spent). This repository therefore runs this
+# workflow for every CodeQL language; default setup stays off.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # A weekly run keeps the default-branch alerts current even in weeks
+    # without a merge, so an advisory against unchanged code still surfaces.
+    - cron: "30 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  # analyze uploads the results into the Security tab.
+  security-events: write
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Interpreted languages need no build step; CodeQL compiles the database
+  # straight from the sources.
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      # One slow or failing language must not cancel the other two.
+      fail-fast: false
+      matrix:
+        language: [actions, javascript-typescript, python]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # No `category` on either step: the default is /language:<language>,
+      # which is the category default setup used. Keeping it identical is what
+      # keeps the existing alert history attached to the same analyses.
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+
+  # The one compiled language here. build-mode: manual means this job owns the
+  # build, which is the only way to put a JDK 25 in front of the pom's
+  # release=25 target.
+  analyze-java:
+    name: Analyze (java-kotlin)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Matches the sidecar's runtime image (eclipse-temurin:25 in
+      # pdf-sidecar/Dockerfile); the Dockerfile's build stage uses a 27 JDK,
+      # which is newer than the release target requires.
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: java-kotlin
+          build-mode: manual
+
+      # compile, not package: the analysis needs the class files, and skipping
+      # the shade/surefire phases keeps the job off the slower path.
+      - name: Build the pdf sidecar
+        working-directory: pdf-sidecar
+        run: mvn -B -DskipTests compile
+
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
