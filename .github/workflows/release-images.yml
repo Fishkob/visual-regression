@@ -35,6 +35,7 @@ jobs:
       contents: read
     outputs:
       value: ${{ steps.read.outputs.value }}
+      sha: ${{ steps.read.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -67,6 +68,10 @@ jobs:
           fi
 
           echo "value=$VALUE" >> "$GITHUB_OUTPUT"
+          # The commit inside the image, for the provenance label: metadata-action
+          # defaults to github.sha, which on a dispatch is the branch head and on
+          # the release call is main, never the tag that was checked out.
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build ${{ matrix.image }}
@@ -116,6 +121,11 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}
           tags: type=raw,value=${{ needs.version.outputs.value }}
+          # `docker inspect` has to name the commit that is inside the image, not
+          # the workflow's SHA: a released image is pinned by digest and its
+          # revision label is what a consumer checks against the tag.
+          labels: |
+            org.opencontainers.image.revision=${{ needs.version.outputs.sha }}
 
       - name: Build and push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
