@@ -120,8 +120,8 @@ jobs:
           done
 
       # main is protected: the ruleset requires a pull request and the two CI
-      # gates, and the admin bypass does not extend to the workflow token. So the
-      # bump lands as a pull request that auto-merges once the gates are green.
+      # gates and grants no bypass, so the bump lands as a pull request that
+      # auto-merges once the gates are green.
       # The commit message carries no [skip ci] — a skipped CI run never reports
       # the required checks, and auto-merge would wait forever.
       - name: Open the chart bump pull request
