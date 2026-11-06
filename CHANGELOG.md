@@ -5,21 +5,21 @@
 
 ### Features
 
-* **overview:** two panes per row in fullscreen ([1d49e79](https://github.com/Fishkob/visual-regression/commit/1d49e79878576275bb92d24bec04c7a6a7d5020f))
+* **overview:** two panes per row in fullscreen ([37c765d](https://github.com/Fishkob/visual-regression/commit/37c765d46b89c18c15d60f5d3588181d266be3df))
 
 ## [3.2.0](https://github.com/Fishkob/visual-regression/compare/v3.1.0...v3.2.0) (2026-11-06)
 
 
 ### Features
 
-* **overview:** give the comparison the whole window ([bfbdc52](https://github.com/Fishkob/visual-regression/commit/bfbdc5216bf455ec3ec6a22c13d679e663e11c29))
+* **overview:** give the comparison the whole window ([1ce1e23](https://github.com/Fishkob/visual-regression/commit/1ce1e2396c0d89a9683f2a13353a5a63a5d5b5d4))
 
 ## [3.1.0](https://github.com/Fishkob/visual-regression/compare/v3.0.0...v3.1.0) (2026-11-06)
 
 
 ### Features
 
-* **branches:** archive and delete a merged branch in one action ([19323fe](https://github.com/Fishkob/visual-regression/commit/19323fe13b2d40051688b9d2e9de9729b1ff475f))
+* **branches:** archive and delete a merged branch in one action ([d079f67](https://github.com/Fishkob/visual-regression/commit/d079f67f319954c3aed7b52b73621c8fbb470c07))
 
 ## [3.0.0](https://github.com/Fishkob/visual-regression/compare/v2.1.0...v3.0.0) (2026-11-06)
 
@@ -30,21 +30,21 @@
 
 ### Features
 
-* **api:** remove the 4-eyes approval gate ([af1dcf8](https://github.com/Fishkob/visual-regression/commit/af1dcf8bf9ea92e2a32888f7a141b929f2b265ba))
-* **config:** raise the rate-limit defaults ([26d008b](https://github.com/Fishkob/visual-regression/commit/26d008b84621fbd75102613cb878e33db9812201))
-* **reports:** expose the approval-reason mix in the trends read ([7ba9bd8](https://github.com/Fishkob/visual-regression/commit/7ba9bd8ab35036a28bb424cf996e823b22c6b91e))
+* **api:** remove the 4-eyes approval gate ([bc02486](https://github.com/Fishkob/visual-regression/commit/bc0248672b97159d549f3716d55529533f453c69))
+* **config:** raise the rate-limit defaults ([333038f](https://github.com/Fishkob/visual-regression/commit/333038ffccdf52e1ebe55a6f8d077f4695b6be37))
+* **reports:** expose the approval-reason mix in the trends read ([48fd576](https://github.com/Fishkob/visual-regression/commit/48fd576affa9060950b5ff34ee58b86ee7bd9d40))
 
 
 ### Reverts
 
-* remove the approval-reason mix from the trends read ([00ee439](https://github.com/Fishkob/visual-regression/commit/00ee43906eb437e17cf3351f5cb34413b94a8f2f))
+* remove the approval-reason mix from the trends read ([e63b101](https://github.com/Fishkob/visual-regression/commit/e63b101f72811518cec89ba36e20b8586a436a3e))
 
 ## [2.1.0](https://github.com/Fishkob/visual-regression/compare/v2.0.0...v2.1.0) (2026-11-05)
 
 
 ### Features
 
-* **seeds:** give the demo one test per review state ([3dc43ad](https://github.com/Fishkob/visual-regression/commit/3dc43ad88b5cf7183a4fcb279c50f5a925fa825d))
+* **seeds:** give the demo one test per review state ([177475b](https://github.com/Fishkob/visual-regression/commit/177475ba965906ffc0d9547249b84033d2fa9a0e))
 
 ## [2.0.0](https://github.com/Fishkob/visual-regression/compare/v1.4.0...v2.0.0) (2026-11-04)
 
@@ -55,106 +55,106 @@
 
 ### Features
 
-* **db:** cache the project's evidence total for the quota check ([2418cf6](https://github.com/Fishkob/visual-regression/commit/2418cf6cdbe8b2874ea5b262ad76b6107dacdeea))
-* harden the worker and finish the threshold/share/review backlog ([11ee756](https://github.com/Fishkob/visual-regression/commit/11ee7566c737ef19e52a9c0a54d6088fc1808581))
+* **db:** cache the project's evidence total for the quota check ([a40b9b6](https://github.com/Fishkob/visual-regression/commit/a40b9b6c2cd548020dc1c2072c4dbe778522ea3d))
+* harden the worker and finish the threshold/share/review backlog ([9b0ae31](https://github.com/Fishkob/visual-regression/commit/9b0ae3152eb1e1a893660304b2fc9e2bbc5b6ad3))
 
 
 ### Bug Fixes
 
-* **ci:** authenticate the frontend e2e health probes ([8ad263c](https://github.com/Fishkob/visual-regression/commit/8ad263cd7a80bd710cc0d79bb35e27fb2cde6c31))
-* **ci:** provide TOTP_ENCRYPTION_KEY to the test jobs ([70206d0](https://github.com/Fishkob/visual-regression/commit/70206d0b960cdeeae61145af3bd5d623b49279bd))
-* **ci:** start the pdf sidecar for the backend e2e job ([93eb68e](https://github.com/Fishkob/visual-regression/commit/93eb68e0b58bd022caa64b223e5284084f571a17))
-* **db:** enforce cross-row identities and cascade review comments ([1b6812c](https://github.com/Fishkob/visual-regression/commit/1b6812cd3fd029b6533fbc323edd27e35a5d7490))
-* **db:** enforce the schema's invariants and key projects by id ([7754683](https://github.com/Fishkob/visual-regression/commit/7754683e7aee0abd8dcd490b889e8ea0c785aab8))
-* **e2e:** complete the forced password change when logging in as admin ([24827e5](https://github.com/Fishkob/visual-regression/commit/24827e55dd9403b75af10cdb5418a45f18a7fcc7))
-* **e2e:** replace the bootstrap admin's temporary password before the suite ([1511858](https://github.com/Fishkob/visual-regression/commit/15118585e0a19806dbb085d2d0f8693d03b64b49))
-* **review:** close the gaps the approval-race investigation found ([b11533d](https://github.com/Fishkob/visual-regression/commit/b11533d92b6a5b1a8ed2953d2a389f87c411c0ad))
-* **review:** serialize concurrent approvals instead of letting them abort ([7f5fdce](https://github.com/Fishkob/visual-regression/commit/7f5fdceb6fb431c073b62c8815e4919908fb038d))
-* **review:** size the approval retry budget for the legal voter count ([6f0b83f](https://github.com/Fishkob/visual-regression/commit/6f0b83fba55e056d309afe474bdab9bbc3a4658c))
-* **review:** state the approval path's own retry budget ([2755a64](https://github.com/Fishkob/visual-regression/commit/2755a6416eb7b80d57cde062a9b2513439854d6d))
-* **scripts:** name only the checks the gate actually skipped ([34f798a](https://github.com/Fishkob/visual-regression/commit/34f798a083b20e136ccbe5e20252841b153efed4))
-* **scripts:** regenerate the prisma client before the gate reads it ([4d8f2b2](https://github.com/Fishkob/visual-regression/commit/4d8f2b24b005d38d4593792617f34f4de8b6998f))
+* **ci:** authenticate the frontend e2e health probes ([92a12da](https://github.com/Fishkob/visual-regression/commit/92a12da7e0b83a3edb62b9983d4b0f816118ae09))
+* **ci:** provide TOTP_ENCRYPTION_KEY to the test jobs ([331f963](https://github.com/Fishkob/visual-regression/commit/331f9630ec09b127b53fb6d1c0c1f540f2e40e97))
+* **ci:** start the pdf sidecar for the backend e2e job ([d74e3e7](https://github.com/Fishkob/visual-regression/commit/d74e3e7f5aff7ca550c72346bac20bcfbe8e8cc8))
+* **db:** enforce cross-row identities and cascade review comments ([755ab51](https://github.com/Fishkob/visual-regression/commit/755ab51f88ec10a182a0d5203b8a18123ecbc632))
+* **db:** enforce the schema's invariants and key projects by id ([8d3c1fe](https://github.com/Fishkob/visual-regression/commit/8d3c1fe3ad0d69fbcbd7f905da04c97b1b76e217))
+* **e2e:** complete the forced password change when logging in as admin ([c377c25](https://github.com/Fishkob/visual-regression/commit/c377c25ce190dfcbf8d1c8c9e03a0e4b26b2b730))
+* **e2e:** replace the bootstrap admin's temporary password before the suite ([27b3ddd](https://github.com/Fishkob/visual-regression/commit/27b3ddd0d355c91177e68537c229ab18832b16a9))
+* **review:** close the gaps the approval-race investigation found ([2b3d9af](https://github.com/Fishkob/visual-regression/commit/2b3d9af1c25a67c39c16b3d67361f7f7210f3291))
+* **review:** serialize concurrent approvals instead of letting them abort ([74e7ca4](https://github.com/Fishkob/visual-regression/commit/74e7ca4ce59ddae04e39318149832b0a622f46e3))
+* **review:** size the approval retry budget for the legal voter count ([309496b](https://github.com/Fishkob/visual-regression/commit/309496bad9b8fa36d27f436cb52cd9617d0fa472))
+* **review:** state the approval path's own retry budget ([7c8e022](https://github.com/Fishkob/visual-regression/commit/7c8e02295413088717df238c77fc154faea8460f))
+* **scripts:** name only the checks the gate actually skipped ([2ca74dd](https://github.com/Fishkob/visual-regression/commit/2ca74dde3c006cf7622359dbeacddb966dc06fae))
+* **scripts:** regenerate the prisma client before the gate reads it ([27f2e22](https://github.com/Fishkob/visual-regression/commit/27f2e2220578b631e3a2986f4c23bb317fba550e))
 
 
 ### Performance Improvements
 
-* **db:** cut round-trips and unbounded reads on the hot paths ([3a5da00](https://github.com/Fishkob/visual-regression/commit/3a5da006da40418e50735bb79159fe87fc09d6d1))
-* **db:** index the substring searches and the webhook outbox sweep ([14a5372](https://github.com/Fishkob/visual-regression/commit/14a537249bc9e2f3999f7b81d2c40fd7ff4541e6))
+* **db:** cut round-trips and unbounded reads on the hot paths ([c47baa4](https://github.com/Fishkob/visual-regression/commit/c47baa4961beddf701803adf094b9b7b3cc3ede0))
+* **db:** index the substring searches and the webhook outbox sweep ([aecd484](https://github.com/Fishkob/visual-regression/commit/aecd48427d1a03d15cc5e47c2715710465145229))
 
 ## [1.4.0](https://github.com/Fishkob/visual-regression/compare/v1.3.0...v1.4.0) (2026-11-01)
 
 
 ### Features
 
-* **sdk:** ship the client SDK as a release tarball ([1eacd09](https://github.com/Fishkob/visual-regression/commit/1eacd09b531e8e0c1174351324cc47c4e32f48d4))
+* **sdk:** ship the client SDK as a release tarball ([1149762](https://github.com/Fishkob/visual-regression/commit/11497624488a4886eec4bb2a40ea37eb3e890c7e))
 
 ## [1.3.0](https://github.com/Fishkob/visual-regression/compare/v1.2.1...v1.3.0) (2026-10-24)
 
 
 ### Features
 
-* branch-scoped baselines ([#114](https://github.com/Fishkob/visual-regression/issues/114)) ([1b07a02](https://github.com/Fishkob/visual-regression/commit/1b07a0226ddd25ad41f94e5d6892a6422b6a8809))
-* review inbox and project groups ([#113](https://github.com/Fishkob/visual-regression/issues/113)) ([83dcb86](https://github.com/Fishkob/visual-regression/commit/83dcb86ca02592ece7a37b15df0e18b7adb0f493))
+* branch-scoped baselines ([#114](https://github.com/Fishkob/visual-regression/issues/114)) ([67a3ad7](https://github.com/Fishkob/visual-regression/commit/67a3ad7822c942858ff013c7a3f7531dd34287ce))
+* review inbox and project groups ([#113](https://github.com/Fishkob/visual-regression/issues/113)) ([dc30aff](https://github.com/Fishkob/visual-regression/commit/dc30affc6946c7065a30f19c43e82df6c3652d25))
 
 
 ### Bug Fixes
 
-* **ci:** run quality image as non-root and pin Trivy v0.76.0 ([c0f5961](https://github.com/Fishkob/visual-regression/commit/c0f596175bffc3cfa5b064c6af66a586c216b28d))
+* **ci:** run quality image as non-root and pin Trivy v0.76.0 ([ae54a30](https://github.com/Fishkob/visual-regression/commit/ae54a308e8f4c7a7df18138ec1970d1189639419))
 
 ## [1.2.1](https://github.com/Fishkob/visual-regression/compare/v1.2.0...v1.2.1) (2026-10-19)
 
 
 ### Bug Fixes
 
-* **frontend:** make skip button visible in dark mode ([bbc8627](https://github.com/Fishkob/visual-regression/commit/bbc8627545a0ed722c3faea120087850cc9f29e1))
-* **frontend:** resolve type errors in e2e fixtures and eslint config ([49d9e49](https://github.com/Fishkob/visual-regression/commit/49d9e49213560cc1248819d2fddad8a5c516d031))
+* **frontend:** make skip button visible in dark mode ([c7ae6fa](https://github.com/Fishkob/visual-regression/commit/c7ae6fada641d204b5c099930e91bffb2703e105))
+* **frontend:** resolve type errors in e2e fixtures and eslint config ([7b4d29a](https://github.com/Fishkob/visual-regression/commit/7b4d29a753ef4a10d8546db07c3dda86a945fffd))
 
 ## [1.2.0](https://github.com/Fishkob/visual-regression/compare/v1.1.0...v1.2.0) (2026-10-18)
 
 
 ### Features
 
-* **frontend:** add theme quality guardrails ([#105](https://github.com/Fishkob/visual-regression/issues/105)) ([c7a60a1](https://github.com/Fishkob/visual-regression/commit/c7a60a1dda1b56bcdd6e48476441eb7e13fb067f))
+* **frontend:** add theme quality guardrails ([#105](https://github.com/Fishkob/visual-regression/issues/105)) ([7f66f6e](https://github.com/Fishkob/visual-regression/commit/7f66f6e2ce7e0df723d2f230b40852acf35cfd6d))
 
 
 ### Bug Fixes
 
-* **dev:** make a fresh checkout boot, migrate and seed cleanly ([#104](https://github.com/Fishkob/visual-regression/issues/104)) ([d7d7457](https://github.com/Fishkob/visual-regression/commit/d7d7457fdf835dbab475ac89e3dca6aaccf16954))
-* **frontend:** respect dark mode in data table background ([1feaefc](https://github.com/Fishkob/visual-regression/commit/1feaefc867b22acef521d206316e00681023fd59))
+* **dev:** make a fresh checkout boot, migrate and seed cleanly ([#104](https://github.com/Fishkob/visual-regression/issues/104)) ([33e9e04](https://github.com/Fishkob/visual-regression/commit/33e9e04e43686c85d22a3c6af28797fe2c945296))
+* **frontend:** respect dark mode in data table background ([b1439a5](https://github.com/Fishkob/visual-regression/commit/b1439a57b7f6c6e204cbc90267a8d5da59897685))
 
 ## [1.1.0](https://github.com/Fishkob/visual-regression/compare/v1.0.2...v1.1.0) (2026-10-09)
 
 
 ### Features
 
-* **security:** add pnpm production-dependency classifier ([e4681b6](https://github.com/Fishkob/visual-regression/commit/e4681b676a0b3dd8fdfd07dbd59dfa6acd894558))
-* **security:** gate osv findings on production deps only ([a4f47f0](https://github.com/Fishkob/visual-regression/commit/a4f47f0172af9399b0617fe5287244b17b17086a))
+* **security:** add pnpm production-dependency classifier ([752b19a](https://github.com/Fishkob/visual-regression/commit/752b19a49f9cbd74f4af48a6fbf19d9a0acbfec6))
+* **security:** gate osv findings on production deps only ([b91447e](https://github.com/Fishkob/visual-regression/commit/b91447ee340bc789d398fc958829bacc746f30b4))
 
 
 ### Bug Fixes
 
-* **ci:** install semgrep via pip to avoid Docker Hub rate limit ([09234f2](https://github.com/Fishkob/visual-regression/commit/09234f21903f63b37fb45a1aafd14d92da877e20))
-* **deps:** force patched lodash to clear production HIGH ([6f2e441](https://github.com/Fishkob/visual-regression/commit/6f2e4413d53d75bc3905ccb49879af7d7cf2272d))
-* **deps:** force patched versions of vulnerable transitive packages ([e68fd4f](https://github.com/Fishkob/visual-regression/commit/e68fd4f4ec272d2ed0c3bc80cc00b8dc0d09a8ae))
-* **deps:** move pnpm overrides to pnpm-workspace.yaml ([f6f8692](https://github.com/Fishkob/visual-regression/commit/f6f869299177d2ac509ca5c972501793f17cbe9a))
-* **security:** fail closed when pnpm lockfile lacks an importers section ([5b1f791](https://github.com/Fishkob/visual-regression/commit/5b1f791bbf71bed197db71f9eee7fca301ae0703))
-* **security:** summarize every counted severity in osv-gate ([15a4300](https://github.com/Fishkob/visual-regression/commit/15a43006019ee25306fac370858f8e33a05c87fc))
+* **ci:** install semgrep via pip to avoid Docker Hub rate limit ([e05bb9f](https://github.com/Fishkob/visual-regression/commit/e05bb9f9adce7cba54288eaed4fecdada8650603))
+* **deps:** force patched lodash to clear production HIGH ([b9dcc07](https://github.com/Fishkob/visual-regression/commit/b9dcc07886d15751413d6f04fb2b74909b2d4810))
+* **deps:** force patched versions of vulnerable transitive packages ([fc37bc5](https://github.com/Fishkob/visual-regression/commit/fc37bc50518893e3634a88e08ca4f7b054ee36f3))
+* **deps:** move pnpm overrides to pnpm-workspace.yaml ([38f22dc](https://github.com/Fishkob/visual-regression/commit/38f22dc2979ce65733946824d267f54d7364a113))
+* **security:** fail closed when pnpm lockfile lacks an importers section ([30d9ae4](https://github.com/Fishkob/visual-regression/commit/30d9ae47ff0708b2d6069649018e202fe9e4a745))
+* **security:** summarize every counted severity in osv-gate ([4d5be0a](https://github.com/Fishkob/visual-regression/commit/4d5be0a2c00ed96d49ee5ee21424e761eaba3664))
 
 ## [1.0.2](https://github.com/Fishkob/visual-regression/compare/v1.0.1...v1.0.2) (2026-10-07)
 
 
 ### Bug Fixes
 
-* mount Postgres volume at PG18 data root ([174b5ee](https://github.com/Fishkob/visual-regression/commit/174b5ee36b1c4a35b0d84e796b8d4fcadf9d7ce4))
+* mount Postgres volume at PG18 data root ([a1fb41c](https://github.com/Fishkob/visual-regression/commit/a1fb41cd931e8c4a3fe34a187942368293673f08))
 
 ## [1.0.1](https://github.com/Fishkob/visual-regression/compare/v1.0.0...v1.0.1) (2026-10-07)
 
 
 ### Bug Fixes
 
-* **observability:** add grafana alert rule folder and drop stale alloy.river ref ([0c49647](https://github.com/Fishkob/visual-regression/commit/0c49647a69fbd381459c1e462f339d0a6593b935))
-* **observability:** read metrics key from file, enable remote-write receiver ([8c27923](https://github.com/Fishkob/visual-regression/commit/8c279232c803aa91ddce8d1e875f774af16ddde7))
-* **observability:** valid prometheus headers and alloy-syntax pipeline ([4609fc4](https://github.com/Fishkob/visual-regression/commit/4609fc4b1e3076ef2e872705d83fd79c9b2170a2))
+* **observability:** add grafana alert rule folder and drop stale alloy.river ref ([faf8d6e](https://github.com/Fishkob/visual-regression/commit/faf8d6ebaba87af8fe6a626030537c10a12c3a57))
+* **observability:** read metrics key from file, enable remote-write receiver ([3f95f89](https://github.com/Fishkob/visual-regression/commit/3f95f8956df6c55f9bda77e9dee3ea1de6e12320))
+* **observability:** valid prometheus headers and alloy-syntax pipeline ([dcbe837](https://github.com/Fishkob/visual-regression/commit/dcbe83765cd121a296c2394409b4bd6a9d0d4566))
 
 ## 1.0.0 (2026-10-05)
 
