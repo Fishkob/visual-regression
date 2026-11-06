@@ -199,7 +199,20 @@ async function seed() {
   }
 
   console.log('\nSeeding branch scenarios...');
-  await seedBranches(SEED_API_KEY, DEMO_BRANCH_SEEDS);
+  // Branch candidates must share the dimension of the generated demo
+  // baseline, otherwise the comparison engine's FAIL size policy rejects them
+  // and the branch review reads as broken instead of pending.
+  await seedBranches(
+    SEED_API_KEY,
+    DEMO_BRANCH_SEEDS.map((seed, index) =>
+      seed.testKind === 'pdf'
+        ? seed
+        : {
+            ...seed,
+            file: images.candidates[index % images.candidates.length],
+          },
+    ),
+  );
 
   console.log('\nDemo seeding complete!');
   console.log('Open http://localhost:5173 to view the seeded demo data.');
