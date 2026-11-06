@@ -96,6 +96,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -118,13 +119,30 @@ jobs:
             sed -i "/name: ${name}$/{n;s|tag:.*|tag: ${VERSION}|;}" deploy/charts/vrt/values.yaml
           done
 
-      - name: Commit and push
+      # main is protected: the ruleset requires a pull request and the two CI
+      # gates, and the admin bypass does not extend to the workflow token. So the
+      # bump lands as a pull request that auto-merges once the gates are green.
+      # The commit message carries no [skip ci] — a skipped CI run never reports
+      # the required checks, and auto-merge would wait forever.
+      - name: Open the chart bump pull request
         env:
           VERSION: ${{ steps.version.outputs.value }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          BRANCH="chore/chart-images-${VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
           git add deploy/charts/vrt/values.yaml
-          git diff --staged --quiet || git commit -m "chore(release): bump chart image tags to ${VERSION} [skip ci]"
-          git pull --rebase --autostash origin main
-          git push
+          if git diff --staged --quiet; then
+            echo "values.yaml already points at ${VERSION}; nothing to do."
+            exit 0
+          fi
+          git commit -m "chore(release): bump chart image tags to ${VERSION}"
+          git push --force origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "chore(release): bump chart image tags to ${VERSION}" \
+            --body "Automated chart bump for the ${VERSION} release. Merges itself once the CI gates are green." \
+            || echo "::warning::pull request already open for ${BRANCH}"
+          gh pr merge --squash --auto "$BRANCH" \
+            || echo "::warning::could not queue auto-merge for ${BRANCH}"
