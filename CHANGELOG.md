@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/Fishkob/visual-regression/compare/v3.1.0...v3.2.0) (2026-11-06)
+
+
+### Features
+
+* **overview:** give the comparison the whole window ([bfbdc52](https://github.com/Fishkob/visual-regression/commit/bfbdc5216bf455ec3ec6a22c13d679e663e11c29))
+
 ## [3.1.0](https://github.com/Fishkob/visual-regression/compare/v3.0.0...v3.1.0) (2026-11-06)
 
 
