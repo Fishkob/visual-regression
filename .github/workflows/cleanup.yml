@@ -51,10 +51,12 @@ jobs:
           fi
 
           echo "Fetching ${{ matrix.image }} versions (newest first)..."
+          # `gh api` refuses `--slurp` together with `--jq`, so the pages are
+          # slurped into one array and sorted by jq: the newest-first order has to
+          # hold across pages, which a per-page `--jq` cannot guarantee.
           VERSIONS=$(gh api -XGET \
             "${BASE}/packages/container/${{ matrix.image }}/versions" \
-            --paginate --slurp \
-            --jq 'add | sort_by(.created_at) | reverse | .[].id') || VERSIONS=""
+            --paginate --slurp | jq -r 'add | sort_by(.created_at) | reverse | .[].id') || VERSIONS=""
 
           if [ -z "$VERSIONS" ]; then
             echo "No versions found for ${{ matrix.image }}"

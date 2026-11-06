@@ -11,6 +11,12 @@ permissions:
   contents: write
   pull-requests: write
 
+# Two pushes in the same minute would otherwise cut the same version twice and
+# race for the tag: one run at a time, newest pending wins.
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release-please:
     name: Release Please
