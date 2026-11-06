@@ -38,6 +38,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   archive: [isArchived: boolean];
+  archiveAndDelete: [];
   delete: [];
   setDefault: [];
   retarget: [targetBranch: string | null];
@@ -46,6 +47,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const open = ref(false);
 const confirmOpen = ref(false);
+const retireOpen = ref(false);
 const targetOpen = ref(false);
 
 const isDefault = computed(() => props.branch.isDefault);
@@ -76,6 +78,16 @@ function toggleArchive() {
 function requestDelete() {
   open.value = false;
   confirmOpen.value = true;
+}
+
+function requestArchiveAndDelete() {
+  open.value = false;
+  retireOpen.value = true;
+}
+
+function confirmArchiveAndDelete() {
+  retireOpen.value = false;
+  emit("archiveAndDelete");
 }
 
 function confirmDelete() {
@@ -156,6 +168,19 @@ function confirmTarget(target: string | null) {
               : t("branchActions.archive")
           }}
         </DropdownMenuItem>
+        <!-- The post-merge cleanup in one action (docs/branches.md): archive to
+             stop late uploads, then delete. Disabled exactly when a plain delete
+             would be refused — the archived half is not worth offering for a
+             branch that is structurally protected. -->
+        <DropdownMenuItem
+          :disabled="!canDelete"
+          class="text-status-danger focus:text-status-danger cursor-pointer"
+          :data-testid="TEST_ID.branchArchiveAndDelete"
+          @click="requestArchiveAndDelete"
+        >
+          <Archive class="w-4 h-4 mr-2" />
+          {{ t("branchActions.archiveAndDelete") }}
+        </DropdownMenuItem>
         <DropdownMenuItem
           :disabled="!canDelete"
           class="text-status-danger focus:text-status-danger cursor-pointer"
@@ -188,6 +213,26 @@ function confirmTarget(target: string | null) {
     >
       <template #description>
         {{ t("branchActions.deleteDescription", { branch: branch.name }) }}
+      </template>
+    </ConfirmDialog>
+
+    <ConfirmDialog
+      :open="retireOpen"
+      :pending="pending"
+      confirm-variant="destructive"
+      :title="t('branchActions.archiveAndDeleteTitle')"
+      :confirm-text="t('branchActions.archiveAndDeleteConfirm')"
+      :cancel-text="t('common.cancel')"
+      @confirm="confirmArchiveAndDelete"
+      @cancel="retireOpen = false"
+      @update:open="retireOpen = $event"
+    >
+      <template #description>
+        {{
+          t("branchActions.archiveAndDeleteDescription", {
+            branch: branch.name,
+          })
+        }}
       </template>
     </ConfirmDialog>
 

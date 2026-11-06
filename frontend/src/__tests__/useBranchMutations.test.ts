@@ -86,4 +86,42 @@ describe("branch mutations", () => {
       body: { targetBranch: null },
     });
   });
+
+  // The post-merge cleanup: the archive must land first, otherwise a refused
+  // delete leaves nothing behind and the branch keeps accepting uploads.
+  it("archives a branch before deleting it", async () => {
+    const order: string[] = [];
+    update.mockImplementation(async () => {
+      order.push("archive");
+      return { data: { isArchived: true } };
+    });
+    remove.mockImplementation(async () => {
+      order.push("delete");
+      return { data: { success: true } };
+    });
+    const { archiveAndDeleteBranch } =
+      await import("../composables/useBranchMutations");
+
+    await archiveAndDeleteBranch("app", "feature/x");
+
+    expect(order).toEqual(["archive", "delete"]);
+    expect(update).toHaveBeenCalledWith({
+      path: { projectName: "app" },
+      query: { branch: "feature/x" },
+      body: { isArchived: true },
+    });
+  });
+
+  // A partial failure is reported as such: the branch really is archived, and a
+  // message that only said "delete failed" would hide the state the next click
+  // starts from.
+  it("reports the archive half of a failed archive-and-delete", async () => {
+    remove.mockRejectedValue(new Error("2 branches inherit from this one"));
+    const { archiveAndDeleteBranch } =
+      await import("../composables/useBranchMutations");
+
+    await expect(archiveAndDeleteBranch("app", "feature/x")).rejects.toThrow(
+      /archived.*2 branches inherit from this one/,
+    );
+  });
 });

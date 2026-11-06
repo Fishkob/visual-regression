@@ -476,6 +476,57 @@ test.describe("ProjectDetail branch switcher", () => {
     await expect(page.getByTestId(TEST_ID.branchSetDefault)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.branchChangeTarget)).toBeVisible();
   });
+
+  // The post-merge cleanup (docs/branches.md) in one action: the archive must
+  // reach the server before the delete, or a refused delete would leave the
+  // branch accepting uploads.
+  test("archives and then deletes a branch the delete is allowed for", async ({
+    mount,
+    page,
+  }) => {
+    const calls: string[] = [];
+    await mockApi(page, [
+      ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+    // Registered after mockApi, so it wins for the writes while the list read
+    // still falls through to the fixture above.
+    await page.route("**/api/v1/projects/*/branches*", async (route) => {
+      const request = route.request();
+      if (request.method() === "GET") {
+        await route.fallback();
+        return;
+      }
+      calls.push(
+        `${request.method()} ${new URL(request.url()).searchParams.get("branch")}`,
+      );
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true }),
+      });
+    });
+
+    const component = await mount<typeof Routed>(
+      "views/ProjectDetailView/Routed",
+      {
+        initialRoute:
+          "/projects/checkout-ui?branch=feature%2Fcheckout-v2-child",
+      },
+    );
+
+    await component.getByTestId(TEST_ID.branchActionsButton).click();
+    await page.getByTestId(TEST_ID.branchArchiveAndDelete).click();
+    await page.getByTestId(TEST_ID.dialogConfirm).click();
+
+    await expect
+      .poll(() => calls)
+      .toEqual([
+        "PATCH feature/checkout-v2-child",
+        "DELETE feature/checkout-v2-child",
+      ]);
+  });
 });
 
 test.describe("ProjectDetail row actions", () => {

@@ -86,6 +86,7 @@
             :targets="retargetCandidates"
             :dependent-names="dependentBranchNames"
             @archive="handleArchive"
+            @archive-and-delete="handleArchiveAndDelete"
             @delete="handleDelete"
             @set-default="handleSetDefault"
             @retarget="handleRetarget"
@@ -461,6 +462,7 @@ const branchMutationsPending = computed(
   () =>
     branchMutations.archive.isPending.value ||
     branchMutations.remove.isPending.value ||
+    branchMutations.retire.isPending.value ||
     branchMutations.setDefault.isPending.value ||
     branchMutations.setTarget.isPending.value,
 );
@@ -508,21 +510,34 @@ function handleArchive(isArchived: boolean) {
   branchMutations.archive.mutate({ branch: branch.name, isArchived });
 }
 
+// Shared by both delete paths: deleting the branch being viewed must not leave
+// the page pointed at a branch that no longer exists — fall back to the project
+// default. The default branch needs no parameter (same convention as
+// selectBranch), so this always lands on the parameter-less default read instead
+// of a duplicate cache entry.
+function leaveDeletedBranch(branchName: string) {
+  if (routeBranch.value !== branchName) return;
+  const query = { ...route.query };
+  delete query.branch;
+  void router.replace({ query });
+}
+
 function handleDelete() {
   const branch = selectedBranchInfo.value;
   if (!branch) return;
   branchMutations.remove.mutate(branch.name, {
-    onSuccess: () => {
-      // Deleting the branch being viewed must not leave the page pointed at a
-      // branch that no longer exists — fall back to the project default.
-      if (routeBranch.value !== branch.name) return;
-      // The default branch needs no parameter (same convention as
-      // selectBranch), so deleting the viewed branch always lands on the
-      // parameter-less default read instead of a duplicate cache entry.
-      const query = { ...route.query };
-      delete query.branch;
-      void router.replace({ query });
-    },
+    onSuccess: () => leaveDeletedBranch(branch.name),
+  });
+}
+
+// The post-merge cleanup (docs/branches.md): archive first, then delete. The
+// route fallback only runs on success — a refused delete leaves the branch
+// archived and selected, which is exactly what the error toast reports.
+function handleArchiveAndDelete() {
+  const branch = selectedBranchInfo.value;
+  if (!branch) return;
+  branchMutations.retire.mutate(branch.name, {
+    onSuccess: () => leaveDeletedBranch(branch.name),
   });
 }
 

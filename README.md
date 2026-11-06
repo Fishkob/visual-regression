@@ -123,6 +123,7 @@ More detail and diagrams: [docs/architecture/overview.md](docs/architecture/over
 | I want to…                                         | Read                                                   |
 | -------------------------------------------------- | ------------------------------------------------------ |
 | put it into a pipeline                             | [docs/ci-integration.md](docs/ci-integration.md)       |
+| clean up a branch after its merge                  | [docs/branches.md](docs/branches.md)                   |
 | run it locally / contribute                        | [docs/local-development.md](docs/local-development.md) |
 | deploy it (Kubernetes, TLS, backups, secrets)      | [docs/deployment.md](docs/deployment.md)               |
 | know what the test suites cover                    | [docs/testing.md](docs/testing.md)                     |

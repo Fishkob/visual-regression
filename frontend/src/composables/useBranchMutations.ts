@@ -4,7 +4,7 @@ import {
   branchesControllerUpdate,
   projectsControllerUpdateProject,
 } from "@sdk";
-import type { QueryClient } from "@tanstack/vue-query";
+import { useQueryClient, type QueryClient } from "@tanstack/vue-query";
 import { unref, type MaybeRef } from "vue";
 import { useSdkMutation } from "@/composables/useSdkMutation";
 import { sdkErrorMessage } from "@/lib/sdk";
@@ -34,6 +34,25 @@ export async function deleteBranch(projectName: string, branch: string) {
     path: { projectName },
     query: { branch },
   });
+}
+
+// The post-merge cleanup in one action (docs/branches.md): stop uploads first,
+// then remove the branch. Sequential rather than atomic on purpose — the archive
+// is the half that keeps late uploads of a merged branch out, so it runs first
+// and survives a refused delete; the failure then says which half landed instead
+// of claiming nothing happened.
+export async function archiveAndDeleteBranch(
+  projectName: string,
+  branch: string,
+) {
+  await archiveBranch(projectName, branch, true);
+  try {
+    return await deleteBranch(projectName, branch);
+  } catch (error) {
+    const detail = sdkErrorMessage(error, "");
+    const base = tm("toast.branchArchiveAndDeletePartial");
+    throw new Error(detail ? `${base}: ${detail}` : base);
+  }
 }
 
 // "Set default" lives on the project resource, not on the branch resource: it
@@ -80,6 +99,7 @@ function branchErrorMessage(key: string) {
 }
 
 export function useBranchMutations(projectName: MaybeRef<string>) {
+  const queryClient = useQueryClient();
   // One invalidation rule for every lifecycle change: the branch list, all
   // branch-scoped project reads, the per-kind test details (their
   // inherited/owned baseline label is derived from the graph) and the inbox.
@@ -111,6 +131,23 @@ export function useBranchMutations(projectName: MaybeRef<string>) {
     invalidate,
   });
 
+  // Archive-then-delete. A refused delete leaves the branch archived on the
+  // server, so the lists are invalidated on the error path too — otherwise the
+  // switcher keeps showing the pre-archive state and the next click repeats a
+  // step that already happened.
+  const retire = useSdkMutation<unknown, string>({
+    mutationFn: (branch) => archiveAndDeleteBranch(project(), branch),
+    successMessage: tm("toast.branchRetired"),
+    // The composed call already carries the "archived, but not deleted" wording
+    // for a partial failure; prefixing it again would read like a second error.
+    errorMessage: (error) =>
+      sdkErrorMessage(error, tm("toast.branchRetireError")),
+    invalidate,
+    onError: () => {
+      invalidate(queryClient);
+    },
+  });
+
   const setDefault = useSdkMutation<unknown, string>({
     mutationFn: (branch) => setDefaultBranch(project(), branch),
     successMessage: tm("toast.defaultBranchUpdated"),
@@ -126,5 +163,5 @@ export function useBranchMutations(projectName: MaybeRef<string>) {
     invalidate,
   });
 
-  return { archive, remove, setDefault, setTarget };
+  return { archive, remove, retire, setDefault, setTarget };
 }

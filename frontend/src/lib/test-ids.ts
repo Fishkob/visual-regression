@@ -153,6 +153,7 @@ export const TEST_ID = {
   branchSetDefault: "branch-set-default",
   branchChangeTarget: "branch-change-target",
   branchArchive: "branch-archive",
+  branchArchiveAndDelete: "branch-archive-and-delete",
   branchDelete: "branch-delete",
   branchTargetDialog: "branch-target-dialog",
   branchTargetSelect: "branch-target-select",

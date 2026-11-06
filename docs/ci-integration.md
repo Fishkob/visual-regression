@@ -379,7 +379,7 @@ The dashboard shows these on the project's Trends page. The underlying `Comparis
 ## 5. Notes and limits
 
 - **Formats:** image uploads accept PNG, JPEG and WebP; JPEG/WebP are normalized to PNG at intake. A dimension mismatch follows the test's size policy (`FAIL` default, `PAD`, `CROP`, `RESIZE`).
-- **Branch:** omit `branch` to use the project default; a new branch inherits the target branch's baseline. Pass the branch that produced the capture.
+- **Branch:** omit `branch` to use the project default; a new branch inherits the target branch's baseline. Pass the branch that produced the capture. Approving on a branch never touches the target — what to do after the merge is in [branches.md](branches.md).
 - **Wait cap:** the API accepts `wait` up to 30 seconds per request. Loop for longer budgets (the action does).
 - **Idempotency:** uploads are content-addressed per test/variant; an identical capture short-circuits as `identical`. A retried job-status request is safe.
 - **Runs:** `runKey` groups uploads and adds commit metadata; `manifest` uploads many captures into one run. Finish the run explicitly (idempotent) and gate on the run status. Runs do not isolate candidates — latest-wins still applies per variant. See [Runs](#runs).
