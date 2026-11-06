@@ -710,15 +710,26 @@ watch(isFullscreen, () => void nextTick(measureSurface));
 
 const isBlink = computed(() => viewMode.value === "blink");
 
-const panels = computed(() => {
+type PaneKey = "baseline" | "candidate" | "diff";
+
+interface Pane {
+  key: PaneKey;
+  label: string;
+  url?: string;
+  dotClass: string;
+  testId: string;
+  toggleTestId: string;
+}
+
+const PANE_TOGGLE_IDS: Record<PaneKey, string> = {
+  baseline: TEST_ID.paneToggleBaseline,
+  candidate: TEST_ID.paneToggleCandidate,
+  diff: TEST_ID.paneToggleDiff,
+};
+
+const allPanels = computed<Pane[]>(() => {
   if (isStage.value) return [];
-  const list: {
-    key: string;
-    label: string;
-    url?: string;
-    dotClass: string;
-    testId: string;
-  }[] = [];
+  const list: Pane[] = [];
 
   if (viewMode.value !== "diff-only") {
     if (props.baselineUrl)
@@ -728,6 +739,7 @@ const panels = computed(() => {
         url: props.baselineUrl,
         dotClass: "bg-status-success",
         testId: TEST_ID.panelBaseline,
+        toggleTestId: PANE_TOGGLE_IDS.baseline,
       });
     if (props.candidateUrl)
       list.push({
@@ -736,6 +748,7 @@ const panels = computed(() => {
         url: props.candidateUrl,
         dotClass: "bg-status-info",
         testId: TEST_ID.panelCandidate,
+        toggleTestId: PANE_TOGGLE_IDS.candidate,
       });
   }
 
@@ -747,11 +760,36 @@ const panels = computed(() => {
         url: props.diffUrl,
         dotClass: "bg-status-danger",
         testId: TEST_ID.panelDiff,
+        toggleTestId: PANE_TOGGLE_IDS.diff,
       });
   }
 
   return list;
 });
+
+// Side by side is the one mode that puts several pictures next to each other, so
+// it is the one mode where the reviewer picks which of them to look at: hiding a
+// pane takes it out of the grid and gives its room to the rest. The single-picture
+// modes show their fixed pane and ignore the choice.
+const choosingPanes = computed(
+  () => viewMode.value === "side-by-side" && allPanels.value.length > 1,
+);
+const hiddenPanes = ref<Set<PaneKey>>(new Set());
+const isPaneHidden = (key: PaneKey) =>
+  choosingPanes.value && hiddenPanes.value.has(key);
+
+function togglePane(key: PaneKey): void {
+  const next = new Set(hiddenPanes.value);
+  if (next.has(key)) next.delete(key);
+  else next.add(key);
+  // One picture must stay: an empty grid has no way back.
+  if (next.size >= allPanels.value.length) return;
+  hiddenPanes.value = next;
+}
+
+const panels = computed(() =>
+  allPanels.value.filter((pane) => !isPaneHidden(pane.key)),
+);
 
 const isLayered = computed(
   () => viewMode.value === "overlay" || viewMode.value === "wipe",
@@ -786,9 +824,14 @@ const layeredDotClass = computed(() =>
 const gridClass = computed(() => {
   if (isStage.value) return "grid-cols-1";
   if (viewMode.value === "side-by-side") {
-    return hasDiff.value ? "grid-cols-3" : "grid-cols-2";
+    const count = panels.value.length;
+    if (count <= 1) return "grid-cols-1";
+    if (count === 2) return "grid-cols-2";
+    // Fullscreen trades breadth for size, exactly like the variant overview:
+    // three columns share the window and stay small, two are worth the room,
+    // and the third picture wraps below at the same width.
+    return isFullscreen.value ? "grid-cols-2" : "grid-cols-3";
   }
-  if (viewMode.value === "diff-only") return "grid-cols-1";
   return "grid-cols-1";
 });
 
@@ -848,6 +891,35 @@ const hugsPicture = computed(() => viewMode.value === "diff-only");
           :show-layered="hasDiff"
           :show-blink="Boolean(baselineUrl && candidateUrl)"
         />
+        <div
+          v-if="choosingPanes"
+          class="flex items-center gap-1"
+          role="group"
+          :aria-label="t('imageViewer.panes')"
+        >
+          <button
+            v-for="pane in allPanels"
+            :key="pane.key"
+            type="button"
+            :data-testid="pane.toggleTestId"
+            :aria-pressed="!isPaneHidden(pane.key)"
+            :disabled="!isPaneHidden(pane.key) && panels.length === 1"
+            class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40"
+            :class="
+              isPaneHidden(pane.key)
+                ? 'border-dashed border-border text-muted-foreground'
+                : 'border-border bg-card text-foreground hover:border-foreground/30'
+            "
+            @click="togglePane(pane.key)"
+          >
+            <span
+              class="h-2 w-2 rounded-full"
+              :class="pane.dotClass"
+              aria-hidden="true"
+            />
+            {{ pane.label }}
+          </button>
+        </div>
         <label
           v-if="hasRegions"
           class="flex items-center gap-2 text-xs text-muted-foreground"

@@ -541,6 +541,72 @@ describe("InteractiveImageViewer", () => {
     expect(byId(wrapper, TEST_ID.fullscreenClose).exists()).toBe(false);
   });
 
+  it("trades the third column for size in fullscreen", async () => {
+    const wrapper = mountViewer();
+    const grid = () =>
+      byId(wrapper, TEST_ID.panelBaseline).element.parentElement as HTMLElement;
+
+    expect(grid().classList.contains("grid-cols-3")).toBe(true);
+
+    await byId(wrapper, TEST_ID.fullscreenToggle).trigger("click");
+
+    expect(grid().classList.contains("grid-cols-2")).toBe(true);
+    expect(grid().classList.contains("grid-cols-3")).toBe(false);
+  });
+
+  it("hides a pane and gives its room to the others", async () => {
+    const wrapper = mountViewer();
+    const grid = () =>
+      byId(wrapper, TEST_ID.panelBaseline).element.parentElement as HTMLElement;
+
+    expect(byId(wrapper, TEST_ID.panelDiff).exists()).toBe(true);
+    expect(
+      byId(wrapper, TEST_ID.paneToggleDiff).attributes("aria-pressed"),
+    ).toBe("true");
+
+    await byId(wrapper, TEST_ID.paneToggleDiff).trigger("click");
+
+    expect(byId(wrapper, TEST_ID.panelDiff).exists()).toBe(false);
+    expect(
+      byId(wrapper, TEST_ID.paneToggleDiff).attributes("aria-pressed"),
+    ).toBe("false");
+    expect(grid().classList.contains("grid-cols-2")).toBe(true);
+
+    await byId(wrapper, TEST_ID.paneToggleDiff).trigger("click");
+
+    expect(byId(wrapper, TEST_ID.panelDiff).exists()).toBe(true);
+    expect(grid().classList.contains("grid-cols-3")).toBe(true);
+  });
+
+  it("keeps the last visible pane", async () => {
+    const wrapper = mountViewer();
+
+    await byId(wrapper, TEST_ID.paneToggleCandidate).trigger("click");
+    await byId(wrapper, TEST_ID.paneToggleDiff).trigger("click");
+
+    expect(
+      byId(wrapper, TEST_ID.paneToggleBaseline).attributes("disabled"),
+    ).toBeDefined();
+    await byId(wrapper, TEST_ID.paneToggleBaseline).trigger("click");
+
+    expect(byId(wrapper, TEST_ID.panelBaseline).exists()).toBe(true);
+    const grid = byId(wrapper, TEST_ID.panelBaseline).element
+      .parentElement as HTMLElement;
+    expect(grid.classList.contains("grid-cols-1")).toBe(true);
+  });
+
+  it("ignores a hidden pane in the single-picture modes", async () => {
+    const wrapper = mountViewer();
+
+    await byId(wrapper, TEST_ID.paneToggleDiff).trigger("click");
+    expect(byId(wrapper, TEST_ID.panelDiff).exists()).toBe(false);
+
+    await byId(wrapper, TEST_ID.modeDiff).trigger("click");
+
+    expect(byId(wrapper, TEST_ID.paneToggleDiff).exists()).toBe(false);
+    expect(byId(wrapper, TEST_ID.panelDiff).exists()).toBe(true);
+  });
+
   it("shows the minimap only while the stage shows a crop", async () => {
     const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
     await loadCandidate(wrapper);
