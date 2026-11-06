@@ -427,7 +427,7 @@ so the stack re-initialises on 18.
 
 On every push to `main` or `develop`, GitHub Actions runs tests (unit + e2e) automatically.
 
-Releases are cut from [Conventional Commits](https://www.conventionalcommits.org/) by release-please: it maintains a release PR, and merging that PR creates a `vX.Y.Z` tag and a GitHub Release. The same workflow run then builds and pushes every image tagged `X.Y.Z` to GHCR and updates the `tag:` values in `deploy/charts/vrt/values.yaml`, which ArgoCD picks up automatically.
+Releases are cut from [Conventional Commits](https://www.conventionalcommits.org/) by release-please: it maintains a release PR, and merging that PR creates a `vX.Y.Z` tag and a GitHub Release. The same workflow run then builds and pushes every image tagged `X.Y.Z` to GHCR, updates the `tag:` values in `deploy/charts/vrt/values.yaml` (ArgoCD picks them up automatically) and attaches the client SDK tarball to the release. The SDK step is called from the release run itself, because a release created with `GITHUB_TOKEN` does not start the `release: published` workflow.
 
 The release run re-runs the backend and frontend lint, typecheck, and unit tests before building, so an image is never published from untested code.
 
