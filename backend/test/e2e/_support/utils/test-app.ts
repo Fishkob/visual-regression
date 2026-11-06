@@ -4,6 +4,7 @@ import { createValidationPipe } from '@common/http/validation-pipe';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { AppModule } from '@app';
 import { IntakeWorkerModule } from '@public/visualTest/intake/intake-worker.module';
+import { ComparisonJobPoller } from '@public/visualTest/intake/workers/comparison-job-poller';
 import { DataDeletionModule } from '@internal/data-deletion/data-deletion.module';
 import { hashToken } from '@internal/auth/token-hash';
 import { E2E_API_KEY } from './e2e-api-key';
@@ -31,6 +32,14 @@ export class TestApp {
     app.useGlobalPipes(createValidationPipe());
 
     await app.init();
+
+    // The harness drives queued jobs itself (waitForComparison/drainJobs), so the
+    // poller must not claim them. A live poller and the harness can pick up the
+    // same job within one cycle: two comparisons run for one candidate, both see
+    // no pending row, and the loser is rejected by the database's single-pending
+    // trigger as an unrelated P2002 — a flake that has nothing to do with the
+    // behaviour under test.
+    app.get(ComparisonJobPoller).stop();
 
     this.appInstance = app;
 
