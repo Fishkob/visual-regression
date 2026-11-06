@@ -245,6 +245,9 @@ jobs:
       # required (backend/src/config/env.validation.ts) and docker compose
       # refuses to interpolate x-app-env without it.
       TOTP_ENCRYPTION_KEY: ci-frontend-totp-key-0123456789abcdef
+      # Same reason: x-app-env marks these required for every compose call.
+      POSTGRES_PASSWORD: postgres
+      RUSTFS_ROOT_PASSWORD: rustfsadmin
       # The suite logs in far more often than a browser session ever would.
       LOGIN_RATE_LIMIT_PER_MINUTE: "1000"
 

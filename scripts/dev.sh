@@ -46,11 +46,12 @@ log() { echo -e "${CYAN}==>${NC} $1"; }
 warn() { echo -e "${YELLOW}==> Warning:${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
 
-# docker-compose interpolates TOTP_ENCRYPTION_KEY for every service, including an
-# `infra`-only start. A local stack without a .env gets a fixed development key
-# (the backend refuses to start without one); a real installation generates it
-# into .env via install.sh.
-ensure_totp_key() {
+# docker compose interpolates x-app-env for every service, including an
+# `infra`-only start, and the production stack treats those secrets as required.
+# A local stack without a .env gets development values (the backend refuses to
+# start without a TOTP key); a real installation generates them into .env via
+# install.sh.
+ensure_compose_env() {
     if [ -f .env ]; then
         set -a && source .env && set +a
     fi
@@ -58,6 +59,8 @@ ensure_totp_key() {
         export TOTP_ENCRYPTION_KEY="dev-stack-totp-key-not-for-production"
         warn "TOTP_ENCRYPTION_KEY is not set — using the development key for this stack."
     fi
+    export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}"
+    export RUSTFS_ROOT_PASSWORD="${RUSTFS_ROOT_PASSWORD:-${RUSTFS_SECRET_KEY:-rustfsadmin}}"
 }
 
 require_docker() {
@@ -84,7 +87,7 @@ require_node() {
 
 cmd_infra() {
     require_docker
-    ensure_totp_key
+    ensure_compose_env
 
     log "Starting infrastructure services..."
     docker compose -f docker-compose.yml up -d postgres rustfs pdf-sidecar
@@ -117,7 +120,7 @@ cmd_infra() {
 
 cmd_docker() {
     require_docker
-    ensure_totp_key
+    ensure_compose_env
 
     log "Building and starting all services..."
     docker compose build

@@ -1,0 +1,5 @@
+# Default owner for the whole tree: opens a review request on every pull
+# request. The "Require review from Code Owners" rule stays off while the
+# project has a single maintainer — enabling it would block every PR on a
+# second reviewer.
+* @Fishkob

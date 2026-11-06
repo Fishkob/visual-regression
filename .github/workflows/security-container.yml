@@ -14,10 +14,12 @@ jobs:
     name: Trivy Image Scan (${{ matrix.service }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # docker compose interpolates x-app-env for the whole file, so the required
-    # TOTP key must be set even when only one bake target is built.
+    # docker compose/bake interpolates x-app-env for the whole file, so its
+    # required secrets must be set even when only one target is built.
     env:
       TOTP_ENCRYPTION_KEY: ci-container-scan-totp-0123456789abcdef
+      POSTGRES_PASSWORD: postgres
+      RUSTFS_ROOT_PASSWORD: rustfsadmin
     strategy:
       fail-fast: false
       matrix:

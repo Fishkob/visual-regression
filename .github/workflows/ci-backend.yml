@@ -120,10 +120,12 @@ jobs:
     timeout-minutes: 40
     needs: changes
     if: needs.changes.outputs.backend == 'true' && github.event.inputs.skipTests != 'true'
-    # docker compose interpolates x-app-env for the whole file, so the required
-    # TOTP key must be set even when only the infra services are started.
+    # docker compose interpolates x-app-env for the whole file, so its required
+    # secrets must be set even when only the infra services are started.
     env:
       TOTP_ENCRYPTION_KEY: ci-backend-totp-key-0123456789abcdef
+      POSTGRES_PASSWORD: postgres
+      RUSTFS_ROOT_PASSWORD: rustfsadmin
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

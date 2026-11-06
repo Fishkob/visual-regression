@@ -19,6 +19,15 @@ const PG_PORT = 5432;
 const PG_USER = 'postgres';
 const PG_PASSWORD = 'postgres';
 
+// docker compose interpolates x-app-env for the whole file, so the required
+// secrets must be present even when only the infra services are started or
+// stopped. These are the values the suite's own DATABASE_URL and RUSTFS_* env
+// in vitest.config.e2e.ts already assume.
+const COMPOSE_ENV = {
+  POSTGRES_PASSWORD: PG_PASSWORD,
+  RUSTFS_ROOT_PASSWORD: 'rustfsadmin',
+};
+
 function setDockerStarted(started: boolean): void {
   fs.writeFileSync(STATE_FILE, JSON.stringify({ started }));
 }
@@ -92,6 +101,7 @@ export async function setup(): Promise<void> {
     execSync('docker compose up -d postgres rustfs pdf-sidecar', {
       cwd: REPO_ROOT,
       stdio: 'inherit',
+      env: { ...process.env, ...COMPOSE_ENV },
     });
     setDockerStarted(true);
 
@@ -129,6 +139,7 @@ export function teardown(): void {
     execSync('docker compose down -v --remove-orphans', {
       cwd: REPO_ROOT,
       stdio: 'inherit',
+      env: { ...process.env, ...COMPOSE_ENV },
     });
   } else {
     console.log('Leaving existing Docker containers running...');

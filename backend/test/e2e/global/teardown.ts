@@ -16,7 +16,16 @@ function getDockerStarted(): boolean {
 module.exports = () => {
   if (getDockerStarted()) {
     console.log('Stopping and removing Docker containers started by tests...');
-    execSync('docker compose down -v --remove-orphans', { stdio: 'inherit' });
+    // docker compose interpolates x-app-env before it removes anything, so the
+    // required secrets have to be set here too.
+    execSync('docker compose down -v --remove-orphans', {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        POSTGRES_PASSWORD: 'postgres',
+        RUSTFS_ROOT_PASSWORD: 'rustfsadmin',
+      },
+    });
   } else {
     console.log('Leaving existing Docker containers running...');
   }

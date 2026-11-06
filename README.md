@@ -1,5 +1,10 @@
 # Visual Regression Testing Platform
 
+[![CI (Backend)](https://github.com/Fishkob/visual-regression/actions/workflows/ci-backend.yml/badge.svg?branch=main)](https://github.com/Fishkob/visual-regression/actions/workflows/ci-backend.yml)
+[![CI (Frontend)](https://github.com/Fishkob/visual-regression/actions/workflows/ci-frontend.yml/badge.svg?branch=main)](https://github.com/Fishkob/visual-regression/actions/workflows/ci-frontend.yml)
+[![Latest release](https://img.shields.io/github/v/release/Fishkob/visual-regression)](https://github.com/Fishkob/visual-regression/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="frontend/tests/quality/__screenshots__/visual-test-details-regions-dark.png">
   <img src="frontend/tests/quality/__screenshots__/visual-test-details-regions-light.png" alt="Review page for one test: the diff with its changed area highlighted, the mode bar (Diff marked, Side by Side, Diff Only, Overlay, Wipe, Blink), the Changed areas panel and the Skip/Approve footer" width="100%">

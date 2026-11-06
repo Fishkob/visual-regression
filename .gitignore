@@ -40,3 +40,10 @@ backend/observability/secrets/x-metrics-key
 /osv-results.json
 __pycache__/
 *.pyc
+
+# Logs — a committed CI runner log pastes a whole job's environment into the repo
+*.log
+
+# Architecture visual-check receipts embed absolute paths from the machine that
+# ran them; the contact sheet and its screenshots stay tracked
+*.visual-check.json

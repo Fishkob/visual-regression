@@ -1,0 +1,18 @@
+# Normalize line endings on commit so a Windows checkout produces the same diff
+# as a macOS or Linux one.
+* text=auto eol=lf
+
+# Shell entrypoints must keep LF: a CRLF shebang fails with
+# "$'\r': command not found" before the script runs.
+*.sh text eol=lf
+
+# Binary assets — never normalize or diff these as text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.tgz binary
