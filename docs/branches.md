@@ -11,7 +11,7 @@ to do with a branch before and after its merge.
 ## Before the merge
 
 1. CI uploads with the branch that produced the capture
-   (`branch=<your branch>`, see [ci-integration.md](ci-integration.md#2-upload-captures)).
+   (`branch=<your branch>`, see [ci-integration.md](ci-integration.md#2-upload-and-wait)).
    Omitting `branch` means the project's default branch.
 2. The first upload of a fresh branch finds no baseline of its own and inherits
    the target's: it is compared against the target branch's current baseline, and
