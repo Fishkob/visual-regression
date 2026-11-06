@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.0.0](https://github.com/Fishkob/visual-regression/compare/v2.1.0...v3.0.0) (2026-11-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **api:** remove the 4-eyes approval gate
+
+### Features
+
+* **api:** remove the 4-eyes approval gate ([af1dcf8](https://github.com/Fishkob/visual-regression/commit/af1dcf8bf9ea92e2a32888f7a141b929f2b265ba))
+* **config:** raise the rate-limit defaults ([26d008b](https://github.com/Fishkob/visual-regression/commit/26d008b84621fbd75102613cb878e33db9812201))
+* **reports:** expose the approval-reason mix in the trends read ([7ba9bd8](https://github.com/Fishkob/visual-regression/commit/7ba9bd8ab35036a28bb424cf996e823b22c6b91e))
+
+
+### Reverts
+
+* remove the approval-reason mix from the trends read ([00ee439](https://github.com/Fishkob/visual-regression/commit/00ee43906eb437e17cf3351f5cb34413b94a8f2f))
+
 ## [2.1.0](https://github.com/Fishkob/visual-regression/compare/v2.0.0...v2.1.0) (2026-11-05)
 
 
