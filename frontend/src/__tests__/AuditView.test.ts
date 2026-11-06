@@ -178,36 +178,30 @@ describe("AuditView", () => {
   it("labels the review and policy actions instead of their wire keys", async () => {
     mockList.mockResolvedValue(
       pageOf([
-        auditDto({ id: "evt-1", action: "review.vote" }),
-        auditDto({ id: "evt-2", action: "review.assign" }),
-        auditDto({ id: "evt-3", action: "review.complete" }),
-        auditDto({ id: "evt-4", action: "review.comment" }),
-        auditDto({ id: "evt-5", action: "review.comment-resolve" }),
-        auditDto({ id: "evt-6", action: "project.review-policy" }),
-        auditDto({ id: "evt-7", action: "test.threshold" }),
+        auditDto({ id: "evt-1", action: "review.assign" }),
+        auditDto({ id: "evt-2", action: "review.complete" }),
+        auditDto({ id: "evt-3", action: "review.comment" }),
+        auditDto({ id: "evt-4", action: "review.comment-resolve" }),
+        auditDto({ id: "evt-5", action: "test.threshold" }),
       ]),
     );
 
     const wrapper = mountView();
-    await waitForRows(wrapper, 7);
+    await waitForRows(wrapper, 5);
 
     const rendered = rows(wrapper).map((row) => row.text());
-    expect(rendered[0]).toContain("Review vote recorded");
-    expect(rendered[1]).toContain("Review assigned");
-    expect(rendered[2]).toContain("Review completed");
-    expect(rendered[3]).toContain("Review comment");
-    expect(rendered[4]).toContain("Review comment resolved");
-    expect(rendered[5]).toContain("Review policy changed");
-    expect(rendered[6]).toContain("Threshold changed");
+    expect(rendered[0]).toContain("Review assigned");
+    expect(rendered[1]).toContain("Review completed");
+    expect(rendered[2]).toContain("Review comment");
+    expect(rendered[3]).toContain("Review comment resolved");
+    expect(rendered[4]).toContain("Threshold changed");
     // No row leaks the raw key.
     for (const [index, text] of rendered.entries()) {
       const wire = [
-        "review.vote",
         "review.assign",
         "review.complete",
         "review.comment",
         "review.comment-resolve",
-        "project.review-policy",
         "test.threshold",
       ][index];
       expect(text).not.toContain(wire);

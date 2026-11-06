@@ -3,14 +3,12 @@ import type {
   BulkDeleteResultDto,
   BulkItemResultDto,
   BulkMoveResultDto,
-  BulkPendingVoteDto,
 } from "@sdk";
 import type {
   BulkApproveResult,
   BulkDeleteResult,
   BulkItemResult,
   BulkMoveResult,
-  BulkPendingVote,
 } from "./bulk-action.model";
 
 function presentString(value: unknown): string | null {
@@ -31,20 +29,11 @@ function mapItems(
   return (dtos ?? []).map(mapBulkItem);
 }
 
-function mapPendingVote(dto: BulkPendingVoteDto): BulkPendingVote {
-  return {
-    id: String(dto.id ?? ""),
-    votes: typeof dto.votes === "number" ? dto.votes : 0,
-    required: typeof dto.required === "number" ? dto.required : 0,
-  };
-}
-
 export function mapBulkApproveResult(
   dto: BulkApprovalResultDto | undefined,
 ): BulkApproveResult {
   return {
     approved: mapItems(dto?.approved),
-    pending: (dto?.pending ?? []).map(mapPendingVote),
     failed: mapItems(dto?.failed),
   };
 }
@@ -75,9 +64,8 @@ export function mergeBulkApproveResults(
   return results.reduce<BulkApproveResult>(
     (merged, result) => ({
       approved: [...merged.approved, ...result.approved],
-      pending: [...merged.pending, ...result.pending],
       failed: [...merged.failed, ...result.failed],
     }),
-    { approved: [], pending: [], failed: [] },
+    { approved: [], failed: [] },
   );
 }

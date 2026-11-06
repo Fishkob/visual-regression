@@ -131,17 +131,13 @@ export function useRunMutations(
     // silent "approved" on a half-failed batch would be a lie.
     successMessage: (result) => {
       const approved = result.approved ?? 0;
-      const pending = result.pending?.length ?? 0;
       const failed = result.failed?.length ?? 0;
-      if (approved === 0 && pending === 0 && failed === 0) {
+      if (approved === 0 && failed === 0) {
         return tm("toast.noPendingComparisons");
       }
       const parts: string[] = [];
       if (approved > 0) {
         parts.push(tm("toast.approvedComparisons", { count: approved }));
-      }
-      if (pending > 0) {
-        parts.push(tm("approval.awaitingCount", { count: pending }));
       }
       if (failed > 0) {
         parts.push(tm("toast.failedCount", { count: failed }));

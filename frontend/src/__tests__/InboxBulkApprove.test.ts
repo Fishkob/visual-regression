@@ -182,10 +182,7 @@ describe("Inbox bulk approve", () => {
       `[data-testid="${TEST_ID.dialogDescription}"]`,
     );
     expect(description.text()).toContain("3 changes across 2 projects");
-    // The confirm copy names both review policies: a baseline write for N=1 and
-    // a recorded vote that stays pending for multi-approval projects.
     expect(description.text()).toContain("becomes the new baseline");
-    expect(description.text()).toContain("records one vote and stays pending");
 
     await wrapper
       .get(`[data-testid="${TEST_ID.dialogConfirm}"]`)
@@ -265,65 +262,5 @@ describe("Inbox bulk approve", () => {
     expect(
       wrapper.findAll(`[data-testid="${TEST_ID.inboxItem}"]`),
     ).toHaveLength(3);
-  });
-});
-
-describe("Inbox bulk approve with 4-eyes votes", () => {
-  it("reports pending votes separately and shows them in the dialog", async () => {
-    mockBulkApprove.mockImplementation(
-      ({ path }: { path: { projectName: string } }) =>
-        Promise.resolve({
-          data:
-            path.projectName === "checkout"
-              ? {
-                  approved: [{ id: "c-1", success: true }],
-                  pending: [{ id: "c-2", votes: 1, required: 2 }],
-                  failed: [],
-                }
-              : {
-                  approved: [{ id: "c-3", success: true }],
-                  pending: [],
-                  failed: [],
-                },
-        }),
-    );
-
-    const wrapper = mountView();
-    await waitForItems(wrapper, 3);
-
-    await wrapper
-      .get(`[data-testid="${TEST_ID.inboxSelectAll}"]`)
-      .setValue(true);
-    await wrapper
-      .get(`[data-testid="${TEST_ID.inboxBulkApprove}"]`)
-      .trigger("click");
-
-    await vi.waitFor(() =>
-      expect(
-        wrapper.find(`[data-testid="${TEST_ID.dialogConfirm}"]`).exists(),
-      ).toBe(true),
-    );
-    await wrapper
-      .get(`[data-testid="${TEST_ID.dialogConfirm}"]`)
-      .trigger("click");
-
-    await vi.waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith(
-        "Approved 2 changes, 1 awaiting additional approval",
-      ),
-    );
-
-    await vi.waitFor(() =>
-      expect(
-        wrapper.findAll(`[data-testid="${TEST_ID.bulkPendingRow}"]`),
-      ).toHaveLength(1),
-    );
-    const pending = wrapper.get(`[data-testid="${TEST_ID.bulkPendingRow}"]`);
-    expect(pending.text()).toContain("checkout · cart");
-    expect(pending.text()).toContain("1 of 2 reviewers approved");
-    expect(
-      wrapper.find(`[data-testid="${TEST_ID.bulkFailureRow}"]`).exists(),
-    ).toBe(false);
-    expect(wrapper.text()).toContain("Waiting for additional approval");
   });
 });

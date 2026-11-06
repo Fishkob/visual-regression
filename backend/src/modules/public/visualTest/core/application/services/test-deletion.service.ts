@@ -175,8 +175,7 @@ export class TestDeletionService {
     if (testIds.length > 0) {
       // The discussion dies with the test: `ReviewComment.testId` is a foreign
       // key with ON DELETE CASCADE, so the row delete below takes it in the same
-      // transaction. Votes are not touched — they are the 4-eyes audit trail and
-      // outlive the test.
+      // transaction.
       await this.tests.deleteByIds(testIds);
       // One INSERT for the whole project's trail: a per-test loop inside the
       // deletion transaction turns a large project delete into N round-trips

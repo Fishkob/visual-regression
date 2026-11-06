@@ -31,7 +31,6 @@ export interface ProjectWithVariants {
   groupName: string | null;
   branchName: string;
   defaultBranchName: string;
-  requiredApprovals: number;
   pixelDiffThreshold: number | null;
   variants: ProjectVariantStatus[];
   total: number;
@@ -110,7 +109,6 @@ export class ProjectReadRepository {
       groupName: project.group?.name ?? null,
       branchName: branch.branchName,
       defaultBranchName,
-      requiredApprovals: project.requiredApprovals,
       pixelDiffThreshold: project.pixelDiffThreshold,
       variants: page.data,
       total: page.total,

@@ -24,8 +24,8 @@ Self-hosted with `docker compose` — no cloud account, no per-snapshot billing.
 - **Tolerances as code** — `.vrt.json` next to the tests, a per-variant threshold and
   a project default; a diff within tolerance is auto-accepted, and approval stays
   the only writer of a baseline.
-- **Trust** — baseline history with restore, an audit trail, a 4-eyes approval
-  policy, review comments and decision reasons.
+- **Trust** — baseline history with restore, an audit trail, review comments
+  and decision reasons.
 - **Reach** — signed webhooks (Slack-ready) and read-only share links that show the
   actual pixels.
 - **Image and PDF** share one pipeline; the UI is English and German, light and dark.

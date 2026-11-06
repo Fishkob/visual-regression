@@ -138,7 +138,6 @@ beforeEach(() => {
       name: "checkout",
       branchName: "main",
       defaultBranchName: "main",
-      requiredApprovals: 1,
     },
   });
   mockUpdate.mockImplementation(({ body }: { body: Record<string, unknown> }) =>

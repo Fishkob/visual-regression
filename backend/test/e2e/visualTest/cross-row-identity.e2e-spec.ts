@@ -172,38 +172,4 @@ describe('Cross-row identities and review artifacts (e2e)', () => {
       await prisma.reviewComment.count({ where: { testId: a.testId } }),
     ).toBe(0);
   });
-
-  it('resolves a vote project id from the name it was written with', async () => {
-    await TestApp.createProject('votes-a');
-    const project = await prisma.project.findUniqueOrThrow({
-      where: { name: 'votes-a' },
-    });
-
-    const vote = await prisma.approvalVote.create({
-      data: {
-        comparisonId: 'comparison-1',
-        projectName: 'votes-a',
-        testId: 'test-1',
-        userId: 'user-1',
-        username: 'jane',
-      },
-    });
-
-    expect(vote.projectId).toBe(project.id);
-    expect(vote.projectName).toBe('votes-a');
-  });
-
-  it('leaves the project id null for a vote of a project that is gone', async () => {
-    const vote = await prisma.approvalVote.create({
-      data: {
-        comparisonId: 'comparison-2',
-        projectName: 'deleted-project',
-        testId: 'test-2',
-        userId: 'user-2',
-        username: 'jane',
-      },
-    });
-
-    expect(vote.projectId).toBeNull();
-  });
 });

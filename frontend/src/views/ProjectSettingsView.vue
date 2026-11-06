@@ -5,7 +5,6 @@ import { RouterLink } from "vue-router";
 
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import ProjectWebhooksPanel from "@/components/webhooks/ProjectWebhooksPanel.vue";
-import ReviewSettingsDialog from "@/components/projects/ReviewSettingsDialog.vue";
 import ThresholdSettingsDialog from "@/components/projects/ThresholdSettingsDialog.vue";
 import ProjectStoragePanel from "@/components/storage/ProjectStoragePanel.vue";
 import { Badge } from "@/components/ui/badge";
@@ -19,14 +18,12 @@ const { projectName } = useRouteParams();
 const { t } = useI18n();
 const { isAdmin } = useCurrentRole();
 
-// The page needs the project's review policy, and `requiredApprovals` is only
+// The page needs the project's threshold, and `pixelDiffThreshold` is only
 // carried by the branch-scoped project read. Reusing it keeps the cache entry
 // the operator already populated by coming from the project page.
 const { project } = useProjectDetailPage(projectName);
 
-const reviewSettingsOpen = ref(false);
 const thresholdSettingsOpen = ref(false);
-const requiredApprovals = computed(() => project.value?.requiredApprovals ?? 1);
 const projectThreshold = computed(
   () => project.value?.pixelDiffThreshold ?? null,
 );
@@ -59,34 +56,6 @@ const projectThreshold = computed(
     <p class="text-sm text-muted-foreground">
       {{ t("projectSettings.description") }}
     </p>
-
-    <section class="rounded-xl border bg-card p-4 shadow-sm">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h3 class="font-medium">{{ t("reviewSettings.title") }}</h3>
-          <p class="text-sm text-muted-foreground">
-            {{ t("reviewSettings.description") }}
-          </p>
-          <p
-            v-if="project"
-            class="mt-2 text-sm font-medium"
-            :data-testid="TEST_ID.reviewRequiredApprovalsValue"
-          >
-            {{ t("projectSettings.reviewCurrent", requiredApprovals) }}
-          </p>
-        </div>
-        <Button
-          v-if="isAdmin && project"
-          type="button"
-          variant="outline"
-          size="sm"
-          :data-testid="TEST_ID.reviewSettingsAction"
-          @click="reviewSettingsOpen = true"
-        >
-          {{ t("reviewSettings.edit") }}
-        </Button>
-      </div>
-    </section>
 
     <section
       class="rounded-xl border bg-card p-4 shadow-sm"
@@ -144,14 +113,6 @@ const projectThreshold = computed(
       </div>
       <ProjectWebhooksPanel :project-name="projectName" />
     </section>
-
-    <ReviewSettingsDialog
-      v-if="reviewSettingsOpen && project"
-      :open="reviewSettingsOpen"
-      :project-name="projectName"
-      :required-approvals="requiredApprovals"
-      @update:open="reviewSettingsOpen = $event"
-    />
 
     <ThresholdSettingsDialog
       v-if="thresholdSettingsOpen && project"

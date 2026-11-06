@@ -188,14 +188,12 @@ without a worker keeps serving requests but never prunes anything; the Helm
 chart and `docker-compose.yml` both ship a worker. Two workers are safe — every
 task takes a Postgres advisory lock before it runs.
 
-Three tables are deliberately **not** pruned: `AuditEvent` (the compliance
-trail, including the IP/user-agent written when a share link is opened),
-`ComparisonOutcomeEvent` (the trend/flake history, attributed by project name)
-and `ApprovalVote` (the 4-eyes trail that justifies an approval with
-`requiredApprovals > 1`; see ADR-050). All three are append-only and grow with
-usage; size the database accordingly, or archive/purge them on your own schedule
-if a retention policy requires it. Everything else has a configurable
-window (`RUN_HISTORY_RETENTION_DAYS`, `JOB_RETENTION_DAYS`,
+Two tables are deliberately **not** pruned: `AuditEvent` (the compliance
+trail, including the IP/user-agent written when a share link is opened) and
+`ComparisonOutcomeEvent` (the trend/flake history, attributed by project name).
+Both are append-only and grow with usage; size the database accordingly, or
+archive/purge them on your own schedule if a retention policy requires it.
+Everything else has a configurable window (`RUN_HISTORY_RETENTION_DAYS`, `JOB_RETENTION_DAYS`,
 `WEBHOOK_DELIVERY_RETENTION_DAYS`, session expiry, 7 days for expired share
 links).
 

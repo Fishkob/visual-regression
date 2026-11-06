@@ -1,12 +1,12 @@
 import { UnauthorizedException } from '@nestjs/common';
-import type { ApprovalPrincipal } from '@common/domain/approval-principal';
+import type { Principal } from '@common/domain/principal';
 import type { AuthenticatedRequest } from './authenticated-request';
 
-// The request principal with the display name kept alongside the stable ids the
-// approval path needs. The global guard attaches `auth` to every non-public
-// route; throwing here keeps an approval from being written with a fabricated
-// identity if that ever stops being true.
-export interface AuthenticatedPrincipal extends ApprovalPrincipal {
+// The request principal with the display name kept alongside the stable ids.
+// The global guard attaches `auth` to every non-public route; throwing here
+// keeps an audit row from being written with a fabricated identity if that ever
+// stops being true.
+export interface AuthenticatedPrincipal extends Principal {
   username: string;
 }
 

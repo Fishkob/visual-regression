@@ -30,8 +30,6 @@ import {
   ProjectDto,
   CreateProjectDto,
   UpdateProjectDto,
-  UpdateProjectReviewPolicyDto,
-  ProjectReviewPolicyDto,
   UpdateProjectPixelThresholdDto,
   ProjectPixelThresholdDto,
   ProjectsListQueryDto,
@@ -152,36 +150,6 @@ export class ProjectsController {
       );
     }
     return this.projectService.updateProjectGroup(dto.name ?? projectName, dto);
-  }
-
-  @Roles('ADMIN')
-  @Scope('admin')
-  @Patch(':projectName/review-policy')
-  @ApiOperation({
-    summary: 'Update how many approvals a comparison needs in a project',
-  })
-  @ApiParam({
-    name: 'projectName',
-    type: String,
-    description: 'The project whose review policy to update',
-    example: 'checkout-ui',
-  })
-  @ApiBody({ type: UpdateProjectReviewPolicyDto })
-  @ApiOkResponse({
-    type: ProjectReviewPolicyDto,
-    description: 'The project now requires the returned number of approvals',
-  })
-  @ApiNotFoundResponse({ description: 'Project not found' })
-  async updateReviewPolicy(
-    @Param('projectName', ProjectNameValidationPipe) projectName: string,
-    @Body() dto: UpdateProjectReviewPolicyDto,
-    @Req() req: AuthenticatedRequest,
-  ): Promise<ProjectReviewPolicyDto> {
-    return this.projectService.updateReviewPolicy(
-      projectName,
-      dto.requiredApprovals,
-      requireActor(req),
-    );
   }
 
   @Roles('ADMIN')

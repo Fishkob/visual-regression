@@ -263,18 +263,6 @@ describe('ProjectService', () => {
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
       expect(projects.updateGroupByName).not.toHaveBeenCalled();
     });
-
-    it('does not change the review policy through the generic update', async () => {
-      vi.spyOn(service, 'getWithLatestVariantStatuses').mockResolvedValue(
-        {} as never,
-      );
-
-      await service.updateProjectGroup('my-project', {
-        requiredApprovals: 5,
-      } as never);
-
-      expect(projects.updateRequiredApprovals).not.toHaveBeenCalled();
-    });
   });
 
   describe('updateRetention', () => {
@@ -398,80 +386,6 @@ describe('ProjectService', () => {
     });
   });
 
-  describe('updateReviewPolicy', () => {
-    it('loads the old value, updates the project and audits from/to', async () => {
-      projects.findByName.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt: new Date('2024-01-01'),
-        requiredApprovals: 1,
-      });
-
-      const result = await service.updateReviewPolicy('my-project', 3, 'jane');
-
-      expect(projects.updateRequiredApprovals).toHaveBeenCalledWith(
-        'my-project',
-        3,
-      );
-      expect(audit.record).toHaveBeenCalledWith({
-        actor: 'jane',
-        action: AUDIT_ACTIONS.projectReviewPolicy,
-        projectName: 'my-project',
-        targetType: 'project',
-        targetId: 'proj-1',
-        metadata: { from: 1, to: 3 },
-      });
-      expect(result).toEqual({ requiredApprovals: 3 });
-    });
-
-    it('treats a project without a stored value as requiring one approval', async () => {
-      projects.findByName.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt: new Date('2024-01-01'),
-      });
-
-      await service.updateReviewPolicy('my-project', 2, 'jane');
-
-      expect(audit.record).toHaveBeenCalledWith(
-        expect.objectContaining({
-          actor: 'jane',
-          metadata: { from: 1, to: 2 },
-        }),
-      );
-    });
-
-    it('writes the audit row after the update', async () => {
-      const order: string[] = [];
-      projects.findByName.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt: new Date('2024-01-01'),
-        requiredApprovals: 2,
-      });
-      projects.updateRequiredApprovals.mockImplementation(async () => {
-        order.push('update');
-      });
-      audit.record.mockImplementation(async () => {
-        order.push('audit');
-      });
-
-      await service.updateReviewPolicy('my-project', 4, 'jane');
-
-      expect(order).toEqual(['update', 'audit']);
-    });
-
-    it('rejects a missing project without writing or auditing', async () => {
-      projects.requireByName.mockRejectedValue(missingProject('missing'));
-
-      await expect(
-        service.updateReviewPolicy('missing', 3, 'jane'),
-      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
-      expect(projects.updateRequiredApprovals).not.toHaveBeenCalled();
-      expect(audit.record).not.toHaveBeenCalled();
-    });
-  });
-
   describe('getAllWithPendingFlag', () => {
     it('forwards the search and group filters to the read model', async () => {
       const pagination = new PaginationDto();
@@ -569,7 +483,6 @@ describe('ProjectService', () => {
         groupId: null,
         groupName: null,
         branchName: 'main',
-        requiredApprovals: 1,
         pixelDiffThreshold: null,
         defaultBranchName: 'main',
         variants: [

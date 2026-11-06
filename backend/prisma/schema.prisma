@@ -28,7 +28,6 @@ model Project {
   // lag the uploads of one window. Null means "never computed". See ADR-060.
   storageUsedBytes       BigInt?
   storageUsageComputedAt DateTime?
-  requiredApprovals      Int                @default(1)
   // Project-wide fallback tolerance in pixels. A variant whose baseline has no
   // threshold of its own (0) inherits this value; an explicit per-variant
   // threshold always wins. Null means "no project default".
@@ -190,28 +189,6 @@ model UnifiedComparison {
 // image approval deletes the comparison row and a test (or branch, or project)
 // can be deleted, but the record of who approved what must survive all of it.
 // The identifiers are therefore plain strings, denormalized at approval time.
-// One row per reviewer's vote. The final Approval row is written only when the
-// project's requiredApprovals threshold is reached; votes survive as the
-// 4-eyes trail (comparisonId+userId is unique, so one reviewer counts once).
-model ApprovalVote {
-  id           String   @id @default(cuid())
-  comparisonId String
-  // Same split as Approval and the other history tables: the id is resolved
-  // from projectName by the 20261124100000_project_identity trigger so a rename
-  // cannot split the four-eyes trail, and the name stays as the write-time
-  // display value. Votes are read by comparisonId today, so there is no
-  // project-scoped index yet — add one with the reader that needs it.
-  projectId    String?
-  projectName  String
-  testId       String
-  userId       String
-  username     String
-  approvedAt   DateTime @default(now())
-
-  @@unique([comparisonId, userId])
-  @@index([comparisonId])
-  @@map("ApprovalVote")
-}
 
 model Approval {
   id                 String          @id @default(cuid())

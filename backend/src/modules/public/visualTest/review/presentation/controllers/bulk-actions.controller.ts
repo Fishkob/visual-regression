@@ -8,7 +8,6 @@ import {
 import { plainToInstance } from 'class-transformer';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { requireActor } from '@common/http/authenticated-principal';
-import { requireAuthenticatedPrincipal } from '@common/http/authenticated-principal';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { Scope } from '@common/http/api-key-scope.decorator';
 import { BulkActionService } from '@public/visualTest/review/application/bulk-action.service';
@@ -37,12 +36,10 @@ export class BulkActionsController {
     @Body() dto: BulkApprovalDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<BulkApprovalResultDto> {
-    const { username, ...principal } = requireAuthenticatedPrincipal(req);
     const result = await this.bulk.approve(
       projectName,
       dto.comparisonIds,
-      username,
-      principal,
+      requireActor(req),
     );
     return plainToInstance(BulkApprovalResultDto, result, {
       excludeExtraneousValues: true,

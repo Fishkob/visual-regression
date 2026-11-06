@@ -16,8 +16,6 @@ describe('ApprovalsController', () => {
     auth: { username: 'jane.doe', userId: 'user-1' },
   } as AuthenticatedRequest;
 
-  const principal = { principalType: 'user' as const, principalId: 'user-1' };
-
   beforeEach(async () => {
     approvals = createMock<ApprovalService>();
 
@@ -81,7 +79,7 @@ describe('ApprovalsController', () => {
         'comp-1',
         'jane.doe',
         undefined,
-        { reason: undefined, note: undefined, ...principal },
+        { reason: undefined, note: undefined },
       );
       expect(result).toEqual({
         approved: true,
@@ -90,7 +88,7 @@ describe('ApprovalsController', () => {
       });
     });
 
-    it('builds an API-key principal from the request', async () => {
+    it('approves an API-key request under the key name', async () => {
       approvals.approveImage.mockResolvedValue({
         approved: true,
         newBaselineUrl: 'https://example.com/baseline.png',
@@ -113,12 +111,7 @@ describe('ApprovalsController', () => {
         'comp-1',
         'ci-key',
         undefined,
-        {
-          reason: undefined,
-          note: undefined,
-          principalType: 'apiKey',
-          principalId: 'key-1',
-        },
+        { reason: undefined, note: undefined },
       );
     });
 
@@ -160,7 +153,7 @@ describe('ApprovalsController', () => {
         'pdf-comp-1',
         'jane.doe',
         'feature/x',
-        { reason: undefined, note: undefined, ...principal },
+        { reason: undefined, note: undefined },
       );
       expect(result).toEqual({
         approved: true,
@@ -186,7 +179,6 @@ describe('ApprovalsController', () => {
     it('approves every pending comparison of the test on the branch as the caller', async () => {
       approvals.approveAllPending.mockResolvedValue({
         approved: 2,
-        pending: [],
         failed: [],
       });
 
@@ -201,16 +193,14 @@ describe('ApprovalsController', () => {
         'checkout-ui',
         'login-form',
         'jane.doe',
-        principal,
         'feature/x',
       );
-      expect(result).toEqual({ approved: 2, pending: [], failed: [] });
+      expect(result).toEqual({ approved: 2, failed: [] });
     });
 
     it('passes an undefined branch when the request names none', async () => {
       approvals.approveAllPending.mockResolvedValue({
         approved: 0,
-        pending: [],
         failed: [],
       });
 
@@ -220,7 +210,6 @@ describe('ApprovalsController', () => {
         'checkout-ui',
         'login-form',
         'jane.doe',
-        principal,
         undefined,
       );
     });
@@ -228,7 +217,6 @@ describe('ApprovalsController', () => {
     it('returns the partial failures alongside the approved count', async () => {
       approvals.approveAllPending.mockResolvedValue({
         approved: 1,
-        pending: [],
         failed: [{ comparisonId: 'comp-9', error: 'Approval failed' }],
       });
 
@@ -241,7 +229,6 @@ describe('ApprovalsController', () => {
 
       expect(result).toEqual({
         approved: 1,
-        pending: [],
         failed: [{ comparisonId: 'comp-9', error: 'Approval failed' }],
       });
     });

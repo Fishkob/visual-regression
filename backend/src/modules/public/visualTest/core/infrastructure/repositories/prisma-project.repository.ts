@@ -24,7 +24,6 @@ export interface ProjectData {
   quotaSoftPercent?: number | null;
   storageUsedBytes?: bigint | null;
   storageUsageComputedAt?: Date | null;
-  requiredApprovals?: number;
   pixelDiffThreshold?: number | null;
 }
 
@@ -112,16 +111,6 @@ export class ProjectRepository extends BaseRepository {
     return this.client.project.update({
       where: { name },
       data: { name: newName },
-    });
-  }
-
-  async updateRequiredApprovals(
-    name: string,
-    requiredApprovals: number,
-  ): Promise<void> {
-    await this.client.project.update({
-      where: { name },
-      data: { requiredApprovals },
     });
   }
 

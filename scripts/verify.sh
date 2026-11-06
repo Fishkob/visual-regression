@@ -89,8 +89,9 @@ verify_sdk_drift() {
 
 # The generated Prisma client is not tracked, so a branch switch leaves it from
 # the other branch's schema — and a stale client fails `typecheck` with an error
-# that reads like a code bug (a missing `ApprovalVote.projectId` after a
-# cherry-pick). Regenerate before anything reads it: ~200 ms, no database.
+# that reads like a code bug (a missing `ComparisonOutcomeEvent.projectName`
+# after a cherry-pick, ADR-049). Regenerate before anything reads it: ~200 ms,
+# no database.
 step "Prisma client (generated, not tracked)"
 run pnpm --filter ./backend prisma:generate
 

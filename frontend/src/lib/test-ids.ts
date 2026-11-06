@@ -74,12 +74,6 @@ export const TEST_ID = {
   activityTabApprovals: "activity-tab-approvals",
   activityTabCount: "activity-tab-count",
 
-  reviewSettingsAction: "review-settings-action",
-  reviewSettingsDialog: "review-settings-dialog",
-  reviewRequiredApprovals: "review-required-approvals",
-  reviewRequiredApprovalsValue: "review-required-approvals-value",
-  reviewSettingsSave: "review-settings-save",
-
   thresholdSettingsAction: "threshold-settings-action",
   thresholdSettingsDialog: "threshold-settings-dialog",
   projectThresholdInput: "project-threshold-input",
@@ -454,7 +448,6 @@ export const TEST_ID = {
 
   bulkFailureDialog: "bulk-failure-dialog",
   bulkFailureRow: "bulk-failure-row",
-  bulkPendingRow: "bulk-pending-row",
   bulkFailureDone: "bulk-failure-done",
 
   inboxRunFilter: "inbox-run-filter",

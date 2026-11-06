@@ -124,7 +124,6 @@ useReviewShortcuts({
         :project-name="projectName"
         :test-name="testName"
         :branch="branch"
-        :required-approvals="project?.requiredApprovals"
         :disabled="isApproving"
       />
     </template>

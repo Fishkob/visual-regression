@@ -9,10 +9,6 @@ export type ProjectDto = {
     name?: string;
     createdAt?: string;
     /**
-     * Approvals needed to finalize a comparison
-     */
-    requiredApprovals?: number;
-    /**
      * Project-wide default pixel tolerance; a variant threshold of 0 inherits it
      */
     pixelDiffThreshold?: number | null;

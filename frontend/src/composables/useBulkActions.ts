@@ -55,11 +55,6 @@ export function useBulkApproveSelection() {
       const parts = [
         tm("toast.bulkApproved", { count: result.approved.length }),
       ];
-      if (result.pending.length > 0) {
-        parts.push(
-          tm("approval.awaitingCount", { count: result.pending.length }),
-        );
-      }
       if (result.failed.length > 0) {
         parts.push(tm("toast.failedCount", { count: result.failed.length }));
       }

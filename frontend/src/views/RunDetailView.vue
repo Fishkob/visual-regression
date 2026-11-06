@@ -78,21 +78,6 @@ const approveFailureMessage = computed(() =>
     .map((failure) => `${failure.comparisonId}: ${failure.error}`)
     .join("; "),
 );
-const approvePending = computed(
-  () => mapRunApproveAllResult(approveAll.data.value).pending,
-);
-const approvePendingMessage = computed(() =>
-  approvePending.value
-    .map(
-      (vote) =>
-        `${vote.comparisonId}: ${t("approval.voteDetail", {
-          votes: vote.votes,
-          required: vote.required,
-        })}`,
-    )
-    .join("; "),
-);
-
 const finishOpen = ref(false);
 const approveAllOpen = ref(false);
 
@@ -303,13 +288,6 @@ function mismatchLabel(item: RunPending): string {
             variant="warning"
             :title="t('runDetail.approveFailuresTitle')"
             :message="approveFailureMessage"
-          />
-
-          <ErrorAlert
-            v-if="approvePending.length > 0"
-            variant="warning"
-            :title="t('approval.pendingTitle')"
-            :message="approvePendingMessage"
           />
 
           <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">

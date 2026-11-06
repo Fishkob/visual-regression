@@ -105,8 +105,6 @@
                 "share.revoke",
                 "share.access",
                 "review.assign",
-                "review.vote",
-                "project.review-policy",
                 "project.pixel-threshold",
                 "storage.retention",
                 "test.threshold",
@@ -208,8 +206,6 @@
                 "share.revoke",
                 "share.access",
                 "review.assign",
-                "review.vote",
-                "project.review-policy",
                 "project.pixel-threshold",
                 "storage.retention",
                 "test.threshold",
@@ -923,52 +919,6 @@
           }
         },
         "summary": "Get all projects",
-        "tags": [
-          "Projects"
-        ]
-      }
-    },
-    "/projects/{projectName}/review-policy": {
-      "patch": {
-        "operationId": "ProjectsController_updateReviewPolicy",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "description": "The project whose review policy to update",
-            "schema": {
-              "example": "checkout-ui",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateProjectReviewPolicyDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "The project now requires the returned number of approvals",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectReviewPolicyDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project not found"
-          }
-        },
-        "summary": "Update how many approvals a comparison needs in a project",
         "tags": [
           "Projects"
         ]
@@ -5557,11 +5507,6 @@
             "type": "string",
             "example": "2025-10-11T10:15:00Z"
           },
-          "requiredApprovals": {
-            "type": "number",
-            "example": 1,
-            "description": "Approvals needed to finalize a comparison"
-          },
           "pixelDiffThreshold": {
             "type": "number",
             "example": 25,
@@ -5642,36 +5587,6 @@
             "example": "release/1.2"
           }
         }
-      },
-      "UpdateProjectReviewPolicyDto": {
-        "type": "object",
-        "properties": {
-          "requiredApprovals": {
-            "type": "number",
-            "description": "Approvals needed to finalize a comparison",
-            "minimum": 1,
-            "maximum": 10,
-            "example": 2
-          }
-        },
-        "required": [
-          "requiredApprovals"
-        ]
-      },
-      "ProjectReviewPolicyDto": {
-        "type": "object",
-        "properties": {
-          "requiredApprovals": {
-            "type": "number",
-            "description": "Approvals needed to finalize a comparison",
-            "minimum": 1,
-            "maximum": 10,
-            "example": 2
-          }
-        },
-        "required": [
-          "requiredApprovals"
-        ]
       },
       "UpdateProjectPixelThresholdDto": {
         "type": "object",
@@ -5961,25 +5876,6 @@
           "signedNewBaselineUrl"
         ]
       },
-      "BulkApprovePendingDto": {
-        "type": "object",
-        "properties": {
-          "comparisonId": {
-            "type": "string"
-          },
-          "votes": {
-            "type": "number"
-          },
-          "required": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "comparisonId",
-          "votes",
-          "required"
-        ]
-      },
       "BulkApproveFailureDto": {
         "type": "object",
         "properties": {
@@ -6007,12 +5903,6 @@
             "example": 3,
             "description": "Number of comparisons approved by this batch"
           },
-          "pending": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BulkApprovePendingDto"
-            }
-          },
           "failed": {
             "description": "Comparisons that could not be approved; the batch continues past them",
             "type": "array",
@@ -6023,7 +5913,6 @@
         },
         "required": [
           "approved",
-          "pending",
           "failed"
         ]
       },
@@ -6322,25 +6211,6 @@
           "success"
         ]
       },
-      "BulkPendingVoteDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "votes": {
-            "type": "number"
-          },
-          "required": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "id",
-          "votes",
-          "required"
-        ]
-      },
       "BulkApprovalResultDto": {
         "type": "object",
         "properties": {
@@ -6348,12 +6218,6 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BulkItemResultDto"
-            }
-          },
-          "pending": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BulkPendingVoteDto"
             }
           },
           "failed": {
@@ -6365,7 +6229,6 @@
         },
         "required": [
           "approved",
-          "pending",
           "failed"
         ]
       },
@@ -7590,12 +7453,6 @@
           "approved": {
             "type": "number"
           },
-          "pending": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
           "failed": {
             "type": "array",
             "items": {
@@ -7605,7 +7462,6 @@
         },
         "required": [
           "approved",
-          "pending",
           "failed"
         ]
       },

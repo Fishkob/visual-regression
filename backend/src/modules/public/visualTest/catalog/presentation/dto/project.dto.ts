@@ -1,8 +1,4 @@
 import { Expose, Type } from 'class-transformer';
-import {
-  REQUIRED_APPROVALS_MAX,
-  REQUIRED_APPROVALS_MIN,
-} from '@public/visualTest/core/domain/constants/review-policy.constants';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Allow,
@@ -68,17 +64,6 @@ export class ProjectDto {
   @Type(() => Date)
   @Expose()
   createdAt?: Date;
-
-  @ApiPropertyOptional({
-    example: 1,
-    description: 'Approvals needed to finalize a comparison',
-  })
-  @IsOptional()
-  @IsInt()
-  @Min(REQUIRED_APPROVALS_MIN)
-  @Max(REQUIRED_APPROVALS_MAX)
-  @Expose()
-  requiredApprovals?: number;
 
   @ApiPropertyOptional({
     type: Number,
@@ -252,39 +237,8 @@ export class UpdateProjectDto {
   defaultBranchName?: string;
 }
 
-// The review policy is its own ADMIN-only surface: the generic project PATCH
-// must not change how many approvals a comparison needs.
-export class UpdateProjectReviewPolicyDto {
-  @ApiProperty({
-    description: 'Approvals needed to finalize a comparison',
-    minimum: REQUIRED_APPROVALS_MIN,
-    maximum: REQUIRED_APPROVALS_MAX,
-    example: 2,
-  })
-  @Type(() => Number)
-  @IsInt()
-  @Min(REQUIRED_APPROVALS_MIN)
-  @Max(REQUIRED_APPROVALS_MAX)
-  requiredApprovals!: number;
-}
-
-export class ProjectReviewPolicyDto {
-  @ApiProperty({
-    description: 'Approvals needed to finalize a comparison',
-    minimum: REQUIRED_APPROVALS_MIN,
-    maximum: REQUIRED_APPROVALS_MAX,
-    example: 2,
-  })
-  @IsInt()
-  @Min(REQUIRED_APPROVALS_MIN)
-  @Max(REQUIRED_APPROVALS_MAX)
-  @Expose()
-  requiredApprovals!: number;
-}
-
-// Its own ADMIN-only surface, like the review policy: a threshold raise
-// auto-accepts the pendings it now tolerates, so it is a governance decision,
-// not a normal project edit.
+// Its own ADMIN-only surface: a threshold raise auto-accepts the pendings it now
+// tolerates, so it is a governance decision, not a normal project edit.
 export class UpdateProjectPixelThresholdDto {
   @ApiProperty({
     type: Number,

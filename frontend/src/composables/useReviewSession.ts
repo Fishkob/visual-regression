@@ -1,8 +1,6 @@
 import { translateMessage as tm } from "@/lib/i18n-messages";
 import { computed, unref, watch, type Ref } from "vue";
 import { useQueryClient, type QueryClient } from "@tanstack/vue-query";
-import { runsQueryKeys } from "@/domains/runs/query-keys";
-import { pendingVotesOf } from "@/domains/approvals/approve-result";
 import type { ApprovalDecision } from "@/domains/approvals/approval-reason";
 import {
   keyOf,
@@ -153,15 +151,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
       };
     },
 
-    successMessage: (data, _variables, context) => {
-      const pending = pendingVotesOf(data);
-      if (pending) {
-        return tm("approval.pendingToast", {
-          votes: pending.votes,
-          required: pending.required,
-          count: Math.max(0, pending.required - pending.votes),
-        });
-      }
+    successMessage: (_data, _variables, context) => {
       return tm("toast.approvedForTest", {
         variant:
           formatVariantLabel(context?.currentVariant ?? filters.value) ||
@@ -178,9 +168,6 @@ export function useReviewSession(args: ReviewSessionOptions) {
         test: context?.currentTestName || testName.value,
       });
       const detail = sdkErrorMessage(error, "");
-      if (/already approved/i.test(detail)) {
-        return tm("approval.alreadyVoted");
-      }
       return detail && detail !== tm("common.requestFailed")
         ? `${base}: ${detail}`
         : base;
@@ -202,25 +189,7 @@ export function useReviewSession(args: ReviewSessionOptions) {
     // the next one. The optimistic cache removal still applies in onMutate so
     // the loop never re-offers the in-flight test, but moving is a success-only
     // side effect.
-    onSuccess: (data, _variables, context) => {
-      // A recorded vote is not a completed approval: the comparison stays
-      // pending for the remaining reviewers, so undo the optimistic removal and
-      // stay on the page instead of advancing the review pass.
-      if (pendingVotesOf(data)) {
-        context?.restore?.();
-        context?.restoreInbox?.();
-        if (context) {
-          invalidateDetails(queryClient, {
-            projectName: projectName.value,
-            testName: context.currentTestName,
-            ...(context.currentBranch ? { branch: context.currentBranch } : {}),
-            ...context.currentVariant,
-          });
-        }
-        invalidateReviewInbox(queryClient);
-        queryClient.invalidateQueries({ queryKey: runsQueryKeys.all() });
-        return;
-      }
+    onSuccess: () => {
       if (shouldReturnToInbox.value) {
         navigation.navigateToInbox();
         return;

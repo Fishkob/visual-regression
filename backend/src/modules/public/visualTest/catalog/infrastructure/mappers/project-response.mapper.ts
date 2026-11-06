@@ -53,7 +53,6 @@ export function mapProjectDetailToDto(
       groupName: project.groupName,
       branchName: project.branchName,
       defaultBranchName: project.defaultBranchName,
-      requiredApprovals: project.requiredApprovals,
       pixelDiffThreshold: project.pixelDiffThreshold,
       visualTests: project.variants.map((variant) => ({
         name: variant.testName,

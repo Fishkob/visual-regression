@@ -190,7 +190,7 @@ describe('Review comments and decision reasons (e2e)', () => {
     expect(list.body[199].body).toBe('comment 205');
   });
 
-  it('deletes comments but keeps the 4-eyes approval votes of a deleted test', async () => {
+  it('deletes the comments of a deleted test', async () => {
     await upload(baseline).expect(201);
     const test = await db.unifiedTest.findFirstOrThrow({
       where: { name: 'login' },
@@ -203,15 +203,6 @@ describe('Review comments and decision reasons (e2e)', () => {
         author: 'alice',
       },
     });
-    await db.approvalVote.create({
-      data: {
-        comparisonId: 'cmp-e2e',
-        projectName: 'shop',
-        testId: test.id,
-        userId: 'user-alice',
-        username: 'alice',
-      },
-    });
 
     await authRequest(app)
       .delete('/api/v1/projects/shop/tests/login')
@@ -220,9 +211,6 @@ describe('Review comments and decision reasons (e2e)', () => {
     expect(await db.reviewComment.count({ where: { testId: test.id } })).toBe(
       0,
     );
-    // Votes are the durable 4-eyes audit trail: they outlive the test row that
-    // named them, exactly like the Approval they justify.
-    expect(await db.approvalVote.count({ where: { testId: test.id } })).toBe(1);
     expect(await db.unifiedTest.count({ where: { id: test.id } })).toBe(0);
   });
 

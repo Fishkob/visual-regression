@@ -15,12 +15,10 @@ export const AUDIT_ACTIONS = [
   "api-key.revoke",
   "api-key.rotate",
   "api-key.delete",
-  "review.vote",
   "review.assign",
   "review.complete",
   "review.comment",
   "review.comment-resolve",
-  "project.review-policy",
   "project.pixel-threshold",
   "test.threshold",
 ] as const;

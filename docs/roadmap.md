@@ -62,9 +62,9 @@ SAML inside the app itself stays out of scope.
    `POST .../runs/:key/finish`, and a maintenance task closes runs idle for 24 h. A
    shorter quiet period would spare callers that forget the call, but it guesses
    when a pipeline is done — and a wrong guess reads as a passing gate.
-3. **Does the audit trail need a retention policy?** `AuditEvent`,
-   `ComparisonOutcomeEvent` and `ApprovalVote` are append-only by design
-   (ADR-050) and grow with usage. `share.access` rows are the fastest-growing case
+3. **Does the audit trail need a retention policy?** `AuditEvent` and
+   `ComparisonOutcomeEvent` are append-only by design and grow with usage.
+   `share.access` rows are the fastest-growing case
    (formerly candidate N6): they come from every share-link open, so they are worth
    deciding here rather than pruning alone, which would break append-only for one
    action type. See

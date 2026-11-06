@@ -15,8 +15,6 @@ import { PaginationDto } from '@common/dto/pagination.dto';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';
 import { createMockLogger } from '@test/utils/mocks';
-import { Reflector } from '@nestjs/core';
-import { ROLES_KEY, type AppRole } from '@common/http/roles.decorator';
 describe('ProjectsController', () => {
   let controller: ProjectsController;
   let projectService: Mocked<ProjectService>;
@@ -135,47 +133,6 @@ describe('ProjectsController', () => {
         'checkout-ui',
         dto,
       );
-    });
-  });
-
-  describe('updateReviewPolicy', () => {
-    it('requires an ADMIN', () => {
-      const roles = new Reflector().getAllAndOverride<AppRole[]>(ROLES_KEY, [
-        ProjectsController.prototype.updateReviewPolicy,
-      ]);
-
-      expect(roles).toEqual(['ADMIN']);
-    });
-
-    it('forwards the new value and the actor to the service', async () => {
-      projectService.updateReviewPolicy.mockResolvedValue({
-        requiredApprovals: 3,
-      });
-
-      const result = await controller.updateReviewPolicy(
-        'checkout-ui',
-        { requiredApprovals: 3 },
-        { auth: { username: 'ada', userId: 'user-1' } } as never,
-      );
-
-      expect(projectService.updateReviewPolicy).toHaveBeenCalledWith(
-        'checkout-ui',
-        3,
-        'ada',
-      );
-      expect(result).toEqual({ requiredApprovals: 3 });
-    });
-
-    it('propagates a missing project', async () => {
-      projectService.updateReviewPolicy.mockRejectedValue(
-        new DomainError('Project "missing" not found', 'NOT_FOUND'),
-      );
-
-      await expect(
-        controller.updateReviewPolicy('missing', { requiredApprovals: 2 }, {
-          auth: { username: 'ada', userId: 'user-1' },
-        } as never),
-      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     });
   });
 

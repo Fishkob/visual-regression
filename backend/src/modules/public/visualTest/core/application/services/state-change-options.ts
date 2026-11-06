@@ -3,7 +3,6 @@ import {
   isForeignKeyViolation,
   isSerializationError,
 } from '@common/infrastructure/retry-policy';
-import { REQUIRED_APPROVALS_MAX } from '@public/visualTest/core/domain/constants/review-policy.constants';
 import type { Prisma } from '@/prisma/client';
 
 export const DEFAULT_STATE_CHANGE_RETRY: {
@@ -22,17 +21,14 @@ export const APPROVAL_TRANSACTION_TIMEOUT_MS = 30_000;
 
 // The approval transaction opens with the per-comparison advisory lock, and
 // PostgreSQL fixes the SERIALIZABLE snapshot at that first statement — before
-// the wait. A voter queued behind another therefore cannot see the votes that
-// commit while it waits: its attempt aborts at commit, and it needs one attempt
-// per vote that committed ahead of it. A gate whose voters all arrive at once
-// then needs up to one attempt per voter — measured against Postgres on
-// simultaneous gates of 2 to 10 voters, the last voter needed exactly N
-// attempts — and REQUIRED_APPROVALS_MAX voters are legal. The budget is derived
-// from that ceiling, one attempt per voter plus one for a conflict unrelated to
-// the queue (such as a concurrent status recompute), instead of inheriting the
-// workflow default, so a later global change cannot silently shrink it into a
-// 409 for a legitimate voter.
-export const APPROVAL_MAX_ATTEMPTS = REQUIRED_APPROVALS_MAX + 1;
+// the wait. A reviewer queued behind another therefore cannot see the state
+// that commits while they wait: its attempt aborts at commit, and the retry
+// finds the comparison already settled. One approval finalizes a comparison, so
+// the queue is one deep: two attempts cover the waiter, plus one for a conflict
+// unrelated to the queue (such as a concurrent status recompute). The budget
+// stays its own constant instead of inheriting the workflow default, so a later
+// global change cannot silently shrink it into a 409.
+export const APPROVAL_MAX_ATTEMPTS = 3;
 
 // Deletion retry policy: a deletion may race a concurrent upload that creates
 // a test (or a row referencing the deleted rows) between the read and the

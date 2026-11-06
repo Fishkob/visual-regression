@@ -231,10 +231,6 @@ export class RunApproveAllResultDto {
 
   @ApiProperty({ type: Object, isArray: true })
   @Expose()
-  pending!: { comparisonId: string; votes: number; required: number }[];
-
-  @ApiProperty({ type: Object, isArray: true })
-  @Expose()
   failed!: { comparisonId: string; error: string }[];
 }
 

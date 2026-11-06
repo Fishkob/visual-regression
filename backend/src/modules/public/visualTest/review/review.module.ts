@@ -29,7 +29,6 @@ import { ReviewInboxService } from '@public/visualTest/review/application/review
 import { TestCommandService } from '@public/visualTest/review/application/test-command.service';
 import { TestLifecycleService } from '@public/visualTest/review/application/test-lifecycle.service';
 import { TestQueryService } from '@public/visualTest/review/application/test-query.service';
-import { ApprovalVoteRepository } from '@public/visualTest/review/infrastructure/repositories/approval-vote.repository';
 import { ReviewAssignmentRepository } from '@public/visualTest/review/infrastructure/repositories/review-assignment.repository';
 import { ReviewCommentRepository } from '@public/visualTest/review/infrastructure/repositories/review-comment.repository';
 import { ReviewInboxRepository } from '@public/visualTest/review/infrastructure/repositories/review-inbox.repository';
@@ -67,7 +66,6 @@ import { TestReadRepository } from '@public/visualTest/review/infrastructure/rep
   ],
   providers: [
     ApprovalService,
-    ApprovalVoteRepository,
     BulkActionService,
     ReviewAssignmentService,
     ReviewAssignmentRepository,

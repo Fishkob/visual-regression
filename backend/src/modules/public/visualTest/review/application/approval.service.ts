@@ -1,7 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Tracker } from '@common/tracker/tracker.service';
 import { DomainError } from '@common/domain/domain-error';
-import type { ApprovalPrincipal } from '@common/domain/approval-principal';
 import { StateChangeWorkflow } from '@public/visualTest/core/application/services/state-change-workflow.service';
 import { change } from '@public/visualTest/core/application/services/state-change-options';
 import type { TestKind } from '@common/domain/test-kind';
@@ -18,7 +17,6 @@ import {
 } from '@public/visualTest/core/infrastructure/repositories/approval-audit.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
-import { ApprovalVoteRepository } from '@public/visualTest/review/infrastructure/repositories/approval-vote.repository';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
 import { WebhookDispatchService } from '@internal/webhooks/webhook-dispatch.service';
@@ -29,7 +27,6 @@ import {
   IPdfRenderCache,
 } from '@common/domain/pdf-sidecar.interface';
 import { ComparisonStatus } from '@public/visualTest/core/domain/types/visual-test.types';
-import { REQUIRED_APPROVALS_MIN } from '@public/visualTest/core/domain/constants/review-policy.constants';
 import { TRACKED_OPERATIONS } from '@common/domain/metrics-catalog';
 import {
   STORAGE_PROVIDER,
@@ -51,27 +48,15 @@ export interface ApprovedResult {
   signedNewBaselineUrl: string;
 }
 
-export interface ApprovalPendingResult {
-  approved: false;
-  requiresMoreApprovals: true;
-  votes: number;
-  required: number;
-}
-
-export type ApprovalResult = ApprovedResult | ApprovalPendingResult;
-
-export interface ApprovalDecisionOptions extends ApprovalPrincipal {
+export interface ApprovalDecisionOptions {
   reason?: 'INTENDED_CHANGE' | 'FLAKE' | 'INFRA';
   note?: string;
 }
 
-type ApprovalChangeResult =
-  | {
-      approved: true;
-      decision: ApprovalDecision;
-      newBaselineUrl: string;
-    }
-  | ApprovalPendingResult;
+interface ApprovalChangeResult {
+  decision: ApprovalDecision;
+  newBaselineUrl: string;
+}
 
 @Injectable()
 export class ApprovalService {
@@ -141,76 +126,7 @@ export class ApprovalService {
     @Inject(STORAGE_PROVIDER) private readonly storage: IStorageProvider,
     private readonly approvalAudit: ApprovalAuditRepository,
     private readonly projects: ProjectRepository,
-    private readonly votes: ApprovalVoteRepository,
   ) {}
-
-  private async requireMoreApprovals(input: {
-    comparisonId: string;
-    projectName: string;
-    testName: string;
-    branchName?: string;
-    testId: string;
-    approvedBy: string;
-    principal: ApprovalPrincipal;
-  }): Promise<{ partial: true; votes: number; required: number } | null> {
-    const project = await this.projects.findByName(input.projectName);
-    const required = Math.max(
-      REQUIRED_APPROVALS_MIN,
-      project?.requiredApprovals ?? REQUIRED_APPROVALS_MIN,
-    );
-    if (required <= 1) return null;
-    // A 4-eyes gate counts humans: a CI key is one credential a single operator
-    // controls, so allowing it to vote would let that operator satisfy N>1.
-    if (input.principal.principalType === 'apiKey') {
-      throw new DomainError(
-        '4-eyes approvals require signed-in reviewers; API keys cannot approve a comparison that needs more than one approval',
-        'FORBIDDEN',
-      );
-    }
-    if (
-      await this.votes.hasVoted(input.comparisonId, input.principal.principalId)
-    ) {
-      throw new DomainError(
-        'You have already approved this comparison',
-        'CONFLICT',
-      );
-    }
-    await this.votes.record({
-      comparisonId: input.comparisonId,
-      projectName: input.projectName,
-      testId: input.testId,
-      userId: input.principal.principalId,
-      username: input.approvedBy,
-    });
-    // Counted after the insert: a count read before it is the value two
-    // concurrent voters both saw, and that is what let a pair of votes fail to
-    // reach the total (ADR-050). This still counts from the transaction's own
-    // snapshot, so a voter queued on the advisory lock cannot see the vote that
-    // committed while it waited — the retry is what makes the total correct
-    // (see APPROVAL_MAX_ATTEMPTS).
-    const votes = await this.votes.countForComparison(input.comparisonId);
-    if (votes < required) {
-      // The vote row and its audit row commit together, so a partial vote can
-      // never exist without the trail that proves who cast it.
-      await this.audit.record({
-        actor: input.approvedBy,
-        action: AUDIT_ACTIONS.reviewVote,
-        projectName: input.projectName,
-        testName: input.testName,
-        branchName: input.branchName ?? null,
-        targetType: 'comparison',
-        targetId: input.comparisonId,
-        metadata: {
-          comparisonId: input.comparisonId,
-          votes,
-          required,
-          principalType: input.principal.principalType,
-        },
-      });
-      return { partial: true, votes, required };
-    }
-    return null;
-  }
 
   async approveImage(
     projectName: string,
@@ -219,7 +135,7 @@ export class ApprovalService {
     approvedBy: string,
     branchName: string | undefined,
     options: ApprovalDecisionOptions,
-  ): Promise<ApprovalResult> {
+  ): Promise<ApprovedResult> {
     return this.executeApproval(
       'image',
       projectName,
@@ -238,7 +154,7 @@ export class ApprovalService {
     approvedBy: string,
     branchName: string | undefined,
     options: ApprovalDecisionOptions,
-  ): Promise<ApprovalResult> {
+  ): Promise<ApprovedResult> {
     return this.executeApproval(
       'pdf',
       projectName,
@@ -258,7 +174,7 @@ export class ApprovalService {
     approvedBy: string,
     branchName: string | undefined,
     options: ApprovalDecisionOptions,
-  ): Promise<ApprovalResult> {
+  ): Promise<ApprovedResult> {
     return this.tracker.track(TRACKED_OPERATIONS.approval[kind], async () => {
       const test = await this.resolveTestOfKind(
         projectName,
@@ -274,9 +190,9 @@ export class ApprovalService {
         await this.workflow.executeStateChange<ApprovalChangeResult>(
           async () => {
             // Hold the comparison for the length of this decision: concurrent
-            // voters queue here instead of racing the same rows. The snapshot
-            // is fixed before the wait, so the queued voter still aborts at
-            // commit and retries (see APPROVAL_MAX_ATTEMPTS).
+            // reviewers queue here instead of racing the same rows. The
+            // snapshot is fixed before the wait, so the queued reviewer still
+            // aborts at commit and retries (see APPROVAL_MAX_ATTEMPTS).
             await this.comparisons.lockForApproval(comparisonId);
             const comparison = await this.resolve(test.id, comparisonId);
             if (!comparison.baseline || !comparison.candidate) {
@@ -289,26 +205,6 @@ export class ApprovalService {
               comparison.baseline,
               comparison.candidate,
             );
-            const partial = await this.requireMoreApprovals({
-              comparisonId: comparison.id,
-              projectName,
-              testName,
-              branchName,
-              testId: test.id,
-              approvedBy,
-              principal: options,
-            });
-            if (partial) {
-              return {
-                change: change([test.id]),
-                result: {
-                  approved: false as const,
-                  requiresMoreApprovals: true as const,
-                  votes: partial.votes,
-                  required: partial.required,
-                },
-              };
-            }
             // The overwrite keeps the outgoing baseline as a revision in the same
             // transaction, so the approval can be undone from the history view and
             // the previous file stays referenced (see
@@ -401,7 +297,6 @@ export class ApprovalService {
                 ],
               }),
               result: {
-                approved: true as const,
                 decision,
                 newBaselineUrl: decision.newBaselineUrl,
               },
@@ -409,18 +304,13 @@ export class ApprovalService {
           },
           {
             onSuccess: async ({ result }) => {
-              if (result.approved && 'decision' in result) {
-                await config.cleanupAfterCommit?.(result.decision);
-              }
+              await config.cleanupAfterCommit?.(result.decision);
             },
             transactionTimeoutMs: APPROVAL_TRANSACTION_TIMEOUT_MS,
             retry: { maxAttempts: APPROVAL_MAX_ATTEMPTS },
           },
         );
 
-      if (!result.result.approved) {
-        return result.result;
-      }
       return {
         approved: true,
         newBaselineUrl: result.result.newBaselineUrl,
@@ -448,29 +338,20 @@ export class ApprovalService {
     projectName: string,
     targets: readonly ApproveTarget[],
     approvedBy: string,
-    principal: ApprovalPrincipal,
   ): Promise<ApprovalBatch> {
-    const result = new ApprovalBatch([], [], []);
+    const result = new ApprovalBatch([], []);
     for (const target of targets) {
       try {
-        const outcome = await this.executeApproval(
+        await this.executeApproval(
           target.kind,
           projectName,
           target.testName,
           target.comparisonId,
           approvedBy,
           target.branchName,
-          principal,
+          {},
         );
-        if (!outcome.approved) {
-          result.pending.push({
-            comparisonId: target.comparisonId,
-            votes: outcome.votes,
-            required: outcome.required,
-          });
-        } else {
-          result.approved.push(target.comparisonId);
-        }
+        result.approved.push(target.comparisonId);
       } catch (error) {
         result.failed.push({
           comparisonId: target.comparisonId,
@@ -489,7 +370,6 @@ export class ApprovalService {
     projectName: string,
     testName: string,
     approvedBy: string,
-    principal: ApprovalPrincipal,
     branchName?: string,
   ): Promise<CountedApprovalBatch> {
     const test = await this.testResolver.findOwnTest(
@@ -512,7 +392,6 @@ export class ApprovalService {
         branchName,
       })),
       approvedBy,
-      principal,
     );
     return batch.counts();
   }
@@ -681,12 +560,6 @@ export interface ApproveTarget {
   branchName?: string;
 }
 
-export interface BatchPendingVote {
-  comparisonId: string;
-  votes: number;
-  required: number;
-}
-
 export interface BatchFailure {
   comparisonId: string;
   error: string;
@@ -695,14 +568,12 @@ export interface BatchFailure {
 // A caller whose response is a summary: "how many were approved".
 export interface CountedApprovalBatch {
   approved: number;
-  pending: BatchPendingVote[];
   failed: BatchFailure[];
 }
 
 // A caller whose response lists the selection it sent.
 export interface ListedApprovalBatch {
   approved: { id: string; success: true }[];
-  pending: { id: string; votes: number; required: number }[];
   failed: { id: string; success: false; error: string }[];
 }
 
@@ -714,7 +585,6 @@ export interface ListedApprovalBatch {
 export class ApprovalBatch {
   constructor(
     readonly approved: string[],
-    readonly pending: BatchPendingVote[],
     readonly failed: BatchFailure[],
   ) {}
 
@@ -722,7 +592,6 @@ export class ApprovalBatch {
   counts(): CountedApprovalBatch {
     return {
       approved: this.approved.length,
-      pending: this.pending,
       failed: this.failed,
     };
   }
@@ -731,11 +600,6 @@ export class ApprovalBatch {
   rows(): ListedApprovalBatch {
     return {
       approved: this.approved.map((id) => ({ id, success: true })),
-      pending: this.pending.map((vote) => ({
-        id: vote.comparisonId,
-        votes: vote.votes,
-        required: vote.required,
-      })),
       failed: this.failed.map((failure) => ({
         id: failure.comparisonId,
         success: false,

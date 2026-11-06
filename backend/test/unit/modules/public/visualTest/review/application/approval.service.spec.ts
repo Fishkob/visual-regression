@@ -29,7 +29,6 @@ import {
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
-import { ApprovalVoteRepository } from '@public/visualTest/review/infrastructure/repositories/approval-vote.repository';
 import { ApprovalAuditRepository } from '@public/visualTest/core/infrastructure/repositories/approval-audit.repository';
 import { ComparisonRetirementService } from '@public/visualTest/core/application/services/comparison-retirement.service';
 import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
@@ -52,7 +51,6 @@ import {
   APPROVAL_MAX_ATTEMPTS,
   APPROVAL_TRANSACTION_TIMEOUT_MS,
 } from '@public/visualTest/core/application/services/state-change-options';
-import { REQUIRED_APPROVALS_MAX } from '@public/visualTest/core/domain/constants/review-policy.constants';
 
 describe('ApprovalService', () => {
   let service: ApprovalService;
@@ -71,7 +69,6 @@ describe('ApprovalService', () => {
   let pdfRenderCache: Mocked<IPdfRenderCache>;
   let approvalAudit: Mocked<ApprovalAuditRepository>;
   let projects: Mocked<ProjectRepository>;
-  let votes: Mocked<ApprovalVoteRepository>;
 
   const imageTest = { id: 'test-1', name: 'my-test', kind: 'image' as const };
   const pdfTest = { id: 'test-1', name: 'my-test', kind: 'pdf' as const };
@@ -81,11 +78,7 @@ describe('ApprovalService', () => {
   function options(
     overrides: Partial<ApprovalDecisionOptions> = {},
   ): ApprovalDecisionOptions {
-    return {
-      principalType: 'user',
-      principalId: 'user-1',
-      ...overrides,
-    };
+    return { ...overrides };
   }
 
   function makeBaseline(overrides = {}) {
@@ -176,12 +169,7 @@ describe('ApprovalService', () => {
 
   beforeEach(async () => {
     projects = createMockProjectRepository();
-    projects.findByName.mockResolvedValue({ requiredApprovals: 1 } as never);
     projects.requireByName.mockResolvedValue({ id: 'p-my-project' } as never);
-    votes = createMock<ApprovalVoteRepository>();
-    votes.hasVoted.mockResolvedValue(false);
-    votes.countForComparison.mockResolvedValue(0);
-    votes.record.mockResolvedValue(undefined);
     statusService = createMock<TestStatusService>();
     testResolver = createMock<TestResolver>();
     metrics = createMock<IMetricsRecorder>();
@@ -241,7 +229,6 @@ describe('ApprovalService', () => {
         { provide: PDF_RENDER_CACHE, useValue: pdfRenderCache },
         { provide: ApprovalAuditRepository, useValue: approvalAudit },
         { provide: ProjectRepository, useValue: projects },
-        { provide: ApprovalVoteRepository, useValue: votes },
         { provide: AppLoggerService, useValue: createMockLogger() },
         { provide: METRICS_RECORDER, useValue: metrics },
       ],
@@ -767,174 +754,6 @@ describe('ApprovalService', () => {
     });
   });
 
-  describe('4-eyes votes', () => {
-    function mockPendingImage() {
-      testResolver.findTestOfKind.mockResolvedValue(imageTest);
-      comparisons.findByIdForTest.mockResolvedValue(
-        makeComparison(makeBaseline(), makeCandidate()),
-      );
-      statusService.recomputeStatus.mockResolvedValue(undefined);
-    }
-
-    it('waits for the required number of distinct approvers and keys the vote on the principal id', async () => {
-      projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
-      votes.countForComparison.mockResolvedValue(1);
-      mockPendingImage();
-
-      const result = await service.approveImage(
-        'my-project',
-        'my-test',
-        'comp-1',
-        'jane.doe',
-        undefined,
-        options({ principalId: 'user-alice' }),
-      );
-
-      expect(result).toEqual({
-        approved: false,
-        requiresMoreApprovals: true,
-        votes: 1,
-        required: 2,
-      });
-      expect(votes.record).toHaveBeenCalledWith({
-        comparisonId: 'comp-1',
-        projectName: 'my-project',
-        testId: 'test-1',
-        userId: 'user-alice',
-        username: 'jane.doe',
-      });
-      expect(audit.record).toHaveBeenCalledWith({
-        actor: 'jane.doe',
-        action: 'review.vote',
-        projectName: 'my-project',
-        testName: 'my-test',
-        branchName: null,
-        targetType: 'comparison',
-        targetId: 'comp-1',
-        metadata: {
-          comparisonId: 'comp-1',
-          votes: 1,
-          required: 2,
-          principalType: 'user',
-        },
-      });
-      expect(approvalAudit.record).not.toHaveBeenCalled();
-    });
-
-    it('writes the vote audit inside the same transaction as the vote', async () => {
-      projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
-      mockPendingImage();
-
-      let inChange = false;
-      let auditWrittenInChange: boolean | undefined;
-      uow.execute.mockImplementation(((fn: () => Promise<unknown>) => {
-        inChange = true;
-        return fn().finally(() => {
-          inChange = false;
-        });
-      }) as never);
-      audit.record.mockImplementation(() => {
-        auditWrittenInChange = inChange;
-        return Promise.resolve();
-      });
-
-      await service.approveImage(
-        'my-project',
-        'my-test',
-        'comp-1',
-        approvedBy,
-        undefined,
-        options(),
-      );
-
-      expect(auditWrittenInChange).toBe(true);
-    });
-
-    it('rejects an API-key vote on a 4-eyes project without recording a vote', async () => {
-      projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
-      mockPendingImage();
-
-      await expect(
-        service.approveImage(
-          'my-project',
-          'my-test',
-          'comp-1',
-          'ci-key',
-          undefined,
-          options({ principalType: 'apiKey', principalId: 'api-key-1' }),
-        ),
-      ).rejects.toMatchObject({ code: 'FORBIDDEN' });
-      expect(votes.record).not.toHaveBeenCalled();
-      expect(audit.record).not.toHaveBeenCalled();
-      expect(approvalAudit.record).not.toHaveBeenCalled();
-    });
-
-    it('keeps API-key approvals working when a single approval is required', async () => {
-      projects.findByName.mockResolvedValue({ requiredApprovals: 1 } as never);
-      mockPendingImage();
-
-      const result = await service.approveImage(
-        'my-project',
-        'my-test',
-        'comp-1',
-        'ci-key',
-        undefined,
-        options({ principalType: 'apiKey', principalId: 'api-key-1' }),
-      );
-
-      expect(result.approved).toBe(true);
-      expect(votes.record).not.toHaveBeenCalled();
-      expect(approvalAudit.record).toHaveBeenCalledWith(
-        expect.objectContaining({ approvedBy: 'ci-key' }),
-      );
-    });
-
-    it('does not audit a duplicate vote', async () => {
-      projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
-      votes.hasVoted.mockResolvedValue(true);
-      mockPendingImage();
-
-      await expect(
-        service.approveImage(
-          'my-project',
-          'my-test',
-          'comp-1',
-          approvedBy,
-          undefined,
-          options(),
-        ),
-      ).rejects.toMatchObject({ code: 'CONFLICT' });
-      expect(votes.record).not.toHaveBeenCalled();
-      expect(audit.record).not.toHaveBeenCalled();
-      expect(approvalAudit.record).not.toHaveBeenCalled();
-    });
-
-    it('records the finalizing vote without a review.vote audit row', async () => {
-      projects.findByName.mockResolvedValue({ requiredApprovals: 2 } as never);
-      votes.countForComparison.mockResolvedValue(2);
-      mockPendingImage();
-
-      const result = await service.approveImage(
-        'my-project',
-        'my-test',
-        'comp-1',
-        'bob',
-        undefined,
-        options({ principalId: 'user-bob' }),
-      );
-
-      expect(result.approved).toBe(true);
-      expect(votes.record).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'user-bob', username: 'bob' }),
-      );
-      expect(audit.record).toHaveBeenCalledTimes(1);
-      expect(audit.record).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'approval' }),
-      );
-      expect(approvalAudit.record).toHaveBeenCalledTimes(1);
-    });
-  });
-
   describe('transaction budget', () => {
     it('gives the approval its own retry budget and timeout', async () => {
       testResolver.findTestOfKind.mockResolvedValue(imageTest);
@@ -958,15 +777,6 @@ describe('ApprovalService', () => {
           transactionTimeoutMs: APPROVAL_TRANSACTION_TIMEOUT_MS,
           retry: { maxAttempts: APPROVAL_MAX_ATTEMPTS },
         }),
-      );
-    });
-
-    it('budgets at least one attempt per voter the review policy admits', () => {
-      // The queued voter's snapshot is fixed before it waits on the advisory
-      // lock, so an N-voter gate that arrives at once needs up to N attempts.
-      // A budget below the review-policy ceiling would 409 a legitimate voter.
-      expect(APPROVAL_MAX_ATTEMPTS).toBeGreaterThanOrEqual(
-        REQUIRED_APPROVALS_MAX,
       );
     });
   });
@@ -1261,7 +1071,6 @@ describe('ApprovalService', () => {
         'my-project',
         'my-test',
         approvedBy,
-        options(),
         'feature/x',
       );
 
@@ -1274,7 +1083,7 @@ describe('ApprovalService', () => {
         'test-1',
         100,
       );
-      expect(result).toEqual({ approved: 0, pending: [], failed: [] });
+      expect(result).toEqual({ approved: 0, failed: [] });
       expect(approvalAudit.record).not.toHaveBeenCalled();
     });
 
@@ -1285,11 +1094,10 @@ describe('ApprovalService', () => {
         'my-project',
         'my-test',
         'jane.doe',
-        options(),
         'feature/x',
       );
 
-      expect(result).toEqual({ approved: 3, pending: [], failed: [] });
+      expect(result).toEqual({ approved: 3, failed: [] });
       expect(
         comparisons.completeImageApproval.mock.calls.map(([, id]) => id),
       ).toEqual(['comp-1', 'comp-2', 'comp-3']);
@@ -1328,12 +1136,10 @@ describe('ApprovalService', () => {
         'my-project',
         'my-test',
         approvedBy,
-        options(),
       );
 
       expect(result).toEqual({
         approved: 2,
-        pending: [],
         failed: [
           {
             comparisonId: 'comp-2',
@@ -1359,12 +1165,10 @@ describe('ApprovalService', () => {
         'my-project',
         'my-test',
         approvedBy,
-        options(),
       );
 
       expect(result).toEqual({
         approved: 1,
-        pending: [],
         failed: [{ comparisonId: 'comp-1', error: 'Approval failed' }],
       });
       expect(JSON.stringify(result)).not.toContain('s3://secret');
@@ -1384,10 +1188,9 @@ describe('ApprovalService', () => {
         'my-project',
         'my-test',
         approvedBy,
-        options(),
       );
 
-      expect(result).toEqual({ approved: 1, pending: [], failed: [] });
+      expect(result).toEqual({ approved: 1, failed: [] });
       expect(comparisons.completePdfApproval).toHaveBeenCalledWith(
         'test-1',
         'pdf-comp-1',
@@ -1414,7 +1217,6 @@ describe('ApprovalService', () => {
           'my-project',
           'my-test',
           approvedBy,
-          options(),
           'feature/x',
         ),
       ).rejects.toMatchObject({ code: 'CONFLICT' });
@@ -1431,12 +1233,7 @@ describe('ApprovalService', () => {
       );
 
       await expect(
-        service.approveAllPending(
-          'my-project',
-          'my-test',
-          approvedBy,
-          options(),
-        ),
+        service.approveAllPending('my-project', 'my-test', approvedBy),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
       expect(
         comparisons.findPendingComparisonIdsForTest,

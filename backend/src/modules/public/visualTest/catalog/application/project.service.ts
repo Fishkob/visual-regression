@@ -182,30 +182,6 @@ export class ProjectService {
       });
   }
 
-  async updateReviewPolicy(
-    projectName: string,
-    requiredApprovals: number,
-    actor: string,
-  ): Promise<{ requiredApprovals: number }> {
-    const project = await this.projects.requireByName(projectName);
-    const from = project.requiredApprovals ?? 1;
-    await this.uow.execute(async () => {
-      await this.projects.updateRequiredApprovals(
-        projectName,
-        requiredApprovals,
-      );
-      await this.audit.record({
-        actor: actor ?? null,
-        action: AUDIT_ACTIONS.projectReviewPolicy,
-        projectName,
-        targetType: 'project',
-        targetId: project.id,
-        metadata: { from, to: requiredApprovals },
-      });
-    });
-    return { requiredApprovals };
-  }
-
   async updatePixelThreshold(
     projectName: string,
     pixelDiffThreshold: number | null,

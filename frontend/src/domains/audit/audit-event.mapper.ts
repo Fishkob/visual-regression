@@ -21,12 +21,10 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   "api-key.revoke": "API key revoked",
   "api-key.rotate": "API key rotated",
   "api-key.delete": "API key deleted",
-  "review.vote": "Review vote recorded",
   "review.assign": "Review assigned",
   "review.complete": "Review completed",
   "review.comment": "Review comment",
   "review.comment-resolve": "Review comment resolved",
-  "project.review-policy": "Review policy changed",
   "project.pixel-threshold": "Project threshold changed",
   "test.threshold": "Threshold changed",
 };

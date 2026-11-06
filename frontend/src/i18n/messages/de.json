@@ -75,8 +75,7 @@
     "trigger": "Alle ausstehenden genehmigen",
     "title": "Alle ausstehenden Varianten genehmigen?",
     "description": "Jede ausstehende Änderung dieses Tests auf diesem Branch wird zur neuen Baseline. Das kann nicht rückgängig gemacht werden.",
-    "confirm": "Alle genehmigen",
-    "descriptionMulti": "Jede ausstehende Änderung dieses Tests auf diesem Branch erfasst eine Stimme von dir. Die Änderungen bleiben ausstehend, bis genügend Prüfende zugestimmt haben. Das kann nicht rückgängig gemacht werden."
+    "confirm": "Alle genehmigen"
   },
   "forbidden": {
     "title": "Nicht erlaubt",
@@ -136,7 +135,7 @@
     "approveSelected": "Ausgewählte genehmigen",
     "noMatch": "Keine ausstehenden Prüfungen entsprechen diesen Filtern.",
     "approveDialogTitle": "Ausgewählte Änderungen genehmigen",
-    "approveDialogDescription": "Genehmige {scope}. Eine Änderung wird zur neuen Baseline auf ihrem Branch oder — wenn ein Projekt mehrere Genehmigungen verlangt — als eine Stimme erfasst und bleibt ausstehend. Das kann nicht rückgängig gemacht werden.",
+    "approveDialogDescription": "Genehmige {scope}. Eine Änderung wird zur neuen Baseline auf ihrem Branch. Das kann nicht rückgängig gemacht werden.",
     "failureTitle": "Einige Änderungen konnten nicht genehmigt werden",
     "failureBody": "Der Batch wurde trotz dieser Änderungen fortgesetzt. Behebe die Ursache und prüfe sie einzeln.",
     "selectedChanges": "{count} Änderung | {count} Änderungen",
@@ -243,9 +242,8 @@
   "projectSettings": {
     "title": "Projekteinstellungen",
     "action": "Einstellungen",
-    "description": "Review-Richtlinie, Speicher und Benachrichtigungen dieses Projekts. Die Speichergrenzen entscheiden, welche Nachweise eine Bereinigung überleben, deshalb können nur Admins sie ändern.",
+    "description": "Pixel-Schwelle, Speicher und Benachrichtigungen dieses Projekts. Die Speichergrenzen entscheiden, welche Nachweise eine Bereinigung überleben, deshalb können nur Admins sie ändern.",
     "backToProject": "Zurück zum Projekt",
-    "reviewCurrent": "{count} erforderliche Zustimmung | {count} erforderliche Zustimmungen",
     "webhooksDescription": "Externe Benachrichtigungen dieses Projekts für Review- und Genehmigungsereignisse. Nur Admins können Endpunkte anlegen und ändern."
   },
   "branchActions": {
@@ -667,12 +665,10 @@
       "apiKeyRevoke": "API-Schlüssel widerrufen",
       "apiKeyRotate": "API-Schlüssel rotiert",
       "apiKeyDelete": "API-Schlüssel gelöscht",
-      "reviewVote": "Review-Stimme erfasst",
       "reviewAssign": "Review zugewiesen",
       "reviewComplete": "Review abgeschlossen",
       "reviewComment": "Review-Kommentar",
       "reviewCommentResolve": "Review-Kommentar aufgelöst",
-      "projectReviewPolicy": "Review-Richtlinie geändert",
       "projectPixelThreshold": "Projekt-Schwelle geändert",
       "testThreshold": "Schwellenwert geändert"
     }
@@ -1000,11 +996,6 @@
   },
   "approval": {
     "approvedBy": "Genehmigt von {user} · {age}",
-    "pendingToast": "Deine Stimme ist erfasst — {votes} von {required} Genehmigungen, {count} weitere Genehmigung fehlt | Deine Stimme ist erfasst — {votes} von {required} Genehmigungen, {count} weitere Genehmigungen fehlen",
-    "alreadyVoted": "Du hast diesen Vergleich bereits genehmigt",
-    "awaitingCount": "{count} zusätzliche Genehmigung ausstehend | {count} zusätzliche Genehmigungen ausstehend",
-    "voteDetail": "{votes} von {required} Stimmen",
-    "pendingTitle": "Warten auf weitere Genehmigung",
     "reason": {
       "INTENDED_CHANGE": "Beabsichtigte Änderung",
       "FLAKE": "Flaky",
@@ -1118,8 +1109,7 @@
     "approvedForTest": "{variant} von „{test}“ genehmigt",
     "approveForTestError": "{variant} von „{test}“ konnte nicht genehmigt werden",
     "refreshDetailsError": "Details konnten nicht aktualisiert werden",
-    "importEmpty": "Der Import kam leer zurück",
-    "bulkApprovePending": "{approved} genehmigt, {count} warten auf weitere Genehmigung, {failed} fehlgeschlagen"
+    "importEmpty": "Der Import kam leer zurück"
   },
   "confirm": {
     "deleteProject": "Möchtest du „{name}\" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
@@ -1202,17 +1192,6 @@
     "revokeError": "Freigabelink konnte nicht widerrufen werden",
     "pageTitle": "Geteilter Vergleich"
   },
-  "reviewSettings": {
-    "action": "Prüfeinstellungen",
-    "title": "Prüfeinstellungen",
-    "edit": "Bearbeiten",
-    "description": "Steuere, wie viele unabhängige Genehmigungen eine Änderung braucht, bevor sie zur Baseline wird.",
-    "requiredLabel": "Erforderliche Genehmigungen (1–10)",
-    "help": "Bei mehr als einer Genehmigung bleibt ein Vergleich ausstehend, bis so viele verschiedene Prüfende zugestimmt haben.",
-    "invalid": "Die erforderlichen Genehmigungen müssen eine ganze Zahl zwischen 1 und 10 sein.",
-    "saved": "Prüfeinstellungen gespeichert",
-    "saveError": "Prüfeinstellungen konnten nicht gespeichert werden"
-  },
   "thresholdSettings": {
     "title": "Pixel-Schwelle",
     "edit": "Bearbeiten",
@@ -1249,12 +1228,6 @@
     "createError": "Zuweisung konnte nicht erstellt werden",
     "completed": "Zuweisung abgeschlossen",
     "completeError": "Zuweisung konnte nicht abgeschlossen werden"
-  },
-  "bulk": {
-    "pendingTitle": "Warten auf weitere Genehmigung",
-    "pendingBody": "Diese Änderungen bleiben ausstehend, bis genügend Prüfende zugestimmt haben.",
-    "pendingSection": "Warten auf weitere Genehmigung",
-    "pendingRow": "{votes} von {required} Prüfenden haben zugestimmt"
   },
   "comments": {
     "title": "Kommentare",

@@ -180,7 +180,7 @@ test.describe("User administration", () => {
         );
         await expect(page.getByTestId(TEST_ID.storagePanel)).toBeVisible();
         await expect(
-          page.getByTestId(TEST_ID.reviewSettingsAction),
+          page.getByTestId(TEST_ID.thresholdSettingsAction),
         ).toHaveCount(0);
         await expect(page.getByTestId(TEST_ID.storageEditAction)).toHaveCount(
           0,

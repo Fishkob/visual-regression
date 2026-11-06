@@ -14,24 +14,6 @@ import {
 } from 'class-validator';
 import { VariantDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 
-export class ApprovalPendingDto {
-  @ApiProperty({ example: false })
-  @Expose()
-  approved!: false;
-
-  @ApiProperty({ example: true })
-  @Expose()
-  requiresMoreApprovals!: true;
-
-  @ApiProperty()
-  @Expose()
-  votes!: number;
-
-  @ApiProperty()
-  @Expose()
-  required!: number;
-}
-
 export class ApproveResultDto {
   @ApiProperty({
     example: true,
@@ -104,23 +86,6 @@ export class BulkApproveFailureDto {
 }
 
 // The batch result: how many comparisons were approved and which ones were not.
-export class BulkApprovePendingDto {
-  @ApiProperty()
-  @IsString()
-  @Expose()
-  comparisonId!: string;
-
-  @ApiProperty()
-  @IsNumber()
-  @Expose()
-  votes!: number;
-
-  @ApiProperty()
-  @IsNumber()
-  @Expose()
-  required!: number;
-}
-
 export class BulkApproveResultDto {
   @ApiProperty({
     example: 3,
@@ -129,12 +94,6 @@ export class BulkApproveResultDto {
   @IsNumber()
   @Expose()
   approved!: number;
-
-  @ApiProperty({ type: () => BulkApprovePendingDto, isArray: true })
-  @IsArray()
-  @Expose()
-  @Type(() => BulkApprovePendingDto)
-  pending!: BulkApprovePendingDto[];
 
   @ApiProperty({
     type: () => BulkApproveFailureDto,

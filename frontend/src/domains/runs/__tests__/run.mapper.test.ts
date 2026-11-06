@@ -341,14 +341,10 @@ describe("mapRunApproveAllResult", () => {
   it("maps the partial-failure list", () => {
     const result = mapRunApproveAllResult({
       approved: 2,
-      pending: [{ comparisonId: "c-8", votes: 1, required: 2 }],
       failed: [{ comparisonId: "c-9", error: "comparison was superseded" }],
     });
 
     expect(result.approved).toBe(2);
-    expect(result.pending).toEqual([
-      { comparisonId: "c-8", votes: 1, required: 2 },
-    ]);
     expect(result.failed).toEqual([
       { comparisonId: "c-9", error: "comparison was superseded" },
     ]);
@@ -357,13 +353,9 @@ describe("mapRunApproveAllResult", () => {
   it("normalizes a malformed failure entry", () => {
     const result = mapRunApproveAllResult({
       approved: 0,
-      pending: [{ votes: 1 }],
       failed: [{ comparisonId: 1, error: "" }],
     });
 
-    expect(result.pending).toEqual([
-      { comparisonId: "", votes: 1, required: 0 },
-    ]);
     expect(result.failed).toEqual([
       { comparisonId: "", error: "Unknown error" },
     ]);
@@ -372,7 +364,6 @@ describe("mapRunApproveAllResult", () => {
   it("defaults a missing result to an empty batch", () => {
     expect(mapRunApproveAllResult(undefined)).toEqual({
       approved: 0,
-      pending: [],
       failed: [],
     });
   });

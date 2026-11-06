@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import type { ApprovalPrincipal } from '@common/domain/approval-principal';
 import { DomainError } from '@common/domain/domain-error';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
@@ -38,11 +37,10 @@ export class BulkActionService {
     projectName: string,
     comparisonIds: string[],
     actor: string,
-    principal: ApprovalPrincipal,
   ): Promise<ListedApprovalBatch> {
     // The selection may span tests and kinds, so each id is paired with its
-    // owning test here; the approval itself (kind dispatch, failure policy, vote
-    // bookkeeping) belongs to ApprovalService.approveMany.
+    // owning test here; the approval itself (kind dispatch, failure policy)
+    // belongs to ApprovalService.approveMany.
     const targets: ApproveTarget[] = [];
     const failed: ListedApprovalBatch['failed'] = [];
     for (const comparisonId of comparisonIds) {
@@ -66,12 +64,7 @@ export class BulkActionService {
       });
     }
 
-    const batch = await this.approvals.approveMany(
-      projectName,
-      targets,
-      actor,
-      principal,
-    );
+    const batch = await this.approvals.approveMany(projectName, targets, actor);
     // The rows this loop resolved itself stay its own; the batch supplies the
     // rest, including the failure copy it already owns.
     const listed = batch.rows();

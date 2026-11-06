@@ -60,18 +60,9 @@ describe('BulkActionService', () => {
         branch: { name: 'main' },
       } as never)
       .mockResolvedValueOnce(null);
-    approvals.approveMany.mockResolvedValue(new ApprovalBatch(['c1'], [], []));
+    approvals.approveMany.mockResolvedValue(new ApprovalBatch(['c1'], []));
 
-    const principal = {
-      principalType: 'user' as const,
-      principalId: 'user-ada',
-    };
-    const result = await service.approve(
-      'shop',
-      ['c1', 'c2'],
-      'ada',
-      principal,
-    );
+    const result = await service.approve('shop', ['c1', 'c2'], 'ada');
 
     expect(result.approved).toEqual([{ id: 'c1', success: true }]);
     expect(result.failed).toEqual([
@@ -92,7 +83,6 @@ describe('BulkActionService', () => {
         },
       ],
       'ada',
-      principal,
     );
   });
 

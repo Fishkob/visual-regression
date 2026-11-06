@@ -43,9 +43,6 @@ export function mapProject(dto: ProjectDto): Project {
     ...(dto.defaultBranchName
       ? { defaultBranchName: dto.defaultBranchName }
       : {}),
-    ...(typeof dto.requiredApprovals === "number"
-      ? { requiredApprovals: dto.requiredApprovals }
-      : {}),
     ...(dto.pixelDiffThreshold !== undefined
       ? { pixelDiffThreshold: dto.pixelDiffThreshold }
       : {}),

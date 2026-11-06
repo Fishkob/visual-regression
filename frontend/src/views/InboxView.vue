@@ -27,7 +27,6 @@ import { useOverdueAssignmentsQuery } from "@/composables/useAssignments";
 import { useGroupsQuery } from "@/composables/useGroups";
 import {
   bulkFailureRows,
-  bulkPendingRows,
   type BulkApproveSelection,
   type BulkFailureRow,
 } from "@/domains/bulk-actions/bulk-action.model";
@@ -305,7 +304,6 @@ const approveScopeLabel = computed(
 const approveOpen = ref(false);
 const failureOpen = ref(false);
 const failureRows = ref<BulkFailureRow[]>([]);
-const pendingFailureRows = ref<BulkFailureRow[]>([]);
 
 function confirmBulkApprove() {
   // Capture the labels before the mutation: the refreshed inbox may no longer
@@ -319,9 +317,8 @@ function confirmBulkApprove() {
   bulkApprove.mutate(approveSelections.value, {
     onSuccess: (result) => {
       clearSelection();
-      if (result.failed.length > 0 || result.pending.length > 0) {
+      if (result.failed.length > 0) {
         failureRows.value = bulkFailureRows(result.failed, labels);
-        pendingFailureRows.value = bulkPendingRows(result.pending, labels);
         failureOpen.value = true;
       }
     },
@@ -580,15 +577,8 @@ function confirmBulkApprove() {
     <BulkFailureDialog
       :open="failureOpen"
       :rows="failureRows"
-      :pending-rows="pendingFailureRows"
-      :title="
-        failureRows.length > 0
-          ? t('inbox.failureTitle')
-          : t('bulk.pendingTitle')
-      "
-      :description="
-        failureRows.length > 0 ? t('inbox.failureBody') : t('bulk.pendingBody')
-      "
+      :title="t('inbox.failureTitle')"
+      :description="t('inbox.failureBody')"
       @update:open="failureOpen = $event"
     />
   </div>

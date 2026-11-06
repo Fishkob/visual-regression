@@ -29,7 +29,6 @@ function mountButton(props: {
   testName: string;
   branch?: string;
   disabled?: boolean;
-  requiredApprovals?: number;
 }) {
   return mount(BulkApproveButton, {
     props,
@@ -98,11 +97,10 @@ describe("BulkApproveButton", () => {
     ).toBe(true);
   });
 
-  it("promises a baseline write when a single approval finalizes", async () => {
+  it("promises a baseline write in the confirmation", async () => {
     const wrapper = mountButton({
       projectName: "checkout",
       testName: "login",
-      requiredApprovals: 1,
     });
 
     await wrapper
@@ -112,24 +110,5 @@ describe("BulkApproveButton", () => {
     expect(wrapper.get('[data-testid="confirm-description"]').text()).toContain(
       "becomes the new baseline",
     );
-  });
-
-  it("says a multi-approval batch only records one vote per comparison", async () => {
-    const wrapper = mountButton({
-      projectName: "checkout",
-      testName: "login",
-      requiredApprovals: 2,
-    });
-
-    await wrapper
-      .get(`[data-testid="${TEST_ID.bulkApprove}"]`)
-      .trigger("click");
-
-    const description = wrapper
-      .get('[data-testid="confirm-description"]')
-      .text();
-    expect(description).toContain("records one vote from you");
-    expect(description).toContain("stay pending");
-    expect(description).not.toContain("becomes the new baseline");
   });
 });

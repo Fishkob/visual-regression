@@ -192,15 +192,10 @@ describe('RunService', () => {
       },
     ] as never);
     approvals.approveMany.mockResolvedValue(
-      new ApprovalBatch(
-        ['cmp-1'],
-        [],
-        [{ comparisonId: 'cmp-2', error: 'stale' }],
-      ),
+      new ApprovalBatch(['cmp-1'], [{ comparisonId: 'cmp-2', error: 'stale' }]),
     );
 
-    const principal = { principalType: 'user' as const, principalId: 'user-1' };
-    const result = await service.approveAll('shop', 'ci-1', 'jane', principal);
+    const result = await service.approveAll('shop', 'ci-1', 'jane');
 
     expect(result.approved).toBe(1);
     expect(result.failed).toEqual([{ comparisonId: 'cmp-2', error: 'stale' }]);
@@ -221,7 +216,6 @@ describe('RunService', () => {
         },
       ],
       'jane',
-      principal,
     );
   });
 
@@ -255,11 +249,10 @@ describe('RunService', () => {
       },
     ] as never);
     approvals.approveMany.mockResolvedValue(
-      new ApprovalBatch(['cmp-live'], [], []),
+      new ApprovalBatch(['cmp-live'], []),
     );
 
-    const principal = { principalType: 'user' as const, principalId: 'user-1' };
-    const result = await service.approveAll('shop', 'ci-1', 'jane', principal);
+    const result = await service.approveAll('shop', 'ci-1', 'jane');
 
     // A muted test does not hold the gate, so "approve all" must not approve the
     // work its owner deferred.
@@ -274,7 +267,6 @@ describe('RunService', () => {
         },
       ],
       'jane',
-      principal,
     );
     expect(result.approved).toBe(1);
   });

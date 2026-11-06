@@ -69,29 +69,21 @@ describe("useBulkApprove", () => {
   it("formats the no-op, success and partial-failure messages", () => {
     useBulkApprove(ref("checkout"), ref("login"));
 
-    expect(
-      configs.current!.successMessage({ approved: 0, pending: [], failed: [] }),
-    ).toBe("No pending variants");
-    expect(
-      configs.current!.successMessage({ approved: 1, pending: [], failed: [] }),
-    ).toBe("Approved 1 variant");
-    expect(
-      configs.current!.successMessage({ approved: 3, pending: [], failed: [] }),
-    ).toBe("Approved 3 variants");
+    expect(configs.current!.successMessage({ approved: 0, failed: [] })).toBe(
+      "No pending variants",
+    );
+    expect(configs.current!.successMessage({ approved: 1, failed: [] })).toBe(
+      "Approved 1 variant",
+    );
+    expect(configs.current!.successMessage({ approved: 3, failed: [] })).toBe(
+      "Approved 3 variants",
+    );
     expect(
       configs.current!.successMessage({
         approved: 2,
-        pending: [],
         failed: [{ comparisonId: "c1", error: "stale" }],
       }),
     ).toBe("Approved 2 variants (1 failed)");
-    expect(
-      configs.current!.successMessage({
-        approved: 1,
-        pending: [{ comparisonId: "c1", votes: 1, required: 2 }],
-        failed: [],
-      }),
-    ).toBe("Approved 1, 1 awaiting additional approval, 0 failed");
   });
 
   it("invalidates every review surface after the batch", () => {

@@ -16,10 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
-import {
-  requireActor,
-  requireAuthenticatedPrincipal,
-} from '@common/http/authenticated-principal';
+import { requireActor } from '@common/http/authenticated-principal';
 import { AppConfigService } from '@config/app-config.service';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
@@ -206,12 +203,10 @@ export class RunsController {
     @Req() req: AuthenticatedRequest,
     @BranchQuery() branch?: string,
   ): Promise<RunApproveAllResultDto> {
-    const { username, ...principal } = requireAuthenticatedPrincipal(req);
     const result = await this.runs.approveAll(
       projectName,
       runKey,
-      username,
-      principal,
+      requireActor(req),
       branch,
     );
     return plainToInstance(RunApproveAllResultDto, result, {

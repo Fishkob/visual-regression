@@ -3,35 +3,31 @@
 The authoritative matrix for human roles. The API enforces it in the global
 authentication guard (ADR-031); the UI mirrors it by hiding controls.
 
-| Action                                              | ADMIN |       MEMBER       | VIEWER |
-| --------------------------------------------------- | :---: | :----------------: | :----: |
-| Read projects, tests, runs, reports, trends, audit  |  yes  |        yes         |  yes   |
-| Upload captures                                     |  yes  |        yes         |   no   |
-| Approve comparisons / restore baselines             |  yes  |        yes         |   no   |
-| Approve when `requiredApprovals > 1` (session only) |  yes  |        yes         |   no   |
-| Change review policy (`requiredApprovals`)          |  yes  |         no         |   no   |
-| Change pixel default or per-variant threshold       |  yes  |         no         |   no   |
-| Assign reviews, complete own assignment             |  yes  |        yes         |   no   |
-| Comment / resolve review threads                    |  yes  |        yes         |   no   |
-| Delete tests/variants                               |  yes  |        yes         |   no   |
-| Create/update branches, groups, webhooks            |  yes  | yes (webhooks: no) |   no   |
-| Delete projects/branches                            |  yes  |         no         |   no   |
-| Webhook settings, audit log                         |  yes  |         no         |   no   |
-| API keys                                            |  yes  |         no         |   no   |
-| Users and roles                                     |  yes  |         no         |   no   |
+| Action                                             | ADMIN |       MEMBER       | VIEWER |
+| -------------------------------------------------- | :---: | :----------------: | :----: |
+| Read projects, tests, runs, reports, trends, audit |  yes  |        yes         |  yes   |
+| Upload captures                                    |  yes  |        yes         |   no   |
+| Approve comparisons / restore baselines            |  yes  |        yes         |   no   |
+| Change pixel default or per-variant threshold      |  yes  |         no         |   no   |
+| Assign reviews, complete own assignment            |  yes  |        yes         |   no   |
+| Comment / resolve review threads                   |  yes  |        yes         |   no   |
+| Delete tests/variants                              |  yes  |        yes         |   no   |
+| Create/update branches, groups, webhooks           |  yes  | yes (webhooks: no) |   no   |
+| Delete projects/branches                           |  yes  |         no         |   no   |
+| Webhook settings, audit log                        |  yes  |         no         |   no   |
+| API keys                                           |  yes  |         no         |   no   |
+| Users and roles                                    |  yes  |         no         |   no   |
 
 Notes:
 
-- **4-eyes:** when a project requires more than one approval, only signed-in
-  users can vote. API keys are rejected (`403`) for N>1 even with the `approve`
-  scope; N=1 keeps API-key approvals working.
-- **Review policy** and the pixel thresholds are admin-only and audited
-  (`project.review-policy`, `project.pixel-threshold`, `test.threshold`); a
-  per-variant threshold raise can auto-accept pending comparisons, so the
-  threshold surfaces are treated as review-policy changes. The project default
-  applies prospectively to future comparisons, not to already pending rows. A
-  repository config (`.vrt.json`) can set or tighten a variant threshold but
-  cannot raise it.
+- **Approval** finalizes a comparison on one approval, from a session or an API
+  key with the `approve` scope. There is no approval quorum.
+- **Pixel thresholds** are admin-only and audited (`project.pixel-threshold`,
+  `test.threshold`); a per-variant threshold raise can auto-accept pending
+  comparisons, which is why the threshold surfaces are a governance decision
+  rather than a normal project edit. The project default applies prospectively
+  to future comparisons, not to already pending rows. A repository config
+  (`.vrt.json`) can set or tighten a variant threshold but cannot raise it.
 - **API keys** have their own scopes, never the owner's role. Default is
   `upload` (upload + own job status); `read`, `approve` and `admin` are opt-in.
   An optional project allowlist confines the key to those project routes.

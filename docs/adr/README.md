@@ -32,9 +32,9 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 036 | [Test Lifecycle](./ADR-036-test-lifecycle.md)                                                                                          | Accepted                                               |
 | 037 | [Internationalization](./ADR-037-i18n.md)                                                                                              | Accepted                                               |
 | 038 | [Share Links](./ADR-038-share-links.md)                                                                                                | Accepted (image payload superseded by 058)             |
-| 039 | [Review Assignment, Due Dates & 4-Eyes](./ADR-039-review-assignment-four-eyes.md)                                                      | Accepted (partially superseded by 041)                 |
+| 039 | [Review Assignment, Due Dates & 4-Eyes](./ADR-039-review-assignment-four-eyes.md)                                                      | Accepted (partially superseded by 041, 4-eyes by 066)  |
 | 040 | [Review Comments & Reasons](./ADR-040-review-comments-reasons.md)                                                                      | Accepted                                               |
-| 041 | [Review Governance & Human 4-Eyes](./ADR-041-review-governance-human-4-eyes.md)                                                        | Accepted                                               |
+| 041 | [Review Governance & Human 4-Eyes](./ADR-041-review-governance-human-4-eyes.md)                                                        | Accepted (4-eyes superseded by 066)                    |
 | 042 | [Review Artifact Lifecycle & Webhook Lease](./ADR-042-review-artifact-lifecycle.md)                                                    | Accepted (votes by 050, lease by 051, comments by 064) |
 | 043 | [Storage Quota Enforcement](./ADR-043-storage-quota-enforcement.md)                                                                    | Accepted                                               |
 | 044 | [A Failed Job Owns Its Candidate](./ADR-044-failed-job-candidate-ownership.md)                                                         | Accepted                                               |
@@ -43,7 +43,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 047 | [Delete Removes an API Key, Used or Not](./ADR-047-delete-removes-an-api-key.md)                                                       | Accepted (partially supersedes 025)                    |
 | 048 | [Changed Regions Come From the Worker](./ADR-048-changed-regions.md)                                                                   | Accepted                                               |
 | 049 | [Outcome Rows Carry Their Project Name](./ADR-049-outcome-project-attribution.md)                                                      | Accepted (partially supersedes 033)                    |
-| 050 | [Approval Votes Are Audit and Outlive the Test](./ADR-050-approval-votes-are-audit.md)                                                 | Accepted (partially supersedes 042)                    |
+| 050 | [Approval Votes Are Audit and Outlive the Test](./ADR-050-approval-votes-are-audit.md)                                                 | Superseded by 066                                      |
 | 051 | [A Lost Webhook Lease Consumes an Attempt](./ADR-051-lease-expiry-consumes-a-retry.md)                                                 | Accepted (partially supersedes 042)                    |
 | 052 | [PDF Pages Have a Pixel Budget](./ADR-052-pdf-page-pixel-budget.md)                                                                    | Accepted (complements 046)                             |
 | 053 | [Sessions Have an Absolute Lifetime](./ADR-053-session-absolute-lifetime.md)                                                           | Accepted (complements 034)                             |
@@ -59,6 +59,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 063 | [The Database Enforces One Reviewable Comparison per Variant](./ADR-063-single-pending-comparison-is-a-database-guarantee.md)          | Accepted                                               |
 | 064 | [The Discussion Cascades with Its Test](./ADR-064-review-comments-cascade-with-their-test.md)                                          | Accepted (supersedes the comment half of 042)          |
 | 065 | [Cross-Row Identities Are Database Guarantees](./ADR-065-cross-row-identities-are-database-guarantees.md)                              | Accepted (narrows the rule in CONTEXT.md)              |
+| 066 | [The 4-Eyes Approval Gate Is Removed](./ADR-066-remove-the-four-eyes-approval-gate.md)                                                 | Accepted (supersedes the 4-eyes half of 039/041, 050)  |
 
 ## Numbering
 

@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { DomainError } from '@common/domain/domain-error';
-import type { ApprovalPrincipal } from '@common/domain/approval-principal';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import {
   ApprovalService,
@@ -165,7 +164,6 @@ export class RunService {
     projectName: string,
     runKey: string,
     actor: string,
-    principal: ApprovalPrincipal,
     branchName?: string,
   ): Promise<CountedApprovalBatch> {
     const run = await this.requireRun(projectName, runKey, branchName);
@@ -185,7 +183,6 @@ export class RunService {
         branchName: row.test.branch.name,
       })),
       actor,
-      principal,
     );
     return batch.counts();
   }

@@ -5,10 +5,10 @@ import { WEBHOOKS_RESPONSE } from "./mocks/webhooks.mocks";
 import type { Routed } from "../../src/views/ProjectSettingsView.story";
 import { TEST_ID } from "@/lib/test-ids";
 
-// The settings page is the home of the per-project admin surfaces: the review
-// policy, the storage/quota settings and the webhook endpoints. The mock answers
-// every read the view makes (the project for `requiredApprovals`, the storage
-// aggregate, the endpoint list).
+// The settings page is the home of the per-project admin surfaces: the storage
+// quota, the pixel threshold and the webhook endpoints. The mock answers every
+// read the view makes (the project for its threshold, the storage aggregate,
+// the endpoint list).
 const STORAGE_GLOB = "**/api/v1/projects/checkout-ui/storage";
 const STORAGE_RESPONSE = {
   status: 200,
@@ -40,7 +40,9 @@ test.describe("ProjectSettings", () => {
     ]);
   });
 
-  test("shows the review policy and the storage limits", async ({ mount }) => {
+  test("shows the pixel threshold and the storage limits", async ({
+    mount,
+  }) => {
     const component = await mount<typeof Routed>(
       "views/ProjectSettingsView/Routed",
       { initialRoute: SETTINGS_ROUTE },
@@ -50,8 +52,8 @@ test.describe("ProjectSettings", () => {
       "checkout-ui",
     );
     await expect(
-      component.getByTestId(TEST_ID.reviewRequiredApprovalsValue),
-    ).toContainText("1 approval required");
+      component.getByTestId(TEST_ID.projectThresholdValue),
+    ).toContainText("No project default");
 
     await expect(component.getByTestId(TEST_ID.storageUsage)).toContainText(
       "5.0 MB",
@@ -67,23 +69,6 @@ test.describe("ProjectSettings", () => {
     );
     await expect(component.getByTestId(TEST_ID.storageRetention)).toContainText(
       "24 hours",
-    );
-  });
-
-  test("opens the review policy editor with the current value", async ({
-    mount,
-    page,
-  }) => {
-    const component = await mount<typeof Routed>(
-      "views/ProjectSettingsView/Routed",
-      { initialRoute: SETTINGS_ROUTE },
-    );
-
-    await component.getByTestId(TEST_ID.reviewSettingsAction).click();
-
-    await expect(page.getByTestId(TEST_ID.reviewSettingsDialog)).toBeVisible();
-    await expect(page.getByTestId(TEST_ID.reviewRequiredApprovals)).toHaveValue(
-      "1",
     );
   });
 

@@ -56,7 +56,6 @@ export class TestApp {
     // links, whose rows outlive the project they name — leaving them behind made
     // list assertions depend on earlier test files.
     await db.approval.deleteMany();
-    await db.approvalVote.deleteMany();
     await db.reviewComment.deleteMany();
     await db.shareLink.deleteMany();
     await db.auditEvent.deleteMany();

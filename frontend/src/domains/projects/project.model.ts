@@ -39,7 +39,6 @@ export interface Project {
   groupName?: string | null;
   branchName?: string;
   defaultBranchName?: string;
-  requiredApprovals?: number;
   pixelDiffThreshold?: number | null;
   pendingCount?: number;
   testCount?: number;

@@ -156,7 +156,7 @@ describe('Run reports (e2e)', () => {
         `/api/v1/projects/checkout-ui/runs/${RUN_KEY}/approve-all?branch=main`,
       )
       .expect(200);
-    expect(approved.body).toEqual({ approved: 2, pending: [], failed: [] });
+    expect(approved.body).toEqual({ approved: 2, failed: [] });
 
     // Approving empties the queue but the run is still open until it is finished.
     const open = await status().expect(200);

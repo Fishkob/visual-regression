@@ -14,7 +14,6 @@ import {
   type Run,
   type RunApproval,
   type RunApproveAllFailure,
-  type RunApproveAllPending,
   type RunApproveAllResult,
   type RunDetail,
   type RunPage,
@@ -211,24 +210,13 @@ export function mapRunApproveAllFailure(dto: {
   };
 }
 
-export function mapRunApproveAllPending(dto: {
-  [key: string]: unknown;
-}): RunApproveAllPending {
-  return {
-    comparisonId: presentString(dto.comparisonId) ?? "",
-    votes: typeof dto.votes === "number" ? dto.votes : 0,
-    required: typeof dto.required === "number" ? dto.required : 0,
-  };
-}
-
-// The batch answers partial results: a stale comparison fails alone, a 4-eyes
-// vote stays pending, and only the remaining entries become baselines.
+// The batch answers partial results: a stale comparison fails alone, and only
+// the remaining entries become baselines.
 export function mapRunApproveAllResult(
   dto: RunApproveAllResultDto | undefined,
 ): RunApproveAllResult {
   return {
     approved: dto?.approved ?? 0,
-    pending: (dto?.pending ?? []).map(mapRunApproveAllPending),
     failed: (dto?.failed ?? []).map(mapRunApproveAllFailure),
   };
 }

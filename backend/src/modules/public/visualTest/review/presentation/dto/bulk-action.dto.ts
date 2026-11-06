@@ -63,28 +63,10 @@ export class BulkItemResultDto {
   error?: string;
 }
 
-export class BulkPendingVoteDto {
-  @ApiProperty()
-  @Expose()
-  id!: string;
-
-  @ApiProperty()
-  @Expose()
-  votes!: number;
-
-  @ApiProperty()
-  @Expose()
-  required!: number;
-}
-
 export class BulkApprovalResultDto {
   @ApiProperty({ type: BulkItemResultDto, isArray: true })
   @Expose()
   approved!: BulkItemResultDto[];
-
-  @ApiProperty({ type: BulkPendingVoteDto, isArray: true })
-  @Expose()
-  pending!: BulkPendingVoteDto[];
 
   @ApiProperty({ type: BulkItemResultDto, isArray: true })
   @Expose()
