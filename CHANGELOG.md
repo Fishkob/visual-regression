@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.0](https://github.com/Fishkob/visual-regression/compare/v3.2.0...v3.3.0) (2026-11-06)
+
+
+### Features
+
+* **overview:** two panes per row in fullscreen ([1d49e79](https://github.com/Fishkob/visual-regression/commit/1d49e79878576275bb92d24bec04c7a6a7d5020f))
+
 ## [3.2.0](https://github.com/Fishkob/visual-regression/compare/v3.1.0...v3.2.0) (2026-11-06)
 
 
