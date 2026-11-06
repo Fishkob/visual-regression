@@ -81,6 +81,7 @@ export const PROJECT_STORAGE_RESPONSE: FulfillResponse = {
     diffCount: 3,
     baselineRevisionLimit: 5,
     runHistoryDays: 30,
+    branchRetentionDays: 90,
     orphanGraceHours: 24,
   } satisfies StorageControllerGetResponses[200]),
 };

@@ -43,6 +43,16 @@ export class StorageUsageDto {
     type: Number,
     nullable: true,
     description:
+      'Days without an upload after which a non-default branch is deleted. ' +
+      'Null uses the deployment default; 0 disables the sweep for this project.',
+  })
+  @Expose()
+  branchRetentionDays!: number | null;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description:
       'The setting as stored: null means this project uses the global default. ' +
       'The value the sweeps apply is `effectiveOrphanGraceHours` on /storage/preview.',
   })
@@ -69,6 +79,20 @@ export class UpdateRetentionDto {
   @IsInt()
   @Min(1)
   runHistoryDays?: number | null;
+
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    description:
+      'Days without an upload before a non-default branch is deleted; ' +
+      'null uses the deployment default and 0 disables the sweep. Branches ' +
+      'with an unreviewed comparison are never deleted.',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  branchRetentionDays?: number | null;
 
   @ApiPropertyOptional({ type: Number, nullable: true })
   @IsOptional()

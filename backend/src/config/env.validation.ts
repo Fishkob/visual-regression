@@ -82,6 +82,14 @@ export const envValidationSchema = Joi.object({
     .description(
       'Default days to keep finished runs (per-project overrides win)',
     ),
+  BRANCH_RETENTION_DAYS: Joi.number()
+    .integer()
+    .min(0)
+    .max(3650)
+    .default(0)
+    .description(
+      'Default days without an upload before a non-default branch is deleted (0 disables the sweep; per-project overrides win)',
+    ),
   JOB_RETENTION_DAYS: Joi.number()
     .default(7)
     .description(

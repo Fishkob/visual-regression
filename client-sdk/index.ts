@@ -117,6 +117,7 @@ export type { BranchesControllerUpdateData } from './models/BranchesControllerUp
 export type { BranchesControllerUpdateErrors } from './models/BranchesControllerUpdateErrors.gen';
 export type { BranchesControllerUpdateResponse } from './models/BranchesControllerUpdateResponse.gen';
 export type { BranchesControllerUpdateResponses } from './models/BranchesControllerUpdateResponses.gen';
+export type { BranchRetentionPreviewDto } from './models/BranchRetentionPreviewDto.gen';
 export type { BranchSummaryDto } from './models/BranchSummaryDto.gen';
 export type { BulkActionsControllerApproveData } from './models/BulkActionsControllerApproveData.gen';
 export type { BulkActionsControllerApproveResponse } from './models/BulkActionsControllerApproveResponse.gen';

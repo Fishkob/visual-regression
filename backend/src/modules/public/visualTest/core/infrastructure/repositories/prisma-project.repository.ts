@@ -19,6 +19,7 @@ export interface ProjectData {
   groupId?: string | null;
   baselineRevisionLimit?: number | null;
   runHistoryDays?: number | null;
+  branchRetentionDays?: number | null;
   orphanGraceHours?: number | null;
   storageQuotaBytes?: bigint | null;
   quotaSoftPercent?: number | null;
@@ -129,12 +130,26 @@ export class ProjectRepository extends BaseRepository {
     data: {
       baselineRevisionLimit?: number | null;
       runHistoryDays?: number | null;
+      branchRetentionDays?: number | null;
       orphanGraceHours?: number | null;
       storageQuotaBytes?: bigint | null;
       quotaSoftPercent?: number | null;
     },
   ): Promise<void> {
     await this.client.project.update({ where: { name }, data });
+  }
+
+  // The branch sweep's project list: every project with the override it stored.
+  // The sweep skips the ones whose effective window is 0, which is the default
+  // (opt-in — see ADR-067). `select` keeps the read to the two columns the sweep
+  // needs; a project row carries quota and storage bytes that no sweep reads.
+  async listBranchRetentionProjects(): Promise<
+    { id: string; branchRetentionDays: number | null }[]
+  > {
+    return this.client.project.findMany({
+      select: { id: true, branchRetentionDays: true },
+      orderBy: { name: 'asc' },
+    });
   }
 
   // Standalone write by design: the cached usage is derived state, so it is

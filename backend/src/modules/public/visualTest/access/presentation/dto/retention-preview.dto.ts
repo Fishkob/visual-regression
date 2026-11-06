@@ -39,6 +39,21 @@ export class RetentionStoragePreviewDto {
   warning!: boolean;
 }
 
+export class BranchRetentionPreviewDto {
+  @ApiProperty({
+    description:
+      'The window the sweep will apply, with the deployment default resolved',
+  })
+  @Expose()
+  days!: number;
+
+  @ApiProperty({
+    description: 'Branches the sweep would delete right now',
+  })
+  @Expose()
+  eligible!: number;
+}
+
 export class RetentionPreviewDto {
   @ApiProperty({ type: BaselineRevisionPreviewDto })
   @Expose()
@@ -47,6 +62,10 @@ export class RetentionPreviewDto {
   @ApiProperty({ type: RunRetentionPreviewDto })
   @Expose()
   runs!: RunRetentionPreviewDto;
+
+  @ApiProperty({ type: BranchRetentionPreviewDto })
+  @Expose()
+  branches!: BranchRetentionPreviewDto;
 
   // Named for what it is. `/storage` reports the same setting as the *stored
   // override* (null = "use the default"), which is what an edit form needs; this

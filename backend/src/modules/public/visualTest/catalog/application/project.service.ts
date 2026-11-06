@@ -119,6 +119,7 @@ export class ProjectService {
     data: {
       baselineRevisionLimit?: number | null;
       runHistoryDays?: number | null;
+      branchRetentionDays?: number | null;
       orphanGraceHours?: number | null;
       // A validated positive-integer string or null; parsing lives here so the
       // controller stops coercing transport values into the domain type.
@@ -251,6 +252,7 @@ export class ProjectService {
 const RETENTION_KEYS = [
   'baselineRevisionLimit',
   'runHistoryDays',
+  'branchRetentionDays',
   'orphanGraceHours',
   'storageQuotaBytes',
   'quotaSoftPercent',

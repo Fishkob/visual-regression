@@ -15,4 +15,5 @@ export const MAINTENANCE_LOCK_IDS = {
   storageSizeBackfill: 1009,
   webhookDeliveryCleanup: 1011,
   shareLinkCleanup: 1012,
+  branchRetention: 1013,
 } as const;

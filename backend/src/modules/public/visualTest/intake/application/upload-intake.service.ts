@@ -37,6 +37,7 @@ import type { JobData } from '@common/domain/job-data.types';
 import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
 import { ImageNormalizer } from '@public/visualTest/core/application/services/image-normalizer.service';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
+import { BranchRepository } from '@public/visualTest/core/infrastructure/repositories/branch.repository';
 import type { ResolvedBranch } from '@public/visualTest/core/application/services/branch-resolver.service';
 import type { Run } from '@/prisma/client';
 import type { AnyUploadResult } from '@common/domain/unified-upload-result.type';
@@ -52,6 +53,7 @@ import {
   IPdfPageCounter,
 } from '@common/domain/pdf-sidecar.interface';
 import { MAX_PDF_PAGES } from '@config/upload-limits';
+import { AppLoggerService } from '@common/logging/app-logger.service';
 
 interface UploadKindConfig {
   trackerSpanName: string;
@@ -96,6 +98,8 @@ export class UploadIntake {
     private readonly images: ImageNormalizer,
     private readonly tests: UnifiedTestRepository,
     private readonly audit: AuditService,
+    private readonly branches: BranchRepository,
+    private readonly logger: AppLoggerService,
   ) {}
 
   async upload(input: UploadParams, kind: TestKind): Promise<AnyUploadResult> {
@@ -113,7 +117,7 @@ export class UploadIntake {
         },
       };
     }
-    return this.tracker.track(
+    const result = await this.tracker.track(
       UPLOAD_KIND_CONFIG[kind].trackerSpanName,
       async () => {
         const fileHash = createHash('sha256')
@@ -183,6 +187,25 @@ export class UploadIntake {
         return stored.result;
       },
     );
+
+    // The branch-retention clock: a successful upload is the "compare" the sweep
+    // waits for (ADR-067). It runs outside every upload transaction and after the
+    // upload committed, so it must never turn a stored upload into an error the
+    // CI would retry — the next upload in the window touches it again anyway.
+    await this.touchBranchActivity(params);
+    return result;
+  }
+
+  private async touchBranchActivity(params: UploadParams): Promise<void> {
+    try {
+      await this.branches.touchActivity(params.projectName, params.branch);
+    } catch (error) {
+      this.logger.warn('Could not record the branch activity', {
+        projectName: params.projectName,
+        branch: params.branch,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private async tryIdentical(

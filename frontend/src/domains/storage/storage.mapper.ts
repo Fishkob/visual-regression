@@ -48,6 +48,7 @@ export function mapStorage(
     diffCount: toCount(dto.diffCount),
     baselineRevisionLimit: toLimit(dto.baselineRevisionLimit),
     runHistoryDays: toLimit(dto.runHistoryDays),
+    branchRetentionDays: toLimit(dto.branchRetentionDays),
     orphanGraceHours: toLimit(dto.orphanGraceHours),
   };
 }
@@ -75,6 +76,10 @@ export function mapRetentionPreview(
     runs: {
       days: toCount(dto.runs?.days),
       eligible: toCount(dto.runs?.eligible),
+    },
+    branches: {
+      days: toCount(dto.branches?.days),
+      eligible: toCount(dto.branches?.eligible),
     },
     effectiveOrphanGraceHours: toCount(dto.effectiveOrphanGraceHours),
     storage: {

@@ -5,6 +5,7 @@ import { StorageModule } from '@internal/storage/storage.module';
 import { VisualTestInfraModule } from '@public/visualTest/core/visual-test-infra.module';
 import { JobQueueModule } from '@internal/job-queue/job-queue.module';
 import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
+import { VisualTestApplicationModule } from '@public/visualTest/core/visual-test-application.module';
 import {
   MAINTENANCE_TASKS,
   type MaintenanceTask,
@@ -20,6 +21,7 @@ import { RunHistoryCleanupTask } from '@internal/data-deletion/tasks/run-history
 import { StorageSizeBackfillTask } from '@internal/data-deletion/tasks/storage-size-backfill.task';
 import { WebhookDeliveryCleanupTask } from '@internal/data-deletion/tasks/webhook-delivery-cleanup.task';
 import { ShareLinkCleanupTask } from '@internal/data-deletion/tasks/share-link-cleanup.task';
+import { BranchRetentionTask } from '@internal/data-deletion/tasks/branch-retention.task';
 import { OrphanCleanupService } from './services/orphan-cleanup.service';
 @Module({
   imports: [
@@ -29,6 +31,10 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
     VisualTestInfraModule,
     JobQueueModule,
     PdfSidecarModule,
+    // Branch deletion is a state change (comparison retirement, status
+    // recompute, storage reclamation, audit), so the retention sweep reuses the
+    // service that owns it instead of re-implementing the cascade. See ADR-067.
+    VisualTestApplicationModule,
   ],
   providers: [
     MaintenanceCron,
@@ -43,6 +49,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
     StorageSizeBackfillTask,
     WebhookDeliveryCleanupTask,
     ShareLinkCleanupTask,
+    BranchRetentionTask,
     {
       provide: MAINTENANCE_TASKS,
       useFactory: (
@@ -57,6 +64,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         storageSizeBackfillTask: StorageSizeBackfillTask,
         webhookDeliveryCleanupTask: WebhookDeliveryCleanupTask,
         shareLinkCleanupTask: ShareLinkCleanupTask,
+        branchRetentionTask: BranchRetentionTask,
       ) =>
         [
           orphanCleanupService,
@@ -70,6 +78,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
           storageSizeBackfillTask,
           webhookDeliveryCleanupTask,
           shareLinkCleanupTask,
+          branchRetentionTask,
         ] as MaintenanceTask[],
       inject: [
         OrphanCleanupService,
@@ -83,6 +92,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         StorageSizeBackfillTask,
         WebhookDeliveryCleanupTask,
         ShareLinkCleanupTask,
+        BranchRetentionTask,
       ],
     },
   ],

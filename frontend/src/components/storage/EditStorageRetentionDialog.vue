@@ -29,6 +29,7 @@ const emit = defineEmits<{
 const quotaMb = ref("");
 const baselineLimit = ref("");
 const runHistoryDays = ref("");
+const branchRetentionDays = ref("");
 const orphanGraceHours = ref("");
 const softPercent = ref("");
 
@@ -47,6 +48,10 @@ watch(
     runHistoryDays.value =
       props.storage?.runHistoryDays != null
         ? String(props.storage.runHistoryDays)
+        : "";
+    branchRetentionDays.value =
+      props.storage?.branchRetentionDays != null
+        ? String(props.storage.branchRetentionDays)
         : "";
     orphanGraceHours.value =
       props.storage?.orphanGraceHours != null
@@ -73,6 +78,16 @@ function optionalPositiveInteger(value: unknown): number | null {
   return parsed;
 }
 
+// 0 is a value here, not "unset": it is how a project switches the branch
+// sweep off, so the validator cannot reuse the positive-only parser.
+function optionalNonNegativeInteger(value: unknown): number | null {
+  const trimmed = asText(value).trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  if (!Number.isInteger(parsed) || parsed < 0) return null;
+  return parsed;
+}
+
 function optionalQuotaMegabytes(value: unknown): number | null {
   const trimmed = asText(value).trim();
   if (!trimmed) return null;
@@ -84,6 +99,9 @@ function optionalQuotaMegabytes(value: unknown): number | null {
 const quota = computed(() => optionalQuotaMegabytes(quotaMb.value));
 const baseline = computed(() => optionalPositiveInteger(baselineLimit.value));
 const runDays = computed(() => optionalPositiveInteger(runHistoryDays.value));
+const branchDays = computed(() =>
+  optionalNonNegativeInteger(branchRetentionDays.value),
+);
 const orphanHours = computed(() =>
   optionalPositiveInteger(orphanGraceHours.value),
 );
@@ -105,6 +123,9 @@ const errors = computed(() => {
   if (asText(runHistoryDays.value).trim() && runDays.value === null) {
     problems.push(t("storageEdit.runError"));
   }
+  if (asText(branchRetentionDays.value).trim() && branchDays.value === null) {
+    problems.push(t("storageEdit.branchError"));
+  }
   if (asText(orphanGraceHours.value).trim() && orphanHours.value === null) {
     problems.push(t("storageEdit.orphanError"));
   }
@@ -123,6 +144,7 @@ function submit() {
     // stores null for both.
     baselineRevisionLimit: baseline.value,
     runHistoryDays: runDays.value,
+    branchRetentionDays: branchDays.value,
     orphanGraceHours: orphanHours.value,
     storageQuotaBytes: megabytesToByteString(quota.value),
     quotaSoftPercent: soft.value,
@@ -181,6 +203,24 @@ function submit() {
             :placeholder="t('storageEdit.globalDefaultPlaceholder')"
             :data-testid="TEST_ID.storageRunDays"
           />
+        </label>
+
+        <label class="block space-y-1 text-sm">
+          <span>{{ t("storageEdit.branchDays") }}</span>
+          <Input
+            v-model="branchRetentionDays"
+            type="number"
+            min="0"
+            step="1"
+            :placeholder="t('storageEdit.globalDefaultPlaceholder')"
+            :aria-invalid="
+              asText(branchRetentionDays).trim() !== '' && branchDays === null
+            "
+            :data-testid="TEST_ID.storageBranchDays"
+          />
+          <span class="block text-xs text-muted-foreground">
+            {{ t("storageEdit.branchHelp") }}
+          </span>
         </label>
 
         <label class="block space-y-1 text-sm">

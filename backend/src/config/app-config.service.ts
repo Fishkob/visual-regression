@@ -25,7 +25,7 @@ interface AppConfigSnapshot {
   jobRetention: { days: number };
   webhookRetention: { days: number };
   baselineHistory: { limit: number };
-  retention: { runHistoryDays: number };
+  retention: { runHistoryDays: number; branchRetentionDays: number };
   appPublicUrl: string;
   workerHealth: { url: string | undefined; port: number };
   metrics: { enabled: boolean; apiKey: string };
@@ -250,6 +250,10 @@ export class AppConfigService {
       retention: {
         runHistoryDays:
           this.config.get<number>('RUN_HISTORY_RETENTION_DAYS') ?? 365,
+        // 0 = disabled, the only retention window whose off-state is a value:
+        // deleting branches is destructive, so a deployment opts in.
+        branchRetentionDays:
+          this.config.get<number>('BRANCH_RETENTION_DAYS') ?? 0,
       },
       appPublicUrl:
         this.config.get<string>('APP_PUBLIC_URL') ?? 'http://localhost',

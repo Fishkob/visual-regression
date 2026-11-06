@@ -9,6 +9,7 @@ function makeMockClient() {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
+      count: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -19,6 +20,7 @@ function makeMockClient() {
     unifiedVariant: {
       updateMany: vi.fn(),
     },
+    $executeRaw: vi.fn(),
   };
 }
 
@@ -250,6 +252,63 @@ describe('BranchRepository', () => {
       await expect(
         repository.findTargetChainIds('br-unknown'),
       ).resolves.toEqual([]);
+    });
+  });
+
+  describe('branch retention', () => {
+    const cutoff = new Date('2025-05-01T00:00:00Z');
+
+    it('touches the activity clock outside a transaction, one guarded statement', async () => {
+      await repository.touchActivity('shop', 'feature/x');
+
+      // The write is standalone by design: the upload already committed, and a
+      // missing transaction must not fail it (ADR-067).
+      expect(txCtx.assertInTransaction).not.toHaveBeenCalled();
+      expect(mockClient.$executeRaw).toHaveBeenCalledTimes(1);
+    });
+
+    it('selects the inactive candidates with the guards the sweep promises', async () => {
+      mockClient.branch.findFirst.mockResolvedValue(branch);
+      mockClient.branch.findMany.mockResolvedValue([]);
+
+      await repository.findInactive('proj-1', cutoff);
+
+      expect(mockClient.branch.findMany).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          projectId: 'proj-1',
+          isArchived: false,
+          id: { not: 'br-1' },
+          lastActivityAt: { lt: cutoff },
+          createdAt: { lt: cutoff },
+          derivedBranches: { none: {} },
+          tests: {
+            none: {
+              comparisons: { some: { status: 'PENDING_APPROVAL' } },
+            },
+          },
+        }),
+        select: expect.any(Object),
+        orderBy: [{ lastActivityAt: 'asc' }, { name: 'asc' }],
+      });
+    });
+
+    it('counts with the same predicate and reports zero without a default branch', async () => {
+      mockClient.branch.findFirst.mockResolvedValue(branch);
+      mockClient.branch.count.mockResolvedValue(3);
+
+      await expect(repository.countInactive('proj-1', cutoff)).resolves.toBe(3);
+      expect(mockClient.branch.count).toHaveBeenCalledWith({
+        where: expect.objectContaining({
+          projectId: 'proj-1',
+          isArchived: false,
+        }),
+      });
+
+      mockClient.branch.findFirst.mockResolvedValue(null);
+      await expect(repository.countInactive('proj-1', cutoff)).resolves.toBe(0);
+      await expect(repository.findInactive('proj-1', cutoff)).resolves.toEqual(
+        [],
+      );
     });
   });
 });

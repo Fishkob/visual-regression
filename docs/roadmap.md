@@ -47,6 +47,12 @@ SAML inside the app itself stays out of scope.
   through `PATCH /storage` and shown by the retention preview. The
   unreferenced-object sweep stays global on purpose: an object with no row has no
   project to read a grace from.
+- **Branch retention** (2026-11-06). `BRANCH_RETENTION_DAYS` (default 0 = off)
+  and `Project.branchRetentionDays` delete a non-default branch once it has seen
+  no upload for the window; archived branches, branches other branches target and
+  branches with an unreviewed comparison are never collected, and the storage
+  preview reports the set first. It closes the "auto-archiving is out of scope"
+  line of ADR-027 with a deletion instead of an archive (ADR-067).
 - **N1 — quality-gallery gaps** (2026-11-04). The share page and the run detail
   got gallery cases (story, fixture, `readyTestId`), so every route now has a
   pixel baseline and an axe scan in both themes and the opt-out list in
@@ -99,8 +105,12 @@ A reviewer records _why_ a change was fine instead of rejecting it.
 ### Branch-scoped follow-ups — out of scope (ADR-027)
 
 Baseline promotion/merge, branch rename, branch-scoped permissions and API keys,
-auto-archiving, a branch-level threshold. Commit metadata landed at run level
-(ADR-030), which is narrower than the branch-level metadata ADR-027 deferred.
+a branch-level threshold. Commit metadata landed at run level (ADR-030), which is
+narrower than the branch-level metadata ADR-027 deferred. Auto-archiving was
+reopened on operator demand and shipped as the branch retention window
+([ADR-067](adr/ADR-067-branch-retention.md)), which deletes idle branches instead
+of archiving them — the archive stays the manual "keep this" action, so it can
+shield a branch from the sweep.
 
 ### Also deferred
 

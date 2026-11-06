@@ -68,6 +68,14 @@ function retentionText(
     ? t("storage.globalDefault")
     : t(`storage.${key}`, value);
 }
+
+// The branch window says "Off" for a stored 0: it is the one retention value
+// whose off-state is a number, and "0 days" would read like "delete at once".
+function branchRetentionText(value: number | null): string {
+  if (value === null) return t("storage.globalDefault");
+  if (value === 0) return t("storage.off");
+  return t("storage.days", value);
+}
 const progressPercent = computed(() =>
   Math.min(100, Math.max(0, storage.value?.percent ?? 0)),
 );
@@ -195,6 +203,10 @@ function submit(payload: UpdateProjectStorageInput) {
           · {{ t("storage.runHistory") }}
           <span class="font-medium">
             {{ retentionText(storage.runHistoryDays, "days") }}
+          </span>
+          · {{ t("storage.branchRetention") }}
+          <span class="font-medium">
+            {{ branchRetentionText(storage.branchRetentionDays) }}
           </span>
           · {{ t("storage.orphan") }}
           <span class="font-medium">

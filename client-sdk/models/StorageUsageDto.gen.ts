@@ -20,6 +20,10 @@ export type StorageUsageDto = {
     baselineRevisionLimit: number | null;
     runHistoryDays: number | null;
     /**
+     * Days without an upload after which a non-default branch is deleted. Null uses the deployment default; 0 disables the sweep for this project.
+     */
+    branchRetentionDays: number | null;
+    /**
      * The setting as stored: null means this project uses the global default. The value the sweeps apply is `effectiveOrphanGraceHours` on /storage/preview.
      */
     orphanGraceHours: number | null;

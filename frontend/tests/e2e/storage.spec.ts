@@ -36,6 +36,7 @@ test.describe("Project storage", () => {
     await page.getByTestId(TEST_ID.storageQuotaMb).fill("10");
     await page.getByTestId(TEST_ID.storageBaselineLimit).fill("3");
     await page.getByTestId(TEST_ID.storageRunDays).fill("14");
+    await page.getByTestId(TEST_ID.storageBranchDays).fill("30");
     await page.getByTestId(TEST_ID.storageOrphanHours).fill("12");
     await page.getByTestId(TEST_ID.storageSoftPercent).fill("70");
     await page.getByTestId(TEST_ID.storageSave).click();
@@ -51,6 +52,9 @@ test.describe("Project storage", () => {
       "14 days",
     );
     await expect(page.getByTestId(TEST_ID.storageRetention)).toContainText(
+      "30 days",
+    );
+    await expect(page.getByTestId(TEST_ID.storageRetention)).toContainText(
       "12 hours",
     );
 
@@ -59,6 +63,7 @@ test.describe("Project storage", () => {
       expect.objectContaining({
         baselineRevisionLimit: 3,
         runHistoryDays: 14,
+        branchRetentionDays: 30,
         orphanGraceHours: 12,
         softPercent: 70,
       }),

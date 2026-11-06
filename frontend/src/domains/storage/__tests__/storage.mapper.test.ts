@@ -24,6 +24,7 @@ const storageDto = (overrides: Partial<StorageSource> = {}): StorageSource => ({
   diffCount: 4,
   baselineRevisionLimit: 5,
   runHistoryDays: 30,
+  branchRetentionDays: 30,
   orphanGraceHours: 24,
   ...overrides,
 });
@@ -87,6 +88,7 @@ describe("mapStorage", () => {
       diffCount: 4,
       baselineRevisionLimit: 5,
       runHistoryDays: 30,
+      branchRetentionDays: 30,
       orphanGraceHours: 24,
     });
   });
@@ -99,6 +101,7 @@ describe("mapStorage", () => {
         warning: true,
         baselineRevisionLimit: null,
         runHistoryDays: null,
+        branchRetentionDays: null,
         orphanGraceHours: null,
       }),
     );
@@ -107,6 +110,7 @@ describe("mapStorage", () => {
     expect(mapped?.warning).toBe(true);
     expect(mapped?.baselineRevisionLimit).toBeNull();
     expect(mapped?.runHistoryDays).toBeNull();
+    expect(mapped?.branchRetentionDays).toBeNull();
     expect(mapped?.orphanGraceHours).toBeNull();
   });
 
@@ -119,6 +123,7 @@ describe("mapStorage", () => {
       diffCount: 0,
       baselineRevisionLimit: undefined,
       runHistoryDays: undefined,
+      branchRetentionDays: undefined,
       orphanGraceHours: undefined,
     } as unknown as StorageUsageDto;
 
@@ -146,6 +151,7 @@ const previewDto = (
 ): RetentionPreviewSource => ({
   baselineRevisions: { limit: 5, overflow: 2 },
   runs: { days: 30, eligible: 1 },
+  branches: { days: 90, eligible: 3 },
   effectiveOrphanGraceHours: 24,
   storage: {
     usageBytes: "1572864",
@@ -161,6 +167,7 @@ describe("mapRetentionPreview", () => {
     expect(mapRetentionPreview(previewDto())).toEqual({
       baselineRevisions: { limit: 5, overflow: 2 },
       runs: { days: 30, eligible: 1 },
+      branches: { days: 90, eligible: 3 },
       effectiveOrphanGraceHours: 24,
       storage: {
         usageBytes: 1_572_864,
@@ -194,6 +201,7 @@ describe("mapRetentionPreview", () => {
     expect(mapRetentionPreview(dto)).toEqual({
       baselineRevisions: { limit: 0, overflow: 0 },
       runs: { days: 0, eligible: 0 },
+      branches: { days: 0, eligible: 0 },
       effectiveOrphanGraceHours: 0,
       storage: { usageBytes: 0, quotaBytes: null, percent: 0, warning: false },
     });

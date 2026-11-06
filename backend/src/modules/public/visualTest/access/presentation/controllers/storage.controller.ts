@@ -79,6 +79,7 @@ export class StorageController {
       {
         baselineRevisionLimit: dto.baselineRevisionLimit,
         runHistoryDays: dto.runHistoryDays,
+        branchRetentionDays: dto.branchRetentionDays,
         orphanGraceHours: dto.orphanGraceHours,
         storageQuotaBytes: dto.storageQuotaBytes,
         quotaSoftPercent: dto.quotaSoftPercent,

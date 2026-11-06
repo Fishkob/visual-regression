@@ -22,6 +22,7 @@ export interface StorageUsageView {
   diffCount: number;
   baselineRevisionLimit: number | null;
   runHistoryDays: number | null;
+  branchRetentionDays: number | null;
   orphanGraceHours: number | null;
 }
 
@@ -52,6 +53,7 @@ export class StorageUsageService {
       diffCount: usage.diffCount,
       baselineRevisionLimit: project.baselineRevisionLimit ?? null,
       runHistoryDays: project.runHistoryDays ?? null,
+      branchRetentionDays: project.branchRetentionDays ?? null,
       orphanGraceHours: project.orphanGraceHours ?? null,
     };
   }

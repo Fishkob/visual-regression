@@ -14,6 +14,7 @@ export interface ProjectStorage {
   diffCount: number;
   baselineRevisionLimit: number | null;
   runHistoryDays: number | null;
+  branchRetentionDays: number | null;
   orphanGraceHours: number | null;
 }
 
@@ -32,6 +33,12 @@ export interface RetentionPreview {
     days: number;
     eligible: number;
   };
+  // Days without an upload after which a branch is deleted; `0` is off, which
+  // the dialog says explicitly instead of showing a 0-day window.
+  branches: {
+    days: number;
+    eligible: number;
+  };
   effectiveOrphanGraceHours: number;
   storage: {
     usageBytes: number;
@@ -44,6 +51,7 @@ export interface RetentionPreview {
 export interface UpdateProjectStorageInput {
   baselineRevisionLimit?: number | null;
   runHistoryDays?: number | null;
+  branchRetentionDays?: number | null;
   orphanGraceHours?: number | null;
   storageQuotaBytes?: string | null;
   quotaSoftPercent?: number | null;

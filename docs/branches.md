@@ -27,8 +27,9 @@ to do with a branch before and after its merge.
 ## After the merge
 
 The platform does not know that a merge happened: a branch that has been merged
-is an ordinary branch, and nothing is archived, promoted or cleaned up
-automatically. `main`'s baseline is still the pre-merge reference, so the first
+is an ordinary branch, and nothing is archived or promoted automatically. (An
+idle branch can be collected by the branch retention window described at the end
+of this page — that is a time trigger, not a merge trigger.) `main`'s baseline is still the pre-merge reference, so the first
 run on `main` after the merge is the one that sees the change — it uploads the
 merged UI, diffs it against `main`'s own baseline and asks for a review.
 
@@ -78,3 +79,40 @@ dependants first (`Change target…`), then delete.
 The archive half of the combined action is not blocked by that guard: an archived
 target still resolves baselines for the branches that inherit from it, it only
 rejects its own uploads.
+
+## Cleaning up branches nobody uses any more
+
+Branches are created by the first upload that names them, and the platform never
+learns that the Git branch behind one was merged or deleted. Without a setting,
+that list only grows: the branch of a long-merged pull request still shows next
+to the two that are alive.
+
+`BRANCH_RETENTION_DAYS` turns on an automatic sweep. It is **off by default (0)**;
+set it on the worker (or with `Project.branchRetentionDays` per project, in the
+same dialog as the other retention limits) to the number of days a branch may
+stay quiet before it is deleted with the same cascade and the same audit row as a
+manual delete. The audit actor is `system:branch-retention`.
+
+**What counts as activity is uploads.** A branch is a candidate when it has seen
+no upload for the window. Every successful upload touches the branch's activity
+clock, whether the upload was identical, created the baseline or queued a diff,
+and whether or not it carried a run key. Reviews do not keep a branch alive: an
+approval on a merged branch does not reset its clock.
+
+The sweep never touches:
+
+- the project's **default branch**;
+- an **archived** branch — archiving is the reversible way to keep one, so archive
+  a branch you want to keep past the window instead of deleting it early;
+- a branch **another branch targets** (re-target the dependants first, exactly as
+  for a manual delete);
+- a branch with an **unreviewed comparison** — pending review work is never
+  destroyed, so that branch waits until the review is approved, retired or the
+  branch is deleted by hand.
+
+`Preview cleanup` on the project's storage panel runs the same predicate and
+reports how many branches the next sweep would delete, without deleting
+anything. Because the window is destructive and irreversible, pick a value above
+your longest expected branch dormancy (a frozen release branch, a PR waiting on
+design), and raise it rather than lowering it — the first sweep after an upgrade
+only collects branches that were already idle for the full window.

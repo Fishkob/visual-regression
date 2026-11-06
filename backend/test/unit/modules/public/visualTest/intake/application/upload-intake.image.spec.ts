@@ -9,6 +9,7 @@ import { UploadDecisionResolver } from '@public/visualTest/intake/application/up
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { BranchBaselineResolver } from '@public/visualTest/core/application/services/branch-baseline-resolver.service';
 import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
+import { BranchRepository } from '@public/visualTest/core/infrastructure/repositories/branch.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
@@ -160,6 +161,10 @@ describe('UploadIntake (image kind)', () => {
         UploadDecisionResolver,
         { provide: UnifiedTestRepository, useValue: tests },
         { provide: BranchResolver, useValue: branches },
+        {
+          provide: BranchRepository,
+          useValue: { touchActivity: vi.fn().mockResolvedValue(undefined) },
+        },
         { provide: BranchBaselineResolver, useValue: baselines },
         { provide: BranchTestRepository, useValue: branchTests },
         { provide: UnifiedScreenshotRepository, useValue: screenshots },

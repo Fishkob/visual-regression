@@ -17,6 +17,10 @@ model Project {
   defaultBranch          Branch?            @relation("DefaultBranch", fields: [defaultBranchId], references: [id], onDelete: SetNull)
   baselineRevisionLimit  Int?
   runHistoryDays         Int?
+  // Days without an upload before this project's non-default branches are
+  // deleted by the branch-retention sweep. Null means "use the deployment
+  // default"; `0` disables the sweep for this project. See ADR-067.
+  branchRetentionDays    Int?
   orphanGraceHours       Int?
   storageQuotaBytes      BigInt?
   quotaSoftPercent       Int?               @default(80)
@@ -56,12 +60,19 @@ model Branch {
   derivedBranches Branch[]      @relation("BranchTarget")
   defaultFor      Project?      @relation("DefaultBranch")
   isArchived      Boolean       @default(false)
+  // The last upload that reached this branch, touched by the intake path (at
+  // most once per window). It is the clock the branch-retention sweep reads:
+  // "no compare here for N days" cannot be derived from comparisons, because an
+  // identical upload writes one, and a run key is optional. See ADR-067.
+  lastActivityAt  DateTime      @default(now())
   createdAt       DateTime      @default(now())
   tests           UnifiedTest[]
   runs            Run[]
 
   @@unique([projectId, name])
   @@index([targetBranchId])
+  // The retention sweep's filter: one project's branches by activity.
+  @@index([projectId, lastActivityAt])
   // Substring search on the branch name (global search).
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "Branch_name_trgm_idx")
   @@map("Branch")

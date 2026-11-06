@@ -23,6 +23,7 @@ describe('StorageUsageService', () => {
       quotaSoftPercent: 80,
       baselineRevisionLimit: 5,
       runHistoryDays: 30,
+      branchRetentionDays: 30,
       orphanGraceHours: 24,
     });
     screenshots = createMock<UnifiedScreenshotRepository>();
@@ -48,6 +49,7 @@ describe('StorageUsageService', () => {
     expect(usage.fileCount).toBe(3);
     expect(usage.diffCount).toBe(2);
     expect(usage.baselineRevisionLimit).toBe(5);
+    expect(usage.branchRetentionDays).toBe(30);
   });
 
   it('rejects an upload over the hard quota', async () => {

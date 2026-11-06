@@ -7811,6 +7811,11 @@
             "type": "number",
             "nullable": true
           },
+          "branchRetentionDays": {
+            "type": "number",
+            "nullable": true,
+            "description": "Days without an upload after which a non-default branch is deleted. Null uses the deployment default; 0 disables the sweep for this project."
+          },
           "orphanGraceHours": {
             "type": "number",
             "nullable": true,
@@ -7827,6 +7832,7 @@
           "diffCount",
           "baselineRevisionLimit",
           "runHistoryDays",
+          "branchRetentionDays",
           "orphanGraceHours"
         ]
       },
@@ -7853,6 +7859,23 @@
           },
           "eligible": {
             "type": "number"
+          }
+        },
+        "required": [
+          "days",
+          "eligible"
+        ]
+      },
+      "BranchRetentionPreviewDto": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "number",
+            "description": "The window the sweep will apply, with the deployment default resolved"
+          },
+          "eligible": {
+            "type": "number",
+            "description": "Branches the sweep would delete right now"
           }
         },
         "required": [
@@ -7893,6 +7916,9 @@
           "runs": {
             "$ref": "#/components/schemas/RunRetentionPreviewDto"
           },
+          "branches": {
+            "$ref": "#/components/schemas/BranchRetentionPreviewDto"
+          },
           "effectiveOrphanGraceHours": {
             "type": "number",
             "description": "The grace the orphan sweeps will apply, with the global default resolved"
@@ -7904,6 +7930,7 @@
         "required": [
           "baselineRevisions",
           "runs",
+          "branches",
           "effectiveOrphanGraceHours",
           "storage"
         ]
@@ -7919,6 +7946,11 @@
           "runHistoryDays": {
             "type": "number",
             "nullable": true
+          },
+          "branchRetentionDays": {
+            "type": "number",
+            "nullable": true,
+            "description": "Days without an upload before a non-default branch is deleted; null uses the deployment default and 0 disables the sweep. Branches with an unreviewed comparison are never deleted."
           },
           "orphanGraceHours": {
             "type": "number",

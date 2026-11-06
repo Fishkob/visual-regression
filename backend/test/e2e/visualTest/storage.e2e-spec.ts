@@ -43,9 +43,12 @@ describe('Storage visibility and quota (e2e)', () => {
     await TestApp.close();
   });
 
-  function upload(file: string) {
-    return authRequest(app)
-      .post('/api/v1/projects/shop/tests/login/upload?testKind=image')
+  function upload(file: string, branch?: string) {
+    const request = authRequest(app).post(
+      '/api/v1/projects/shop/tests/login/upload?testKind=image',
+    );
+    if (branch) request.field('branch', branch);
+    return request
       .field('viewport', '1920x1080')
       .field('browser', 'Chrome')
       .field('environment', 'staging')
@@ -68,6 +71,7 @@ describe('Storage visibility and quota (e2e)', () => {
       .send({
         baselineRevisionLimit: 3,
         runHistoryDays: 14,
+        branchRetentionDays: 30,
         orphanGraceHours: 12,
         quotaSoftPercent: 70,
       })
@@ -76,6 +80,7 @@ describe('Storage visibility and quota (e2e)', () => {
       expect.objectContaining({
         baselineRevisionLimit: 3,
         runHistoryDays: 14,
+        branchRetentionDays: 30,
         orphanGraceHours: 12,
         softPercent: 70,
       }),
@@ -88,9 +93,56 @@ describe('Storage visibility and quota (e2e)', () => {
       expect.objectContaining({
         baselineRevisions: { limit: 3, overflow: 0 },
         runs: { days: 14, eligible: 0 },
+        branches: { days: 30, eligible: 0 },
         effectiveOrphanGraceHours: 12,
       }),
     );
+  });
+
+  // The dry run and the nightly sweep read one predicate (ADR-067). This case
+  // proves the predicate against real SQL: a fresh branch is not a candidate, an
+  // idle one is, and archiving it — the reversible "keep this" — shields it.
+  it('counts only idle, unarchived, non-default branches as cleanup candidates', async () => {
+    await upload(baseline, 'feature/old').expect(201);
+    await request(app.getHttpServer())
+      .patch('/api/v1/projects/shop/storage')
+      .set('Cookie', adminCookie)
+      .send({ branchRetentionDays: 30 })
+      .expect(200);
+
+    // The upload wrote the branch's activity clock (the sweep's only signal),
+    // so a fresh branch is never a candidate.
+    const created = await db.branch.findFirstOrThrow({
+      where: { name: 'feature/old' },
+    });
+    expect(Date.now() - created.lastActivityAt.getTime()).toBeLessThan(60_000);
+
+    const fresh = await authRequest(app)
+      .get('/api/v1/projects/shop/storage/preview')
+      .expect(200);
+    expect(fresh.body.branches).toEqual({ days: 30, eligible: 0 });
+
+    const idle = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+    await db.branch.updateMany({
+      where: { name: 'feature/old' },
+      data: { createdAt: idle, lastActivityAt: idle },
+    });
+
+    const past = await authRequest(app)
+      .get('/api/v1/projects/shop/storage/preview')
+      .expect(200);
+    expect(past.body.branches).toEqual({ days: 30, eligible: 1 });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/projects/shop/branches?branch=feature%2Fold')
+      .set('Cookie', adminCookie)
+      .send({ isArchived: true })
+      .expect(200);
+
+    const archived = await authRequest(app)
+      .get('/api/v1/projects/shop/storage/preview')
+      .expect(200);
+    expect(archived.body.branches).toEqual({ days: 30, eligible: 0 });
   });
 
   it('rejects an upload above the hard quota with 413', async () => {

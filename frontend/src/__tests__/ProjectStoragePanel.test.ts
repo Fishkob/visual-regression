@@ -37,6 +37,7 @@ function previewDto(overrides: Record<string, unknown> = {}) {
   return {
     baselineRevisions: { limit: 5, overflow: 2 },
     runs: { days: 30, eligible: 1 },
+    branches: { days: 90, eligible: 2 },
     effectiveOrphanGraceHours: 24,
     storage: {
       usageBytes: "1572864",
@@ -59,6 +60,7 @@ function storageDto(overrides: Record<string, unknown> = {}) {
     diffCount: 4,
     baselineRevisionLimit: 5,
     runHistoryDays: 30,
+    branchRetentionDays: 30,
     orphanGraceHours: 24,
     ...overrides,
   };
@@ -149,6 +151,7 @@ describe("ProjectStoragePanel", () => {
     );
     expect(retention.text()).toContain("5 revisions");
     expect(retention.text()).toContain("30 days");
+    expect(retention.text()).toContain("Branch cleanup:");
     expect(retention.text()).toContain("24 hours");
     expect(
       wrapper.find(`[data-testid="${TEST_ID.storageWarning}"]`).exists(),
@@ -163,6 +166,7 @@ describe("ProjectStoragePanel", () => {
         warning: true,
         baselineRevisionLimit: null,
         runHistoryDays: null,
+        branchRetentionDays: null,
         orphanGraceHours: null,
       }),
     });
@@ -179,7 +183,22 @@ describe("ProjectStoragePanel", () => {
     const retention = wrapper.get(
       `[data-testid="${TEST_ID.storageRetention}"]`,
     );
-    expect(retention.text().match(/Global default/g)).toHaveLength(3);
+    expect(retention.text().match(/Global default/g)).toHaveLength(4);
+  });
+
+  it("renders a stored 0 as Off for the branch window", async () => {
+    mockGet.mockResolvedValue({
+      data: storageDto({ branchRetentionDays: 0 }),
+    });
+
+    const wrapper = mountPanel();
+    await waitForPanel(wrapper);
+
+    const retention = wrapper.get(
+      `[data-testid="${TEST_ID.storageRetention}"]`,
+    );
+    expect(retention.text()).toContain("Branch cleanup:");
+    expect(retention.text()).toContain("Off");
   });
 
   it("saves the MB quota as a byte string and the retention limits", async () => {
@@ -202,6 +221,12 @@ describe("ProjectStoragePanel", () => {
       .get(`[data-testid="${TEST_ID.storageOrphanHours}"]`)
       .setValue("48");
     await wrapper
+      .get(`[data-testid="${TEST_ID.storageBranchDays}"]`)
+      .setValue("0");
+    await wrapper
+      .get(`[data-testid="${TEST_ID.storageOrphanHours}"]`)
+      .setValue("48");
+    await wrapper
       .get(`[data-testid="${TEST_ID.storageSoftPercent}"]`)
       .setValue("90");
     await wrapper.find("form").trigger("submit");
@@ -212,6 +237,8 @@ describe("ProjectStoragePanel", () => {
         body: {
           baselineRevisionLimit: 10,
           runHistoryDays: 14,
+          // 0 is a value, not an empty field: it switches the sweep off.
+          branchRetentionDays: 0,
           orphanGraceHours: 48,
           storageQuotaBytes: String(25 * 1024 * 1024),
           quotaSoftPercent: 90,
@@ -240,6 +267,7 @@ describe("ProjectStoragePanel", () => {
         body: {
           baselineRevisionLimit: 5,
           runHistoryDays: 30,
+          branchRetentionDays: 30,
           orphanGraceHours: 24,
           storageQuotaBytes: null,
           quotaSoftPercent: 80,
@@ -269,6 +297,40 @@ describe("ProjectStoragePanel", () => {
         .get(`[data-testid="${TEST_ID.storageSave}"]`)
         .attributes("disabled"),
     ).toBeDefined();
+    await wrapper.find("form").trigger("submit");
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("clears the branch window to the global default with an empty field", async () => {
+    const wrapper = mountPanel();
+    await waitForPanel(wrapper);
+    await openDialog(wrapper);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.storageBranchDays}"]`)
+      .setValue("");
+    await wrapper.find("form").trigger("submit");
+
+    await vi.waitFor(() =>
+      expect(mockUpdate).toHaveBeenCalledWith({
+        path: { projectName: "checkout" },
+        body: expect.objectContaining({ branchRetentionDays: null }),
+      }),
+    );
+  });
+
+  it("rejects a negative branch window", async () => {
+    const wrapper = mountPanel();
+    await waitForPanel(wrapper);
+    await openDialog(wrapper);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.storageBranchDays}"]`)
+      .setValue("-5");
+
+    expect(wrapper.text()).toContain(
+      "Branch cleanup must be a whole number of days (0 disables it).",
+    );
     await wrapper.find("form").trigger("submit");
     expect(mockUpdate).not.toHaveBeenCalled();
   });
@@ -335,6 +397,8 @@ describe("ProjectStoragePanel", () => {
     expect(dialog.text()).toContain("Dry run — nothing is deleted");
     expect(dialog.text()).toContain("2 over the limit of 5");
     expect(dialog.text()).toContain("1 eligible in the 30-day window");
+    expect(dialog.text()).toContain("Branches");
+    expect(dialog.text()).toContain("2 eligible in the 90-day window");
     expect(dialog.text()).toContain("24 hours");
     expect(dialog.text()).toContain("1.5 MB used");
     expect(dialog.text()).toContain("15.0%");

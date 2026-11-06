@@ -6,6 +6,10 @@ export type UpdateRetentionDto = {
      */
     baselineRevisionLimit?: number | null;
     runHistoryDays?: number | null;
+    /**
+     * Days without an upload before a non-default branch is deleted; null uses the deployment default and 0 disables the sweep. Branches with an unreviewed comparison are never deleted.
+     */
+    branchRetentionDays?: number | null;
     orphanGraceHours?: number | null;
     /**
      * Hard storage quota in bytes: a positive whole number, or null for unlimited. Zero, negative and non-numeric values are rejected — an ambiguous value must not silently disable the quota.

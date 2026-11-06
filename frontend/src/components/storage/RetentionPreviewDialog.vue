@@ -107,6 +107,22 @@ const emit = defineEmits<{
 
           <div class="rounded-md border p-2">
             <dt class="text-xs text-muted-foreground">
+              {{ t("storagePreview.branches") }}
+            </dt>
+            <dd>
+              {{
+                preview.branches.days > 0
+                  ? t("storagePreview.branchesValue", {
+                      eligible: preview.branches.eligible,
+                      days: preview.branches.days,
+                    })
+                  : t("storagePreview.branchesOff")
+              }}
+            </dd>
+          </div>
+
+          <div class="rounded-md border p-2">
+            <dt class="text-xs text-muted-foreground">
               {{ t("storagePreview.orphan") }}
             </dt>
             <dd>

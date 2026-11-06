@@ -50,6 +50,34 @@ describe('Environment Validation', () => {
     expect(error?.message).toContain('TOTP_ENCRYPTION_KEY');
   });
 
+  it('defaults the branch retention window to off and rejects a negative window', () => {
+    const { error, value } = envValidationSchema.validate(
+      withKey({
+        DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+        RUSTFS_ENDPOINT: 'localhost',
+        RUSTFS_ACCESS_KEY: 'test-key',
+        RUSTFS_SECRET_KEY: 'test-secret',
+        RUSTFS_BUCKET: 'visual-tests',
+        RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+      }),
+    );
+    expect(error).toBeUndefined();
+    expect(value.BRANCH_RETENTION_DAYS).toBe(0);
+
+    const negative = envValidationSchema.validate(
+      withKey({
+        DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+        RUSTFS_ENDPOINT: 'localhost',
+        RUSTFS_ACCESS_KEY: 'test-key',
+        RUSTFS_SECRET_KEY: 'test-secret',
+        RUSTFS_BUCKET: 'visual-tests',
+        RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+        BRANCH_RETENTION_DAYS: -1,
+      }),
+    );
+    expect(negative.error?.message).toContain('BRANCH_RETENTION_DAYS');
+  });
+
   it('rejects invalid LOG_LEVEL', () => {
     const invalidEnv = {
       DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',

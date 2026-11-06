@@ -194,8 +194,16 @@ trail, including the IP/user-agent written when a share link is opened) and
 Both are append-only and grow with usage; size the database accordingly, or
 archive/purge them on your own schedule if a retention policy requires it.
 Everything else has a configurable window (`RUN_HISTORY_RETENTION_DAYS`, `JOB_RETENTION_DAYS`,
-`WEBHOOK_DELIVERY_RETENTION_DAYS`, session expiry, 7 days for expired share
-links).
+`WEBHOOK_DELIVERY_RETENTION_DAYS`, `BRANCH_RETENTION_DAYS`, session expiry, 7 days for
+expired share links).
+
+`BRANCH_RETENTION_DAYS` is **off by default (0)** and the most destructive of the
+windows: it deletes a non-default branch — with its tests, comparisons, runs and
+their evidence — once it has seen no upload for that many days. Branches with an
+unreviewed comparison and archived branches are never collected. Read
+[branches.md](branches.md#cleaning-up-branches-nobody-uses-any-more) before
+turning it on; the project settings dialog's dry run shows the set it would
+delete now.
 
 ## Database Time Zone
 

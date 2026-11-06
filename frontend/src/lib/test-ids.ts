@@ -131,6 +131,7 @@ export const TEST_ID = {
   storageQuotaMb: "storage-quota-mb",
   storageBaselineLimit: "storage-baseline-limit",
   storageRunDays: "storage-run-days",
+  storageBranchDays: "storage-branch-days",
   storageOrphanHours: "storage-orphan-hours",
   storageSoftPercent: "storage-soft-percent",
   storageSave: "storage-save",

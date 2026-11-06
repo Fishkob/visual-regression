@@ -60,6 +60,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 064 | [The Discussion Cascades with Its Test](./ADR-064-review-comments-cascade-with-their-test.md)                                          | Accepted (supersedes the comment half of 042)          |
 | 065 | [Cross-Row Identities Are Database Guarantees](./ADR-065-cross-row-identities-are-database-guarantees.md)                              | Accepted (narrows the rule in CONTEXT.md)              |
 | 066 | [The 4-Eyes Approval Gate Is Removed](./ADR-066-remove-the-four-eyes-approval-gate.md)                                                 | Accepted (supersedes the 4-eyes half of 039/041, 050)  |
+| 067 | [Idle Branches Are Deleted by a Retention Window](./ADR-067-branch-retention.md)                                                       | Accepted (supersedes the auto-archiving clause of 027) |
 
 ## Numbering
 

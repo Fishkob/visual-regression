@@ -3,6 +3,7 @@ import { resolveRetention } from '@public/visualTest/core/domain/policies/retent
 const defaults = {
   baselineRevisionLimit: 10,
   runHistoryDays: 90,
+  branchRetentionDays: 30,
   orphanGraceHours: 24,
 };
 
@@ -17,6 +18,7 @@ describe('RetentionPolicy', () => {
         {
           baselineRevisionLimit: 3,
           runHistoryDays: 7,
+          branchRetentionDays: 14,
           orphanGraceHours: 168,
         },
         defaults,
@@ -24,6 +26,7 @@ describe('RetentionPolicy', () => {
     ).toEqual({
       baselineRevisionLimit: 3,
       runHistoryDays: 7,
+      branchRetentionDays: 14,
       orphanGraceHours: 168,
     });
   });
@@ -35,6 +38,7 @@ describe('RetentionPolicy', () => {
         {
           baselineRevisionLimit: null,
           runHistoryDays: null,
+          branchRetentionDays: null,
           orphanGraceHours: null,
         },
         defaults,
@@ -48,6 +52,7 @@ describe('RetentionPolicy', () => {
         {
           baselineRevisionLimit: 0,
           runHistoryDays: 0,
+          branchRetentionDays: 0,
           orphanGraceHours: 0,
         },
         defaults,
@@ -55,6 +60,7 @@ describe('RetentionPolicy', () => {
     ).toEqual({
       baselineRevisionLimit: 0,
       runHistoryDays: 0,
+      branchRetentionDays: 0,
       orphanGraceHours: 0,
     });
   });
@@ -63,6 +69,7 @@ describe('RetentionPolicy', () => {
     expect(resolveRetention({ runHistoryDays: 30 }, defaults)).toEqual({
       baselineRevisionLimit: 10,
       runHistoryDays: 30,
+      branchRetentionDays: 30,
       orphanGraceHours: 24,
     });
   });

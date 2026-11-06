@@ -94,6 +94,20 @@ describe('AppConfigService', () => {
     const config = buildAppConfig(baseValues);
     expect(config.jobRetention.days).toBe(7);
     expect(config.baselineHistory.limit).toBe(10);
+    // The branch sweep is opt-in: an installation that sets nothing deletes
+    // nothing (ADR-067).
+    expect(config.retention.branchRetentionDays).toBe(0);
+    expect(config.retention.runHistoryDays).toBe(365);
+  });
+
+  it('reads the branch retention window from the environment', () => {
+    const config = buildAppConfig({
+      ...baseValues,
+      BRANCH_RETENTION_DAYS: 30,
+      RUN_HISTORY_RETENTION_DAYS: 90,
+    });
+    expect(config.retention.branchRetentionDays).toBe(30);
+    expect(config.retention.runHistoryDays).toBe(90);
   });
 
   it('exposes the public dashboard URL used in webhook links', () => {
