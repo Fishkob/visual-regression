@@ -3,6 +3,9 @@ name: Release
 on:
   push:
     branches: [main]
+  # A dispatch re-runs release-please on main, so a release that never got cut
+  # (a failed run, a fixed workflow) does not need an empty commit.
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -49,8 +52,28 @@ jobs:
     permissions:
       contents: write
       packages: write
+      # The bump-chart job inside the reusable workflow opens a pull request
+      # with this job's token, and a called workflow can only downgrade the
+      # caller's scopes: without pull-requests here GitHub rejects the whole
+      # run at startup instead of failing the one step.
+      pull-requests: write
     uses: ./.github/workflows/release-images.yml
     # Build what the tag points at, not whatever main has become since the
     # release was cut: the tag is the artifact users pin.
     with:
       ref: ${{ needs.release-please.outputs.tag_name }}
+
+  publish-client-sdk:
+    name: Attach client SDK to the release
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    permissions:
+      contents: write
+    # Called from here rather than left to the `release: published` trigger:
+    # release-please creates the release with GITHUB_TOKEN, and a token-created
+    # release does not start workflows (only workflow_dispatch,
+    # repository_dispatch and pull_request are exempt). The `release` trigger in
+    # the reusable workflow still covers a release a human publishes.
+    uses: ./.github/workflows/release-client-sdk.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}
