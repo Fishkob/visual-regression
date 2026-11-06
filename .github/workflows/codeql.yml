@@ -45,9 +45,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # No `category` on either step: the default is /language:<language>,
-      # which is the category default setup used. Keeping it identical is what
-      # keeps the existing alert history attached to the same analyses.
+      # No `category` is set, so the action derives one from the workflow path
+      # and job name: `<this file>:analyze/language:<language>`. That differs
+      # from the /language:<language> category default setup uploaded, but the
+      # identity of an alert is its rule plus the code location, not the
+      # category — the six alerts default setup raised carried over unchanged.
       - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
           languages: ${{ matrix.language }}
