@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.4.0](https://github.com/Fishkob/visual-regression/compare/v3.3.0...v3.4.0) (2026-11-06)
+
+
+### Features
+
+* **branches:** delete branches idle past a retention window ([93ee09f](https://github.com/Fishkob/visual-regression/commit/93ee09f3326455747dd0338a5f0a5c8889301f2c))
+* **viewer:** two panes per row in fullscreen, hide a pane on demand ([497ce69](https://github.com/Fishkob/visual-regression/commit/497ce695904f1f7c8d6ec9257fba2128428d3acc))
+
+
+### Bug Fixes
+
+* **seeds:** give demo branch candidates the baseline dimensions ([#4](https://github.com/Fishkob/visual-regression/issues/4)) ([4a5eb8b](https://github.com/Fishkob/visual-regression/commit/4a5eb8b2c07362dc60b0e7c8ac142d0842bb30d3))
+
 ## [3.3.0](https://github.com/Fishkob/visual-regression/compare/v3.2.0...v3.3.0) (2026-11-06)
 
 
