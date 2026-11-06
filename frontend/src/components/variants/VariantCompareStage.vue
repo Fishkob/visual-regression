@@ -26,6 +26,10 @@ const props = defineProps<{
   variants: VariantSummary[];
   aspectRatio: string;
   mode: VariantCompareMode;
+  // How many pictures may share a row. The overview drops this to two in
+  // fullscreen: with the shell gone, three columns would still be small pictures
+  // while two are a size worth looking at.
+  maxColumns?: number;
 }>();
 
 const emit = defineEmits<{
@@ -160,9 +164,14 @@ function browserLabel(variant: VariantSummary): string {
 // At most three panes per row: a fifth browser would squeeze every picture to a
 // thumbnail, and the comparison is about seeing the rendering, not the count.
 // Wrapped rows keep equal widths, so the pictures stay comparable.
-const gridStyle = computed<Record<string, string>>(() => ({
-  "--variant-columns": `repeat(${Math.min(props.variants.length, 3)}, minmax(0, 1fr))`,
-}));
+const MAX_COLUMNS = 3;
+const gridStyle = computed<Record<string, string>>(() => {
+  const columns = Math.min(
+    props.variants.length,
+    props.maxColumns ?? MAX_COLUMNS,
+  );
+  return { "--variant-columns": `repeat(${columns}, minmax(0, 1fr))` };
+});
 </script>
 
 <template>

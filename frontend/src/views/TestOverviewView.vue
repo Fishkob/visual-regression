@@ -13,6 +13,7 @@ import {
   groupVariantsByViewport,
   type ViewportGroup,
 } from "@/domains/visual-test/variant-groups";
+import { parseViewport } from "@/domains/visual-test/viewport";
 import {
   VARIANT_COMPARE_MODES,
   type VariantCompareMode,
@@ -102,13 +103,23 @@ const MIN_RELATIVE_WIDTH = 0.45;
 const MAX_ROW_WIDTH_REM = 72;
 const MAX_PANE_WIDTH_REM = 24;
 
+// Fullscreen trades breadth for size: two panes per row instead of three, so a
+// 1920 capture is ~940px wide instead of ~630px. The third browser wraps below
+// its viewport's row rather than shrinking the pictures.
+const FULLSCREEN_MAX_COLUMNS = 2;
+
 function rowStyle(group: ViewportGroup): Record<string, string> {
-  // Fullscreen means the honest size comparison is the only thing left to keep:
-  // every row takes the window, and the panes inside it share that width.
   if (isFullscreen.value) {
+    // The window is the limit, but never past the capture: a 375px phone
+    // screenshot must not become a blurry billboard just because the row can
+    // grow. `columns` matches the grid the stage builds for this group.
+    const size = parseViewport(group.viewport);
+    const columns = Math.min(group.variants.length, FULLSCREEN_MAX_COLUMNS);
     return {
       "--variant-row-width": "100%",
-      "--variant-row-max": "100%",
+      "--variant-row-max": size
+        ? `min(100%, ${String(size.width * columns)}px)`
+        : "100%",
     };
   }
   const count = group.variants.length;
@@ -291,6 +302,7 @@ function openVariant(variant: VariantSummary) {
               :variants="group.variants"
               :aspect-ratio="group.aspectRatio"
               :mode="compareMode"
+              :max-columns="isFullscreen ? FULLSCREEN_MAX_COLUMNS : 3"
               @open="openVariant"
             />
           </div>

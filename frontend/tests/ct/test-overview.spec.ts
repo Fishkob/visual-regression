@@ -298,11 +298,33 @@ test.describe("TestOverview", () => {
     // Every row keeps its viewport-relative width while the mode is off.
     await expect(row).not.toHaveAttribute("style", /--variant-row-width: 100%/);
 
+    // Three browsers of one viewport share a single row while the mode is off.
+    const cards = component.getByTestId(TEST_ID.testOverviewCard);
+    const topOf = async (index: number) =>
+      (await cards.nth(index).boundingBox())?.y ?? -1;
+    const [chromeTop, firefoxTop, safariTop] = await Promise.all([
+      topOf(1),
+      topOf(2),
+      topOf(3),
+    ]);
+    expect(firefoxTop).toBe(chromeTop);
+    expect(safariTop).toBe(chromeTop);
+
     await toggle.click();
 
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
     await expect(toggle).toContainText("Exit fullscreen");
     await expect(row).toHaveAttribute("style", /--variant-row-width: 100%/);
+
+    // The mode buys size with breadth: two browsers per row, the third wraps
+    // below rather than shrinking all three.
+    const [chromeFull, firefoxFull, safariFull] = await Promise.all([
+      topOf(1),
+      topOf(2),
+      topOf(3),
+    ]);
+    expect(firefoxFull).toBe(chromeFull);
+    expect(safariFull).toBeGreaterThan(chromeFull);
 
     // Escape is the way out that does not require finding the button again.
     await page.keyboard.press("Escape");
