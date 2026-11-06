@@ -6,13 +6,19 @@ on:
   workflow_dispatch:
     inputs:
       keep:
-        description: "Number of image versions to keep per image"
+        description: "Untagged versions to keep per image"
         required: false
         type: string
-        default: "20"
+        default: "5"
 
 permissions:
   packages: write
+
+# A cron run and a manual dispatch can overlap; deleting the same version twice
+# would report a 404 that is nobody's fault.
+concurrency:
+  group: cleanup-images
+  cancel-in-progress: false
 
 jobs:
   cleanup:
@@ -28,51 +34,18 @@ jobs:
           - visual-regression-worker
           - pdf-sidecar
           - visual-regression-migrate
-    env:
-      GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Delete old versions
-        env:
-          # Public packages are free to store, and a released tag is what an
-          # operator pins for a rollback: keep a release per week for ~5 months
-          # rather than a handful.
-          KEEP: ${{ github.event.inputs.keep || '20' }}
-        run: |
-          # Keep at least one version so the chart's image tags stay pullable.
-          if ! [[ "$KEEP" =~ ^[0-9]+$ ]] || [ "$KEEP" -lt 1 ]; then
-            echo "Invalid keep='$KEEP', defaulting to 1"
-            KEEP=1
-          fi
-
-          # User- and org-owned packages live under different API paths.
-          OWNER="${{ github.repository_owner }}"
-          OWNER_TYPE=$(gh api "/repos/${GITHUB_REPOSITORY}" --jq .owner.type) || OWNER_TYPE="User"
-          if [ "$OWNER_TYPE" = "Organization" ]; then
-            BASE="/orgs/${OWNER}"
-          else
-            BASE="/users/${OWNER}"
-          fi
-
-          echo "Fetching ${{ matrix.image }} versions (newest first)..."
-          # `gh api` refuses `--slurp` together with `--jq`, so the pages are
-          # slurped into one array and sorted by jq: the newest-first order has to
-          # hold across pages, which a per-page `--jq` cannot guarantee.
-          VERSIONS=$(gh api -XGET \
-            "${BASE}/packages/container/${{ matrix.image }}/versions" \
-            --paginate --slurp | jq -r 'add | sort_by(.created_at) | reverse | .[].id') || VERSIONS=""
-
-          if [ -z "$VERSIONS" ]; then
-            echo "No versions found for ${{ matrix.image }}"
-            exit 0
-          fi
-
-          COUNT=0
-          for VERSION_ID in $VERSIONS; do
-            COUNT=$((COUNT + 1))
-            if [ $COUNT -gt "$KEEP" ]; then
-              echo "Deleting ${{ matrix.image }} version: $VERSION_ID"
-              gh api -XDELETE "${BASE}/packages/container/${{ matrix.image }}/versions/$VERSION_ID" || echo "Failed to delete $VERSION_ID, skipping"
-            fi
-          done
-
-          echo "Kept $KEEP latest versions of ${{ matrix.image }}"
+      # Only untagged versions are deleted: a released tag is what an operator
+      # pins for a rollback and has to stay pullable, while an untagged version is
+      # a leftover of a rebuilt release that nothing but a digest can reach.
+      #
+      # This holds because every image is built single-platform. Adding
+      # `platforms:` to the build in release-images.yml would make the untagged
+      # platform children of a multi-arch index look like leftovers, and deleting
+      # them breaks the tagged parent.
+      - uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
+        with:
+          package-name: ${{ matrix.image }}
+          package-type: container
+          delete-only-untagged-versions: "true"
+          min-versions-to-keep: ${{ github.event.inputs.keep || '5' }}
