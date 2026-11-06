@@ -427,7 +427,7 @@ so the stack re-initialises on 18.
 
 On every push to `main` or `develop`, GitHub Actions runs tests (unit + e2e) automatically.
 
-Releases are cut from [Conventional Commits](https://www.conventionalcommits.org/) by release-please: it maintains a release PR, and merging that PR creates a `vX.Y.Z` tag and a GitHub Release. The same workflow run then builds and pushes every image tagged `X.Y.Z` to GHCR, updates the `tag:` values in `deploy/charts/vrt/values.yaml` (ArgoCD picks them up automatically) and attaches the client SDK tarball to the release. The SDK step is called from the release run itself, because a release created with `GITHUB_TOKEN` does not start the `release: published` workflow.
+Releases are cut from [Conventional Commits](https://www.conventionalcommits.org/) by release-please: it maintains a release PR, and merging that PR creates a `vX.Y.Z` tag and a GitHub Release. The same workflow run then builds and pushes every image tagged `X.Y.Z` to GHCR, updates the `tag:` values in `deploy/charts/vrt/values.yaml` and the chart's `appVersion` (ArgoCD picks them up automatically) and attaches the client SDK tarball to the release. The SDK step is called from the release run itself, because a release created with `GITHUB_TOKEN` does not start the `release: published` workflow.
 
 The release run re-runs the backend and frontend lint, typecheck, and unit tests before building, so an image is never published from untested code.
 
@@ -441,11 +441,13 @@ Images are pushed to (resolved from the repository owner, e.g. `ghcr.io/<owner>/
 
 The Helm chart's `registry` value (default `ghcr.io`) and `imageOwner` value (default `fishkob`) build the image path. Forks that publish their own images override `imageOwner` via `--set imageOwner=<fork-owner>`; to pull from a different registry, override `registry` too (or set both in the chart values in ArgoCD).
 
-> **Release prerequisites (repository settings):** enable _Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests"_ so release-please can open its release PR. Workflow runs on that PR start in an approval-required state, so a maintainer must approve them before the PR's CI runs (the release run re-tests before publishing regardless). The `bump-chart` job does **not** push to `main`: the `main` ruleset requires a pull request plus the two CI gates and grants no bypass, so the bump opens `chore/chart-images-<version>` and queues a squash auto-merge. Two consequences to watch: the ruleset also requires a branch to be up to date with `main`, so a merge landing in between parks the auto-merge until the bump branch is updated; and a failed `gh pr create`/`gh pr merge` only warns (`|| echo`), so read the release run instead of assuming the chart moved.
+> **Release prerequisites (repository settings):** enable _Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests"_ so release-please can open its release PR. Workflow runs on that PR start in an approval-required state, so a maintainer must approve them before the PR's CI runs (the release run re-tests before publishing regardless). The `bump-chart` job does **not** push to `main`: the `main` ruleset requires a pull request plus the two CI gates and grants no bypass, so the bump opens `chore/chart-images-<version>` and queues a squash auto-merge. The ruleset also requires a branch to be up to date with `main`, and GitHub will not update it for you: if another pull request lands while the bump is queued, the auto-merge stays parked until someone updates the branch. Adding a merge queue to the ruleset removes that manual step.
 
 ### Re-running a failed release build
 
-If the image build or chart bump fails, re-run **Actions → Release Images → Run workflow**. It republishes the current `main` version and rewrites the chart tags.
+Re-run the failed jobs of the release run (**Actions → Release → the failed run → Re-run failed jobs**). That keeps `ref` at the release tag, so the images and the chart bump describe the commit the tag points at.
+
+If the run is gone, dispatch **Actions → Release Images → Run workflow** with the tag as `ref` (e.g. `v3.4.0`). The workflow rejects a branch, and rejects a tag whose `package.json` version does not match the tag name, so a released version can no longer be republished from newer `main`.
 
 ## Serving Screenshots (RustFS must be browser-reachable)
 

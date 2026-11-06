@@ -4,11 +4,15 @@ on:
   workflow_call:
     inputs:
       ref:
-        description: "Git ref (release tag) to build; empty builds the triggering ref"
-        required: false
+        description: "Release tag to build (vX.Y.Z)"
+        required: true
         type: string
-        default: ""
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "Release tag to (re)build, e.g. v3.4.0 — never a branch"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -23,8 +27,50 @@ env:
   IMAGE_OWNER: ${{ github.repository_owner }}
 
 jobs:
+  version:
+    name: Resolve the version to publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      value: ${{ steps.read.outputs.value }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      # The tag is what users pin and what the chart rewrite has to match. A
+      # version read from anywhere else (main, a branch head) publishes code
+      # under a tag that does not contain it.
+      - name: Read and verify the version
+        id: read
+        env:
+          REF: ${{ inputs.ref || github.ref }}
+        run: |
+          VALUE=$(node -p "require('./package.json').version")
+          [ -n "$VALUE" ] || { echo "::error::could not read package.json version"; exit 1; }
+
+          case "$REF" in
+            refs/tags/v*) TAG="${REF#refs/tags/}" ;;
+            v[0-9]*) TAG="$REF" ;;
+            *) TAG="" ;;
+          esac
+
+          if [ -z "$TAG" ]; then
+            echo "::error::no release tag: got '$REF' — images are only published from a vX.Y.Z tag"
+            exit 1
+          fi
+          if [ "v$VALUE" != "$TAG" ]; then
+            echo "::error::$TAG does not match the package.json version $VALUE"
+            exit 1
+          fi
+
+          echo "value=$VALUE" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build ${{ matrix.image }}
+    needs: version
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -54,13 +100,6 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.ref }}
 
-      - name: Read version
-        id: version
-        run: |
-          VALUE=$(node -p "require('./package.json').version")
-          [ -n "$VALUE" ] || { echo "could not read package.json version"; exit 1; }
-          echo "value=$VALUE" >> "$GITHUB_OUTPUT"
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
@@ -76,7 +115,7 @@ jobs:
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}
-          tags: type=raw,value=${{ steps.version.outputs.value }}
+          tags: type=raw,value=${{ needs.version.outputs.value }}
 
       - name: Build and push
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -91,7 +130,7 @@ jobs:
 
   bump-chart:
     name: Bump chart image tags
-    needs: build
+    needs: [version, build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -104,20 +143,23 @@ jobs:
           fetch-depth: 0
           token: ${{ github.token }}
 
-      - name: Read version
-        id: version
-        run: |
-          VALUE=$(node -p "require('./package.json').version")
-          [ -n "$VALUE" ] || { echo "could not read package.json version"; exit 1; }
-          echo "value=$VALUE" >> "$GITHUB_OUTPUT"
-
-      - name: Update image tags in values.yaml
+      # The version comes from the job that built the images, not from main:
+      # by the time this runs, main may already carry the next release.
+      - name: Update the chart to the published version
         env:
-          VERSION: ${{ steps.version.outputs.value }}
+          VERSION: ${{ needs.version.outputs.value }}
         run: |
           for name in visual-regression-backend visual-regression-frontend visual-regression-worker pdf-sidecar visual-regression-migrate; do
             sed -i "/name: ${name}$/{n;s|tag:.*|tag: ${VERSION}|;}" deploy/charts/vrt/values.yaml
           done
+          sed -i "s|^appVersion:.*|appVersion: ${VERSION}|" deploy/charts/vrt/Chart.yaml
+
+          # sed that silently matches nothing would leave the chart on the old
+          # images and still report success.
+          TAGS=$(grep -c "^    tag: ${VERSION}$" deploy/charts/vrt/values.yaml || true)
+          [ "$TAGS" -eq 5 ] || { echo "::error::expected 5 image tags at ${VERSION}, found ${TAGS}"; exit 1; }
+          grep -q "^appVersion: ${VERSION}$" deploy/charts/vrt/Chart.yaml ||
+            { echo "::error::Chart.yaml appVersion is not ${VERSION}"; exit 1; }
 
       # main is protected: the ruleset requires a pull request and the two CI
       # gates and grants no bypass, so the bump lands as a pull request that
@@ -126,23 +168,26 @@ jobs:
       # the required checks, and auto-merge would wait forever.
       - name: Open the chart bump pull request
         env:
-          VERSION: ${{ steps.version.outputs.value }}
+          VERSION: ${{ needs.version.outputs.value }}
           GH_TOKEN: ${{ github.token }}
         run: |
           BRANCH="chore/chart-images-${VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -B "$BRANCH"
-          git add deploy/charts/vrt/values.yaml
+          git add deploy/charts/vrt/values.yaml deploy/charts/vrt/Chart.yaml
           if git diff --staged --quiet; then
-            echo "values.yaml already points at ${VERSION}; nothing to do."
+            echo "the chart already points at ${VERSION}; nothing to do."
             exit 0
           fi
           git commit -m "chore(release): bump chart image tags to ${VERSION}"
           git push --force origin "$BRANCH"
-          gh pr create --base main --head "$BRANCH" \
-            --title "chore(release): bump chart image tags to ${VERSION}" \
-            --body "Automated chart bump for the ${VERSION} release. Merges itself once the CI gates are green." \
-            || echo "::warning::pull request already open for ${BRANCH}"
-          gh pr merge --squash --auto "$BRANCH" \
-            || echo "::warning::could not queue auto-merge for ${BRANCH}"
+
+          if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
+            echo "pull request for ${BRANCH} already exists; branch force-pushed."
+          else
+            gh pr create --base main --head "$BRANCH" \
+              --title "chore(release): bump chart image tags to ${VERSION}" \
+              --body "Automated chart bump for the ${VERSION} release. Merges itself once the CI gates are green."
+          fi
+          gh pr merge --squash --auto "$BRANCH"
