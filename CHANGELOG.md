@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/Fishkob/visual-regression/compare/v3.0.0...v3.1.0) (2026-11-06)
+
+
+### Features
+
+* **branches:** archive and delete a merged branch in one action ([19323fe](https://github.com/Fishkob/visual-regression/commit/19323fe13b2d40051688b9d2e9de9729b1ff475f))
+
 ## [3.0.0](https://github.com/Fishkob/visual-regression/compare/v2.1.0...v3.0.0) (2026-11-06)
 
 
