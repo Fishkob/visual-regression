@@ -12,12 +12,12 @@ flowchart TB
     subgraph Backend[NestJS Backend]
         API[API Server<br/>REST]
         WORK[Worker<br/>Async Comparison]
-        CRON[Cron Job<br/>Stale Data Cleanup]
+        CRON[Cron Job<br/>Stale Data Cleanup<br/>worker mode]
 
-        BUS[ ]
-        API ---|Read/Write| BUS
-        WORK --- BUS
-        CRON --- BUS
+        DATA[Data Access<br/>Repositories + Storage Port]
+        API ---|Read/Write| DATA
+        WORK --- DATA
+        CRON --- DATA
 
         OTel[OTel SDK]
         Prom[prom-client<br/>Metrics]
@@ -40,10 +40,10 @@ flowchart TB
 
     SDK -->|Upload screenshots| API
     FE -->|Browse & approve| API
-    WORK -.->|poll| DB
+    WORK -->|poll| DB
 
-    BUS --> DB
-    BUS --> S3
+    DATA --> DB
+    DATA --> S3
     WORK <-->|PDF diff| PS
 
     OTel -->|OTLP| Alloy
@@ -60,22 +60,23 @@ flowchart TB
     Grafana -->|query| Loki
 ```
 
-**Solid lines** = always active. The **Observability box** = optional — only present when those components are deployed and configured.
+The `DATA` node is the shared data access layer — API, worker and cron read from and write to PostgreSQL and RustFS through repositories and the `IStorageProvider` port. It is not an event bus: no broker sits between the three processes (see [ADR-004](../adr/004-infrastructure-patterns.md)), and the maintenance cron runs in the worker process (`WorkerModule`), not in the API.
 
-The BUS node represents the shared data access layer — all backend services read from and write to PostgreSQL and RustFS.
+The **Observability box** is optional — those components are only present when they are deployed and configured; the API and worker run without them.
 
 ## Backend Layered Architecture
 
-Every sub-module follows a consistent layered structure:
+Every feature module under `visualTest/` splits into presentation and application, plus the layers it owns:
 
 ```
 module/
 ├── presentation/    HTTP controllers, DTOs, Swagger
 ├── application/     Orchestration services (use cases)
-├── domain/          Entities, value objects, domain types
 └── infrastructure/  Prisma repositories, mappers
 ```
 
+- **`core/domain/`** is the only domain layer — entities, value objects, policies and domain types, shared by all feature modules; `core/` also carries the application services around it (`StateChangeWorkflow`, `BranchResolver`, `ComparisonRetirementService`)
+- `intake`, `review`, `catalog`, `runs`, `access` and `notifications` have no `domain/` of their own and use the core domain types; `runs` and `notifications` also skip `infrastructure/` and read through the core repositories
 - **Cross-cutting ports** (`IStorageProvider`, `IComparisonEngine`) live in `common/domain/` — infrastructure depends on domain, not the other way around. There is no event bus: observability emission is a synchronous switch in `StateChangeWorkflow`'s post-commit path (see [ADR-004](../adr/004-infrastructure-patterns.md)).
 - **Repositories** are injected by class token (no separate interface) — consistent with every other service
 - **In-memory test doubles** replace repositories by class token for isolated unit testing
@@ -96,7 +97,7 @@ graph TB
     SPA["Vue 3 SPA<br/>TanStack Query<br/>Tailwind v4"]
   end
 
-  subgraph Server["Node.js Server (Port 3000)"]
+  subgraph Server["Node.js Server (API :3000 · Worker :3003)"]
     direction TB
 
     subgraph API["API Mode — AppModule"]
@@ -105,16 +106,20 @@ graph TB
 
       subgraph Feature["Feature Module: visualTest/"]
         direction TB
-        Intake["Intake<br/>Upload Controller<br/>UploadPipeline(s)"]
-        Review["Review<br/>TestsQueries · TestCommands · Pdf<br/>ProjectsController · ApprovalsController"]
+        Intake["Intake<br/>Upload · Job Status"]
+        Review["Review<br/>Approvals · Comments · Assignments<br/>Baseline History · Lifecycle"]
+        Catalog["Catalog<br/>Projects · Branches · Groups · Search"]
+        Runs["Runs<br/>Run Grouping · Trends"]
+        Access["Access<br/>Share Links · PDF · Storage"]
+        Notifications["Notifications<br/>Webhooks"]
         Core["Core<br/>Entities · Policies<br/>Application Services"]
       end
 
       subgraph Internal["Internal Modules"]
+        Auth["Auth · API Keys<br/>Users · Admin · Audit"]
         Health[Health (/health)]
         Metrics[Metrics (/metrics)]
         Dlq[Dead-Letter Queue]
-        DataDel[Data Deletion (cron)]
         LogIng[Log Ingestion]
       end
     end
@@ -124,13 +129,14 @@ graph TB
       Poller["Job Poller<br/>(Postgres polling)"]
       Processor["Job Processor<br/>ComparisonJobProcessor"]
       Engines["Engines<br/>Pixelmatch (image) · PDF Sidecar Client"]
+      Cron["Maintenance Cron<br/>stale data cleanup (daily)"]
     end
 
     subgraph Shared["Shared Infrastructure"]
       direction TB
-      Prisma["Prisma ORM<br/>UnitOfWork · AdvisoryLock<br/>4 Repositories"]
+      Prisma["Prisma ORM<br/>UnitOfWork · AdvisoryLock<br/>Repositories"]
       Storage["RustFS Storage<br/>IStorageProvider"]
-      Bus["Observability<br/>Logger + Metrics (in-process)"]
+      Obs["Observability<br/>Logger + Metrics (in-process)"]
       JobQ["Job Queue<br/>Postgres-backed"]
       Otel["OpenTelemetry<br/>Traces · Spans"]
     end
@@ -146,12 +152,22 @@ graph TB
 
   HTTP --> Intake
   HTTP --> Review
+  HTTP --> Catalog
+  HTTP --> Runs
+  HTTP --> Access
+  HTTP --> Notifications
+  HTTP --> Auth
+
   Intake --> Core
   Review --> Core
+  Catalog --> Core
+  Runs --> Core
+  Access --> Core
+  Notifications --> Core
 
   Core --> Prisma
   Core --> Storage
-  Core --> Bus
+  Core --> Obs
   Core --> JobQ
 
   Prisma --> PG
@@ -162,37 +178,38 @@ graph TB
   Engines --> Prisma
   Engines --> Storage
   Engines --> SidecarSvc
+  Cron --> Prisma
 
-  Bus --> Otel
-  Bus --> Metrics
+  Obs --> Otel
+  Obs --> Metrics
 
   class Browser vue
   class API,Worker nestjs
-  class Core,Intake,Review domain
-  class Prisma,Storage,Bus,JobQ,Otel infra
+  class Intake,Review,Catalog,Runs,Access,Notifications,Core domain
+  class Prisma,Storage,Obs,JobQ,Otel infra
   class External external
 ```
 
 ## Components
 
-| Component                         | Technology                        | Purpose                                                                        |
-| --------------------------------- | --------------------------------- | ------------------------------------------------------------------------------ |
-| **Backend API**                   | NestJS + Prisma                   | REST API for visual test management                                            |
-| **Worker**                        | NestJS (separate app)             | Async image and PDF comparison via PostgreSQL-backed queue                     |
-| **Frontend**                      | Vue 3 + Tailwind + TanStack Query | Dashboard for browsing & approving visual tests                                |
-| **Client SDK**                    | TypeScript (generated)            | Auto-generated OpenAPI client for CI pipeline uploads                          |
-| **Database**                      | PostgreSQL                        | Projects, visual tests, screenshots, comparisons, jobs                         |
-| **Storage**                       | RustFS (S3-compatible)            | Screenshot images, diff images                                                 |
-| **Comparison Engine<br/>(Image)** | Pixelmatch                        | Pixel-level image diffing (Node.js, in-worker)                                 |
-| **Comparison Engine<br/>(PDF)**   | pdfcompare (Java)                 | Page-by-page PDF diffing via pdf-sidecar (HTTP)                                |
-| **Queue**                         | PostgreSQL (polling)              | Async comparison jobs (single `ComparisonJob` table, `testKind` discriminator) |
-| **Data Deletion**                 | Cron                              | Orphaned comparison cleanup (daily)                                            |
-| **OTel SDK**                      | OpenTelemetry JS                  | Generates spans for HTTP requests (optional)                                   |
-| **Grafana Alloy**                 | Grafana Alloy                     | Receives OTLP traces, ships Docker logs to Loki                                |
-| **Tempo**                         | Grafana Tempo                     | Trace storage (query by TraceID or service graph)                              |
-| **Prometheus**                    | Prometheus                        | Pulls /metrics endpoint and Alloy span-metrics                                 |
-| **Loki**                          | Grafana Loki                      | Log storage (label-based queries, similar to Prom)                             |
-| **Grafana**                       | Grafana                           | Unified dashboards for traces, logs & metrics                                  |
+| Component                         | Technology                        | Purpose                                                                                               |
+| --------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Backend API**                   | NestJS + Prisma                   | REST API for visual test management                                                                   |
+| **Worker**                        | NestJS (separate app)             | Async image and PDF comparison via PostgreSQL-backed queue                                            |
+| **Frontend**                      | Vue 3 + Tailwind + TanStack Query | Dashboard for browsing & approving visual tests                                                       |
+| **Client SDK**                    | TypeScript (generated)            | Auto-generated OpenAPI client for CI pipeline uploads                                                 |
+| **Database**                      | PostgreSQL                        | Projects, visual tests, screenshots, comparisons, jobs                                                |
+| **Storage**                       | RustFS (S3-compatible)            | Screenshot images, diff images                                                                        |
+| **Comparison Engine<br/>(Image)** | Pixelmatch                        | Pixel-level image diffing (Node.js, in-worker)                                                        |
+| **Comparison Engine<br/>(PDF)**   | pdfcompare (Java)                 | Page-by-page PDF diffing via pdf-sidecar (HTTP)                                                       |
+| **Queue**                         | PostgreSQL (polling)              | Async comparison jobs — one `ComparisonJob` table, `testKind` in the job payload and on `UnifiedTest` |
+| **Maintenance Cron**              | Cron (`MAINTENANCE_TASKS`)        | Daily cleanup: unreferenced objects, failed jobs, sessions, share links, run history (worker mode)    |
+| **OTel SDK**                      | OpenTelemetry JS                  | Generates spans for HTTP requests (optional)                                                          |
+| **Grafana Alloy**                 | Grafana Alloy                     | Receives OTLP traces, ships Docker logs to Loki                                                       |
+| **Tempo**                         | Grafana Tempo                     | Trace storage (query by TraceID or service graph)                                                     |
+| **Prometheus**                    | Prometheus                        | Pulls /metrics endpoint and Alloy span-metrics                                                        |
+| **Loki**                          | Grafana Loki                      | Log storage (label-based queries, similar to Prom)                                                    |
+| **Grafana**                       | Grafana                           | Unified dashboards for traces, logs & metrics                                                         |
 
 ## Data Flow
 
@@ -200,82 +217,91 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-  participant Client as Vue SPA
+  participant Client as API Client<br/>(SPA · Client SDK)
   participant API as API (AppModule)
-  participant Pipeline as UploadPipeline
-  participant Policy as UploadDecisionPolicy
+  participant Intake as UploadIntake
+  participant Resolver as UploadDecisionResolver
+  participant Workflow as StateChangeWorkflow
   participant Repo as Repositories
   participant Storage as RustFS
   participant Queue as Job Queue
   participant Worker as Worker (WorkerModule)
   participant Engine as Comparison Engine
-  participant DB as PostgreSQL
 
-  Client->>API: POST /uploads (file + metadata)
-  API->>Pipeline: handle()
-  Pipeline->>Repo: find baseline screenshot
-  alt No baseline exists
-    Pipeline->>Storage: store screenshot
-    Pipeline->>Repo: create BASELINE record
-    Pipeline-->>Client: { outcome: BASELINE_CREATED }
-  else Hash matches baseline
-    Pipeline->>Storage: store screenshot (or skip)
-    Pipeline->>Repo: create CURRENT record
-    Pipeline-->>Client: { outcome: IDENTICAL }
-  else Hash differs
-    Pipeline->>Policy: evaluate(freshUpload)
-    Policy-->>Pipeline: replace pending? delete old + proceed
-    Pipeline->>Storage: store screenshot
-    Pipeline->>Repo: create CURRENT record
-    Pipeline->>Queue: enqueue comparison job
-    Pipeline-->>Client: { outcome: COMPARISON_QUEUED }
+  Client->>API: POST /api/v1/projects/:projectName/tests/:testName/upload
+  API->>Intake: upload(params, kind)
+  Intake->>Resolver: peekIdentical(params, fileHash)
+  alt Hash matches the effective baseline
+    Resolver-->>Intake: testId + branch (read-only peek)
+    Intake->>Workflow: retire the pending comparison + candidate
+    Intake-->>Client: { outcome: IDENTICAL }
+  else No effective baseline, or hash differs
+    Intake->>Storage: store the upload (quota-charged)
+    Intake->>Workflow: executeWithStoredFile(change)
+    Workflow->>Resolver: resolveStored(params, fileHash)
+    Resolver-->>Workflow: BASELINE_CREATED or COMPARISON_QUEUED
+    alt No effective baseline (owned or inherited)
+      Workflow->>Repo: write BASELINE screenshot
+      Workflow-->>Intake: BASELINE_CREATED
+      Intake-->>Client: { outcome: BASELINE_CREATED }
+    else Effective baseline differs
+      Workflow->>Repo: write CURRENT screenshot
+      Workflow->>Queue: enqueue ComparisonJob
+      Workflow-->>Intake: COMPARISON_QUEUED
+      Intake-->>Client: { outcome: COMPARISON_QUEUED }
+    end
+    Note over Workflow: The file is stored outside the DB transaction.<br/>If the transaction fails, the stored object is deleted again.
   end
 
-  Queue->>Worker: poll new job
-  Worker->>Engine: compare(baseline, current)
-  Engine->>Storage: get images
-  Engine->>Engine: pixelmatch / PDF diff
-  Engine->>Repo: save comparison result
-  alt Diff == 0
-    Engine->>Repo: set status = UNCHANGED
-  else Diff > 0
-    Engine->>Repo: set status = PENDING_APPROVAL
+  Queue->>Worker: poll a job (FOR UPDATE SKIP LOCKED)
+  Worker->>Engine: compare(baseline, candidate)
+  Engine->>Storage: fetch images / render PDF pages
+  Engine->>Engine: pixelmatch or pdf-sidecar diff
+  alt mismatch == 0
+    Worker->>Repo: reclaim candidate (no comparison row)
+  else mismatch within threshold
+    Worker->>Repo: reclaim candidate — auto-accepted (no comparison row)
+  else mismatch above threshold
+    Worker->>Storage: store diff image
+    Worker->>Repo: write Comparison (PENDING_APPROVAL)
   end
+  Worker->>Workflow: apply the change in one transaction
+  Workflow->>Repo: recompute the test status from its variants
   Worker-->>Queue: job complete
 ```
 
 ### Image Pipeline
 
-1. **Upload**: CI pipeline uploads screenshots via Client SDK → Backend stores in RustFS
-2. **Comparison**: Backend creates `ComparisonJob` in PostgreSQL → Worker polls → pixelmatch diff (in-process) → stores result
-3. **Approval**: Frontend fetches pending comparisons → User approves → Baseline promoted in transaction
-4. **Baseline**: Approved screenshots become new baseline — next upload compares against these
+1. **Upload**: CI uploads screenshots via the Client SDK → API resolves the branch's effective baseline and either creates the baseline, answers `identical`, or stores the candidate and queues a `ComparisonJob`
+2. **Comparison**: Worker polls the job → pixelmatch diff in-process → a mismatch of 0 or one within the project/variant threshold retires the candidate without a comparison row; above it the worker stores the diff image and writes a `PENDING_APPROVAL` comparison
+3. **Approval**: Frontend fetches pending comparisons → user approves → baseline promoted in a transaction and the approval recorded in the audit trail
+4. **Baseline**: The approved screenshot becomes that variant's baseline — the next upload on the same branch compares against it
 
 ### PDF Pipeline
 
-1. **Upload**: CI pipeline uploads PDF documents → Backend stores in RustFS
-2. **Comparison**: Backend creates `ComparisonJob` (with `testKind: 'pdf'`) in PostgreSQL → Worker polls → Worker calls pdf-sidecar (HTTP, Java process) → stores result
-3. **Approval**: Frontend (or API) fetches pending comparisons → User approves → Baseline promoted in transaction
-4. **Baseline**: Approved PDFs become new baseline — next upload compares against these
+1. **Upload**: CI uploads PDF documents via the same endpoint (kind `pdf`) → API asks the sidecar for the page count and enforces the page limit before storing anything; the job carries the `pdf` kind in its payload
+2. **Comparison**: Worker polls the job → calls pdf-sidecar (HTTP, Java process) → diff image and per-page counts come back the same way they do for images
+3. **Approval**: Frontend (or API) fetches pending comparisons → user approves → baseline promoted in a transaction
+4. **Baseline**: Approved PDFs become that variant's baseline — the next upload compares against them
 
 ## Architecture Philosophy (startup-pragmatic vs. enterprise)
 
-| Area                  | This Platform                             | Typical Enterprise                          |
-| --------------------- | ----------------------------------------- | ------------------------------------------- |
-| **Queue**             | PostgreSQL polling (single worker)        | RabbitMQ, SQS, Kafka (multi-worker, DLQ)    |
-| **API Surface**       | Monolithic NestJS (one process)           | API Gateway + BFF + multiple microservices  |
-| **Auth**              | Session cookie (dashboard) + API key (CI) | OAuth2/OIDC, SSO, RBAC, audit logging       |
-| **Multi-tenancy**     | Single-org deployment                     | Tenant isolation, schema-per-tenant         |
-| **Observability**     | Health checks + Prometheus metrics        | Distributed tracing, SLIs/SLOs, alerting    |
-| **Storage Delivery**  | Direct RustFS URLs                        | CDN + signed URLs + caching layer           |
-| **Database Topology** | Single PostgreSQL instance                | Read replicas, connection pooling, sharding |
-| **Service Mesh**      | None (direct Docker Compose)              | Istio/Linkerd for mTLS, traffic management  |
+| Area                  | This Platform                                               | Typical Enterprise                          |
+| --------------------- | ----------------------------------------------------------- | ------------------------------------------- |
+| **Queue**             | PostgreSQL polling (single worker)                          | RabbitMQ, SQS, Kafka (multi-worker, DLQ)    |
+| **API Surface**       | Monolithic NestJS (one process)                             | API Gateway + BFF + multiple microservices  |
+| **Auth**              | Session cookie (dashboard) + API key (CI)                   | OAuth2/OIDC, SSO, RBAC, audit logging       |
+| **Multi-tenancy**     | Single-org deployment                                       | Tenant isolation, schema-per-tenant         |
+| **Observability**     | OTel traces + Prometheus metrics + Loki logs (all optional) | Distributed tracing, SLIs/SLOs, alerting    |
+| **Storage Delivery**  | Presigned, time-limited RustFS URLs                         | CDN + signed URLs + caching layer           |
+| **Database Topology** | Single PostgreSQL instance                                  | Read replicas, connection pooling, sharding |
+| **Service Mesh**      | None (direct Docker Compose)                                | Istio/Linkerd for mTLS, traffic management  |
 
 **Key tradeoffs made deliberately:**
 
 - Two comparison engines (Pixelmatch + pdfcompare) — image and PDF comparison have fundamentally different algorithms; a separate Java sidecar avoids blocking the Node.js event loop with CPU-bound PDF rendering/compare work
 - Redis was removed (see [ADR-004 (Infrastructure Patterns)](../adr/004-infrastructure-patterns.md)) — BullMQ's feature set (priorities, delayed jobs, multi-worker) was overkill for a single-queue system
-- No API gateway — one backend serves both frontend and CI; auth is delegated to the trusted network
+- No API gateway — one backend serves both the frontend and CI; in the bundled stack the nginx frontend container proxies `/api` and the API port is bound to loopback only
 - No multi-tenancy — each deployment serves one organization; self-hosted instances are isolated by deployment
 - Single DB instance — read replicas add operational cost with negligible benefit at current scale
 
@@ -288,22 +314,29 @@ graph LR
   classDef container fill:#e7f5ff,stroke:#1c7ed6,stroke-width:2px
   classDef infra fill:#fff3e0,stroke:#e67700,stroke-width:1px
 
-  subgraph Docker
+  subgraph Docker["docker compose"]
     direction TB
-    APP["App Container<br/>API + Worker<br/>Node.js / NestJS"]:::container
+    PROXY["Frontend Container<br/>nginx + SPA — :80"]:::container
+    APP["Backend Container<br/>API — :3000"]:::container
+    WORKER["Worker Container<br/>comparisons + cron — :3003"]:::container
+    SIDECAR["PDF Sidecar<br/>:3001"]:::container
     PG[("PostgreSQL")]:::infra
-    RUSTFS["RustFS"]:::infra
-    SIDECAR["PDF Sidecar"]:::container
+    RUSTFS["RustFS<br/>:9000"]:::infra
   end
 
   subgraph Host["Host Machine (dev)"]
-    DEV["pnpm run dev<br/>Vite HMR :5173<br/>NestJS :3000"]:::container
+    DEV["pnpm run dev<br/>Vite HMR :5173<br/>API :3000 · Worker :3003"]:::container
   end
 
-  DEV -->|dev proxy| APP
+  PROXY -->|proxy /api| APP
   APP --> PG
   APP --> RUSTFS
-  APP --> SIDECAR
+  WORKER --> PG
+  WORKER --> RUSTFS
+  WORKER --> SIDECAR
+  DEV -->|local mode: infra only| PG
+  DEV -->|local mode: infra only| RUSTFS
+  DEV -->|local mode: infra only| SIDECAR
 ```
 
 ## Key Patterns
@@ -313,7 +346,7 @@ graph LR
 | **Dual-mode deployment**                 | `AppModule` (API) / `WorkerModule` (worker)                                                                         | Separate concerns — API serves requests, worker processes background comparisons |
 | **Strategy pattern**                     | `COMPARISON_ENGINES`, `MAINTENANCE_TASKS`                                                                           | Swap comparison engines or maintenance jobs without editing callers              |
 | **Ports & Adapters**                     | `IStorageProvider` → `RustFsStorageService`, `IComparisonEngine` → `PixelmatchComparisonService`/`PdfSidecarClient` | Infrastructure depends on domain, not the other way around                       |
-| **Transaction with compensating delete** | Upload pipeline                                                                                                     | Storage write is outside DB transaction; if DB fails, stored file is deleted     |
+| **Transaction with compensating delete** | `UploadIntake` + `StateChangeWorkflow.executeWithStoredFile`                                                        | Storage write is outside DB transaction; if DB fails, stored file is deleted     |
 | **Postgres-backed job queue**            | No Redis/RabbitMQ                                                                                                   | Simplifies ops — one fewer external dependency                                   |
 | **Post-commit observability emission**   | `StateChangeWorkflow` switch on `ObservabilityEvent` records                                                        | Logger + metrics emitted directly after commit, no event bus / outbox pattern    |
 | **Auto-generated SDK**                   | Prisma → Swagger → OpenAPI → `@hey-api/openapi-ts` → `client-sdk/`                                                  | Single source of truth for API types; zero manual DTO sync                       |
