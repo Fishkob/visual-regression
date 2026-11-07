@@ -6,6 +6,8 @@ Accepted
 
 Amended 2026-10-27: documented how the spec is produced without a database, what enforces SDK synchrony, and which of the three version numbers means what.
 
+Amended 2026-11-07: the closing Consequences bullet is completed and its SDK-version clause corrected — the package has a version of its own since [ADR-056](./ADR-056-client-sdk-distribution.md), [ADR-068](./ADR-068-client-sdk-on-npm.md) and [ADR-069](./ADR-069-independent-client-version.md). The decision (a generated client from the spec) is unchanged.
+
 ## Date
 
 2026-04-12
@@ -48,4 +50,4 @@ We generate the client SDK automatically from the backend's OpenAPI specificatio
 - Synchrony is enforced twice: the pre-commit hook runs `scripts/sdk-generate-if-needed.sh` (regenerates `backend/swagger.json` + `client-sdk/` and re-stages them when `backend/src/`, `backend/prisma/schema.prisma`, or `openapi-ts.config.ts` are staged), and the `sdk-sync-check` workflow regenerates and fails the build on a diff.
 - SDK package is regenerated on changes
 - Client imports typed methods instead of manual HTTP calls
-- Three version numbers must be kept apart: the spec version (`1.0`, set in the `DocumentBuilder` in `main.ts` and in `swagger-export.ts`, hence baked into the committed `swagger.json`), the URL prefix `api/v1` (`setGlobalPrefix`, also the spec's single server URL), and the SDK package version — `client-sdk` is an unversioned workspace package (`client-sdk/package.json` declares no `version`), consumed as source
+- Three version numbers must be kept apart: the spec version (`1.0`, set in the `DocumentBuilder` in `main.ts` and in `swagger-export.ts`, hence baked into the committed `swagger.json`), the URL prefix `api/v1` (`setGlobalPrefix`, also the spec's single server URL), and the SDK package version, which this ADR does not decide: the package is versioned and published under its own line (ADR-056, ADR-068, ADR-069), while this repository keeps consuming the generated source through the `@sdk` alias.
