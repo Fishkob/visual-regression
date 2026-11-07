@@ -91,6 +91,7 @@ cleans up in `afterEach`; API calls that need a browser session use
 | Audit filters and CSV export                                                       | `audit.spec.ts`                   |
 | Webhooks: create, edit, activate, test, deliveries, replay, delete, SSRF rejection | `webhooks.spec.ts`                |
 | Runs: list/detail, approve all, finish, JUnit/HTML/CSV reports                     | `runs.spec.ts`                    |
+| Reporter upload: browser screenshot → baseline, identical, pending review          | `reporter-upload.spec.ts`         |
 | Trends metrics and range switch                                                    | `trends.spec.ts`                  |
 | Variant gallery, overview page, PDF overview note                                  | `test-overview.spec.ts`           |
 | Global search, theme persistence, locale switch, logout                            | `search-theme-locale.spec.ts`     |
