@@ -1,0 +1,61 @@
+name: Security (Workflows)
+
+# The repository's own gates are workflows, so a workflow is where a regression
+# would hide. actionlint catches shell and expression mistakes; zizmor audits the
+# Actions security model (unpinned uses, credential persistence, excessive
+# scopes, risky triggers). Both run on the file that changed, before it merges.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - "action.yml"
+      - "zizmor.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - "action.yml"
+      - "zizmor.yml"
+
+permissions:
+  contents: read
+
+env:
+  # Digest-pinned: a lint that changes its rules underneath a green run is not a
+  # gate.
+  ACTIONLINT: rhysd/actionlint:1.7.7@sha256:887a259a5a534f3c4f36cb02dca341673c6089431057242cdc931e9f133147e9
+  ZIZMOR: ghcr.io/zizmorcore/zizmor:1.32.0@sha256:3014cc8f68f663935f69b3c3e0e41f5ce102b268d97db13db0f62208747f860d
+
+jobs:
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Lint workflows and actions
+        run: docker run --rm -v "$PWD:/repo:ro" -w /repo "$ACTIONLINT"
+
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Offline audits only: no token is handed to the container, so the run is
+      # reproducible and cannot be steered by a fork's token scope. `low` and
+      # `informational` reports stay advisory; `zizmor.yml` records the accepted
+      # findings with their reason.
+      - name: Audit the Actions security model
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" -w /repo "$ZIZMOR" \
+            --format plain --min-severity medium --config /repo/zizmor.yml .github/

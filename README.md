@@ -222,7 +222,10 @@ route that has no case. Suite layout and coverage rules:
 
 ## Security Considerations
 
-This platform is built to run in a **private/trusted network**:
+This platform is built for a **single, trusted operator network** — every
+signed-in user can read every project, and that is a product decision, not an
+oversight. [SECURITY.md](SECURITY.md) states the full threat model, what is
+explicitly out of scope, and the disclosure process.
 
 - Browsers authenticate with a session cookie, CI with an API key. Key management
   (create, rotate, revoke) is session-only, so a leaked CI key cannot mint a new one.
@@ -233,9 +236,15 @@ This platform is built to run in a **private/trusted network**:
   anonymous access.
 - Webhook endpoints are admin-only and pass an SSRF guard (loopback, link-local and
   cloud-metadata are refused; RFC1918 is allowed on purpose for self-hosting).
-- Rate limits cover uploads, login, log ingestion and the operator surfaces; see
-  [docs/deployment.md](docs/deployment.md) for `TRUST_PROXY`, CORS, session lifetime
-  and the rest of the production checklist.
+- Rate limits cover uploads, login, log ingestion and the operator surfaces.
+- Release images and the npm package are built from a tag verified against
+  `main` and published with provenance, an SBOM and a signed attestation.
+
+Before exposing a deployment to an untrusted network, work through the
+[security checklist](docs/deployment.md#security-checklist); it covers TLS and
+the session cookie, secrets, the admin bootstrap and `/docs`. Release
+verification is documented under
+[verifying a release](docs/deployment.md#verifying-a-release).
 
 Vulnerability reports: [SECURITY.md](SECURITY.md).
 

@@ -468,4 +468,111 @@ describe('Environment Validation', () => {
     );
     expect(value.SWAGGER_ENABLED).toBe(true);
   });
+
+  // The production-safety rules below exist because each of these settings
+  // looks configured while silently weakening a control.
+  const productionBase = () => ({
+    NODE_ENV: 'production',
+    DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+    RUSTFS_ENDPOINT: 'localhost',
+    RUSTFS_ACCESS_KEY: 'test-key',
+    RUSTFS_SECRET_KEY: 'test-secret',
+    RUSTFS_BUCKET: 'visual-tests',
+    RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+    TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
+    ADMIN_API_KEY: 'b'.repeat(32),
+    METRICS_API_KEY: 'c'.repeat(32),
+  });
+
+  it('defaults the session cookie to secure in production', () => {
+    const production = envValidationSchema.validate(productionBase(), {
+      abortEarly: false,
+    });
+    expect(production.value.AUTH_COOKIE_SECURE).toBe(true);
+
+    const development = envValidationSchema.validate(
+      { ...productionBase(), NODE_ENV: 'development' },
+      { abortEarly: false },
+    );
+    expect(development.value.AUTH_COOKIE_SECURE).toBe(false);
+  });
+
+  it('keeps an explicit plain-HTTP choice in production', () => {
+    const { value, error } = envValidationSchema.validate(
+      { ...productionBase(), AUTH_COOKIE_SECURE: false },
+      { abortEarly: false },
+    );
+    expect(error).toBeUndefined();
+    expect(value.AUTH_COOKIE_SECURE).toBe(false);
+  });
+
+  it('requires a full-length TOTP key in production', () => {
+    const production = envValidationSchema.validate(
+      { ...productionBase(), TOTP_ENCRYPTION_KEY: 'a'.repeat(20) },
+      { abortEarly: false },
+    );
+    expect(production.error?.message).toContain('TOTP_ENCRYPTION_KEY');
+
+    const development = envValidationSchema.validate(
+      {
+        ...productionBase(),
+        NODE_ENV: 'development',
+        TOTP_ENCRYPTION_KEY: 'a'.repeat(20),
+      },
+      { abortEarly: false },
+    );
+    expect(development.error).toBeUndefined();
+  });
+
+  it('rejects credentials that are published in this repository', () => {
+    const totp = envValidationSchema.validate(
+      {
+        ...productionBase(),
+        TOTP_ENCRYPTION_KEY: 'dev-stack-totp-key-not-for-production',
+      },
+      { abortEarly: false },
+    );
+    expect(totp.error?.message).toContain('TOTP_ENCRYPTION_KEY');
+
+    const bootstrap = envValidationSchema.validate(
+      { ...productionBase(), BOOTSTRAP_ADMIN_PASSWORD: 'admin-secret' },
+      { abortEarly: false },
+    );
+    expect(bootstrap.error?.message).toContain('BOOTSTRAP_ADMIN_PASSWORD');
+  });
+
+  it('requires a full-length bootstrap admin password in production', () => {
+    const tooShort = envValidationSchema.validate(
+      { ...productionBase(), BOOTSTRAP_ADMIN_PASSWORD: 'short-pw' },
+      { abortEarly: false },
+    );
+    expect(tooShort.error?.message).toContain('BOOTSTRAP_ADMIN_PASSWORD');
+
+    const unset = envValidationSchema.validate(
+      { ...productionBase(), BOOTSTRAP_ADMIN_PASSWORD: '' },
+      { abortEarly: false },
+    );
+    expect(unset.error).toBeUndefined();
+  });
+
+  it('rejects one credential for both operator surfaces', () => {
+    const { error } = envValidationSchema.validate(
+      { ...productionBase(), METRICS_API_KEY: 'b'.repeat(32) },
+      { abortEarly: false },
+    );
+    expect(error?.message).toContain('METRICS_API_KEY and ADMIN_API_KEY');
+  });
+
+  it('defaults LOG_LEVEL to info in production', () => {
+    const production = envValidationSchema.validate(productionBase(), {
+      abortEarly: false,
+    });
+    expect(production.value.LOG_LEVEL).toBe('info');
+
+    const development = envValidationSchema.validate(
+      { ...productionBase(), NODE_ENV: 'development' },
+      { abortEarly: false },
+    );
+    expect(development.value.LOG_LEVEL).toBe('debug');
+  });
 });

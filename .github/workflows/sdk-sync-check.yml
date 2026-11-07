@@ -3,6 +3,11 @@ name: SDK Sync Check
 on:
   workflow_call:
 
+# Stated even though the callers only pass `contents: read`: a future direct
+# trigger would otherwise inherit whatever the repository default gives it.
+permissions:
+  contents: read
+
 jobs:
   sdk-sync-check:
     name: SDK Sync Check
@@ -11,6 +16,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
 
       - name: Export Swagger JSON

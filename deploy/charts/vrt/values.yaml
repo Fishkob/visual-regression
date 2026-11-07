@@ -1,5 +1,9 @@
 namespace: vrt
 domain: vrt.local
+# Scheme for every browser-reachable URL the chart builds (CORS origin, app
+# links, presigned screenshot URLs, session-cookie Secure flag). Empty derives
+# it from tls.enabled; set it when TLS ends in front of the ingress.
+scheme: ""
 # Container registry hosting the pre-built images (default: GHCR). Override to
 # pull from another registry, e.g. --set registry=docker.io/<owner>.
 registry: ghcr.io
@@ -13,11 +17,13 @@ imageOwner: fishkob
 rustfsHost: rustfs.vrt.local
 
 secrets:
-  # WARNING: Replace all values below with your own credentials before deploying.
-  # This file is tracked in git — never commit real secrets.
+  # The render fails when either password is still a placeholder: a release
+  # installed with the tracked defaults used to expose an object store answering
+  # to a credential printed in this repository.
   postgres_user: vrt
   postgres_password: CHANGE_ME
   postgres_db: vrt
+  # The access key is a user name, not a secret; the secret key is the credential.
   rustfs_access_key: rustfsadmin
   rustfs_secret_key: CHANGE_ME
   # Bootstrap the first admin on a fresh install — only used when both are
@@ -90,16 +96,20 @@ backend:
     RUSTFS_USE_SSL: "false"
     RUSTFS_SIGNED_URL_TTL_SECONDS: "3600"
     RUSTFS_ENSURE_PUBLIC_BUCKET: "false"
-    CORS_ORIGIN: http://vrt.local
+    # Both empty derive the scheme from `scheme`/`tls.enabled`. Set them only
+    # when the UI is reached through a different host than `domain`.
+    CORS_ORIGIN: ""
+    APP_PUBLIC_URL: ""
     # The chart routes the API through the ingress (see templates/ingress.yaml),
     # which sets X-Forwarded-For; without this every client shares the ingress
     # IP in the per-IP rate-limit buckets.
     TRUST_PROXY: "true"
     LOG_LEVEL: info
     OTEL_EXPORTER_OTLP_ENDPOINT: ""
-    # Set to "true" when the ingress terminates TLS: the session cookie is
-    # then HTTPS-only.
-    AUTH_COOKIE_SECURE: "false"
+    # Empty follows `tls.enabled`: a deployment that terminates TLS has to send
+    # an HTTPS-only session cookie, and one that does not cannot. Set "true"
+    # behind an external TLS terminator that the chart does not know about.
+    AUTH_COOKIE_SECURE: ""
     # Postgres connections per process; keep replicas x pool below the
     # database's max_connections.
     DATABASE_POOL_MAX: "10"
@@ -181,7 +191,7 @@ pdfSidecar:
 
 postgres:
   enabled: true
-  image: postgres:18-alpine
+  image: postgres:18-alpine@sha256:123b17998ccaf47e53b502e8c6a1e79afd8f579c6f3eec83c563da026f957395
   storage: 5Gi
   resources:
     requests:
@@ -193,7 +203,7 @@ postgres:
 
 rustfs:
   enabled: true
-  image: rustfs/rustfs:1.0.1
+  image: rustfs/rustfs:1.0.4@sha256:ed9210d6411d77ffceb70d94b964a3cb7d225983368bc25bebe01e995293dcc2
   storage: 10Gi
   resources:
     requests:

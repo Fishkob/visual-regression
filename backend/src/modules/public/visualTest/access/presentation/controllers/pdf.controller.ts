@@ -98,6 +98,10 @@ export class PdfController {
   }
 
   @Scope('read')
+  // The download buffers the whole PDF in the API heap like a render does, so it
+  // shares the render bucket: a read-only key is otherwise free to loop it past
+  // the container's memory limit.
+  @RateLimit('render')
   @Get(':testName/pdf-download')
   @ApiOperation({
     summary: 'Download baseline, candidate, or diff PDF for a test',

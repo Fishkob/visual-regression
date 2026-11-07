@@ -7,9 +7,10 @@ on:
   # (a failed run, a fixed workflow) does not need an empty commit.
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: write
+# Workflow-level default: nothing. Only the release-please job writes (it cuts
+# the tag and opens the release PR); every downstream job declares its own scopes
+# and a called workflow can only downgrade them from there.
+permissions: {}
 
 # Two pushes in the same minute would otherwise cut the same version twice and
 # race for the tag: one run at a time, newest pending wins.
@@ -22,6 +23,9 @@ jobs:
     name: Release Please
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       # JSON array of the package paths that got a release. A platform release
@@ -47,6 +51,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
 
       - name: Backend lint, typecheck & unit tests
@@ -69,6 +75,10 @@ jobs:
       # caller's scopes: without pull-requests here GitHub rejects the whole
       # run at startup instead of failing the one step.
       pull-requests: write
+      # The build job attests every image with Sigstore; both scopes have to be
+      # granted here or the called workflow cannot mint them.
+      id-token: write
+      attestations: write
     uses: ./.github/workflows/release-images.yml
     # Build what the tag points at, not whatever main has become since the
     # release was cut: the tag is the artifact users pin.
@@ -81,6 +91,9 @@ jobs:
     if: needs.release-please.outputs.releases_created == 'true' && contains(fromJSON(needs.release-please.outputs.paths_released), 'client-sdk')
     permissions:
       contents: write
+      # npm's provenance attestation needs the OIDC token, and a called
+      # workflow can only downgrade the caller's scopes.
+      id-token: write
     # Called from here rather than left to the `release: published` trigger:
     # release-please creates the release with GITHUB_TOKEN, and a token-created
     # release does not start workflows (only workflow_dispatch,

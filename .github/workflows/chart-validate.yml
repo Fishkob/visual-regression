@@ -13,6 +13,11 @@ on:
 permissions:
   contents: read
 
+env:
+  # Pinned by digest: the validator decides whether the chart that ships to
+  # operators is valid, so it may not change underneath the run.
+  HELM: alpine/helm:3.16.4@sha256:9b25e60ae264940b276e32866d37e3088e70c4e2d1784b964dc3f90346281a74
+
 jobs:
   validate:
     name: Helm lint + template
@@ -20,12 +25,41 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Helm lint
-        run: docker run --rm -v "$PWD/deploy/charts/vrt:/chart:ro" alpine/helm:3.16.4 lint /chart
+        run: docker run --rm -v "$PWD/deploy/charts/vrt:/chart:ro" "$HELM" lint /chart --set secrets.postgres_password=test --set secrets.rustfs_secret_key=test
 
       - name: Helm template (default values)
-        run: docker run --rm -v "$PWD/deploy/charts/vrt:/chart:ro" alpine/helm:3.16.4 template vrt /chart > /dev/null
+        run: docker run --rm -v "$PWD/deploy/charts/vrt:/chart:ro" "$HELM" template vrt /chart --set secrets.postgres_password=test --set secrets.rustfs_secret_key=test > /dev/null
 
-      - name: Helm template (secret overrides)
-        run: docker run --rm -v "$PWD/deploy/charts/vrt:/chart:ro" alpine/helm:3.16.4 template vrt /chart --set secrets.postgres_password=test > /dev/null
+      # The scheme is derived from tls.enabled, and a mismatch here is what a
+      # browser reports as mixed content: presigned URLs and the session cookie
+      # have to be https once the ingress terminates TLS.
+      - name: Helm template (TLS on)
+        run: |
+          set -euo pipefail
+          output=$(docker run --rm -v "$PWD/deploy/charts/vrt:/chart:ro" "$HELM" \
+            template vrt /chart --set secrets.postgres_password=test --set secrets.rustfs_secret_key=test --set tls.enabled=true)
+          printf '%s\n' "$output" | grep -q 'value: "https://rustfs.vrt.local"' ||
+            { echo "::error::RUSTFS_PUBLIC_URL is not https with tls.enabled"; exit 1; }
+          printf '%s\n' "$output" | grep -A1 -q 'name: AUTH_COOKIE_SECURE' ||
+            { echo "::error::AUTH_COOKIE_SECURE is missing"; exit 1; }
+          printf '%s\n' "$output" | grep -A1 'name: AUTH_COOKIE_SECURE' | grep -q '"true"' ||
+            { echo "::error::AUTH_COOKIE_SECURE does not follow tls.enabled"; exit 1; }
+
+      # The guard is the point: an install with the tracked defaults must not
+      # produce a release at all.
+      - name: Chart refuses placeholder credentials
+        run: |
+          set +e
+          output=$(docker run --rm -v "$PWD/deploy/charts/vrt:/chart:ro" "$HELM" template vrt /chart 2>&1)
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "::error::the chart rendered with the tracked placeholder secrets"
+            exit 1
+          fi
+          printf '%s\n' "$output" | grep -q 'is a placeholder' ||
+            { echo "::error::unexpected render failure:"; printf '%s\n' "$output"; exit 1; }

@@ -27,10 +27,19 @@ export class TotpSecretCipher {
 
   private readonly key: Buffer;
 
+  // A subkey of the encryption key, deliberately not the key itself: the
+  // recovery-code hash and the seed encryption must not share key material, so
+  // an operator who rotates one does not silently weaken the other.
+  readonly recoveryCodePepper: string;
+
   constructor(config: AppConfigService) {
     this.key = createHash('sha256')
       .update(config.auth.totpEncryptionKey, 'utf8')
       .digest();
+    this.recoveryCodePepper = createHash('sha256')
+      .update(this.key)
+      .update('recovery-codes')
+      .digest('hex');
   }
 
   isEncrypted(stored: string): boolean {

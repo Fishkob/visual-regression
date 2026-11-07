@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AppConfigService } from '@config/app-config.service';
 import { ApiKeyAuthGuard } from '@common/http/api-key-auth.guard';
+import { equalsConstantTime } from '@common/utils/constant-time';
 
 // The one home for the "metrics endpoint requires the metrics API key" rule:
 // header name, the comparison semantics, and the disabled case. Both HTTP
@@ -13,7 +14,11 @@ export function isValidMetricsApiKey(
   headerValue: string | string[] | undefined,
   apiKey: string,
 ): boolean {
-  return typeof headerValue === 'string' && headerValue === apiKey;
+  // The worker's bare /metrics handler and the Nest guard share this rule, so
+  // both the comparison and its timing properties live in the helper.
+  return (
+    typeof headerValue === 'string' && equalsConstantTime(headerValue, apiKey)
+  );
 }
 
 export function hasMetricsApiKey(apiKey: string): boolean {

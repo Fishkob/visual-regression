@@ -38,20 +38,56 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Test lockfile classifier
         run: |
           python3 scripts/security/test_pnpm_lock.py
           python3 scripts/security/test_osv_gate.py
 
-      - name: Install osv-scanner
+      # The gate is executed from the base branch, not from the pull request:
+      # `scripts/security/**` is in this workflow's own trigger paths, so a PR
+      # that turned osv-gate.py into `sys.exit(0)` would otherwise have its
+      # change validated by the code it just neutered.
+      - name: Check out the gate from the base branch
+        env:
+          BASE_REF: ${{ github.base_ref || github.ref_name }}
         run: |
-          curl -sSL -o /tmp/osv-scanner https://github.com/google/osv-scanner/releases/download/v2.5.0/osv-scanner_linux_amd64
-          chmod +x /tmp/osv-scanner
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          mkdir -p "$RUNNER_TEMP/gate"
+          git archive FETCH_HEAD scripts/security | tar -x -C "$RUNNER_TEMP/gate"
+          test -f "$RUNNER_TEMP/gate/scripts/security/osv-gate.py"
 
-      - name: Scan dependencies
+      # The release publishes a SHA256SUMS file for every asset. Checking the
+      # download against it is what makes a swapped or truncated binary fail the
+      # run; the file name has to stay the archive's own, because that is what
+      # the checksum file names.
+      - name: Install osv-scanner
+        working-directory: ${{ runner.temp }}
         run: |
-          /tmp/osv-scanner scan source --recursive --config osv-scanner.toml --format=json --output-file=osv-results.json . || true
+          set -euo pipefail
+          base=https://github.com/google/osv-scanner/releases/download/v2.5.0
+          curl -fsSL -o osv-scanner_linux_amd64 "$base/osv-scanner_linux_amd64"
+          curl -fsSL -o osv-scanner_SHA256SUMS "$base/osv-scanner_SHA256SUMS"
+          grep ' osv-scanner_linux_amd64$' osv-scanner_SHA256SUMS | sha256sum -c -
+          chmod +x osv-scanner_linux_amd64
+
+      # A non-zero exit is not by itself a failure here (the scanner exits
+      # non-zero when it *finds* something, and the gate below decides that).
+      # What must not happen is a scan that reported an error and left nothing
+      # behind still counting as a clean run.
+      - name: Scan dependencies
+        env:
+          OSV_SCANNER: ${{ runner.temp }}/osv-scanner_linux_amd64
+        run: |
+          "$OSV_SCANNER" scan source --recursive --config osv-scanner.toml --format=json --output-file=osv-results.json . \
+            || echo "::warning::osv-scanner exited $?; evaluating the results it wrote"
+          test -s osv-results.json || {
+            echo "::error::osv-scanner wrote no results — the gate must not read that as clean"
+            exit 1
+          }
 
       - name: Gate on critical/high
-        run: python3 scripts/security/osv-gate.py osv-results.json
+        run: python3 "$RUNNER_TEMP/gate/scripts/security/osv-gate.py" osv-results.json

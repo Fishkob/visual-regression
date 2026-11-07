@@ -25,4 +25,34 @@ describe('redactUrl', () => {
       '/public/shares/[REDACTED]#frag',
     );
   });
+
+  it('replaces a presigned signature in the query string', () => {
+    expect(
+      redactUrl(
+        '/api/v1/projects/shop/tests/checkout/pdf-render?key=a%2Fb.png&X-Amz-Signature=deadbeef&X-Amz-Credential=AKIA%2F20261107',
+      ),
+    ).toBe(
+      '/api/v1/projects/shop/tests/checkout/pdf-render?key=a%2Fb.png&X-Amz-Signature=[REDACTED]&X-Amz-Credential=[REDACTED]',
+    );
+  });
+
+  it('replaces a whole presigned URL passed as a parameter', () => {
+    expect(
+      redactUrl(
+        '/api/v1/projects/shop/pdf?pdfUrl=https%3A%2F%2Fstore%2Fk%3FX-Amz-Signature%3Dabc',
+      ),
+    ).toBe('/api/v1/projects/shop/pdf?pdfUrl=[REDACTED]');
+  });
+
+  it('is case-insensitive about the signature parameter', () => {
+    expect(redactUrl('/x?x-amz-signature=abc&page=2')).toBe(
+      '/x?x-amz-signature=[REDACTED]&page=2',
+    );
+  });
+
+  it('keeps an ordinary query string readable', () => {
+    expect(redactUrl('/api/v1/review?page=2&status=pending')).toBe(
+      '/api/v1/review?page=2&status=pending',
+    );
+  });
 });

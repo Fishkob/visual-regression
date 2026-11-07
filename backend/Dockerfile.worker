@@ -1,4 +1,4 @@
-FROM node:26-alpine AS builder
+FROM node:26-alpine@sha256:8996bb5821d62a8fd9bb27c1cb07462f3fdce6e47d640c6a881ead0b064ce216 AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ WORKDIR /app/backend
 RUN pnpm exec prisma generate
 RUN pnpm run build
 
-FROM node:26-alpine AS production
+FROM node:26-alpine@sha256:8996bb5821d62a8fd9bb27c1cb07462f3fdce6e47d640c6a881ead0b064ce216 AS production
 
 RUN apk add --no-cache curl
 

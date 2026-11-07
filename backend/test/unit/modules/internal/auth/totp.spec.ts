@@ -2,11 +2,14 @@ import {
   generateRecoveryCodes,
   generateTotpSecret,
   hashRecoveryCode,
+  legacyHashRecoveryCode,
   normalizeRecoveryCode,
   otpauthUrl,
   totpCode,
   verifyTotp,
 } from '@internal/auth/totp';
+
+const RECOVERY_PEPPER = 'a'.repeat(64);
 
 describe('TOTP', () => {
   // RFC 6238 SHA-1 vectors for the 20-byte seed "12345678901234567890".
@@ -55,10 +58,29 @@ describe('TOTP', () => {
     const codes = generateRecoveryCodes();
     expect(codes).toHaveLength(10);
     expect(new Set(codes).size).toBe(10);
-    expect(codes[0]).toMatch(/^[A-Z2-7]{4}-[A-Z2-7]{4}$/);
-    expect(normalizeRecoveryCode(codes[0]!)).toHaveLength(8);
-    expect(hashRecoveryCode(codes[0]!)).toBe(
-      hashRecoveryCode(codes[0]!.toLowerCase()),
+    expect(codes[0]).toMatch(/^[A-Z2-7]{4}(-[A-Z2-7]{4}){3}$/);
+    expect(normalizeRecoveryCode(codes[0]!)).toHaveLength(16);
+    expect(hashRecoveryCode(codes[0]!, RECOVERY_PEPPER)).toBe(
+      hashRecoveryCode(codes[0]!.toLowerCase(), RECOVERY_PEPPER),
+    );
+  });
+
+  it('keys the recovery-code hash with the pepper', () => {
+    const code = 'ABCD-EFGH-JKLM-NPQR';
+    const hashed = hashRecoveryCode(code, RECOVERY_PEPPER);
+
+    expect(hashed).toMatch(/^hmac-sha256\$[0-9a-f]{64}$/);
+    expect(hashRecoveryCode(code, 'another-pepper')).not.toBe(hashed);
+    // A bare digest of the code is not what the peppered hash produces, so a
+    // leaked table without the environment secret does not verify.
+    expect(hashed).not.toContain(legacyHashRecoveryCode(code));
+  });
+
+  it('still recognises a hash written before the pepper existed', () => {
+    const code = 'ABCD-EFGH-JKLM-NPQR';
+    expect(legacyHashRecoveryCode(code)).toMatch(/^[0-9a-f]{64}$/);
+    expect(legacyHashRecoveryCode(code)).toBe(
+      legacyHashRecoveryCode(code.toLowerCase().replace(/-/g, '')),
     );
   });
 });

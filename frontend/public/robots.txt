@@ -1,0 +1,4 @@
+# Every deployment of this platform is private, and its URL is not something
+# its users chose. Keep self-hosted instances out of search indexes.
+User-agent: *
+Disallow: /

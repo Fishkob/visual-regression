@@ -1,0 +1,12 @@
+# RFC 9116 security contact, served by the bundled frontend at
+# /.well-known/security.txt.
+#
+# This is the upstream default. A self-hosted operator whose deployment is not
+# covered by the upstream policy should replace Contact with their own channel.
+#
+# `Expires` has to be renewed (RFC 9116 caps it at less than one year); a stale
+# file is treated as no file by scanners.
+Contact: https://github.com/Fishkob/visual-regression/security/advisories/new
+Expires: 2027-11-06T00:00:00.000Z
+Preferred-Languages: en, de
+Policy: https://github.com/Fishkob/visual-regression/blob/main/SECURITY.md

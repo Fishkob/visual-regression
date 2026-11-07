@@ -88,7 +88,7 @@ spec:
             - name: RUSTFS_USE_SSL
               value: "{{ .Values.worker.env.RUSTFS_USE_SSL }}"
             - name: RUSTFS_PUBLIC_URL
-              value: "http://{{ .Values.rustfsHost }}"
+              value: "{{ include "vrt.scheme" . }}://{{ .Values.rustfsHost }}"
             - name: PDF_SIDECAR_HEALTH_URL
               value: "{{ .Values.worker.env.PDF_SIDECAR_HEALTH_URL }}"
             - name: LOG_LEVEL

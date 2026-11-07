@@ -11,20 +11,27 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
 
+# The chart refuses to render while a password is still the tracked placeholder,
+# so this fails here with the fix instead of inside a Helm render.
 if grep -q "CHANGE_ME" charts/vrt/values.yaml; then
   echo ""
-  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-  echo "WARNING: charts/vrt/values.yaml still contains CHANGE_ME placeholders."
-  echo "Override secrets.postgres_password and secrets.rustfs_secret_key (via"
-  echo "values.local.yaml or --set) before exposing this deployment."
-  echo "Continuing with the tracked defaults..."
-  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-  echo ""
+  echo "!! charts/vrt/values.yaml still contains CHANGE_ME placeholders." >&2
+  echo "!! Set secrets.postgres_password and secrets.rustfs_secret_key first —" >&2
+  echo "!! via a local values file (values.local.yaml is gitignored) or --set." >&2
+  echo "" >&2
+  exit 1
 fi
 
-# Deploy using Helm
+# Deploy using Helm. The local overrides file is what the docs point at for
+# secrets, so it has to be loaded — otherwise the chart renders the tracked
+# placeholder passwords that the guard above just rejected.
 echo "Deploying Helm chart..."
-helm upgrade --install vrt charts/vrt --namespace vrt --create-namespace
+HELM_ARGS=()
+if [ -f charts/vrt/values.local.yaml ]; then
+  echo "  using charts/vrt/values.local.yaml"
+  HELM_ARGS+=(-f charts/vrt/values.local.yaml)
+fi
+helm upgrade --install vrt charts/vrt "${HELM_ARGS[@]}" --namespace vrt --create-namespace
 
 echo ""
 echo "=== Waiting for pods to be ready ==="
