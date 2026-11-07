@@ -73,9 +73,13 @@ jobs:
       # and `npm publish` in this workspace make npm rebuild the lockfile over
       # pnpm's symlinks, and arborist's link dedupe dies on them
       # ("Cannot read properties of null (reading 'matches')").
+      #
+      # The workspace root owns npm's project config, so a `.npmrc` next to
+      # client-sdk is never read — the token has to arrive as an explicit
+      # `--userconfig`, which is also why this runs outside the workspace.
       - name: Publish the package to npm
         if: steps.npm-token.outputs.configured == 'true'
-        working-directory: client-sdk
+        working-directory: ${{ runner.temp }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "false"
@@ -89,11 +93,10 @@ jobs:
             echo "::notice::@fishkob/vrt@${VERSION} is already published; skipping."
             exit 0
           fi
-          # setup-node runs without registry-url, so there is no .npmrc that
-          # substitutes NODE_AUTH_TOKEN; write one for this step only.
-          printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" >.npmrc
-          trap 'rm -f .npmrc' EXIT
-          npm publish "$TARBALL" --access public
+          NPMRC="$RUNNER_TEMP/npmrc"
+          printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" >"$NPMRC"
+          trap 'rm -f "$NPMRC"' EXIT
+          npm publish "$TARBALL" --access public --userconfig="$NPMRC"
 
       - name: Note the skipped npm publish
         if: steps.npm-token.outputs.configured != 'true'
