@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.5.0](https://github.com/Fishkob/visual-regression/compare/v3.4.0...v3.5.0) (2026-11-07)
+
+
+### Features
+
+* **sdk:** publish the client to npm ([#18](https://github.com/Fishkob/visual-regression/issues/18)) ([77cb143](https://github.com/Fishkob/visual-regression/commit/77cb14369bdbb2eed3082e32b226fb5b70f3fac2))
+
+
+### Bug Fixes
+
+* **client-sdk:** make the documented Playwright reporter upload ([#16](https://github.com/Fishkob/visual-regression/issues/16)) ([3edb0ba](https://github.com/Fishkob/visual-regression/commit/3edb0ba3ee700418742499453caf61c648bd9bd2))
+
 ## [3.4.0](https://github.com/Fishkob/visual-regression/compare/v3.3.0...v3.4.0) (2026-11-06)
 
 
