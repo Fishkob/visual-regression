@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { createVrtReporter } from '../playwright-reporter';
+import VrtReporter, { createVrtReporter } from '../playwright-reporter';
 import { uploadMany } from '../upload-many';
 
 // Keep the pure config helpers real; only the network call is mocked.
@@ -120,6 +120,37 @@ describe('createVrtReporter', () => {
     await reporter.onEnd();
 
     expect(uploadManyMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('default export', () => {
+  beforeEach(() => {
+    uploadManyMock.mockReset();
+    uploadManyMock.mockResolvedValue([
+      {
+        index: 0,
+        capture: {} as never,
+        ok: true,
+        attempts: 1,
+        data: {},
+      },
+    ]);
+  });
+
+  // Playwright resolves a reporter configured by name and calls its default
+  // export with `new`; a module without one fails at startup, before a test runs.
+  it('is a class Playwright can construct from the config name', async () => {
+    const reporter = new VrtReporter({
+      apiUrl: 'http://vrt.test/api/v1',
+      apiKey: 'key-1',
+      project: 'checkout',
+    });
+
+    reporter.onTestEnd(testLike(), result());
+    await reporter.onEnd();
+
+    expect(uploadManyMock).toHaveBeenCalledTimes(1);
+    expect(reporter.results()).toHaveLength(1);
   });
 });
 

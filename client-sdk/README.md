@@ -137,9 +137,15 @@ export default defineConfig({
 ```
 
 The reporter uploads the first `screenshot`/`.png` (or `.pdf`) attachment of
-each test. Test names default to the Playwright title path joined with ` / `.
-`onEnd()` never fails the test run when VRT is unreachable; inspect
-`reporter.results()` or use `onUpload` to log upload failures.
+each test, so the test attaches the capture itself
+(`testInfo.attach('screenshot', { body: await page.screenshot(), contentType: 'image/png' })`);
+Playwright attaches a `toHaveScreenshot` image only when it writes or diffs a
+snapshot, so a matching assertion uploads nothing. Test names default to the
+Playwright title path joined with ` / `. The module's default export is the
+reporter class — that is what the config above loads — and `createVrtReporter`
+is the programmatic entry point. `onEnd()` never fails the test run when VRT is
+unreachable; inspect `reporter.results()` or use `onUpload` to log upload
+failures.
 
 ## In this repository
 
