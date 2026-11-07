@@ -7,6 +7,12 @@ Accepted — 2026-11-05. Supersedes the 4-eyes approval decision in
 [ADR-041](./ADR-041-review-governance-human-4-eyes.md), and the vote-retention
 decision in [ADR-050](./ADR-050-approval-votes-are-audit.md).
 
+Enforced by: the `20261124105000_remove_four_eyes` migration (drops
+`Project.requiredApprovals` and `ApprovalVote`), the single approval-response
+shape in `review/presentation/dto/review-responses.dto.ts`, and
+`concurrent-review.e2e-spec.ts` ("finalizes a concurrent approval pair exactly
+once").
+
 ## Context
 
 ADR-039 and ADR-041 built an approval quorum: a project could set

@@ -4,6 +4,8 @@
 
 Accepted — 2026-08-05
 
+Amended 2026-11-07: the pending-vote and 4-eyes complication quoted in the Context no longer exists — [ADR-066](./ADR-066-remove-the-four-eyes-approval-gate.md) removed the approval quorum and the `ApprovalVote` table. A reject endpoint would be a thinner addition today than the Context describes; the decision not to have one stands.
+
 ## Context
 
 `CONTEXT.md` described the review loop as "a reviewer needs to approve or reject the change." The platform API exposes approval but no rejection action — the only way to discard a pending change is deleting the test (or the variant's screenshots) via the deletion endpoint.
