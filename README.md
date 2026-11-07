@@ -160,27 +160,10 @@ comparing. Any other stack posts the same fields to
 ([curl](docs/ci-integration.md#2-upload-and-wait)).
 
 **4. Gate the pipeline on the run.** After the test command, finish the run and
-fail the job unless the gate it returns is `passed` (`$CI_BRANCH` and `$CI_RUN_ID`
-are the values your pipeline exports; the status call needs `jq`):
-
-```bash
-VRT=https://vrt.example.com
-API=$VRT/api/v1/projects/checkout
-
-state=$(curl -sS -X POST "$API/runs/$CI_RUN_ID/finish?branch=$CI_BRANCH" \
-  -H "x-api-key: $VRT_API_KEY" | jq -r .status.state)
-if [ "$state" != "passed" ]; then
-  echo "run $state: $VRT/projects/checkout/runs/$CI_RUN_ID" >&2
-  exit 1
-fi
-```
-
-`pending` is a change nobody decided on yet (or a comparison still running),
-`failed` a broken comparison, and `open` is the run you never finished. Approve on
-the branch in the inbox; after the merge, delete the branch
-([docs/branches.md](docs/branches.md)). Waiting on a single capture, JUnit/HTML/CSV
-reports and `.vrt.json` thresholds:
-[docs/ci-integration.md](docs/ci-integration.md).
+fail the job unless the gate it returns is `passed`. The finish call, the four
+states and the reports:
+[docs/ci-integration.md#3-runs-and-gates](docs/ci-integration.md#3-runs-and-gates).
+What to do with a branch after its merge: [docs/branches.md](docs/branches.md).
 
 ## How it works
 

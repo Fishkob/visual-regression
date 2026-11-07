@@ -121,9 +121,9 @@ the captures of that pipeline. It groups and gates work; it does not isolate
 candidates — latest-wins still applies per variant, so two jobs that upload the
 same variant supersede each other.
 
-Finish the run with `POST /api/v1/projects/{project}/runs/{runKey}/finish` and
-read the gate from `GET /api/v1/projects/{project}/runs/{runKey}/status` (both
-take `branch`). Finish is idempotent, and a later upload into a finished run
+Finish the run with `POST /api/v1/projects/{project}/runs/{runKey}/finish`; it
+returns the same gate as `GET /api/v1/projects/{project}/runs/{runKey}/status`
+(both take `branch`). Finish is idempotent, and a later upload into a finished run
 reopens it: new content means the run was not done.
 
 | State     | Meaning                                              | Your job             |
@@ -132,6 +132,22 @@ reopens it: new content means the run was not done.
 | `failed`  | At least one job failed (`status.failedJobs`).       | fail                 |
 | `pending` | Comparisons await review, or jobs are still running. | fail (or warn)       |
 | `open`    | Not finished and no pending work when you read it.   | fail: finish the run |
+
+So the last step of a pipeline is a single finish call that gates on the response
+(`$CI_BRANCH` and `$CI_RUN_ID` are the values your pipeline exports; parsing needs
+`jq`):
+
+```bash
+VRT=https://vrt.example.com
+API=$VRT/api/v1/projects/checkout
+
+state=$(curl -sS -X POST "$API/runs/$CI_RUN_ID/finish?branch=$CI_BRANCH" \
+  -H "x-api-key: $VRT_API_KEY" | jq -r .status.state)
+if [ "$state" != "passed" ]; then
+  echo "run $state: $VRT/projects/checkout/runs/$CI_RUN_ID" >&2
+  exit 1
+fi
+```
 
 `status.mutedPending` is the subset of pending comparisons that belongs to muted
 or quarantined tests. Those do not hold the gate, so a run can be `passed` with
