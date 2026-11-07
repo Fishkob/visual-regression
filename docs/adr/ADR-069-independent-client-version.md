@@ -4,7 +4,11 @@
 
 Accepted — 2026-11-07. Supersedes decision 2 of
 [ADR-068](./ADR-068-client-sdk-on-npm.md) — "the version in the tarball is the
-release tag" — and the install guidance that followed from it. Enforced by
+release tag" — and the install guidance that followed from it.
+
+The baseline it chose (`client-sdk: 3.5.0`) is superseded by
+[ADR-070](./ADR-070-release-baseline-reset.md), which restarts the client line
+at `1.0.0`. Everything else here stays in force. Enforced by
 [`release-please-config.json`](../../release-please-config.json), by the
 `paths_released` conditions in
 [`release-please.yml`](../../.github/workflows/release-please.yml) and by

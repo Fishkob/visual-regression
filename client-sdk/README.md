@@ -20,7 +20,7 @@ The client is published to npm as `@fishkob/vrt` and has its own version line,
 independent of the platform release. Pin the exact version:
 
 ```bash
-npm i @fishkob/vrt@3.5.0   # or: pnpm add @fishkob/vrt@3.5.0
+npm i @fishkob/vrt@1.0.0   # or: pnpm add @fishkob/vrt@1.0.0
 ```
 
 It speaks `/api/v1`, so it works with any server that serves that API version —
@@ -31,8 +31,8 @@ without registry access (air-gapped setups). The repository is private, so that
 asset needs an authenticated download:
 
 ```bash
-gh release download vrt-client-v3.5.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
-npm i ./fishkob-vrt-3.5.0.tgz
+gh release download vrt-client-v1.0.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
+npm i ./fishkob-vrt-1.0.0.tgz
 ```
 
 Both channels carry the compiled `dist/` and the MIT licence at the repository
