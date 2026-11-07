@@ -4,6 +4,12 @@ name: Scorecard
 # protection, pinned dependencies, token permissions, dangerous workflow
 # patterns, review requirements) and publishes the result, so a third party can
 # judge this repository without trusting the badge in the README.
+#
+# The result is published to the OpenSSF API, not uploaded as SARIF: several
+# checks (BranchProtectionID, CodeReviewID, FuzzingID) are structural for a
+# single-maintainer repository and can never pass, so ~30 permanent alerts would
+# bury the CodeQL and Semgrep findings the Security tab is for. The posture lives
+# at https://securityscorecards.dev/viewer/?uri=github.com/Fishkob/visual-regression
 on:
   branch_protection_rule:
   schedule:
@@ -20,7 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      security-events: write
       # publish_results signs the result with the repository's OIDC identity;
       # without id-token the run still analyses, it just stays private.
       id-token: write
@@ -38,8 +43,12 @@ jobs:
           results_format: sarif
           publish_results: true
 
-      - name: Upload the result to the Security tab
-        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+      # Kept as a workflow artifact so a run stays inspectable without the
+      # Security tab; nothing here should ever become a code-scanning alert.
+      - name: Keep the SARIF with the run
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          sarif_file: results.sarif
-          category: scorecard
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 90
+          if-no-files-found: error
