@@ -26,12 +26,12 @@ npm i @fishkob/vrt@1.0.0   # or: pnpm add @fishkob/vrt@1.0.0
 It speaks `/api/v1`, so it works with any server that serves that API version —
 a client release names the client, not the server.
 
-Every client release also attaches the same package as a tarball, which installs
-without registry access (air-gapped setups). The repository is private, so that
-asset needs an authenticated download:
+For a setup without registry access, pack the package where the registry is
+reachable and carry the tarball over — npm is the artifact store, the release page
+carries the notes ([ADR-073](../docs/adr/ADR-073-release-assets-and-immutable-releases.md)):
 
 ```bash
-gh release download vrt-client-v1.0.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
+npm pack @fishkob/vrt@1.0.0    # produces fishkob-vrt-1.0.0.tgz
 npm i ./fishkob-vrt-1.0.0.tgz
 ```
 
