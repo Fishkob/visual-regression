@@ -62,11 +62,11 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 066 | [The 4-Eyes Approval Gate Is Removed](./ADR-066-remove-the-four-eyes-approval-gate.md)                                                 | Accepted (supersedes the 4-eyes half of 039/041, 050)                 |
 | 067 | [Idle Branches Are Deleted by a Retention Window](./ADR-067-branch-retention.md)                                                       | Accepted (supersedes the auto-archiving clause of 027)                |
 | 068 | [The Client SDK Is Published to npm](./ADR-068-client-sdk-on-npm.md)                                                                   | Accepted (supersedes 056 decision 1; decision 2 superseded by 069)    |
-| 069 | [The Client SDK Has Its Own Version Line](./ADR-069-independent-client-version.md)                                                     | Accepted (supersedes 068 decision 2; baseline by 070)                 |
+| 069 | [The Client SDK Has Its Own Version Line](./ADR-069-independent-client-version.md)                                                     | Accepted (supersedes 068 decision 2; baseline 070; decision 5 by 073) |
 | 070 | [The Release Lines Restart at 4.0.0 and 1.0.0](./ADR-070-release-baseline-reset.md)                                                    | Accepted (supersedes 069's baseline clause; platform baseline by 071) |
 | 071 | [The Platform Baseline Is 1.0.0](./ADR-071-platform-baseline-is-1-0-0.md)                                                              | Accepted (supersedes 070's platform baseline)                         |
 | 072 | [Release Artifacts Are Verified and Attested](./ADR-072-release-artifacts-are-verified-and-attested.md)                                | Accepted                                                              |
-| 073 | [Release Assets and Immutable Releases](./ADR-073-release-assets-and-immutable-releases.md)                                            | Proposed — recommends dropping the release asset for immutability     |
+| 073 | [Release Assets and Immutable Releases](./ADR-073-release-assets-and-immutable-releases.md)                                            | Accepted — supersedes 069 decision 5                                  |
 
 ## Numbering
 

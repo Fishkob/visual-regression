@@ -2,8 +2,11 @@
 
 ## Status
 
-Proposed — 2026-11-07. Nothing enforces it yet; the release setting it argues for
-is off. Recommendation: **option B** below.
+Accepted — 2026-11-07. Supersedes [ADR-069](./ADR-069-independent-client-version.md)
+decision 5 (the offline tarball), which no longer has an asset to attach. Enforced
+by the repository's `immutable_releases` setting, which lives outside the
+repository and therefore cannot be reviewed in a pull request, and by the guard in
+`.github/workflows/release-client-sdk.yml`.
 
 ## Context
 
@@ -20,8 +23,8 @@ is the weaker one.
 
 GitHub can close it: with repository-level **release immutability** on, a published
 release's assets and notes are fixed, and an asset can only be added while the
-release is still a draft. Two facts about this repository decide whether that is
-compatible with the release flow, both verified against the API on 2026-11-07:
+release is still a draft. Three facts about this repository, all verified against
+the API on 2026-11-07, decide whether that is compatible with the release flow:
 
 1. **A draft release does not create its tag.** Creating a draft release with a
    `tag_name` and `target_commitish` leaves no `refs/tags/...` behind; the tag
@@ -33,6 +36,12 @@ compatible with the release flow, both verified against the API on 2026-11-07:
    `release-please` creates the release published, `release-client-sdk.yml` builds
    and publishes to npm, and only then uploads the tarball with `gh release
 upload`. Under immutability that last step is refused, every time.
+3. **No release has ever carried an asset.** `v1.0.0`, `v1.0.1` and
+   `vrt-client-v1.0.0` all have zero assets, while `docs/ci-integration.md`,
+   `client-sdk/README.md` and `docs/deployment.md` describe the tarball as
+   attached. The offline path was documented before it ever produced a file, so
+   dropping the asset takes nothing away that anyone can currently download — and
+   it stops three documents from promising something the pipeline does not keep.
 
 The release object exposes the setting per release (`draft` and `immutable`), so a
 workflow can branch on it instead of guessing — which is how
@@ -42,11 +51,11 @@ that the npm publish succeeded.
 
 ## Decision
 
-**Option B is the recommendation: turn release immutability on and stop treating
-the GitHub release as an artifact store.** The release carries the tag and the
-notes; the artifact is the npm package, which is immutable by registry rule and
-carries its provenance attestation back to the commit. `release-client-sdk.yml`
-keeps its guard, so the flip is a repository setting and nothing else changes.
+**Option B: turn release immutability on and stop treating the GitHub release as
+an artifact store.** The release carries the tag and the notes; the artifact is the
+npm package, which is immutable by registry rule and carries its provenance
+attestation back to the commit. `release-client-sdk.yml` keeps its guard, so the
+flip is a repository setting and nothing else changes.
 
 Its two consequences are accepted deliberately: `gh release download` no longer
 returns the SDK tarball, and the drop of the asset is only recorded here — the
@@ -69,10 +78,10 @@ and pays for them with a release-flow redesign.
 ## Alternatives Considered
 
 - **Option A — leave immutability off and keep the asset.** The status quo. It
-  keeps `gh release download` working and is what the workflow was written for,
-  but it leaves the swap window open for as long as the repository exists. Not
-  recommended: the mitigation (provenance) tells a careful consumer that an asset
-  is forged, while immutability prevents the forgery.
+  keeps the `gh release download` path the docs already promise, and it is what the
+  workflow was written for, but it leaves the swap window open for as long as the
+  repository exists. Rejected: the mitigation (provenance) tells a careful consumer
+  that an asset is forged, while immutability prevents the forgery.
 - **Option C — turn immutability on and move tag/release creation into the
   workflow.** `release-please` would keep owning the version bump, the changelog
   and the release pull request, while `release-client-sdk.yml` creates the tag from
@@ -99,9 +108,9 @@ and pays for them with a release-flow redesign.
 
 ## Consequences
 
-- **Turning the setting on is a manual, out-of-repo step** and belongs in the
-  operator documentation next to the tag ruleset, because no pull request can show
-  it. If it is ever turned off again, this ADR is wrong and needs a new one.
+- **The setting is a manual, out-of-repo step**, not part of a pull request, so it
+  is recorded next to the tag ruleset in [docs/deployment.md](../deployment.md).
+  If it is ever turned off, this ADR is wrong and needs a new one.
 - **The release page documents, it does not distribute.** Any link or doc that
   points a consumer at a release asset has to point at the npm package instead;
   verification stays `npm audit signatures` (ADR-072).
