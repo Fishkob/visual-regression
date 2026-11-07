@@ -6,8 +6,14 @@ Accepted — 2026-11-07. Supersedes decision 1 (install by release-tarball URL)
 and the "no registry" rationale of
 [ADR-056](./ADR-056-client-sdk-distribution.md); its decisions 3 and 4 — a
 loadable ESM bundle as part of the definition of done, and the API staying
-usable without any client — remain in force. Enforced by the `Publish the
-package to npm` step in
+usable without any client — remain in force.
+
+Decision 2 (the version is the release tag) is superseded by
+[ADR-069](./ADR-069-independent-client-version.md): the client has its own
+version line and is no longer republished with every platform release. The
+publishing mechanics below stay as written, except that the version now comes
+from the tagged `client-sdk/package.json`. Enforced by the `Publish the package
+to npm` step in
 [release-client-sdk.yml](../../.github/workflows/release-client-sdk.yml), by
 `publishConfig.access` in [`client-sdk/package.json`](../../client-sdk/package.json)
 and by `scripts/check-client-sdk-package.sh`, which packs the package and

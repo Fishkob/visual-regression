@@ -113,11 +113,12 @@ test("cart summary", async ({ page }, testInfo) => {
 each test's first screenshot attachment and names the test after its title path,
 reduced to the characters a name may use (`checkout.spec.ts / cart summary` becomes
 `checkout-spec-ts-cart-summary`); a `runKey` groups the uploads of one pipeline
-into a run. The client is on npm as `@fishkob/vrt` — install the version that
-matches your server ([client SDK](client-sdk/README.md#install)):
+into a run. The client is on npm as `@fishkob/vrt` and has its own version line —
+it speaks `/api/v1`, so it is not tied to a platform release
+([client SDK](client-sdk/README.md#install)):
 
 ```bash
-npm i @fishkob/vrt@3.4.0
+npm i @fishkob/vrt
 ```
 
 ```ts

@@ -16,25 +16,28 @@ ships as ESM only; it needs Node 20 or newer.
 
 ## Install
 
-The client is published to npm as `@fishkob/vrt`. Pin the version to the server
-you run — the client speaks the API of its own release:
+The client is published to npm as `@fishkob/vrt` and has its own version line,
+independent of the platform release. Pin the exact version:
 
 ```bash
-npm i @fishkob/vrt@3.4.0   # or: pnpm add @fishkob/vrt@3.4.0
+npm i @fishkob/vrt@3.5.0   # or: pnpm add @fishkob/vrt@3.5.0
 ```
 
-Each release also attaches the same package as a tarball, which installs without
-registry access (air-gapped setups). The repository is private, so that asset
-needs an authenticated download:
+It speaks `/api/v1`, so it works with any server that serves that API version —
+a client release names the client, not the server.
+
+Every client release also attaches the same package as a tarball, which installs
+without registry access (air-gapped setups). The repository is private, so that
+asset needs an authenticated download:
 
 ```bash
-gh release download v3.4.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
-npm i ./fishkob-vrt-3.4.0.tgz
+gh release download vrt-client-v3.5.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
+npm i ./fishkob-vrt-3.5.0.tgz
 ```
 
 Both channels carry the compiled `dist/` and the MIT licence at the repository
-root; the version is the release tag. Decision and rationale:
-[ADR-068](../docs/adr/ADR-068-client-sdk-on-npm.md).
+root. Decision and rationale:
+[ADR-069](../docs/adr/ADR-069-independent-client-version.md).
 
 ## Upload one capture
 

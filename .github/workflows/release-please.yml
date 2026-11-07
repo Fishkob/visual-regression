@@ -24,12 +24,18 @@ jobs:
     timeout-minutes: 10
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
+      # JSON array of the package paths that got a release. A platform release
+      # and a client release are separate lines (ADR-069), so every downstream
+      # job filters on the path it cares about instead of on releases_created.
+      paths_released: ${{ steps.release.outputs.paths_released }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      client_tag_name: ${{ steps.release.outputs['client-sdk--tag_name'] }}
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         id: release
         with:
-          release-type: node
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
   tests:
     name: Test release
@@ -54,7 +60,7 @@ jobs:
   build-images:
     name: Build release images
     needs: [release-please, tests]
-    if: needs.release-please.outputs.releases_created == 'true'
+    if: needs.release-please.outputs.releases_created == 'true' && contains(fromJSON(needs.release-please.outputs.paths_released), '.')
     permissions:
       contents: write
       packages: write
@@ -70,9 +76,9 @@ jobs:
       ref: ${{ needs.release-please.outputs.tag_name }}
 
   publish-client-sdk:
-    name: Attach client SDK to the release
+    name: Publish the client SDK
     needs: release-please
-    if: needs.release-please.outputs.releases_created == 'true'
+    if: needs.release-please.outputs.releases_created == 'true' && contains(fromJSON(needs.release-please.outputs.paths_released), 'client-sdk')
     permissions:
       contents: write
     # Called from here rather than left to the `release: published` trigger:
@@ -82,4 +88,4 @@ jobs:
     # the reusable workflow still covers a release a human publishes.
     uses: ./.github/workflows/release-client-sdk.yml
     with:
-      tag: ${{ needs.release-please.outputs.tag_name }}
+      tag: ${{ needs.release-please.outputs.client_tag_name }}

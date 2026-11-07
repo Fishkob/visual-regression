@@ -1,26 +1,28 @@
 name: Release client SDK
 
-# The TypeScript client is published to npm as `@fishkob/vrt`, with the release
-# tag as its version, and the same tarball is attached to the release as an
-# offline mirror. See docs/adr/ADR-068-client-sdk-on-npm.md.
+# The TypeScript client is published to npm as `@fishkob/vrt` and has its own
+# version line: release-please owns `client-sdk/package.json`, the tag is
+# `vrt-client-vX.Y.Z`, and the version comes from the tagged package.json — not
+# from the platform tag. See docs/adr/ADR-069-independent-client-version.md.
 #
-# The release run in release-please.yml calls this workflow directly, because a
-# release created with GITHUB_TOKEN does not emit a workflow-starting event. The
-# `release` trigger stays for a release a human publishes; `workflow_dispatch`
-# re-uploads the tarball for a tag whose run failed.
+# The release run in release-please.yml calls this workflow directly when
+# release-please reports a `client-sdk` release, because a release created with
+# GITHUB_TOKEN does not emit a workflow-starting event. The `release` trigger
+# stays for a client release a human publishes; `workflow_dispatch` re-runs the
+# publish for a client tag whose run failed.
 on:
   release:
     types: [published]
   workflow_call:
     inputs:
       tag:
-        description: "Release tag to package and publish"
+        description: "Client release tag (vrt-client-vX.Y.Z) to publish"
         required: true
         type: string
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to package and publish"
+        description: "Client release tag (vrt-client-vX.Y.Z) to publish"
         required: true
         type: string
 
@@ -30,6 +32,9 @@ permissions:
 jobs:
   package:
     name: Publish and attach client SDK
+    # A platform release must not touch the client: only the client line
+    # publishes here.
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'vrt-client-v')
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -40,11 +45,15 @@ jobs:
 
       - uses: ./.github/actions/setup
 
+      # The version lives in the tagged package.json; nothing stamps the tag.
+      - name: Read the client version
+        id: version
+        run: echo "version=$(node -p 'require("./client-sdk/package.json").version')" >>"$GITHUB_OUTPUT"
+
       # Builds, packs, installs the tarball into an empty project and imports
       # every subpath — a broken bundle fails here, not in a consumer's CI.
       - name: Build, pack and verify the tarball
         env:
-          PACKAGE_VERSION: ${{ inputs.tag || github.event.release.tag_name }}
           PACKAGE_OUT_DIR: ${{ runner.temp }}/client-sdk
         run: ./scripts/check-client-sdk-package.sh
 
@@ -83,9 +92,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "false"
-          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          VERSION="${TAG#v}"
           TARBALL="$RUNNER_TEMP/client-sdk/fishkob-vrt-${VERSION}.tgz"
           test -f "$TARBALL" || { echo "::error::missing $TARBALL"; exit 1; }
           # A re-run must not fail on a version this workflow already published.
