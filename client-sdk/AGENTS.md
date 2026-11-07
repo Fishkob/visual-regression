@@ -42,7 +42,7 @@ client-sdk/
 
 ## Distribution
 
-The package is **published to npm** as `@fishkob/vrt` by `.github/workflows/release-client-sdk.yml`; the published version is the git tag, so a release always names the platform version it belongs to. The same build is attached to the release as a tarball for installations without registry access. `publishConfig.access` is `public`; `prepack` copies the root `LICENSE` into the package (`postpack` removes it, and `.gitignore` keeps it out of the tree). Provenance is opted out because npm only attests public source repositories. Decision and rationale: [ADR-068](../docs/adr/ADR-068-client-sdk-on-npm.md); [ADR-056](../docs/adr/ADR-056-client-sdk-distribution.md) is superseded.
+The package is **published to npm** as `@fishkob/vrt` by `.github/workflows/release-client-sdk.yml`; the published version is the git tag, so a release always names the platform version it belongs to. The workflow publishes the tarball `scripts/check-client-sdk-package.sh` produced — not a rebuild, because `npm version`/`npm publish` in this workspace make npm rebuild the lockfile over pnpm's symlinks and arborist's dedupe crashes. The same tarball is attached to the release for installations without registry access. `publishConfig.access` is `public`; `prepack` copies the root `LICENSE` into the package for a manual `npm pack` (`postpack` removes it, and `.gitignore` keeps it out of the tree). Provenance is opted out because npm only attests public source repositories. Decision and rationale: [ADR-068](../docs/adr/ADR-068-client-sdk-on-npm.md); [ADR-056](../docs/adr/ADR-056-client-sdk-distribution.md) is superseded.
 
 ## Build Rules
 

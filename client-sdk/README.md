@@ -174,7 +174,7 @@ directory `index.js`, so `scripts/fix-esm-specifiers.mjs` rewrites them in
 `dist/` as a build step. `scripts/check-client-sdk-package.sh` proves the result
 by installing the packed tarball into an empty project, importing every subpath
 in Node ESM and type-checking a consumer under both `nodenext` and `bundler`
-resolution; `scripts/verify.sh` runs it and the release workflow reuses it.
-`npm publish` runs the same build through `prepack`, which also copies the root
-licence into the package (and `postpack` removes it again), so the published
-tarball is the artifact this gate approved.
+resolution; `scripts/verify.sh` runs it and the release workflow reuses it. The
+release publishes **that tarball** — not a rebuild — so the npm artifact and the
+release asset are the same bytes. `prepack`/`postpack` keep a manual `npm pack`
+equivalent, copying the root licence in and removing it again.
