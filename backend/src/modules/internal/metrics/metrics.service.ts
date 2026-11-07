@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import promClient from 'prom-client';
+import {
+  collectDefaultMetrics,
+  Counter,
+  Gauge,
+  Histogram,
+  Registry,
+} from '@prometheus-io/client';
 import {
   IMetricsRecorder,
   MetricLabels,
@@ -8,7 +14,7 @@ import { METRIC_HISTOGRAM_BUCKETS } from '@common/domain/metrics-catalog';
 
 export type { MetricLabels };
 
-const register = new promClient.Registry();
+const register = new Registry();
 
 const DEFAULT_HISTOGRAM_BUCKETS = [
   5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000,
@@ -18,7 +24,7 @@ const DEFAULT_HISTOGRAM_BUCKETS = [
 export class MetricsService implements IMetricsRecorder {
   constructor(private readonly enabled = true) {
     if (this.enabled) {
-      promClient.collectDefaultMetrics({ register });
+      collectDefaultMetrics({ register });
     }
   }
 
@@ -45,14 +51,11 @@ export class MetricsService implements IMetricsRecorder {
     return register.metrics();
   }
 
-  private ensureCounter(
-    name: string,
-    labelNames: string[],
-  ): promClient.Counter {
+  private ensureCounter(name: string, labelNames: string[]): Counter<string> {
     const existing = register.getSingleMetric(name) as
-      promClient.Counter | undefined;
+      Counter<string> | undefined;
     if (!existing) {
-      return new promClient.Counter({
+      return new Counter({
         name,
         help: `${name} counter`,
         labelNames,
@@ -62,11 +65,11 @@ export class MetricsService implements IMetricsRecorder {
     return existing;
   }
 
-  private ensureGauge(name: string, labelNames: string[]): promClient.Gauge {
+  private ensureGauge(name: string, labelNames: string[]): Gauge<string> {
     const existing = register.getSingleMetric(name) as
-      promClient.Gauge | undefined;
+      Gauge<string> | undefined;
     if (!existing) {
-      return new promClient.Gauge({
+      return new Gauge({
         name,
         help: `${name} gauge`,
         labelNames,
@@ -79,11 +82,11 @@ export class MetricsService implements IMetricsRecorder {
   private ensureHistogram(
     name: string,
     labelNames: string[],
-  ): promClient.Histogram {
+  ): Histogram<string> {
     const existing = register.getSingleMetric(name) as
-      promClient.Histogram | undefined;
+      Histogram<string> | undefined;
     if (!existing) {
-      return new promClient.Histogram({
+      return new Histogram({
         name,
         help: `${name} histogram`,
         labelNames,
