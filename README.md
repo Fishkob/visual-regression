@@ -5,23 +5,28 @@
 [![Latest release](https://img.shields.io/github/v/release/Fishkob/visual-regression)](https://github.com/Fishkob/visual-regression/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+Catch unintended visual changes before they reach production. Upload captures from
+your CI pipeline, compare them against **branch-scoped baselines**, and approve a
+change on a review page built for finding the one block that moved.
+
+Built for a **private network** — you run it inside your own infrastructure, one
+operator and one trust domain, on `docker compose` or Kubernetes. Every signed-in
+user can read every project by design: per-team isolation is deliberately not a
+boundary, so the host, the network path and TLS are yours to own
+([SECURITY.md](SECURITY.md)). No cloud account, no per-snapshot billing.
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="frontend/tests/quality/__screenshots__/visual-test-details-regions-dark.png">
   <img src="frontend/tests/quality/__screenshots__/visual-test-details-regions-light.png" alt="Review page for one test: the diff with its changed area highlighted, the mode bar (Diff marked, Side by Side, Diff Only, Overlay, Wipe, Blink), the Changed areas panel and the Skip/Approve footer" width="100%">
 </picture>
 
-Catch unintended visual changes before they reach production. Upload captures from
-your CI pipeline, compare them against **branch-scoped baselines**, and approve a
-change on a review page built for finding the one block that moved.
-
-Self-hosted with `docker compose` — no cloud account, no per-snapshot billing.
-
 ## What it does
 
 - **Review inbox** — every pending change across projects and branches in one
-  queue, grouped, filterable, walkable with `A` / `S` / `Esc`.
+  queue, grouped and filterable.
 - **Diff viewer** — marked, side-by-side, only-diff, overlay, wipe and blink, with
   zoom at the cursor and the changed areas listed next to the picture by size.
+  Decide from the keyboard: `A` approves, `S` skips, `Esc` goes back.
 - **Branch-scoped baselines** — a feature branch inherits its target's baseline and
   only pins its own after the first approval.
 - **CI gate** — uploads grouped into a Run, with `open`, `pending`, `failed` and
@@ -47,7 +52,7 @@ Self-hosted with `docker compose` — no cloud account, no per-snapshot billing.
     <td width="50%">
       <picture>
         <source media="(prefers-color-scheme: dark)" srcset="frontend/tests/quality/__screenshots__/runs-dark.png">
-        <img src="frontend/tests/quality/__screenshots__/runs-light.png" alt="Runs page listing CI runs with commit and status">
+        <img src="frontend/tests/quality/__screenshots__/runs-light.png" alt="Runs page listing CI runs by run key with branch, commit and finish time">
       </picture>
       <br><sub><b>Runs</b> — what a pipeline uploaded, and what the gate will wait for</sub>
     </td>
@@ -202,7 +207,7 @@ More detail and diagrams: [docs/architecture/overview.md](docs/architecture/over
 | send review events somewhere                       | [docs/webhooks.md](docs/webhooks.md)                   |
 | understand roles, keys and API scopes              | [docs/permissions.md](docs/permissions.md)             |
 | understand a term (`Variant`, `Run`, `Threshold`…) | [CONTEXT.md](CONTEXT.md)                               |
-| see why something is the way it is                 | [docs/adr/](docs/adr/) — 53 decision records           |
+| see why something is the way it is                 | [docs/adr/](docs/adr/) — 61 decision records           |
 | know what is next                                  | [docs/roadmap.md](docs/roadmap.md)                     |
 
 ## Status
@@ -222,9 +227,8 @@ route that has no case. Suite layout and coverage rules:
 
 ## Security Considerations
 
-This platform is built for a **single, trusted operator network** — every
-signed-in user can read every project, and that is a product decision, not an
-oversight. [SECURITY.md](SECURITY.md) states the full threat model, what is
+The **single, trusted operator network** stated at the top is a product decision,
+not an oversight; [SECURITY.md](SECURITY.md) records the full threat model, what is
 explicitly out of scope, and the disclosure process.
 
 - Browsers authenticate with a session cookie, CI with an API key. Key management
