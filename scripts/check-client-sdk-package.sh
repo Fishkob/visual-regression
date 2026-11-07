@@ -92,6 +92,7 @@ expect("@fishkob/vrt/client createClient", client.createClient, "function");
 expect("@fishkob/vrt/client createConfig", client.createConfig, "function");
 expect("@fishkob/vrt/upload-many uploadMany", uploadMany.uploadMany, "function");
 expect("@fishkob/vrt/playwright createVrtReporter", playwright.createVrtReporter, "function");
+expect("@fishkob/vrt/playwright default export", playwright.default, "function");
 process.stdout.write(`  ${Object.keys(root).length} runtime exports\n`);
 '
 
