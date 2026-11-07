@@ -196,7 +196,7 @@ const runPnpmOutdated = () => {
 // The abbreviated packument pnpm uses carries no publish date, so the age of a
 // version is one plain registry read per stale candidate.
 const publishedAgeDays = async (name, version) => {
-  const response = await fetch(`${REGISTRY}/${name.replace("/", "%2f")}`, {
+  const response = await fetch(`${REGISTRY}/${name.replaceAll("/", "%2f")}`, {
     signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
