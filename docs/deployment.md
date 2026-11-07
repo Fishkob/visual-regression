@@ -427,7 +427,7 @@ so the stack re-initialises on 18.
 
 On every push to `main` or `develop`, GitHub Actions runs tests (unit + e2e) automatically.
 
-Releases are cut from [Conventional Commits](https://www.conventionalcommits.org/) by release-please: it maintains a release PR, and merging that PR creates a `vX.Y.Z` tag and a GitHub Release. The same workflow run then builds and pushes every image tagged `X.Y.Z` to GHCR, updates the `tag:` values in `deploy/charts/vrt/values.yaml` and the chart's `appVersion` (ArgoCD picks them up automatically) and attaches the client SDK tarball to the release. The SDK step is called from the release run itself, because a release created with `GITHUB_TOKEN` does not start the `release: published` workflow.
+Releases are cut from [Conventional Commits](https://www.conventionalcommits.org/) by release-please: it maintains a release PR, and merging that PR creates a `vX.Y.Z` tag and a GitHub Release. The same workflow run then builds and pushes every image tagged `X.Y.Z` to GHCR, updates the `tag:` values in `deploy/charts/vrt/values.yaml` and the chart's `appVersion` (ArgoCD picks them up automatically), publishes the client SDK to npm and attaches the same package to the release as an offline tarball. The SDK step is called from the release run itself, because a release created with `GITHUB_TOKEN` does not start the `release: published` workflow. It publishes only when the `NPM_TOKEN` secret exists and warns otherwise.
 
 The release run re-runs the backend and frontend lint, typecheck, and unit tests before building, so an image is never published from untested code.
 
@@ -442,6 +442,8 @@ Images are pushed to (resolved from the repository owner, e.g. `ghcr.io/<owner>/
 The Helm chart's `registry` value (default `ghcr.io`) and `imageOwner` value (default `fishkob`) build the image path. Forks that publish their own images override `imageOwner` via `--set imageOwner=<fork-owner>`; to pull from a different registry, override `registry` too (or set both in the chart values in ArgoCD).
 
 > **Release prerequisites (repository settings):** enable _Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests"_ so release-please can open its release PR — the chart bump needs it too, it opens `chore/chart-images-<version>` with the same token. Workflow runs on that PR start in an approval-required state, so a maintainer must approve them before the PR's CI runs (the release run re-tests before publishing regardless). The `bump-chart` job does **not** push to `main`: the `main` ruleset requires a pull request plus the two CI gates and grants no bypass, so the bump opens its pull request and queues a squash auto-merge. The ruleset also requires a branch to be up to date with `main`, and GitHub will not update it for you: if another pull request lands while the bump is queued, the auto-merge stays parked until someone updates the branch (`allow_update_branch` must be on, or use a merge queue in the ruleset).
+>
+> Publishing the client SDK to npm needs an `NPM_TOKEN` secret: a granular access token with read and write access to the `@fishkob` scope (classic tokens no longer exist, and a write-enabled granular token expires within 90 days — switch the package to trusted publishing once it exists). Without the secret the release step warns and skips the publish, and the tarball is still attached to the release.
 
 ### Re-running a failed release build
 

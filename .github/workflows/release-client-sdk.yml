@@ -1,8 +1,8 @@
 name: Release client SDK
 
-# The TypeScript client ships as a release asset, not from a registry: the
-# version in the tarball is the git tag, so a consumer pins exactly the build
-# that belongs to their server. See docs/adr/ADR-056-client-sdk-distribution.md.
+# The TypeScript client is published to npm as `@fishkob/vrt`, with the release
+# tag as its version, and the same tarball is attached to the release as an
+# offline mirror. See docs/adr/ADR-068-client-sdk-on-npm.md.
 #
 # The release run in release-please.yml calls this workflow directly, because a
 # release created with GITHUB_TOKEN does not emit a workflow-starting event. The
@@ -14,13 +14,13 @@ on:
   workflow_call:
     inputs:
       tag:
-        description: "Release tag to package and attach the tarball to"
+        description: "Release tag to package and publish"
         required: true
         type: string
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to package and attach the tarball to"
+        description: "Release tag to package and publish"
         required: true
         type: string
 
@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   package:
-    name: Package and attach client SDK
+    name: Publish and attach client SDK
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -47,6 +47,39 @@ jobs:
           PACKAGE_VERSION: ${{ inputs.tag || github.event.release.tag_name }}
           PACKAGE_OUT_DIR: ${{ runner.temp }}/client-sdk
         run: ./scripts/check-client-sdk-package.sh
+
+      # NPM_TOKEN is a granular access token with write access to @fishkob.
+      # Classic tokens no longer exist, and a write-enabled granular token
+      # expires within 90 days — trusted publishing (OIDC) replaces it once the
+      # package exists. Provenance stays opted out: npm only attests a public
+      # source repository, and this one is private.
+      - name: Publish the package to npm
+        if: env.NPM_TOKEN != ''
+        working-directory: client-sdk
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "false"
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          # A re-run must not fail on a version this workflow already published.
+          if npm view "@fishkob/vrt@${TAG#v}" version >/dev/null 2>&1; then
+            echo "::notice::@fishkob/vrt@${TAG#v} is already published; skipping."
+            exit 0
+          fi
+          npm version "${TAG#v}" --no-git-tag-version --allow-same-version
+          # setup-node runs without registry-url, so there is no .npmrc that
+          # substitutes NODE_AUTH_TOKEN; write one for this step only. npm never
+          # packs a .npmrc, and the trap drops it even when the publish fails.
+          printf '//registry.npmjs.org/:_authToken=%s\n' "$NODE_AUTH_TOKEN" >.npmrc
+          trap 'rm -f .npmrc' EXIT
+          npm publish --access public
+
+      - name: Note the skipped npm publish
+        if: env.NPM_TOKEN == ''
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: echo "::warning::NPM_TOKEN is not configured; @fishkob/vrt was not published to npm."
 
       - name: Attach the tarball to the release
         env:

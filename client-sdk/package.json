@@ -49,10 +49,14 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "prebuild": "rm -rf dist",
     "build": "tsc -p tsconfig.build.json && node ./scripts/fix-esm-specifiers.mjs",
-    "prepack": "npm run build",
+    "prepack": "npm run build && cp ../LICENSE .",
+    "postpack": "rm -f LICENSE",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

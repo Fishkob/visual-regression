@@ -49,7 +49,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 053 | [Sessions Have an Absolute Lifetime](./ADR-053-session-absolute-lifetime.md)                                                           | Accepted (complements 034)                             |
 | 054 | [Coverage Is Gated Per Layer, and Database Races Are Proven Against Postgres](./ADR-054-coverage-per-layer-and-real-database-races.md) | Accepted (partially supersedes 020; decision 5 by 059) |
 | 055 | [The Frontend Gate Measures What It Runs](./ADR-055-the-frontend-gate-measures-what-it-runs.md)                                        | Accepted (complements 054, extends 020)                |
-| 056 | [The Client SDK Ships as a Release Asset](./ADR-056-client-sdk-distribution.md)                                                        | Accepted (amends 005)                                  |
+| 056 | [The Client SDK Ships as a Release Asset](./ADR-056-client-sdk-distribution.md)                                                        | Superseded by 068 (amended 005)                        |
 | 057 | [Config-as-Code Thresholds & Project Default](./ADR-057-config-as-code-thresholds.md)                                                  | Accepted                                               |
 | 058 | [Share Links with Pixels](./ADR-058-share-links-with-pixels.md)                                                                        | Accepted (supersedes the image clause of 038)          |
 | 059 | [A Repository Unit Test Asserts Query Policy, the Database Proves Mechanism](./ADR-059-query-policy-vs-mechanism.md)                   | Accepted (partially supersedes 054 decision 5)         |
@@ -61,6 +61,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 065 | [Cross-Row Identities Are Database Guarantees](./ADR-065-cross-row-identities-are-database-guarantees.md)                              | Accepted (narrows the rule in CONTEXT.md)              |
 | 066 | [The 4-Eyes Approval Gate Is Removed](./ADR-066-remove-the-four-eyes-approval-gate.md)                                                 | Accepted (supersedes the 4-eyes half of 039/041, 050)  |
 | 067 | [Idle Branches Are Deleted by a Retention Window](./ADR-067-branch-retention.md)                                                       | Accepted (supersedes the auto-archiving clause of 027) |
+| 068 | [The Client SDK Is Published to npm](./ADR-068-client-sdk-on-npm.md)                                                                   | Accepted (supersedes 056 decision 1)                   |
 
 ## Numbering
 

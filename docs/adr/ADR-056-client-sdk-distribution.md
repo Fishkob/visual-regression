@@ -6,6 +6,10 @@ Accepted — 2026-11-01. Amends
 [ADR-005](./005-openapi-sdk.md), which described `client-sdk` as an unversioned
 workspace package "consumed as source"; that sentence no longer holds.
 
+Superseded by: [ADR-068](./ADR-068-client-sdk-on-npm.md) — decision 1 (install
+from the release asset) and the "no registry" rationale. Decisions 3 and 4
+remain in force.
+
 Amended 2026-11-01, after the first release: the repository is **private**, so
 the install command in the Decision below does not work as written. A private
 repository's `/releases/download/...` URL answers only a browser session — an
