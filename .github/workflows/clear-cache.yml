@@ -3,6 +3,10 @@ name: Clear Cache
 on:
   workflow_dispatch:
 
+# Workflow-level default: nothing. The job below declares the one scope it needs,
+# so a job added here cannot inherit the right to delete caches.
+permissions: {}
+
 jobs:
   clear-cache:
     name: Clear GitHub Actions caches
