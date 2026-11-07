@@ -37,7 +37,10 @@ any version is equally safe.
 1. **The client has its own release line.** `release-please` manages
    `client-sdk` as its own package: own version in
    `client-sdk/package.json`, own `client-sdk/CHANGELOG.md`, own tag
-   `vrt-client-vX.Y.Z`.
+   `vrt-client-vX.Y.Z`. `separate-pull-requests` keeps the two release PRs
+   apart, and the root package keeps its existing `vX.Y.Z` tag shape
+   (`include-component-in-tag: false`) so the releases already cut stay
+   findable.
 2. **A platform release no longer publishes the client.** The publish workflow
    runs only when release-please reports a release for the `client-sdk` path.
 3. **The published version is the committed `client-sdk/package.json`.** The
@@ -86,5 +89,8 @@ any version is equally safe.
 - **The first independent version starts at the last published one.** `3.5.0` is
   already on npm, so the manifest records `client-sdk: 3.5.0`; the first client
   change produces `3.5.1` or `3.6.0`, never a downgrade.
+- **The migration seeds the client baseline with a tag.** `vrt-client-v3.5.0`
+  sits on the migration commit, so the client changelog starts after it instead
+  of walking back through the whole repository history.
 - **`workflow_dispatch` needs the client tag**, not the platform tag: it checks
   out the tagged tree, and the version comes from that tree.
