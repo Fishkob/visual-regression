@@ -65,6 +65,9 @@ wanted instead.
   registry artifact of the first publish attempt.
 - **Old platform tags remain.** `v1.0.0` … `v3.5.0` stay in the repository and
   in GHCR; they are history, not a supported line.
+  Amended 2026-11-07: the tags and the two releases they carried were deleted
+  after the reset, leaving only `v4.0.0` and `vrt-client-v1.0.0`; the GHCR
+  images built from the deleted tags may still exist.
 - **Anyone who pinned the client at `3.5.0` must move to `1.0.0`.** The API is
   unchanged, so it is a version move, not a migration.
 - **The chart and images resume at `4.0.0`.** The first image build after this
