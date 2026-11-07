@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0](https://github.com/Fishkob/visual-regression/compare/vrt-client-v3.5.0...vrt-client-v1.0.0) (2026-11-07)
+## [1.0.0](https://github.com/Fishkob/visual-regression/releases/tag/vrt-client-v1.0.0) (2026-11-07)
 
 
 ### Miscellaneous Chores

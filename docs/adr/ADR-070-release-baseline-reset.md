@@ -5,7 +5,12 @@
 Accepted — 2026-11-07. Supersedes the "first independent version starts at the
 last published one" consequence of
 [ADR-069](./ADR-069-independent-client-version.md) and the numbering of every
-release before this one. Enforced by `.release-please-manifest.json`, by the
+release before this one.
+
+Superseded in part by [ADR-071](./ADR-071-platform-baseline-is-1-0-0.md): the
+platform baseline is `1.0.0`, not `4.0.0`, once the old tags were deleted. The
+client line, the tagging and the changelog entries below stay in force. Enforced
+by `.release-please-manifest.json`, by the
 `v4.0.0` and `vrt-client-v1.0.0` tags and by the versions in both
 `package.json` files.
 
