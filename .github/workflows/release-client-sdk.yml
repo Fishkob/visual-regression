@@ -26,11 +26,9 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: write
-  # npm signs the provenance attestation with a certificate minted from this
-  # job's OIDC token. Without it the published tarball is anonymous.
-  id-token: write
+# Workflow-level default: nothing. The single job below declares the two scopes
+# it needs, so nothing here inherits write access to the repository.
+permissions: {}
 
 jobs:
   package:
@@ -40,6 +38,12 @@ jobs:
     if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'vrt-client-v')
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      # Attaching the tarball to the release writes to the repository.
+      contents: write
+      # npm signs the provenance attestation with a certificate minted from this
+      # job's OIDC token. Without it the published tarball is anonymous.
+      id-token: write
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -144,15 +148,27 @@ jobs:
       # `--clobber` let a run replace the tarball of a release it did not build
       # (the tag is an input). The first upload is the record: a re-run notices
       # the asset and leaves it alone.
+      #
+      # With repository-level release immutability the upload only succeeds while
+      # the release is still a draft, so an already-published release is skipped
+      # with a notice instead of turning the run red: the npm tarball carries its
+      # own provenance, and a failed step would hide that the publish worked.
       - name: Attach the tarball to the release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.event.release.tag_name }}
         run: |
           set -euo pipefail
+          RELEASE=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG")
+          DRAFT=$(jq -r '.draft' <<<"$RELEASE")
+          IMMUTABLE=$(jq -r '.immutable // false' <<<"$RELEASE")
+          if [ "$DRAFT" != "true" ] && [ "$IMMUTABLE" = "true" ]; then
+            echo "::notice::$TAG is published and immutable; its assets cannot be added. The tarball lives on npm."
+            exit 0
+          fi
           for tarball in "$RUNNER_TEMP"/client-sdk/*.tgz; do
             name="$(basename "$tarball")"
-            if gh release view "$TAG" --json assets --jq '.assets[].name' | grep -qxF "$name"; then
+            if jq -r '.assets[].name' <<<"$RELEASE" | grep -qxF "$name"; then
               echo "::notice::$name is already attached to $TAG; leaving it untouched."
             else
               gh release upload "$TAG" "$tarball"

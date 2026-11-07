@@ -24,14 +24,18 @@ on:
 permissions:
   contents: read
   actions: read
-  # upload-sarif writes the analysis into the Security tab.
-  security-events: write
 
 jobs:
   semgrep:
     name: Semgrep (security-audit)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      # upload-sarif writes the analysis into the Security tab. Job-level, so the
+      # scan step itself runs without a write token.
+      security-events: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

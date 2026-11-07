@@ -3,12 +3,37 @@ set -e
 
 echo "=== k3s Setup for Visual Regression ==="
 
+# The installer runs as root on the operator's machine, so it may not change
+# underneath this script: it is downloaded, checked against the hash below and
+# only then executed. A mismatch means the upstream installer changed — review
+# it, then update the constant deliberately.
+K3S_INSTALL_URL="https://get.k3s.io"
+K3S_INSTALL_SHA256="c2a2643dd7c259121a876d16538844c60928de3d38ae98f22f7b95a7ffcfab9d"
+
+install_k3s() {
+  local script
+  local actual
+  script="$(mktemp)"
+  curl -sfL "$K3S_INSTALL_URL" -o "$script"
+  if ! printf '%s  %s\n' "$K3S_INSTALL_SHA256" "$script" | sha256sum -c --quiet -; then
+    actual="$(sha256sum "$script" | cut -d' ' -f1)"
+    rm -f "$script"
+    echo "ERROR: the k3s installer does not match the pinned SHA-256." >&2
+    echo "       pinned: $K3S_INSTALL_SHA256" >&2
+    echo "       actual: $actual" >&2
+    echo "       Review the new installer, then set K3S_INSTALL_SHA256 to the actual value." >&2
+    exit 1
+  fi
+  sh "$script"
+  rm -f "$script"
+}
+
 # Install k3s
 if command -v k3s &> /dev/null; then
   echo "k3s already installed, skipping..."
 else
   echo "Installing k3s..."
-  curl -sfL https://get.k3s.io | sh -
+  install_k3s
 fi
 
 # Wait for k3s to be ready

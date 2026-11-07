@@ -11,8 +11,9 @@ on:
         type: string
         default: "5"
 
-permissions:
-  packages: write
+# Workflow-level default: nothing. Deleting package versions is the job's own
+# scope below; a second job added here must not inherit registry write access.
+permissions: {}
 
 # A cron run and a manual dispatch can overlap; deleting the same version twice
 # would report a 404 that is nobody's fault.
@@ -25,6 +26,8 @@ jobs:
     name: Cleanup ${{ matrix.image }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      packages: write
     strategy:
       fail-fast: false
       matrix:
