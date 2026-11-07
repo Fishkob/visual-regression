@@ -129,6 +129,8 @@ export default defineConfig({
         apiKey: process.env.VRT_API_KEY!,
         project: "checkout",
         branch: process.env.CI_BRANCH || "main",
+        viewport: "1920x1080",
+        browser: "chromium",
         environment: "staging",
         runKey: process.env.CI_RUN_ID, // groups this pipeline's uploads
       },
@@ -141,7 +143,8 @@ The first upload of `checkout.spec.ts / cart summary` creates the project, the
 branch and the baseline; later captures are compared against it. `viewport`,
 `browser` and `environment` are the Variant — matched verbatim, case included, so a
 changed value is a new baseline that passes without comparing. Any other stack
-posts the same fields to `/api/v1/projects/:project/tests/:test/upload`
+posts the same fields to
+`/api/v1/projects/:project/tests/:test/upload?testKind=image`
 ([curl](docs/ci-integration.md#2-upload-and-wait)).
 
 **4. Gate the pipeline on the run.** After the test command, finish the run and
@@ -160,10 +163,11 @@ if [ "$state" != "passed" ]; then
 fi
 ```
 
-`pending` is a change nobody decided on yet, `failed` a broken comparison, and
-`open` is the run you never finished. Approve on the branch in the inbox; after
-the merge, delete the branch ([docs/branches.md](docs/branches.md)). Waiting on a
-single capture, JUnit/HTML/CSV reports and `.vrt.json` thresholds:
+`pending` is a change nobody decided on yet (or a comparison still running),
+`failed` a broken comparison, and `open` is the run you never finished. Approve on
+the branch in the inbox; after the merge, delete the branch
+([docs/branches.md](docs/branches.md)). Waiting on a single capture, JUnit/HTML/CSV
+reports and `.vrt.json` thresholds:
 [docs/ci-integration.md](docs/ci-integration.md).
 
 ## How it works
