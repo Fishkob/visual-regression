@@ -179,6 +179,7 @@ export default defineConfig({
 ```
 
 - The reporter uploads the first attachment whose content type or name looks like a screenshot (`image/png`) or PDF, as `<project> / <titlePath joined with " / ">`.
+- The test attaches the capture itself: `testInfo.attach("screenshot", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" })`. A passing `toHaveScreenshot` assertion attaches nothing, so the assertion alone uploads nothing.
 - `uploadOnFailureOnly: true` uploads only failed/timed-out tests; `skipRetries: true` ignores Playwright's retry attempts so only the final result is uploaded.
 - `concurrency`/`maxAttempts` are forwarded to `uploadMany` (default 4 / 3). Upload failures are collected in `reporter.results()` and via `onUpload`; they do not fail the test run.
 - `apiUrl` is the API root and carries `/api/v1`.

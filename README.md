@@ -83,35 +83,87 @@ Ports and the service layout: [docs/local-development.md](docs/local-development
 Production setup (TLS, reverse proxy, backups, Kubernetes):
 [docs/deployment.md](docs/deployment.md).
 
-## Wire it into CI
+## Wire it into your project
 
-Your pipeline uploads the captures to your instance and fails the job while a
-change waits for review. Create an API key under **API keys** in the dashboard,
-store it as a pipeline secret ([scopes and
-rotation](docs/ci-integration.md#1-authenticate)) and point `VRT_URL` at your
-instance:
+The platform keeps the baselines; your tests keep producing the pixels. Nothing
+goes into the application — a capture is the screenshot your test already takes,
+and the pipeline fails while a change waits for review.
 
-```bash
-curl -X POST \
-  "$VRT_URL/api/v1/projects/checkout/tests/login/upload?testKind=image" \
-  -H "x-api-key: $VRT_API_KEY" \
-  -F "file=@artifacts/login.png" \
-  -F "viewport=1920x1080" \
-  -F "browser=Chromium" \
-  -F "environment=staging" \
-  -F "branch=$BRANCH"
+**1. Give CI a key.** Create one under **API keys** in the dashboard and store it
+as a pipeline secret. `upload` sends captures; gating a run also reads its status
+(`read`) and finishes it (`admin`) —
+[scopes and rotation](docs/ci-integration.md#1-authenticate).
+
+**2. Attach the capture in your test.** One call inside the test you already
+have:
+
+```ts
+// checkout.spec.ts
+test("cart summary", async ({ page }, testInfo) => {
+  await page.goto("/cart");
+
+  await testInfo.attach("screenshot", {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: "image/png",
+  });
+});
 ```
 
-Project, test and branch are created by the first upload, so the names are yours.
-Keep `viewport`, `browser` and `environment` stable: they are the Variant, the
-baseline's identity, matched verbatim (case included), so a changed value starts a
-new baseline that passes without comparing. Upload under the branch that produced
-the capture — without `branch`, every upload and every approval belongs to the
-default branch. The upload answers `identical` or `baseline_created` (pass) or
-`comparison_queued`: poll the job, and fail the step while the comparison is
-`PENDING_APPROVAL`, linking the reviewer to the test page. `runKey`, `commitSha`
-and `ciUrl` group the uploads into a run with its own gate and JUnit, HTML and CSV
-reports. Upload, wait, run gate and reports:
+**3. Point Playwright at your instance.** The client ships a reporter that uploads
+each test's first screenshot attachment under the test's title path; a `runKey`
+groups the uploads of one pipeline into a run. The client is a release tarball,
+not npm — install the one that matches your server
+([client SDK](client-sdk/README.md#install)):
+
+```ts
+// playwright.config.ts
+import { defineConfig } from "@playwright/test";
+
+export default defineConfig({
+  reporter: [
+    ["list"],
+    [
+      "@fishkob/vrt/playwright",
+      {
+        apiUrl: "https://vrt.example.com/api/v1",
+        apiKey: process.env.VRT_API_KEY!,
+        project: "checkout",
+        branch: process.env.CI_BRANCH || "main",
+        environment: "staging",
+        runKey: process.env.CI_RUN_ID, // groups this pipeline's uploads
+      },
+    ],
+  ],
+});
+```
+
+The first upload of `checkout.spec.ts / cart summary` creates the project, the
+branch and the baseline; later captures are compared against it. `viewport`,
+`browser` and `environment` are the Variant — matched verbatim, case included, so a
+changed value is a new baseline that passes without comparing. Any other stack
+posts the same fields to `/api/v1/projects/:project/tests/:test/upload`
+([curl](docs/ci-integration.md#2-upload-and-wait)).
+
+**4. Gate the pipeline on the run.** After the test command, finish the run and
+fail the job unless the gate it returns is `passed` (`$CI_BRANCH` and `$CI_RUN_ID`
+are the values your pipeline exports; the status call needs `jq`):
+
+```bash
+VRT=https://vrt.example.com
+API=$VRT/api/v1/projects/checkout
+
+state=$(curl -sS -X POST "$API/runs/$CI_RUN_ID/finish?branch=$CI_BRANCH" \
+  -H "x-api-key: $VRT_API_KEY" | jq -r .status.state)
+if [ "$state" != "passed" ]; then
+  echo "run $state: $VRT/projects/checkout/runs/$CI_RUN_ID" >&2
+  exit 1
+fi
+```
+
+`pending` is a change nobody decided on yet, `failed` a broken comparison, and
+`open` is the run you never finished. Approve on the branch in the inbox; after
+the merge, delete the branch ([docs/branches.md](docs/branches.md)). Waiting on a
+single capture, JUnit/HTML/CSV reports and `.vrt.json` thresholds:
 [docs/ci-integration.md](docs/ci-integration.md).
 
 ## How it works
