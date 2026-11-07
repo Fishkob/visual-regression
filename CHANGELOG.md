@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.5.1](https://github.com/Fishkob/visual-regression/compare/v3.5.0...v3.5.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* **sdk:** gate the npm publish on a step output, not the step's own env ([#19](https://github.com/Fishkob/visual-regression/issues/19)) ([a6a963b](https://github.com/Fishkob/visual-regression/commit/a6a963bfa681b745d416d5a6b2b76bef0e5434fe))
+* **sdk:** hand the npm token to the registry with an explicit userconfig ([#23](https://github.com/Fishkob/visual-regression/issues/23)) ([ea31162](https://github.com/Fishkob/visual-regression/commit/ea311623abebb97fe96cac41556fb186cd726497))
+* **sdk:** publish the gate's tarball instead of versioning and rebuilding ([#20](https://github.com/Fishkob/visual-regression/issues/20)) ([4f82e1c](https://github.com/Fishkob/visual-regression/commit/4f82e1c6cb5a6b35a78a82f0be0633c11f556842))
+
 ## [3.5.0](https://github.com/Fishkob/visual-regression/compare/v3.4.0...v3.5.0) (2026-11-07)
 
 
