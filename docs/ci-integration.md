@@ -146,10 +146,12 @@ described in [Reports and trends](#5-reports-and-trends).
 
 The TypeScript client ships a Playwright reporter that uploads a test's screenshot attachment when the test ends. It needs no Playwright dependency at runtime and never fails the test run when VRT is unreachable.
 
-The client is not on npm: it is the tarball attached to a platform release, and its version is the release tag. Install the one that matches your server.
+The client is published to npm as `@fishkob/vrt`; pin it to the server version you run. Each release also attaches the same package as a tarball for installations without registry access.
 
 ```bash
-# private repository: the asset needs an authenticated download
+npm i @fishkob/vrt@3.4.0
+
+# offline mirror, needs an authenticated download (private repository)
 gh release download v3.4.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
 npm i ./fishkob-vrt-3.4.0.tgz
 ```

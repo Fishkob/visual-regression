@@ -16,20 +16,25 @@ ships as ESM only; it needs Node 20 or newer.
 
 ## Install
 
-The client is not published to npm. It ships as the tarball attached to a
-platform release, and its version is the release tag — install the version that
-matches your server:
+The client is published to npm as `@fishkob/vrt`. Pin the version to the server
+you run — the client speaks the API of its own release:
 
 ```bash
-# private repository: the release asset needs an authenticated download
-gh release download v3.4.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
-npm i ./fishkob-vrt-3.4.0.tgz   # or: pnpm add ./fishkob-vrt-3.4.0.tgz
+npm i @fishkob/vrt@3.4.0   # or: pnpm add @fishkob/vrt@3.4.0
 ```
 
-The `/releases/download/...` URL answers only a browser session for a private
-repository, so a shell or pipeline has to go through `gh release download` or the
-API asset endpoint (`Accept: application/octet-stream` plus a token). The asset
-holds the compiled `dist/` only; the licence at the repository root applies.
+Each release also attaches the same package as a tarball, which installs without
+registry access (air-gapped setups). The repository is private, so that asset
+needs an authenticated download:
+
+```bash
+gh release download v3.4.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
+npm i ./fishkob-vrt-3.4.0.tgz
+```
+
+Both channels carry the compiled `dist/` and the MIT licence at the repository
+root; the version is the release tag. Decision and rationale:
+[ADR-068](../docs/adr/ADR-068-client-sdk-on-npm.md).
 
 ## Upload one capture
 
@@ -170,3 +175,6 @@ directory `index.js`, so `scripts/fix-esm-specifiers.mjs` rewrites them in
 by installing the packed tarball into an empty project, importing every subpath
 in Node ESM and type-checking a consumer under both `nodenext` and `bundler`
 resolution; `scripts/verify.sh` runs it and the release workflow reuses it.
+`npm publish` runs the same build through `prepack`, which also copies the root
+licence into the package (and `postpack` removes it again), so the published
+tarball is the artifact this gate approved.

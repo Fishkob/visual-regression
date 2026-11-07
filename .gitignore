@@ -2,6 +2,8 @@
 /node_modules/
 /client-sdk/node_modules/
 /client-sdk/dist/
+# Copied in by `prepack` so npm ships the root licence, removed again by `postpack`
+/client-sdk/LICENSE
 /dist/
 /backend/dist/
 /frontend/dist/

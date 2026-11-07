@@ -40,7 +40,8 @@ pnpm --filter ./client-sdk build
 
 # Stage the package the way npm sees it: dist plus the files npm always
 # includes. The MIT licence lives at the repo root, so it is copied in here
-# instead of being duplicated as a tracked file.
+# instead of being duplicated as a tracked file; `prepack` does the same for an
+# actual `npm publish`.
 printf '\033[1;36m==> Pack tarball\033[0m\n'
 mkdir -p "$WORK/pkg"
 cp -R client-sdk/dist "$WORK/pkg/dist"
@@ -66,6 +67,15 @@ TARBALL="$(find "$WORK" -maxdepth 1 -name '*.tgz' -print -quit)"
 [ -n "$TARBALL" ] || fail 'npm pack produced no tarball'
 [ "$(basename "$TARBALL")" = "fishkob-vrt-$VERSION.tgz" ] ||
   fail "unexpected tarball name: $(basename "$TARBALL") (version $VERSION)"
+# npm publishes what the manifest declares; a missing licence or a scoped
+# package left on the default (restricted) access is a release-time surprise.
+# The listing goes to a file: `grep -q` closes the pipe early, and under
+# `pipefail` tar's SIGPIPE would read as a failed assertion.
+tar -tzf "$TARBALL" >"$WORK/contents.txt"
+grep -qx 'package/LICENSE' "$WORK/contents.txt" ||
+  fail 'the tarball carries no LICENSE'
+ACCESS="$(node -p 'require(process.argv[1]).publishConfig?.access ?? ""' "$WORK/pkg/package.json")"
+[ "$ACCESS" = "public" ] || fail "publishConfig.access is '$ACCESS', expected 'public'"
 
 printf '\033[1;36m==> Install into an empty consumer project\033[0m\n'
 mkdir -p "$WORK/consumer"
