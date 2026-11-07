@@ -1,0 +1,12 @@
+# zizmor configuration (https://docs.zizmor.sh/configuration/).
+#
+# Findings are gated at `--min-severity medium` in the workflow, so `low` and
+# `informational` reports stay advisory. An entry here is an accepted finding
+# with a reason, not a mute button.
+
+rules:
+  artipacked:
+    # `bump-chart` pushes a branch and opens a pull request, so its checkout has
+    # to keep the token. Every other checkout sets `persist-credentials: false`.
+    ignore:
+      - release-images.yml

@@ -28,6 +28,9 @@ on:
 
 permissions:
   contents: write
+  # npm signs the provenance attestation with a certificate minted from this
+  # job's OIDC token. Without it the published tarball is anonymous.
+  id-token: write
 
 jobs:
   package:
@@ -42,6 +45,31 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.tag || github.event.release.tag_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      # A dispatch input is a free-form string and actions/checkout resolves a
+      # branch name just as happily as a tag, which would run this branch's own
+      # packaging script and publish it as @fishkob/vrt for every consumer.
+      # The ref must therefore be a client tag that sits on main and matches the
+      # version the tagged package.json declares.
+      - name: Verify the ref is a client tag on main
+        env:
+          REF: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --prune origin \
+            '+refs/heads/main:refs/remotes/origin/main' '+refs/tags/*:refs/tags/*'
+          git rev-parse --verify --quiet "refs/tags/${REF}^{commit}" >/dev/null ||
+            { echo "::error::$REF is not a tag"; exit 1; }
+          git merge-base --is-ancestor "$(git rev-parse HEAD)" origin/main ||
+            { echo "::error::$REF is not on main"; exit 1; }
+          VERSION=$(node -p 'require("./client-sdk/package.json").version')
+          [ "vrt-client-v${VERSION}" = "$REF" ] ||
+            {
+              echo "::error::$REF does not match the client-sdk version $VERSION"
+              exit 1
+            }
 
       - uses: ./.github/actions/setup
 
@@ -74,9 +102,12 @@ jobs:
 
       # NPM_TOKEN is a granular access token with write access to @fishkob.
       # Classic tokens no longer exist, and a write-enabled granular token
-      # expires within 90 days — trusted publishing (OIDC) replaces it once the
-      # package exists. Provenance stays opted out: npm only attests a public
-      # source repository, and this one is private.
+      # expires within 90 days — trusted publishing (OIDC) retires it once the
+      # package config records this workflow as its publisher.
+      #
+      # Provenance is on: npm attests a public source repository, and this one
+      # is public since the 1.0.0 baseline, so consumers get a signed link from
+      # the tarball back to the commit and the workflow that built it.
       #
       # The gate's tarball is what gets published, not a rebuild: `npm version`
       # and `npm publish` in this workspace make npm rebuild the lockfile over
@@ -91,7 +122,7 @@ jobs:
         working-directory: ${{ runner.temp }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "false"
+          NPM_CONFIG_PROVENANCE: "true"
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           TARBALL="$RUNNER_TEMP/client-sdk/fishkob-vrt-${VERSION}.tgz"
@@ -110,9 +141,20 @@ jobs:
         if: steps.npm-token.outputs.configured != 'true'
         run: echo "::warning::NPM_TOKEN is not configured; @fishkob/vrt was not published to npm."
 
+      # `--clobber` let a run replace the tarball of a release it did not build
+      # (the tag is an input). The first upload is the record: a re-run notices
+      # the asset and leaves it alone.
       - name: Attach the tarball to the release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.event.release.tag_name }}
         run: |
-          gh release upload "$TAG" "$RUNNER_TEMP"/client-sdk/*.tgz --clobber
+          set -euo pipefail
+          for tarball in "$RUNNER_TEMP"/client-sdk/*.tgz; do
+            name="$(basename "$tarball")"
+            if gh release view "$TAG" --json assets --jq '.assets[].name' | grep -qxF "$name"; then
+              echo "::notice::$name is already attached to $TAG; leaving it untouched."
+            else
+              gh release upload "$TAG" "$tarball"
+            fi
+          done

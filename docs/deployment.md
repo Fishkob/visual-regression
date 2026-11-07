@@ -12,18 +12,18 @@ Both deployment paths read the same variables. [`.env.example`](../.env.example)
 documents every one of them inline and is the reference to copy for Compose; the
 table below is the subset a first deployment usually has to change.
 
-| Variable                                              | Controls                                                                         |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | PostgreSQL container and the backend connection                                  |
-| `RUSTFS_ROOT_USER` / `RUSTFS_ROOT_PASSWORD`           | RustFS root credentials (server and app)                                         |
-| `RUSTFS_BUCKET`                                       | Storage bucket name                                                              |
-| `RUSTFS_PUBLIC_URL`                                   | Browser-reachable storage base — the host of every presigned screenshot/PDF URL  |
-| `CORS_ORIGIN`                                         | Browser origins allowed to call the API (see below)                              |
-| `TRUST_PROXY`                                         | Trust `X-Forwarded-For` from the reverse proxy (see above)                       |
-| `TOTP_ENCRYPTION_KEY`                                 | Required; AES-256-GCM key for the TOTP seeds at rest                             |
-| `BASELINE_HISTORY_LIMIT`                              | Replaced baselines kept per test variant for restore (default 10, max 100)       |
-| `APP_PUBLIC_URL`                                      | Dashboard base used to build links in webhook payloads                           |
-| `AUTH_COOKIE_SECURE`                                  | `Secure` flag on the session cookie — set it in every deployment served over TLS |
+| Variable                                              | Controls                                                                                    |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | PostgreSQL container and the backend connection                                             |
+| `RUSTFS_ROOT_USER` / `RUSTFS_ROOT_PASSWORD`           | RustFS root credentials (server and app)                                                    |
+| `RUSTFS_BUCKET`                                       | Storage bucket name                                                                         |
+| `RUSTFS_PUBLIC_URL`                                   | Browser-reachable storage base — the host of every presigned screenshot/PDF URL             |
+| `CORS_ORIGIN`                                         | Browser origins allowed to call the API (see below)                                         |
+| `TRUST_PROXY`                                         | Trust `X-Forwarded-For` from the reverse proxy (see above)                                  |
+| `TOTP_ENCRYPTION_KEY`                                 | Required; AES-256-GCM key for the TOTP seeds at rest                                        |
+| `BASELINE_HISTORY_LIMIT`                              | Replaced baselines kept per test variant for restore (default 10, max 100)                  |
+| `APP_PUBLIC_URL`                                      | Dashboard base used to build links in webhook payloads                                      |
+| `AUTH_COOKIE_SECURE`                                  | `Secure` flag on the session cookie — required by Compose, defaults to `true` in production |
 
 Compose interpolates these for the containers **and** passes them to the app, so a
 mismatch (for example the Postgres container and the backend's `DATABASE_URL`)
@@ -54,7 +54,8 @@ the value explicitly in production.
 ### Option A: Helm directly (no ArgoCD)
 
 ```bash
-# Override default secrets before deploying (values.yaml ships CHANGE_ME placeholders)
+# Both passwords are required: the chart refuses to render while either is still
+# the tracked CHANGE_ME placeholder.
 helm upgrade --install vrt deploy/charts/vrt --namespace vrt --create-namespace \
   --set secrets.postgres_password=<strong-password> \
   --set secrets.rustfs_secret_key=<strong-key>
@@ -294,7 +295,7 @@ helm upgrade --install vrt deploy/charts/vrt --namespace vrt --create-namespace 
 
 The bootstrap runs only when **both** `secrets.bootstrap_admin_username` and `secrets.bootstrap_admin_password` are non-empty, and creates that user as `ADMIN`. Log in, open **Users** to create the team (roles ADMIN/MEMBER/VIEWER), then remove both values and roll the backend so the credentials no longer live in the release. An upgraded installation promotes its oldest existing user to `ADMIN` once.
 
-Set `AUTH_COOKIE_SECURE=true` in every production deployment served over TLS (the production env example already does); the session cookie is then HTTPS-only. Session cookies are `HttpOnly` + `SameSite=Lax`, and the auth guard rejects cross-site writes whose `Origin` does not match `Host`. The backend warns at startup when it runs with `NODE_ENV=production` and this flag is unset: the cookie is then only `Secure` on requests that arrive over TLS, which is easy to get wrong behind a proxy.
+`AUTH_COOKIE_SECURE` is `true` by default under `NODE_ENV=production` and the session cookie is then HTTPS-only. The bundled Compose stack is plain HTTP on `localhost`, so `.env.example` states `false` explicitly and Compose refuses to start without a value; set it to `true` as soon as the UI is served over TLS, because a cookie sent in the clear is a replayable session for its full 30-day idle / 90-day absolute lifetime. The Helm chart derives it from `tls.enabled`. Session cookies are `HttpOnly` + `SameSite=Lax`, and the auth guard rejects cross-site writes whose `Origin` does not match `Host`.
 
 `admin_api_key` and `metrics_api_key` are optional: set them to enable the DLQ admin and metrics endpoints, leave them empty to keep those endpoints disabled.
 
@@ -471,3 +472,56 @@ nano deploy/charts/vrt/values.yaml
 ```
 
 Set the `tag:` under each entry in `images:` to a released version such as `1.2.3`, then commit — ArgoCD reconciles it. This override lasts only until the next release, which rewrites every `tag:`; for a durable pin, set the tags from ArgoCD or revert the release commit. A released tag stays pullable: the weekly cleanup deletes only **untagged** versions — the leftovers of a rebuilt release, which nothing but a digest can reach — and never a tagged one. It keeps the newest 5 of those; a manual _Actions → Cleanup old images → Run workflow_ overrides the number.
+
+## Security Checklist
+
+The defaults are safe for a localhost install. Before a deployment becomes
+reachable from an untrusted network, work through this list — every item is a
+setting, not a code change, so nothing in the repository can enforce it:
+
+- **TLS terminated somewhere the app knows about.** Set `AUTH_COOKIE_SECURE=true`
+  (Compose requires the value; the chart derives it from `tls.enabled`). A session
+  cookie sent in the clear is a replayable session for its full idle and absolute
+  lifetime.
+- **Every secret generated, nothing copied from this repository.** `install.sh`
+  writes a random `.env`; the chart refuses placeholder passwords. `openssl rand
+-hex 32` for `TOTP_ENCRYPTION_KEY`, `-hex 24` for database and object-store
+  passwords.
+- **One credential per surface.** `ADMIN_API_KEY` and `METRICS_API_KEY` must
+  differ; a production value below 32 characters is rejected at startup.
+- **Bootstrap admin finished.** Create the team, then remove
+  `BOOTSTRAP_ADMIN_*` and roll the backend. A bootstrap password under 16
+  characters, or one that appears in this repository, is rejected in production.
+- **Object store not public.** `RUSTFS_ENSURE_PUBLIC_BUCKET=false`; the API
+  presigns URLs. If the bucket _is_ public, every screenshot is readable by URL.
+- **`/docs` off.** `SWAGGER_ENABLED` defaults to `false` in production; leave it
+  there.
+- **Logs are data.** Request logs can carry presigned URLs (the API redacts
+  `X-Amz-*` and `pdfUrl`), and `LOG_LEVEL` defaults to `info` in production.
+  Anyone who can read the log stream can usually read what users uploaded.
+- **Backups cover the database _and_ the bucket.** See
+  [Backups](#backups); a restore with one half is not a restore.
+- **Repository settings** (GitHub, not files): tag ruleset on `v*` and
+  `vrt-client-v*`, immutable GHCR tags, secret scanning with push protection,
+  Dependabot security updates, and "Require review from Code Owners" for the
+  paths named in `.github/CODEOWNERS`.
+
+## Verifying a Release
+
+Every release artifact is built from a tag that is verified to be an ancestor of
+`main`, and carries provenance you can check without trusting this repository:
+
+```bash
+# Container image: provenance, SBOM and the signed attestation
+gh attestation verify oci://ghcr.io/fishkob/visual-regression-backend:1.0.0 \
+  --owner Fishkob
+docker buildx imagetools inspect ghcr.io/fishkob/visual-regression-backend:1.0.0
+
+# npm package: the tarball is published with provenance
+npm view @fishkob/vrt@1.0.0 dist.integrity
+npm audit signatures
+```
+
+Pin the digest, not the tag, when you need the exact bits a run used — the
+release notes and the image label `org.opencontainers.image.revision` name the
+commit the image was built from.

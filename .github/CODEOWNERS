@@ -2,4 +2,17 @@
 # request. The "Require review from Code Owners" rule stays off while the
 # project has a single maintainer — enabling it would block every PR on a
 # second reviewer.
+#
+# The paths below are named separately anyway: they are the release pipeline,
+# the chart operators deploy and the action third parties run in their own CI.
+# When a second maintainer exists, the required-review ruleset is scoped to
+# exactly these paths.
 * @Fishkob
+
+/.github/workflows/ @Fishkob
+/.github/actions/ @Fishkob
+/action.yml @Fishkob
+/deploy/ @Fishkob
+/scripts/security/ @Fishkob
+/install.sh @Fishkob
+/SECURITY.md @Fishkob

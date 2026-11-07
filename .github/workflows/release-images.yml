@@ -40,6 +40,25 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref || github.ref }}
+          # The ancestry check below needs main's history, not one commit.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Branch protection covers main, not tags: a force-pushed tag publishes
+      # unreviewed code under a version an operator already pinned. The version
+      # check below only proves the tag matches package.json, so the commit the
+      # tag points at has to be proven reachable from main as well.
+      - name: The tag must point at a commit on main
+        env:
+          REF: ${{ inputs.ref || github.ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --prune origin '+refs/heads/main:refs/remotes/origin/main'
+          git merge-base --is-ancestor "$(git rev-parse HEAD)" origin/main ||
+            {
+              echo "::error::$REF is not on main; releasing it would publish unreviewed code"
+              exit 1
+            }
 
       # The tag is what users pin and what the chart rewrite has to match. A
       # version read from anywhere else (main, a branch head) publishes code
@@ -81,6 +100,10 @@ jobs:
     permissions:
       contents: read
       packages: write
+      # Sigstore signs the attestation with a certificate minted from this
+      # job's OIDC token; `attestations` stores it next to the repository.
+      id-token: write
+      attestations: write
     strategy:
       fail-fast: false
       matrix:
@@ -103,6 +126,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           ref: ${{ inputs.ref || github.ref }}
 
       - name: Login to GitHub Container Registry
@@ -128,6 +152,7 @@ jobs:
             org.opencontainers.image.revision=${{ needs.version.outputs.sha }}
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ matrix.context }}
@@ -135,8 +160,24 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          # A released image carries its own SLSA provenance and an SPDX SBOM, so
+          # a consumer can tell this build from one pushed by a stolen token.
+          provenance: mode=max
+          sbom: true
+          # Restore-only, in a namespace no pull request can write: a released
+          # image is compiled from the tagged source, never from a cache someone
+          # else seeded.
+          cache-from: type=gha,scope=release-${{ matrix.image }}
+
+      - name: Attest the published image
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ matrix.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+          # Storage records exist for organization-owned repositories only; this
+          # one is user-owned and the step would fail with the default true.
+          create-storage-record: "false"
 
   bump-chart:
     name: Bump chart image tags

@@ -49,7 +49,14 @@ export const envValidationSchema = Joi.object({
     .description(
       "Key material for encrypting TOTP seeds at rest (AES-256-GCM, key derived with SHA-256). Any high-entropy string; generate with `openssl rand -hex 32`. Required: a bare seed in the database hands out every user's second factor.",
     )
-    .min(16),
+    // 16 characters is a local-dev key. The floor that matters is the production
+    // one: `openssl rand -hex 32` yields 64 characters, and a short key turns
+    // the encryption into a speed bump for a database dump.
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.string().min(32),
+      otherwise: Joi.string().min(16),
+    }),
 
   RUSTFS_ENSURE_PUBLIC_BUCKET: Joi.boolean()
     .default(false)
@@ -183,13 +190,31 @@ export const envValidationSchema = Joi.object({
   // expires. Must be >= AUTH_SESSION_TTL_DAYS in practice; a lower value simply
   // caps every session earlier.
   AUTH_SESSION_ABSOLUTE_MAX_DAYS: Joi.number().integer().min(1).default(90),
-  AUTH_COOKIE_SECURE: Joi.boolean().default(false),
+  // Session cookies are the account takeover primitive when they travel in the
+  // clear: a production default of `false` only ever fit the plain-HTTP
+  // self-host that has to opt out explicitly anyway. `docker-compose.yml`
+  // requires the value, so the bundled stack states its choice, and a
+  // deployment that forgets it gets the safe one.
+  AUTH_COOKIE_SECURE: Joi.boolean().when('NODE_ENV', {
+    is: 'production',
+    then: Joi.boolean().default(true),
+    otherwise: Joi.boolean().default(false),
+  }),
   AUTH_API_KEY_HEADER: Joi.string()
     .min(1)
     .pattern(/^[A-Za-z0-9-]+$/)
     .default('x-api-key'),
   BOOTSTRAP_ADMIN_USERNAME: Joi.string().allow('').default(''),
-  BOOTSTRAP_ADMIN_PASSWORD: Joi.string().allow('').default(''),
+  // The bootstrap admin is a full ADMIN account. Unset means "no bootstrap";
+  // a configured value in production is a real credential and gets a floor.
+  BOOTSTRAP_ADMIN_PASSWORD: Joi.string()
+    .allow('')
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.string().allow('').min(16),
+      otherwise: Joi.string().allow(''),
+    })
+    .default(''),
 
   // Metrics API key (empty disables the metrics endpoint per metrics-auth.guard).
   // The operator keys are bearer credentials for privileged surfaces, so a
@@ -246,9 +271,16 @@ export const envValidationSchema = Joi.object({
     .description('Delay in ms between RustFS storage retries.'),
 
   // Logging
+  // `debug` logs every request URL; presigned screenshot URLs carry a live
+  // signature in the query string, so a production container's log stream would
+  // hold readable capability URLs. Debugging is an explicit opt-in there.
   LOG_LEVEL: Joi.string()
     .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
-    .default('debug')
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.string().default('info'),
+      otherwise: Joi.string().default('debug'),
+    })
     .description('Pino log level.'),
 
   // Worker health
@@ -278,4 +310,51 @@ export const envValidationSchema = Joi.object({
 
   // Swagger export
   SWAGGER_BASE_URL: Joi.string().default('http://localhost:3000'),
-});
+}).custom((env: Record<string, unknown>, helpers) => {
+  const problem = productionProblem(env);
+  if (problem) {
+    return helpers.message({ custom: problem });
+  }
+  return env;
+}, 'production safety rules');
+
+// Values that exist in this repository (documentation, the local-dev example,
+// the old dev-stack default). A production deployment that still carries one of
+// them is not protected by it, whatever its length.
+const DOCUMENTED_CREDENTIALS = new Set([
+  'admin-secret',
+  'dev-stack-totp-key-not-for-production',
+]);
+
+// The validated env is typed loosely on purpose (the schema owns the types), so
+// every read narrows instead of stringifying whatever is there.
+function envString(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+// Rules the per-key schema cannot express. Each one is a silent
+// misconfiguration on its own: startup succeeds, and a control that looks
+// configured is weaker than it appears.
+export function productionProblem(env: Record<string, unknown>): string | null {
+  if (env.NODE_ENV !== 'production') return null;
+
+  const totpKey = envString(env.TOTP_ENCRYPTION_KEY);
+  if (DOCUMENTED_CREDENTIALS.has(totpKey)) {
+    return 'TOTP_ENCRYPTION_KEY is a value published in this repository — generate one with `openssl rand -hex 32`';
+  }
+
+  const bootstrapPassword = envString(env.BOOTSTRAP_ADMIN_PASSWORD);
+  if (DOCUMENTED_CREDENTIALS.has(bootstrapPassword)) {
+    return 'BOOTSTRAP_ADMIN_PASSWORD is a value published in this repository — the bootstrap admin is a full admin account';
+  }
+
+  // The metrics key guards a read-only surface and the admin key mints API keys.
+  // One credential for both hands every metrics reader the admin surface.
+  const metricsKey = envString(env.METRICS_API_KEY);
+  const adminKey = envString(env.ADMIN_API_KEY);
+  if (metricsKey && adminKey && metricsKey === adminKey) {
+    return 'METRICS_API_KEY and ADMIN_API_KEY are the same value — they guard different surfaces, so they need different keys';
+  }
+
+  return null;
+}

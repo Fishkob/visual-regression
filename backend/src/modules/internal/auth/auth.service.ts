@@ -17,6 +17,7 @@ import {
   generateRecoveryCodes,
   generateTotpSecret,
   hashRecoveryCode,
+  legacyHashRecoveryCode,
   otpauthUrl,
   verifyTotp,
 } from './totp';
@@ -122,6 +123,24 @@ export class AuthService {
     }
   }
 
+  // The lookup is by hash, so a code issued before the pepper existed can only
+  // be found by its old digest. Both are tried; the code is marked used either
+  // way, so a legacy row is consumed the first time it works.
+  private async findRecoveryCode(
+    userId: string,
+    code: string,
+  ): Promise<{ id: string } | null> {
+    const peppered = await this.repo.findUnusedRecoveryCode(
+      userId,
+      hashRecoveryCode(code, this.totpCipher.recoveryCodePepper),
+    );
+    if (peppered) return peppered;
+    return this.repo.findUnusedRecoveryCode(
+      userId,
+      legacyHashRecoveryCode(code),
+    );
+  }
+
   private async issueSession(
     user: AuthUserRow,
     context: AuthRequestContext,
@@ -165,10 +184,7 @@ export class AuthService {
     const isTotpValid = verifyTotp(this.totpCipher.decrypt(storedSecret), code);
     let isRecoveryValid = false;
     if (!isTotpValid) {
-      const recovery = await this.repo.findUnusedRecoveryCode(
-        user.id,
-        hashRecoveryCode(code),
-      );
+      const recovery = await this.findRecoveryCode(user.id, code);
       if (recovery) {
         await this.repo.markRecoveryCodeUsed(recovery.id);
         isRecoveryValid = true;
@@ -227,7 +243,9 @@ export class AuthService {
     const recoveryCodes = generateRecoveryCodes();
     await this.repo.createRecoveryCodes(
       user.id,
-      recoveryCodes.map(hashRecoveryCode),
+      recoveryCodes.map((code) =>
+        hashRecoveryCode(code, this.totpCipher.recoveryCodePepper),
+      ),
     );
     return recoveryCodes;
   }

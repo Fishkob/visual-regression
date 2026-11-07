@@ -65,6 +65,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 069 | [The Client SDK Has Its Own Version Line](./ADR-069-independent-client-version.md)                                                     | Accepted (supersedes 068 decision 2; baseline by 070)                 |
 | 070 | [The Release Lines Restart at 4.0.0 and 1.0.0](./ADR-070-release-baseline-reset.md)                                                    | Accepted (supersedes 069's baseline clause; platform baseline by 071) |
 | 071 | [The Platform Baseline Is 1.0.0](./ADR-071-platform-baseline-is-1-0-0.md)                                                              | Accepted (supersedes 070's platform baseline)                         |
+| 072 | [Release Artifacts Are Verified and Attested](./ADR-072-release-artifacts-are-verified-and-attested.md)                                | Accepted                                                              |
 
 ## Numbering
 

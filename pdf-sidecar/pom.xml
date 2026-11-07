@@ -9,6 +9,13 @@
   <packaging>jar</packaging>
 
   <!-- SPDX-License-Identifier: MIT -->
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>https://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
   <properties>
     <maven.compiler.release>25</maven.compiler.release>

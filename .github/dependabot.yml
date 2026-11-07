@@ -1,9 +1,14 @@
+# Every ecosystem waits out a cooldown before a version bump is opened: a
+# freshly published release is the one an attacker controls first, and this
+# mirrors `.npmrc`'s `minimum-release-age`. Security updates bypass it.
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       github-actions:
@@ -14,6 +19,8 @@ updates:
     directory: /.github/actions/setup
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       github-actions-composite:
@@ -24,6 +31,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       npm-minor-patch:
@@ -44,6 +53,8 @@ updates:
     directory: /pdf-sidecar
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       maven-pdf-sidecar:
@@ -54,6 +65,8 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       docker-backend:
@@ -64,6 +77,8 @@ updates:
     directory: /frontend
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       docker-frontend:
@@ -74,6 +89,8 @@ updates:
     directory: /pdf-sidecar
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       docker-pdf-sidecar:
@@ -84,6 +101,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       docker-compose:

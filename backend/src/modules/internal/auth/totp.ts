@@ -8,7 +8,7 @@ import {
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const TOTP_DIGITS = 6;
 const TOTP_PERIOD_SECONDS = 30;
-const RECOVERY_CODE_BYTES = 5;
+const RECOVERY_CODE_BYTES = 10;
 
 function base32Encode(buffer: Buffer): string {
   let bits = 0;
@@ -115,13 +115,28 @@ export function normalizeRecoveryCode(code: string): string {
   return code.toUpperCase().replace(/[\s-]/g, '');
 }
 
-export function hashRecoveryCode(code: string): string {
+// A recovery code is a second factor, so its stored form may not be crackable by
+// whoever reads the database — which is the threat the TOTP seed encryption
+// exists for. Keyed with a subkey of TOTP_ENCRYPTION_KEY: unlike a hash, the
+// stored value is useless without the environment secret.
+export function hashRecoveryCode(code: string, pepper: string): string {
+  return `hmac-sha256$${createHmac('sha256', pepper)
+    .update(normalizeRecoveryCode(code))
+    .digest('hex')}`;
+}
+
+// Hashes written before the pepper existed: unsalted SHA-256 over a 40-bit code
+// space. Still accepted so an upgrade does not lock anyone out; the code is
+// consumed on use, so each row is replaced by never being reachable again.
+export function legacyHashRecoveryCode(code: string): string {
   return createHash('sha256').update(normalizeRecoveryCode(code)).digest('hex');
 }
 
 export function generateRecoveryCodes(count = 10): string[] {
   return Array.from({ length: count }, () => {
+    // 10 bytes is 80 bits: with the pepper gone the stored hashes are not a
+    // brute-force target either.
     const raw = base32Encode(randomBytes(RECOVERY_CODE_BYTES));
-    return `${raw.slice(0, 4)}-${raw.slice(4, 8)}`;
+    return `${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8, 12)}-${raw.slice(12, 16)}`;
   });
 }

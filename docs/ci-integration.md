@@ -253,3 +253,33 @@ The dashboard shows these on the project's Trends page. The underlying `Comparis
 - **Threshold:** an image diff at or below the baseline's `pixelDiffThreshold` is auto-accepted — the candidate is discarded, the baseline is kept, and the job completes with `comparison: null`. A threshold of 0, the default, keeps every non-zero diff reviewable. The threshold is per variant and image-only; PDF comparisons always need review.
 - **Webhooks:** project endpoints can subscribe to `review.requested`, `comparison.approved`, `review.assigned` and `review.comment` (dashboard → project → **Webhooks**; `ADMIN` session only). Deliveries are signed with `X-VRT-Timestamp` + `X-VRT-Signature: sha256=<hmac(secret, timestamp.body)>`, retried with backoff, and identified by `X-VRT-Delivery-Id` (at-least-once). The payload carries a dashboard link, not a presigned storage URL. Pipelines can still use the wait endpoint. See [Webhooks](webhooks.md) for payloads, signature verification, the admin API and troubleshooting.
 - **Rate limit:** uploads are capped per API key (`UPLOAD_RATE_LIMIT_PER_MINUTE`, default 240). The status endpoint is not upload-rate-limited.
+
+## 7. The GitHub Action
+
+The repository root is a composite action, so a GitHub workflow needs no SDK, no
+script and no `curl`:
+
+```yaml
+- uses: Fishkob/visual-regression@<commit-sha> # pin a SHA, not a branch
+  with:
+    api-url: https://vrt.example.com
+    api-key: ${{ secrets.VRT_API_KEY }}
+    project: shop
+    test: checkout
+    file: artifacts/checkout.png
+    viewport: 1920x1080
+    browser: Chromium
+    environment: staging
+    run-key: ${{ github.run_id }}-${{ github.run_attempt }}
+    commit: ${{ github.sha }}
+    finish-run: "true"
+```
+
+The inputs, the manifest mode (`manifest:` with one run for many captures) and the
+outputs are documented in [`action.yml`](../action.yml).
+
+**Pin the commit SHA.** The action runs `bash` inside your job with your API key
+in its environment; a branch or tag reference means the code that runs can change
+without a change on your side. The SHA is the same one the release was built from
+(the image label `org.opencontainers.image.revision` names it), so a pinned action
+and a pinned image describe the same commit.

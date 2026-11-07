@@ -2,8 +2,8 @@ import { S3Presigner } from '@internal/storage/services/s3-presigner';
 
 const PRESIGNER = new S3Presigner({
   publicUrl: 'http://localhost:9000',
-  accessKey: 'AKIAIOSFODNN7EXAMPLE',
-  secretKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
+  accessKey: 'test-access-key',
+  secretKey: 'test-secret-key',
 });
 
 const FIXED_NOW = new Date('2026-10-25T12:00:00.000Z');
@@ -20,11 +20,11 @@ describe('S3Presigner', () => {
     expect(url).toBe(
       'http://localhost:9000/vrt/folder/baseline%20image.png' +
         '?X-Amz-Algorithm=AWS4-HMAC-SHA256' +
-        '&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20261025%2Fus-east-1%2Fs3%2Faws4_request' +
+        '&X-Amz-Credential=test-access-key%2F20261025%2Fus-east-1%2Fs3%2Faws4_request' +
         '&X-Amz-Date=20261025T120000Z' +
         '&X-Amz-Expires=3600' +
         '&X-Amz-SignedHeaders=host' +
-        '&X-Amz-Signature=1b5b558785572d0df3dc74e08838e07b4d2fc22580c0ff27117c95391afedeab',
+        '&X-Amz-Signature=cb0e0ed30f43576b00f7d5073f37c555e87054dcf0f50dec053210e6f9e481c3',
     );
   });
 

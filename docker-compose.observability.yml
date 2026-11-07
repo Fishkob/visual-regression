@@ -9,7 +9,10 @@ services:
       - "127.0.0.1:12345:12345"
     volumes:
       - ./backend/observability/alloy.alloy:/etc/alloy/alloy.alloy
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Read-only: Alloy only reads container metadata and logs through the
+      # API. A writable socket is host root for anything that can run code in
+      # this container.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -65,6 +68,12 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:3030:3000"
+    environment:
+      # Admin/admin is the first credential anyone tries, and these dashboards
+      # hold the request log (including presigned URLs minted before the log
+      # redaction landed). The stack refuses to start without a password.
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required — generate one with openssl rand -hex 16}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
     volumes:
       - ./backend/observability/grafana/datasources:/etc/grafana/provisioning/datasources
       - ./backend/observability/grafana/dashboards:/etc/grafana/provisioning/dashboards

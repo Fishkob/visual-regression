@@ -1,5 +1,12 @@
 # Changelog
 
+> **Release history:** the release lines were reset on 2026-11-07
+> ([ADR-070](docs/adr/ADR-070-release-baseline-reset.md),
+> [ADR-071](docs/adr/ADR-071-platform-baseline-is-1-0-0.md)). The tags of the
+> earlier line are retired, so the compare links for those versions no longer
+> resolve, and the repository starts at `v1.0.0`. Treat every tag below as
+> immutable history — it is never moved, and a released version is never reused.
+
 ## [1.0.0](https://github.com/Fishkob/visual-regression/releases/tag/v1.0.0) (2026-11-07)
 
 

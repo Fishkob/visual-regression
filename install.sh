@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Everything this script writes holds a credential: .env carries the database
+# password, the object-store root password, the TOTP key and the admin API key.
+# The default umask would leave it world-readable on a shared host.
+umask 077
+
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_ROOT"
 
@@ -66,7 +71,10 @@ ensure_env() {
         .env.tmp
     rm -f .env.tmp.bak
     mv .env.tmp .env
-    success "Secrets generated into .env"
+    # `umask 077` already does this; explicit because an installer that copies
+    # an existing template must not inherit the template's mode.
+    chmod 600 .env
+    success "Secrets generated into .env (mode 600)"
 }
 
 source_env() {

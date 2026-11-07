@@ -20,6 +20,7 @@ jobs:
       TOTP_ENCRYPTION_KEY: ci-container-scan-totp-0123456789abcdef
       POSTGRES_PASSWORD: postgres
       RUSTFS_ROOT_PASSWORD: rustfsadmin
+      AUTH_COOKIE_SECURE: "false"
     strategy:
       fail-fast: false
       matrix:
@@ -37,6 +38,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+        with:
+          persist-credentials: false
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
@@ -63,6 +66,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+        with:
+          persist-credentials: false
       - name: Scan IaC config with Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:

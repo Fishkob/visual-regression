@@ -22,9 +22,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
-  # analyze uploads the results into the Security tab.
-  security-events: write
 
 concurrency:
   group: codeql-${{ github.workflow }}-${{ github.ref }}
@@ -37,6 +34,11 @@ jobs:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      # analyze uploads the results into the Security tab; nothing else here writes.
+      security-events: write
     strategy:
       # One slow or failing language must not cancel the other two.
       fail-fast: false
@@ -45,6 +47,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+        with:
+          persist-credentials: false
       # No `category` is set, so the action derives one from the workflow path
       # and job name: `<this file>:analyze/language:<language>`. That differs
       # from the /language:<language> category default setup uploaded, but the
@@ -63,9 +67,15 @@ jobs:
     name: Analyze (java-kotlin)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+        with:
+          persist-credentials: false
       # Matches the sidecar's runtime image (eclipse-temurin:25 in
       # pdf-sidecar/Dockerfile); the Dockerfile's build stage uses a 27 JDK,
       # which is newer than the release target requires.

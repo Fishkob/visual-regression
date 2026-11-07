@@ -51,6 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
@@ -86,6 +87,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
 
       - name: Run ESLint & TypeCheck (Backend)
@@ -106,6 +109,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
 
       - name: Run unit tests with coverage
@@ -126,9 +131,13 @@ jobs:
       TOTP_ENCRYPTION_KEY: ci-backend-totp-key-0123456789abcdef
       POSTGRES_PASSWORD: postgres
       RUSTFS_ROOT_PASSWORD: rustfsadmin
+      # docker compose requires the cookie decision; every e2e stack is plain HTTP.
+      AUTH_COOKIE_SECURE: "false"
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: ./.github/actions/setup
 
       # The e2e bootstrap (backend/test/e2e/global/setup.ts) refuses to run
@@ -147,7 +156,7 @@ jobs:
 
           echo "Waiting for Postgres..."
           READY=0
-          for i in {1..60}; do
+          for _ in {1..60}; do
             if docker compose exec -T postgres pg_isready -h 127.0.0.1 -p 5432 -U postgres; then
               READY=1
               break
@@ -162,7 +171,7 @@ jobs:
 
           echo "Waiting for RustFS..."
           READY=0
-          for i in {1..60}; do
+          for _ in {1..60}; do
             if nc -z 127.0.0.1 9000; then
               READY=1
               break
@@ -177,7 +186,7 @@ jobs:
 
           echo "Waiting for the pdf sidecar..."
           READY=0
-          for i in {1..120}; do
+          for _ in {1..120}; do
             if curl -fsS http://127.0.0.1:3001/health >/dev/null; then
               READY=1
               break

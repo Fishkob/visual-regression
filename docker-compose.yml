@@ -29,9 +29,12 @@ x-app-env: &app-env
   # bucket (and session IPs are wrong). Set false only when the API is exposed
   # directly, with no proxy in front.
   TRUST_PROXY: ${TRUST_PROXY:-true}
-  # Set to true when the stack is served over TLS (directly or behind a proxy):
-  # the session cookie is then HTTPS-only.
-  AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+  # True when the stack is served over TLS (directly or behind a proxy): the
+  # session cookie is then HTTPS-only. Required rather than defaulted, because a
+  # default here would silently override the backend's production default
+  # (`true`) for every plain-HTTP install that never thought about it. The
+  # bundled stack is plain HTTP, so .env.example states `false` explicitly.
+  AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:?AUTH_COOKIE_SECURE is required — true when the stack is served over TLS}
   AUTH_SESSION_ABSOLUTE_MAX_DAYS: ${AUTH_SESSION_ABSOLUTE_MAX_DAYS:-90}
   DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
   WEBHOOK_DELIVERY_RETENTION_DAYS: ${WEBHOOK_DELIVERY_RETENTION_DAYS:-30}
@@ -59,9 +62,20 @@ x-logging: &logging
     max-size: "10m"
     max-file: "3"
 
+# Every service here runs as a non-root user and needs no Linux capability: it
+# speaks HTTP over the compose network and opens no privileged resource. Dropping
+# the default set removes the tooling a memory-safety bug in an image/PDF decoder
+# would otherwise hand to an attacker.
+x-hardening: &hardening
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+
 services:
   db-migrate:
     image: visual-regression-migrate
+    <<: *hardening
     build:
       context: .
       dockerfile: backend/Dockerfile.migrate
@@ -81,6 +95,7 @@ services:
 
   backend:
     image: visual-regression-backend
+    <<: *hardening
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -110,6 +125,13 @@ services:
 
   pdf-sidecar:
     image: visual-regression-pdf-sidecar
+    <<: *hardening
+    # The one container that parses untrusted input: it may write /tmp and
+    # nothing else, so a successful deserialisation bug has no filesystem to
+    # persist in.
+    read_only: true
+    tmpfs:
+      - /tmp
     build:
       context: ./pdf-sidecar
       dockerfile: Dockerfile
@@ -142,6 +164,7 @@ services:
 
   worker:
     image: visual-regression-worker
+    <<: *hardening
     build:
       context: .
       dockerfile: backend/Dockerfile.worker
@@ -181,6 +204,10 @@ services:
 
   frontend:
     image: visual-regression-frontend
+    <<: *hardening
+    read_only: true
+    tmpfs:
+      - /tmp
     build:
       context: .
       dockerfile: frontend/Dockerfile

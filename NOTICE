@@ -1,12 +1,35 @@
 Visual Regression Platform
-Copyright 2024-2026
+Copyright 2024-2026 Visual Regression Platform contributors
 
-This product includes software from the following projects:
+This product includes software from the following projects, grouped by the
+runtime that ships them. The list covers the direct runtime dependencies; every
+transitive dependency stays under its own license and is installed from a frozen
+lockfile (`pnpm-lock.yaml`, `pdf-sidecar/pom.xml`).
+
+Platform (Node.js + browser):
 
 - NestJS (https://nestjs.com) - MIT License
 - Vue.js (https://vuejs.org) - MIT License
 - Prisma (https://prisma.io) - Apache License 2.0
 - AWS SDK for JavaScript (https://aws.amazon.com/sdk-for-javascript/) - Apache License 2.0
 - Tailwind CSS (https://tailwindcss.com) - MIT License
+
+PDF sidecar (Java), shaded into a single jar and therefore redistributed in the
+`ghcr.io/fishkob/pdf-sidecar` image:
+
+- Javalin (https://javalin.io) - Apache License 2.0
+- Eclipse Jetty (https://eclipse.dev/jetty/) - EPL 2.0 / Apache License 2.0
+- Apache PDFBox (https://pdfbox.apache.org) - Apache License 2.0
+- pdfcompare (https://github.com/red6/pdfcompare) - Apache License 2.0
+- Jackson (https://github.com/FasterXML/jackson) - Apache License 2.0
+- SLF4J (https://www.slf4j.org) - MIT License
+- Logback (https://logback.qos.ch) - EPL 1.0 / LGPL 2.1
+- logstash-logback-encoder (https://github.com/logfellow/logstash-logback-encoder) - Apache License 2.0
+- OpenTelemetry Java (https://opentelemetry.io) - Apache License 2.0
+
+Logback is licensed under the EPL 1.0 or, alternatively, the LGPL 2.1. It is
+shaded into the sidecar jar; the license text and the source of the exact version
+in use (see `pdf-sidecar/pom.xml`) are available on request and at
+<https://logback.qos.ch/license.html>.
 
 Third-party components are used under their respective licenses.
