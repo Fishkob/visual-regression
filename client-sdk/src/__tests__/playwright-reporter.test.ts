@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import VrtReporter, { createVrtReporter } from '../playwright-reporter';
+import VrtReporter, { createVrtReporter, toTestName } from '../playwright-reporter';
 import { uploadMany } from '../upload-many';
 
 // Keep the pure config helpers real; only the network call is mocked.
@@ -47,7 +47,7 @@ describe('createVrtReporter', () => {
     ]);
   });
 
-  it('uploads the screenshot of a passing test under the title path', async () => {
+  it('uploads the screenshot of a passing test under its title path', async () => {
     const reporter = createVrtReporter({
       apiUrl: 'http://vrt.test/api/v1',
       apiKey: 'key-1',
@@ -70,7 +70,8 @@ describe('createVrtReporter', () => {
     expect(captures[0]).toEqual(
       expect.objectContaining({
         projectName: 'checkout',
-        testName: 'checkout.spec.ts / login works',
+        // "checkout.spec.ts / login works" is not a name the API accepts.
+        testName: 'checkout-spec-ts-login-works',
         environment: 'staging',
         runKey: 'ci-1',
         kind: 'image',
@@ -120,6 +121,42 @@ describe('createVrtReporter', () => {
     await reporter.onEnd();
 
     expect(uploadManyMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('test names', () => {
+  it('reduces a title path to a name the API accepts', () => {
+    expect(toTestName(testLike())).toBe('checkout-spec-ts-login-works');
+  });
+
+  it('keeps a title that is already a valid name', () => {
+    expect(toTestName({ title: 'login-form', titlePath: () => ['login-form'] })).toBe(
+      'login-form',
+    );
+  });
+
+  it('never exceeds the API limit and keeps colliding prefixes apart', () => {
+    const head = 'a'.repeat(140);
+    const first = toTestName({
+      title: 'x',
+      titlePath: () => [head, 'first case'],
+    });
+    const second = toTestName({
+      title: 'x',
+      titlePath: () => [head, 'second case'],
+    });
+
+    expect(first.length).toBeLessThanOrEqual(100);
+    expect(second.length).toBeLessThanOrEqual(100);
+    expect(first).not.toBe(second);
+    expect(first).toMatch(/^a+-[0-9a-f]{8}$/);
+  });
+
+  it('falls back to a hashed name when nothing survives', () => {
+    const name = toTestName({ title: '!!!', titlePath: () => ['!!!'] });
+
+    expect(name).toMatch(/^test-[0-9a-f]{8}$/);
+    expect(name).toBe(toTestName({ title: '!!!', titlePath: () => ['!!!'] }));
   });
 });
 
@@ -193,6 +230,33 @@ describe('config thresholds', () => {
 
     const [captures] = uploadManyMock.mock.calls[0]!;
     expect(captures[0]!.pixelDiffThreshold).toBe(7);
+  });
+
+  it('also matches a threshold written in the dashboard name', async () => {
+    const { mkdtemp, writeFile } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const dir = await mkdtemp(join(tmpdir(), 'vrt-config-'));
+    const configPath = join(dir, '.vrt.json');
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        thresholds: { 'checkout-spec-ts-login-works': 9 },
+      }),
+    );
+
+    const reporter = createVrtReporter({
+      apiUrl: 'http://vrt.test/api/v1',
+      apiKey: 'key-1',
+      project: 'checkout',
+      configPath,
+    });
+
+    reporter.onTestEnd(testLike(), result());
+    await reporter.onEnd();
+
+    const [captures] = uploadManyMock.mock.calls[0]!;
+    expect(captures[0]!.pixelDiffThreshold).toBe(9);
   });
 
   it('uploads without a threshold when the config file is missing', async () => {

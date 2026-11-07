@@ -177,7 +177,7 @@ export default defineConfig({
 });
 ```
 
-- The reporter uploads the first attachment whose content type or name looks like a screenshot (`image/png`) or PDF, as `<project> / <titlePath joined with " / ">`.
+- The reporter uploads the first attachment whose content type or name looks like a screenshot (`image/png`) or PDF, into `<project>`, and names the test after the Playwright title path. A test name is a path segment, so it is reduced to `[A-Za-z0-9_-]`, at most 100 characters: `checkout.spec.ts / cart summary` becomes `checkout-spec-ts-cart-summary`. An over-long name keeps a stable hash of the full title path, so two tests that share a prefix stay two tests.
 - The test attaches the capture itself: `testInfo.attach("screenshot", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" })`. Playwright attaches a `toHaveScreenshot` image only when it writes or diffs a snapshot, so a matching assertion uploads nothing of its own.
 - `uploadOnFailureOnly: true` uploads only failed/timed-out tests; `skipRetries: true` ignores Playwright's retry attempts so only the final result is uploaded.
 - `concurrency`/`maxAttempts` are forwarded to `uploadMany` (default 4 / 3). Upload failures are collected in `reporter.results()` and via `onUpload`; they do not fail the test run.
@@ -199,8 +199,9 @@ sends the matching value as the upload's `pixelDiffThreshold`:
 }
 ```
 
-- Keys are the reporter's canonical name (`<title path joined with " / ">`); the
-  bare test title and the last path segment are accepted as fallbacks.
+- Keys are the reporter's canonical name (`<title path joined with " / ">`), the
+  reduced name the dashboard shows, the bare test title, or the last path
+  segment.
 - The server applies the value when the upload creates the baseline. On an
   existing baseline it can only **tighten** (lower) the threshold — a raise is
   ignored, because raising a threshold auto-accepts pending comparisons and is

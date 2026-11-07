@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import {
   VRT_CONFIG_FILE,
@@ -112,9 +113,35 @@ async function readConfig(
   }
 }
 
-function testName(test: PlaywrightTestLike): string {
+// The canonical name of a test: Playwright's title path (file, describe blocks,
+// title) joined with " / ". This is also what `.vrt.json` keys and the
+// dashboard links are written in, so it stays the threshold lookup key.
+function canonicalTestName(test: PlaywrightTestLike): string {
   const path = test.titlePath().filter((part) => part.length > 0);
   return path.length > 0 ? path.join(' / ') : test.title;
+}
+
+// A UnifiedTest name is a path segment and the API accepts letters, digits,
+// hyphens and underscores only (100 characters max), so a title path like
+// "checkout.spec.ts / cart summary" cannot be uploaded verbatim. Reducing it
+// keeps the dashboard readable; an over-long name keeps a stable hash of the
+// canonical name so two tests that share a prefix stay two tests.
+const INVALID_NAME_CHARS = /[^a-zA-Z0-9_-]+/g;
+const MAX_TEST_NAME_LENGTH = 100;
+
+export function toTestName(test: PlaywrightTestLike): string {
+  const canonical = canonicalTestName(test);
+  const reduced = canonical
+    .replace(INVALID_NAME_CHARS, '-')
+    .replace(/^-|-$/g, '');
+  if (reduced.length === 0) return `test-${hashName(canonical)}`;
+  if (reduced.length <= MAX_TEST_NAME_LENGTH) return reduced;
+  const suffix = hashName(canonical);
+  return `${reduced.slice(0, MAX_TEST_NAME_LENGTH - suffix.length - 1)}-${suffix}`;
+}
+
+function hashName(name: string): string {
+  return createHash('sha256').update(name).digest('hex').slice(0, 8);
 }
 
 // Playwright loads a reporter configured by name, resolves the module and calls
@@ -123,9 +150,8 @@ function testName(test: PlaywrightTestLike): string {
 // must export a single class". The class is therefore the integration; the
 // factory stays as the programmatic entry point.
 //
-// It uploads the first screenshot/PDF attachment of each test into a VRT run.
-// The test name defaults to the title path joined with " / ", which keeps tests
-// from different files unique inside the project.
+// It uploads the first screenshot/PDF attachment of each test into a VRT run,
+// named after the test's title path.
 export class VrtReporter implements VrtPlaywrightReporter {
   private readonly pending: Promise<void>[] = [];
   private readonly collected: CaptureUploadResult[] = [];
@@ -153,14 +179,16 @@ export class VrtReporter implements VrtPlaywrightReporter {
         const body = await attachmentBody(attachment);
         if (!body) return;
         const config = await this.configPromise;
-        const canonicalName = testName(test);
+        const canonicalName = canonicalTestName(test);
+        const name = toTestName(test);
         const threshold = thresholdForTest(config, [
           canonicalName,
+          name,
           test.title,
         ]);
         const capture: CaptureUpload = {
           projectName: options.project,
-          testName: canonicalName,
+          testName: name,
           kind: attachment.contentType === 'application/pdf' ? 'pdf' : 'image',
           file: new Blob([new Uint8Array(body)], {
             type: attachment.contentType ?? 'image/png',

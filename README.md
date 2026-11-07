@@ -110,10 +110,11 @@ test("cart summary", async ({ page }, testInfo) => {
 ```
 
 **3. Point Playwright at your instance.** The client ships a reporter that uploads
-each test's first screenshot attachment under the test's title path; a `runKey`
-groups the uploads of one pipeline into a run. The client is a release tarball,
-not npm — install the one that matches your server
-([client SDK](client-sdk/README.md#install)):
+each test's first screenshot attachment and names the test after its title path,
+reduced to the characters a name may use (`checkout.spec.ts / cart summary` becomes
+`checkout-spec-ts-cart-summary`); a `runKey` groups the uploads of one pipeline
+into a run. The client is a release tarball, not npm — install the one that
+matches your server ([client SDK](client-sdk/README.md#install)):
 
 ```ts
 // playwright.config.ts
@@ -139,11 +140,12 @@ export default defineConfig({
 });
 ```
 
-The first upload of `checkout.spec.ts / cart summary` creates the project, the
-branch and the baseline; later captures are compared against it. `viewport`,
-`browser` and `environment` are the Variant — matched verbatim, case included, so a
-changed value is a new baseline that passes without comparing. Any other stack
-posts the same fields to
+The first upload of `checkout-spec-ts-cart-summary` creates the project, the
+branch and the baseline; later captures are compared against it. The project name
+is yours; a test name is a path segment, so it stays `[A-Za-z0-9_-]` and at most
+100 characters. `viewport`, `browser` and `environment` are the Variant — matched
+verbatim, case included, so a changed value is a new baseline that passes without
+comparing. Any other stack posts the same fields to
 `/api/v1/projects/:project/tests/:test/upload?testKind=image`
 ([curl](docs/ci-integration.md#2-upload-and-wait)).
 
