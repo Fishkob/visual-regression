@@ -48,13 +48,28 @@ jobs:
           PACKAGE_OUT_DIR: ${{ runner.temp }}/client-sdk
         run: ./scripts/check-client-sdk-package.sh
 
+      # A step's own `env` is not in scope for that step's `if` — GitHub
+      # evaluates the condition before the environment exists. The token check
+      # is therefore its own step and reports through an output, which also
+      # keeps NPM_TOKEN out of every other step's environment.
+      - name: Check for an npm token
+        id: npm-token
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "$NPM_TOKEN" ]; then
+            echo "configured=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >>"$GITHUB_OUTPUT"
+          fi
+
       # NPM_TOKEN is a granular access token with write access to @fishkob.
       # Classic tokens no longer exist, and a write-enabled granular token
       # expires within 90 days — trusted publishing (OIDC) replaces it once the
       # package exists. Provenance stays opted out: npm only attests a public
       # source repository, and this one is private.
       - name: Publish the package to npm
-        if: env.NPM_TOKEN != ''
+        if: steps.npm-token.outputs.configured == 'true'
         working-directory: client-sdk
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -76,9 +91,7 @@ jobs:
           npm publish --access public
 
       - name: Note the skipped npm publish
-        if: env.NPM_TOKEN == ''
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        if: steps.npm-token.outputs.configured != 'true'
         run: echo "::warning::NPM_TOKEN is not configured; @fishkob/vrt was not published to npm."
 
       - name: Attach the tarball to the release
