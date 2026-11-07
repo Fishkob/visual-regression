@@ -6,6 +6,12 @@ Accepted — 2026-11-06. Supersedes the "auto-archiving is out of scope" clause 
 [ADR-027](./ADR-027-branch-scoped-baselines.md) and the matching
 "considered and rejected" line in the roadmap.
 
+Enforced by: `BranchRetentionTask` (lock id `MAINTENANCE_LOCK_IDS.branchRetention`),
+the `BRANCH_RETENTION_DAYS` / `Project.branchRetentionDays` window checked by the
+Joi schema and by the column's CHECK, the `20261124110000_branch_retention`
+migration, and the `cleanup_branches_deleted_total` / `cleanup_branches_last_run`
+metrics.
+
 ## Context
 
 A `Branch` row is materialized by the first upload that names it. The platform
