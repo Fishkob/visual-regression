@@ -140,6 +140,30 @@ neither workflow: branch protection does not depend on a push run, so filtering
 there costs nothing. The `pull_request` trigger stays unfiltered on purpose — a
 filtered-out run never reports its required gate, and the PR stays blocked.
 
+## Dependency Updates
+
+Dependabot opens the version bumps — weekly, 7-day cooldown, minor and patch
+grouped ([.github/dependabot.yml](.github/dependabot.yml)) — and the dependency
+scan catches the vulnerabilities
+([security-dependency.yml](.github/workflows/security-dependency.yml)). Two cases
+fall between them:
+
+```bash
+pnpm run deps:check     # --max-age <days> shifts the window
+```
+
+The check fails on a package that is **deprecated** on the version we resolve (no
+bump exists, so Dependabot has nothing to propose and OSV has no advisory) and on
+a version published more than 14 days ago that we still have not installed
+(Dependabot had four weekly rounds, so the update is stuck rather than queued).
+Semver majors, pre-release-only releases, and the dependencies named in
+Dependabot's `ignore` list are listed but never fail — they wait on a decision,
+not on a queue.
+
+It runs monthly in [deps-freshness.yml](.github/workflows/deps-freshness.yml) and
+covers the pnpm workspaces only: the container base images, the Maven build of
+`pdf-sidecar` and the GitHub Actions pins are Dependabot's alone.
+
 ## Committing
 
 - Commits are linted, type-checked, and formatted by `lint-staged` on

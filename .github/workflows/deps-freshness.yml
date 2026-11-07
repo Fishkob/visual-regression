@@ -1,0 +1,45 @@
+name: Dependencies (Freshness)
+
+# Dependabot keeps the versions moving and the dependency scan covers
+# vulnerabilities. Neither reports a package that was deprecated on the version
+# we already resolve — a deprecation is not a version change — and neither
+# notices a bump that was proposed and never merged. This is that report.
+#
+# Monthly, so four weekly Dependabot rounds have run before anything the check
+# still finds can be called stuck.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 1 * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deps-freshness
+  cancel-in-progress: false
+
+jobs:
+  freshness:
+    name: Deprecated and stale packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # `pnpm outdated` compares the installed tree, so the install is what makes
+      # the report describe the lockfile instead of a stale node_modules. The
+      # Prisma client is not needed for a version read.
+      - uses: ./.github/actions/setup
+        with:
+          generate-prisma: "false"
+
+      # The classifier decides what fails, and a gate that stops failing still
+      # prints a green line. Node's own runner keeps this dependency-free.
+      - name: Test the classifier
+        run: node --test scripts/deps-check.test.js
+
+      - name: Check dependency freshness
+        run: node scripts/deps-check.js
