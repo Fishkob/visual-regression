@@ -20,7 +20,7 @@ flowchart TB
         CRON --- DATA
 
         OTel[OTel SDK]
-        Prom[prom-client<br/>Metrics]
+        Prom[@prometheus-io/client<br/>Metrics]
         Pino[Pino Logger<br/>JSON]
     end
 

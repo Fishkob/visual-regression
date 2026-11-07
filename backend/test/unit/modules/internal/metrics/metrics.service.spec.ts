@@ -20,36 +20,34 @@ const { mockMetrics, mockRegistry, collectDefaultMetrics, histogramBuckets } =
     };
   });
 
-vi.mock('prom-client', () => ({
-  default: {
-    Registry: class {
-      constructor() {
-        return mockRegistry;
-      }
-    },
-    collectDefaultMetrics,
-    Counter: class {
-      constructor(opts: { name: string }) {
-        const m = createMockFn();
-        mockMetrics.set(opts.name, m);
-        return m;
-      }
-    },
-    Gauge: class {
-      constructor(opts: { name: string }) {
-        const m = createMockFn();
-        mockMetrics.set(opts.name, m);
-        return m;
-      }
-    },
-    Histogram: class {
-      constructor(opts: { name: string; buckets?: number[] }) {
-        const m = createMockFn();
-        mockMetrics.set(opts.name, m);
-        histogramBuckets.set(opts.name, opts.buckets ?? null);
-        return m;
-      }
-    },
+vi.mock('@prometheus-io/client', () => ({
+  Registry: class {
+    constructor() {
+      return mockRegistry;
+    }
+  },
+  collectDefaultMetrics,
+  Counter: class {
+    constructor(opts: { name: string }) {
+      const m = createMockFn();
+      mockMetrics.set(opts.name, m);
+      return m;
+    }
+  },
+  Gauge: class {
+    constructor(opts: { name: string }) {
+      const m = createMockFn();
+      mockMetrics.set(opts.name, m);
+      return m;
+    }
+  },
+  Histogram: class {
+    constructor(opts: { name: string; buckets?: number[] }) {
+      const m = createMockFn();
+      mockMetrics.set(opts.name, m);
+      histogramBuckets.set(opts.name, opts.buckets ?? null);
+      return m;
+    }
   },
 }));
 
