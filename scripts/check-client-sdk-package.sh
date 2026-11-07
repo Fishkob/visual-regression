@@ -11,10 +11,10 @@
 #
 # Environment:
 #   PACKAGE_VERSION   version to stamp into the tarball (defaults to the
-#                     committed client-sdk/package.json version). The release
-#                     workflow passes the git tag, so the tag is what ships.
+#                     committed client-sdk/package.json version, which the
+#                     client release line owns — the workflow does not pass it).
 #   PACKAGE_OUT_DIR   copy the finished tarball here before the work directory
-#                     is removed (the release workflow uploads it as an asset).
+#                     is removed (the release workflow publishes and uploads it).
 #
 # Prints the tarball path on success. Requires node, npm and pnpm on PATH; no
 # network access and no registry login.
