@@ -45,6 +45,7 @@
     "dev:frontend": "pnpm --filter ./frontend dev",
     "dev:generate": "pnpm run sdk:generate",
     "verify": "./scripts/verify.sh",
+    "deps:check": "node scripts/deps-check.js",
     "unitTest": "pnpm --filter ./backend test -- test/unit",
     "unitTest:cov": "pnpm --filter ./backend test:cov -- test/unit",
     "coverage:all": "pnpm --filter ./backend test:cov:all",
