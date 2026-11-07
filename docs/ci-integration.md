@@ -149,11 +149,11 @@ The TypeScript client ships a Playwright reporter that uploads a test's screensh
 The client is published to npm as `@fishkob/vrt` and versions independently of the platform. It speaks `/api/v1`, so any recent client works with any server on that API version. Each client release also attaches the same package as a tarball for installations without registry access.
 
 ```bash
-npm i @fishkob/vrt@3.5.0
+npm i @fishkob/vrt@1.0.0
 
 # offline mirror, needs an authenticated download (private repository)
-gh release download vrt-client-v3.5.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
-npm i ./fishkob-vrt-3.5.0.tgz
+gh release download vrt-client-v1.0.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
+npm i ./fishkob-vrt-1.0.0.tgz
 ```
 
 ```ts

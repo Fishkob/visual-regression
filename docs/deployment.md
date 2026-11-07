@@ -451,7 +451,7 @@ The Helm chart's `registry` value (default `ghcr.io`) and `imageOwner` value (de
 
 Re-run the failed jobs of the release run (**Actions → Release → the failed run → Re-run failed jobs**). That keeps `ref` at the release tag, so the images and the chart bump describe the commit the tag points at.
 
-If the run is gone, dispatch **Actions → Release Images → Run workflow** with the tag as `ref` (e.g. `v3.4.0`). The workflow rejects a branch, and rejects a tag whose `package.json` version does not match the tag name, so a released version can no longer be republished from newer `main`.
+If the run is gone, dispatch **Actions → Release Images → Run workflow** with the tag as `ref` (e.g. `v4.0.0`). The workflow rejects a branch, and rejects a tag whose `package.json` version does not match the tag name, so a released version can no longer be republished from newer `main`.
 
 ## Serving Screenshots (RustFS must be browser-reachable)
 
