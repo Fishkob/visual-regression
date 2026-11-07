@@ -39,6 +39,13 @@ Both channels carry the compiled `dist/` and the MIT licence at the repository
 root. Decision and rationale:
 [ADR-069](../docs/adr/ADR-069-independent-client-version.md).
 
+## Versioning
+
+The client releases on its own line. A new version appears only when something
+in this package changes — in practice a regenerated API surface, so the version
+moves when the artifact moves. The compatibility contract is the API version,
+`/api/v1`, not the platform version.
+
 ## Upload one capture
 
 ```ts
