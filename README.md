@@ -85,34 +85,38 @@ Production setup (TLS, reverse proxy, backups, Kubernetes):
 
 ## Wire it into CI
 
-Create an API key under **API keys** in the dashboard and store it as a repository
-secret ([scopes and rotation](docs/ci-integration.md#1-authenticate)). The
-repository ships a composite action, so a pipeline needs no SDK. The example pins
-the `v2.1.0` tag; use the release you deploy:
+Your pipeline uploads the captures to your instance and fails the job while a
+change waits for review. Create an API key under **API keys** in the dashboard,
+store it as a pipeline secret ([scopes and
+rotation](docs/ci-integration.md#1-authenticate)) and point `VRT_URL` at your
+instance:
 
-```yaml
-- uses: Fishkob/visual-regression@v2.1.0
-  with:
-    api-url: https://vrt.example.com
-    api-key: ${{ secrets.VRT_API_KEY }}
-    project: checkout
-    test: login
-    file: artifacts/login.png
-    viewport: 1920x1080
-    browser: Chromium
-    environment: staging
+```bash
+curl -X POST \
+  "$VRT_URL/api/v1/projects/checkout/tests/login/upload?testKind=image" \
+  -H "x-api-key: $VRT_API_KEY" \
+  -F "file=@artifacts/login.png" \
+  -F "viewport=1920x1080" \
+  -F "browser=Chromium" \
+  -F "environment=staging" \
+  -F "branch=$BRANCH"
 ```
 
-The project and the test are created by the first upload, so `project` and `test`
-are names you choose. The step fails when the capture needs review or the
-comparison fails. Set `run-key` to gate on a whole run instead of one file, or use
-the Playwright reporter that uploads every screenshot attachment for you. Both,
-plus the raw upload/wait API and the report formats:
+Project, test and branch are created by the first upload, so the names are yours.
+Keep `viewport`, `browser` and `environment` stable: they are the Variant, the
+baseline's identity, matched verbatim (case included), so a changed value starts a
+new baseline that passes without comparing. Upload under the branch that produced
+the capture — without `branch`, every upload and every approval belongs to the
+default branch. The upload answers `identical` or `baseline_created` (pass) or
+`comparison_queued`: poll the job, and fail the step while the comparison is
+`PENDING_APPROVAL`, linking the reviewer to the test page. `runKey`, `commitSha`
+and `ciUrl` group the uploads into a run with its own gate and JUnit, HTML and CSV
+reports. Upload, wait, run gate and reports:
 [docs/ci-integration.md](docs/ci-integration.md).
 
 ## How it works
 
-1. **Upload** — CI sends a capture (or a manifest of many) to
+1. **Upload** — CI sends a capture (or many, into one run) to
    `/api/v1/projects/:project/tests/:test/upload`.
 2. **Compare** — the API queues a job; the worker diffs the capture against the
    variant's baseline (pixelmatch, or the PDF sidecar) and stores the diff.
@@ -140,8 +144,8 @@ More detail and diagrams: [docs/architecture/overview.md](docs/architecture/over
 
 ## Status
 
-Released as `v2.1.0`; the changelog is generated from conventional commits and
-every release is a semver tag. The local gate
+Every release is a semver tag and the **Latest release** badge above shows the
+newest; the changelog is generated from conventional commits. The local gate
 (`./scripts/verify.sh`) runs lint, typecheck, the backend and frontend unit suites
 with a per-layer coverage gate, the i18n parity check and the SDK drift check;
 `--with-e2e` and `--with-browser` add the HTTP and Playwright suites, and

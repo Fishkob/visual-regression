@@ -22,8 +22,8 @@ matches your server:
 
 ```bash
 # private repository: the release asset needs an authenticated download
-gh release download v2.1.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
-npm i ./fishkob-vrt-2.1.0.tgz   # or: pnpm add ./fishkob-vrt-2.1.0.tgz
+gh release download v3.4.0 -R Fishkob/visual-regression -p 'fishkob-vrt-*.tgz'
+npm i ./fishkob-vrt-3.4.0.tgz   # or: pnpm add ./fishkob-vrt-3.4.0.tgz
 ```
 
 The `/releases/download/...` URL answers only a browser session for a private
