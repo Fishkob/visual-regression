@@ -1,6 +1,6 @@
 {
   "name": "@fishkob/vrt",
-  "version": "3.5.0",
+  "version": "4.0.0",
   "description": "Typed TypeScript client for the Visual Regression API: capture uploads, batch upload with retries and a Playwright reporter",
   "license": "MIT",
   "type": "module",
