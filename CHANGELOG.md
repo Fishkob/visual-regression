@@ -7,6 +7,13 @@
 > resolve, and the repository starts at `v1.0.0`. Treat every tag below as
 > immutable history — it is never moved, and a released version is never reused.
 
+## [1.0.1](https://github.com/Fishkob/visual-regression/compare/v1.0.0...v1.0.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* **security:** verify release artifacts and fail closed on deploy defaults ([0182fac](https://github.com/Fishkob/visual-regression/commit/0182fac6c007e3ca0b0702176605447a13e76ebd))
+
 ## [1.0.0](https://github.com/Fishkob/visual-regression/releases/tag/v1.0.0) (2026-11-07)
 
 
