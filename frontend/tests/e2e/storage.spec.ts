@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { deleteProject, getStorage, setupReviewableTest } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
+import { expectToast } from "./fixtures/ui";
 
 let projectName: string;
 
@@ -23,9 +24,7 @@ test.describe("Project storage", () => {
     await page.goto(`/projects/${encodeURIComponent(projectName)}`);
     await expect(page.getByTestId(TEST_ID.storagePanel)).toHaveCount(0);
     await page.getByTestId(TEST_ID.projectSettingsAction).click();
-    await expect(page.getByTestId(TEST_ID.storagePanel)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.storagePanel)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.storageUsage)).toContainText("used");
     await expect(page.getByTestId(TEST_ID.storageQuota)).toContainText(
       "No quota",
@@ -41,10 +40,7 @@ test.describe("Project storage", () => {
     await page.getByTestId(TEST_ID.storageSoftPercent).fill("70");
     await page.getByTestId(TEST_ID.storageSave).click();
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Storage settings saved",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Storage settings saved");
     await expect(page.getByTestId(TEST_ID.storageRetention)).toContainText(
       "3 revisions",
     );
@@ -75,15 +71,11 @@ test.describe("Project storage", () => {
     page,
   }) => {
     await page.goto(settingsUrl(projectName));
-    await expect(page.getByTestId(TEST_ID.storagePanel)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.storagePanel)).toBeVisible();
 
     const before = await getStorage(projectName);
     await page.getByTestId(TEST_ID.storagePreviewAction).click();
-    await expect(page.getByTestId(TEST_ID.storagePreviewDialog)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.storagePreviewDialog)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.storagePreviewDialog)).toContainText(
       "Dry run",
     );

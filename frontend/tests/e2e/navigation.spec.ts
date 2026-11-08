@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { createProject, setupBaselines, deleteProject } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
+import { byText } from "./fixtures/ui";
 
 let projectName: string;
 
@@ -26,18 +27,12 @@ test.describe("Project List", () => {
   test("can navigate to project detail", async ({ page }) => {
     await page.goto("/projects");
 
-    await page
-      .getByTestId(TEST_ID.tableRow)
-      .filter({ hasText: projectName })
-      .click();
+    await byText(page, TEST_ID.tableRow, projectName).click();
 
     await page.waitForURL(/\/projects\//);
 
     await expect(page.getByTestId(TEST_ID.projectTitle)).toContainText(
       projectName,
-      {
-        timeout: 10000,
-      },
     );
   });
 });

@@ -21,9 +21,7 @@ test.describe("Project trends", () => {
 
   test("shows comparison, approval and flake metrics", async ({ page }) => {
     await page.goto(`/projects/${encodeURIComponent(projectName)}/trends`);
-    await expect(page.getByTestId(TEST_ID.trendsView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.trendsView)).toBeVisible();
 
     await expect(page.getByTestId(TEST_ID.trendsComparisons)).toContainText(
       "1",
@@ -35,9 +33,7 @@ test.describe("Project trends", () => {
       "1",
     );
     await expect(page.getByTestId(TEST_ID.trendsFlakeRate)).toContainText("1");
-    await expect(page.getByTestId(TEST_ID.trendsDailyRow)).toHaveCount(1, {
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.trendsDailyRow)).toHaveCount(1);
     await expect(page.getByTestId(TEST_ID.trendsDailyRow)).toContainText("1");
   });
 
@@ -48,7 +44,6 @@ test.describe("Project trends", () => {
     await expect(page.getByTestId(TEST_ID.trendsRange30)).toHaveAttribute(
       "aria-pressed",
       "true",
-      { timeout: 10000 },
     );
 
     await page.getByTestId(TEST_ID.trendsRange90).click();

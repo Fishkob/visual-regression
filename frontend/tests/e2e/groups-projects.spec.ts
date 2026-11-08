@@ -8,6 +8,7 @@ import {
   getProjectStatus,
 } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
+import { byText, confirmDialog, expectToast } from "./fixtures/ui";
 
 let projectName: string;
 let groupName: string;
@@ -34,14 +35,9 @@ test.describe("Groups", () => {
     await page.getByTestId(TEST_ID.groupNameInput).fill(groupName);
     await page.getByTestId(TEST_ID.groupFormSubmit).click();
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Group created",
-      { timeout: 10000 },
-    );
-    const row = page
-      .getByTestId(TEST_ID.groupRow)
-      .filter({ hasText: groupName });
-    await expect(row).toBeVisible({ timeout: 10000 });
+    await expectToast(page, "Group created");
+    const row = byText(page, TEST_ID.groupRow, groupName);
+    await expect(row).toBeVisible();
     await expect(row.getByTestId(TEST_ID.groupProjectCount)).toContainText(
       "0 projects",
     );
@@ -51,24 +47,14 @@ test.describe("Groups", () => {
     await page.getByTestId(TEST_ID.groupNameInput).fill(renamed);
     await page.getByTestId(TEST_ID.groupFormSubmit).click();
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Group renamed",
-      { timeout: 10000 },
-    );
-    const renamedRow = page
-      .getByTestId(TEST_ID.groupRow)
-      .filter({ hasText: renamed });
-    await expect(renamedRow).toBeVisible({ timeout: 10000 });
+    await expectToast(page, "Group renamed");
+    const renamedRow = byText(page, TEST_ID.groupRow, renamed);
+    await expect(renamedRow).toBeVisible();
 
     await renamedRow.getByTestId(TEST_ID.groupDelete).click();
-    await page.getByTestId(TEST_ID.dialogConfirm).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Group deleted",
-      { timeout: 10000 },
-    );
-    await expect(
-      page.getByTestId(TEST_ID.groupRow).filter({ hasText: renamed }),
-    ).toHaveCount(0, { timeout: 10000 });
+    await confirmDialog(page);
+    await expectToast(page, "Group deleted");
+    await expect(byText(page, TEST_ID.groupRow, renamed)).toHaveCount(0);
     groupName = renamed;
   });
 
@@ -81,30 +67,23 @@ test.describe("Groups", () => {
     await createProject(projectName, group.id);
 
     await page.goto("/groups");
-    const row = page
-      .getByTestId(TEST_ID.groupRow)
-      .filter({ hasText: groupName });
+    const row = byText(page, TEST_ID.groupRow, groupName);
     await expect(row.getByTestId(TEST_ID.groupProjectCount)).toContainText(
       "1 project",
-      { timeout: 10000 },
     );
     await expect(row.getByTestId(TEST_ID.groupProjectCount)).not.toContainText(
       "1 projects",
     );
 
     await row.getByTestId(TEST_ID.groupDelete).click();
-    await page.getByTestId(TEST_ID.dialogConfirm).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Group deleted",
-      { timeout: 10000 },
-    );
+    await confirmDialog(page);
+    await expectToast(page, "Group deleted");
 
     // Deleting a group unassigns its projects; it never deletes them.
     expect(await getProjectStatus(projectName)).toBe(200);
     await page.goto(`/projects/${encodeURIComponent(projectName)}`);
     await expect(page.getByTestId(TEST_ID.projectGroupBadge)).toContainText(
       "Unassigned",
-      { timeout: 10000 },
     );
   });
 });
@@ -135,13 +114,9 @@ test.describe("Projects", () => {
     await page.getByRole("option", { name: groupName }).click();
     await page.getByTestId(TEST_ID.projectFormSubmit).click();
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Project created",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Project created");
     await expect(page).toHaveURL(
       new RegExp(`/projects/${encodeURIComponent(projectName)}$`),
-      { timeout: 10000 },
     );
     await expect(page.getByTestId(TEST_ID.projectTitle)).toContainText(
       projectName,
@@ -159,28 +134,18 @@ test.describe("Projects", () => {
     await createProject(otherProject);
 
     await page.goto("/projects");
-    await expect(
-      page.getByTestId(TEST_ID.tableRow).filter({ hasText: projectName }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(byText(page, TEST_ID.tableRow, projectName)).toBeVisible();
 
     await page.getByTestId(TEST_ID.projectSearch).fill(projectName);
-    await expect(
-      page.getByTestId(TEST_ID.tableRow).filter({ hasText: projectName }),
-    ).toBeVisible({ timeout: 10000 });
-    await expect(
-      page.getByTestId(TEST_ID.tableRow).filter({ hasText: otherProject }),
-    ).toHaveCount(0, { timeout: 10000 });
+    await expect(byText(page, TEST_ID.tableRow, projectName)).toBeVisible();
+    await expect(byText(page, TEST_ID.tableRow, otherProject)).toHaveCount(0);
 
     await page.getByTestId(TEST_ID.projectSearch).fill("");
     await page.getByTestId(TEST_ID.filterGroup).click();
     await page.getByRole("option", { name: groupName }).click();
 
-    await expect(
-      page.getByTestId(TEST_ID.tableRow).filter({ hasText: projectName }),
-    ).toBeVisible({ timeout: 10000 });
-    await expect(
-      page.getByTestId(TEST_ID.tableRow).filter({ hasText: otherProject }),
-    ).toHaveCount(0, { timeout: 10000 });
+    await expect(byText(page, TEST_ID.tableRow, projectName)).toBeVisible();
+    await expect(byText(page, TEST_ID.tableRow, otherProject)).toHaveCount(0);
 
     await deleteProject(otherProject);
   });
@@ -193,7 +158,6 @@ test.describe("Projects", () => {
     await page.goto(`/projects/${encodeURIComponent(projectName)}`);
     await expect(page.getByTestId(TEST_ID.projectGroupBadge)).toContainText(
       "Unassigned",
-      { timeout: 10000 },
     );
 
     await page.getByTestId(TEST_ID.moveProject).click();
@@ -201,13 +165,9 @@ test.describe("Projects", () => {
     await page.getByRole("option", { name: groupName }).click();
     await page.getByTestId(TEST_ID.moveProjectSubmit).click();
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Project moved",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Project moved");
     await expect(page.getByTestId(TEST_ID.projectGroupBadge)).toContainText(
       groupName,
-      { timeout: 10000 },
     );
 
     // And back to unassigned: the dialog's "none" option clears the group.
@@ -217,7 +177,6 @@ test.describe("Projects", () => {
     await page.getByTestId(TEST_ID.moveProjectSubmit).click();
     await expect(page.getByTestId(TEST_ID.projectGroupBadge)).toContainText(
       "Unassigned",
-      { timeout: 10000 },
     );
     expect(group.id).toBeTruthy();
   });
@@ -226,21 +185,14 @@ test.describe("Projects", () => {
     await createProject(projectName);
 
     await page.goto("/projects");
-    const row = page
-      .getByTestId(TEST_ID.tableRow)
-      .filter({ hasText: projectName });
-    await expect(row).toBeVisible({ timeout: 10000 });
-    await row.locator("..").getByTestId(TEST_ID.projectActionsButton).click();
+    const row = byText(page, TEST_ID.projectRow, projectName);
+    await expect(row).toBeVisible();
+    await row.getByTestId(TEST_ID.projectActionsButton).click();
     await page.getByTestId(TEST_ID.rowActionDelete).click();
-    await page.getByTestId(TEST_ID.dialogConfirm).click();
+    await confirmDialog(page);
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      /Deleted project/,
-      { timeout: 10000 },
-    );
-    await expect(
-      page.getByTestId(TEST_ID.tableRow).filter({ hasText: projectName }),
-    ).toHaveCount(0, { timeout: 10000 });
+    await expectToast(page, /Deleted project/);
+    await expect(byText(page, TEST_ID.tableRow, projectName)).toHaveCount(0);
     expect(await getProjectStatus(projectName)).toBe(404);
   });
 });

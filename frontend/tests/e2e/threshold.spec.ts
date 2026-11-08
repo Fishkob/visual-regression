@@ -6,6 +6,7 @@ import {
 } from "./fixtures/api";
 import { testUrl } from "./fixtures/review";
 import { TEST_ID } from "@/lib/test-ids";
+import { confirmDialog, expectToast } from "./fixtures/ui";
 
 let projectName: string;
 
@@ -25,9 +26,7 @@ test.describe("Threshold editing", () => {
     page,
   }) => {
     await page.goto(testUrl(projectName, TEST_NAME));
-    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
 
     const threshold = page.getByTestId(TEST_ID.thresholdInput);
     await expect(threshold).toHaveValue("0");
@@ -36,18 +35,11 @@ test.describe("Threshold editing", () => {
     // mismatch must ask before silently accepting the pending comparison.
     await threshold.fill("200");
     await threshold.press("Enter");
-    await expect(page.getByTestId(TEST_ID.dialogConfirm)).toBeVisible({
-      timeout: 10000,
-    });
-    await page.getByTestId(TEST_ID.dialogConfirm).click();
+    await expect(page.getByTestId(TEST_ID.dialogConfirm)).toBeVisible();
+    await confirmDialog(page);
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      /Threshold updated for .*auto-accepted/,
-      { timeout: 10000 },
-    );
-    await expect(page.getByTestId(TEST_ID.comparisonView)).toHaveCount(0, {
-      timeout: 10000,
-    });
+    await expectToast(page, /Threshold updated for .*auto-accepted/);
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toHaveCount(0);
     await expect(page.getByTestId(TEST_ID.baselineOnlyNote)).toBeVisible();
 
     const details = await getTestDetails(projectName, TEST_NAME);
@@ -61,18 +53,13 @@ test.describe("Threshold editing", () => {
     page,
   }) => {
     await page.goto(testUrl(projectName, TEST_NAME));
-    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
 
     const threshold = page.getByTestId(TEST_ID.thresholdInput);
     await threshold.fill("");
     await threshold.press("Enter");
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Invalid number",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Invalid number");
     await expect(threshold).toHaveValue("0");
     await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
 

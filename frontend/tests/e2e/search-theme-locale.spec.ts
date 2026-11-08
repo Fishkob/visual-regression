@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { createProject, deleteProject } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
+import { byText } from "./fixtures/ui";
+import { loginAsAdmin } from "./fixtures/auth";
 
 let projectName: string;
 
@@ -16,28 +18,21 @@ test.describe("Search, theme and locale", () => {
 
   test("finds a project in the global search palette", async ({ page }) => {
     await page.goto("/projects");
-    await expect(page.getByTestId(TEST_ID.projectSearch)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.projectSearch)).toBeVisible();
 
     // Ctrl+K is the documented shortcut; the header button opens the same
     // dialog.
     await page.keyboard.press("Control+k");
-    await expect(page.getByTestId(TEST_ID.globalSearchDialog)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.globalSearchDialog)).toBeVisible();
     await page.getByTestId(TEST_ID.globalSearchInput).fill(projectName);
 
-    const result = page
-      .getByTestId(TEST_ID.globalSearchResult)
-      .filter({ hasText: projectName });
-    await expect(result.first()).toBeVisible({ timeout: 10000 });
+    const result = byText(page, TEST_ID.globalSearchResult, projectName);
+    await expect(result.first()).toBeVisible();
     await result.first().click();
 
     await expect(page.getByTestId(TEST_ID.globalSearchDialog)).toHaveCount(0);
     await expect(page.getByTestId(TEST_ID.projectTitle)).toContainText(
       projectName,
-      { timeout: 10000 },
     );
 
     // A query without matches shows the empty state instead of the old list.
@@ -45,9 +40,7 @@ test.describe("Search, theme and locale", () => {
     await page
       .getByTestId(TEST_ID.globalSearchInput)
       .fill("no-such-project-e2e");
-    await expect(page.getByTestId(TEST_ID.globalSearchEmpty)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.globalSearchEmpty)).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByTestId(TEST_ID.globalSearchDialog)).toHaveCount(0);
   });
@@ -63,7 +56,7 @@ test.describe("Search, theme and locale", () => {
     await expect(html).toHaveClass(/dark/);
 
     await page.reload();
-    await expect(html).toHaveClass(/dark/, { timeout: 10000 });
+    await expect(html).toHaveClass(/dark/);
 
     await page.getByTestId(TEST_ID.themeToggle).click();
     await expect(html).not.toHaveClass(/dark/);
@@ -89,7 +82,6 @@ test.describe("Search, theme and locale", () => {
     await page.reload();
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "Posteingang",
-      { timeout: 10000 },
     );
 
     await page.getByTestId(TEST_ID.localeSwitcher).selectOption("en");
@@ -109,23 +101,14 @@ test.describe("Search, theme and locale", () => {
     const context = await browser.newContext({ baseURL: base });
     const page = await context.newPage();
     try {
-      await page.goto("/login");
-      await page
-        .getByTestId(TEST_ID.loginUsername)
-        .fill(process.env.E2E_ADMIN_USERNAME ?? "admin");
-      await page
-        .getByTestId(TEST_ID.loginPassword)
-        .fill(process.env.E2E_ADMIN_PASSWORD ?? "admin-secret");
-      await page.getByTestId(TEST_ID.loginSubmit).click();
-      await expect(page).toHaveURL((url) => url.pathname === "/", {
-        timeout: 10000,
-      });
+      await loginAsAdmin(page);
+      await expect(page).toHaveURL((url) => url.pathname === "/");
 
       await page.getByTestId(TEST_ID.logout).click();
-      await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+      await expect(page).toHaveURL(/\/login/);
 
       await page.goto("/projects");
-      await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
+      await expect(page).toHaveURL(/\/login/);
       await expect(page.getByTestId(TEST_ID.loginUsername)).toBeVisible();
     } finally {
       await context.close();

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { createProject, deleteProject } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
+import { byText, confirmDialog, expectToast } from "./fixtures/ui";
 
 let projectName: string;
 
@@ -18,9 +19,7 @@ test.describe("Project webhooks", () => {
     page,
   }) => {
     await page.goto(`/projects/${encodeURIComponent(projectName)}/webhooks`);
-    await expect(page.getByTestId(TEST_ID.webhooksView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.webhooksView)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.webhooksEmpty)).toBeVisible();
 
     const url = "https://example.com/e2e-hook";
@@ -29,10 +28,7 @@ test.describe("Project webhooks", () => {
     await page.getByTestId(TEST_ID.webhookEventCheckbox).first().check();
     await page.getByTestId(TEST_ID.webhookSubmit).click();
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Webhook endpoint created",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Webhook endpoint created");
     await expect(page.getByTestId(TEST_ID.webhookSecretDialog)).toBeVisible();
     const secret = (
       (await page.getByTestId(TEST_ID.webhookSecretValue).textContent()) ?? ""
@@ -40,8 +36,8 @@ test.describe("Project webhooks", () => {
     expect(secret.length).toBeGreaterThan(10);
     await page.getByTestId(TEST_ID.webhookSecretDone).click({ force: true });
 
-    const row = page.getByTestId(TEST_ID.webhookRow).filter({ hasText: url });
-    await expect(row).toBeVisible({ timeout: 10000 });
+    const row = byText(page, TEST_ID.webhookRow, url);
+    await expect(row).toBeVisible();
     await expect(row.getByTestId(TEST_ID.webhookEndpointUrl)).toContainText(
       url,
     );
@@ -51,52 +47,33 @@ test.describe("Project webhooks", () => {
     await row.getByTestId(TEST_ID.webhookEdit).click();
     await page.getByTestId(TEST_ID.webhookUrlInput).fill(edited);
     await page.getByTestId(TEST_ID.webhookSubmit).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Webhook endpoint updated",
-      { timeout: 10000 },
-    );
-    const editedRow = page
-      .getByTestId(TEST_ID.webhookRow)
-      .filter({ hasText: edited });
-    await expect(editedRow).toBeVisible({ timeout: 10000 });
+    await expectToast(page, "Webhook endpoint updated");
+    const editedRow = byText(page, TEST_ID.webhookRow, edited);
+    await expect(editedRow).toBeVisible();
 
     await editedRow.getByTestId(TEST_ID.webhookTest).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Test delivery queued",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Test delivery queued");
 
     await editedRow.getByTestId(TEST_ID.webhookDeliveries).click();
     const delivery = page.getByTestId(TEST_ID.webhookDeliveryRow);
-    await expect(delivery.first()).toBeVisible({ timeout: 10000 });
+    await expect(delivery.first()).toBeVisible();
     await expect(page.getByTestId(TEST_ID.webhookDeliveryStatus)).toBeVisible();
     await page.getByTestId(TEST_ID.webhookDeliveriesRefresh).click();
-    await expect(delivery.first()).toBeVisible({ timeout: 10000 });
+    await expect(delivery.first()).toBeVisible();
 
     await delivery.first().getByTestId(TEST_ID.webhookReplay).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Delivery replayed",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Delivery replayed");
 
     await editedRow
       .getByTestId(TEST_ID.webhookActiveToggle)
       .click({ force: true });
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Webhook endpoint updated",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Webhook endpoint updated");
     await expect(editedRow).toContainText("Inactive");
 
     await editedRow.getByTestId(TEST_ID.webhookDelete).click();
-    await page.getByTestId(TEST_ID.dialogConfirm).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Webhook endpoint deleted",
-      { timeout: 10000 },
-    );
-    await expect(page.getByTestId(TEST_ID.webhooksEmpty)).toBeVisible({
-      timeout: 10000,
-    });
+    await confirmDialog(page);
+    await expectToast(page, "Webhook endpoint deleted");
+    await expect(page.getByTestId(TEST_ID.webhooksEmpty)).toBeVisible();
   });
 
   test("rejects a loopback endpoint URL", async ({ page }) => {
@@ -108,10 +85,7 @@ test.describe("Project webhooks", () => {
     await page.getByTestId(TEST_ID.webhookEventCheckbox).first().check();
     await page.getByTestId(TEST_ID.webhookSubmit).click();
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Could not create webhook endpoint",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Could not create webhook endpoint");
     await expect(page.getByTestId(TEST_ID.webhookRow)).toHaveCount(0);
   });
 });
