@@ -102,3 +102,8 @@ jobs:
     uses: ./.github/workflows/release-client-sdk.yml
     with:
       tag: ${{ needs.release-please.outputs.client_tag_name }}
+    # A called workflow inherits nothing on its own: without this mapping the
+    # token check inside it reads an empty NPM_TOKEN and skips the publish,
+    # leaving a release whose only artifact was never published.
+    secrets:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
