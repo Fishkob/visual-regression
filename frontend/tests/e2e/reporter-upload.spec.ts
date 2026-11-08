@@ -93,9 +93,7 @@ test.describe("Playwright reporter upload", () => {
     await page.goto(
       `/projects/${encodeURIComponent(projectName)}/tests/${encodeURIComponent(TEST_NAME)}?viewport=${VARIANT.viewport}&browser=${VARIANT.browser}&environment=${VARIANT.environment}`,
     );
-    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.badgeMismatch)).toBeVisible();
   });
 });

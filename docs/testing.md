@@ -71,6 +71,11 @@ group/user/key where needed) through `fixtures/api.ts`, drives the real UI, and
 cleans up in `afterEach`; API calls that need a browser session use
 `loginSession()` instead of the project API key.
 
+Repeated interactions live in `fixtures/ui.ts` (`expectToast`, `confirmDialog`,
+`byText`); `fixtures/auth.ts` holds `loginAs`/`loginAsAdmin` and is the only
+place that knows the admin credentials. Assertions carry no timeout of their
+own — `playwright-e2e.config.ts` sets one 10s expect timeout for the suite.
+
 | Area                                                                               | Spec                              |
 | ---------------------------------------------------------------------------------- | --------------------------------- |
 | Review loop, skip, approve, done page                                              | `image-review-workflow.spec.ts`   |

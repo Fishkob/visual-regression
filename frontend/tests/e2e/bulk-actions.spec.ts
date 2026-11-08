@@ -8,6 +8,7 @@ import {
   setupReviewableTest,
 } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
+import { byText, confirmDialog, expectToast } from "./fixtures/ui";
 
 function unique(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -22,12 +23,10 @@ test.describe("Bulk actions", () => {
       await setupReviewableTest(projectName, "checkout-flow");
 
       await page.goto("/");
-      const section = page
-        .getByTestId(TEST_ID.inboxProjectSection)
-        .filter({ hasText: projectName });
-      await expect(section).toBeVisible({ timeout: 10000 });
+      const section = byText(page, TEST_ID.inboxProjectSection, projectName);
+      await expect(section).toBeVisible();
       const checkboxes = section.getByTestId(TEST_ID.inboxSelectRow);
-      await expect(checkboxes).toHaveCount(2, { timeout: 10000 });
+      await expect(checkboxes).toHaveCount(2);
       await checkboxes.nth(0).check();
       await checkboxes.nth(1).check();
 
@@ -35,18 +34,14 @@ test.describe("Bulk actions", () => {
       await expect(bar).toContainText("2 selected");
       await page.getByTestId(TEST_ID.inboxBulkApprove).click();
       await expect(page.getByTestId(TEST_ID.dialogConfirm)).toBeVisible();
-      await page.getByTestId(TEST_ID.dialogConfirm).click();
+      await confirmDialog(page);
 
-      await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-        "Approved 2 changes",
-        { timeout: 10000 },
-      );
+      await expectToast(page, "Approved 2 changes");
       await expect(
-        page
-          .getByTestId(TEST_ID.inboxProjectSection)
-          .filter({ hasText: projectName })
-          .getByTestId(TEST_ID.inboxItem),
-      ).toHaveCount(0, { timeout: 10000 });
+        byText(page, TEST_ID.inboxProjectSection, projectName).getByTestId(
+          TEST_ID.inboxItem,
+        ),
+      ).toHaveCount(0);
     } finally {
       await deleteProject(projectName);
     }
@@ -63,11 +58,9 @@ test.describe("Bulk actions", () => {
     try {
       await page.goto("/projects");
       for (const name of [first, second]) {
-        const row = page
-          .getByTestId(TEST_ID.tableRow)
-          .filter({ hasText: name });
-        await expect(row).toBeVisible({ timeout: 10000 });
-        await row.locator("..").getByTestId(TEST_ID.projectSelectRow).check();
+        const row = byText(page, TEST_ID.projectRow, name);
+        await expect(row).toBeVisible();
+        await row.getByTestId(TEST_ID.projectSelectRow).check();
       }
       await expect(page.getByTestId(TEST_ID.projectBulkBar)).toContainText(
         "2 selected",
@@ -78,20 +71,15 @@ test.describe("Bulk actions", () => {
       await page.getByRole("option", { name: groupName }).click();
       await page.getByTestId(TEST_ID.projectBulkMoveConfirm).click();
 
-      await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-        "Moved 2 projects",
-        { timeout: 10000 },
-      );
+      await expectToast(page, "Moved 2 projects");
 
       await page.goto(`/projects/${encodeURIComponent(first)}`);
       await expect(page.getByTestId(TEST_ID.projectGroupBadge)).toContainText(
         groupName,
-        { timeout: 10000 },
       );
       await page.goto(`/projects/${encodeURIComponent(second)}`);
       await expect(page.getByTestId(TEST_ID.projectGroupBadge)).toContainText(
         groupName,
-        { timeout: 10000 },
       );
     } finally {
       await deleteProject(first);

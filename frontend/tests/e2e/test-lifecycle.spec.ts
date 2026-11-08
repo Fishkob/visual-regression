@@ -8,6 +8,7 @@ import {
 } from "./fixtures/api";
 import { testUrl } from "./fixtures/review";
 import { TEST_ID } from "@/lib/test-ids";
+import { byText, confirmDialog, expectToast } from "./fixtures/ui";
 
 let projectName: string;
 
@@ -25,9 +26,7 @@ test.describe("Test lifecycle", () => {
 
   test("renames, describes, tags and resizes a test", async ({ page }) => {
     await page.goto(testUrl(projectName, TEST_NAME));
-    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
 
     const renamed = "login-form-renamed";
     await page.getByTestId(TEST_ID.testEditAction).click();
@@ -45,16 +44,11 @@ test.describe("Test lifecycle", () => {
     await page.getByRole("option", { name: "Resize" }).click();
 
     await page.getByTestId(TEST_ID.testMuteSubmit).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Test updated",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Test updated");
 
     // A rename changes the route identity, so the page replaces the URL and
     // keeps the variant query.
-    await expect(page).toHaveURL(new RegExp(`/tests/${renamed}(\\?|$)`), {
-      timeout: 10000,
-    });
+    await expect(page).toHaveURL(new RegExp(`/tests/${renamed}(\\?|$)`));
     await expect(page.getByTestId(TEST_ID.testDescription)).toHaveText(
       "Login form screenshot",
     );
@@ -79,9 +73,7 @@ test.describe("Test lifecycle", () => {
 
   test("mutes and unmutes a test", async ({ page }) => {
     await page.goto(testUrl(projectName, TEST_NAME));
-    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.testMutedBadge)).toHaveCount(0);
 
     await page.getByTestId(TEST_ID.testEditAction).click();
@@ -89,9 +81,7 @@ test.describe("Test lifecycle", () => {
     await page.getByTestId(TEST_ID.testMuteReason).fill("Flaky animation");
     await page.getByTestId(TEST_ID.testMuteSubmit).click();
 
-    await expect(page.getByTestId(TEST_ID.testMutedBadge)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.testMutedBadge)).toBeVisible();
     const muted = await getTestMetadata(projectName, TEST_NAME);
     expect(muted).toEqual(
       expect.objectContaining({
@@ -102,9 +92,7 @@ test.describe("Test lifecycle", () => {
 
     await page.getByTestId(TEST_ID.testEditAction).click();
     await page.getByTestId(TEST_ID.testUnmute).click();
-    await expect(page.getByTestId(TEST_ID.testMutedBadge)).toHaveCount(0, {
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.testMutedBadge)).toHaveCount(0);
     const unmuted = await getTestMetadata(projectName, TEST_NAME);
     expect(unmuted).toEqual(expect.objectContaining({ isMuted: false }));
   });
@@ -112,24 +100,17 @@ test.describe("Test lifecycle", () => {
   test("deletes a test variant from the project table", async ({ page }) => {
     await page.goto(`/projects/${encodeURIComponent(projectName)}`);
 
-    const card = page
-      .getByTestId(TEST_ID.testResultCard)
-      .filter({ hasText: TEST_NAME });
-    await expect(card).toBeVisible({ timeout: 10000 });
+    const card = byText(page, TEST_ID.testResultCard, TEST_NAME);
+    await expect(card).toBeVisible();
 
     await card.getByTestId(TEST_ID.testActionsButton).click();
     await page.getByTestId(TEST_ID.rowActionDelete).click();
-    await expect(page.getByTestId(TEST_ID.dialogConfirm)).toBeVisible({
-      timeout: 10000,
-    });
-    await page.getByTestId(TEST_ID.dialogConfirm).click();
+    await expect(page.getByTestId(TEST_ID.dialogConfirm)).toBeVisible();
+    await confirmDialog(page);
 
     // Deleting is variant-scoped even when it is the last variant: the test
     // row survives with no variants, which is exactly what the API reports.
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      /Deleted .* of "login-form"/,
-      { timeout: 10000 },
-    );
+    await expectToast(page, /Deleted .* of "login-form"/);
     expect(await getVariants(projectName, TEST_NAME)).toEqual([]);
     expect(await getTestStatus(projectName, TEST_NAME)).toBe(200);
   });

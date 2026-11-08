@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createProject, deleteProject } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
+import { byText, confirmDialog, expectToast } from "./fixtures/ui";
+import { loginAs } from "./fixtures/auth";
 
 const PASSWORD = "user-pass-123";
 
@@ -24,18 +26,31 @@ async function createUser(
     await page.getByRole("option", { name: role }).click();
   }
   await page.getByTestId(TEST_ID.createUserSubmit).click();
-  await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-    "User created",
-    { timeout: 10000 },
-  );
-  await expect(page.getByTestId(TEST_ID.temporaryPasswordDialog)).toBeVisible({
-    timeout: 10000,
-  });
+  await expectToast(page, "User created");
+  await expect(page.getByTestId(TEST_ID.temporaryPasswordDialog)).toBeVisible();
   const password = (
     (await page.getByTestId(TEST_ID.temporaryPasswordValue).textContent()) ?? ""
   ).trim();
   await page.getByTestId(TEST_ID.temporaryPasswordDone).click({ force: true });
   return password;
+}
+
+// The platform deactivates accounts instead of deleting them (ADR-031), so a
+// long-lived dev database keeps the row; this at least leaves no active
+// leftover account behind. Best effort: a failed cleanup must not turn a green
+// test red.
+async function deactivateUser(page: Page, username: string): Promise<void> {
+  const response = await page.request.get("/api/v1/users");
+  if (!response.ok()) return;
+  const users = (await response.json()) as Array<{
+    id: string;
+    username: string;
+  }>;
+  const user = users.find((entry) => entry.username === username);
+  if (!user) return;
+  await page.request.patch(`/api/v1/users/${user.id}`, {
+    data: { isActive: false },
+  });
 }
 
 test.describe("User administration", () => {
@@ -45,6 +60,10 @@ test.describe("User administration", () => {
     username = unique("e2e-user");
   });
 
+  test.afterEach(async ({ page }) => {
+    await deactivateUser(page, username);
+  });
+
   test("creates, resets, deactivates and reactivates a user", async ({
     page,
   }) => {
@@ -52,18 +71,15 @@ test.describe("User administration", () => {
     const temporaryPassword = await createUser(page, username, "MEMBER");
     expect(temporaryPassword.length).toBeGreaterThan(8);
 
-    const row = page.getByTestId(TEST_ID.userRow).filter({ hasText: username });
-    await expect(row).toBeVisible({ timeout: 10000 });
+    const row = byText(page, TEST_ID.userRow, username);
+    await expect(row).toBeVisible();
     await expect(row.getByTestId(TEST_ID.userRole)).toContainText("MEMBER");
     await expect(row.getByTestId(TEST_ID.userActive)).toContainText("Active");
 
     await row.getByTestId(TEST_ID.userActions).click();
     await page.getByTestId(TEST_ID.userReset).click();
-    await page.getByTestId(TEST_ID.dialogConfirm).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Temporary password issued",
-      { timeout: 10000 },
-    );
+    await confirmDialog(page);
+    await expectToast(page, "Temporary password issued");
     await expect(
       page.getByTestId(TEST_ID.temporaryPasswordDialog),
     ).toBeVisible();
@@ -78,20 +94,14 @@ test.describe("User administration", () => {
 
     await row.getByTestId(TEST_ID.userActions).click();
     await page.getByTestId(TEST_ID.userDeactivate).click();
-    await page.getByTestId(TEST_ID.dialogConfirm).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "User deactivated",
-      { timeout: 10000 },
-    );
+    await confirmDialog(page);
+    await expectToast(page, "User deactivated");
     await expect(row.getByTestId(TEST_ID.userActive)).toContainText("Inactive");
 
     await row.getByTestId(TEST_ID.userActions).click();
     await page.getByTestId(TEST_ID.userDeactivate).click();
-    await page.getByTestId(TEST_ID.dialogConfirm).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "User reactivated",
-      { timeout: 10000 },
-    );
+    await confirmDialog(page);
+    await expectToast(page, "User reactivated");
     await expect(row.getByTestId(TEST_ID.userActive)).toContainText("Active");
   });
 
@@ -112,15 +122,10 @@ test.describe("User administration", () => {
       const context = await browser.newContext({ baseURL: baseURL() });
       const page = await context.newPage();
       try {
-        await page.goto("/login");
-        await page.getByTestId(TEST_ID.loginUsername).fill(username);
-        await page.getByTestId(TEST_ID.loginPassword).fill(temporaryPassword);
-        await page.getByTestId(TEST_ID.loginSubmit).click();
+        await loginAs(page, username, temporaryPassword);
 
         // A temporary password only unlocks the password-change screen.
-        await expect(page).toHaveURL(/\/change-password/, {
-          timeout: 10000,
-        });
+        await expect(page).toHaveURL(/\/change-password/);
         await expect(
           page.getByTestId(TEST_ID.changePasswordView),
         ).toBeVisible();
@@ -132,13 +137,8 @@ test.describe("User administration", () => {
         await page.getByTestId(TEST_ID.changePasswordConfirm).fill(PASSWORD);
         await page.getByTestId(TEST_ID.changePasswordSubmit).click();
 
-        await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-          "Password changed",
-          { timeout: 10000 },
-        );
-        await expect(page).toHaveURL((url) => url.pathname === "/", {
-          timeout: 10000,
-        });
+        await expectToast(page, "Password changed");
+        await expect(page).toHaveURL((url) => url.pathname === "/");
         await expect(page.getByTestId(TEST_ID.currentUser)).toContainText(
           username,
         );
@@ -152,20 +152,15 @@ test.describe("User administration", () => {
         await expect(page.getByTestId(TEST_ID.auditNavLink)).toHaveCount(0);
 
         await page.goto("/users");
-        await expect(page.getByTestId(TEST_ID.forbiddenView)).toBeVisible({
-          timeout: 10000,
-        });
+        await expect(page.getByTestId(TEST_ID.forbiddenView)).toBeVisible();
         await page.goto("/api-keys");
-        await expect(page.getByTestId(TEST_ID.forbiddenView)).toBeVisible({
-          timeout: 10000,
-        });
+        await expect(page.getByTestId(TEST_ID.forbiddenView)).toBeVisible();
 
         // Read access stays: the project page opens, but without admin-only or
         // write actions.
         await page.goto(`/projects/${encodeURIComponent(projectName)}`);
         await expect(page.getByTestId(TEST_ID.projectTitle)).toContainText(
           projectName,
-          { timeout: 10000 },
         );
         await expect(page.getByTestId(TEST_ID.webhooksLink)).toHaveCount(0);
         await expect(page.getByTestId(TEST_ID.shareAction)).toHaveCount(0);
@@ -175,9 +170,9 @@ test.describe("User administration", () => {
         await page.goto(
           `/projects/${encodeURIComponent(projectName)}/settings`,
         );
-        await expect(page.getByTestId(TEST_ID.projectSettingsView)).toBeVisible(
-          { timeout: 10000 },
-        );
+        await expect(
+          page.getByTestId(TEST_ID.projectSettingsView),
+        ).toBeVisible();
         await expect(page.getByTestId(TEST_ID.storagePanel)).toBeVisible();
         await expect(
           page.getByTestId(TEST_ID.thresholdSettingsAction),

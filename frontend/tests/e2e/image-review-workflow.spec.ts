@@ -7,6 +7,7 @@ import {
 } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
 import { approveCurrentComparison } from "./fixtures/review";
+import { expectToast } from "./fixtures/ui";
 
 let projectName: string;
 const DETAIL_QUERY = "?viewport=1920x1080&browser=Chrome&environment=staging";
@@ -30,18 +31,13 @@ test.describe("Image Review Loop", () => {
 
     await page.goto(projectUrl(projectName, "login-form"));
 
-    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.badgeMismatch)).toBeVisible();
 
     await approveCurrentComparison(page);
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      /Approved .* of "login-form"/,
-      { timeout: 10000 },
-    );
-    await expect(page).toHaveURL(/\/projects\/.*\/done/, { timeout: 10000 });
+    await expectToast(page, /Approved .* of "login-form"/);
+    await expect(page).toHaveURL(/\/projects\/.*\/done/);
     await expect(page.getByTestId(TEST_ID.doneHeading)).toContainText(
       "All comparisons reviewed",
     );
@@ -56,7 +52,6 @@ test.describe("Image Review Loop", () => {
 
     await expect(page.getByTestId(TEST_ID.baselineOnlyNote)).toContainText(
       "Only baseline available",
-      { timeout: 10000 },
     );
     await expect(page.getByTestId(TEST_ID.comparisonView)).not.toBeVisible();
   });
@@ -72,19 +67,13 @@ test.describe("Image Review Loop", () => {
 
     await page.goto(projectUrl(projectName, "login-form"));
 
-    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
     await pendingResponse;
 
     await page.getByTestId(TEST_ID.skip).click();
 
-    await expect(page).toHaveURL(/tests\/checkout-flow/, {
-      timeout: 10000,
-    });
-    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page).toHaveURL(/tests\/checkout-flow/);
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
   });
 
   test("reviews the full loop until all caught up", async ({ page }) => {
@@ -98,29 +87,17 @@ test.describe("Image Review Loop", () => {
 
     await page.goto(projectUrl(projectName, "login-form"));
 
-    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
     await pendingResponse;
     await approveCurrentComparison(page);
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      /Approved .* of "login-form"/,
-      { timeout: 10000 },
-    );
-    await expect(page).toHaveURL(/tests\/checkout-flow/, {
-      timeout: 10000,
-    });
-    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expectToast(page, /Approved .* of "login-form"/);
+    await expect(page).toHaveURL(/tests\/checkout-flow/);
+    await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
     await approveCurrentComparison(page);
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      /Approved .* of "checkout-flow"/,
-      { timeout: 10000 },
-    );
-    await expect(page).toHaveURL(/\/projects\/.*\/done/, { timeout: 10000 });
+    await expectToast(page, /Approved .* of "checkout-flow"/);
+    await expect(page).toHaveURL(/\/projects\/.*\/done/);
     await expect(page.getByTestId(TEST_ID.doneHeading)).toContainText(
       "All comparisons reviewed",
     );

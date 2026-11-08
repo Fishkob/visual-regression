@@ -6,6 +6,7 @@ import {
   setupReviewableTest,
 } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
+import { byText, expectToast } from "./fixtures/ui";
 
 let projectName: string;
 
@@ -23,19 +24,15 @@ test.describe("Audit log", () => {
 
   test("filters approval rows by action and project", async ({ page }) => {
     await page.goto("/audit");
-    await expect(page.getByTestId(TEST_ID.auditView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.auditView)).toBeVisible();
 
     await page.getByTestId(TEST_ID.auditActionFilter).click();
     await page.getByRole("option", { name: "Approval" }).click();
     await page.getByTestId(TEST_ID.auditProjectFilter).fill(projectName);
     await page.getByTestId(TEST_ID.auditApply).click();
 
-    const row = page
-      .getByTestId(TEST_ID.auditRow)
-      .filter({ hasText: projectName });
-    await expect(row).toBeVisible({ timeout: 10000 });
+    const row = byText(page, TEST_ID.auditRow, projectName);
+    await expect(row).toBeVisible();
     await expect(row).toContainText("Approval");
     await expect(row).toContainText("login-form");
     await expect(row.getByTestId(TEST_ID.auditDetails)).toBeVisible();
@@ -43,31 +40,22 @@ test.describe("Audit log", () => {
     await page.getByTestId(TEST_ID.auditReset).click();
     await page.getByTestId(TEST_ID.auditActorFilter).fill("no-such-actor-e2e");
     await page.getByTestId(TEST_ID.auditApply).click();
-    await expect(page.getByTestId(TEST_ID.auditEmpty)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.auditEmpty)).toBeVisible();
   });
 
   test("exports the filtered audit rows as CSV", async ({ page }) => {
     await page.goto("/audit");
-    await expect(page.getByTestId(TEST_ID.auditView)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.auditView)).toBeVisible();
     await page.getByTestId(TEST_ID.auditProjectFilter).fill(projectName);
     await page.getByTestId(TEST_ID.auditApply).click();
-    await expect(
-      page.getByTestId(TEST_ID.auditRow).filter({ hasText: projectName }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(byText(page, TEST_ID.auditRow, projectName)).toBeVisible();
 
     const [download] = await Promise.all([
       page.waitForEvent("download"),
       page.getByTestId(TEST_ID.auditExport).click(),
     ]);
     expect(download.suggestedFilename()).toBe("audit.csv");
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Audit log exported",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Audit log exported");
 
     const file = await download.path();
     expect(file).toBeTruthy();

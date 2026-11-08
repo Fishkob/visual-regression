@@ -7,6 +7,7 @@ import {
 } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
 import { approveCurrentComparison } from "./fixtures/review";
+import { byText } from "./fixtures/ui";
 
 let projectName: string;
 const TEST_NAME = "annual-report";
@@ -30,10 +31,8 @@ test.describe("PDF Comparison Workflow", () => {
     await page.goto(`/projects/${encodeURIComponent(projectName)}`);
 
     await expect(
-      page
-        .getByTestId(TEST_ID.testResultCard)
-        .filter({ hasText: `${TEST_NAME}_report` }),
-    ).toBeVisible({ timeout: 10000 });
+      byText(page, TEST_ID.testResultCard, `${TEST_NAME}_report`),
+    ).toBeVisible();
   });
 
   test("displays comparison after uploading different PDF", async ({
@@ -47,9 +46,7 @@ test.describe("PDF Comparison Workflow", () => {
 
     await page.goto(testUrl(projectName, `${TEST_NAME}_report`));
 
-    await expect(page.getByTestId(TEST_ID.mismatchInfo)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.mismatchInfo)).toBeVisible();
   });
 
   test("can download baseline, candidate and diff PDFs", async ({ page }) => {
@@ -61,9 +58,7 @@ test.describe("PDF Comparison Workflow", () => {
 
     await page.goto(testUrl(projectName, `${TEST_NAME}_report`));
 
-    await expect(page.getByTestId(TEST_ID.mismatchInfo)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.mismatchInfo)).toBeVisible();
 
     // Switch to side-by-side to expose baseline + candidate download links
     await page.getByTestId(TEST_ID.modeSidebyside).click();
@@ -102,20 +97,14 @@ test.describe("PDF Comparison Workflow", () => {
 
     await page.goto(testUrl(projectName, `${TEST_NAME}_report`));
 
-    await expect(page.getByTestId(TEST_ID.mismatchInfo)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.mismatchInfo)).toBeVisible();
 
     await approveCurrentComparison(page);
 
     // Approving the last comparison lands on the done page showing "Back to project list"
-    await expect(page.getByTestId(TEST_ID.approveChanges)).not.toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.approveChanges)).not.toBeVisible();
 
-    await expect(page.getByTestId(TEST_ID.backToProjectList)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.backToProjectList)).toBeVisible();
   });
 
   test("reclaims the PDF diff artifact after approval", async ({ page }) => {
@@ -123,22 +112,16 @@ test.describe("PDF Comparison Workflow", () => {
     await waitForPdfComparison(projectName, `${TEST_NAME}_report`);
 
     await page.goto(testUrl(projectName, `${TEST_NAME}_report`));
-    await expect(page.getByTestId(TEST_ID.mismatchInfo)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.mismatchInfo)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.downloadDiff)).toBeVisible();
 
     await approveCurrentComparison(page);
-    await expect(page.getByTestId(TEST_ID.approveChanges)).not.toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.approveChanges)).not.toBeVisible();
 
     // The approved PDF comparison is kept as history, but its diff artifact is
     // gone: the details show the note instead of a diff download.
     await page.goto(testUrl(projectName, `${TEST_NAME}_report`));
-    await expect(page.getByTestId(TEST_ID.diffRemovedNote)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.diffRemovedNote)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.downloadDiff)).toHaveCount(0);
     await expect(page.getByTestId(TEST_ID.approvalBadge)).toBeVisible();
   });
