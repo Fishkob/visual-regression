@@ -69,7 +69,6 @@ export class AuthenticationGuard implements CanActivate {
           sessionId: session.id,
           role: user.role,
           mustChangePassword: user.mustChangePassword,
-          totpEnabled: user.totpEnabledAt !== null,
         };
         this.enforceSameOrigin(request);
         this.enforceAccess(context, request);

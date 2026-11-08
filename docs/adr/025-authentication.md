@@ -4,6 +4,9 @@
 
 Accepted — 2026-08-24; the delete-only-for-unused-key rule is superseded by
 [ADR-047](./ADR-047-delete-removes-an-api-key.md).
+Amended 2026-11-08: the login pair lost its second step when two-factor
+authentication was removed (ADR-074); `POST /auth/login` is the only credential
+endpoint.
 
 ## Context
 
@@ -46,8 +49,8 @@ credentials:
 protected by default. A request passes if it carries a valid, unexpired session
 cookie OR a valid api key. Endpoints that must stay reachable are marked with the
 `@Public()` decorator (`IS_PUBLIC_KEY` reflector), and only three arguments
-justify one: the credential cannot exist yet (the login pair — `POST /auth/login`
-and its second step `POST /auth/2fa/verify`), the endpoint must work before anyone
+justify one: the credential cannot exist yet (`POST /auth/login`), the endpoint
+must work before anyone
 is authenticated (health, log ingestion, resolving a share link by token), or the
 route carries a different guard (the admin endpoints behind `AdminAuthGuard`, see
 below; `/metrics`, whose `MetricsAuthGuard` demands the `x-metrics-key` header and

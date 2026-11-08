@@ -40,7 +40,6 @@ describe('AuthController', () => {
       username: 'alice',
       role: 'MEMBER',
       mustChangePassword: false,
-      totpEnabled: false,
     });
     const res = { cookie: vi.fn(), clearCookie: vi.fn() };
 
@@ -64,7 +63,6 @@ describe('AuthController', () => {
       username: 'alice',
       role: 'MEMBER',
       mustChangePassword: false,
-      totpEnabled: false,
     });
   });
 
@@ -74,7 +72,6 @@ describe('AuthController', () => {
       username: 'alice',
       role: 'MEMBER',
       mustChangePassword: false,
-      totpEnabled: false,
     });
     const res = { cookie: vi.fn(), clearCookie: vi.fn() };
 
@@ -98,7 +95,6 @@ describe('AuthController', () => {
       username: 'alice',
       role: 'MEMBER',
       mustChangePassword: false,
-      totpEnabled: false,
     });
     const res = { cookie: vi.fn(), clearCookie: vi.fn() };
 
@@ -131,7 +127,6 @@ describe('AuthController', () => {
         username: 'alice',
         role: 'MEMBER',
         mustChangePassword: false,
-        totpEnabled: false,
       },
     };
 
@@ -141,7 +136,6 @@ describe('AuthController', () => {
       username: 'alice',
       role: 'MEMBER',
       mustChangePassword: false,
-      totpEnabled: false,
     });
   });
 

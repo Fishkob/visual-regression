@@ -13,8 +13,4 @@ export class MeDto {
   @Expose()
   @ApiProperty({ example: false })
   mustChangePassword!: boolean;
-
-  @Expose()
-  @ApiProperty({ example: false })
-  totpEnabled!: boolean;
 }

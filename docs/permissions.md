@@ -45,8 +45,8 @@ Notes:
   keys the user owns, so a long-lived CI credential cannot outlive its account.
 
 Security settings (`/settings/security`) are available to every authenticated
-user: 2FA enrollment/disable and the user's own session list. Admins cannot see
-or revoke another user's sessions; they use a password reset instead.
+user: the user's own session list. Admins cannot see or revoke another user's
+sessions; they use a password reset instead.
 
 Enforcement points:
 

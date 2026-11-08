@@ -9,7 +9,6 @@ export interface AuthenticatedRequest extends Request {
     sessionId?: string;
     role: 'ADMIN' | 'MEMBER' | 'VIEWER';
     mustChangePassword?: boolean;
-    totpEnabled?: boolean;
     apiKeyId?: string;
     scopes?: string[];
     projectIds?: string[];

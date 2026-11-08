@@ -1,5 +1,5 @@
-import type { RecoveryCodesDto, SessionDto, TwoFactorSetupDto } from "@sdk";
-import type { RecoveryCodes, Session, TwoFactorSetup } from "./security.model";
+import type { SessionDto } from "@sdk";
+import type { Session } from "./security.model";
 
 // The generated DTO types the nullable request-metadata columns as free-form
 // objects (the backend declares them nullable but untyped), so the source widens
@@ -44,31 +44,6 @@ export function mapSession(dto: SessionSource): Session {
 // preserves the server order.
 export function mapSessions(dtos: SessionDto[] | undefined): Session[] {
   return (dtos ?? []).map(mapSession);
-}
-
-export function mapTwoFactorSetup(
-  dto: TwoFactorSetupDto | undefined,
-): TwoFactorSetup {
-  return {
-    secret: dto?.secret ?? "",
-    otpauthUrl: dto?.otpauthUrl ?? "",
-  };
-}
-
-// The OpenAPI schema declares recoveryCodes as an array of arrays (the Swagger
-// `type: [String], isArray: true` combination doubles the nesting) while the
-// backend sends a flat string[]. Normalizing both shapes here keeps the rest of
-// the UI from having to know which one it got.
-export function mapRecoveryCodes(
-  dto: RecoveryCodesDto | undefined,
-): RecoveryCodes {
-  const value = dto?.recoveryCodes as unknown;
-  if (!Array.isArray(value)) return [];
-  return (value as unknown[])
-    .flatMap((entry) => (Array.isArray(entry) ? (entry as unknown[]) : [entry]))
-    .filter(
-      (code): code is string => typeof code === "string" && code.length > 0,
-    );
 }
 
 // "Log out other sessions" answers { revoked } but the generated SDK types the

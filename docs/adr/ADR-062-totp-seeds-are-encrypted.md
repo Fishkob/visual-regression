@@ -3,6 +3,7 @@
 ## Status
 
 Accepted — 2026-11-24.
+Superseded by: ADR-074 (TOTP two-factor authentication is removed).
 
 Enforced by `totp-secret-cipher.spec.ts` (round-trip, legacy passthrough,
 fail-closed on a changed key or a tampered value) and by the auth service spec

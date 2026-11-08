@@ -65,12 +65,6 @@ export type { AuthControllerChangePasswordData } from './models/AuthControllerCh
 export type { AuthControllerChangePasswordErrors } from './models/AuthControllerChangePasswordErrors.gen';
 export type { AuthControllerChangePasswordResponse } from './models/AuthControllerChangePasswordResponse.gen';
 export type { AuthControllerChangePasswordResponses } from './models/AuthControllerChangePasswordResponses.gen';
-export type { AuthControllerDisableTwoFactorData } from './models/AuthControllerDisableTwoFactorData.gen';
-export type { AuthControllerDisableTwoFactorResponse } from './models/AuthControllerDisableTwoFactorResponse.gen';
-export type { AuthControllerDisableTwoFactorResponses } from './models/AuthControllerDisableTwoFactorResponses.gen';
-export type { AuthControllerEnableTwoFactorData } from './models/AuthControllerEnableTwoFactorData.gen';
-export type { AuthControllerEnableTwoFactorResponse } from './models/AuthControllerEnableTwoFactorResponse.gen';
-export type { AuthControllerEnableTwoFactorResponses } from './models/AuthControllerEnableTwoFactorResponses.gen';
 export type { AuthControllerListSessionsData } from './models/AuthControllerListSessionsData.gen';
 export type { AuthControllerListSessionsResponse } from './models/AuthControllerListSessionsResponse.gen';
 export type { AuthControllerListSessionsResponses } from './models/AuthControllerListSessionsResponses.gen';
@@ -89,13 +83,6 @@ export type { AuthControllerRevokeAllSessionsResponses } from './models/AuthCont
 export type { AuthControllerRevokeSessionData } from './models/AuthControllerRevokeSessionData.gen';
 export type { AuthControllerRevokeSessionResponse } from './models/AuthControllerRevokeSessionResponse.gen';
 export type { AuthControllerRevokeSessionResponses } from './models/AuthControllerRevokeSessionResponses.gen';
-export type { AuthControllerSetupTwoFactorData } from './models/AuthControllerSetupTwoFactorData.gen';
-export type { AuthControllerSetupTwoFactorResponse } from './models/AuthControllerSetupTwoFactorResponse.gen';
-export type { AuthControllerSetupTwoFactorResponses } from './models/AuthControllerSetupTwoFactorResponses.gen';
-export type { AuthControllerVerifyTwoFactorData } from './models/AuthControllerVerifyTwoFactorData.gen';
-export type { AuthControllerVerifyTwoFactorErrors } from './models/AuthControllerVerifyTwoFactorErrors.gen';
-export type { AuthControllerVerifyTwoFactorResponse } from './models/AuthControllerVerifyTwoFactorResponse.gen';
-export type { AuthControllerVerifyTwoFactorResponses } from './models/AuthControllerVerifyTwoFactorResponses.gen';
 export type { BaselineCreatedResultDto } from './models/BaselineCreatedResultDto.gen';
 export type { BaselineHistoryControllerListData } from './models/BaselineHistoryControllerListData.gen';
 export type { BaselineHistoryControllerListResponse } from './models/BaselineHistoryControllerListResponse.gen';
@@ -156,8 +143,6 @@ export type { CreateUserDto } from './models/CreateUserDto.gen';
 export type { CreateWebhookDto } from './models/CreateWebhookDto.gen';
 export type { DailyOutcomeDto } from './models/DailyOutcomeDto.gen';
 export type { DetailedHealthDto } from './models/DetailedHealthDto.gen';
-export type { DisableTotpDto } from './models/DisableTotpDto.gen';
-export type { EnableTotpDto } from './models/EnableTotpDto.gen';
 export type { FlakeRateDto } from './models/FlakeRateDto.gen';
 export type { HealthControllerCheckData } from './models/HealthControllerCheckData.gen';
 export type { HealthControllerCheckDatabaseData } from './models/HealthControllerCheckDatabaseData.gen';
@@ -254,7 +239,6 @@ export type { PublicShareControllerResolveData } from './models/PublicShareContr
 export type { PublicShareControllerResolveResponse } from './models/PublicShareControllerResolveResponse.gen';
 export type { PublicShareControllerResolveResponses } from './models/PublicShareControllerResolveResponses.gen';
 export type { PublicShareDto } from './models/PublicShareDto.gen';
-export type { RecoveryCodesDto } from './models/RecoveryCodesDto.gen';
 export type { ResetPasswordResultDto } from './models/ResetPasswordResultDto.gen';
 export type { ResolveShareDto } from './models/ResolveShareDto.gen';
 export type { RestoreBaselineDto } from './models/RestoreBaselineDto.gen';
@@ -377,7 +361,6 @@ export type { TrendsControllerGetData } from './models/TrendsControllerGetData.g
 export type { TrendsControllerGetResponse } from './models/TrendsControllerGetResponse.gen';
 export type { TrendsControllerGetResponses } from './models/TrendsControllerGetResponses.gen';
 export type { TrendsDto } from './models/TrendsDto.gen';
-export type { TwoFactorSetupDto } from './models/TwoFactorSetupDto.gen';
 export type { UpdateBranchDto } from './models/UpdateBranchDto.gen';
 export type { UpdateProjectDto } from './models/UpdateProjectDto.gen';
 export type { UpdateProjectGroupDto } from './models/UpdateProjectGroupDto.gen';
@@ -406,7 +389,6 @@ export type { UsersControllerUpdateData } from './models/UsersControllerUpdateDa
 export type { UsersControllerUpdateResponse } from './models/UsersControllerUpdateResponse.gen';
 export type { UsersControllerUpdateResponses } from './models/UsersControllerUpdateResponses.gen';
 export type { VariantDto } from './models/VariantDto.gen';
-export type { VerifyTwoFactorDto } from './models/VerifyTwoFactorDto.gen';
 export type { VisualTestDetailsDto } from './models/VisualTestDetailsDto.gen';
 export type { VisualTestDto } from './models/VisualTestDto.gen';
 export type { WebhookDeliveryDto } from './models/WebhookDeliveryDto.gen';
@@ -434,5 +416,5 @@ export type { WebhooksControllerUpdateData } from './models/WebhooksControllerUp
 export type { WebhooksControllerUpdateResponse } from './models/WebhooksControllerUpdateResponse.gen';
 export type { WebhooksControllerUpdateResponses } from './models/WebhooksControllerUpdateResponses.gen';
 export type { WebhookTestResultDto } from './models/WebhookTestResultDto.gen';
-export { adminApiKeysControllerCreate, apiKeysControllerCreate, apiKeysControllerFindAll, apiKeysControllerRemove, apiKeysControllerRevoke, apiKeysControllerRotate, approvalsControllerApproveAllPending, approvalsControllerApprovePdfTest, approvalsControllerApproveVisualTest, approvalsControllerListApprovals, assignmentControllerComplete, assignmentControllerCreate, assignmentControllerMine, assignmentControllerOverdue, auditControllerExport, auditControllerList, authControllerChangePassword, authControllerDisableTwoFactor, authControllerEnableTwoFactor, authControllerListSessions, authControllerLogin, authControllerLogout, authControllerMe, authControllerRevokeAllSessions, authControllerRevokeSession, authControllerSetupTwoFactor, authControllerVerifyTwoFactor, baselineHistoryControllerList, baselineHistoryControllerRestore, branchesControllerList, branchesControllerRemove, branchesControllerUpdate, bulkActionsControllerApprove, bulkActionsControllerDeleteTests, healthControllerCheck, healthControllerCheckDatabase, healthControllerCheckStorage, healthControllerReadiness, jobStatusControllerGetJobStatus, metricsControllerGetMetrics, pdfControllerDownloadPdf, pdfControllerGetPdfTestDetails, pdfControllerRenderPdfPage, projectGroupsControllerCreate, projectGroupsControllerFindAll, projectGroupsControllerRemove, projectGroupsControllerRename, projectsBulkControllerMove, projectsControllerCreate, projectsControllerDeleteProject, projectsControllerGetAllProjects, projectsControllerGetOneProject, projectsControllerGetProjectsWithPendingFlag, projectsControllerUpdatePixelThreshold, projectsControllerUpdateProject, publicShareControllerResolve, reviewCommentControllerCreate, reviewCommentControllerList, reviewCommentControllerResolve, reviewInboxControllerGetBranches, reviewInboxControllerGetPending, runsControllerApproveAll, runsControllerCsvReport, runsControllerDetail, runsControllerFinish, runsControllerHtmlReport, runsControllerJunitReport, runsControllerList, runsControllerStatus, searchControllerQuery, shareLinkRevokeControllerRevoke, shareLinksControllerCreate, shareLinksControllerList, storageControllerGet, storageControllerPreviewRetention, storageControllerUpdate, testCommandsControllerDeleteVisualTest, testCommandsControllerUpdateThreshold, testLifecycleControllerGet, testLifecycleControllerUpdate, testsQueriesControllerGetKind, testsQueriesControllerGetTestsForProject, testsQueriesControllerGetTestsWithPendingStatus, testsQueriesControllerGetVariants, testsQueriesControllerGetVisualTestDetails, trendsControllerGet, uploadControllerUpload, usersControllerCreate, usersControllerList, usersControllerResetPassword, usersControllerUpdate, webhooksControllerCreate, webhooksControllerDeliveries, webhooksControllerList, webhooksControllerRemove, webhooksControllerReplay, webhooksControllerTest, webhooksControllerUpdate } from './sdk.gen';
+export { adminApiKeysControllerCreate, apiKeysControllerCreate, apiKeysControllerFindAll, apiKeysControllerRemove, apiKeysControllerRevoke, apiKeysControllerRotate, approvalsControllerApproveAllPending, approvalsControllerApprovePdfTest, approvalsControllerApproveVisualTest, approvalsControllerListApprovals, assignmentControllerComplete, assignmentControllerCreate, assignmentControllerMine, assignmentControllerOverdue, auditControllerExport, auditControllerList, authControllerChangePassword, authControllerListSessions, authControllerLogin, authControllerLogout, authControllerMe, authControllerRevokeAllSessions, authControllerRevokeSession, baselineHistoryControllerList, baselineHistoryControllerRestore, branchesControllerList, branchesControllerRemove, branchesControllerUpdate, bulkActionsControllerApprove, bulkActionsControllerDeleteTests, healthControllerCheck, healthControllerCheckDatabase, healthControllerCheckStorage, healthControllerReadiness, jobStatusControllerGetJobStatus, metricsControllerGetMetrics, pdfControllerDownloadPdf, pdfControllerGetPdfTestDetails, pdfControllerRenderPdfPage, projectGroupsControllerCreate, projectGroupsControllerFindAll, projectGroupsControllerRemove, projectGroupsControllerRename, projectsBulkControllerMove, projectsControllerCreate, projectsControllerDeleteProject, projectsControllerGetAllProjects, projectsControllerGetOneProject, projectsControllerGetProjectsWithPendingFlag, projectsControllerUpdatePixelThreshold, projectsControllerUpdateProject, publicShareControllerResolve, reviewCommentControllerCreate, reviewCommentControllerList, reviewCommentControllerResolve, reviewInboxControllerGetBranches, reviewInboxControllerGetPending, runsControllerApproveAll, runsControllerCsvReport, runsControllerDetail, runsControllerFinish, runsControllerHtmlReport, runsControllerJunitReport, runsControllerList, runsControllerStatus, searchControllerQuery, shareLinkRevokeControllerRevoke, shareLinksControllerCreate, shareLinksControllerList, storageControllerGet, storageControllerPreviewRetention, storageControllerUpdate, testCommandsControllerDeleteVisualTest, testCommandsControllerUpdateThreshold, testLifecycleControllerGet, testLifecycleControllerUpdate, testsQueriesControllerGetKind, testsQueriesControllerGetTestsForProject, testsQueriesControllerGetTestsWithPendingStatus, testsQueriesControllerGetVariants, testsQueriesControllerGetVisualTestDetails, trendsControllerGet, uploadControllerUpload, usersControllerCreate, usersControllerList, usersControllerResetPassword, usersControllerUpdate, webhooksControllerCreate, webhooksControllerDeliveries, webhooksControllerList, webhooksControllerRemove, webhooksControllerReplay, webhooksControllerTest, webhooksControllerUpdate } from './sdk.gen';
 export { ComparisonErrorCode, ComparisonOutcome, ComparisonStatus, JobStatus, ScreenshotType, TestStatus } from './types.gen';

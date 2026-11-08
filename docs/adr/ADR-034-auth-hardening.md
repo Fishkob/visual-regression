@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-10-25
+Accepted — 2026-10-25.
+Amended 2026-11-08: the TOTP half is removed from the product (ADR-074); the
+sessions and CSRF decisions stand.
 
 ## Context
 

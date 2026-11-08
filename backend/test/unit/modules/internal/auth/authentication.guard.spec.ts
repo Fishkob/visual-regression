@@ -123,8 +123,6 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
-      totpSecret: null,
-      totpEnabledAt: null,
       createdAt: new Date(),
     });
 
@@ -149,8 +147,6 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
-      totpSecret: null,
-      totpEnabledAt: null,
       createdAt: new Date(),
     });
 
@@ -172,7 +168,6 @@ describe('AuthenticationGuard', () => {
       sessionId: 's1',
       role: 'MEMBER',
       mustChangePassword: false,
-      totpEnabled: false,
     });
   });
 
@@ -200,8 +195,6 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
-      totpSecret: null,
-      totpEnabledAt: null,
       createdAt: new Date(),
     });
     mockRepository.touchSession.mockResolvedValue(undefined);
@@ -242,8 +235,6 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
-      totpSecret: null,
-      totpEnabledAt: null,
       createdAt: new Date(),
     });
     const request = {
@@ -279,8 +270,6 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
-      totpSecret: null,
-      totpEnabledAt: null,
       createdAt: new Date(),
     });
     const request = {
@@ -338,8 +327,6 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
-      totpSecret: null,
-      totpEnabledAt: null,
       createdAt: new Date(),
     });
     mockRepository.extendSessionExpiry.mockResolvedValue(undefined);
@@ -381,8 +368,6 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
-      totpSecret: null,
-      totpEnabledAt: null,
       createdAt: new Date(),
     });
 
@@ -407,8 +392,6 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
-      totpSecret: null,
-      totpEnabledAt: null,
       createdAt: new Date(),
     });
 
@@ -466,8 +449,6 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
-      totpSecret: null,
-      totpEnabledAt: null,
       createdAt: new Date(),
     });
     const adminHandler = () => {};
@@ -493,8 +474,6 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
-      totpSecret: null,
-      totpEnabledAt: null,
       createdAt: new Date(),
     });
     const request = {
@@ -530,8 +509,6 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: true,
       deactivatedAt: null,
       createdBy: null,
-      totpSecret: null,
-      totpEnabledAt: null,
       createdAt: new Date(),
     });
     const request = {
@@ -572,8 +549,6 @@ describe('AuthenticationGuard', () => {
       mustChangePassword: false,
       deactivatedAt: null,
       createdBy: null,
-      totpSecret: null,
-      totpEnabledAt: null,
       createdAt: new Date(),
     });
     const request = {
@@ -930,8 +905,6 @@ describe('AuthenticationGuard', () => {
         mustChangePassword: false,
         deactivatedAt: null,
         createdBy: null,
-        totpSecret: null,
-        totpEnabledAt: null,
         createdAt: new Date(),
       });
 

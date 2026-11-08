@@ -55,7 +55,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 059 | [A Repository Unit Test Asserts Query Policy, the Database Proves Mechanism](./ADR-059-query-policy-vs-mechanism.md)                   | Accepted (partially supersedes 054 decision 5)                        |
 | 060 | [The Storage Quota Check Reads a Cached Byte Total](./ADR-060-storage-usage-is-a-cached-total.md)                                      | Accepted (partially supersedes 043)                                   |
 | 061 | [A Project Is Named, but Its Identity Is the Id](./ADR-061-project-identity-is-the-id.md)                                              | Accepted (supersedes 035/038/049 in part)                             |
-| 062 | [TOTP Seeds Are Encrypted at Rest](./ADR-062-totp-seeds-are-encrypted.md)                                                              | Accepted                                                              |
+| 062 | [TOTP Seeds Are Encrypted at Rest](./ADR-062-totp-seeds-are-encrypted.md)                                                              | Superseded by 074                                                     |
 | 063 | [The Database Enforces One Reviewable Comparison per Variant](./ADR-063-single-pending-comparison-is-a-database-guarantee.md)          | Accepted                                                              |
 | 064 | [The Discussion Cascades with Its Test](./ADR-064-review-comments-cascade-with-their-test.md)                                          | Accepted (supersedes the comment half of 042)                         |
 | 065 | [Cross-Row Identities Are Database Guarantees](./ADR-065-cross-row-identities-are-database-guarantees.md)                              | Accepted (narrows the rule in CONTEXT.md)                             |
@@ -67,6 +67,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 071 | [The Platform Baseline Is 1.0.0](./ADR-071-platform-baseline-is-1-0-0.md)                                                              | Accepted (supersedes 070's platform baseline)                         |
 | 072 | [Release Artifacts Are Verified and Attested](./ADR-072-release-artifacts-are-verified-and-attested.md)                                | Accepted                                                              |
 | 073 | [Release Assets and Immutable Releases](./ADR-073-release-assets-and-immutable-releases.md)                                            | Accepted — supersedes 069 decision 5                                  |
+| 074 | [TOTP Two-Factor Authentication Is Removed](./ADR-074-remove-totp-two-factor-authentication.md)                                        | Accepted (supersedes 062; the TOTP half of 034)                       |
 
 ## Numbering
 

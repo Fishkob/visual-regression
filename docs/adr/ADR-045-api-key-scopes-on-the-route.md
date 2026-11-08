@@ -3,6 +3,8 @@
 ## Status
 
 Accepted — 2026-10-26; partially supersedes ADR-035.
+Amended 2026-11-08: the 2FA routes named among the session-only set were removed
+(ADR-074); the rule is unchanged.
 
 ## Context
 
@@ -33,8 +35,8 @@ the project allowlist stays a rule of its own (see below).
 Session-only routes declare no `@Scope` at all: the guard rejects the api key
 before it ever reads the metadata, so a declaration there would describe a check
 that never runs (`common/http/session-only.decorator.ts`). That is why the
-annotated set is smaller than the route count — the auth account routes (2FA,
-own sessions, change-password), key management, users, webhooks, audit, share-link
+annotated set is smaller than the route count — the auth account routes (own
+sessions, change-password), key management, users, webhooks, audit, share-link
 administration, comments and assignments are session-only and carry no scope.
 
 The scoped routes reproduce the old table exactly, verified route by route and
