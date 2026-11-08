@@ -5,7 +5,7 @@ export const ACCOUNT_LIFECYCLE_KEY = 'auth:account-lifecycle';
 // Marks the account-lifecycle surface — the routes a caller must be able to
 // reach *while their account is not in a usable state*: signing out, reading who
 // they are, changing the password that is forcing the change, and managing their
-// own second factor / sessions.
+// own sessions.
 //
 // The global guard exempts these from two rules: the VIEWER write-ban (a viewer
 // must still be able to log out) and the must-change-password gate (the screen

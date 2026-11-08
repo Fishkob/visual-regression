@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-09-05
+Accepted — 2026-09-05.
+Amended 2026-11-08: the `2fa/*` entry points named below were removed with
+two-factor authentication (ADR-074).
 
 ## Context
 
@@ -22,8 +24,8 @@ fixed one-minute window, keyed by `(scope, key)`. The generic `RateLimitBucket`
 table replaces `ApiKeyRateLimitBucket`. A global `RateLimitGuard` (registered
 after `AuthenticationGuard`) is a pass-through unless a handler carries
 `@RateLimit(scope)`. The decorator sits on the abuse surfaces, not on product
-traffic: upload, every credential-checking login/2FA entry point (`login`,
-`2fa/verify`, `2fa/disable`, `change-password`), share-link resolve, and log
+traffic: upload, every credential-checking login entry point (`login`,
+`change-password`), share-link resolve, and log
 ingestion. Login-scope routes consume two buckets when a username is submitted
 (`ip:<ip>` and `ip:<ip>:user:<username>`); upload consumes `apikey:<id>` for
 API-key traffic and `session:<username>` for session traffic (the IP when no
@@ -38,7 +40,7 @@ username is known); log ingestion and share-link resolve consume `ip:<ip>`.
   `LOG_RATE_LIMIT_PER_MINUTE` (all "per minute", `0` disables) and
   `TRUST_PROXY`.
 - `TRUST_PROXY` now affects only the rules keyed by `ip:<ip>` — the login-scope
-  routes (the anonymous login/2FA/share-link ones among them) and log ingestion
+  routes (the anonymous login and share-link ones among them) and log ingestion
   — shrinking its blast radius.
 - The 429 metric is generalized to `rate_limited_total` with a `scope` label.
 

@@ -11,8 +11,6 @@ export interface AuthUserRow {
   mustChangePassword: boolean;
   deactivatedAt: Date | null;
   createdBy: string | null;
-  totpSecret: string | null;
-  totpEnabledAt: Date | null;
   createdAt: Date;
 }
 
@@ -72,7 +70,7 @@ export interface ApiKeyRetirement {
 // PrismaUnitOfWork transaction in UsersService: the user row and the audit row
 // naming who created or changed it have to commit together. This repository
 // used to take PrismaConnection directly, on the premise that "auth writes never
-// join an ambient transaction" — true for the session, login and two-factor
+// join an ambient transaction" — true for the session and login
 // writes, false for the user writes, whose row therefore committed outside the
 // audit's transaction and survived its rollback.
 //
@@ -224,91 +222,6 @@ export class AuthRepository extends BaseRepository {
     data: { lastSeenAt: Date; ip: string | null; userAgent: string | null },
   ): Promise<void> {
     await this.client.session.update({ where: { id }, data });
-  }
-
-  async createTwoFactorChallenge(
-    userId: string,
-    tokenHash: string,
-    expiresAt: Date,
-  ): Promise<void> {
-    await this.client.twoFactorChallenge.create({
-      data: { userId, tokenHash, expiresAt },
-    });
-  }
-
-  async findTwoFactorChallengeByTokenHash(tokenHash: string) {
-    return this.client.twoFactorChallenge.findUnique({
-      where: { tokenHash },
-    });
-  }
-
-  async incrementTwoFactorChallengeAttempts(id: string): Promise<void> {
-    await this.client.twoFactorChallenge.update({
-      where: { id },
-      data: { attempts: { increment: 1 } },
-    });
-  }
-
-  async deleteTwoFactorChallenge(id: string): Promise<void> {
-    await this.client.twoFactorChallenge.delete({ where: { id } });
-  }
-
-  async setTotpSecret(userId: string, secret: string): Promise<void> {
-    await this.client.user.update({
-      where: { id: userId },
-      data: { totpSecret: secret, totpEnabledAt: null },
-    });
-  }
-
-  // Re-encryption of a legacy plaintext seed. Unlike setTotpSecret it must not
-  // reset totpEnabledAt: the account is already using the second factor.
-  async updateTotpSecret(userId: string, secret: string): Promise<void> {
-    await this.client.user.update({
-      where: { id: userId },
-      data: { totpSecret: secret },
-    });
-  }
-
-  async enableTotp(userId: string): Promise<void> {
-    await this.client.user.update({
-      where: { id: userId },
-      data: { totpEnabledAt: new Date() },
-    });
-  }
-
-  async disableTotp(userId: string): Promise<void> {
-    await this.client.$transaction([
-      this.client.user.update({
-        where: { id: userId },
-        data: { totpSecret: null, totpEnabledAt: null },
-      }),
-      this.client.recoveryCode.deleteMany({ where: { userId } }),
-    ]);
-  }
-
-  async createRecoveryCodes(
-    userId: string,
-    codeHashes: string[],
-  ): Promise<void> {
-    await this.client.$transaction([
-      this.client.recoveryCode.deleteMany({ where: { userId } }),
-      this.client.recoveryCode.createMany({
-        data: codeHashes.map((codeHash) => ({ userId, codeHash })),
-      }),
-    ]);
-  }
-
-  async findUnusedRecoveryCode(userId: string, codeHash: string) {
-    return this.client.recoveryCode.findFirst({
-      where: { userId, codeHash, usedAt: null },
-    });
-  }
-
-  async markRecoveryCodeUsed(id: string): Promise<void> {
-    await this.client.recoveryCode.update({
-      where: { id },
-      data: { usedAt: new Date() },
-    });
   }
 
   async extendSessionExpiry(tokenHash: string, expiresAt: Date): Promise<void> {

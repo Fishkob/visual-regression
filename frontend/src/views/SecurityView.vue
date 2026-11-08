@@ -3,94 +3,26 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import AsyncState from "@/components/AsyncState.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
-import FormDialog from "@/components/FormDialog.vue";
-import RecoveryCodesDialog from "@/components/security/RecoveryCodesDialog.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useMeQuery } from "@/composables/useAuth";
 import {
-  useDisableTwoFactor,
-  useEnableTwoFactor,
   useRevokeAllSessions,
   useRevokeSession,
   useSessionsQuery,
-  useTwoFactorSetup,
 } from "@/composables/useSecurity";
-import {
-  mapRecoveryCodes,
-  mapTwoFactorSetup,
-} from "@/domains/security/security.mapper";
-import type {
-  Session,
-  TwoFactorSetup,
-} from "@/domains/security/security.model";
+import type { Session } from "@/domains/security/security.model";
 import { formatRelativeAge } from "@/lib/format-date";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { t } = useI18n();
-const { data: me } = useMeQuery();
 const { data: sessionData, isLoading, error, refetch } = useSessionsQuery();
-const setup = useTwoFactorSetup();
-const enable = useEnableTwoFactor();
-const disable = useDisableTwoFactor();
 const revoke = useRevokeSession();
 const revokeAll = useRevokeAllSessions();
 
-const totpEnabled = computed(() => me.value?.totpEnabled === true);
 const sessions = computed(() => sessionData.value ?? []);
 const otherSessions = computed(
   () => sessions.value.filter((session) => !session.isCurrent).length,
 );
-
-// Setup is a one-shot mutation answer held in component state: the secret is
-// never cached, never persisted and disappears once 2FA is enabled.
-const setupData = ref<TwoFactorSetup | null>(null);
-const setupCode = ref("");
-const setupPending = computed(() => setup.isPending.value);
-const enablePending = computed(() => enable.isPending.value);
-
-function startSetup() {
-  setup.reset();
-  setup.mutate(undefined, {
-    onSuccess: (dto) => {
-      setupData.value = mapTwoFactorSetup(dto);
-      setupCode.value = "";
-    },
-  });
-}
-
-const recoveryCodes = ref<string[]>([]);
-const recoveryOpen = ref(false);
-
-function confirmEnable() {
-  enable.mutate(setupCode.value.trim(), {
-    onSuccess: (dto) => {
-      recoveryCodes.value = mapRecoveryCodes(dto);
-      setupData.value = null;
-      setupCode.value = "";
-      recoveryOpen.value = true;
-    },
-  });
-}
-
-const disableOpen = ref(false);
-const disablePassword = ref("");
-
-function openDisable() {
-  disable.reset();
-  disablePassword.value = "";
-  disableOpen.value = true;
-}
-
-function confirmDisable() {
-  disable.mutate(disablePassword.value, {
-    onSuccess: () => {
-      disableOpen.value = false;
-      disablePassword.value = "";
-    },
-  });
-}
 
 const revokeTarget = ref<Session | null>(null);
 const revokeOpen = ref(false);
@@ -143,94 +75,6 @@ function lastSeenLabel(session: Session): string {
         {{ t("security.subtitle") }}
       </p>
     </div>
-
-    <section class="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 class="font-medium">{{ t("security.twoFactorTitle") }}</h2>
-          <p class="text-sm text-muted-foreground">
-            {{
-              totpEnabled
-                ? t("security.twoFactorEnabled")
-                : t("security.twoFactorDisabled")
-            }}
-          </p>
-        </div>
-        <Button
-          v-if="!totpEnabled && !setupData"
-          type="button"
-          :disabled="setupPending"
-          :data-testid="TEST_ID.twoFactorEnable"
-          @click="startSetup"
-        >
-          {{ setupPending ? t("security.starting") : t("security.enable2fa") }}
-        </Button>
-        <Button
-          v-if="totpEnabled"
-          type="button"
-          variant="destructive"
-          :data-testid="TEST_ID.twoFactorDisable"
-          @click="openDisable"
-        >
-          {{ t("security.disable2fa") }}
-        </Button>
-      </div>
-
-      <div v-if="setupData" class="space-y-3 rounded-lg border bg-muted/30 p-3">
-        <p class="text-sm">
-          {{ t("security.setupHelp") }}
-        </p>
-        <div class="space-y-1">
-          <span class="text-xs font-medium text-muted-foreground uppercase">
-            {{ t("security.secret") }}
-          </span>
-          <code
-            class="block overflow-x-auto rounded-md border bg-background px-3 py-2 font-mono text-sm select-all"
-            :data-testid="TEST_ID.twoFactorSecret"
-          >
-            {{ setupData.secret }}
-          </code>
-        </div>
-        <div class="space-y-1">
-          <span class="text-xs font-medium text-muted-foreground uppercase">
-            {{ t("security.setupUri") }}
-          </span>
-          <code
-            class="block overflow-x-auto rounded-md border bg-background px-3 py-2 font-mono text-xs select-all"
-            :data-testid="TEST_ID.twoFactorSetupUri"
-          >
-            {{ setupData.otpauthUrl }}
-          </code>
-        </div>
-        <div class="flex flex-wrap items-end gap-2">
-          <label class="space-y-1 text-sm">
-            <span>{{ t("security.code") }}</span>
-            <Input
-              v-model="setupCode"
-              type="text"
-              autocomplete="one-time-code"
-              placeholder="123456"
-              class="w-36 font-mono tracking-widest"
-              :data-testid="TEST_ID.twoFactorCode"
-            />
-          </label>
-          <Button
-            type="button"
-            :disabled="enablePending || !setupCode.trim()"
-            :data-testid="TEST_ID.twoFactorConfirm"
-            @click="confirmEnable"
-          >
-            {{
-              enablePending ? t("security.enabling") : t("security.enable2fa")
-            }}
-          </Button>
-        </div>
-      </div>
-
-      <p v-if="totpEnabled" class="text-sm text-muted-foreground">
-        {{ t("security.recoveryHelp") }}
-      </p>
-    </section>
 
     <section class="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
       <div class="flex flex-wrap items-start justify-between gap-4">
@@ -336,28 +180,6 @@ function lastSeenLabel(session: Session): string {
       </AsyncState>
     </section>
 
-    <FormDialog
-      :open="disableOpen"
-      :title="t('security.disableTitle')"
-      :description="t('security.disableDescription')"
-      :confirm-text="t('security.disable2fa')"
-      :pending="disable.isPending.value"
-      :submit-disabled="!disablePassword"
-      :confirm-test-id="TEST_ID.twoFactorDisableSubmit"
-      @update:open="disableOpen = $event"
-      @submit="confirmDisable"
-    >
-      <label class="block space-y-1 text-sm">
-        <span>{{ t("security.password") }}</span>
-        <Input
-          v-model="disablePassword"
-          type="password"
-          autocomplete="current-password"
-          :data-testid="TEST_ID.twoFactorPassword"
-        />
-      </label>
-    </FormDialog>
-
     <ConfirmDialog
       :open="revokeOpen"
       :pending="revoke.isPending.value"
@@ -380,12 +202,6 @@ function lastSeenLabel(session: Session): string {
       @confirm="confirmRevokeAll"
       @cancel="revokeAllOpen = false"
       @update:open="revokeAllOpen = $event"
-    />
-
-    <RecoveryCodesDialog
-      :open="recoveryOpen"
-      :codes="recoveryCodes"
-      @update:open="recoveryOpen = $event"
     />
   </div>
 </template>

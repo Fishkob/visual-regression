@@ -493,15 +493,11 @@ model User {
   mustChangePassword Boolean   @default(false)
   deactivatedAt      DateTime?
   createdBy          String?
-  totpSecret         String?
-  totpEnabledAt      DateTime?
   createdAt          DateTime  @default(now())
 
-  sessions            Session[]
-  assignments         ReviewAssignment[]   @relation("AssignmentAssignee")
-  recoveryCodes       RecoveryCode[]
-  twoFactorChallenges TwoFactorChallenge[]
-  apiKeys             ApiKey[]             @relation("ApiKeyOwner")
+  sessions    Session[]
+  assignments ReviewAssignment[] @relation("AssignmentAssignee")
+  apiKeys     ApiKey[]           @relation("ApiKeyOwner")
 
   @@index([role, isActive])
   @@map("User")
@@ -523,39 +519,6 @@ model Session {
   @@index([userId, revokedAt])
   @@index([expiresAt])
   @@map("Session")
-}
-
-// Short-lived second factor challenge. Only the hash of the bearer token is
-// stored, like a session token; the row dies on success or after five minutes.
-model TwoFactorChallenge {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
-  userId    String
-  attempts  Int      @default(0)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
-  @@map("TwoFactorChallenge")
-}
-
-// Recovery codes are single-use and stored hashed (SHA-256). A used code is
-// kept with usedAt so a replayed code fails and the audit trail survives.
-model RecoveryCode {
-  id        String    @id @default(cuid())
-  userId    String
-  codeHash  String
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, codeHash])
-  @@index([userId, usedAt])
-  @@map("RecoveryCode")
 }
 
 model ApiKey {

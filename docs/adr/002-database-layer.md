@@ -3,6 +3,8 @@
 ## Status
 
 Accepted — 2026-04-12 (Prisma ORM), 2026-05-23 (Unit of Work), 2026-06-20 (connection split).
+Amended 2026-11-08: the TOTP writes named as examples of a repository-owned
+transaction were removed with the feature (ADR-074).
 
 ## History
 
@@ -169,6 +171,6 @@ architecture in [ADR-013](./013-backend-structure.md).
 ### Consequences
 
 - **The transaction-aware repositories** inject `TransactionContext` and access `this.txCtx.client` — this resolves to the transaction client inside a UoW block, or the root client outside one.
-- **The `PrismaUnitOfWork` is the default place** that opens application-level database transactions. A few call sites deliberately open their own `$transaction` instead: `PostgresJobQueue.claimNext()` (`modules/internal/job-queue/postgres-job-queue.ts`) claims with `SELECT ... FOR UPDATE SKIP LOCKED` and must be atomic outside any caller's transaction; `PrismaProjectRepository.create()` writes the project together with its default branch in one transaction (project creation mutates no test status, so it stays outside `StateChangeWorkflow`); and `AuthRepository` opens its own transactions for the two-statement auth writes that must not be half-applied (API-key rotation in `replaceApiKey`, TOTP disable, recovery-code re-issue).
+- **The `PrismaUnitOfWork` is the default place** that opens application-level database transactions. A few call sites deliberately open their own `$transaction` instead: `PostgresJobQueue.claimNext()` (`modules/internal/job-queue/postgres-job-queue.ts`) claims with `SELECT ... FOR UPDATE SKIP LOCKED` and must be atomic outside any caller's transaction; `PrismaProjectRepository.create()` writes the project together with its default branch in one transaction (project creation mutates no test status, so it stays outside `StateChangeWorkflow`); and `AuthRepository` opens its own transactions for the two-statement auth writes that must not be half-applied (API-key rotation in `replaceApiKey`).
 - **Raw query consumers** (`HealthChecker`, the rate-limit service and maintenance sweeps) inject `PrismaConnection` directly — they have no use for transaction routing. (`PostgresAdvisoryLock` in fact uses its own dedicated `pg.Pool` with `max: 1` so advisory locks are held on a single connection — advisory locks are session-scoped and must not share the pool.)
 - **The original `PrismaService` class** no longer exists. A quick search for `PrismaService` in the codebase returns zero results.

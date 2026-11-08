@@ -12,7 +12,7 @@ import {
 // what "missing" means (upload-only, every project), so the UI can trust the
 // model instead of re-defaulting per component.
 // The generated spec double-nests projectNames (`Array<Array<string>>`, the same
-// Swagger `type: [String], isArray: true` quirk as recovery codes) while the
+// Swagger `type: [String], isArray: true` quirk as the other list DTOs) while the
 // backend sends a flat string[]. The source widens the column so both shapes map,
 // and the mapper flattens them to the model's string[].
 export type ApiKeySource = Omit<ApiKeyDto, "projectNames"> & {

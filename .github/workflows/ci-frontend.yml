@@ -252,10 +252,6 @@ jobs:
       E2E_ADMIN_USERNAME: ci-admin
       E2E_ADMIN_PASSWORD: ci-admin-temp-password
       E2E_ADMIN_PASSWORD_FINAL: ci-admin-final-password
-      # The stack boots NODE_ENV=production, where TOTP_ENCRYPTION_KEY is
-      # required (backend/src/config/env.validation.ts) and docker compose
-      # refuses to interpolate x-app-env without it.
-      TOTP_ENCRYPTION_KEY: ci-frontend-totp-key-0123456789abcdef
       # The e2e stack is served over plain HTTP on localhost:80.
       AUTH_COOKIE_SECURE: "false"
       # Same reason: x-app-env marks these required for every compose call.

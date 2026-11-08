@@ -99,10 +99,6 @@ export default defineConfig({
       RUSTFS_SECRET_KEY: 'test',
       RUSTFS_BUCKET: 'test',
       RUSTFS_PUBLIC_URL: 'http://localhost:9000',
-      // Required since the TOTP seeds moved to AES-256-GCM (env.validation.ts).
-      // The module-compilation specs build the real config, so a CI runner with
-      // no .env file needs a value here, not only on a developer machine.
-      TOTP_ENCRYPTION_KEY: 'unit-totp-encryption-key-0123456789abcdef',
     },
     alias: {
       '@app': resolve(__dirname, './src/app.module'),

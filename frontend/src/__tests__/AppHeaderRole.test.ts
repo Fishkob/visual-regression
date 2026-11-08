@@ -33,7 +33,6 @@ describe("AppHeader role badge", () => {
       username: "alice",
       role: "ADMIN",
       mustChangePassword: false,
-      totpEnabled: false,
     };
 
     const wrapper = mountHeader();
@@ -51,7 +50,6 @@ describe("AppHeader role badge", () => {
       username: "bob",
       role,
       mustChangePassword: false,
-      totpEnabled: false,
     };
 
     const wrapper = mountHeader();

@@ -41,7 +41,6 @@ describe('AppConfigService', () => {
     SWAGGER_BASE_URL: 'http://localhost:3000',
     CSP_ENABLED: true,
     CORS_ORIGIN: 'http://localhost:5173',
-    TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
   };
 
   it('exposes the database url', () => {

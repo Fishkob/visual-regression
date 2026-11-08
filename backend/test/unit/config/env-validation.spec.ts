@@ -1,12 +1,5 @@
 import { envValidationSchema } from '@config/env.validation';
 
-// Every case needs the required TOTP key; the one test that checks the missing
-// key passes its own env on purpose.
-const withKey = (env: Record<string, unknown>) => ({
-  TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
-  ...env,
-});
-
 describe('Environment Validation', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -28,53 +21,33 @@ describe('Environment Validation', () => {
       STORAGE_RETRY_DELAY_MS: 500,
     };
 
-    const { error } = envValidationSchema.validate(withKey(validEnv), {
+    const { error } = envValidationSchema.validate(validEnv, {
       abortEarly: false,
     });
     expect(error).toBeUndefined();
   });
 
-  it('requires a TOTP encryption key', () => {
-    const withoutKey = {
+  it('defaults the branch retention window to off and rejects a negative window', () => {
+    const { error, value } = envValidationSchema.validate({
       DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
       RUSTFS_ENDPOINT: 'localhost',
       RUSTFS_ACCESS_KEY: 'test-key',
       RUSTFS_SECRET_KEY: 'test-secret',
       RUSTFS_BUCKET: 'visual-tests',
       RUSTFS_PUBLIC_URL: 'http://localhost:9000',
-    };
-
-    const { error } = envValidationSchema.validate(withoutKey, {
-      abortEarly: false,
     });
-    expect(error?.message).toContain('TOTP_ENCRYPTION_KEY');
-  });
-
-  it('defaults the branch retention window to off and rejects a negative window', () => {
-    const { error, value } = envValidationSchema.validate(
-      withKey({
-        DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
-        RUSTFS_ENDPOINT: 'localhost',
-        RUSTFS_ACCESS_KEY: 'test-key',
-        RUSTFS_SECRET_KEY: 'test-secret',
-        RUSTFS_BUCKET: 'visual-tests',
-        RUSTFS_PUBLIC_URL: 'http://localhost:9000',
-      }),
-    );
     expect(error).toBeUndefined();
     expect(value.BRANCH_RETENTION_DAYS).toBe(0);
 
-    const negative = envValidationSchema.validate(
-      withKey({
-        DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
-        RUSTFS_ENDPOINT: 'localhost',
-        RUSTFS_ACCESS_KEY: 'test-key',
-        RUSTFS_SECRET_KEY: 'test-secret',
-        RUSTFS_BUCKET: 'visual-tests',
-        RUSTFS_PUBLIC_URL: 'http://localhost:9000',
-        BRANCH_RETENTION_DAYS: -1,
-      }),
-    );
+    const negative = envValidationSchema.validate({
+      DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+      RUSTFS_ENDPOINT: 'localhost',
+      RUSTFS_ACCESS_KEY: 'test-key',
+      RUSTFS_SECRET_KEY: 'test-secret',
+      RUSTFS_BUCKET: 'visual-tests',
+      RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+      BRANCH_RETENTION_DAYS: -1,
+    });
     expect(negative.error?.message).toContain('BRANCH_RETENTION_DAYS');
   });
 
@@ -85,12 +58,11 @@ describe('Environment Validation', () => {
       RUSTFS_ACCESS_KEY: 'test-key',
       RUSTFS_SECRET_KEY: 'test-secret',
       RUSTFS_BUCKET: 'visual-tests',
-      TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
       RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       LOG_LEVEL: 'super-verbose',
     };
 
-    const { error } = envValidationSchema.validate(withKey(invalidEnv), {
+    const { error } = envValidationSchema.validate(invalidEnv, {
       abortEarly: false,
     });
     expect(error).toBeDefined();
@@ -104,12 +76,11 @@ describe('Environment Validation', () => {
       RUSTFS_ACCESS_KEY: 'test-key',
       RUSTFS_SECRET_KEY: 'test-secret',
       RUSTFS_BUCKET: 'visual-tests',
-      TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
       RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       STORAGE_MAX_ATTEMPTS: 0,
     };
 
-    const { error } = envValidationSchema.validate(withKey(invalidEnv), {
+    const { error } = envValidationSchema.validate(invalidEnv, {
       abortEarly: false,
     });
     expect(error).toBeDefined();
@@ -121,7 +92,7 @@ describe('Environment Validation', () => {
       RUSTFS_SECRET_KEY: 'test-secret',
     };
 
-    const { error } = envValidationSchema.validate(withKey(invalidEnv), {
+    const { error } = envValidationSchema.validate(invalidEnv, {
       abortEarly: false,
     });
     expect(error).toBeDefined();
@@ -137,7 +108,6 @@ describe('Environment Validation', () => {
         RUSTFS_ACCESS_KEY: 'test-key',
         RUSTFS_SECRET_KEY: 'test-secret',
         RUSTFS_BUCKET: 'visual-tests',
-        TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
         RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       },
       { abortEarly: false },
@@ -156,7 +126,6 @@ describe('Environment Validation', () => {
         RUSTFS_ACCESS_KEY: 'test-key',
         RUSTFS_SECRET_KEY: 'test-secret',
         RUSTFS_BUCKET: 'visual-tests',
-        TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
         RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       },
       { abortEarly: false },
@@ -173,7 +142,6 @@ describe('Environment Validation', () => {
         RUSTFS_ACCESS_KEY: 'test-key',
         RUSTFS_SECRET_KEY: 'test-secret',
         RUSTFS_BUCKET: 'visual-tests',
-        TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
         RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       },
       { abortEarly: false },
@@ -190,7 +158,6 @@ describe('Environment Validation', () => {
         RUSTFS_ACCESS_KEY: 'test-key',
         RUSTFS_SECRET_KEY: 'test-secret',
         RUSTFS_BUCKET: 'visual-tests',
-        TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
         RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       },
       { abortEarly: false },
@@ -211,7 +178,6 @@ describe('Environment Validation', () => {
         RUSTFS_ACCESS_KEY: 'test-key',
         RUSTFS_SECRET_KEY: 'test-secret',
         RUSTFS_BUCKET: 'visual-tests',
-        TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
         RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       },
       { abortEarly: false },
@@ -228,7 +194,6 @@ describe('Environment Validation', () => {
         RUSTFS_ACCESS_KEY: 'test-key',
         RUSTFS_SECRET_KEY: 'test-secret',
         RUSTFS_BUCKET: 'visual-tests',
-        TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
         RUSTFS_PUBLIC_URL: 'http://localhost:9000',
         TRUST_PROXY: true,
       },
@@ -246,7 +211,6 @@ describe('Environment Validation', () => {
         RUSTFS_ACCESS_KEY: 'test-key',
         RUSTFS_SECRET_KEY: 'test-secret',
         RUSTFS_BUCKET: 'visual-tests',
-        TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
         RUSTFS_PUBLIC_URL: 'http://localhost:9000',
         LOGIN_RATE_LIMIT_PER_MINUTE: -1,
       },
@@ -263,7 +227,6 @@ describe('Environment Validation', () => {
       RUSTFS_ACCESS_KEY: 'test-key',
       RUSTFS_SECRET_KEY: 'test-secret',
       RUSTFS_BUCKET: 'visual-tests',
-      TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
       RUSTFS_PUBLIC_URL: 'http://localhost:9000',
     };
 
@@ -292,7 +255,6 @@ describe('Environment Validation', () => {
           RUSTFS_ACCESS_KEY: 'test-key',
           RUSTFS_SECRET_KEY: 'test-secret',
           RUSTFS_BUCKET: 'visual-tests',
-          TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
           RUSTFS_PUBLIC_URL: 'http://localhost:9000',
         },
         PORT: 70_000,
@@ -312,7 +274,6 @@ describe('Environment Validation', () => {
           RUSTFS_ACCESS_KEY: 'test-key',
           RUSTFS_SECRET_KEY: 'test-secret',
           RUSTFS_BUCKET: 'visual-tests',
-          TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
           RUSTFS_PUBLIC_URL: 'http://localhost:9000',
         },
         MAX_BODY_SIZE_MB: 0,
@@ -332,7 +293,6 @@ describe('Environment Validation', () => {
           RUSTFS_ACCESS_KEY: 'test-key',
           RUSTFS_SECRET_KEY: 'test-secret',
           RUSTFS_BUCKET: 'visual-tests',
-          TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
           RUSTFS_PUBLIC_URL: 'http://localhost:9000',
         },
         MAX_BODY_SIZE_MB: 1_000,
@@ -352,7 +312,6 @@ describe('Environment Validation', () => {
           RUSTFS_ACCESS_KEY: 'test-key',
           RUSTFS_SECRET_KEY: 'test-secret',
           RUSTFS_BUCKET: 'visual-tests',
-          TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
           RUSTFS_PUBLIC_URL: 'http://localhost:9000',
         },
         SCREENSHOT_MAX_SIZE_MB: 0,
@@ -370,7 +329,6 @@ describe('Environment Validation', () => {
       RUSTFS_ACCESS_KEY: 'test-key',
       RUSTFS_SECRET_KEY: 'test-secret',
       RUSTFS_BUCKET: 'visual-tests',
-      TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
       RUSTFS_PUBLIC_URL: 'http://localhost:9000',
       ADMIN_API_KEY: 'short',
       METRICS_API_KEY: 'short',
@@ -400,7 +358,6 @@ describe('Environment Validation', () => {
           RUSTFS_ACCESS_KEY: 'test-key',
           RUSTFS_SECRET_KEY: 'test-secret',
           RUSTFS_BUCKET: 'visual-tests',
-          TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
           RUSTFS_PUBLIC_URL: 'http://localhost:9000',
         },
         NODE_ENV: 'development',
@@ -420,7 +377,6 @@ describe('Environment Validation', () => {
           RUSTFS_ACCESS_KEY: 'test-key',
           RUSTFS_SECRET_KEY: 'test-secret',
           RUSTFS_BUCKET: 'visual-tests',
-          TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
           RUSTFS_PUBLIC_URL: 'http://localhost:9000',
         },
         NODE_ENV: 'development',
@@ -439,7 +395,6 @@ describe('Environment Validation', () => {
           RUSTFS_ACCESS_KEY: 'test-key',
           RUSTFS_SECRET_KEY: 'test-secret',
           RUSTFS_BUCKET: 'visual-tests',
-          TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
           RUSTFS_PUBLIC_URL: 'http://localhost:9000',
         },
         NODE_ENV: 'production',
@@ -458,7 +413,6 @@ describe('Environment Validation', () => {
           RUSTFS_ACCESS_KEY: 'test-key',
           RUSTFS_SECRET_KEY: 'test-secret',
           RUSTFS_BUCKET: 'visual-tests',
-          TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
           RUSTFS_PUBLIC_URL: 'http://localhost:9000',
         },
         NODE_ENV: 'production',
@@ -479,7 +433,6 @@ describe('Environment Validation', () => {
     RUSTFS_SECRET_KEY: 'test-secret',
     RUSTFS_BUCKET: 'visual-tests',
     RUSTFS_PUBLIC_URL: 'http://localhost:9000',
-    TOTP_ENCRYPTION_KEY: 'a'.repeat(32),
     ADMIN_API_KEY: 'b'.repeat(32),
     METRICS_API_KEY: 'c'.repeat(32),
   });
@@ -506,34 +459,7 @@ describe('Environment Validation', () => {
     expect(value.AUTH_COOKIE_SECURE).toBe(false);
   });
 
-  it('requires a full-length TOTP key in production', () => {
-    const production = envValidationSchema.validate(
-      { ...productionBase(), TOTP_ENCRYPTION_KEY: 'a'.repeat(20) },
-      { abortEarly: false },
-    );
-    expect(production.error?.message).toContain('TOTP_ENCRYPTION_KEY');
-
-    const development = envValidationSchema.validate(
-      {
-        ...productionBase(),
-        NODE_ENV: 'development',
-        TOTP_ENCRYPTION_KEY: 'a'.repeat(20),
-      },
-      { abortEarly: false },
-    );
-    expect(development.error).toBeUndefined();
-  });
-
   it('rejects credentials that are published in this repository', () => {
-    const totp = envValidationSchema.validate(
-      {
-        ...productionBase(),
-        TOTP_ENCRYPTION_KEY: 'dev-stack-totp-key-not-for-production',
-      },
-      { abortEarly: false },
-    );
-    expect(totp.error?.message).toContain('TOTP_ENCRYPTION_KEY');
-
     const bootstrap = envValidationSchema.validate(
       { ...productionBase(), BOOTSTRAP_ADMIN_PASSWORD: 'admin-secret' },
       { abortEarly: false },

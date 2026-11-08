@@ -9,11 +9,3 @@ export interface Session {
   userAgent: string | null;
   isCurrent: boolean;
 }
-
-export interface TwoFactorSetup {
-  secret: string;
-  otpauthUrl: string;
-}
-
-// The codes are shown exactly once, when 2FA is enabled.
-export type RecoveryCodes = string[];

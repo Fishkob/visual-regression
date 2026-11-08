@@ -92,7 +92,7 @@ own — `playwright-e2e.config.ts` sets one 10s expect timeout for the suite.
 | Share links: create, passphrase, anonymous read, revoke                            | `share-links.spec.ts`             |
 | API keys: create, use, delete (rotate/revoke stay API-only)                        | `api-keys.spec.ts`                |
 | Users: create, reset, deactivate/reactivate, forced password change, viewer gating | `users.spec.ts`                   |
-| Sessions list/revoke, 2FA enable/login challenge/disable                           | `security.spec.ts`                |
+| Sessions list/revoke                                                               | `security.spec.ts`                |
 | Audit filters and CSV export                                                       | `audit.spec.ts`                   |
 | Webhooks: create, edit, activate, test, deliveries, replay, delete, SSRF rejection | `webhooks.spec.ts`                |
 | Runs: list/detail, approve all, finish, JUnit/HTML/CSV reports                     | `runs.spec.ts`                    |

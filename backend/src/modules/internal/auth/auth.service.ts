@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   Inject,
   Injectable,
   UnauthorizedException,
@@ -13,16 +12,7 @@ import {
 import { AppConfigService } from '@config/app-config.service';
 import { AuthRepository } from './auth.repository';
 import { hashToken } from './token-hash';
-import {
-  generateRecoveryCodes,
-  generateTotpSecret,
-  hashRecoveryCode,
-  legacyHashRecoveryCode,
-  otpauthUrl,
-  verifyTotp,
-} from './totp';
 import { needsRehash } from './password-hasher';
-import { TotpSecretCipher } from './totp-secret-cipher';
 import type { AuthUserRow } from './auth.repository';
 
 export interface LoginResult {
@@ -30,15 +20,7 @@ export interface LoginResult {
   username: string;
   role: 'ADMIN' | 'MEMBER' | 'VIEWER';
   mustChangePassword: boolean;
-  totpEnabled: boolean;
 }
-
-export interface TwoFactorChallengeResult {
-  twoFactorRequired: true;
-  challengeToken: string;
-}
-
-export type LoginOutcome = LoginResult | TwoFactorChallengeResult;
 
 export interface AuthRequestContext {
   ip?: string | null;
@@ -55,10 +37,6 @@ export interface SessionView {
   isCurrent: boolean;
 }
 
-const TWO_FACTOR_CHALLENGE_TTL_MS = 5 * 60 * 1000;
-const TWO_FACTOR_MAX_ATTEMPTS = 5;
-const TOTP_ISSUER = 'Visual Regression';
-
 const SESSION_TOKEN_BYTES = 32;
 
 // A real scrypt hash for a throwaway password, verified against when the
@@ -73,14 +51,13 @@ export class AuthService {
     private readonly repo: AuthRepository,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasherPort,
     private readonly appConfig: AppConfigService,
-    private readonly totpCipher: TotpSecretCipher,
   ) {}
 
   async login(
     username: string,
     password: string,
     context: AuthRequestContext = {},
-  ): Promise<LoginOutcome> {
+  ): Promise<LoginResult> {
     const user = await this.repo.findUserByUsername(username);
     const isPasswordValid = await this.hasher.verifyPassword(
       password,
@@ -95,17 +72,6 @@ export class AuthService {
     // (the password was already verified); the row simply keeps its old hash.
     if (needsRehash(user.passwordHash)) {
       await this.rehashLegacyPassword(user.id, password);
-    }
-
-    if (user.totpEnabledAt) {
-      const challengeToken =
-        randomBytes(SESSION_TOKEN_BYTES).toString('base64url');
-      await this.repo.createTwoFactorChallenge(
-        user.id,
-        hashToken(challengeToken),
-        new Date(Date.now() + TWO_FACTOR_CHALLENGE_TTL_MS),
-      );
-      return { twoFactorRequired: true, challengeToken };
     }
 
     return this.issueSession(user, context);
@@ -123,24 +89,6 @@ export class AuthService {
     }
   }
 
-  // The lookup is by hash, so a code issued before the pepper existed can only
-  // be found by its old digest. Both are tried; the code is marked used either
-  // way, so a legacy row is consumed the first time it works.
-  private async findRecoveryCode(
-    userId: string,
-    code: string,
-  ): Promise<{ id: string } | null> {
-    const peppered = await this.repo.findUnusedRecoveryCode(
-      userId,
-      hashRecoveryCode(code, this.totpCipher.recoveryCodePepper),
-    );
-    if (peppered) return peppered;
-    return this.repo.findUnusedRecoveryCode(
-      userId,
-      legacyHashRecoveryCode(code),
-    );
-  }
-
   private async issueSession(
     user: AuthUserRow,
     context: AuthRequestContext,
@@ -156,109 +104,7 @@ export class AuthService {
       username: user.username,
       role: user.role,
       mustChangePassword: user.mustChangePassword,
-      totpEnabled: user.totpEnabledAt !== null,
     };
-  }
-
-  async verifyTwoFactor(
-    challengeToken: string,
-    code: string,
-    context: AuthRequestContext = {},
-  ): Promise<LoginResult> {
-    const challenge = await this.repo.findTwoFactorChallengeByTokenHash(
-      hashToken(challengeToken),
-    );
-    if (
-      !challenge ||
-      challenge.expiresAt.getTime() <= Date.now() ||
-      challenge.attempts >= TWO_FACTOR_MAX_ATTEMPTS
-    ) {
-      throw new UnauthorizedException('Two-factor challenge expired');
-    }
-    const user = await this.repo.findUserById(challenge.userId);
-    if (!user || !user.isActive || !user.totpSecret) {
-      throw new UnauthorizedException('Authentication required');
-    }
-
-    const storedSecret = user.totpSecret;
-    const isTotpValid = verifyTotp(this.totpCipher.decrypt(storedSecret), code);
-    let isRecoveryValid = false;
-    if (!isTotpValid) {
-      const recovery = await this.findRecoveryCode(user.id, code);
-      if (recovery) {
-        await this.repo.markRecoveryCodeUsed(recovery.id);
-        isRecoveryValid = true;
-      }
-    }
-    if (!isTotpValid && !isRecoveryValid) {
-      await this.repo.incrementTwoFactorChallengeAttempts(challenge.id);
-      throw new UnauthorizedException('Invalid two-factor code');
-    }
-
-    await this.repo.deleteTwoFactorChallenge(challenge.id);
-    // A seed written before encryption existed is upgraded here, once, after a
-    // code proved that this key belongs to this seed. The login must not fail
-    // for it: the code was valid, so a failed rewrite only leaves plaintext for
-    // the next successful login.
-    if (!this.totpCipher.isEncrypted(storedSecret)) {
-      try {
-        await this.repo.updateTotpSecret(
-          user.id,
-          this.totpCipher.encrypt(storedSecret),
-        );
-      } catch {
-        // Retried on the next login.
-      }
-    }
-    return this.issueSession(user, context);
-  }
-
-  async startTotpSetup(
-    userId: string,
-  ): Promise<{ secret: string; otpauthUrl: string }> {
-    const user = await this.repo.findUserById(userId);
-    if (!user) throw new UnauthorizedException('Authentication required');
-    if (user.totpEnabledAt) {
-      throw new ConflictException(
-        'Two-factor authentication is already enabled',
-      );
-    }
-    const secret = generateTotpSecret();
-    await this.repo.setTotpSecret(user.id, this.totpCipher.encrypt(secret));
-    return {
-      secret,
-      otpauthUrl: otpauthUrl(TOTP_ISSUER, user.username, secret),
-    };
-  }
-
-  async enableTotp(userId: string, code: string): Promise<string[]> {
-    const user = await this.repo.findUserById(userId);
-    if (!user?.totpSecret) {
-      throw new BadRequestException('Start the two-factor setup first');
-    }
-    if (!verifyTotp(this.totpCipher.decrypt(user.totpSecret), code)) {
-      throw new BadRequestException('Invalid two-factor code');
-    }
-    await this.repo.enableTotp(user.id);
-    const recoveryCodes = generateRecoveryCodes();
-    await this.repo.createRecoveryCodes(
-      user.id,
-      recoveryCodes.map((code) =>
-        hashRecoveryCode(code, this.totpCipher.recoveryCodePepper),
-      ),
-    );
-    return recoveryCodes;
-  }
-
-  async disableTotp(userId: string, password: string): Promise<void> {
-    const user = await this.repo.findUserById(userId);
-    if (
-      !user ||
-      !(await this.hasher.verifyPassword(password, user.passwordHash))
-    ) {
-      throw new UnauthorizedException('Password is incorrect');
-    }
-    await this.repo.disableTotp(user.id);
   }
 
   async listSessions(

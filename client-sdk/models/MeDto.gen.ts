@@ -4,5 +4,4 @@ export type MeDto = {
     username: string;
     role: 'ADMIN' | 'MEMBER' | 'VIEWER';
     mustChangePassword: boolean;
-    totpEnabled: boolean;
 };

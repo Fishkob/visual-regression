@@ -48,35 +48,11 @@ success() { echo -e "${GREEN}✓${NC} $1"; }
 
 # docker compose interpolates x-app-env for every service, including an
 # `infra`-only start, and the production stack treats those secrets as required.
-# A local stack without a .env gets development values (the backend refuses to
-# start without a TOTP key); a real installation generates them into .env via
-# install.sh.
-DEV_SECRETS_FILE=".dev-secrets.env"
-
-# A key committed to the repository is not a key: every seed it protects would be
-# readable by anyone who has cloned it. Generate one per checkout instead and
-# keep it in a gitignored file, so a restart does not invalidate every TOTP
-# enrollment in the dev stack.
-dev_totp_key() {
-    local key=""
-    if [ -f "$DEV_SECRETS_FILE" ]; then
-        key="$(sed -n 's/^TOTP_ENCRYPTION_KEY=//p' "$DEV_SECRETS_FILE" | head -n1)"
-    fi
-    if [ -z "$key" ]; then
-        key="$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
-        (umask 077 && printf 'TOTP_ENCRYPTION_KEY=%s\n' "$key" >>"$DEV_SECRETS_FILE")
-        warn "Generated a local TOTP key in $DEV_SECRETS_FILE (gitignored)."
-    fi
-    printf '%s' "$key"
-}
-
+# A local stack without a .env gets development values; a real installation
+# generates them into .env via install.sh.
 ensure_compose_env() {
     if [ -f .env ]; then
         set -a && source .env && set +a
-    fi
-    if [ -z "${TOTP_ENCRYPTION_KEY:-}" ]; then
-        TOTP_ENCRYPTION_KEY="$(dev_totp_key)"
-        export TOTP_ENCRYPTION_KEY
     fi
     export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-postgres}"
     export RUSTFS_ROOT_PASSWORD="${RUSTFS_ROOT_PASSWORD:-${RUSTFS_SECRET_KEY:-rustfsadmin}}"

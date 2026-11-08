@@ -79,9 +79,7 @@ set `FRONTEND_PORT` in `.env` and rerun `./install.sh up`.
 
 Day to day: `./install.sh up`, `down` and `logs` start, stop and tail the stack; an
 upgrade is `git pull && ./install.sh up` — the migration job runs before the new
-backend. An existing `.env` from before `v2.0.0` also needs a `TOTP_ENCRYPTION_KEY`
-(`openssl rand -hex 32`); compose refuses to start without it and names the
-variable. `./install.sh --fresh` wipes the database and storage volumes and starts
+backend. `./install.sh --fresh` wipes the database and storage volumes and starts
 clean.
 
 Ports and the service layout: [docs/local-development.md](docs/local-development.md#ports).

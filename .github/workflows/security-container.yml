@@ -17,7 +17,6 @@ jobs:
     # docker compose/bake interpolates x-app-env for the whole file, so its
     # required secrets must be set even when only one target is built.
     env:
-      TOTP_ENCRYPTION_KEY: ci-container-scan-totp-0123456789abcdef
       POSTGRES_PASSWORD: postgres
       RUSTFS_ROOT_PASSWORD: rustfsadmin
       AUTH_COOKIE_SECURE: "false"

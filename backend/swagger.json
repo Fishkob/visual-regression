@@ -2913,50 +2913,6 @@
         },
         "responses": {
           "200": {
-            "description": "A session user, or a two-factor challenge when 2FA is enabled",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/MeDto"
-                    },
-                    {
-                      "$ref": "#/components/schemas/TwoFactorChallengeDto"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid username or password"
-          }
-        },
-        "security": [
-          {}
-        ],
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/2fa/verify": {
-      "post": {
-        "operationId": "AuthController_verifyTwoFactor",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifyTwoFactorDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
             "description": "",
             "content": {
               "application/json": {
@@ -2967,102 +2923,11 @@
             }
           },
           "401": {
-            "description": "Invalid or expired 2FA code"
+            "description": "Invalid username or password"
           }
         },
         "security": [
           {}
-        ],
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/2fa/setup": {
-      "post": {
-        "operationId": "AuthController_setupTwoFactor",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TwoFactorSetupDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/2fa/enable": {
-      "post": {
-        "operationId": "AuthController_enableTwoFactor",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EnableTotpDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecoveryCodesDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/auth/2fa/disable": {
-      "post": {
-        "operationId": "AuthController_disableTwoFactor",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DisableTotpDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Two-factor authentication disabled"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
         ],
         "tags": [
           "Auth"
@@ -7002,22 +6867,6 @@
           "password"
         ]
       },
-      "VerifyTwoFactorDto": {
-        "type": "object",
-        "properties": {
-          "challengeToken": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string",
-            "example": "123456"
-          }
-        },
-        "required": [
-          "challengeToken",
-          "code"
-        ]
-      },
       "MeDto": {
         "type": "object",
         "properties": {
@@ -7037,69 +6886,12 @@
           "mustChangePassword": {
             "type": "boolean",
             "example": false
-          },
-          "totpEnabled": {
-            "type": "boolean",
-            "example": false
           }
         },
         "required": [
           "username",
           "role",
-          "mustChangePassword",
-          "totpEnabled"
-        ]
-      },
-      "TwoFactorSetupDto": {
-        "type": "object",
-        "properties": {
-          "secret": {
-            "type": "string"
-          },
-          "otpauthUrl": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "secret",
-          "otpauthUrl"
-        ]
-      },
-      "EnableTotpDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "example": "123456"
-          }
-        },
-        "required": [
-          "code"
-        ]
-      },
-      "RecoveryCodesDto": {
-        "type": "object",
-        "properties": {
-          "recoveryCodes": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "recoveryCodes"
-        ]
-      },
-      "DisableTotpDto": {
-        "type": "object",
-        "properties": {
-          "password": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "password"
+          "mustChangePassword"
         ]
       },
       "SessionDto": {

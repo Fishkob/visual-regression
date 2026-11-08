@@ -58,11 +58,9 @@ what the code protects against.
 
 **What is protected**
 
-- Credentials at rest: session tokens, API keys, share tokens and 2FA challenge
-  tokens are stored as hashes; TOTP seeds are encrypted with AES-256-GCM under
-  `TOTP_ENCRYPTION_KEY`; recovery codes are HMACs under a subkey of it; passwords
-  use scrypt. A database dump does not hand out sessions, API keys, second
-  factors or recovery codes.
+- Credentials at rest: session tokens, API keys and share tokens are stored as
+  hashes; passwords use scrypt. A database dump does not hand out sessions or
+  API keys.
 - Browser sessions: `HttpOnly` + `SameSite=Lax` cookies, an `Origin`/
   `Sec-Fetch-Site` check on every unsafe request, a sliding idle timeout with an
   absolute cap, and a `Secure` flag that is on by default in production.

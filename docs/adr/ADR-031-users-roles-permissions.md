@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted — 2026-10-25
+Accepted — 2026-10-25.
+Amended 2026-11-08: the account-lifecycle surface no longer contains a 2FA
+route (ADR-074); the exemption itself is unchanged.
 
 Amended — API-key permissions moved to scopes (ADR-035/045); account lifecycle
 is metadata-driven.
@@ -42,7 +44,7 @@ Introduce a **global role** on `User`:
   project/branch deletion.
 - A global write rule makes `VIEWER` read-only: every non-GET/HEAD/OPTIONS
   request is rejected except on the account-lifecycle routes, marked with
-  `@AccountLifecycle()` (sign-out, `/auth/me`, password change, own 2FA and
+  `@AccountLifecycle()` (sign-out, `/auth/me`, password change and own
   sessions). The exemption is decorator metadata rather than a path check,
   because a project, test or run literally named `auth` matched the old
   `path.includes('/auth/')`. The UI mirrors this by hiding write controls, but

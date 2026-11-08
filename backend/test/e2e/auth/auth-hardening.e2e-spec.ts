@@ -1,11 +1,9 @@
 import { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import request from 'supertest';
 import { TestApp } from '../_support/utils/test-app';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { PrismaClient } from '@/prisma/client';
 import { hashPassword } from '@internal/auth/password-hasher';
-import { totpCode } from '@internal/auth/totp';
 
 describe('Auth hardening (e2e)', () => {
   let app: INestApplication;
@@ -46,68 +44,6 @@ describe('Auth hardening (e2e)', () => {
     return response.get('Set-Cookie')![0].split(';')[0]!;
   }
 
-  async function enableTwoFactor(cookie: string) {
-    const setup = await request(app.getHttpServer())
-      .post('/api/v1/auth/2fa/setup')
-      .set('Cookie', cookie)
-      .expect(200);
-    const enabled = await request(app.getHttpServer())
-      .post('/api/v1/auth/2fa/enable')
-      .set('Cookie', cookie)
-      .send({ code: totpCode(setup.body.secret) })
-      .expect(200);
-    return {
-      secret: setup.body.secret as string,
-      recoveryCodes: enabled.body.recoveryCodes as string[],
-    };
-  }
-
-  it('enables TOTP, challenges login and accepts a recovery code', async () => {
-    await seedAdmin();
-    const first = await login();
-    const cookie = cookieOf(first);
-    const { secret, recoveryCodes } = await enableTwoFactor(cookie);
-    expect(recoveryCodes).toHaveLength(10);
-
-    const challenged = await login();
-    expect(challenged.body.twoFactorRequired).toBe(true);
-    expect(challenged.get('Set-Cookie')).toBeUndefined();
-
-    const wrong = await request(app.getHttpServer())
-      .post('/api/v1/auth/2fa/verify')
-      .send({ challengeToken: challenged.body.challengeToken, code: '000000' })
-      .expect(401);
-    expect(wrong.body.message).toBeDefined();
-
-    const verified = await request(app.getHttpServer())
-      .post('/api/v1/auth/2fa/verify')
-      .send({
-        challengeToken: challenged.body.challengeToken,
-        code: totpCode(secret),
-      })
-      .expect(200);
-    expect(verified.body.role).toBe('ADMIN');
-    expect(verified.get('Set-Cookie')!.length).toBeGreaterThan(0);
-
-    const recoveryChallenge = await login();
-    await request(app.getHttpServer())
-      .post('/api/v1/auth/2fa/verify')
-      .send({
-        challengeToken: recoveryChallenge.body.challengeToken,
-        code: recoveryCodes[0],
-      })
-      .expect(200);
-
-    const replayChallenge = await login();
-    await request(app.getHttpServer())
-      .post('/api/v1/auth/2fa/verify')
-      .send({
-        challengeToken: replayChallenge.body.challengeToken,
-        code: recoveryCodes[0],
-      })
-      .expect(401);
-  });
-
   it('changing the password revokes every other session', async () => {
     await seedAdmin();
     const first = await login();
@@ -133,43 +69,6 @@ describe('Auth hardening (e2e)', () => {
       .post('/api/v1/auth/login')
       .send({ username: 'admin', password: 'new-secret' })
       .expect(200);
-  });
-
-  it('rate-limits two-factor verification per IP', async () => {
-    await seedAdmin();
-    const first = await login();
-    const cookie = cookieOf(first);
-    await enableTwoFactor(cookie);
-    const challenged = await login();
-    await db.rateLimitBucket.deleteMany();
-    const config = app.get(ConfigService);
-    config.set('LOGIN_RATE_LIMIT_PER_MINUTE', '2');
-
-    try {
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/2fa/verify')
-        .send({
-          challengeToken: challenged.body.challengeToken,
-          code: '000000',
-        })
-        .expect(401);
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/2fa/verify')
-        .send({
-          challengeToken: challenged.body.challengeToken,
-          code: '000000',
-        })
-        .expect(401);
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/2fa/verify')
-        .send({
-          challengeToken: challenged.body.challengeToken,
-          code: '000000',
-        })
-        .expect(429);
-    } finally {
-      config.set('LOGIN_RATE_LIMIT_PER_MINUTE', '1000');
-    }
   });
 
   it('lists sessions, revokes one and keeps the current on revoke-all', async () => {
@@ -214,28 +113,5 @@ describe('Auth hardening (e2e)', () => {
       .get('/api/v1/projects')
       .set('Cookie', firstCookie)
       .expect(200);
-  });
-
-  it('disables TOTP with the password and logs in without a challenge', async () => {
-    await seedAdmin();
-    const first = await login();
-    const cookie = cookieOf(first);
-    await enableTwoFactor(cookie);
-
-    await request(app.getHttpServer())
-      .post('/api/v1/auth/2fa/disable')
-      .set('Cookie', cookie)
-      .send({ password: 'wrong' })
-      .expect(401);
-    await request(app.getHttpServer())
-      .post('/api/v1/auth/2fa/disable')
-      .set('Cookie', cookie)
-      .send({ password: 'secret' })
-      .expect(204);
-
-    const direct = await login();
-    expect(direct.body.twoFactorRequired).toBeUndefined();
-    expect(direct.body.role).toBe('ADMIN');
-    expect(direct.get('Set-Cookie')).toBeDefined();
   });
 });

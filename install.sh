@@ -2,7 +2,7 @@
 set -e
 
 # Everything this script writes holds a credential: .env carries the database
-# password, the object-store root password, the TOTP key and the admin API key.
+# password, the object-store root password and the admin API key.
 # The default umask would leave it world-readable on a shared host.
 umask 077
 
@@ -67,7 +67,6 @@ ensure_env() {
         -e "s|^RUSTFS_ROOT_PASSWORD=.*|RUSTFS_ROOT_PASSWORD=$(gen_secret)|" \
         -e "s|^BOOTSTRAP_ADMIN_PASSWORD=.*|BOOTSTRAP_ADMIN_PASSWORD=$(gen_secret)|" \
         -e "s|^ADMIN_API_KEY=.*|ADMIN_API_KEY=$(gen_secret)|" \
-        -e "s|^TOTP_ENCRYPTION_KEY=.*|TOTP_ENCRYPTION_KEY=$(gen_secret)$(gen_secret)|" \
         .env.tmp
     rm -f .env.tmp.bak
     mv .env.tmp .env

@@ -8,7 +8,7 @@ import {
 } from "./test-metadata.model";
 
 // The generated spec double-nests tags (`Array<Array<string>>`, the same Swagger
-// `type: [String], isArray: true` quirk as recovery codes) while the backend
+// `type: [String], isArray: true` quirk as the other list DTOs) while the backend
 // sends a flat string[]. The source widens the editable columns and the mapper
 // flattens/normalizes them into the model.
 export type TestMetadataSource = Omit<

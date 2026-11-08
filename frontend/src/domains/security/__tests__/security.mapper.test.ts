@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { RecoveryCodesDto } from "@sdk";
 import {
-  mapRecoveryCodes,
   mapRevokeAllResult,
   mapSession,
   mapSessions,
-  mapTwoFactorSetup,
   type SessionSource,
 } from "../security.mapper";
 
@@ -78,52 +75,6 @@ describe("mapSessions", () => {
         sessionDto({ id: "s-2" }) as never,
       ]).map((session) => session.id),
     ).toEqual(["s-1", "s-2"]);
-  });
-});
-
-describe("mapTwoFactorSetup", () => {
-  it("maps the secret and setup URI", () => {
-    expect(
-      mapTwoFactorSetup({
-        secret: "JBSWY3DPEHPK3PXP",
-        otpauthUrl: "otpauth://totp/vrt:alice?secret=JBSWY3DPEHPK3PXP",
-      }),
-    ).toEqual({
-      secret: "JBSWY3DPEHPK3PXP",
-      otpauthUrl: "otpauth://totp/vrt:alice?secret=JBSWY3DPEHPK3PXP",
-    });
-  });
-
-  it("defaults a missing payload to empty strings", () => {
-    expect(mapTwoFactorSetup(undefined)).toEqual({
-      secret: "",
-      otpauthUrl: "",
-    });
-  });
-});
-
-describe("mapRecoveryCodes", () => {
-  it("maps the flat wire shape", () => {
-    expect(
-      mapRecoveryCodes({ recoveryCodes: ["AAAA-BBBB", "CCCC-DDDD"] } as never),
-    ).toEqual(["AAAA-BBBB", "CCCC-DDDD"]);
-  });
-
-  it("flattens the doubled array the OpenAPI schema declares", () => {
-    const dto = {
-      recoveryCodes: [["AAAA-BBBB"], ["CCCC-DDDD"]],
-    } as unknown as RecoveryCodesDto;
-
-    expect(mapRecoveryCodes(dto)).toEqual(["AAAA-BBBB", "CCCC-DDDD"]);
-  });
-
-  it("drops empty and non-string entries and a missing payload", () => {
-    const dto = {
-      recoveryCodes: ["AAAA-BBBB", "", 7],
-    } as unknown as RecoveryCodesDto;
-
-    expect(mapRecoveryCodes(dto)).toEqual(["AAAA-BBBB"]);
-    expect(mapRecoveryCodes(undefined)).toEqual([]);
   });
 });
 

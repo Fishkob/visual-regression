@@ -20,7 +20,6 @@ table below is the subset a first deployment usually has to change.
 | `RUSTFS_PUBLIC_URL`                                   | Browser-reachable storage base — the host of every presigned screenshot/PDF URL             |
 | `CORS_ORIGIN`                                         | Browser origins allowed to call the API (see below)                                         |
 | `TRUST_PROXY`                                         | Trust `X-Forwarded-For` from the reverse proxy (see above)                                  |
-| `TOTP_ENCRYPTION_KEY`                                 | Required; AES-256-GCM key for the TOTP seeds at rest                                        |
 | `BASELINE_HISTORY_LIMIT`                              | Replaced baselines kept per test variant for restore (default 10, max 100)                  |
 | `APP_PUBLIC_URL`                                      | Dashboard base used to build links in webhook payloads                                      |
 | `AUTH_COOKIE_SECURE`                                  | `Secure` flag on the session cookie — required by Compose, defaults to `true` in production |
@@ -213,20 +212,6 @@ the application, while several maintenance queries compare with `NOW()`. Run
 Postgres with `timezone = UTC` (the default in the shipped images and compose
 stack) — a non-UTC server session makes "older than N minutes/hours" predicates
 drift by the offset. Do not set `TZ` on the database to a local zone.
-
-## Encryption at Rest
-
-`TOTP_ENCRYPTION_KEY` encrypts every user's TOTP seed with AES-256-GCM (the
-32-byte key is derived from it with SHA-256; a stored seed is
-`v1:<iv>:<tag>:<ciphertext>`). It is required: `docker compose` refuses to start
-without it and the API fails env validation. Generate one with
-`openssl rand -hex 32` (install.sh generates it for a new installation).
-
-Keep it stable. A different key cannot decrypt existing seeds, and such a login
-fails closed instead of ignoring the second factor. Seeds written before
-encryption existed are read as plaintext and re-encrypted on the next successful
-TOTP login, so an upgrade does not lock anyone out. Rotating the key means
-re-enrolling TOTP for every user.
 
 ## Object Storage Bucket
 
@@ -487,8 +472,7 @@ setting, not a code change, so nothing in the repository can enforce it:
   lifetime.
 - **Every secret generated, nothing copied from this repository.** `install.sh`
   writes a random `.env`; the chart refuses placeholder passwords. `openssl rand
--hex 32` for `TOTP_ENCRYPTION_KEY`, `-hex 24` for database and object-store
-  passwords.
+-hex 24` for database and object-store passwords.
 - **One credential per surface.** `ADMIN_API_KEY` and `METRICS_API_KEY` must
   differ; a production value below 32 characters is rejected at startup.
 - **Bootstrap admin finished.** Create the team, then remove

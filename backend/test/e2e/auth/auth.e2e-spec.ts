@@ -171,7 +171,6 @@ describe('Auth (e2e)', () => {
       username: 'admin',
       role: 'MEMBER',
       mustChangePassword: false,
-      totpEnabled: false,
     });
   });
 

@@ -45,19 +45,6 @@ export const envValidationSchema = Joi.object({
     .description(
       'Lifetime of the presigned URLs the API returns for screenshots and rendered PDF pages. SigV4 caps this at seven days (604800).',
     ),
-  TOTP_ENCRYPTION_KEY: required
-    .description(
-      "Key material for encrypting TOTP seeds at rest (AES-256-GCM, key derived with SHA-256). Any high-entropy string; generate with `openssl rand -hex 32`. Required: a bare seed in the database hands out every user's second factor.",
-    )
-    // 16 characters is a local-dev key. The floor that matters is the production
-    // one: `openssl rand -hex 32` yields 64 characters, and a short key turns
-    // the encryption into a speed bump for a database dump.
-    .when('NODE_ENV', {
-      is: 'production',
-      then: Joi.string().min(32),
-      otherwise: Joi.string().min(16),
-    }),
-
   RUSTFS_ENSURE_PUBLIC_BUCKET: Joi.boolean()
     .default(false)
     .description(
@@ -321,10 +308,7 @@ export const envValidationSchema = Joi.object({
 // Values that exist in this repository (documentation, the local-dev example,
 // the old dev-stack default). A production deployment that still carries one of
 // them is not protected by it, whatever its length.
-const DOCUMENTED_CREDENTIALS = new Set([
-  'admin-secret',
-  'dev-stack-totp-key-not-for-production',
-]);
+const DOCUMENTED_CREDENTIALS = new Set(['admin-secret']);
 
 // The validated env is typed loosely on purpose (the schema owns the types), so
 // every read narrows instead of stringifying whatever is there.
@@ -337,11 +321,6 @@ function envString(value: unknown): string {
 // configured is weaker than it appears.
 export function productionProblem(env: Record<string, unknown>): string | null {
   if (env.NODE_ENV !== 'production') return null;
-
-  const totpKey = envString(env.TOTP_ENCRYPTION_KEY);
-  if (DOCUMENTED_CREDENTIALS.has(totpKey)) {
-    return 'TOTP_ENCRYPTION_KEY is a value published in this repository — generate one with `openssl rand -hex 32`';
-  }
 
   const bootstrapPassword = envString(env.BOOTSTRAP_ADMIN_PASSWORD);
   if (DOCUMENTED_CREDENTIALS.has(bootstrapPassword)) {
