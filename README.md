@@ -91,8 +91,7 @@ Production setup (TLS, reverse proxy, backups, Kubernetes):
 ## Wire it into your project
 
 The platform keeps the baselines; your tests keep producing the pixels. Nothing
-goes into the application — a capture is the screenshot your test already takes,
-and the pipeline fails while a change waits for review.
+goes into the application — a capture is the screenshot your test already takes.
 
 **1. Give CI a key.** Create one under **API keys** in the dashboard and store it
 as a pipeline secret. `upload` sends captures; gating a run also reads its status
@@ -159,11 +158,11 @@ comparing. Any other stack posts the same fields to
 `/api/v1/projects/:project/tests/:test/upload?testKind=image`
 ([curl](docs/ci-integration.md#2-upload-and-wait)).
 
-**4. Gate the pipeline on the run.** After the test command, finish the run and
-fail the job unless the gate it returns is `passed`. The finish call, the four
-states and the reports:
-[docs/ci-integration.md#3-runs-and-gates](docs/ci-integration.md#3-runs-and-gates).
-What to do with a branch after its merge: [docs/branches.md](docs/branches.md).
+The comparison runs after the test, so no test can assert on it: with a `runKey`
+set, close the run after the test command and fail the job unless its state is
+`passed` — a reviewer's approval in the inbox is what lets the next run through
+([runs and gates](docs/ci-integration.md#3-runs-and-gates)). Without a `runKey`,
+gate on the job wait the upload returns instead.
 
 ## How it works
 
