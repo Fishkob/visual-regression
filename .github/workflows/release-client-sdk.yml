@@ -19,6 +19,14 @@ on:
         description: "Client release tag (vrt-client-vX.Y.Z) to publish"
         required: true
         type: string
+    # A called workflow sees only the secrets it declares. Without this the
+    # caller's `secrets:` mapping is rejected, and the token check below reads
+    # an empty NPM_TOKEN — the publish is then skipped, silently, on the one
+    # path release-please actually uses. Optional so a fork without the secret
+    # still runs the pack/verify steps.
+    secrets:
+      NPM_TOKEN:
+        required: false
   workflow_dispatch:
     inputs:
       tag:
@@ -151,20 +159,29 @@ jobs:
       #
       # With repository-level release immutability the upload only succeeds while
       # the release is still a draft, so an already-published release is skipped
-      # with a notice instead of turning the run red: the npm tarball carries its
-      # own provenance, and a failed step would hide that the publish worked.
+      # instead of turning the run red — but only when npm took the tarball. A
+      # release that carries the build in neither channel is not a success: it
+      # is an artifact nobody can install, and it has to say so.
       - name: Attach the tarball to the release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.event.release.tag_name }}
+          # `configured` means the publish step ran and succeeded, whether it
+          # uploaded or found the version already on the registry. Both mean npm
+          # has the tarball.
+          NPM_CONFIGURED: ${{ steps.npm-token.outputs.configured }}
         run: |
           set -euo pipefail
           RELEASE=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG")
           DRAFT=$(jq -r '.draft' <<<"$RELEASE")
           IMMUTABLE=$(jq -r '.immutable // false' <<<"$RELEASE")
           if [ "$DRAFT" != "true" ] && [ "$IMMUTABLE" = "true" ]; then
-            echo "::notice::$TAG is published and immutable; its assets cannot be added. The tarball lives on npm."
-            exit 0
+            if [ "${NPM_CONFIGURED:-false}" = "true" ]; then
+              echo "::notice::$TAG is published and immutable; the tarball lives on npm."
+              exit 0
+            fi
+            echo "::error::$TAG is immutable and nothing carries the build: npm was skipped for a missing NPM_TOKEN, and a published release cannot accept assets. Re-run this workflow by hand with the token configured."
+            exit 1
           fi
           for tarball in "$RUNNER_TEMP"/client-sdk/*.tgz; do
             name="$(basename "$tarball")"
