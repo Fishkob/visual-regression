@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { TestApp } from '../_support/utils/test-app';
 import { authRequest } from '../_support/utils/authenticated-request';
+import { ensureRateLimitWindowRoom } from '../_support/utils/rate-limit-window';
 
 describe('Upload rate limit (e2e)', () => {
   let app: INestApplication;
@@ -25,6 +26,7 @@ describe('Upload rate limit (e2e)', () => {
   });
 
   it('rejects the 6th upload in a minute window with 429 and Retry-After', async () => {
+    await ensureRateLimitWindowRoom(15_000);
     const filePath = path.join(__dirname, 'fixtures', 'baseline_black.png');
     const fileBuffer = fs.readFileSync(filePath);
 
