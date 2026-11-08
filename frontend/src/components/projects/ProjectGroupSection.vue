@@ -55,6 +55,7 @@ const {
         v-for="project in section.items"
         :key="project.id"
         class="flex items-center justify-between gap-4 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/50"
+        :data-testid="TEST_ID.projectRow"
       >
         <input
           v-if="selectable"

@@ -159,7 +159,6 @@ const config: Linter.FlatConfig[] = [
   {
     files: [
       "playwright/**/*.ts",
-      "tests/pages/**/*.ts",
       "tests/ct/**/*.ts",
       "tests/e2e/**/*.ts",
       "tests/quality/**/*.ts",

@@ -215,6 +215,7 @@ const confirmDescription = computed(() => {
                 variant="secondary"
                 class="text-[10px]"
                 :data-testid="TEST_ID.baselineHistoryReason"
+                :data-reason="revision.reason"
               >
                 {{ t(REASON_KEY[revision.reason]) }}
               </Badge>

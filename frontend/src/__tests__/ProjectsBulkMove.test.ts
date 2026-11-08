@@ -102,6 +102,27 @@ afterEach(() => {
 });
 
 describe("Projects bulk move", () => {
+  // The e2e bulk and delete flows select a row by its name and then reach for
+  // the checkbox or the actions menu inside it, so both must live in the row.
+  it("scopes the checkbox and the row actions to the project row", async () => {
+    const wrapper = mountView();
+    await waitForRows(wrapper, 2);
+
+    const rows = wrapper.findAll(`[data-testid="${TEST_ID.projectRow}"]`);
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(row.find(`[data-testid="${TEST_ID.tableRow}"]`).exists()).toBe(
+        true,
+      );
+      expect(
+        row.find(`[data-testid="${TEST_ID.projectSelectRow}"]`).exists(),
+      ).toBe(true);
+      expect(
+        row.find(`[data-testid="${TEST_ID.projectActionsButton}"]`).exists(),
+      ).toBe(true);
+    }
+  });
+
   it("moves the selection to the chosen group", async () => {
     const wrapper = mountView();
     await waitForRows(wrapper, 2);

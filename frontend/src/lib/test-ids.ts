@@ -446,6 +446,7 @@ export const TEST_ID = {
   inboxBulkApprove: "inbox-bulk-approve",
   inboxBulkBar: "inbox-bulk-bar",
 
+  projectRow: "project-row",
   projectSelectRow: "project-select-row",
   projectSelectAll: "project-select-all",
   projectBulkMove: "project-bulk-move",

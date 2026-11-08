@@ -13,6 +13,9 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
+  expect: {
+    timeout: 10_000,
+  },
   use: {
     baseURL: process.env.FRONTEND_URL || "http://localhost:80",
     trace: "on-first-retry",

@@ -6,6 +6,7 @@ import {
   uploadScreenshot,
 } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
+import { confirmDialog, expectToast } from "./fixtures/ui";
 
 let projectName: string;
 
@@ -32,17 +33,12 @@ test.describe("Project branches", () => {
     page,
   }) => {
     await page.goto(`/projects/${encodeURIComponent(projectName)}`);
-    await expect(page.getByTestId(TEST_ID.projectBranchSelect)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.projectBranchSelect)).toBeVisible();
 
     await page.getByTestId(TEST_ID.projectBranchSelect).click();
     await page.getByRole("option", { name: "feature/login" }).click();
     await expect(page).toHaveURL(
       (url) => url.searchParams.get("branch") === "feature/login",
-      {
-        timeout: 10000,
-      },
     );
     await expect(page.getByTestId(TEST_ID.projectBranchTarget)).toContainText(
       "main",
@@ -61,9 +57,7 @@ test.describe("Project branches", () => {
 
   test("retargets, sets default and deletes a branch", async ({ page }) => {
     await page.goto(`/projects/${encodeURIComponent(projectName)}`);
-    await expect(page.getByTestId(TEST_ID.projectBranchSelect)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.projectBranchSelect)).toBeVisible();
     await page.getByTestId(TEST_ID.projectBranchSelect).click();
     await page.getByRole("option", { name: "feature/login" }).click();
 
@@ -74,10 +68,7 @@ test.describe("Project branches", () => {
     await page.getByTestId(TEST_ID.branchTargetSelect).click();
     await page.getByRole("option", { name: "feature/other" }).click();
     await page.getByTestId(TEST_ID.branchTargetConfirm).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Branch target updated",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Branch target updated");
     await expect(page.getByTestId(TEST_ID.projectBranchTarget)).toContainText(
       "feature/other",
     );
@@ -89,18 +80,12 @@ test.describe("Project branches", () => {
     await page.getByTestId(TEST_ID.branchTargetSelect).click();
     await page.getByRole("option", { name: "Project default" }).click();
     await page.getByTestId(TEST_ID.branchTargetConfirm).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Branch target updated",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Branch target updated");
 
     // Promote the feature branch to default.
     await page.getByTestId(TEST_ID.branchActionsButton).click();
     await page.getByTestId(TEST_ID.branchSetDefault).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Default branch updated",
-      { timeout: 10000 },
-    );
+    await expectToast(page, "Default branch updated");
     await expect(
       (await getBranches(projectName)).find(
         (branch) => branch.name === "feature/login",
@@ -113,11 +98,8 @@ test.describe("Project branches", () => {
     await page.getByTestId(TEST_ID.branchActionsButton).click();
     await page.getByTestId(TEST_ID.branchDelete).click();
     await expect(page.getByTestId(TEST_ID.dialogConfirm)).toBeVisible();
-    await page.getByTestId(TEST_ID.dialogConfirm).click();
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Branch deleted",
-      { timeout: 10000 },
-    );
+    await confirmDialog(page);
+    await expectToast(page, "Branch deleted");
     await expect(
       (await getBranches(projectName)).some(
         (branch) => branch.name === "feature/other",

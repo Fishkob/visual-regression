@@ -6,6 +6,7 @@ import {
 } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
 import { approveCurrentComparison } from "./fixtures/review";
+import { byText } from "./fixtures/ui";
 
 let projectName: string;
 
@@ -23,19 +24,13 @@ test("opens a single review from the inbox and returns to the inbox", async ({
   page,
 }) => {
   await page.goto("/");
-  const section = page
-    .getByTestId(TEST_ID.inboxProjectSection)
-    .filter({ hasText: projectName });
-  const item = section
-    .getByTestId(TEST_ID.inboxItem)
-    .filter({ hasText: "login-form" });
-  await expect(item).toBeVisible({ timeout: 10000 });
+  const section = byText(page, TEST_ID.inboxProjectSection, projectName);
+  const item = byText(section, TEST_ID.inboxItem, "login-form");
+  await expect(item).toBeVisible();
   await item.click();
 
-  await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible({
-    timeout: 10000,
-  });
+  await expect(page.getByTestId(TEST_ID.comparisonView)).toBeVisible();
   await approveCurrentComparison(page);
 
-  await expect(page).toHaveURL("/", { timeout: 10000 });
+  await expect(page).toHaveURL("/");
 });

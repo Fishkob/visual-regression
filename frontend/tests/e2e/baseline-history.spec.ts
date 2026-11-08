@@ -10,6 +10,7 @@ import {
 } from "./fixtures/api";
 import { testUrl } from "./fixtures/review";
 import { TEST_ID } from "@/lib/test-ids";
+import { confirmDialog, expectToast } from "./fixtures/ui";
 
 let projectName: string;
 
@@ -51,30 +52,27 @@ test.describe("Baseline history", () => {
     // The history shares the activity rail with the discussion; a test with
     // replaced baselines is what the rail opens on.
     await page.getByTestId(TEST_ID.activityTabHistory).click();
-    await expect(page.getByTestId(TEST_ID.baselineHistorySection)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(
+      page.getByTestId(TEST_ID.baselineHistorySection),
+    ).toBeVisible();
 
     const rows = page.getByTestId(TEST_ID.baselineHistoryRow);
-    await expect(rows).toHaveCount(2, { timeout: 10000 });
+    await expect(rows).toHaveCount(2);
 
     // Newest first: the blue baseline is the first row and the current
     // baseline (the black one) is last, so restoring the first one flips back.
     await rows.first().getByTestId(TEST_ID.baselineHistoryRestore).click();
-    await expect(page.getByTestId(TEST_ID.dialogConfirm)).toBeVisible({
-      timeout: 10000,
-    });
-    await page.getByTestId(TEST_ID.dialogConfirm).click();
+    await expect(page.getByTestId(TEST_ID.dialogConfirm)).toBeVisible();
+    await confirmDialog(page);
 
-    await expect(page.getByTestId(TEST_ID.toaster)).toContainText(
-      "Baseline restored",
-      { timeout: 10000 },
-    );
-    await expect(rows).toHaveCount(3, { timeout: 10000 });
+    await expectToast(page, "Baseline restored");
+    await expect(rows).toHaveCount(3);
+    // The restore badge is translated, so the reason is read from its data
+    // attribute instead of its text.
     await expect(
       page
         .getByTestId(TEST_ID.baselineHistoryReason)
-        .filter({ hasText: "Restore" }),
+        .and(page.locator('[data-reason="restore"]')),
     ).toBeVisible();
 
     const after = await getTestDetails(projectName, TEST_NAME);
@@ -100,9 +98,7 @@ test.describe("Baseline history", () => {
 
     // The empty feature branch inherits login-form from main: the history lives
     // on the owning branch, so the panel is not even offered there.
-    await expect(page.getByTestId(TEST_ID.inheritedBadge)).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.getByTestId(TEST_ID.inheritedBadge)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.baselineHistorySection)).toHaveCount(
       0,
     );
