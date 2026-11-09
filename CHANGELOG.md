@@ -7,6 +7,17 @@
 > resolve, and the repository starts at `v1.0.0`. Treat every tag below as
 > immutable history — it is never moved, and a released version is never reused.
 
+## [3.0.0](https://github.com/Fishkob/visual-regression/compare/v2.0.0...v3.0.0) (2026-11-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **users:** `POST /users` and `POST /users/:id/reset-password` no longer return `temporaryPassword`. The regenerated SDK, the admin dialog that now shows the link, and the e2e suites move with them. ADR-075 supersedes the account-lifecycle bullets of ADR-031.
+
+### Features
+
+* **users:** issue one-time invite links instead of temporary passwords ([#60](https://github.com/Fishkob/visual-regression/issues/60)) ([f3e5976](https://github.com/Fishkob/visual-regression/commit/f3e5976732b3d93e3e9161e3b1fb9e0ec8a76460))
+
 ## [2.0.0](https://github.com/Fishkob/visual-regression/compare/v1.0.1...v2.0.0) (2026-11-08)
 
 
