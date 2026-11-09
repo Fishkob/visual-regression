@@ -50,3 +50,17 @@ export function unwrapSdkData<T>(
   }
   return getData<T>(response);
 }
+
+// The status of an SDK error envelope, or undefined when the call did not fail.
+// The public surface (share links, invite links) answers 403/404/410 as *states
+// of the page* — "passphrase required", "link gone" — so the caller needs the
+// number, not the message. A success response also carries `response`, which is
+// why the error member decides.
+export function sdkErrorStatus(response: unknown): number | undefined {
+  if (typeof response !== "object" || response === null) return undefined;
+  if (!("error" in response)) return undefined;
+  if ((response as { error?: unknown }).error === undefined) return undefined;
+  const status = (response as { response?: { status?: unknown } }).response
+    ?.status;
+  return typeof status === "number" ? status : undefined;
+}

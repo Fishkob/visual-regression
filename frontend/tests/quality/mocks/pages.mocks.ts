@@ -1,5 +1,6 @@
 import type {
   AuditControllerListResponses,
+  InvitePreviewDto,
   PaginationMetaDto,
   RunApprovalDto,
   RunFailedJobDto,
@@ -239,6 +240,16 @@ export const PUBLIC_SHARE_TEST_RESPONSE = json({
     diffUrl: DEMO_DIFF,
   },
 } satisfies PublicShareSource);
+
+// The invite page in its pending state: the account the link belongs to, the
+// expiry, and the one reveal button the whole page exists for. The password is
+// not part of the preview — it only exists in the reveal answer.
+export const PUBLIC_INVITE_PREVIEW_RESPONSE = json({
+  username: "dana.qa",
+  role: "MEMBER",
+  expiresAt: "2026-11-16T12:00:00.000Z",
+  status: "pending",
+} satisfies InvitePreviewDto);
 
 // One run that ended badly: a failed job, two pending comparisons (one muted, so
 // the counts explain what holds the gate) and one recorded approval. The state is

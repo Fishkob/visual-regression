@@ -10,6 +10,7 @@ import type { ProjectGroupsControllerFindAllResponses } from "@sdk/models/Projec
 import type { ProjectsControllerGetOneProjectResponses } from "@sdk/models/ProjectsControllerGetOneProjectResponses.gen";
 import type { ProjectsControllerGetProjectsWithPendingFlagResponses } from "@sdk/models/ProjectsControllerGetProjectsWithPendingFlagResponses.gen";
 import type { PublicShareControllerResolveResponses } from "@sdk/models/PublicShareControllerResolveResponses.gen";
+import type { PublicUserInviteControllerPreviewResponses } from "@sdk/models/PublicUserInviteControllerPreviewResponses.gen";
 import type { RunsControllerDetailResponses } from "@sdk/models/RunsControllerDetailResponses.gen";
 import type { ReviewInboxControllerGetPendingResponses } from "@sdk/models/ReviewInboxControllerGetPendingResponses.gen";
 import type { StorageControllerGetResponses } from "@sdk/models/StorageControllerGetResponses.gen";
@@ -68,6 +69,7 @@ import {
 } from "../../tests/ct/mocks/visualTest.mocks";
 import { WEBHOOKS_RESPONSE } from "../../tests/ct/mocks/webhooks.mocks";
 import {
+  PUBLIC_INVITE_PREVIEW_RESPONSE,
   PUBLIC_SHARE_TEST_RESPONSE,
   RUN_DETAIL_RESPONSE,
 } from "../../tests/quality/mocks/pages.mocks";
@@ -398,6 +400,17 @@ describe("run detail fixtures", () => {
       expect(typeof row.muted).toBe("boolean");
     }
     expect(body.failedJobs.length).toBeGreaterThan(0);
+  });
+});
+
+describe("public invite fixtures", () => {
+  it("binds the invite preview to InvitePreviewDto", () => {
+    const body = parse<PublicUserInviteControllerPreviewResponses[200]>(
+      PUBLIC_INVITE_PREVIEW_RESPONSE,
+    );
+    expect(body.username).toBe("dana.qa");
+    expect(["pending", "used", "expired"]).toContain(body.status);
+    expect(body).not.toHaveProperty("temporaryPassword");
   });
 });
 

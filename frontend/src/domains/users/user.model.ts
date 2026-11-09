@@ -14,14 +14,50 @@ export interface User {
   createdAt: string;
 }
 
-/** The create answer: the temporary password is shown exactly once. */
+// The link an admin hands over instead of a password. `token` is the secret in
+// the URL and the only copy that exists — the server keeps its hash.
+export interface UserInviteLink {
+  token: string;
+  expiresAt: string;
+}
+
+/** The create answer: the link, never the password it reveals. */
 export interface CreatedUser {
   user: User;
-  temporaryPassword: string;
+  invite: UserInviteLink;
 }
 
 export interface ResetPasswordResult {
-  temporaryPassword: string;
+  invite: UserInviteLink;
+}
+
+export const USER_INVITE_STATUSES = ["pending", "used", "expired"] as const;
+
+export type UserInviteStatus = (typeof USER_INVITE_STATUSES)[number];
+
+/** What the public invite page learns before it spends the one reveal. */
+export interface UserInvitePreview {
+  username: string;
+  role: UserRole;
+  expiresAt: string;
+  status: UserInviteStatus;
+}
+
+export function isUserInviteStatus(value: unknown): value is UserInviteStatus {
+  return (
+    typeof value === "string" &&
+    (USER_INVITE_STATUSES as readonly string[]).includes(value)
+  );
+}
+
+export function invitePath(token: string): string {
+  return `/invite/${encodeURIComponent(token)}`;
+}
+
+// The full URL shown after creation. Built from the current origin, so a copied
+// link works without the dashboard's route prefix — same rule as a share link.
+export function inviteUrl(token: string): string {
+  return `${window.location.origin}${invitePath(token)}`;
 }
 
 export interface CreateUserInput {

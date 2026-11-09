@@ -5,6 +5,13 @@
 // generates. The path segment is replaced before anything is logged.
 const SHARE_TOKEN_PATH = /(\/public\/shares\/)([^/?#]+)/g;
 
+// The invite token is a stronger credential than a share token: it reveals a
+// temporary password. `GET /public/user-invites/<token>` and
+// `POST /public/user-invites/<token>/reveal` carry it in the path, so the same
+// rule applies — only the first segment after the prefix is the token, which
+// leaves a trailing `/reveal` readable.
+const INVITE_TOKEN_PATH = /(\/public\/user-invites\/)([^/?#]+)/g;
+
 // A presigned object URL is the other bearer credential that reaches a log line:
 // the signature alone reads the screenshot or PDF until it expires (an hour by
 // default, up to seven days). `pdf-render?pdfUrl=<presigned>` carries one inside
@@ -16,5 +23,6 @@ const PRESIGNED_QUERY =
 export function redactUrl(url: string): string {
   return url
     .replace(SHARE_TOKEN_PATH, '$1[REDACTED]')
+    .replace(INVITE_TOKEN_PATH, '$1[REDACTED]')
     .replace(PRESIGNED_QUERY, '$1[REDACTED]');
 }

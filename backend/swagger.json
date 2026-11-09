@@ -101,6 +101,7 @@
                 "user.create",
                 "user.update",
                 "user.reset-password",
+                "user.invite-redeem",
                 "share.create",
                 "share.revoke",
                 "share.access",
@@ -202,6 +203,7 @@
                 "user.create",
                 "user.update",
                 "user.reset-password",
+                "user.invite-redeem",
                 "share.create",
                 "share.revoke",
                 "share.access",
@@ -4790,7 +4792,7 @@
             "sessionCookie": []
           }
         ],
-        "summary": "Create a user with a one-time temporary password",
+        "summary": "Create a user with a one-time invite link that reveals its temporary password",
         "tags": [
           "Users"
         ]
@@ -4872,9 +4874,86 @@
             "sessionCookie": []
           }
         ],
-        "summary": "Reset a password to a one-time value and revoke all sessions (admin only)",
+        "summary": "Reset a password to a one-time value, revoke all sessions and issue an invite link (admin only)",
         "tags": [
           "Users"
+        ]
+      }
+    },
+    "/public/user-invites/{token}": {
+      "get": {
+        "operationId": "PublicUserInviteController_preview",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitePreviewDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No invite carries this token"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "summary": "Read who an invite link belongs to, without using it up",
+        "tags": [
+          "User invites"
+        ]
+      }
+    },
+    "/public/user-invites/{token}/reveal": {
+      "post": {
+        "operationId": "PublicUserInviteController_reveal",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteRevealDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No invite carries this token"
+          },
+          "410": {
+            "description": "The link was already used or has expired"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "summary": "Reveal the temporary password once, then kill the link",
+        "tags": [
+          "User invites"
         ]
       }
     }
@@ -8621,20 +8700,36 @@
           "role"
         ]
       },
+      "UserInviteLinkDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Secret carried by the one-time link (GET /public/user-invites/:token). It is never stored; the row keeps its hash only."
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "expiresAt"
+        ]
+      },
       "CreatedUserDto": {
         "type": "object",
         "properties": {
           "user": {
             "$ref": "#/components/schemas/UserDto"
           },
-          "temporaryPassword": {
-            "type": "string",
-            "description": "One-time temporary password; it is not stored in plain text."
+          "invite": {
+            "$ref": "#/components/schemas/UserInviteLinkDto"
           }
         },
         "required": [
           "user",
-          "temporaryPassword"
+          "invite"
         ]
       },
       "UpdateUserDto": {
@@ -8656,12 +8751,61 @@
       "ResetPasswordResultDto": {
         "type": "object",
         "properties": {
-          "temporaryPassword": {
-            "type": "string",
-            "description": "One-time temporary password; it is not stored in plain text."
+          "invite": {
+            "$ref": "#/components/schemas/UserInviteLinkDto"
           }
         },
         "required": [
+          "invite"
+        ]
+      },
+      "InvitePreviewDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "MEMBER",
+              "VIEWER"
+            ]
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "used",
+              "expired"
+            ]
+          }
+        },
+        "required": [
+          "username",
+          "role",
+          "expiresAt",
+          "status"
+        ]
+      },
+      "InviteRevealDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "temporaryPassword": {
+            "type": "string",
+            "description": "The temporary password this link carried. It is derived from the token, so it exists only in this response and in the account hash."
+          }
+        },
+        "required": [
+          "username",
           "temporaryPassword"
         ]
       }

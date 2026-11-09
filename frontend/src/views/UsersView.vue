@@ -8,7 +8,7 @@ import AsyncState from "@/components/AsyncState.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import ChangeUserRoleDialog from "@/components/users/ChangeUserRoleDialog.vue";
 import CreateUserDialog from "@/components/users/CreateUserDialog.vue";
-import TemporaryPasswordDialog from "@/components/users/TemporaryPasswordDialog.vue";
+import InviteLinkDialog from "@/components/users/InviteLinkDialog.vue";
 import UserRowActions from "@/components/users/UserRowActions.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,11 @@ import {
   mapResetPasswordResult,
 } from "@/domains/users/user.mapper";
 import { ROLE_BADGE_VARIANT, type UserRole } from "@/domains/auth/auth.model";
-import type { User } from "@/domains/users/user.model";
+import {
+  inviteUrl,
+  type User,
+  type UserInviteLink,
+} from "@/domains/users/user.model";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { t } = useI18n();
@@ -108,10 +112,21 @@ function blockedFor(user: User): {
 }
 
 const createOpen = ref(false);
-const tempOpen = ref(false);
-const temporaryPassword = ref("");
-const temporaryUsername = ref("");
-const temporaryTitle = ref(t("users.userCreated"));
+// What the admin hands over instead of a password: the one-time link whose
+// reveal shows the temporary password to its user exactly once.
+const inviteOpen = ref(false);
+const inviteLink = ref("");
+const inviteExpiresAt = ref("");
+const inviteUsername = ref("");
+const inviteTitle = ref(t("inviteLink.titleCreate"));
+
+function showInvite(link: UserInviteLink, username: string, title: string) {
+  inviteLink.value = inviteUrl(link.token);
+  inviteExpiresAt.value = link.expiresAt;
+  inviteUsername.value = username;
+  inviteTitle.value = title;
+  inviteOpen.value = true;
+}
 
 function openCreate() {
   createUser.reset();
@@ -123,10 +138,11 @@ function submitCreate(payload: { username: string; role: UserRole }) {
     onSuccess: (created) => {
       const result = mapCreatedUser(created);
       createOpen.value = false;
-      temporaryUsername.value = result.user.username;
-      temporaryPassword.value = result.temporaryPassword;
-      temporaryTitle.value = t("users.userCreated");
-      tempOpen.value = true;
+      showInvite(
+        result.invite,
+        result.user.username,
+        t("inviteLink.titleCreate"),
+      );
     },
   });
 }
@@ -146,11 +162,11 @@ function confirmReset() {
   resetPassword.mutate(target.id, {
     onSuccess: (result) => {
       resetOpen.value = false;
-      temporaryUsername.value = target.username;
-      temporaryPassword.value =
-        mapResetPasswordResult(result).temporaryPassword;
-      temporaryTitle.value = t("users.passwordReset");
-      tempOpen.value = true;
+      showInvite(
+        mapResetPasswordResult(result).invite,
+        target.username,
+        t("inviteLink.titleReset"),
+      );
       resetTarget.value = null;
     },
   });
@@ -490,12 +506,13 @@ function statusLabel(user: User): string {
       @submit="submitCreate"
     />
 
-    <TemporaryPasswordDialog
-      :open="tempOpen"
-      :title="temporaryTitle"
-      :username="temporaryUsername"
-      :password="temporaryPassword"
-      @update:open="tempOpen = $event"
+    <InviteLinkDialog
+      :open="inviteOpen"
+      :title="inviteTitle"
+      :username="inviteUsername"
+      :link="inviteLink"
+      :expires-at="inviteExpiresAt"
+      @update:open="inviteOpen = $event"
     />
 
     <ConfirmDialog

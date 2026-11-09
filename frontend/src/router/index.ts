@@ -87,6 +87,15 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false, titleKey: "share.pageTitle" },
   },
   {
+    // The one-time link a new account receives instead of a password. Public on
+    // purpose: the person opening it has no credentials yet — the link is what
+    // hands them out, once (ADR-075).
+    path: "/invite/:token",
+    name: "invite",
+    component: () => import("@/views/InviteView.vue"),
+    meta: { requiresAuth: false, titleKey: "invite.pageTitle" },
+  },
+  {
     path: "/projects/:projectName",
     name: "project-detail",
     component: () => import("@/views/ProjectDetailView.vue"),

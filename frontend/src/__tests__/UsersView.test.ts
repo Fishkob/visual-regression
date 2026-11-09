@@ -149,11 +149,21 @@ beforeEach(() => {
   mockCreate.mockResolvedValue({
     data: {
       user: userDto({ id: "u-4", username: "jane", role: "ADMIN" }),
-      temporaryPassword: "temp-pass-1",
+      invite: {
+        token: "create-token",
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+      },
     },
   });
   mockUpdate.mockResolvedValue({ data: userDto({ isActive: false }) });
-  mockReset.mockResolvedValue({ data: { temporaryPassword: "reset-pass" } });
+  mockReset.mockResolvedValue({
+    data: {
+      invite: {
+        token: "reset-token",
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+      },
+    },
+  });
 });
 
 afterEach(() => {
@@ -267,7 +277,7 @@ describe("UsersView", () => {
     );
   });
 
-  it("creates a user and reveals the one-time temporary password", async () => {
+  it("creates a user and hands over a one-time link instead of the password", async () => {
     const wrapper = mountView();
     await waitForRows(wrapper, 3);
 
@@ -299,17 +309,20 @@ describe("UsersView", () => {
     );
     await vi.waitFor(() =>
       expect(
-        wrapper
-          .find(`[data-testid="${TEST_ID.temporaryPasswordDialog}"]`)
-          .exists(),
+        wrapper.find(`[data-testid="${TEST_ID.inviteLinkDialog}"]`).exists(),
       ).toBe(true),
     );
     expect(
-      wrapper.get(`[data-testid="${TEST_ID.temporaryPasswordValue}"]`).text(),
-    ).toBe("temp-pass-1");
+      wrapper.get(`[data-testid="${TEST_ID.inviteLinkUrl}"]`).text(),
+    ).toContain("/invite/create-token");
+    // The reveal belongs to the person holding the link: nothing on the admin's
+    // side renders a password.
+    expect(wrapper.find('[data-testid^="temporary-password"]').exists()).toBe(
+      false,
+    );
   });
 
-  it("resets a password after confirmation and reveals the new one", async () => {
+  it("resets a password after confirmation and issues a fresh link", async () => {
     const wrapper = mountView();
     await waitForRows(wrapper, 3);
 
@@ -328,14 +341,12 @@ describe("UsersView", () => {
     );
     await vi.waitFor(() =>
       expect(
-        wrapper
-          .find(`[data-testid="${TEST_ID.temporaryPasswordDialog}"]`)
-          .exists(),
+        wrapper.find(`[data-testid="${TEST_ID.inviteLinkDialog}"]`).exists(),
       ).toBe(true),
     );
     expect(
-      wrapper.get(`[data-testid="${TEST_ID.temporaryPasswordValue}"]`).text(),
-    ).toBe("reset-pass");
+      wrapper.get(`[data-testid="${TEST_ID.inviteLinkUrl}"]`).text(),
+    ).toContain("/invite/reset-token");
   });
 
   it("deactivates an active user after confirmation", async () => {

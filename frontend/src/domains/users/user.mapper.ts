@@ -1,6 +1,19 @@
-import type { CreatedUserDto, ResetPasswordResultDto, UserDto } from "@sdk";
+import type {
+  CreatedUserDto,
+  InvitePreviewDto,
+  ResetPasswordResultDto,
+  UserDto,
+  UserInviteLinkDto,
+} from "@sdk";
 import { DEFAULT_ROLE, isUserRole } from "@/domains/auth/auth.model";
-import type { CreatedUser, ResetPasswordResult, User } from "./user.model";
+import {
+  isUserInviteStatus,
+  type CreatedUser,
+  type ResetPasswordResult,
+  type User,
+  type UserInviteLink,
+  type UserInvitePreview,
+} from "./user.model";
 
 // The generated DTO types the nullable audit columns as free-form objects (the
 // backend declares them nullable but untyped), so the source widens exactly
@@ -42,15 +55,36 @@ export function mapUsers(dtos: UserDto[] | undefined): User[] {
   return (dtos ?? []).map(mapUser);
 }
 
+export function mapUserInviteLink(
+  dto: UserInviteLinkDto | undefined,
+): UserInviteLink {
+  return {
+    token: dto?.token ?? "",
+    expiresAt: presentIso(dto?.expiresAt) ?? "",
+  };
+}
+
 export function mapCreatedUser(dto: CreatedUserDto): CreatedUser {
   return {
     user: mapUser(dto.user),
-    temporaryPassword: dto.temporaryPassword ?? "",
+    invite: mapUserInviteLink(dto.invite),
   };
 }
 
 export function mapResetPasswordResult(
   dto: ResetPasswordResultDto,
 ): ResetPasswordResult {
-  return { temporaryPassword: dto.temporaryPassword ?? "" };
+  return { invite: mapUserInviteLink(dto.invite) };
+}
+
+// An unrecognized status reads as "used": the page must not offer a reveal that
+// the API would refuse anyway, and a newer backend status is likelier to
+// withdraw the link than to renew it.
+export function mapUserInvitePreview(dto: InvitePreviewDto): UserInvitePreview {
+  return {
+    username: dto.username ?? "",
+    role: isUserRole(dto.role) ? dto.role : DEFAULT_ROLE,
+    expiresAt: presentIso(dto.expiresAt) ?? "",
+    status: isUserInviteStatus(dto.status) ? dto.status : "used",
+  };
 }

@@ -31,6 +31,7 @@ import {
 import type { FulfillResponse } from "../ct/routes/api.routes";
 import {
   AUDIT_RESPONSE,
+  PUBLIC_INVITE_PREVIEW_RESPONSE,
   PUBLIC_SHARE_TEST_RESPONSE,
   RUN_DETAIL_RESPONSE,
   RUNS_RESPONSE,
@@ -348,6 +349,18 @@ export const QUALITY_CASES: QualityCase[] = [
     routes: [["**/api/v1/public/shares/*", PUBLIC_SHARE_TEST_RESPONSE]],
     readyTestId: TEST_ID.shareComparison,
     readyAlsoTestId: TEST_ID.shareComparisonImage,
+  },
+  {
+    // The link a new account arrives through (ADR-075). It renders outside the
+    // shell like the share page, so this case is its only layout gate: no
+    // password is on it — the reveal is a click, not a render.
+    name: "invite",
+    story: "views/InviteView/Routed",
+    props: { initialRoute: "/invite/gallery-invite-token" },
+    routes: [
+      ["**/api/v1/public/user-invites/*", PUBLIC_INVITE_PREVIEW_RESPONSE],
+    ],
+    readyTestId: TEST_ID.inviteReveal,
   },
   {
     name: "trends",

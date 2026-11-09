@@ -38,6 +38,11 @@ Notes:
   the exception of `/auth/logout` and `/auth/change-password`.
 - **Temporary password**: `mustChangePassword` blocks every route except
   `/auth/*` until the user changes it.
+- **One-time invites**: `GET /public/user-invites/:token` and
+  `POST /public/user-invites/:token/reveal` are unauthenticated — the person
+  holding the link has no account yet — and the admin's own surface never
+  returns a password. See [ADR-075](./adr/ADR-075-temporary-passwords-travel-in-one-time-links.md)
+  and `CONTEXT.md` → **UserInvite**.
 - **Last admin**: the last active admin cannot be demoted/deactivated; admins
   cannot deactivate themselves.
 - Sessions are revoked on deactivation and password reset; changing a password

@@ -44,6 +44,15 @@ describe('Roles and users (e2e)', () => {
     };
   }
 
+  // A new account's password is not in the create answer any more: it lives in
+  // the one-time link the admin hands over (ADR-075).
+  async function revealInvite(token: string): Promise<string> {
+    const response = await request(app.getHttpServer())
+      .post(`/api/v1/public/user-invites/${token}/reveal`)
+      .expect(200);
+    return response.body.temporaryPassword;
+  }
+
   it('reports the role on login and /auth/me', async () => {
     await seed('viewer', 'VIEWER');
     const { cookie, body } = await login('viewer');
@@ -114,7 +123,7 @@ describe('Roles and users (e2e)', () => {
       .set('Cookie', admin.cookie)
       .send({ username: 'newbie', role: 'MEMBER' })
       .expect(201);
-    const temporaryPassword = created.body.temporaryPassword;
+    const temporaryPassword = await revealInvite(created.body.invite.token);
     expect(temporaryPassword).toEqual(expect.any(String));
 
     const newbie = await login('newbie', temporaryPassword);
@@ -251,7 +260,7 @@ describe('Roles and users (e2e)', () => {
       .post(`/api/v1/users/${target.id}/reset-password`)
       .set('Cookie', admin.cookie)
       .expect(200);
-    expect(reset.body.temporaryPassword).toEqual(expect.any(String));
+    expect(reset.body.invite.token).toEqual(expect.any(String));
 
     await request(app.getHttpServer())
       .get('/api/v1/projects')

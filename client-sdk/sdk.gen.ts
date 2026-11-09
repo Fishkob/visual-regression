@@ -129,6 +129,12 @@ import type { ProjectsControllerUpdateProjectData } from './models/ProjectsContr
 import type { ProjectsControllerUpdateProjectResponses } from './models/ProjectsControllerUpdateProjectResponses.gen';
 import type { PublicShareControllerResolveData } from './models/PublicShareControllerResolveData.gen';
 import type { PublicShareControllerResolveResponses } from './models/PublicShareControllerResolveResponses.gen';
+import type { PublicUserInviteControllerPreviewData } from './models/PublicUserInviteControllerPreviewData.gen';
+import type { PublicUserInviteControllerPreviewErrors } from './models/PublicUserInviteControllerPreviewErrors.gen';
+import type { PublicUserInviteControllerPreviewResponses } from './models/PublicUserInviteControllerPreviewResponses.gen';
+import type { PublicUserInviteControllerRevealData } from './models/PublicUserInviteControllerRevealData.gen';
+import type { PublicUserInviteControllerRevealErrors } from './models/PublicUserInviteControllerRevealErrors.gen';
+import type { PublicUserInviteControllerRevealResponses } from './models/PublicUserInviteControllerRevealResponses.gen';
 import type { ReviewCommentControllerCreateData } from './models/ReviewCommentControllerCreateData.gen';
 import type { ReviewCommentControllerCreateResponses } from './models/ReviewCommentControllerCreateResponses.gen';
 import type { ReviewCommentControllerListData } from './models/ReviewCommentControllerListData.gen';
@@ -1205,7 +1211,7 @@ export const usersControllerList = <ThrowOnError extends boolean = false>(option
 });
 
 /**
- * Create a user with a one-time temporary password
+ * Create a user with a one-time invite link that reveals its temporary password
  */
 export const usersControllerCreate = <ThrowOnError extends boolean = false>(options: Options<UsersControllerCreateData, ThrowOnError>): RequestResult<UsersControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<UsersControllerCreateResponses, unknown, ThrowOnError>({
     security: [{
@@ -1239,7 +1245,7 @@ export const usersControllerUpdate = <ThrowOnError extends boolean = false>(opti
 });
 
 /**
- * Reset a password to a one-time value and revoke all sessions (admin only)
+ * Reset a password to a one-time value, revoke all sessions and issue an invite link (admin only)
  */
 export const usersControllerResetPassword = <ThrowOnError extends boolean = false>(options: Options<UsersControllerResetPasswordData, ThrowOnError>): RequestResult<UsersControllerResetPasswordResponses, unknown, ThrowOnError> => (options.client ?? client).post<UsersControllerResetPasswordResponses, unknown, ThrowOnError>({
     security: [{
@@ -1250,3 +1256,13 @@ export const usersControllerResetPassword = <ThrowOnError extends boolean = fals
     url: '/users/{id}/reset-password',
     ...options
 });
+
+/**
+ * Read who an invite link belongs to, without using it up
+ */
+export const publicUserInviteControllerPreview = <ThrowOnError extends boolean = false>(options: Options<PublicUserInviteControllerPreviewData, ThrowOnError>): RequestResult<PublicUserInviteControllerPreviewResponses, PublicUserInviteControllerPreviewErrors, ThrowOnError> => (options.client ?? client).get<PublicUserInviteControllerPreviewResponses, PublicUserInviteControllerPreviewErrors, ThrowOnError>({ url: '/public/user-invites/{token}', ...options });
+
+/**
+ * Reveal the temporary password once, then kill the link
+ */
+export const publicUserInviteControllerReveal = <ThrowOnError extends boolean = false>(options: Options<PublicUserInviteControllerRevealData, ThrowOnError>): RequestResult<PublicUserInviteControllerRevealResponses, PublicUserInviteControllerRevealErrors, ThrowOnError> => (options.client ?? client).post<PublicUserInviteControllerRevealResponses, PublicUserInviteControllerRevealErrors, ThrowOnError>({ url: '/public/user-invites/{token}/reveal', ...options });
