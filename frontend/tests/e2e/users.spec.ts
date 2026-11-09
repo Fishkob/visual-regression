@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import { createProject, deleteProject } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
 import { byText, confirmDialog, expectToast } from "./fixtures/ui";
@@ -14,6 +14,16 @@ function baseURL(): string {
   return (test.info().project.use.baseURL as string) ?? "http://localhost:80";
 }
 
+// The create answer carries the one-time link, never the password (ADR-075).
+async function readInviteLink(page: Page): Promise<string> {
+  await expect(page.getByTestId(TEST_ID.inviteLinkDialog)).toBeVisible();
+  const link = (
+    (await page.getByTestId(TEST_ID.inviteLinkUrl).textContent()) ?? ""
+  ).trim();
+  await page.getByTestId(TEST_ID.inviteLinkDone).click({ force: true });
+  return link;
+}
+
 async function createUser(
   page: Page,
   username: string,
@@ -27,12 +37,25 @@ async function createUser(
   }
   await page.getByTestId(TEST_ID.createUserSubmit).click();
   await expectToast(page, "User created");
-  await expect(page.getByTestId(TEST_ID.temporaryPasswordDialog)).toBeVisible();
-  const password = (
-    (await page.getByTestId(TEST_ID.temporaryPasswordValue).textContent()) ?? ""
-  ).trim();
-  await page.getByTestId(TEST_ID.temporaryPasswordDone).click({ force: true });
-  return password;
+  return readInviteLink(page);
+}
+
+// Opens the link the way the invited person does: a fresh context with no
+// session, then the one reveal it allows.
+async function revealInvite(browser: Browser, link: string): Promise<string> {
+  const context = await browser.newContext({ baseURL: baseURL() });
+  const page = await context.newPage();
+  try {
+    await page.goto(link);
+    await page.getByTestId(TEST_ID.inviteReveal).click();
+    const password = (
+      (await page.getByTestId(TEST_ID.invitePassword).textContent()) ?? ""
+    ).trim();
+    expect(password.length).toBeGreaterThan(8);
+    return password;
+  } finally {
+    await context.close();
+  }
 }
 
 // The platform deactivates accounts instead of deleting them (ADR-031), so a
@@ -65,11 +88,26 @@ test.describe("User administration", () => {
   });
 
   test("creates, resets, deactivates and reactivates a user", async ({
+    browser,
     page,
   }) => {
     await page.goto("/users");
-    const temporaryPassword = await createUser(page, username, "MEMBER");
-    expect(temporaryPassword.length).toBeGreaterThan(8);
+    const firstLink = await createUser(page, username, "MEMBER");
+    const temporaryPassword = await revealInvite(browser, firstLink);
+
+    // The link is spent: a second reveal reports the state instead of the
+    // password.
+    const spent = await browser.newContext({ baseURL: baseURL() });
+    const spentPage = await spent.newPage();
+    try {
+      await spentPage.goto(firstLink);
+      await expect(spentPage.getByTestId(TEST_ID.inviteReveal)).toHaveCount(0);
+      await expect(spentPage.getByTestId(TEST_ID.inviteStatus)).toContainText(
+        "already been used",
+      );
+    } finally {
+      await spent.close();
+    }
 
     const row = byText(page, TEST_ID.userRow, username);
     await expect(row).toBeVisible();
@@ -80,17 +118,10 @@ test.describe("User administration", () => {
     await page.getByTestId(TEST_ID.userReset).click();
     await confirmDialog(page);
     await expectToast(page, "Temporary password issued");
-    await expect(
-      page.getByTestId(TEST_ID.temporaryPasswordDialog),
-    ).toBeVisible();
-    const resetPassword = (
-      (await page.getByTestId(TEST_ID.temporaryPasswordValue).textContent()) ??
-      ""
-    ).trim();
+    const secondLink = await readInviteLink(page);
+    expect(secondLink).not.toBe(firstLink);
+    const resetPassword = await revealInvite(browser, secondLink);
     expect(resetPassword).not.toBe(temporaryPassword);
-    await page
-      .getByTestId(TEST_ID.temporaryPasswordDone)
-      .click({ force: true });
 
     await row.getByTestId(TEST_ID.userActions).click();
     await page.getByTestId(TEST_ID.userDeactivate).click();
@@ -115,7 +146,8 @@ test.describe("User administration", () => {
 
     try {
       await adminPage.goto("/users");
-      const temporaryPassword = await createUser(adminPage, username, "VIEWER");
+      const inviteLink = await createUser(adminPage, username, "VIEWER");
+      const temporaryPassword = await revealInvite(browser, inviteLink);
 
       // The storage state is deliberately not reused: this is a brand-new
       // person signing in for the first time.

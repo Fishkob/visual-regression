@@ -6,6 +6,11 @@ import { PrismaConnection } from '@/prisma/prisma-connection';
 import type { PrismaClient } from '@/prisma/client';
 import { hashPassword } from '@internal/auth/password-hasher';
 
+interface CreatedUser {
+  user: { id: string; username: string; role: string; createdBy: string };
+  invite: { token: string; expiresAt: string };
+}
+
 describe('Users administration (e2e)', () => {
   let app: INestApplication;
   let db: PrismaClient;
@@ -42,16 +47,25 @@ describe('Users administration (e2e)', () => {
     return response.get('Set-Cookie')![0]!.split(';')[0]!;
   }
 
-  async function createUser(username: string, role: 'ADMIN' | 'MEMBER') {
+  async function createUser(
+    username: string,
+    role: 'ADMIN' | 'MEMBER',
+  ): Promise<CreatedUser> {
     const response = await request(app.getHttpServer())
       .post('/api/v1/users')
       .set('Cookie', cookie)
       .send({ username, role })
       .expect(201);
-    return response.body as {
-      user: { id: string; username: string; role: string; createdBy: string };
-      temporaryPassword: string;
-    };
+    return response.body as CreatedUser;
+  }
+
+  // The unauthenticated half of the flow: whoever holds the link turns it into
+  // the temporary password, exactly once.
+  async function revealInvite(token: string) {
+    const response = await request(app.getHttpServer())
+      .post(`/api/v1/public/user-invites/${token}/reveal`)
+      .expect(200);
+    return response.body as { username: string; temporaryPassword: string };
   }
 
   function patchUser(id: string, body: Record<string, unknown>) {
@@ -61,7 +75,7 @@ describe('Users administration (e2e)', () => {
       .send(body);
   }
 
-  it('lists the admins and creates a member with a temporary password', async () => {
+  it('lists the admins and creates a member whose password is only in the link', async () => {
     const list = await request(app.getHttpServer())
       .get('/api/v1/users')
       .set('Cookie', cookie)
@@ -87,11 +101,30 @@ describe('Users administration (e2e)', () => {
         createdBy: 'root',
       }),
     );
-    expect(created.temporaryPassword).toEqual(expect.any(String));
+    // The admin never sees the password: the answer carries the link, not the
+    // credential it will reveal.
+    expect(created.invite.token).toEqual(expect.any(String));
+    expect(created.invite.expiresAt).toEqual(expect.any(String));
+    expect(created).not.toHaveProperty('temporaryPassword');
+    expect(JSON.stringify(created)).not.toContain('temporaryPassword');
+
+    const preview = await request(app.getHttpServer())
+      .get(`/api/v1/public/user-invites/${created.invite.token}`)
+      .expect(200);
+    expect(preview.body).toEqual({
+      username: 'newbie',
+      role: 'MEMBER',
+      expiresAt: created.invite.expiresAt,
+      status: 'pending',
+    });
+
+    const revealed = await revealInvite(created.invite.token);
+    expect(revealed.username).toBe('newbie');
+    expect(revealed.temporaryPassword).toEqual(expect.any(String));
 
     // The one-time password authenticates, but only the password-change surface
     // is reachable until it has been replaced.
-    const temporary = await login('newbie', created.temporaryPassword);
+    const temporary = await login('newbie', revealed.temporaryPassword);
     await request(app.getHttpServer())
       .get('/api/v1/projects')
       .set('Cookie', temporary)
@@ -101,7 +134,7 @@ describe('Users administration (e2e)', () => {
       .post('/api/v1/auth/change-password')
       .set('Cookie', temporary)
       .send({
-        currentPassword: created.temporaryPassword,
+        currentPassword: revealed.temporaryPassword,
         newPassword: 'brand-new-secret',
       })
       .expect(200);
@@ -120,16 +153,157 @@ describe('Users administration (e2e)', () => {
     expect(audit[0]!.metadata).toEqual(
       expect.objectContaining({ username: 'newbie', role: 'MEMBER' }),
     );
+
+    // The reveal is its own audit entry with no actor: nobody was signed in.
+    const reveals = await db.auditEvent.findMany({
+      where: { action: 'user.invite-redeem', targetId: created.user.id },
+    });
+    expect(reveals).toHaveLength(1);
+    expect(reveals[0]!.actor).toBeNull();
+  });
+
+  it('consumes an invite link on the first reveal and answers 410 afterwards', async () => {
+    const created = await createUser('once', 'MEMBER');
+
+    // Opening the link (the preview) must not use it up: chat clients and mail
+    // scanners fetch links before the human does.
+    await request(app.getHttpServer())
+      .get(`/api/v1/public/user-invites/${created.invite.token}`)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get(`/api/v1/public/user-invites/${created.invite.token}`)
+      .expect(200);
+
+    const revealed = await revealInvite(created.invite.token);
+
+    const second = await request(app.getHttpServer())
+      .post(`/api/v1/public/user-invites/${created.invite.token}/reveal`)
+      .expect(410);
+    expect(second.body.message).toBe('The invite link has already been used');
+
+    // The consumed link still previews, so the page can explain itself instead
+    // of pretending the link never existed.
+    const preview = await request(app.getHttpServer())
+      .get(`/api/v1/public/user-invites/${created.invite.token}`)
+      .expect(200);
+    expect(preview.body.status).toBe('used');
+
+    // What the link handed out is a working credential.
+    await login('once', revealed.temporaryPassword);
+  });
+
+  it('answers 404 for an unknown invite token', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/public/user-invites/not-a-token')
+      .expect(404);
+    await request(app.getHttpServer())
+      .post('/api/v1/public/user-invites/not-a-token/reveal')
+      .expect(404);
+  });
+
+  it('refuses an expired invite link', async () => {
+    const created = await createUser('slow', 'MEMBER');
+    await db.userInvite.updateMany({
+      where: { userId: created.user.id },
+      data: { expiresAt: new Date(Date.now() - 1_000) },
+    });
+
+    const preview = await request(app.getHttpServer())
+      .get(`/api/v1/public/user-invites/${created.invite.token}`)
+      .expect(200);
+    expect(preview.body.status).toBe('expired');
+
+    const reveal = await request(app.getHttpServer())
+      .post(`/api/v1/public/user-invites/${created.invite.token}/reveal`)
+      .expect(410);
+    expect(reveal.body.message).toBe('The invite link has expired');
+  });
+
+  it('stops revealing once the user has changed the password the link carried', async () => {
+    const created = await createUser('changed', 'MEMBER');
+    const revealed = await revealInvite(created.invite.token);
+    const session = await login('changed', revealed.temporaryPassword);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/change-password')
+      .set('Cookie', session)
+      .send({
+        currentPassword: revealed.temporaryPassword,
+        newPassword: 'changed-for-good',
+      })
+      .expect(200);
+
+    // A link that was revealed before the change is used; the password it names
+    // is gone either way.
+    await request(app.getHttpServer())
+      .post(`/api/v1/public/user-invites/${created.invite.token}/reveal`)
+      .expect(410);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({
+        username: 'changed',
+        password: revealed.temporaryPassword,
+      })
+      .expect(401);
+  });
+
+  it('replaces the outstanding link on every password reset', async () => {
+    const created = await createUser('forgetful', 'MEMBER');
+
+    const first = await request(app.getHttpServer())
+      .post(`/api/v1/users/${created.user.id}/reset-password`)
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(first.body.invite.token).toEqual(expect.any(String));
+    expect(first.body).not.toHaveProperty('temporaryPassword');
+
+    const firstRevealed = await revealInvite(first.body.invite.token);
+    const temporary = await login('forgetful', firstRevealed.temporaryPassword);
+    await request(app.getHttpServer())
+      .get('/api/v1/auth/me')
+      .set('Cookie', temporary)
+      .expect(200);
+
+    const second = await request(app.getHttpServer())
+      .post(`/api/v1/users/${created.user.id}/reset-password`)
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(second.body.invite.token).not.toBe(first.body.invite.token);
+
+    // The superseded link is gone, not merely stale: one invite per account.
+    await request(app.getHttpServer())
+      .get(`/api/v1/public/user-invites/${first.body.invite.token}`)
+      .expect(404);
+    await request(app.getHttpServer())
+      .get(`/api/v1/public/user-invites/${created.invite.token}`)
+      .expect(404);
+
+    // The session minted by the first reset is gone with the second reset.
+    await request(app.getHttpServer())
+      .get('/api/v1/auth/me')
+      .set('Cookie', temporary)
+      .expect(401);
+
+    const secondRevealed = await revealInvite(second.body.invite.token);
+    expect(secondRevealed.temporaryPassword).not.toBe(
+      firstRevealed.temporaryPassword,
+    );
+    await login('forgetful', secondRevealed.temporaryPassword);
+
+    const audit = await db.auditEvent.findMany({
+      where: { action: 'user.reset-password', targetId: created.user.id },
+    });
+    expect(audit).toHaveLength(2);
   });
 
   it('promotes and demotes a user without a re-login', async () => {
     const created = await createUser('reviewer', 'MEMBER');
-    const reviewer = await login('reviewer', created.temporaryPassword);
+    const revealed = await revealInvite(created.invite.token);
+    const reviewer = await login('reviewer', revealed.temporaryPassword);
     const changed = await request(app.getHttpServer())
       .post('/api/v1/auth/change-password')
       .set('Cookie', reviewer)
       .send({
-        currentPassword: created.temporaryPassword,
+        currentPassword: revealed.temporaryPassword,
         newPassword: 'reviewer-secret',
       })
       .expect(200);
@@ -170,11 +344,12 @@ describe('Users administration (e2e)', () => {
 
   it('deactivates a user, drops their sessions and lets a reactivation log in again', async () => {
     const created = await createUser('temp', 'MEMBER');
-    await login('temp', created.temporaryPassword);
+    const revealed = await revealInvite(created.invite.token);
+    await login('temp', revealed.temporaryPassword);
     await expect(
       db.session.count({ where: { userId: created.user.id } }),
     ).resolves.toBe(1);
-    const session = await login('temp', created.temporaryPassword);
+    const session = await login('temp', revealed.temporaryPassword);
 
     const deactivated = await patchUser(created.user.id, {
       isActive: false,
@@ -196,7 +371,7 @@ describe('Users administration (e2e)', () => {
       .expect(401);
     await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ username: 'temp', password: created.temporaryPassword })
+      .send({ username: 'temp', password: revealed.temporaryPassword })
       .expect(401);
 
     const reactivated = await patchUser(created.user.id, {
@@ -206,46 +381,11 @@ describe('Users administration (e2e)', () => {
       expect.objectContaining({ isActive: true, deactivatedAt: null }),
     );
 
-    const again = await login('temp', created.temporaryPassword);
+    const again = await login('temp', revealed.temporaryPassword);
     await request(app.getHttpServer())
       .get('/api/v1/auth/me')
       .set('Cookie', again)
       .expect(200);
-  });
-
-  it('resets a password to a fresh one-time value and revokes the sessions', async () => {
-    const created = await createUser('forgetful', 'MEMBER');
-    const first = await request(app.getHttpServer())
-      .post(`/api/v1/users/${created.user.id}/reset-password`)
-      .set('Cookie', cookie)
-      .expect(200);
-    expect(first.body.temporaryPassword).toEqual(expect.any(String));
-
-    const temporary = await login('forgetful', first.body.temporaryPassword);
-    await request(app.getHttpServer())
-      .get('/api/v1/auth/me')
-      .set('Cookie', temporary)
-      .expect(200);
-
-    const second = await request(app.getHttpServer())
-      .post(`/api/v1/users/${created.user.id}/reset-password`)
-      .set('Cookie', cookie)
-      .expect(200);
-    expect(second.body.temporaryPassword).toEqual(expect.any(String));
-    expect(second.body.temporaryPassword).not.toBe(
-      first.body.temporaryPassword,
-    );
-
-    // The session minted by the first reset is gone with the second reset.
-    await request(app.getHttpServer())
-      .get('/api/v1/auth/me')
-      .set('Cookie', temporary)
-      .expect(401);
-
-    const audit = await db.auditEvent.findMany({
-      where: { action: 'user.reset-password', targetId: created.user.id },
-    });
-    expect(audit).toHaveLength(2);
   });
 
   it('protects the last active admin from demotion and deactivation', async () => {

@@ -22,6 +22,7 @@ export const AUDIT_ACTIONS = {
   userCreate: 'user.create',
   userUpdate: 'user.update',
   userResetPassword: 'user.reset-password',
+  userInviteRedeem: 'user.invite-redeem',
   shareCreate: 'share.create',
   shareRevoke: 'share.revoke',
   shareAccess: 'share.access',

@@ -4,6 +4,7 @@ import {
   mapCreatedUser,
   mapResetPasswordResult,
   mapUser,
+  mapUserInvitePreview,
   mapUsers,
   type UserSource,
 } from "../user.mapper";
@@ -91,21 +92,58 @@ describe("mapUsers", () => {
 });
 
 describe("mapCreatedUser", () => {
-  it("maps the user and the one-time password", () => {
+  it("maps the user and the one-time link", () => {
     const created = mapCreatedUser({
       user: userDto({ username: "jane" }) as unknown as UserDto,
-      temporaryPassword: "temp-pass",
+      invite: { token: "tok-1", expiresAt: "2026-11-16T10:00:00.000Z" },
     });
 
-    expect(created.user.username).toBe("jane");
-    expect(created.temporaryPassword).toBe("temp-pass");
+    expect(created).toEqual({
+      user: expect.objectContaining({ username: "jane" }),
+      invite: { token: "tok-1", expiresAt: "2026-11-16T10:00:00.000Z" },
+    });
   });
 });
 
 describe("mapResetPasswordResult", () => {
-  it("maps the one-time password", () => {
-    expect(mapResetPasswordResult({ temporaryPassword: "reset" })).toEqual({
-      temporaryPassword: "reset",
+  it("maps the replacement link", () => {
+    expect(
+      mapResetPasswordResult({
+        invite: { token: "tok-2", expiresAt: "2026-11-16T10:00:00.000Z" },
+      }),
+    ).toEqual({
+      invite: { token: "tok-2", expiresAt: "2026-11-16T10:00:00.000Z" },
     });
+  });
+});
+
+describe("mapUserInvitePreview", () => {
+  it("maps the preview the invite page renders", () => {
+    expect(
+      mapUserInvitePreview({
+        username: "jane",
+        role: "MEMBER",
+        expiresAt: "2026-11-16T10:00:00.000Z",
+        status: "pending",
+      }),
+    ).toEqual({
+      username: "jane",
+      role: "MEMBER",
+      expiresAt: "2026-11-16T10:00:00.000Z",
+      status: "pending",
+    });
+  });
+
+  // A status this build does not know is treated as spent: offering a reveal
+  // the API would refuse is worse than hiding the button.
+  it("reads an unknown status as used", () => {
+    expect(
+      mapUserInvitePreview({
+        username: "jane",
+        role: "MEMBER",
+        expiresAt: "2026-11-16T10:00:00.000Z",
+        status: "revoked",
+      } as unknown as Parameters<typeof mapUserInvitePreview>[0]).status,
+    ).toBe("used");
   });
 });

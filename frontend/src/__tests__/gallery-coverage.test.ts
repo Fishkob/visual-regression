@@ -39,6 +39,8 @@ const ROUTE_CASES: Record<string, string[]> = {
   // public resolve endpoint answers a free-form payload, so its case builds the
   // fixture against the mapper's source type.
   share: ["share"],
+  // The one-time account invitation, also outside the shell — same reason.
+  invite: ["invite"],
 };
 
 // Routes without a case, each with the reason it has none. Empty on purpose:

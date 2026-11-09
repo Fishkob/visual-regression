@@ -13,11 +13,23 @@ describe('redactUrl', () => {
     ).toBe('/api/v1/public/shares/[REDACTED]/echo/public/shares/[REDACTED]');
   });
 
+  it('replaces an invite token with a placeholder and keeps the reveal suffix', () => {
+    expect(redactUrl('/api/v1/public/user-invites/abcDEF123')).toBe(
+      '/api/v1/public/user-invites/[REDACTED]',
+    );
+    expect(redactUrl('/api/v1/public/user-invites/abcDEF123/reveal?x=1')).toBe(
+      '/api/v1/public/user-invites/[REDACTED]/reveal?x=1',
+    );
+  });
+
   it('leaves ordinary URLs untouched', () => {
     expect(redactUrl('/api/v1/projects/shop/review')).toBe(
       '/api/v1/projects/shop/review',
     );
     expect(redactUrl('/api/v1/public/shares')).toBe('/api/v1/public/shares');
+    expect(redactUrl('/api/v1/public/user-invites')).toBe(
+      '/api/v1/public/user-invites',
+    );
   });
 
   it('stops at a query string or fragment', () => {

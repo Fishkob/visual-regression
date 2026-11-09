@@ -68,6 +68,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 072 | [Release Artifacts Are Verified and Attested](./ADR-072-release-artifacts-are-verified-and-attested.md)                                | Accepted                                                              |
 | 073 | [Release Assets and Immutable Releases](./ADR-073-release-assets-and-immutable-releases.md)                                            | Accepted — supersedes 069 decision 5                                  |
 | 074 | [TOTP Two-Factor Authentication Is Removed](./ADR-074-remove-totp-two-factor-authentication.md)                                        | Accepted (supersedes 062; the TOTP half of 034)                       |
+| 075 | [A Temporary Password Travels in a One-Time Link](./ADR-075-temporary-passwords-travel-in-one-time-links.md)                           | Accepted (amends 031's account lifecycle)                             |
 
 ## Numbering
 

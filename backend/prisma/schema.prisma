@@ -498,9 +498,31 @@ model User {
   sessions    Session[]
   assignments ReviewAssignment[] @relation("AssignmentAssignee")
   apiKeys     ApiKey[]           @relation("ApiKeyOwner")
+  invite      UserInvite?
 
   @@index([role, isActive])
   @@map("User")
+}
+
+// The one-time link that carries a freshly issued temporary password to its
+// user (ADR-075). Only the token's SHA-256 is stored, and the password itself is
+// derived from the token on reveal — the database never holds either secret.
+model UserInvite {
+  id         String    @id @default(cuid())
+  // One outstanding invite per account: issuing a new one replaces the previous
+  // link, so a reset cannot leave an older link able to reveal a password.
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  createdBy  String?
+  expiresAt  DateTime
+  // Set by the first reveal. The row stays: "already used" is a different
+  // answer than "no such link", and it is the one the user needs.
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([expiresAt])
+  @@map("UserInvite")
 }
 
 model Session {

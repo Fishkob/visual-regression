@@ -1,5 +1,5 @@
 import { publicShareControllerResolve, type PublicShareDto } from "@sdk";
-import { getData } from "@/lib/sdk";
+import { getData, sdkErrorStatus } from "@/lib/sdk";
 import {
   mapPublicShare,
   type PublicShareSource,
@@ -16,25 +16,6 @@ export type PublicShareResolution =
   | { kind: "not-found" }
   | { kind: "error" };
 
-// A successful SDK call also carries the raw Response (status 201), so the
-// presence of `response` alone says nothing. Only the error envelope — which
-// has an `error` member — decides passphrase/not-found.
-function isErrorResponse(response: unknown): boolean {
-  return (
-    typeof response === "object" &&
-    response !== null &&
-    "error" in response &&
-    (response as { error?: unknown }).error !== undefined
-  );
-}
-
-function responseStatus(response: unknown): number | undefined {
-  if (!isErrorResponse(response)) return undefined;
-  const candidate = response as { response?: { status?: unknown } };
-  const status = candidate.response?.status;
-  return typeof status === "number" ? status : undefined;
-}
-
 export function usePublicShare() {
   return async (
     token: string,
@@ -45,7 +26,9 @@ export function usePublicShare() {
         path: { token },
         body: passphrase ? { passphrase } : {},
       });
-      const status = responseStatus(response);
+      // A successful SDK call also carries the raw Response (status 201), so the
+      // presence of `response` alone says nothing; only the error envelope does.
+      const status = sdkErrorStatus(response);
       if (status === 403) return { kind: "passphrase-required" };
       if (status === 404) return { kind: "not-found" };
       if (status !== undefined) return { kind: "error" };

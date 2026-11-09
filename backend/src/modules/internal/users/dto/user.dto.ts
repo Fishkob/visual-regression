@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsIn,
@@ -67,21 +67,66 @@ export class UserDto {
   createdAt!: Date;
 }
 
+export class UserInviteLinkDto {
+  @ApiProperty({
+    description:
+      'Secret carried by the one-time link (GET /public/user-invites/:token). ' +
+      'It is never stored; the row keeps its hash only.',
+  })
+  @Expose()
+  token!: string;
+
+  @ApiProperty()
+  @Expose()
+  expiresAt!: Date;
+}
+
 export class CreatedUserDto {
   @ApiProperty({ type: UserDto })
   @Expose()
+  @Type(() => UserDto)
   user!: UserDto;
 
-  @ApiProperty({
-    description: 'One-time temporary password; it is not stored in plain text.',
-  })
+  @ApiProperty({ type: UserInviteLinkDto })
   @Expose()
-  temporaryPassword!: string;
+  @Type(() => UserInviteLinkDto)
+  invite!: UserInviteLinkDto;
 }
 
 export class ResetPasswordResultDto {
+  @ApiProperty({ type: UserInviteLinkDto })
+  @Expose()
+  @Type(() => UserInviteLinkDto)
+  invite!: UserInviteLinkDto;
+}
+
+export class InvitePreviewDto {
+  @ApiProperty()
+  @Expose()
+  username!: string;
+
+  @ApiProperty({ enum: ['ADMIN', 'MEMBER', 'VIEWER'] })
+  @Expose()
+  role!: 'ADMIN' | 'MEMBER' | 'VIEWER';
+
+  @ApiProperty()
+  @Expose()
+  expiresAt!: Date;
+
+  @ApiProperty({ enum: ['pending', 'used', 'expired'] })
+  @Expose()
+  status!: 'pending' | 'used' | 'expired';
+}
+
+export class InviteRevealDto {
+  @ApiProperty()
+  @Expose()
+  username!: string;
+
   @ApiProperty({
-    description: 'One-time temporary password; it is not stored in plain text.',
+    description:
+      'The temporary password this link carried. It is derived from the token, ' +
+      'so it exists only in this response and in the account hash.',
   })
   @Expose()
   temporaryPassword!: string;
