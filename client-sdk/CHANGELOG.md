@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/Fishkob/visual-regression/compare/vrt-client-v2.0.0...vrt-client-v3.0.0) (2026-11-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **users:** `POST /users` and `POST /users/:id/reset-password` no longer return `temporaryPassword`. The regenerated SDK, the admin dialog that now shows the link, and the e2e suites move with them. ADR-075 supersedes the account-lifecycle bullets of ADR-031.
+
+### Features
+
+* **users:** issue one-time invite links instead of temporary passwords ([#60](https://github.com/Fishkob/visual-regression/issues/60)) ([f3e5976](https://github.com/Fishkob/visual-regression/commit/f3e5976732b3d93e3e9161e3b1fb9e0ec8a76460))
+
 ## [2.0.0](https://github.com/Fishkob/visual-regression/compare/vrt-client-v1.0.0...vrt-client-v2.0.0) (2026-11-08)
 
 
