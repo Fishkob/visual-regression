@@ -905,8 +905,7 @@
     "noRegions": "No areas recorded for this comparison",
     "wholePage": "Whole page",
     "regionHint": "Click an area to zoom to it · n/p steps through them",
-    "minimap": "Overview — click to jump",
-    "autoFocus": "Jump to the largest change"
+    "minimap": "Overview — click to jump"
   },
   "filterBar": {
     "viewportLabel": "Filter by viewport",

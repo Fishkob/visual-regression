@@ -15,14 +15,8 @@ const { focusRegionSpy } = vi.hoisted(() => ({ focusRegionSpy: vi.fn() }));
 vi.mock("@/components/detail-panels/InteractiveImageViewer.vue", () => ({
   default: {
     template:
-      '<div data-testid="interactive-viewer">{{ baselineUrl }} {{ candidateUrl }} {{ diffUrl }} {{ mismatchPixelCount }}</div>',
-    props: [
-      "baselineUrl",
-      "candidateUrl",
-      "diffUrl",
-      "mismatchPixelCount",
-      "regions",
-    ],
+      '<div data-testid="interactive-viewer">{{ baselineUrl }} {{ candidateUrl }} {{ diffUrl }}</div>',
+    props: ["baselineUrl", "candidateUrl", "diffUrl", "regions"],
     setup(_props: unknown, { expose }: { expose: (api: unknown) => void }) {
       expose({ focusRegion: focusRegionSpy });
       return {};
@@ -56,7 +50,6 @@ describe("TestComparisonView", () => {
     expect(text).toContain("/images/baseline.png");
     expect(text).toContain("/images/candidate.png");
     expect(text).toContain("/images/diff.png");
-    expect(text).toContain("157");
   });
 
   it("lists the changed regions beside the stage", () => {

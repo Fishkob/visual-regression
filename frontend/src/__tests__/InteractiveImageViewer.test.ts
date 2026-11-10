@@ -24,7 +24,6 @@ type ViewerProps = {
   baselineUrl?: string;
   candidateUrl?: string;
   diffUrl?: string;
-  mismatchPixelCount?: number;
   regions?: ChangedRegion[];
 };
 
@@ -642,27 +641,12 @@ describe("InteractiveImageViewer", () => {
     expect(images[1].classes()).toContain("blink-candidate");
   });
 
-  it("jumps to the largest change on load when autofocus is on", async () => {
-    window.localStorage.setItem("vrt:viewer:autofocus", "true");
-    const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
-
-    await loadCandidate(wrapper);
-
-    expect(byId(wrapper, TEST_ID.changedRegionFocus).text()).toBe(
-      "Area 1 of 2",
-    );
-    expect(byId(wrapper, TEST_ID.zoomLevel).text()).not.toBe("100%");
-  });
-
-  it("stays on the whole page when autofocus is off", async () => {
+  it("stays on the whole page after the image loads", async () => {
     const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
 
     await loadCandidate(wrapper);
 
     expect(byId(wrapper, TEST_ID.changedRegionFocus).exists()).toBe(false);
-    expect(byId(wrapper, TEST_ID.autoFocusToggle).attributes("checked")).toBe(
-      undefined,
-    );
   });
 
   it("opens on the marked diff when the comparison knows its regions", () => {
@@ -820,34 +804,6 @@ describe("InteractiveImageViewer", () => {
     expect(
       stageOf(wrapper, TEST_ID.panelBaseline).attributes("style"),
     ).toContain("translate(30px, 20px)");
-  });
-
-  it("renders the mismatch share from the baseline size", async () => {
-    const wrapper = mountViewer({ ...defaultProps, mismatchPixelCount: 157 });
-    const image = byId(wrapper, TEST_ID.panelBaseline).find("img");
-
-    Object.defineProperty(image.element, "naturalWidth", {
-      value: 250,
-      configurable: true,
-    });
-    Object.defineProperty(image.element, "naturalHeight", {
-      value: 157,
-      configurable: true,
-    });
-    await image.trigger("load");
-
-    expect(byId(wrapper, TEST_ID.mismatchPercent).text()).toBe("0.4%");
-  });
-
-  it("hides the mismatch percentage without a count or natural size", () => {
-    const withoutCount = mountViewer();
-    expect(byId(withoutCount, TEST_ID.mismatchPercent).exists()).toBe(false);
-
-    const withoutSize = mountViewer({
-      ...defaultProps,
-      mismatchPixelCount: 157,
-    });
-    expect(byId(withoutSize, TEST_ID.mismatchPercent).exists()).toBe(false);
   });
 
   it("restores the last view mode and zoom from localStorage", () => {

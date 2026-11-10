@@ -65,7 +65,6 @@ function focusRegion(index: number): void {
             :baseline-url="comparison.baseline?.imageUrl"
             :candidate-url="comparison.candidate?.imageUrl"
             :diff-url="comparison.diffImageUrl"
-            :mismatch-pixel-count="comparison.mismatchPixelCount"
             :regions="regions"
             @image-size="imageSize = $event"
           />
