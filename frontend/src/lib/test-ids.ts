@@ -232,7 +232,6 @@ export const TEST_ID = {
   actualSizeToggle: "actual-size-toggle",
   fullscreenToggle: "fullscreen-toggle",
   fullscreenClose: "fullscreen-close",
-  mismatchPercent: "mismatch-percent",
   overlayOpacity: "overlay-opacity",
   wipeHandle: "wipe-handle",
   changedRegionList: "changed-region-list",
@@ -241,7 +240,6 @@ export const TEST_ID = {
   changedRegionCount: "changed-region-count",
   changedRegionFocus: "changed-region-focus",
   minimap: "comparison-minimap",
-  autoFocusToggle: "comparison-autofocus",
 
   testOverview: "test-overview",
   testOverviewCard: "test-overview-card",

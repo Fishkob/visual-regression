@@ -26,14 +26,12 @@ const props = withDefaults(
     baselineUrl?: string;
     candidateUrl?: string;
     diffUrl?: string;
-    mismatchPixelCount?: number;
     regions?: ChangedRegion[];
   }>(),
   {
     baselineUrl: undefined,
     candidateUrl: undefined,
     diffUrl: undefined,
-    mismatchPixelCount: undefined,
     regions: undefined,
   },
 );
@@ -47,7 +45,6 @@ const ZOOM_STEPS = [50, 75, 100, 150, 200];
 // so a mode stored under the old key cannot be the fallback any more.
 const MODE_STORAGE_KEY = "vrt:viewer:mode:v2";
 const ZOOM_STORAGE_KEY = "vrt:viewer:zoom";
-const AUTOFOCUS_STORAGE_KEY = "vrt:viewer:autofocus";
 const PAN_STEP = 40;
 const WIPE_STEP = 2;
 
@@ -109,26 +106,6 @@ const restingFit = ref(true);
 const fitToScreen = ref(zoomLevel.value === 100 && restingFit.value);
 const pan = reactive({ x: 0, y: 0 });
 
-const readStoredFlag = (key: string): boolean => {
-  try {
-    return window.localStorage.getItem(key) === "true";
-  } catch {
-    return false;
-  }
-};
-
-// Off by default: landing on a zoomed crop hides where you are on the page. On,
-// it saves the click that finds the change in the first place.
-const autoFocus = ref(readStoredFlag(AUTOFOCUS_STORAGE_KEY));
-
-watch(autoFocus, (value) => {
-  try {
-    window.localStorage.setItem(AUTOFOCUS_STORAGE_KEY, String(value));
-  } catch {
-    // Persistence is optional: storage may be unavailable or full.
-  }
-});
-
 const failed = reactive<Record<string, boolean>>({});
 const attempts = reactive<Record<string, number>>({});
 const sizes = reactive<Record<string, { width: number; height: number }>>({});
@@ -151,9 +128,6 @@ const onImageLoad = (key: string, event: Event) => {
   if (img.naturalWidth > 0 && img.naturalHeight > 0) {
     sizes[key] = { width: img.naturalWidth, height: img.naturalHeight };
     emit("image-size", sizes[key]);
-    if (autoFocus.value && hasRegions.value && activeRegion.value === null) {
-      void nextTick(() => focusRegion(0));
-    }
   }
 };
 
@@ -190,19 +164,6 @@ const persist = (key: string, value: unknown) => {
 
 watch(viewMode, (mode) => persist(MODE_STORAGE_KEY, mode));
 watch(zoomLevel, (zoom) => persist(ZOOM_STORAGE_KEY, zoom));
-
-const mismatchPercent = computed(() => {
-  const count = props.mismatchPixelCount;
-  if (typeof count !== "number" || !Number.isFinite(count)) return null;
-  const size = sizes.baseline;
-  if (!size) return null;
-  const area = size.width * size.height;
-  if (area <= 0) return null;
-  // The count itself lives in the comparison facts above the viewer; here only
-  // the share of the image is added, because that is the number plain pixels
-  // cannot tell.
-  return `${((count / area) * 100).toFixed(1)}%`;
-});
 
 const resetPan = () => {
   pan.x = 0;
@@ -920,29 +881,9 @@ const hugsPicture = computed(() => viewMode.value === "diff-only");
             {{ pane.label }}
           </button>
         </div>
-        <label
-          v-if="hasRegions"
-          class="flex items-center gap-2 text-xs text-muted-foreground"
-        >
-          <input
-            v-model="autoFocus"
-            type="checkbox"
-            :data-testid="TEST_ID.autoFocusToggle"
-            class="h-3.5 w-3.5 accent-primary"
-          />
-          {{ t("imageViewer.autoFocus") }}
-        </label>
       </div>
 
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-        <span
-          v-if="mismatchPercent"
-          :data-testid="TEST_ID.mismatchPercent"
-          class="text-xs text-muted-foreground tabular-nums"
-        >
-          {{ mismatchPercent }}
-        </span>
-
         <div
           class="flex items-center gap-1"
           role="group"

@@ -905,8 +905,7 @@
     "noRegions": "Für diesen Vergleich sind keine Stellen erfasst",
     "wholePage": "Ganze Seite",
     "regionHint": "Klick zoomt zur Stelle · n/p wechselt",
-    "minimap": "Übersicht — klick zum Springen",
-    "autoFocus": "Sofort zur größten Änderung"
+    "minimap": "Übersicht — klick zum Springen"
   },
   "filterBar": {
     "viewportLabel": "Nach Viewport filtern",
