@@ -1,17 +1,21 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { ref } from "vue";
 import { mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import TestComparisonInfo from "@/components/TestComparisonInfo.vue";
 import type { Comparison } from "@/domains/visual-test/visual-test.model";
 import { TEST_ID } from "@/lib/test-ids";
 
-vi.mock("@/composables/useAuth", () => ({
-  useCurrentRole: () => ({
-    isAdmin: ref(true),
-    canWrite: ref(true),
-  }),
-}));
+const auth = vi.hoisted(() => ({ isAdmin: true }));
+
+vi.mock("@/composables/useAuth", async () => {
+  const { ref } = await import("vue");
+  return {
+    useCurrentRole: () => ({
+      isAdmin: ref(auth.isAdmin),
+      canWrite: ref(true),
+    }),
+  };
+});
 
 const mounted: { unmount: () => void }[] = [];
 
@@ -32,6 +36,7 @@ function mountInfo(props: {
   comparison?: Comparison | null;
   baseline?: Comparison["baseline"];
   readOnly?: boolean;
+  projectPixelDiffThreshold?: number | null;
 }) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -56,6 +61,7 @@ function mountInfo(props: {
 
 afterEach(() => {
   mounted.splice(0).forEach((wrapper) => wrapper.unmount());
+  auth.isAdmin = true;
 });
 
 describe("TestComparisonInfo", () => {
@@ -106,7 +112,7 @@ describe("TestComparisonInfo", () => {
     ).toBe(true);
   });
 
-  it("hides the threshold editor for an inherited baseline", () => {
+  it("shows the threshold read-only for an inherited baseline", () => {
     const wrapper = mountInfo({
       comparison: comparison(),
       baseline: { imageUrl: "/images/baseline.png", pixelDiffThreshold: 20 },
@@ -115,6 +121,51 @@ describe("TestComparisonInfo", () => {
 
     expect(
       wrapper.find(`[data-testid="${TEST_ID.thresholdInput}"]`).exists(),
+    ).toBe(false);
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.thresholdReadonly}"]`).text(),
+    ).toContain("20");
+  });
+
+  it("shows the threshold read-only for a member", () => {
+    auth.isAdmin = false;
+
+    const wrapper = mountInfo({
+      comparison: comparison(),
+      baseline: { imageUrl: "/images/baseline.png", pixelDiffThreshold: 20 },
+    });
+
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.thresholdInput}"]`).exists(),
+    ).toBe(false);
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.thresholdReadonly}"]`).text(),
+    ).toContain("20");
+  });
+
+  it("names the project default when the variant has no own threshold", () => {
+    const wrapper = mountInfo({
+      comparison: comparison(),
+      baseline: { imageUrl: "/images/baseline.png", pixelDiffThreshold: 0 },
+      projectPixelDiffThreshold: 10,
+    });
+
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.thresholdProjectDefault}"]`).text(),
+    ).toContain("10");
+  });
+
+  it("stays quiet about the project default when the variant sets its own", () => {
+    const wrapper = mountInfo({
+      comparison: comparison(),
+      baseline: { imageUrl: "/images/baseline.png", pixelDiffThreshold: 20 },
+      projectPixelDiffThreshold: 10,
+    });
+
+    expect(
+      wrapper
+        .find(`[data-testid="${TEST_ID.thresholdProjectDefault}"]`)
+        .exists(),
     ).toBe(false);
   });
 });

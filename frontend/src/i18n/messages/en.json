@@ -843,6 +843,7 @@
     "toleranceSet": "Differences up to {threshold} px are accepted automatically.",
     "toleranceNone": "No tolerance set — every difference needs review.",
     "toleranceProjectDefault": "No variant threshold: the project default of {threshold} px applies.",
+    "projectDefault": "{threshold} px project default",
     "confirmContinue": "Yes, continue",
     "replaceTitle": "Replace comparison?",
     "replaceDescription": "This will keep the current baseline and remove the pending comparison.",
