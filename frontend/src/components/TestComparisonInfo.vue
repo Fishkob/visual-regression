@@ -78,14 +78,17 @@
       </Tooltip>
     </TooltipProvider>
 
-    <!-- The threshold the comparison was measured against. It is a number to
-         read first and an admin setting second, so the resting state is text:
-         the input only shows a field on hover or focus. -->
-    <TooltipProvider v-if="!readOnly && isAdmin">
+    <!-- The threshold the comparison was measured against, editable by an
+         admin. It has to LOOK editable: the value alone in the metadata line
+         read as plain text, so the label, number and unit sit in a bordered
+         field with a pencil — the affordance is visible at rest, not only on
+         hover. Everyone else still gets the number to read, so a reviewer who
+         cannot change it never has to guess the tolerance. -->
+    <TooltipProvider v-if="canEditThreshold">
       <Tooltip>
         <TooltipTrigger as-child>
           <label
-            class="inline-flex items-center gap-1 whitespace-nowrap text-xs"
+            class="group/threshold inline-flex cursor-text items-center gap-1 whitespace-nowrap rounded-md border border-border bg-background px-1.5 py-0.5 text-xs shadow-xs transition-colors hover:border-ring/60 hover:bg-muted focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/50"
           >
             <span>{{ t("comparison.thresholdLabel") }}</span>
             <input
@@ -96,10 +99,14 @@
               inputmode="numeric"
               pattern="[0-9]*"
               :aria-label="t('comparison.thresholdAria')"
-              class="min-w-3 field-sizing-content rounded bg-transparent text-center font-mono text-foreground tabular-nums outline-none transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:ring-1 focus-visible:ring-ring"
+              class="min-w-3 field-sizing-content cursor-text rounded bg-transparent text-center font-mono text-foreground tabular-nums outline-none"
               :data-testid="TEST_ID.thresholdInput"
             />
             <span>px</span>
+            <Pencil
+              class="size-3 shrink-0 text-muted-foreground transition-colors group-hover/threshold:text-foreground group-focus-within/threshold:text-foreground"
+              aria-hidden="true"
+            />
           </label>
         </TooltipTrigger>
 
@@ -108,6 +115,29 @@
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
+
+    <span
+      v-else
+      class="inline-flex items-center gap-1 whitespace-nowrap text-xs"
+      :data-testid="TEST_ID.thresholdReadonly"
+    >
+      <span>{{ t("comparison.thresholdLabel") }}</span>
+      <span class="font-mono text-foreground tabular-nums">{{
+        baselineThreshold
+      }}</span>
+      <span>px</span>
+    </span>
+
+    <!-- A variant threshold of 0 is not "no tolerance": the project default
+         applies instead. That inheritance lived only in the tooltip, so the
+         number on screen read as the effective tolerance when it was not. -->
+    <span
+      v-if="inheritsProjectDefault"
+      class="whitespace-nowrap text-xs text-muted-foreground"
+      :data-testid="TEST_ID.thresholdProjectDefault"
+    >
+      · {{ t("comparison.projectDefault", { threshold: projectThreshold }) }}
+    </span>
 
     <ConfirmDialog
       v-model:open="confirmVisible"
@@ -155,6 +185,7 @@ import type {
   Comparison,
 } from "@/domains/visual-test/visual-test.model";
 import { TEST_ID } from "@/lib/test-ids";
+import { Pencil } from "@lucide/vue";
 import { useCurrentRole } from "@/composables/useAuth";
 import { formatRelativeAge } from "@/lib/format-date";
 import { useThresholdEditor } from "@/composables/useThresholdEditor";
@@ -206,6 +237,14 @@ const withinTolerance = computed(
     props.comparison != null &&
     props.comparison.thresholdExceeded === false &&
     effectiveThreshold.value > 0,
+);
+
+// Editing is an admin write on an owned baseline. Everyone else — a member,
+// a viewer, or an admin looking at an inherited baseline — reads the number.
+const canEditThreshold = computed(() => !props.readOnly && isAdmin.value);
+
+const inheritsProjectDefault = computed(
+  () => baselineThreshold.value === 0 && projectThreshold.value > 0,
 );
 
 const toleranceHint = computed(() =>

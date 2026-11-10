@@ -843,6 +843,7 @@
     "toleranceSet": "Abweichungen bis {threshold} px werden automatisch akzeptiert.",
     "toleranceNone": "Keine Toleranz festgelegt — jede Abweichung muss geprüft werden.",
     "toleranceProjectDefault": "Keine Varianten-Schwelle: Es gilt der Projekt-Standard von {threshold} px.",
+    "projectDefault": "{threshold} px Projekt-Standard",
     "confirmContinue": "Ja, fortfahren",
     "replaceTitle": "Vergleich ersetzen?",
     "replaceDescription": "Dadurch bleibt die aktuelle Baseline erhalten und der ausstehende Vergleich wird entfernt.",

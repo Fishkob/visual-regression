@@ -211,6 +211,8 @@ export const TEST_ID = {
   badgeMismatch: "badge-mismatch",
   badgeWithinTolerance: "badge-within-tolerance",
   thresholdInput: "threshold-input",
+  thresholdReadonly: "threshold-readonly",
+  thresholdProjectDefault: "threshold-project-default",
   baseImageBlock: "base-image-block",
   baselineOnlyNote: "baseline-only-note",
   panelHighlight: "panel-highlight",
