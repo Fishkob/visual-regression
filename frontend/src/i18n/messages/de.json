@@ -194,6 +194,17 @@
     "createGroupError": "Gruppe konnte nicht erstellt werden",
     "createError": "Projekt konnte nicht erstellt werden"
   },
+  "renameProject": {
+    "title": "Projekt umbenennen",
+    "description": "Der Name ist die Adresse des Projekts in der URL und in API-Aufrufen. Tests, Baselines, Runs und Share-Links bleiben beim Projekt.",
+    "name": "Neuer Name",
+    "help": "Buchstaben, Zahlen, Bindestriche und Unterstriche, bis 100 Zeichen. „pending“ ist reserviert.",
+    "action": "Umbenennen",
+    "nameRequired": "Ein Projektname ist erforderlich.",
+    "unchanged": "Das ist bereits der Name des Projekts.",
+    "saved": "Projekt umbenannt",
+    "saveError": "Projekt konnte nicht umbenannt werden"
+  },
   "moveProject": {
     "title": "Projekt verschieben",
     "description": "Wähle die Gruppe, zu der dieses Projekt gehört.",
@@ -237,6 +248,8 @@
     "title": "Projekteinstellungen",
     "action": "Einstellungen",
     "description": "Pixel-Schwelle, Speicher und Benachrichtigungen dieses Projekts. Die Speichergrenzen entscheiden, welche Nachweise eine Bereinigung überleben, deshalb können nur Admins sie ändern.",
+    "nameTitle": "Projektname",
+    "nameDescription": "Die Adresse, unter der das Projekt erreichbar ist. Beim Umbenennen bleiben Tests, Baselines und Runs beim Projekt.",
     "backToProject": "Zurück zum Projekt",
     "webhooksDescription": "Externe Benachrichtigungen dieses Projekts für Review- und Genehmigungsereignisse. Nur Admins können Endpunkte anlegen und ändern."
   },

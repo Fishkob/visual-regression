@@ -195,4 +195,30 @@ test.describe("Projects", () => {
     await expect(byText(page, TEST_ID.tableRow, projectName)).toHaveCount(0);
     expect(await getProjectStatus(projectName)).toBe(404);
   });
+
+  test("renames a project from its settings page", async ({ page }) => {
+    const original = projectName;
+    await createProject(original);
+
+    await page.goto(`/projects/${encodeURIComponent(original)}/settings`);
+    await page.getByTestId(TEST_ID.projectRenameAction).click();
+
+    const renamed = `${original}-renamed`;
+    await page.getByTestId(TEST_ID.projectRenameInput).fill(renamed);
+    await page.getByTestId(TEST_ID.projectRenameSave).click();
+
+    await expectToast(page, "Project renamed");
+    // Cleanup follows the project, so it starts right after the write landed.
+    projectName = renamed;
+    // The name is the address: the settings page continues under the new one and
+    // the old name stops answering.
+    await expect(page).toHaveURL(
+      new RegExp(`/projects/${encodeURIComponent(renamed)}/settings$`),
+    );
+    await expect(page.getByTestId(TEST_ID.projectRenameCurrent)).toHaveText(
+      renamed,
+    );
+    expect(await getProjectStatus(renamed)).toBe(200);
+    expect(await getProjectStatus(original)).toBe(404);
+  });
 });

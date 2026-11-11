@@ -128,6 +128,28 @@ describe('Test lifecycle (e2e)', () => {
       .expect(409);
   });
 
+  it('rejects a rename to a name no path route could address', async () => {
+    // The name is the project's address, so a rename applies the same rule as
+    // creating one: an invalid or reserved name must not reach the row, where
+    // every `:projectName` route would reject it afterwards. DTO validation
+    // answers 422 in this API, not 400.
+    for (const name of ['not a slug', 'pending']) {
+      await authRequest(app)
+        .patch('/api/v1/projects/shop')
+        .send({ name })
+        .expect(422);
+    }
+    await authRequest(app).get('/api/v1/projects/shop').expect(200);
+
+    // Surrounding whitespace is trimmed before the rule runs, so a caller that
+    // pastes a padded name renames instead of failing on the spaces.
+    await authRequest(app)
+      .patch('/api/v1/projects/shop')
+      .send({ name: '  storefront  ' })
+      .expect(200);
+    await authRequest(app).get('/api/v1/projects/storefront').expect(200);
+  });
+
   it('reports the outcome history as a flake signal', async () => {
     await upload('login', baseline).expect(201);
     await upload('login', mismatch).expect(201);

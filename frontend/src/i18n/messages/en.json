@@ -194,6 +194,17 @@
     "createGroupError": "Could not create group",
     "createError": "Could not create project"
   },
+  "renameProject": {
+    "title": "Rename project",
+    "description": "The name is the project's address in the URL and in API calls. Tests, baselines, runs and share links stay with the project.",
+    "name": "New name",
+    "help": "Letters, numbers, hyphens and underscores, up to 100 characters. \"pending\" is reserved.",
+    "action": "Rename",
+    "nameRequired": "A project name is required.",
+    "unchanged": "This is already the project's name.",
+    "saved": "Project renamed",
+    "saveError": "Could not rename the project"
+  },
   "moveProject": {
     "title": "Move project",
     "description": "Choose the group this project belongs to.",
@@ -237,6 +248,8 @@
     "title": "Project settings",
     "action": "Settings",
     "description": "Pixel threshold, storage and notifications for this project. Storage limits decide which evidence survives a cleanup, so only admins can change them.",
+    "nameTitle": "Project name",
+    "nameDescription": "The address the project is served under. Renaming keeps its tests, baselines and runs.",
     "backToProject": "Back to project",
     "webhooksDescription": "This project's external notifications for review and approval events. Only admins can create or change endpoints."
   },

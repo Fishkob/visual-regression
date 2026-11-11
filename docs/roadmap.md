@@ -28,17 +28,40 @@ asks for it) or `trigger` (starts when the named condition holds).
 
 | ID  | Item                                  | Why now / who asks                                                                      | Size | Priority  |
 | --- | ------------------------------------- | --------------------------------------------------------------------------------------- | ---- | --------- |
-| N4  | Typed-confirmation bulk delete        | Bulk test deletion has an API but no multi-row UI, and the delete is irreversible.      | S–M  | now       |
-| N3  | Project-rename UI                     | The API, the audit row and the slug rules exist; only the dialog is missing (ADR-061).  | S    | on demand |
+| N4  | Typed-confirmation bulk delete        | Bulk test deletion has an API but no multi-row UI, and the delete is irreversible.      | M    | now       |
 | N2  | Cursor pagination for review comments | The read is capped at the newest 200 per test, with no way past them (ADR-040).         | S    | on demand |
 | N10 | Variant-level mute                    | Mute is per test, so it covers every variant; the run gate has no rule for a muted one. | M    | on demand |
 | N12 | Trusted-header auth behind a proxy    | An IdP proxy authenticates, the guard trusts a header: no dependency, so ADR-025 holds. | S    | on demand |
+| N13 | API-key revoke/rotate in the UI       | The only key action the UI offers is the destructive delete; revoke keeps the row.      | S    | on demand |
 
 N12 covers the deployment that already runs an IdP proxy; one that insists on
 OIDC or SAML inside the app itself stays out of scope.
 
+N4's size is `M` rather than `S–M`: the test list has no selection model at all
+(its rows are variants inside one accordion group per test), and the confirm
+dialog has no mode that requires typing a name — both have to be built.
+
+N13 is a scope question before it is code: `POST /api-keys/:id/rotate` (grace
+window, so CI keeps working until the key is swapped) and `POST
+/api-keys/:id/revoke` (the row and its audit trail stay) are implemented and
+documented in [ci-integration.md](ci-integration.md), while the key list's only
+action is the hard delete. The single recorded mention of the current split is a
+line in [testing.md](testing.md#frontend-e2e-coverage); either that decision is
+confirmed, or the two actions get their buttons.
+
 ### Shipped
 
+- **N3 — project rename UI** (2026-11-11). The settings page gained the project's
+  name as its first section and the dialog behind it; an admin (and a member — the
+  PATCH endpoint is gated by the API-key scope, not by `@Roles`) renames without
+  curl, and the page follows to the new address instead of leaving the old one on
+  screen. The cached read families are refreshed on the way, because the name is
+  part of nearly every project-scoped key. The dialog also closed a hole the API
+  had: `UpdateProjectDto.name` accepted a name that `ProjectNameValidationPipe`
+  then rejected on every route, so a rename could make a project unreachable —
+  the body now carries the same rule as `CreateProjectDto` (charset, reserved
+  names, length) and trims before it applies, and the write is covered by
+  "rejects a rename to a name no path route could address".
 - **N7 — `job.failed` webhook** (2026-11-11). A comparison job that exhausts its
   retry budget, hits a non-retryable error, arrives with a corrupt payload or
   stalls until its lease runs out now publishes one `job.failed` delivery. The

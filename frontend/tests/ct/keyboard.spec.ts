@@ -7,7 +7,12 @@ import {
 } from "./mocks/projects.mocks";
 import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
 import type { AppShell } from "@/AppShell.story.ts";
+import type { Routed as ProjectSettingsRouted } from "@/views/ProjectSettingsView.story";
 import { TEST_ID } from "@/lib/test-ids";
+import {
+  mockProjectSettings,
+  SETTINGS_ROUTE,
+} from "./mocks/projectSettings.mocks";
 import { USERS_RESPONSE } from "../quality/mocks/pages.mocks";
 
 const INTERACTIVE_TAGS = ["A", "BUTTON", "INPUT", "SELECT", "TEXTAREA"];
@@ -150,6 +155,44 @@ test.describe("Invite link dialog focus", () => {
     await page.keyboard.press("Escape");
 
     await expect(dialog).toBeHidden();
+  });
+});
+
+test.describe("Rename project dialog focus", () => {
+  // The rename has exactly one way in, the button on the settings page: if
+  // focus does not come back to it on Escape, the keyboard user is left on the
+  // page with nothing focused.
+  test("moves focus into the rename dialog and back to its trigger", async ({
+    mount,
+    page,
+  }) => {
+    await mockProjectSettings(page);
+
+    const component = await mount<typeof ProjectSettingsRouted>(
+      "views/ProjectSettingsView/Routed",
+      { initialRoute: SETTINGS_ROUTE },
+    );
+    const trigger = component.getByTestId(TEST_ID.projectRenameAction);
+    await trigger.click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(page.getByTestId(TEST_ID.projectRenameInput)).toBeFocused();
+    await expect.poll(() => focusIsInside(dialog)).toBe(true);
+
+    for (let stop = 0; stop < 4; stop++) {
+      await page.keyboard.press("Tab");
+      await expect
+        .poll(() => focusIsInside(dialog), {
+          message: `focus left the dialog after tab stop ${stop + 1}`,
+        })
+        .toBe(true);
+    }
+
+    await page.keyboard.press("Escape");
+
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
   });
 });
 
