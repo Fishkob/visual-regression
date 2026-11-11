@@ -894,17 +894,11 @@
     "wipe": "Wischposition",
     "retry": "Erneut versuchen",
     "diff": "Diff",
-    "changedRegions": "Änderungen",
-    "regionCount": "{count} Stelle | {count} Stellen",
     "regionOf": "Stelle {index} von {total}",
-    "regionSize": "{width} × {height} px",
-    "regionShare": "{percent} der Fläche",
     "focusRegion": "Zu Stelle {index} zoomen",
-    "regionList": "Geänderte Stellen dieses Vergleichs",
     "showRegions": "Stellen anzeigen",
     "noRegions": "Für diesen Vergleich sind keine Stellen erfasst",
     "wholePage": "Ganze Seite",
-    "regionHint": "Klick zoomt zur Stelle · n/p wechselt",
     "minimap": "Übersicht — klick zum Springen"
   },
   "filterBar": {

@@ -671,6 +671,31 @@ describe("InteractiveImageViewer", () => {
     expect(boxes[0].attributes("style")).toContain("width: 12.5%");
   });
 
+  it("makes the boxes the region control in the single-picture stage", async () => {
+    const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
+
+    await loadCandidate(wrapper);
+
+    const stageBoxes = wrapper.findAll(
+      `[data-testid="${TEST_ID.changedRegionBox}"]`,
+    );
+    expect(stageBoxes).toHaveLength(2);
+    expect(stageBoxes[0].attributes("tabindex")).toBe("0");
+    expect(stageBoxes[0].attributes("aria-label")).toBe("Zoom to area 1");
+
+    await pressKey(window, "2");
+    await loadPanelImage(wrapper, TEST_ID.panelCandidate, 800, 600);
+
+    const paneBoxes = wrapper.findAll(
+      `[data-testid="${TEST_ID.changedRegionBox}"]`,
+    );
+    expect(paneBoxes).toHaveLength(2);
+    for (const box of paneBoxes) {
+      expect(box.attributes("tabindex")).toBe("-1");
+      expect(box.attributes("aria-hidden")).toBe("true");
+    }
+  });
+
   it("draws no boxes without a loaded image size", () => {
     const wrapper = mountViewer({ ...defaultProps, regions: REGIONS });
 

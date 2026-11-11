@@ -54,7 +54,7 @@ describe("ChangedRegionBoxes", () => {
     expect(wrapper.emitted("select")).toEqual([[1]]);
   });
 
-  it("marks the active box and stays out of the tab order", () => {
+  it("marks the active box and stays out of the tab order when decorative", () => {
     const wrapper = mountBoxes({ activeIndex: 1 });
 
     const boxes = wrapper.findAll(
@@ -65,6 +65,18 @@ describe("ChangedRegionBoxes", () => {
     expect(boxes[0].attributes("data-active")).toBeUndefined();
     expect(boxes[0].attributes("tabindex")).toBe("-1");
     expect(boxes[0].attributes("aria-hidden")).toBe("true");
+  });
+
+  it("names each box as a control when it is interactive", () => {
+    const wrapper = mountBoxes({ interactive: true });
+
+    const boxes = wrapper.findAll(
+      `[data-testid="${TEST_ID.changedRegionBox}"]`,
+    );
+
+    expect(boxes[0].attributes("tabindex")).toBe("0");
+    expect(boxes[0].attributes("aria-hidden")).toBeUndefined();
+    expect(boxes[1].attributes("aria-label")).toBe("Zoom to area 2");
   });
 
   it("falls back to one pixel instead of dividing by zero", () => {

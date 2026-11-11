@@ -234,10 +234,7 @@ export const TEST_ID = {
   fullscreenClose: "fullscreen-close",
   overlayOpacity: "overlay-opacity",
   wipeHandle: "wipe-handle",
-  changedRegionList: "changed-region-list",
-  changedRegionItem: "changed-region-item",
   changedRegionBox: "changed-region-box",
-  changedRegionCount: "changed-region-count",
   changedRegionFocus: "changed-region-focus",
   minimap: "comparison-minimap",
 

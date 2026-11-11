@@ -58,7 +58,7 @@ test.describe("VisualTestDetails", () => {
     );
   });
 
-  test("opens on the marked diff and lists the changed areas", async ({
+  test("opens on the marked diff and marks the changed areas", async ({
     mount,
     page,
   }) => {
@@ -81,24 +81,24 @@ test.describe("VisualTestDetails", () => {
     );
 
     await expect(component.getByTestId(TEST_ID.panelHighlight)).toBeVisible();
-    await expect(
-      component.getByTestId(TEST_ID.changedRegionList),
-    ).toBeVisible();
-    await expect(
-      component.getByTestId(TEST_ID.changedRegionCount),
-    ).toContainText("2");
-    await expect(component.getByTestId(TEST_ID.changedRegionItem)).toHaveCount(
+    await expect(component.getByTestId(TEST_ID.changedRegionBox)).toHaveCount(
       2,
     );
 
-    await component.getByTestId(TEST_ID.changedRegionItem).nth(1).click();
+    await component.getByTestId(TEST_ID.changedRegionBox).nth(1).click();
 
     await expect(
-      component.getByTestId(TEST_ID.changedRegionItem).nth(1),
-    ).toHaveAttribute("aria-pressed", "true");
+      component.getByTestId(TEST_ID.changedRegionFocus),
+    ).toContainText("Area 2 of 2");
+
+    // The number on the picture is the region control, so the keyboard has to
+    // reach it without a list beside the stage.
+    await component.getByTestId(TEST_ID.changedRegionBox).nth(0).focus();
+    await page.keyboard.press("Enter");
+
     await expect(
       component.getByTestId(TEST_ID.changedRegionFocus),
-    ).toContainText("2");
+    ).toContainText("Area 1 of 2");
   });
 
   test("renders pending comparison correctly", async ({ mount, page }) => {
