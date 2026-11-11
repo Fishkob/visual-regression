@@ -14,6 +14,8 @@ import { webhookQueryKeys } from "@/domains/webhooks/query-keys";
 import { runsQueryKeys } from "@/domains/runs/query-keys";
 import { testMetadataQueryKeys } from "@/domains/test-lifecycle/query-keys";
 import { storageQueryKeys } from "@/domains/storage/query-keys";
+import { assignmentQueryKeys } from "@/domains/assignments/query-keys";
+import { searchQueryKeys } from "@/domains/search/query-keys";
 import type { TestDetailsArgs } from "@/lib/variant-key";
 
 export function invalidateProjectDetail(
@@ -177,6 +179,30 @@ export function invalidateAfterBulkMove(client: QueryClient) {
   client.invalidateQueries({ queryKey: projectQueryKeys.all() });
   client.invalidateQueries({ queryKey: groupQueryKeys.all() });
   invalidateReviewInbox(client);
+}
+
+// A rename changes the project's address, and that address is part of nearly
+// every project-scoped cache key — a key cannot be re-pointed, so the rename
+// refreshes the read families instead. The old-name entries are unreachable
+// once the route has moved and age out of the cache on their own. The two
+// lists that carry the name in their *rows* (the inbox, the assignment queues)
+// and the global search, whose hits are links built from the name, are the
+// reads an invalidated-before-rename entry would otherwise serve wrong.
+export function invalidateAfterProjectRename(client: QueryClient) {
+  client.invalidateQueries({ queryKey: projectQueryKeys.all() });
+  client.invalidateQueries({ queryKey: pendingTestQueryKeys.all() });
+  client.invalidateQueries({ queryKey: reviewInboxQueryKeys.all() });
+  client.invalidateQueries({ queryKey: assignmentQueryKeys.all() });
+  client.invalidateQueries({ queryKey: searchQueryKeys.all() });
+  client.invalidateQueries({ queryKey: branchQueryKeys.all() });
+  client.invalidateQueries({ queryKey: runsQueryKeys.all() });
+  client.invalidateQueries({ queryKey: storageQueryKeys.all() });
+  client.invalidateQueries({ queryKey: webhookQueryKeys.all() });
+  client.invalidateQueries({ queryKey: testMetadataQueryKeys.all() });
+  client.invalidateQueries({ queryKey: approvalQueryKeys.all() });
+  client.invalidateQueries({ queryKey: baselineHistoryQueryKeys.all() });
+  client.invalidateQueries({ queryKey: visualTestQueryKeys.all() });
+  client.invalidateQueries({ queryKey: pdfTestQueryKeys.all() });
 }
 
 // Renaming, re-tagging or muting a test changes the test's metadata, the inbox

@@ -1,4 +1,4 @@
-import { Expose, Type } from 'class-transformer';
+import { Expose, Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Allow,
@@ -206,15 +206,27 @@ export class CreateProjectDto {
 }
 
 export class UpdateProjectDto {
+  // A rename carries the same rule as `CreateProjectDto` and the
+  // `ProjectNameValidationPipe`: a name the pipe would reject must not reach the
+  // row, or the project becomes unaddressable on every path route.
   @ApiPropertyOptional({
     description: 'New project name (unique); omitted keeps the current name',
     minLength: 1,
-    maxLength: 100,
+    maxLength: MAX_NAME_LENGTH,
   })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsOptional()
   @IsString()
-  @MinLength(1)
-  @MaxLength(100)
+  @IsNotEmpty()
+  @MaxLength(MAX_NAME_LENGTH)
+  @Matches(NAME_REGEXP, {
+    message: 'Project name must be alphanumeric, dash or underscore',
+  })
+  @IsNotIn([...PROJECT_RESERVED_NAMES], {
+    message: 'This project name is reserved and cannot be used',
+  })
   name?: string;
 
   @ApiPropertyOptional({
