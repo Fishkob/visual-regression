@@ -683,7 +683,8 @@
     "reviewRequested": "Prüfung angefordert",
     "comparisonApproved": "Vergleich genehmigt",
     "reviewAssigned": "Review zugewiesen",
-    "reviewComment": "Review-Kommentar"
+    "reviewComment": "Review-Kommentar",
+    "jobFailed": "Vergleich fehlgeschlagen"
   },
   "webhookStatus": {
     "PENDING": "Ausstehend",

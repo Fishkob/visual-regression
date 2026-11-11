@@ -683,7 +683,8 @@
     "reviewRequested": "Review requested",
     "comparisonApproved": "Comparison approved",
     "reviewAssigned": "Review assigned",
-    "reviewComment": "Review comment"
+    "reviewComment": "Review comment",
+    "jobFailed": "Comparison job failed"
   },
   "webhookStatus": {
     "PENDING": "Pending",

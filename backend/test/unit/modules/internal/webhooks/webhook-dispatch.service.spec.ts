@@ -188,6 +188,71 @@ describe('WebhookDispatchService', () => {
     expect(payload).not.toHaveProperty('note');
   });
 
+  it('enqueues job.failed with the job error and a run link', async () => {
+    endpoints.findActiveForProjectEvent.mockResolvedValue([
+      { id: 'wh-1' } as never,
+    ]);
+    deliveries.createMany.mockResolvedValue(1);
+
+    const count = await service.enqueueJobFailed({
+      testId: 'test-1',
+      jobId: 'job-9',
+      error: 'Screenshot download failed',
+      attempts: 5,
+      maxAttempts: 5,
+      runKey: 'ci/7',
+    });
+
+    expect(count).toBe(1);
+    expect(endpoints.findActiveForProjectEvent).toHaveBeenCalledWith(
+      'project-1',
+      'job.failed',
+    );
+    expect(deliveries.createMany).toHaveBeenCalledWith(
+      ['wh-1'],
+      'job.failed',
+      expect.objectContaining({
+        event: 'job.failed',
+        project: { name: 'shop' },
+        test: { name: 'checkout', kind: 'image' },
+        branch: 'feature/x',
+        job: {
+          id: 'job-9',
+          error: 'Screenshot download failed',
+          attempts: 5,
+          maxAttempts: 5,
+        },
+        links: {
+          review:
+            'https://vrt.example.com/projects/shop/tests/checkout?branch=feature%2Fx',
+          run: 'https://vrt.example.com/projects/shop/runs/ci%2F7',
+        },
+      }),
+    );
+  });
+
+  it('omits the run link for a job that carries no run key', async () => {
+    endpoints.findActiveForProjectEvent.mockResolvedValue([
+      { id: 'wh-1' } as never,
+    ]);
+    deliveries.createMany.mockResolvedValue(1);
+
+    await service.enqueueJobFailed({
+      testId: 'test-1',
+      jobId: 'job-9',
+      error: 'boom',
+      attempts: 5,
+      maxAttempts: 5,
+      runKey: null,
+    });
+
+    const payload = deliveries.createMany.mock.calls[0][2];
+    expect(payload.links).toEqual({
+      review:
+        'https://vrt.example.com/projects/shop/tests/checkout?branch=feature%2Fx',
+    });
+  });
+
   it('creates a synthetic test delivery for one endpoint', async () => {
     await service.enqueueTestEvent({
       endpointId: 'wh-1',

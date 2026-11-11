@@ -90,21 +90,28 @@ export class WebhookSender {
     const subject = payload.test
       ? `${payload.project.name} / ${payload.test.name}`
       : payload.project.name;
-    const action =
-      payload.event === 'review.requested'
-        ? 'needs review'
-        : payload.event === 'comparison.approved'
-          ? 'was approved'
-          : payload.event === 'review.assigned'
-            ? `was assigned to ${String(payload.assignee)}`
-            : payload.event === 'review.comment'
-              ? `received a comment from ${String(payload.comment?.author)}`
-              : 'test delivery';
-    const detail =
-      payload.event === 'comparison.approved'
-        ? this.approvalDetail(payload)
-        : '';
-    return `[Visual regression] ${subject} ${action}${detail} — ${payload.links.review}`;
+    // A run-scoped event is more useful as a link into the run than into the
+    // test; every other event keeps the review link it has always carried.
+    const link = payload.links.run ?? payload.links.review;
+    return `[Visual regression] ${subject} ${this.slackAction(payload)} — ${link}`;
+  }
+
+  // One sentence per event, plus the context that event carries.
+  private slackAction(payload: WebhookPayload): string {
+    switch (payload.event) {
+      case 'review.requested':
+        return 'needs review';
+      case 'comparison.approved':
+        return `was approved${this.approvalDetail(payload)}`;
+      case 'review.assigned':
+        return `was assigned to ${String(payload.assignee)}`;
+      case 'review.comment':
+        return `received a comment from ${String(payload.comment?.author)}`;
+      case 'job.failed':
+        return `failed to compare${payload.job ? ` (${payload.job.error})` : ''}`;
+      default:
+        return 'test delivery';
+    }
   }
 
   // The approval's optional decision context, rendered as a compact suffix.

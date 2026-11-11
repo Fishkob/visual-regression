@@ -156,6 +156,6 @@ Full conventions in `client-sdk/AGENTS.md`. The facts an agent needs before reac
 
 ## Current State
 
-**lint ✓ | typecheck:all ✓ | format ✓ | backend unit 1900/1900 + coverage gate ✓ | backend e2e 279/279 ✓ | frontend unit 1173/1173 + coverage gate ✓ | frontend CT 103/103 ✓ | frontend visual 48/48 + a11y 48/48 ✓ (quality image) | frontend e2e not re-run** (last verified; re-run the suites for current counts. The frontend e2e numbers predate this pass.)
+**lint ✓ | typecheck:all ✓ | format ✓ | backend unit 1930/1930 + coverage gate ✓ | backend e2e 286/286 ✓ | frontend unit 1191/1191 + coverage gate ✓ | frontend CT 103/103 ✓ | frontend visual 48/48 + a11y 48/48 ✓ (quality image) | frontend e2e not re-run** (last verified; re-run the suites for current counts. The frontend e2e numbers predate this pass, and the CT and quality numbers were not re-run with the last change.)
 
 The upload → compare → review → approve pipeline is complete for both image and PDF kinds, including threshold auto-accept, per-variant status derivation, API-key CI authentication, the self-hosting installer (`./install.sh`), worker retry/deadline hardening, config-as-code thresholds (`.vrt.json`), a project default threshold, share links that show the diff, and worker/queue observability. Phases 1–6 of the roadmap (R1–R26) are shipped; the history lives in git and the CHANGELOG, and `docs/roadmap.md` now lists only the open candidates.

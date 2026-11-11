@@ -3,6 +3,7 @@ export const WEBHOOK_SUBSCRIPTION_EVENTS = [
   'comparison.approved',
   'review.assigned',
   'review.comment',
+  'job.failed',
 ] as const;
 
 export type WebhookSubscriptionEvent =
@@ -36,7 +37,13 @@ export interface WebhookPayload {
   assignee?: string;
   dueAt?: string | null;
   comment?: { author: string; body: string; comparisonId: string | null };
-  links: { review: string };
+  // A comparison that died in the worker never gets a comparison row, so its id
+  // and mismatch count are absent; the job's id, spent budget and last error are
+  // what the receiver needs to find the run and the DLQ entry.
+  job?: { id: string; error: string; attempts: number; maxAttempts: number };
+  // `run` is present only for events that name a run (job.failed); the review
+  // link is the stable one every consumer uses.
+  links: { review: string; run?: string };
 }
 
 export interface WebhookEndpointRow {

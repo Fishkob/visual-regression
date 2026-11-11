@@ -6,10 +6,14 @@ import {
   JOB_QUEUE,
   FAILED_JOB_STORE,
 } from '@common/domain/job-queue.interface';
+import { WebhooksModule } from '@internal/webhooks/webhooks.module';
 import { PostgresJobQueue } from './postgres-job-queue';
 import { FailedJobStore } from './failed-job.store';
 @Module({
-  imports: [PrismaModule, TrackerModule],
+  // WebhooksModule supplies JOB_FAILURE_OBSERVERS: the queue injects the token
+  // from common/domain and never the adapter, so one module import wires the
+  // notification side without a code dependency (ADR-076).
+  imports: [PrismaModule, TrackerModule, WebhooksModule],
   providers: [
     PostgresJobQueue,
     FailedJobStore,

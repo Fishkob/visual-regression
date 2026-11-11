@@ -7,6 +7,10 @@ import { MetricsService } from '@internal/metrics/metrics.service';
 import { METRICS_RECORDER } from '@common/domain/metrics-recorder.interface';
 import type { JobData } from '@common/domain/job-data.types';
 import { DomainError } from '@common/domain/domain-error';
+import {
+  JOB_FAILURE_OBSERVERS,
+  type IJobFailureObserver,
+} from '@common/domain/job-failure.interface';
 import type { VariantRecord } from '@common/domain/variant-record';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';
@@ -81,6 +85,9 @@ describe('PostgresJobQueue', () => {
   let tracker: Mocked<Tracker>;
   let metrics: Mocked<MetricsService>;
   let logger: Mocked<AppLoggerService>;
+  // The provider array is shared by reference, so a test subscribes by pushing
+  // into it and the queue sees the same list it was constructed with.
+  let failureObservers: IJobFailureObserver[];
 
   beforeEach(async () => {
     vi.useFakeTimers();
@@ -95,6 +102,7 @@ describe('PostgresJobQueue', () => {
 
     metrics = createMock<MetricsService>();
     logger = createMockLogger();
+    failureObservers = [];
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -103,6 +111,7 @@ describe('PostgresJobQueue', () => {
         { provide: Tracker, useValue: tracker },
         { provide: AppLoggerService, useValue: logger },
         { provide: METRICS_RECORDER, useValue: metrics },
+        { provide: JOB_FAILURE_OBSERVERS, useValue: failureObservers },
       ],
     }).compile();
 
@@ -894,6 +903,99 @@ describe('PostgresJobQueue', () => {
           attempts: 3,
         }),
       });
+    });
+  });
+
+  describe('failure observers', () => {
+    const failedRow = {
+      testId: 'test-1',
+      payload: { ...jobPayload, runKey: 'run-7' },
+    };
+
+    it('publishes a terminal failure with the spent budget and run key', async () => {
+      const observer = createMock<IJobFailureObserver>();
+      failureObservers.push(observer);
+      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
+      prisma.client.comparisonJob.findUnique.mockResolvedValue(failedRow);
+
+      await expect(
+        queue.markFailed('job-1', 'Screenshot download failed', 4, 5),
+      ).resolves.toBe('failed');
+
+      expect(observer.onJobFailed).toHaveBeenCalledWith({
+        jobId: 'job-1',
+        testId: 'test-1',
+        error: 'Screenshot download failed',
+        attempts: 5,
+        maxAttempts: 5,
+        runKey: 'run-7',
+      });
+    });
+
+    it('stays quiet while a failure is still retryable', async () => {
+      const observer = createMock<IJobFailureObserver>();
+      failureObservers.push(observer);
+      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        queue.markFailed('job-1', 'sidecar timeout', 0, 5),
+      ).resolves.toBe('retry');
+
+      expect(observer.onJobFailed).not.toHaveBeenCalled();
+      expect(prisma.client.comparisonJob.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('keeps the failure when an observer throws', async () => {
+      const observer = createMock<IJobFailureObserver>();
+      observer.onJobFailed.mockRejectedValue(new Error('webhook store down'));
+      failureObservers.push(observer);
+      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
+      prisma.client.comparisonJob.findUnique.mockResolvedValue(failedRow);
+
+      await expect(queue.markFailed('job-1', 'boom', 4, 5)).resolves.toBe(
+        'failed',
+      );
+
+      expect(observer.onJobFailed).toHaveBeenCalledTimes(1);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Job failure observer failed'),
+        expect.objectContaining({
+          error: expect.stringContaining('webhook store down'),
+        }),
+      );
+    });
+
+    it('does not publish a failure it did not commit (ownership lost)', async () => {
+      const observer = createMock<IJobFailureObserver>();
+      failureObservers.push(observer);
+      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 0 });
+
+      await queue.markFailed('job-1', 'boom', 4, 5);
+
+      expect(observer.onJobFailed).not.toHaveBeenCalled();
+    });
+
+    it('reports an undecodable payload instead of tripping over it', async () => {
+      const observer = createMock<IJobFailureObserver>();
+      failureObservers.push(observer);
+      prisma.client.comparisonJob.updateMany.mockResolvedValue({ count: 1 });
+      prisma.client.comparisonJob.findUnique.mockResolvedValue({
+        testId: 'test-1',
+        payload: { junk: true },
+      });
+
+      await queue.markFailed(
+        'job-1',
+        'Failed to decode job payload',
+        0,
+        5,
+        null,
+        false,
+      );
+
+      expect(observer.onJobFailed).toHaveBeenCalledWith(
+        expect.objectContaining({ jobId: 'job-1', runKey: null }),
+      );
     });
   });
 

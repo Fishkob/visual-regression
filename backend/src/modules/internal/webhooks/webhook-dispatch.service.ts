@@ -50,6 +50,7 @@ export class WebhookDispatchService {
       testName: string;
       kind: string;
       branchName: string | null;
+      runKey?: string | null;
     },
     extra: Partial<
       Pick<
@@ -62,6 +63,7 @@ export class WebhookDispatchService {
         | 'assignee'
         | 'dueAt'
         | 'comment'
+        | 'job'
       >
     > = {},
   ): WebhookPayload {
@@ -78,6 +80,13 @@ export class WebhookDispatchService {
           base.testName,
           base.branchName,
         ),
+        // Only a run-scoped event carries the second link: the rest have no run
+        // to point at, and a guessed one would be a dead link.
+        ...(base.runKey
+          ? {
+              run: `${this.baseUrl()}/projects/${encodeURIComponent(base.projectName)}/runs/${encodeURIComponent(base.runKey)}`,
+            }
+          : {}),
       },
     };
   }
@@ -210,6 +219,44 @@ export class WebhookDispatchService {
           // keeps the pre-existing payload shape (JSON drops undefined).
           ...(input.reason ? { reason: input.reason } : {}),
           ...(input.note ? { note: input.note } : {}),
+        },
+      ),
+    );
+  }
+
+  // A comparison that died in the worker: no comparison row exists, so the
+  // payload carries the job instead. Published through the queue's failure
+  // observer (ADR-076) — this method is called from the observer's own
+  // transaction, never from a StateChangeWorkflow change.
+  async enqueueJobFailed(input: {
+    testId: string;
+    jobId: string;
+    error: string;
+    attempts: number;
+    maxAttempts: number;
+    runKey: string | null;
+  }): Promise<number> {
+    const context = await this.context.findTestContext(input.testId);
+    if (!context) return 0;
+    return this.enqueueForProject(
+      context.projectId,
+      'job.failed',
+      this.buildPayload(
+        'job.failed',
+        {
+          projectName: context.projectName,
+          testName: context.testName,
+          kind: context.kind,
+          branchName: context.branchName,
+          runKey: input.runKey,
+        },
+        {
+          job: {
+            id: input.jobId,
+            error: input.error,
+            attempts: input.attempts,
+            maxAttempts: input.maxAttempts,
+          },
         },
       ),
     );

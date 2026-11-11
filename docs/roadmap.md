@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: living document · Last reviewed: 2026-11-05 · Owner: maintainers
+Status: living document · Last reviewed: 2026-11-11 · Owner: maintainers
 
 Phases 1–6 are shipped (R1–R26), and the phase-by-phase record — scope,
 acceptance criteria, verification notes, design sketches, the alternatives that
@@ -26,22 +26,27 @@ including tests, docs and review (`S` ≈ 1–3 days, `M` ≈ 1–2 weeks, `L` �
 2–4 weeks). `Priority` is `now` (next up), `on demand` (starts when a deployment
 asks for it) or `trigger` (starts when the named condition holds).
 
-| ID  | Item                                  | Why now / who asks                                                                         | Size | Priority  |
-| --- | ------------------------------------- | ------------------------------------------------------------------------------------------ | ---- | --------- |
-| N7  | `job.failed` webhook                  | A comparison that dies in the worker is silent until someone opens the run page (ADR-029). | S–M  | now       |
-| N4  | Typed-confirmation bulk delete        | Bulk test deletion has an API but no multi-row UI, and the delete is irreversible.         | S–M  | now       |
-| N3  | Project-rename UI                     | The API, the audit row and the slug rules exist; only the dialog is missing (ADR-061).     | S    | on demand |
-| N2  | Cursor pagination for review comments | The read is capped at the newest 200 per test, with no way past them (ADR-040).            | S    | on demand |
-| N10 | Variant-level mute                    | Mute is per test, so it covers every variant; the run gate has no rule for a muted one.    | M    | on demand |
-| N12 | Trusted-header auth behind a proxy    | An IdP proxy authenticates, the guard trusts a header: no dependency, so ADR-025 holds.    | S    | on demand |
+| ID  | Item                                  | Why now / who asks                                                                      | Size | Priority  |
+| --- | ------------------------------------- | --------------------------------------------------------------------------------------- | ---- | --------- |
+| N4  | Typed-confirmation bulk delete        | Bulk test deletion has an API but no multi-row UI, and the delete is irreversible.      | S–M  | now       |
+| N3  | Project-rename UI                     | The API, the audit row and the slug rules exist; only the dialog is missing (ADR-061).  | S    | on demand |
+| N2  | Cursor pagination for review comments | The read is capped at the newest 200 per test, with no way past them (ADR-040).         | S    | on demand |
+| N10 | Variant-level mute                    | Mute is per test, so it covers every variant; the run gate has no rule for a muted one. | M    | on demand |
+| N12 | Trusted-header auth behind a proxy    | An IdP proxy authenticates, the guard trusts a header: no dependency, so ADR-025 holds. | S    | on demand |
 
-N7 is the seam, not the event: `run.finished` and `quota.exceeded` ride the same
-queue observer, so building it once is what makes the following events cheap. N12
-covers the deployment that already runs an IdP proxy; one that insists on OIDC or
-SAML inside the app itself stays out of scope.
+N12 covers the deployment that already runs an IdP proxy; one that insists on
+OIDC or SAML inside the app itself stays out of scope.
 
 ### Shipped
 
+- **N7 — `job.failed` webhook** (2026-11-11). A comparison job that exhausts its
+  retry budget, hits a non-retryable error, arrives with a corrupt payload or
+  stalls until its lease runs out now publishes one `job.failed` delivery. The
+  seam is the point: the queue publishes through `JOB_FAILURE_OBSERVERS` (a token
+  in `common/domain`) and the webhook module subscribes, so the queue imports no
+  webhook code and `run.finished`/`quota.exceeded` have the same place to land.
+  The delivery is written after the `FAILED` row commits — a lost notification,
+  never a lost failure ([ADR-076](adr/ADR-076-job-failure-notifications.md)).
 - **N5 — per-project orphan grace** (2026-10-25). `Project.orphanGraceHours`
   governs the row-level orphan sweeps (screenshots and baselines) and is set
   through `PATCH /storage` and shown by the retention preview. The

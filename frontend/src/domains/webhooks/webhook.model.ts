@@ -6,6 +6,7 @@ export const WEBHOOK_EVENTS = [
   "comparison.approved",
   "review.assigned",
   "review.comment",
+  "job.failed",
 ] as const;
 
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
@@ -15,6 +16,7 @@ export const WEBHOOK_EVENT_LABEL: Record<WebhookEvent, string> = {
   "comparison.approved": "Comparison approved",
   "review.assigned": "Review assigned",
   "review.comment": "Review comment",
+  "job.failed": "Comparison job failed",
 };
 
 // A subscription the API adds later still renders: the raw name is better than

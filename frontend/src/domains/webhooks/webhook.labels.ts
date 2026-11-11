@@ -9,6 +9,7 @@ const EVENT_KEY: Record<string, string> = {
   "comparison.approved": "webhookEvent.comparisonApproved",
   "review.assigned": "webhookEvent.reviewAssigned",
   "review.comment": "webhookEvent.reviewComment",
+  "job.failed": "webhookEvent.jobFailed",
 };
 
 const STATUS_KEY: Record<WebhookDeliveryStatus, string> = {

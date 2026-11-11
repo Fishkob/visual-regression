@@ -55,9 +55,9 @@ export function mapWebhookEndpoint(dto: WebhookEndpointDto): WebhookEndpoint {
   return {
     id: String(dto.id ?? ""),
     url: dto.url ?? "",
-    // The generated DTO types events as string[]; the API only accepts the two
-    // subscriptions, and webhookEventLabel falls back to the raw name so a
-    // future event still renders instead of disappearing.
+    // The generated DTO types events as string[]; the frontend knows the
+    // subscriptions the API accepts today, and webhookEventLabel falls back to
+    // the raw name so an event added later still renders instead of disappearing.
     events: (dto.events ?? []) as WebhookEvent[],
     format: presentFormat(dto.format),
     active: dto.active ?? false,
