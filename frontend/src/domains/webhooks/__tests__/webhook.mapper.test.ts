@@ -145,7 +145,8 @@ describe("webhook mapper", () => {
     );
     expect(webhookEventLabel("review.assigned")).toBe("Review assigned");
     expect(webhookEventLabel("review.comment")).toBe("Review comment");
-    expect(webhookEventLabel("job.failed")).toBe("job.failed");
+    expect(webhookEventLabel("job.failed")).toBe("Comparison job failed");
+    expect(webhookEventLabel("run.finished")).toBe("run.finished");
     // The synthetic test delivery is not a subscription; it still renders.
     expect(webhookEventLabel("test")).toBe("test");
   });

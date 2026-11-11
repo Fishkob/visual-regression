@@ -16,6 +16,7 @@ const BACKEND_SUBSCRIPTION_EVENTS = [
   "comparison.approved",
   "review.assigned",
   "review.comment",
+  "job.failed",
 ] as const;
 
 describe("webhook event parity with the backend", () => {
@@ -34,7 +35,7 @@ describe("webhook event parity with the backend", () => {
   it("renders a delivery whose event the frontend does not know yet", () => {
     // Older deliveries and the synthetic `test` event stay readable: the raw
     // wire value is the fallback instead of an empty badge.
-    expect(webhookEventLabelI18n("job.failed")).toBe("job.failed");
+    expect(webhookEventLabelI18n("run.finished")).toBe("run.finished");
     expect(webhookEventLabelI18n("test")).toBe("test");
     expect(webhookEventLabel("review.comment")).toBe("Review comment");
   });

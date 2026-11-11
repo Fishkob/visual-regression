@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, Optional } from '@nestjs/common';
 import { TransactionContext } from '@/prisma/transaction-context';
 import { Tracker } from '@common/tracker/tracker.service';
 import { AppLoggerService } from '@common/logging/app-logger.service';
@@ -24,10 +24,26 @@ import type {
 import { JobStatus } from '@/prisma/client';
 import type { Prisma } from '@/prisma/client';
 import type { QueuedJob } from '@common/domain/job-queue.interface';
+import {
+  JOB_FAILURE_OBSERVERS,
+  type FailedJobNotice,
+  type IJobFailureObserver,
+} from '@common/domain/job-failure.interface';
 import { WORKER_TIMING } from '@common/utils/worker-timing';
 
 const HEARTBEAT_INTERVAL_MS = WORKER_TIMING.heartbeatIntervalMs;
 const METRICS_QUEUE_LABEL = 'comparison';
+
+// A job is only worth a notification once it can never run again. The fields are
+// the ones the terminal write already has; `testId` and `runKey` are read back
+// from the row so every terminal path (worker failure, stalled reclaim, decode
+// failure) publishes the same shape.
+interface TerminalFailure {
+  jobId: string;
+  error: string;
+  attempts: number;
+  maxAttempts: number;
+}
 
 interface QueueJobRow {
   id: string;
@@ -61,6 +77,12 @@ export class PostgresJobQueue
     private readonly tracker: Tracker,
     private readonly logger: AppLoggerService,
     @Inject(METRICS_RECORDER) private readonly metrics: IMetricsRecorder,
+    // Optional on purpose: the queue works without a listener (API process,
+    // tests), and the adapter is provided by the notification module. The queue
+    // imports the token, never the webhook code (ADR-076).
+    @Optional()
+    @Inject(JOB_FAILURE_OBSERVERS)
+    private readonly failureObservers: IJobFailureObserver[] = [],
   ) {}
 
   private toClaimedJob(row: QueueJobRow): ClaimedJob {
@@ -145,20 +167,21 @@ export class PostgresJobQueue
   }
 
   async claimNext(): Promise<ClaimedJob | null> {
-    const claimed = await this.txCtx.client.$transaction(async (tx) => {
-      const stallThreshold = new Date(
-        Date.now() - WORKER_TIMING.stallTimeoutSeconds * 1000,
-      );
+    const { job: claimed, exhausted } = await this.txCtx.client.$transaction(
+      async (tx) => {
+        const stallThreshold = new Date(
+          Date.now() - WORKER_TIMING.stallTimeoutSeconds * 1000,
+        );
 
-      // Two claims instead of one `status = PENDING OR status = PROCESSING`
-      // query: the OR form cannot use a single ordered index, so it fell back to
-      // scanning "ComparisonJob" in createdAt order and filtering away every
-      // finished row (measured: 200k rows removed, ~20 ms per claim at 200k
-      // retained jobs). Each branch now has an equality prefix and can walk an
-      // index in createdAt order and stop at the first match. Stalled jobs are
-      // tried first because they are the oldest work: they were claimed before
-      // any pending row.
-      const claim = `
+        // Two claims instead of one `status = PENDING OR status = PROCESSING`
+        // query: the OR form cannot use a single ordered index, so it fell back to
+        // scanning "ComparisonJob" in createdAt order and filtering away every
+        // finished row (measured: 200k rows removed, ~20 ms per claim at 200k
+        // retained jobs). Each branch now has an equality prefix and can walk an
+        // index in createdAt order and stop at the first match. Stalled jobs are
+        // tried first because they are the oldest work: they were claimed before
+        // any pending row.
+        const claim = `
         SELECT id, status, attempts, "maxAttempts" FROM "ComparisonJob"
          WHERE status = $1
            AND %CONDITION%
@@ -166,82 +189,97 @@ export class PostgresJobQueue
          LIMIT 1
          FOR UPDATE SKIP LOCKED`;
 
-      const stalled = await tx.$queryRawUnsafe<
-        {
+        const stalled = await tx.$queryRawUnsafe<
+          {
+            id: string;
+            status: JobStatus;
+            attempts: number;
+            maxAttempts: number | null;
+          }[]
+        >(
+          claim.replace(
+            '%CONDITION%',
+            `("heartbeatAt" IS NULL OR "heartbeatAt" < $2)`,
+          ),
+          JobStatus.PROCESSING,
+          stallThreshold,
+        );
+
+        interface ClaimRow {
           id: string;
           status: JobStatus;
           attempts: number;
           maxAttempts: number | null;
-        }[]
-      >(
-        claim.replace(
-          '%CONDITION%',
-          `("heartbeatAt" IS NULL OR "heartbeatAt" < $2)`,
-        ),
-        JobStatus.PROCESSING,
-        stallThreshold,
-      );
-
-      interface ClaimRow {
-        id: string;
-        status: JobStatus;
-        attempts: number;
-        maxAttempts: number | null;
-      }
-
-      const claimPending = (): Promise<ClaimRow[]> =>
-        tx.$queryRawUnsafe<ClaimRow[]>(
-          claim.replace(
-            '%CONDITION%',
-            `("nextAttemptAt" IS NULL OR "nextAttemptAt" <= NOW())`,
-          ),
-          JobStatus.PENDING,
-        );
-
-      let row: ClaimRow | undefined = stalled[0];
-
-      // A stalled job that already burned its budget is failed here and the
-      // claim falls through to the pending branch: returning "no job" would
-      // leave a claimable row waiting behind the poller's exponential backoff.
-      if (row) {
-        const stalledMaxAttempts = row.maxAttempts ?? JOB_MAX_ATTEMPTS;
-        if (decideRetry(row.attempts, stalledMaxAttempts).action === 'failed') {
-          await tx.comparisonJob.update({
-            where: { id: row.id },
-            data: {
-              status: JobStatus.FAILED,
-              attempts: row.attempts + 1,
-              error: 'Job stalled and exhausted its retry budget',
-              completedAt: new Date(),
-            },
-          });
-          row = undefined;
         }
-      }
 
-      row ??= (await claimPending())[0];
+        const claimPending = (): Promise<ClaimRow[]> =>
+          tx.$queryRawUnsafe<ClaimRow[]>(
+            claim.replace(
+              '%CONDITION%',
+              `("nextAttemptAt" IS NULL OR "nextAttemptAt" <= NOW())`,
+            ),
+            JobStatus.PENDING,
+          );
 
-      if (!row) return null;
+        let row: ClaimRow | undefined = stalled[0];
+        // Claimed failures are returned instead of notified inside the
+        // transaction: the observer writes through the ambient context, and there
+        // must be no ambient transaction left when it does (ADR-076).
+        let exhaustedJob: TerminalFailure | null = null;
 
-      const isStalledReclaim = row.status === JobStatus.PROCESSING;
-      const nextAttempts = row.attempts + (isStalledReclaim ? 1 : 0);
+        // A stalled job that already burned its budget is failed here and the
+        // claim falls through to the pending branch: returning "no job" would
+        // leave a claimable row waiting behind the poller's exponential backoff.
+        if (row) {
+          const stalledMaxAttempts = row.maxAttempts ?? JOB_MAX_ATTEMPTS;
+          if (
+            decideRetry(row.attempts, stalledMaxAttempts).action === 'failed'
+          ) {
+            const error = 'Job stalled and exhausted its retry budget';
+            await tx.comparisonJob.update({
+              where: { id: row.id },
+              data: {
+                status: JobStatus.FAILED,
+                attempts: row.attempts + 1,
+                error,
+                completedAt: new Date(),
+              },
+            });
+            exhaustedJob = {
+              jobId: row.id,
+              error,
+              attempts: row.attempts + 1,
+              maxAttempts: stalledMaxAttempts,
+            };
+            row = undefined;
+          }
+        }
 
-      await tx.comparisonJob.update({
-        where: { id: row.id },
-        data: {
-          status: JobStatus.PROCESSING,
-          processingStartedAt: new Date(),
-          heartbeatAt: new Date(),
-          ...(isStalledReclaim ? { attempts: nextAttempts } : {}),
-        },
-      });
+        row ??= (await claimPending())[0];
 
-      const job = await tx.comparisonJob.findUnique({
-        where: { id: row.id },
-      });
-      return job ?? null;
-    });
+        if (!row) return { job: null, exhausted: exhaustedJob };
 
+        const isStalledReclaim = row.status === JobStatus.PROCESSING;
+        const nextAttempts = row.attempts + (isStalledReclaim ? 1 : 0);
+
+        await tx.comparisonJob.update({
+          where: { id: row.id },
+          data: {
+            status: JobStatus.PROCESSING,
+            processingStartedAt: new Date(),
+            heartbeatAt: new Date(),
+            ...(isStalledReclaim ? { attempts: nextAttempts } : {}),
+          },
+        });
+
+        const job = await tx.comparisonJob.findUnique({
+          where: { id: row.id },
+        });
+        return { job: job ?? null, exhausted: exhaustedJob };
+      },
+    );
+
+    if (exhausted) await this.notifyFailure(exhausted);
     if (!claimed) return null;
 
     try {
@@ -351,6 +389,16 @@ export class PostgresJobQueue
         },
       });
       this.recordOwnershipLoss(result.count);
+      // Only a failure this worker actually committed is published: a guard that
+      // matched nothing means the row was reclaimed or finished elsewhere.
+      if (result.count > 0) {
+        await this.notifyFailure({
+          jobId,
+          error,
+          attempts: attempts + 1,
+          maxAttempts: maxAttempts ?? JOB_MAX_ATTEMPTS,
+        });
+      }
       return 'failed';
     }
     const result = await this.txCtx.client.comparisonJob.updateMany({
@@ -389,6 +437,48 @@ export class PostgresJobQueue
       return true;
     }
     return false;
+  }
+
+  // The durable record of a dead comparison is its FAILED row; the notification
+  // is published after that write commits, through the observers, in their own
+  // transaction (there is no domain transaction here to ride — ADR-076). An
+  // observer that throws is logged, never rethrown: a notification must not undo
+  // or delay the failure it reports.
+  private async notifyFailure(failure: TerminalFailure): Promise<void> {
+    if (this.failureObservers.length === 0) return;
+    try {
+      const row = await this.txCtx.client.comparisonJob.findUnique({
+        where: { id: failure.jobId },
+        select: { testId: true, payload: true },
+      });
+      if (!row) return;
+      const notice: FailedJobNotice = {
+        jobId: failure.jobId,
+        testId: row.testId,
+        error: failure.error,
+        attempts: failure.attempts,
+        maxAttempts: failure.maxAttempts,
+        // Read tolerantly instead of through decodeJobData: the decode-failure
+        // path is itself a failure worth reporting, and its payload is exactly
+        // the one the decoder rejects.
+        runKey: runKeyOf(row.payload),
+      };
+      for (const observer of this.failureObservers) {
+        try {
+          await observer.onJobFailed(notice);
+        } catch (err) {
+          this.logger.warn(
+            `Job failure observer failed for job ${failure.jobId}`,
+            { error: String(err) },
+          );
+        }
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Failed to publish the failure of job ${failure.jobId}`,
+        { error: String(err) },
+      );
+    }
   }
 
   private startHeartbeat(
@@ -554,4 +644,12 @@ export class JobDeadlineExceededError extends Error {
     super(`Job ${jobId} exceeded its ${timeoutMs} ms deadline`);
     this.name = 'JobDeadlineExceededError';
   }
+}
+
+// The run key is optional and lives in the JSON payload; a row whose payload is
+// malformed (the decode-failure case) still yields "no run".
+function runKeyOf(payload: unknown): string | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const runKey = (payload as { runKey?: unknown }).runKey;
+  return typeof runKey === 'string' ? runKey : null;
 }

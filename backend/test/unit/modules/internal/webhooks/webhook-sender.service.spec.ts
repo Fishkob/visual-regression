@@ -103,6 +103,40 @@ describe('WebhookSender', () => {
     expect(body.text).toContain('Flaky promo banner');
   });
 
+  it('reports a failed comparison job with its error and the run link', async () => {
+    fetchMock.mockResolvedValue(new Response('ok', { status: 200 }));
+
+    const failed = {
+      ...delivery,
+      event: 'job.failed',
+      payload: {
+        event: 'job.failed',
+        project: { name: 'shop' },
+        test: { name: 'checkout', kind: 'image' },
+        job: {
+          id: 'job-9',
+          error: 'Screenshot download failed',
+          attempts: 5,
+          maxAttempts: 5,
+        },
+        links: {
+          review: 'https://vrt.example.com/projects/shop/tests/checkout',
+          run: 'https://vrt.example.com/projects/shop/runs/ci-7',
+        },
+      },
+    } satisfies WebhookDeliveryRow;
+
+    await sender.send({ ...endpoint, format: 'slack' }, failed);
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.text).toContain(
+      'shop / checkout failed to compare (Screenshot download failed)',
+    );
+    expect(body.text).toContain(
+      'https://vrt.example.com/projects/shop/runs/ci-7',
+    );
+  });
+
   it('reports a non-2xx response with the response body', async () => {
     fetchMock.mockResolvedValue(new Response('nope', { status: 500 }));
 

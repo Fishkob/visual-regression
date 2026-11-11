@@ -69,6 +69,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 073 | [Release Assets and Immutable Releases](./ADR-073-release-assets-and-immutable-releases.md)                                            | Accepted — supersedes 069 decision 5                                  |
 | 074 | [TOTP Two-Factor Authentication Is Removed](./ADR-074-remove-totp-two-factor-authentication.md)                                        | Accepted (supersedes 062; the TOTP half of 034)                       |
 | 075 | [A Temporary Password Travels in a One-Time Link](./ADR-075-temporary-passwords-travel-in-one-time-links.md)                           | Accepted (amends 031's account lifecycle)                             |
+| 076 | [A Failed Comparison Job Is Published Through an Observer](./ADR-076-job-failure-notifications.md)                                     | Accepted (closes the `job.failed` deferral of 029)                    |
 
 ## Numbering
 

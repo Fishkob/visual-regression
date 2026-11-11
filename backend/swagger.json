@@ -8173,7 +8173,8 @@
                 "review.requested",
                 "comparison.approved",
                 "review.assigned",
-                "review.comment"
+                "review.comment",
+                "job.failed"
               ]
             }
           },
@@ -8263,7 +8264,8 @@
                 "review.requested",
                 "comparison.approved",
                 "review.assigned",
-                "review.comment"
+                "review.comment",
+                "job.failed"
               ]
             }
           },

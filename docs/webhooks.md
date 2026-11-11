@@ -1,6 +1,6 @@
 # Webhooks
 
-Webhooks notify an external system when a review needs attention, when a review is decided, when a review is assigned and when someone comments. They are **project-scoped**, **signed**, **retried** and **at-least-once** — the receiving side deduplicates.
+Webhooks notify an external system when a review needs attention, when a review is decided, when a review is assigned, when someone comments and when a comparison dies in the worker. They are **project-scoped**, **signed**, **retried** and **at-least-once** — the receiving side deduplicates.
 
 They are the notification channel the CI integration does not cover: a pipeline polls the job status endpoint, while a webhook pushes the event into Slack, Teams or your own service.
 
@@ -26,7 +26,7 @@ curl -X POST http://localhost:3000/api/v1/projects/my-project/webhooks \
 | Field    | Required | Notes                                                                                                                  |
 | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `url`    | yes      | `http`/`https` only, max 2048 chars, no embedded credentials. See [SSRF guard](#8-ssrf-guard-and-limits).              |
-| `events` | yes      | Non-empty subset of the four subscription events.                                                                      |
+| `events` | yes      | Non-empty subset of the five subscription events.                                                                      |
 | `format` | no       | `json` (default) or `slack`.                                                                                           |
 | `secret` | no       | Custom signing secret (16–256 chars). Generated when omitted. It is stored readable, because the sender signs with it. |
 
@@ -36,18 +36,21 @@ The response contains the **full secret exactly once** (`whsec_…`). Later read
 
 ## 2. Events
 
-| Event                 | Fires when                                                                               | Extra payload fields                                             |
-| --------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `review.requested`    | A comparison finished with a reviewable diff and became `PENDING_APPROVAL`.              | `variant`, `comparison`                                          |
-| `comparison.approved` | A review was approved and the baseline was promoted.                                     | `variant`, `comparison`, `approvedBy`, optional `reason`, `note` |
-| `review.assigned`     | A test was assigned to a reviewer (a run-only assignment has no test and sends nothing). | `assignee`, `dueAt`                                              |
-| `review.comment`      | A comment was posted on a test/comparison.                                               | `comment: { author, body, comparisonId }`                        |
+| Event                 | Fires when                                                                                     | Extra payload fields                                                                |
+| --------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `review.requested`    | A comparison finished with a reviewable diff and became `PENDING_APPROVAL`.                    | `variant`, `comparison`                                                             |
+| `comparison.approved` | A review was approved and the baseline was promoted.                                           | `variant`, `comparison`, `approvedBy`, optional `reason`, `note`                    |
+| `review.assigned`     | A test was assigned to a reviewer (a run-only assignment has no test and sends nothing).       | `assignee`, `dueAt`                                                                 |
+| `review.comment`      | A comment was posted on a test/comparison.                                                     | `comment: { author, body, comparisonId }`                                           |
+| `job.failed`          | A comparison job spent its retry budget (or hit a non-retryable error) and will not run again. | `job: { id, error, attempts, maxAttempts }`, `links.run` (when the job names a run) |
 
 `test` is a synthetic event the **Test** button queues; it is never part of an endpoint's subscription list and carries no `test` object.
 
-Every event is written as a `WebhookDelivery` row **in the same transaction** as the change it announces, so a crash cannot commit a review request without its notification. The API process never sends webhooks; the worker does (see [Delivery](#6-delivery-semantics)).
+Every review event is written as a `WebhookDelivery` row **in the same transaction** as the change it announces, so a crash cannot commit a review request without its notification. The API process never sends webhooks; the worker does (see [Delivery](#6-delivery-semantics)).
 
-Two things v1 deliberately does not send: `job.failed` (the queue's failure path owns its own write) and email. Delivery history is not pruned yet.
+`job.failed` is the one exception, and it does not weaken the guarantee: there is no review transaction to ride, because the job's failure is the queue's own write. The queue publishes the terminal failure through an observer seam and the outbox row is written right after that write commits ([ADR-076](adr/ADR-076-job-failure-notifications.md)). The failed job row is the durable record either way; the webhook is the report, so a crash in the millisecond between the two loses the notification, not the failure. The failed job is also visible in the run page and the DLQ.
+
+Delivery history is not pruned yet. Email is deliberately not sent at all.
 
 ---
 
@@ -88,7 +91,31 @@ All events share one skeleton; `links.review` is a dashboard URL built from `APP
 }
 ```
 
-`branch` is `null` when the comparison is not branch-scoped. Field types: `occurredAt` is ISO-8601, `comparison.mismatchPixelCount` is a number, `dueAt` is ISO-8601 or `null`, `comment.comparisonId` is a string or `null`.
+`job.failed` carries the job instead of a comparison (a comparison row was never created), and `links.run` when the upload named a `runKey`:
+
+```json
+{
+  "event": "job.failed",
+  "occurredAt": "2026-10-25T09:41:07.512Z",
+  "project": { "name": "checkout" },
+  "test": { "name": "login", "kind": "image" },
+  "branch": "main",
+  "job": {
+    "id": "4c8f…",
+    "error": "Screenshot download failed",
+    "attempts": 5,
+    "maxAttempts": 5
+  },
+  "links": {
+    "review": "http://localhost/projects/checkout/tests/login?branch=main",
+    "run": "http://localhost/projects/checkout/runs/ci-4711"
+  }
+}
+```
+
+`attempts` is the budget the job spent: `maxAttempts` after a worker failure or an exhausted stall reclaim (`error` says which), and `1` for a payload that could not be decoded.
+
+`branch` is `null` when the comparison is not branch-scoped. Field types: `occurredAt` is ISO-8601, `comparison.mismatchPixelCount` is a number, `dueAt` is ISO-8601 or `null`, `comment.comparisonId` is a string or `null`, `job.attempts`/`job.maxAttempts` are numbers.
 
 ---
 
@@ -164,7 +191,7 @@ An endpoint with `"format": "slack"` receives `{ "text": "…" }` instead of the
 }
 ```
 
-The verbs are fixed per event: `needs review`, `was approved` (with `[reason] — note` appended), `was assigned to <assignee>`, `received a comment from <author>`, and `test delivery` for the test event.
+The verbs are fixed per event: `needs review`, `was approved` (with `[reason] — note` appended), `was assigned to <assignee>`, `received a comment from <author>`, `failed to compare (<error>)` — which links to the run when it has one — and `test delivery` for the test event.
 
 ---
 
@@ -220,14 +247,15 @@ There is no per-endpoint rate limit or delivery-count cap; volume follows the re
 
 ## 9. Troubleshooting
 
-| Symptom                                          | Cause                                                                                           |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| Deliveries stay `PENDING`                        | No worker running (`NODE_MODE=worker`), or the endpoint is inactive.                            |
-| `403 "This endpoint requires a browser session"` | You sent `x-api-key`; webhook administration is session-only (`ADMIN`).                         |
-| `400 "Webhook URL host … is not allowed"`        | The SSRF guard rejected the target — use a private-network IP or a public hostname.             |
-| Receiver always answers `401`                    | Signature computed over re-serialized JSON, or over the body _without_ the `timestamp.` prefix. |
-| `FAILED` after ~2.5 h                            | Five attempts exhausted; inspect `lastError`, then **Replay** after fixing the receiver.        |
-| Same notification twice                          | Expected at-least-once behaviour — deduplicate on `x-vrt-delivery-id`.                          |
+| Symptom                                          | Cause                                                                                                                           |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Deliveries stay `PENDING`                        | No worker running (`NODE_MODE=worker`), or the endpoint is inactive.                                                            |
+| `403 "This endpoint requires a browser session"` | You sent `x-api-key`; webhook administration is session-only (`ADMIN`).                                                         |
+| `400 "Webhook URL host … is not allowed"`        | The SSRF guard rejected the target — use a private-network IP or a public hostname.                                             |
+| Receiver always answers `401`                    | Signature computed over re-serialized JSON, or over the body _without_ the `timestamp.` prefix.                                 |
+| `FAILED` after ~2.5 h                            | Five attempts exhausted; inspect `lastError`, then **Replay** after fixing the receiver.                                        |
+| No `job.failed` for a dead comparison            | The endpoint does not subscribe to `job.failed` (it is not one of the review events), or the failure predates the subscription. |
+| Same notification twice                          | Expected at-least-once behaviour — deduplicate on `x-vrt-delivery-id`.                                                          |
 
 ---
 

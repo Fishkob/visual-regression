@@ -182,11 +182,12 @@ describe("WebhooksView", () => {
       `[data-testid="${TEST_ID.webhookEventCheckbox}"]`,
     );
     // Every backend subscription is selectable, including the review
-    // assignment/comment events.
-    expect(checkboxes).toHaveLength(4);
+    // assignment/comment events and the failed-comparison event.
+    expect(checkboxes).toHaveLength(5);
     await checkboxes[1]!.setValue(false);
     await checkboxes[2]!.setValue(false);
     await checkboxes[3]!.setValue(false);
+    await checkboxes[4]!.setValue(false);
 
     wrapper.getComponent(Select).vm.$emit("update:modelValue", "slack");
     await nextTick();
@@ -367,7 +368,7 @@ describe("WebhooksView", () => {
           id: "d-3",
           // A delivery from an event this build does not know must not render
           // an empty badge.
-          event: "job.failed",
+          event: "run.finished",
           createdAt: minutesAgo(1),
         }),
       ],
@@ -390,7 +391,7 @@ describe("WebhooksView", () => {
     const rows = wrapper.findAll(
       `[data-testid="${TEST_ID.webhookDeliveryRow}"]`,
     );
-    expect(rows[0].text()).toContain("job.failed");
+    expect(rows[0].text()).toContain("run.finished");
     expect(rows[1].text()).toContain("Review comment");
     expect(rows[2].text()).toContain("Review assigned");
   });

@@ -16,6 +16,7 @@ describe('Comparison job queue semantics (e2e)', () => {
   let db: PrismaClient;
   let queue: PostgresJobQueue;
   let testId: string;
+  let projectIdForWebhooks: string;
 
   const payload = (candidateId: string) => ({
     testKind: 'image' as const,
@@ -64,6 +65,18 @@ describe('Comparison job queue semantics (e2e)', () => {
     });
   }
 
+  async function subscribeToJobFailures(): Promise<void> {
+    await db.webhookEndpoint.create({
+      data: {
+        projectId: projectIdForWebhooks,
+        url: 'https://hooks.example.com/queue',
+        secret: 'whsec_e2e_job_failed',
+        events: ['job.failed'],
+        format: 'json',
+      },
+    });
+  }
+
   beforeAll(async () => {
     app = await TestApp.init();
     db = app.get(PrismaConnection).client;
@@ -72,7 +85,8 @@ describe('Comparison job queue semantics (e2e)', () => {
 
   beforeEach(async () => {
     await TestApp.resetDb();
-    const { branchId } = await TestApp.createProject('queue');
+    const { branchId, projectId } = await TestApp.createProject('queue');
+    projectIdForWebhooks = projectId;
     const test = await db.unifiedTest.create({
       data: { branchId, name: 'job-queue' },
     });
@@ -230,5 +244,90 @@ describe('Comparison job queue semantics (e2e)', () => {
     const reclaimed = await queue.claimNext();
     expect(reclaimed?.id).toBe(job.id);
     expect(reclaimed?.attempts).toBe(1);
+  });
+
+  // The observer seam is wiring, not SQL: whether the queue's terminal write
+  // actually reaches a subscribed endpoint (through the observer, its own
+  // transaction and the delivery repository's outbox) is only provable against
+  // the real modules and database.
+  describe('job.failed notifications', () => {
+    it('writes an outbox row when a job fails for good', async () => {
+      await subscribeToJobFailures();
+      const job = await seedJob();
+      const claimed = await queue.claimNext();
+      if (!claimed) throw new Error('claim failed');
+
+      await expect(
+        queue.markFailed(
+          claimed.id,
+          'Screenshot download failed',
+          2,
+          3,
+          claimed.processingStartedAt,
+        ),
+      ).resolves.toBe('failed');
+
+      const delivery = await db.webhookDelivery.findFirstOrThrow();
+      expect(delivery.event).toBe('job.failed');
+      expect(delivery.status).toBe('PENDING');
+      expect(delivery.payload).toEqual(
+        expect.objectContaining({
+          event: 'job.failed',
+          project: { name: 'queue' },
+          test: { name: 'job-queue', kind: 'image' },
+          branch: 'main',
+          job: {
+            id: job.id,
+            error: 'Screenshot download failed',
+            attempts: 3,
+            maxAttempts: 3,
+          },
+        }),
+      );
+    });
+
+    it('stays quiet while a failure is still retried', async () => {
+      await subscribeToJobFailures();
+      const job = await seedJob();
+      const claimed = await queue.claimNext();
+      expect(claimed?.id).toBe(job.id);
+      if (!claimed) throw new Error('claim failed');
+
+      await expect(
+        queue.markFailed(
+          claimed.id,
+          'sidecar timed out',
+          claimed.attempts,
+          claimed.maxAttempts,
+          claimed.processingStartedAt,
+        ),
+      ).resolves.toBe('retry');
+
+      await expect(db.webhookDelivery.count()).resolves.toBe(0);
+    });
+
+    it('notifies when the stall reclaim exhausts the budget', async () => {
+      await subscribeToJobFailures();
+      const exhausted = await seedJob({
+        status: 'PROCESSING',
+        heartbeatAt: staleHeartbeat(),
+        attempts: 2,
+        maxAttempts: 3,
+      });
+
+      await queue.claimNext();
+
+      const delivery = await db.webhookDelivery.findFirstOrThrow();
+      expect(delivery.payload).toEqual(
+        expect.objectContaining({
+          event: 'job.failed',
+          job: expect.objectContaining({
+            id: exhausted.id,
+            error: 'Job stalled and exhausted its retry budget',
+            attempts: 3,
+          }),
+        }),
+      );
+    });
   });
 });
