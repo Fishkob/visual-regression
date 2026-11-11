@@ -17,7 +17,7 @@ boundary, so the host, the network path and TLS are yours to own
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="frontend/tests/quality/__screenshots__/visual-test-details-regions-dark.png">
-  <img src="frontend/tests/quality/__screenshots__/visual-test-details-regions-light.png" alt="Review page for one test: the diff with its changed area highlighted, the mode bar (Diff marked, Side by Side, Diff Only, Overlay, Wipe, Blink), the Changed areas panel and the Skip/Approve footer" width="100%">
+  <img src="frontend/tests/quality/__screenshots__/visual-test-details-regions-light.png" alt="Review page for one test: the diff with its changed area highlighted and numbered, the mode bar (Diff marked, Side by Side, Diff Only, Overlay, Wipe, Blink) and the Skip/Approve footer" width="100%">
 </picture>
 
 ## What it does
@@ -25,8 +25,9 @@ boundary, so the host, the network path and TLS are yours to own
 - **Review inbox** — every pending change across projects and branches in one
   queue, grouped and filterable.
 - **Diff viewer** — marked, side-by-side, only-diff, overlay, wipe and blink, with
-  zoom at the cursor and the changed areas listed next to the picture by size.
-  Decide from the keyboard: `A` approves, `S` skips, `Esc` goes back.
+  zoom at the cursor, the changed areas numbered on the picture and `n`/`p` to
+  step through them. Decide from the keyboard: `A` approves, `S` skips, `Esc`
+  goes back.
 - **Branch-scoped baselines** — a feature branch inherits its target's baseline and
   only pins its own after the first approval.
 - **CI gate** — uploads grouped into a Run, with `open`, `pending`, `failed` and

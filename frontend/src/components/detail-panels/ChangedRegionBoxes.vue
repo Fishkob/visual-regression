@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from "vue-i18n";
 import type { ChangedRegion } from "@/domains/visual-test/visual-test.model";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -8,11 +9,14 @@ const props = withDefaults(
     imageWidth: number;
     imageHeight: number;
     activeIndex?: number | null;
+    interactive?: boolean;
   }>(),
-  { activeIndex: null },
+  { activeIndex: null, interactive: false },
 );
 
 defineEmits<{ select: [index: number] }>();
+
+const { t } = useI18n();
 
 // Percentages keep the boxes correct in fit mode, where the rendered image is
 // smaller than its pixel size. The border is counter-scaled by the stage's zoom
@@ -30,19 +34,26 @@ function boxStyle(region: ChangedRegion) {
 </script>
 
 <template>
-  <!-- The list beside the image is the accessible control surface; these boxes
-       are its visual twin, so they stay out of the tab order on purpose. -->
+  <!-- In the single-picture stage these boxes are the region control: clickable
+       and focusable, each named after the area it zooms to. Side by side draws
+       the same boxes on every pane, so there they are decorative and the
+       keyboard path is the viewer's n/p step-through. -->
   <div class="pointer-events-none absolute inset-0 overflow-hidden">
     <button
       v-for="(region, index) in regions"
       :key="index"
       type="button"
-      tabindex="-1"
-      aria-hidden="true"
+      :tabindex="interactive ? 0 : -1"
+      :aria-hidden="interactive ? undefined : 'true'"
+      :aria-label="
+        interactive
+          ? t('imageViewer.focusRegion', { index: index + 1 })
+          : undefined
+      "
       :data-testid="TEST_ID.changedRegionBox"
       :data-region-index="index"
       :data-active="activeIndex === index ? 'true' : undefined"
-      class="group pointer-events-auto absolute cursor-pointer rounded-[2px] border border-status-danger bg-destructive/10 transition-[box-shadow,background-color]"
+      class="group pointer-events-auto absolute cursor-pointer rounded-[2px] border border-status-danger bg-destructive/10 transition-[box-shadow,background-color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       :class="
         activeIndex === index
           ? 'bg-destructive/25 ring-2 ring-destructive/40'

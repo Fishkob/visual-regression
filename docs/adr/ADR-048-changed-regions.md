@@ -4,6 +4,11 @@
 
 Accepted — 2026-10-31.
 
+Amended 2026-11-10: the review page no longer lists the regions beside the
+picture. The list cost the stage a fixed column, and the numbered boxes on the
+picture carry the same "where" information; the decision below (the worker
+derives the regions, the browser only renders them) is unchanged.
+
 ## Context
 
 A comparison told the reviewer **how much** changed (`mismatchPixelCount`, the
@@ -40,8 +45,7 @@ sum comparable with `mismatchPixelCount`.
 
 The engine writes them into `UnifiedComparison.changedRegions` (`JSONB`, nullable
 for rows that predate the column), the review DTO exposes them, and the review
-page opens on the marked diff with the regions numbered on the picture and listed
-beside it.
+page opens on the marked diff with the regions numbered on the picture.
 
 Two details are part of the decision:
 
@@ -76,6 +80,6 @@ Two details are part of the decision:
   and a comparison written before the column existed simply has none.
 - The review page gains a surface that depends on a _good_ region list. The
   downsampled discovery, the merge gap and the 40-region cap are the knobs to
-  revisit if a real diff floods the rail.
+  revisit if a real diff floods the picture.
 - Region-level review actions (comments anchored to a region, "ignore this
   region") build on this shape; they are not part of this decision.

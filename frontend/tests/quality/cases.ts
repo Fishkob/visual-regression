@@ -181,7 +181,7 @@ export const QUALITY_CASES: QualityCase[] = [
   },
   {
     // The review page for a comparison whose changed areas are known: it opens
-    // on the marked diff and lists the areas beside the stage.
+    // on the marked diff with the areas numbered on the picture.
     name: "visual-test-details-regions",
     story: "views/VisualTestDetailsView/Routed",
     props: { initialRoute: VISUAL_DETAILS_ROUTE },
@@ -198,7 +198,9 @@ export const QUALITY_CASES: QualityCase[] = [
       [VISUAL_BASELINE_HISTORY_GLOB, VISUAL_BASELINE_HISTORY],
     ],
     readyTestId: TEST_ID.comparisonView,
-    readyAlsoTestId: [TEST_ID.changedRegionList],
+    // The box only exists once the picture has loaded and reported its size, so
+    // it gates the shot on the marked stage instead of an empty card.
+    readyAlsoTestId: [TEST_ID.changedRegionBox],
   },
   {
     name: "pdf-test-details",

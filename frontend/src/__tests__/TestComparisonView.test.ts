@@ -1,8 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import TestComparisonView from "@/components/detail-panels/TestComparisonView.vue";
 import ApprovalDecisionDialog from "@/components/approvals/ApprovalDecisionDialog.vue";
-import { TEST_ID } from "@/lib/test-ids";
 
 // The footer's role gate reads the session; these tests are about the view's
 // chrome, so the writer role is assumed.
@@ -10,17 +9,11 @@ vi.mock("@/composables/useAuth", () => ({
   useCurrentRole: () => ({ canWrite: true }),
 }));
 
-const { focusRegionSpy } = vi.hoisted(() => ({ focusRegionSpy: vi.fn() }));
-
 vi.mock("@/components/detail-panels/InteractiveImageViewer.vue", () => ({
   default: {
     template:
-      '<div data-testid="interactive-viewer">{{ baselineUrl }} {{ candidateUrl }} {{ diffUrl }}</div>',
+      '<div data-testid="interactive-viewer">{{ baselineUrl }} {{ candidateUrl }} {{ diffUrl }} {{ regions.length }}</div>',
     props: ["baselineUrl", "candidateUrl", "diffUrl", "regions"],
-    setup(_props: unknown, { expose }: { expose: (api: unknown) => void }) {
-      expose({ focusRegion: focusRegionSpy });
-      return {};
-    },
   },
 }));
 
@@ -35,10 +28,6 @@ const mockComparison = {
 };
 
 describe("TestComparisonView", () => {
-  beforeEach(() => {
-    focusRegionSpy.mockClear();
-  });
-
   it("renders the interactive viewer with correct props", () => {
     const wrapper = mount(TestComparisonView, {
       props: { comparison: mockComparison },
@@ -52,7 +41,7 @@ describe("TestComparisonView", () => {
     expect(text).toContain("/images/diff.png");
   });
 
-  it("lists the changed regions beside the stage", () => {
+  it("hands the changed regions to the viewer", () => {
     const wrapper = mount(TestComparisonView, {
       props: {
         comparison: {
@@ -65,44 +54,8 @@ describe("TestComparisonView", () => {
       },
     });
 
-    const items = wrapper.findAll(
-      `[data-testid="${TEST_ID.changedRegionItem}"]`,
-    );
-
-    expect(items).toHaveLength(2);
-    expect(
-      wrapper.get(`[data-testid="${TEST_ID.changedRegionCount}"]`).text(),
-    ).toBe("2 areas");
-  });
-
-  it("focuses the region the reviewer picks", async () => {
-    const wrapper = mount(TestComparisonView, {
-      props: {
-        comparison: {
-          ...mockComparison,
-          changedRegions: [
-            { x: 0, y: 0, width: 10, height: 10, pixelCount: 50 },
-            { x: 20, y: 20, width: 10, height: 10, pixelCount: 30 },
-          ],
-        },
-      },
-    });
-
-    await wrapper
-      .findAll(`[data-testid="${TEST_ID.changedRegionItem}"]`)[1]
-      .trigger("click");
-
-    expect(focusRegionSpy).toHaveBeenCalledWith(1);
-  });
-
-  it("shows no region rail when the comparison has no regions", () => {
-    const wrapper = mount(TestComparisonView, {
-      props: { comparison: mockComparison },
-    });
-
-    expect(
-      wrapper.find(`[data-testid="${TEST_ID.changedRegionList}"]`).exists(),
-    ).toBe(false);
+    const text = wrapper.find('[data-testid="interactive-viewer"]').text();
+    expect(text.trim().endsWith("2")).toBe(true);
   });
 
   it("emits skip on skip button click", async () => {

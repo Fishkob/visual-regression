@@ -36,10 +36,6 @@ const props = withDefaults(
   },
 );
 
-const emit = defineEmits<{
-  "image-size": [size: { width: number; height: number }];
-}>();
-
 const ZOOM_STEPS = [50, 75, 100, 150, 200];
 // v2: the default depends on whether the comparison carries changed regions,
 // so a mode stored under the old key cannot be the fallback any more.
@@ -127,7 +123,6 @@ const onImageLoad = (key: string, event: Event) => {
   const img = event.target as HTMLImageElement;
   if (img.naturalWidth > 0 && img.naturalHeight > 0) {
     sizes[key] = { width: img.naturalWidth, height: img.naturalHeight };
-    emit("image-size", sizes[key]);
   }
 };
 
@@ -1093,11 +1088,16 @@ const hugsPicture = computed(() => viewMode.value === "diff-only");
               <span>{{ stageLabel }}</span>
             </div>
             <span
-              v-if="activeRegionLabel"
-              :data-testid="TEST_ID.changedRegionFocus"
               class="text-xs text-muted-foreground tabular-nums"
-              >{{ activeRegionLabel }}</span
+              aria-live="polite"
+              aria-atomic="true"
             >
+              <span
+                v-if="activeRegionLabel"
+                :data-testid="TEST_ID.changedRegionFocus"
+                >{{ activeRegionLabel }}</span
+              >
+            </span>
           </div>
 
           <div
@@ -1177,6 +1177,7 @@ const hugsPicture = computed(() => viewMode.value === "diff-only");
                 :image-width="sizes.candidate.width"
                 :image-height="sizes.candidate.height"
                 :active-index="activeRegion"
+                interactive
                 @select="selectRegion"
               />
             </div>
