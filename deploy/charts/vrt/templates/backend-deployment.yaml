@@ -96,6 +96,8 @@ spec:
               value: {{ .Values.backend.env.LOG_LEVEL }}
             - name: AUTH_COOKIE_SECURE
               value: "{{ .Values.backend.env.AUTH_COOKIE_SECURE | default (ternary "true" "false" .Values.tls.enabled) }}"
+            - name: AUTH_TRUSTED_HEADER
+              value: "{{ .Values.backend.env.AUTH_TRUSTED_HEADER }}"
             - name: DATABASE_POOL_MAX
               value: "{{ .Values.backend.env.DATABASE_POOL_MAX }}"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT

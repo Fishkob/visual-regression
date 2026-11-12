@@ -37,6 +37,7 @@ interface AppConfigSnapshot {
     sessionAbsoluteMaxMs: number;
     cookieSecure: boolean;
     apiKeyHeader: string | undefined;
+    trustedHeader: string | undefined;
     bootstrapAdminUsername: string | undefined;
     bootstrapAdminPassword: string | undefined;
   };
@@ -278,6 +279,7 @@ export class AppConfigService {
         sessionAbsoluteMaxMs: sessionAbsoluteMaxDays * 24 * 60 * 60 * 1000,
         cookieSecure: this.config.get<boolean>('AUTH_COOKIE_SECURE') === true,
         apiKeyHeader: this.config.get<string>('AUTH_API_KEY_HEADER'),
+        trustedHeader: this.config.get<string>('AUTH_TRUSTED_HEADER'),
         bootstrapAdminUsername: this.config.get<string>(
           'BOOTSTRAP_ADMIN_USERNAME',
         ),

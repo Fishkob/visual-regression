@@ -111,6 +111,34 @@ API is reachable for local scripts/CI but not from the network; the frontend is
 the only externally published service. An externally reachable backend port
 would be an origin where a direct client can supply its own `X-Forwarded-For`.
 
+## Trusted-header authentication (`AUTH_TRUSTED_HEADER`)
+
+A deployment that already runs an authenticating proxy — oauth2-proxy, an IdP
+sidecar, an ingress with auth annotations — can let it supply the identity instead
+of asking for a dashboard password. Set `AUTH_TRUSTED_HEADER` to the header the
+proxy fills with the signed-in username (oauth2-proxy's is
+`x-auth-request-user`); empty, the default, turns the path off and the header is
+ignored. The username must already exist as an active user — nothing is
+auto-provisioned — and the account's stored role applies, so a `VIEWER` stays
+read-only. An API key still takes precedence, which keeps a proxy from widening a
+CI key's scopes (ADR-077).
+
+Turning it on is a boundary statement, not just a variable:
+
+- **Keep the API unreachable around the proxy.** A forged header is a login. Bind
+  the backend to the proxy's network only (Compose binds `127.0.0.1`; the chart's
+  NetworkPolicy allows the ingress namespace), and never publish the backend port.
+- **Strip inbound copies of the header.** The proxy must overwrite it, not append:
+  a client that sends its own `X-Auth-Request-User` must not keep it. oauth2-proxy
+  and nginx `auth_request` setups do this by construction; check the configuration
+  if you front the API with something hand-rolled.
+- `TRUST_PROXY` stays `true` behind the proxy so the login and log rate limits keep
+  keying on the client IP.
+
+The proxy's session is the session: header users have no row in the session list,
+and signing out happens at the proxy. Deactivating the user in the dashboard still
+locks them out on their next request.
+
 ## Rate Limits
 
 Rate limits are counters per fixed one-minute window in Postgres, so they hold
@@ -478,6 +506,10 @@ setting, not a code change, so nothing in the repository can enforce it:
 - **Bootstrap admin finished.** Create the team, then remove
   `BOOTSTRAP_ADMIN_*` and roll the backend. A bootstrap password under 16
   characters, or one that appears in this repository, is rejected in production.
+- **A trusted header is a login.** With `AUTH_TRUSTED_HEADER` set, the API must be
+  reachable only through the proxy that sets it, and that proxy must overwrite the
+  header. Remove the variable when the proxy goes away; an orphaned header name
+  with an exposed backend is an open door.
 - **Object store not public.** `RUSTFS_ENSURE_PUBLIC_BUCKET=false`; the API
   presigns URLs. If the bucket _is_ public, every screenshot is readable by URL.
 - **`/docs` off.** `SWAGGER_ENABLED` defaults to `false` in production; leave it

@@ -246,6 +246,39 @@ describe('Environment Validation', () => {
     expect(ok.error).toBeUndefined();
   });
 
+  it('defaults AUTH_TRUSTED_HEADER to off and rejects a malformed name', () => {
+    const base = {
+      DATABASE_URL: 'postgresql://user:pass@localhost:5432/vrt',
+      RUSTFS_ENDPOINT: 'localhost',
+      RUSTFS_ACCESS_KEY: 'test-key',
+      RUSTFS_SECRET_KEY: 'test-secret',
+      RUSTFS_BUCKET: 'visual-tests',
+      RUSTFS_PUBLIC_URL: 'http://localhost:9000',
+    };
+
+    const { value, error } = envValidationSchema.validate(base, {
+      abortEarly: false,
+    });
+    expect(error).toBeUndefined();
+    expect(value.AUTH_TRUSTED_HEADER).toBe('');
+
+    // A header name with a space is not a header name; the config seam must not
+    // accept a value the guard would then never find.
+    const malformed = envValidationSchema.validate(
+      { ...base, AUTH_TRUSTED_HEADER: 'x auth user' },
+      { abortEarly: false },
+    );
+    expect(malformed.error).toBeDefined();
+    expect(malformed.error?.message).toContain('AUTH_TRUSTED_HEADER');
+
+    const ok = envValidationSchema.validate(
+      { ...base, AUTH_TRUSTED_HEADER: 'x-auth-request-user' },
+      { abortEarly: false },
+    );
+    expect(ok.error).toBeUndefined();
+    expect(ok.value.AUTH_TRUSTED_HEADER).toBe('x-auth-request-user');
+  });
+
   it('rejects a port outside 1-65535', () => {
     const { error } = envValidationSchema.validate(
       {

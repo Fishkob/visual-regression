@@ -26,13 +26,13 @@ including tests, docs and review (`S` ≈ 1–3 days, `M` ≈ 1–2 weeks, `L` �
 2–4 weeks). `Priority` is `now` (next up), `on demand` (starts when a deployment
 asks for it) or `trigger` (starts when the named condition holds).
 
-| ID  | Item                               | Why now / who asks                                                                      | Size | Priority  |
-| --- | ---------------------------------- | --------------------------------------------------------------------------------------- | ---- | --------- |
-| N10 | Variant-level mute                 | Mute is per test, so one flaky variant silences every variant of that test.             | M    | on demand |
-| N12 | Trusted-header auth behind a proxy | An IdP proxy authenticates, the guard trusts a header: no dependency, so ADR-025 holds. | S    | on demand |
+| ID  | Item               | Why now / who asks                                                          | Size | Priority  |
+| --- | ------------------ | --------------------------------------------------------------------------- | ---- | --------- |
+| N10 | Variant-level mute | Mute is per test, so one flaky variant silences every variant of that test. | M    | on demand |
 
-N12 covers the deployment that already runs an IdP proxy; one that insists on
-OIDC or SAML inside the app itself stays out of scope.
+SSO is no longer a candidate: the trusted-header path shipped as N12 below, so a
+deployment that runs an IdP proxy is covered and one that insists on OIDC or SAML
+inside the app itself stays out of scope.
 
 N10 lost its second half: the run gate no longer counts a muted pending
 comparison (`run-state.policy.ts` subtracts `mutedPending`), so muted work already
@@ -41,6 +41,22 @@ variant, and a variant that is known-unstable cannot be muted on its own.
 
 ### Shipped
 
+- **N12 — trusted-header auth behind a proxy** (2026-11-12). `AUTH_TRUSTED_HEADER`
+  (empty = off) names the header an authenticating proxy — oauth2-proxy, an IdP
+  sidecar, an ingress with auth — fills with the signed-in username. The guard
+  resolves it to an existing **active** user and attaches that user's own role, so
+  `@Roles`, the VIEWER write ban and the same-origin rule apply unchanged; nothing
+  is auto-provisioned, and neither the session cookie nor the API key moved. The
+  header is checked last so a proxy that stamps it on every request cannot drop a
+  CI key's scopes or its project allowlist, and it ignores `mustChangePassword`
+  because the local password is not part of that credential. The path is one env
+  var because the security property is a deployment fact: the API must stay
+  unreachable around the proxy, and the proxy must overwrite the header rather
+  than append to it ([ADR-077](adr/ADR-077-trusted-header-auth.md)). Covered by
+  guard unit cases for the identity, the precedence, the origin check and the
+  viewer ban, an env-validation case, and an e2e file that switches the env var on
+  and proves the proxy's user reaches the product API while a header naming
+  nobody active does not.
 - **N2 — cursor pagination for review comments** (2026-11-12). The read still
   returns the newest 200, but it now takes `limit` (1–200) and `before` — the id
   of the oldest comment the caller holds — so a thread is no longer frozen at its
@@ -180,8 +196,8 @@ shield a branch from the sweep.
 
 ### Also deferred
 
-SSO/OIDC/SAML beyond an IdP proxy in front (N12), a built-in crawler or browser
-capture (the platform stays capture-agnostic), and multi-tenancy/orgs
+SSO/OIDC/SAML beyond the trusted-header path (N12, ADR-077), a built-in crawler or
+browser capture (the platform stays capture-agnostic), and multi-tenancy/orgs
 (single-tenant self-hosting is the product).
 
 ## Maintaining this document

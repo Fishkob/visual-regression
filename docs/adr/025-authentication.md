@@ -7,6 +7,9 @@ Accepted — 2026-08-24; the delete-only-for-unused-key rule is superseded by
 Amended 2026-11-08: the login pair lost its second step when two-factor
 authentication was removed (ADR-074); `POST /auth/login` is the only credential
 endpoint.
+Amended 2026-11-12: a deployment behind an authenticating proxy may add a third
+credential ([ADR-077](./ADR-077-trusted-header-auth.md)); the session cookie and
+the API key are unchanged.
 
 ## Context
 

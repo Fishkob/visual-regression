@@ -191,6 +191,18 @@ export const envValidationSchema = Joi.object({
     .min(1)
     .pattern(/^[A-Za-z0-9-]+$/)
     .default('x-api-key'),
+  // Trusted-header authentication (ADR-077): the deployment puts an
+  // authenticating proxy in front of the API (oauth2-proxy, an IdP sidecar, an
+  // ingress with auth) and that proxy sets this header to the signed-in
+  // username. Empty — the default — disables the path: a backend reachable
+  // around its proxy would otherwise treat a forged header as a login.
+  AUTH_TRUSTED_HEADER: Joi.string()
+    .allow('')
+    .pattern(/^[A-Za-z0-9-]+$/)
+    .default('')
+    .description(
+      'Header an authenticating proxy sets to the signed-in username; empty disables trusted-header auth. The API must not be reachable around the proxy.',
+    ),
   BOOTSTRAP_ADMIN_USERNAME: Joi.string().allow('').default(''),
   // The bootstrap admin is a full ADMIN account. Unset means "no bootstrap";
   // a configured value in production is a real credential and gets a floor.

@@ -28,9 +28,11 @@ import { ApiKeyService } from './api-key.service';
 import { hashToken } from './token-hash';
 
 // The single "what does it mean to be authenticated" rule. A request passes if
-// it carries a valid, unexpired session cookie OR a valid api key header.
-// Public endpoints are marked with @Public(). Registered as a global APP_GUARD
-// (Task 10), so every endpoint is protected unless explicitly opted out.
+// it carries a valid, unexpired session cookie OR a valid api key header, or —
+// when the deployment configures AUTH_TRUSTED_HEADER — an identity its
+// authenticating proxy already established (ADR-077). Public endpoints are
+// marked with @Public(). Registered as a global APP_GUARD (Task 10), so every
+// endpoint is protected unless explicitly opted out.
 @Injectable()
 export class AuthenticationGuard implements CanActivate {
   constructor(
@@ -103,7 +105,55 @@ export class AuthenticationGuard implements CanActivate {
       }
     }
 
+    // The trusted header is checked last on purpose: a proxy in front of the
+    // API injects it on every request that passes through, including a CI job's
+    // API-key call, so letting it win would drop that key's scopes and its
+    // project allowlist and hand the key the human's reach instead.
+    const trusted = await this.resolveTrustedIdentity(request);
+    if (trusted) {
+      // The proxy authenticates the browser, so a cross-site form post to the
+      // dashboard arrives with the header already attached — the SameSite
+      // protection a cookie would carry is not there. Apply the same rule the
+      // session path does, before the identity is attached so a rejected
+      // request carries none.
+      this.enforceSameOrigin(request);
+      request.auth = trusted;
+      this.enforceAccess(context, request);
+      return true;
+    }
+
     throw new UnauthorizedException('Authentication required');
+  }
+
+  // Trusted-header credentials: the deployment's authenticating proxy (an IdP
+  // sidecar, oauth2-proxy, an ingress with auth) has already identified the
+  // caller and put the username in the configured header. The identity must
+  // already exist as an active user — auto-provisioning would make a header a
+  // way to mint accounts — and it carries that user's own role, like a session.
+  private async resolveTrustedIdentity(
+    request: AuthenticatedRequest,
+  ): Promise<AuthenticatedRequest['auth'] | null> {
+    const headerName = (this.appConfig.auth.trustedHeader ?? '').toLowerCase();
+    if (!headerName) return null;
+    const raw = request.headers[headerName];
+    const username = (Array.isArray(raw) ? raw[0] : raw)?.trim();
+    if (!username) return null;
+    const user = await this.repo.findUserByUsername(username);
+    if (!user?.isActive) {
+      // Same answer as a wrong password: the header names nobody this
+      // installation serves, and which of the two it is is not the caller's
+      // business.
+      throw new UnauthorizedException('Authentication required');
+    }
+    return {
+      username: user.username,
+      userId: user.id,
+      role: user.role,
+      // The local password is not part of this credential. A trusted-header
+      // user never proves one, so an unfinished invite link (mustChangePassword)
+      // must not lock them out of the dashboard their proxy just authenticated.
+      mustChangePassword: false,
+    };
   }
 
   // API keys carry explicit scopes and an optional project allowlist. Sessions

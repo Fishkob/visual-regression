@@ -110,6 +110,11 @@ backend:
     # an HTTPS-only session cookie, and one that does not cannot. Set "true"
     # behind an external TLS terminator that the chart does not know about.
     AUTH_COOKIE_SECURE: ""
+    # Trusted-header auth (ADR-077): the header an authenticating proxy in front
+    # of the API fills with the signed-in username, e.g. x-auth-request-user for
+    # oauth2-proxy. Empty disables it; turn it on only while the API stays
+    # unreachable around that proxy, because a forged header is a login.
+    AUTH_TRUSTED_HEADER: ""
     # Postgres connections per process; keep replicas x pool below the
     # database's max_connections.
     DATABASE_POOL_MAX: "10"

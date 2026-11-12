@@ -35,6 +35,10 @@ x-app-env: &app-env
   # bundled stack is plain HTTP, so .env.example states `false` explicitly.
   AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:?AUTH_COOKIE_SECURE is required — true when the stack is served over TLS}
   AUTH_SESSION_ABSOLUTE_MAX_DAYS: ${AUTH_SESSION_ABSOLUTE_MAX_DAYS:-90}
+  # Trusted-header auth (ADR-077), empty = off. Only set it when an
+  # authenticating proxy in front of the API supplies the identity and the API
+  # is unreachable around it.
+  AUTH_TRUSTED_HEADER: ${AUTH_TRUSTED_HEADER:-}
   DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
   WEBHOOK_DELIVERY_RETENTION_DAYS: ${WEBHOOK_DELIVERY_RETENTION_DAYS:-30}
   # 0 = off (the default). The sweep runs in the worker, so the worker needs it.

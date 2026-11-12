@@ -23,6 +23,7 @@ describe('AuthenticationGuard', () => {
   const appConfig = {
     auth: {
       apiKeyHeader: 'x-api-key',
+      trustedHeader: undefined as string | undefined,
       cookieSecure: false,
       sessionTtlDays: 30,
       sessionTtlMs: 30 * 24 * 60 * 60 * 1000,
@@ -72,6 +73,7 @@ describe('AuthenticationGuard', () => {
 
   beforeEach(async () => {
     response.cookie.mockClear();
+    appConfig.auth.trustedHeader = undefined;
     mockRepository = createMock<AuthRepository>();
     mockApiKeyService = createMock<ApiKeyService>();
 
@@ -931,6 +933,189 @@ describe('AuthenticationGuard', () => {
       ).rejects.toThrow(ForbiddenException);
 
       Reflect.deleteMetadata(IS_SESSION_ONLY_KEY, TestController);
+    });
+  });
+
+  describe('trusted header', () => {
+    type UserRow = NonNullable<
+      Awaited<ReturnType<AuthRepository['findUserByUsername']>>
+    >;
+
+    const trustedUser = (overrides: Partial<UserRow> = {}): UserRow => ({
+      id: 'u1',
+      username: 'alice',
+      passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      createdAt: new Date(),
+      ...overrides,
+    });
+
+    const requestContext = (
+      request: Record<string, unknown>,
+      handler: () => void = testHandler,
+    ) =>
+      ({
+        getClass: () => TestController,
+        getHandler: () => handler,
+        switchToHttp: () => ({
+          getRequest: () => request,
+          getResponse: () => response,
+        }),
+      }) as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
+
+    beforeEach(() => {
+      appConfig.auth.trustedHeader = 'x-auth-request-user';
+      mockRepository.findSessionByTokenHash.mockResolvedValue(null);
+      mockApiKeyService.resolveApiKey.mockResolvedValue(null);
+    });
+
+    it('accepts the identity its proxy named', async () => {
+      mockRepository.findUserByUsername.mockResolvedValue(trustedUser());
+      const request: Record<string, unknown> = {
+        headers: { 'x-auth-request-user': 'alice' },
+        method: 'GET',
+        path: '/api/v1/projects',
+      };
+
+      await expect(guard.canActivate(requestContext(request))).resolves.toBe(
+        true,
+      );
+      expect(mockRepository.findUserByUsername).toHaveBeenCalledWith('alice');
+      expect(request.auth).toEqual({
+        username: 'alice',
+        userId: 'u1',
+        role: 'MEMBER',
+        mustChangePassword: false,
+      });
+    });
+
+    it('trims a padded username', async () => {
+      mockRepository.findUserByUsername.mockResolvedValue(trustedUser());
+
+      await expect(
+        guard.canActivate(mockContext({ 'x-auth-request-user': '  alice  ' })),
+      ).resolves.toBe(true);
+      expect(mockRepository.findUserByUsername).toHaveBeenCalledWith('alice');
+    });
+
+    it('ignores the header when no trusted header is configured', async () => {
+      appConfig.auth.trustedHeader = undefined;
+      mockRepository.findUserByUsername.mockResolvedValue(trustedUser());
+
+      await expect(
+        guard.canActivate(mockContext({ 'x-auth-request-user': 'alice' })),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(mockRepository.findUserByUsername).not.toHaveBeenCalled();
+    });
+
+    it('rejects a header that names nobody active', async () => {
+      mockRepository.findUserByUsername.mockResolvedValue(
+        trustedUser({ isActive: false }),
+      );
+      await expect(
+        guard.canActivate(mockContext({ 'x-auth-request-user': 'alice' })),
+      ).rejects.toThrow(UnauthorizedException);
+
+      mockRepository.findUserByUsername.mockResolvedValue(null);
+      await expect(
+        guard.canActivate(mockContext({ 'x-auth-request-user': 'mallory' })),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('keeps a restricted api key ahead of the proxy identity', async () => {
+      mockApiKeyService.resolveApiKey.mockResolvedValue({
+        id: 'k1',
+        name: 'ci',
+        ownerId: 'u9',
+        scopes: ['read'],
+        projectIds: ['p1'],
+      });
+      mockRepository.findProjectIdByName.mockResolvedValue('p1');
+      mockRepository.findUserByUsername.mockResolvedValue(
+        trustedUser({ role: 'ADMIN' }),
+      );
+      const request: Record<string, unknown> = {
+        headers: {
+          'x-api-key': 'rawkey',
+          'x-auth-request-user': 'alice',
+        },
+        method: 'GET',
+        path: '/api/v1/projects/p1/tests',
+        params: { projectName: 'p1' },
+      };
+
+      await expect(
+        guard.canActivate(requestContext(request, readScopedHandler)),
+      ).resolves.toBe(true);
+      expect(request.auth).toMatchObject({
+        username: 'ci',
+        apiKeyId: 'k1',
+        role: 'MEMBER',
+        projectIds: ['p1'],
+      });
+      expect(mockRepository.findUserByUsername).not.toHaveBeenCalled();
+    });
+
+    it('rejects a cross-site write that arrived through the proxy', async () => {
+      mockRepository.findUserByUsername.mockResolvedValue(trustedUser());
+      const request: Record<string, unknown> = {
+        headers: {
+          'x-auth-request-user': 'alice',
+          'sec-fetch-site': 'cross-site',
+        },
+        method: 'POST',
+        path: '/api/v1/projects',
+      };
+
+      await expect(guard.canActivate(requestContext(request))).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(request.auth).toBeUndefined();
+    });
+
+    it('applies the viewer write ban to a proxy identity', async () => {
+      mockRepository.findUserByUsername.mockResolvedValue(
+        trustedUser({ role: 'VIEWER' }),
+      );
+      const request: Record<string, unknown> = {
+        headers: { 'x-auth-request-user': 'alice' },
+        method: 'POST',
+        path: '/api/v1/projects/p/tests/t/approval',
+      };
+
+      await expect(guard.canActivate(requestContext(request))).rejects.toThrow(
+        ForbiddenException,
+      );
+
+      request.method = 'GET';
+      await expect(guard.canActivate(requestContext(request))).resolves.toBe(
+        true,
+      );
+    });
+
+    it('allows a proxy identity on a session-only route', async () => {
+      const sessionOnlyHandler = () => {};
+      Reflect.defineMetadata(IS_SESSION_ONLY_KEY, true, sessionOnlyHandler);
+      mockRepository.findUserByUsername.mockResolvedValue(trustedUser());
+
+      const ctx = {
+        getClass: () => TestController,
+        getHandler: () => sessionOnlyHandler,
+        switchToHttp: () => ({
+          getRequest: () => ({
+            headers: { 'x-auth-request-user': 'alice' },
+            method: 'GET',
+            path: '/api/v1/auth/sessions',
+          }),
+          getResponse: () => response,
+        }),
+      } as unknown as Parameters<AuthenticationGuard['canActivate']>[0];
+
+      await expect(guard.canActivate(ctx)).resolves.toBe(true);
     });
   });
 });
