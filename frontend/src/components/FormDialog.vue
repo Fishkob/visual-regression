@@ -20,6 +20,7 @@ const props = withDefaults(
     confirmText?: string;
     cancelText?: string;
     confirmTestId?: string;
+    confirmVariant?: "default" | "destructive";
     pending?: boolean;
     submitDisabled?: boolean;
   }>(),
@@ -28,6 +29,7 @@ const props = withDefaults(
     confirmText: undefined,
     cancelText: undefined,
     confirmTestId: undefined,
+    confirmVariant: "default",
     pending: false,
     submitDisabled: false,
   },
@@ -82,6 +84,7 @@ const modelOpen = computed({
             </DialogClose>
             <Button
               type="submit"
+              :variant="confirmVariant"
               :disabled="pending || submitDisabled"
               :data-testid="confirmTestId"
             >

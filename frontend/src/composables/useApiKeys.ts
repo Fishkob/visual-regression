@@ -3,6 +3,8 @@ import {
   apiKeysControllerCreate,
   apiKeysControllerFindAll,
   apiKeysControllerRemove,
+  apiKeysControllerRevoke,
+  apiKeysControllerRotate,
   type ApiKeyDto,
   type CreatedApiKeyDto,
 } from "@sdk";
@@ -59,6 +61,46 @@ export function useDeleteApiKey() {
     mutationFn: (id) => apiKeysControllerRemove({ path: { id } }),
     successMessage: tm("toast.apiKeyDeleted"),
     errorMessage: tm("toast.apiKeyDeleteError"),
+    invalidate: (client) => {
+      client.invalidateQueries({ queryKey: apiKeyQueryKeys.all() });
+    },
+  });
+}
+
+export interface RotateApiKeyInput {
+  id: string;
+  graceMinutes: number;
+}
+
+// Rotation returns the new key exactly once, like creation: the caller hands it
+// to the same reveal dialog, because the raw key cannot be read again.
+export function useRotateApiKey() {
+  return useSdkMutation<CreatedApiKeyDto, RotateApiKeyInput>({
+    mutationFn: ({ id, graceMinutes }) =>
+      apiKeysControllerRotate({ path: { id }, body: { graceMinutes } }),
+    successMessage: tm("toast.apiKeyRotated"),
+    errorMessage: tm("toast.apiKeyRotateError"),
+    invalidate: (client) => {
+      client.invalidateQueries({ queryKey: apiKeyQueryKeys.all() });
+    },
+  });
+}
+
+export interface RevokeApiKeyInput {
+  id: string;
+  reason?: string;
+}
+
+// Revoking keeps the row and the audit trail; only Delete is the hard removal.
+export function useRevokeApiKey() {
+  return useSdkMutation<ApiKeyDto, RevokeApiKeyInput>({
+    mutationFn: ({ id, reason }) =>
+      apiKeysControllerRevoke({
+        path: { id },
+        body: reason ? { reason } : {},
+      }),
+    successMessage: tm("toast.apiKeyRevoked"),
+    errorMessage: tm("toast.apiKeyRevokeError"),
     invalidate: (client) => {
       client.invalidateQueries({ queryKey: apiKeyQueryKeys.all() });
     },

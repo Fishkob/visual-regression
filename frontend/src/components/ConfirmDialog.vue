@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 
 import {
@@ -12,6 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 import { TEST_ID } from "@/lib/test-ids";
 
 const props = defineProps<{
@@ -28,6 +29,17 @@ const props = defineProps<{
 
   /** Optional: confirm button variant styling */
   confirmVariant?: "default" | "destructive";
+
+  /**
+   * Optional: when set, the confirm button stays disabled until the user types
+   * this text verbatim. For an irreversible action whose blast radius the
+   * dialog copy cannot carry on its own (deleting N tests at once), the click
+   * alone is too cheap a gesture.
+   */
+  requiredText?: string;
+
+  /** Optional: prompt above the input, naming what has to be typed. */
+  requiredTextLabel?: string;
 }>();
 
 const { t } = useI18n();
@@ -69,6 +81,23 @@ const confirmBtnClass = computed(() => {
 const confirmLabel = computed(() => props.confirmText ?? t("common.confirm"));
 const cancelLabel = computed(() => props.cancelText ?? t("common.cancel"));
 const titleText = computed(() => props.title ?? t("confirmDialog.title"));
+
+// The typed confirmation is per opening, not per component instance: the same
+// dialog is reopened for a different selection, and a leftover match from the
+// last time would defeat the guard.
+const typedText = ref("");
+watch(
+  () => [props.open, props.requiredText] as const,
+  () => {
+    typedText.value = "";
+  },
+);
+const requiresTyping = computed(() => Boolean(props.requiredText));
+const confirmDisabled = computed(
+  () =>
+    Boolean(props.pending) ||
+    (requiresTyping.value && typedText.value !== props.requiredText),
+);
 </script>
 
 <template>
@@ -88,6 +117,18 @@ const titleText = computed(() => props.title ?? t("confirmDialog.title"));
         </AlertDialogDescription>
       </AlertDialogHeader>
 
+      <label v-if="requiresTyping" class="flex flex-col gap-1.5 text-sm">
+        <span class="text-muted-foreground">{{ requiredTextLabel }}</span>
+        <Input
+          v-model="typedText"
+          type="text"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          :data-testid="TEST_ID.dialogRequiredText"
+        />
+      </label>
+
       <AlertDialogFooter>
         <AlertDialogCancel type="button" :disabled="pending" @click="onCancel">
           {{ cancelLabel }}
@@ -95,7 +136,7 @@ const titleText = computed(() => props.title ?? t("confirmDialog.title"));
 
         <AlertDialogAction
           type="button"
-          :disabled="pending"
+          :disabled="confirmDisabled"
           :class="confirmBtnClass"
           @click="onConfirm"
           :data-testid="TEST_ID.dialogConfirm"

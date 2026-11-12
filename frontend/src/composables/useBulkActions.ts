@@ -1,26 +1,33 @@
 import { translateMessage as tm } from "@/lib/i18n-messages";
+import { unref } from "vue";
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue-sonner";
 import {
   bulkActionsControllerApprove,
+  bulkActionsControllerDeleteTests,
   projectsBulkControllerMove,
   type BulkApprovalResultDto,
+  type BulkDeleteResultDto,
   type BulkMoveResultDto,
 } from "@sdk";
 import {
   mapBulkApproveResult,
+  mapBulkDeleteResult,
   mapBulkMoveResult,
   mergeBulkApproveResults,
 } from "@/domains/bulk-actions/bulk-action.mapper";
 import type {
   BulkApproveResult,
   BulkApproveSelection,
+  BulkDeleteResult,
   BulkMoveResult,
 } from "@/domains/bulk-actions/bulk-action.model";
 import { unwrapSdkData } from "@/lib/sdk";
+import type { MaybeRef } from "@/composables/useDomainQuery";
 import {
   invalidateAfterBulkApprove,
   invalidateAfterBulkMove,
+  invalidateAfterBulkTestDelete,
 } from "@/lib/invalidation";
 
 // The approve endpoint is per project (max 100 ids), so a selection spanning
@@ -99,6 +106,51 @@ export function useBulkMoveProjects() {
     },
     onError: () => {
       toast.error(tm("toast.bulkMoveError"));
+    },
+  });
+}
+
+// Bulk deletion is per project and one branch: the delete endpoint takes test
+// names, so the selection is the tests the table's groups render, not their
+// variant rows. The branch travels with the request because two branches can
+// carry the same test name.
+export function useBulkDeleteTests(options: {
+  projectName: MaybeRef<string>;
+  branchName?: MaybeRef<string | undefined>;
+}) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (
+      testNames: readonly string[],
+    ): Promise<BulkDeleteResult> => {
+      const branch = unref(options.branchName);
+      const response = await bulkActionsControllerDeleteTests({
+        path: { projectName: unref(options.projectName) },
+        body: {
+          testNames: [...testNames],
+          ...(branch ? { branch } : {}),
+        },
+      });
+      const payload = unwrapSdkData<BulkDeleteResultDto>(
+        response,
+        "Could not delete the selected tests",
+      );
+      if (!payload) throw new Error("The bulk delete returned no result");
+      return mapBulkDeleteResult(payload);
+    },
+    onSuccess: (result) => {
+      invalidateAfterBulkTestDelete(queryClient, unref(options.projectName));
+      toast.success(
+        `${tm("toast.bulkDeleted", { count: result.deleted.length })}${
+          result.failed.length > 0
+            ? tm("toast.failedSuffix", { count: result.failed.length })
+            : ""
+        }`,
+      );
+    },
+    onError: () => {
+      toast.error(tm("toast.bulkDeleteError"));
     },
   });
 }

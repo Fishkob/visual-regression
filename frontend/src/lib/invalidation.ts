@@ -91,6 +91,18 @@ export function invalidateProjectList(client: QueryClient) {
   invalidateReviewInbox(client);
 }
 
+// A bulk test delete removes whole tests from one branch: the directory (its
+// rows, counts and filter options), the project list's test/pending counts and
+// the review inbox all move. Same two reads the single-test delete refreshes,
+// so the two paths cannot disagree about what a deletion changes.
+export function invalidateAfterBulkTestDelete(
+  client: QueryClient,
+  projectName: string,
+) {
+  invalidateProjectDetail(client, projectName);
+  invalidateProjectList(client);
+}
+
 export function invalidateReviewInbox(client: QueryClient) {
   client.invalidateQueries({ queryKey: reviewInboxQueryKeys.all() });
 }

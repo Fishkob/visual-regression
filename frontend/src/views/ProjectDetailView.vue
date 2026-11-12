@@ -182,6 +182,7 @@
         :project-name="projectName ?? ''"
         :branch-name="selectedBranch"
         :server-filtered="true"
+        :selectable="canWrite"
         :filter-options="filterOptions"
         sync-url
       />
