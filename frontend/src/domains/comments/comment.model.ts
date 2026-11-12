@@ -19,3 +19,8 @@ export interface CreateReviewCommentInput {
 }
 
 export const COMMENT_MAX_LENGTH = 4000;
+
+// The window the server returns per page. A full page is also the only "there
+// may be older comments" signal the array response carries, so the panel and
+// the read share this number (the server's `COMMENT_PAGE_SIZE` is its twin).
+export const COMMENT_PAGE_SIZE = 200;

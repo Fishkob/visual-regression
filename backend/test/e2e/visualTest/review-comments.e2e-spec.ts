@@ -42,9 +42,9 @@ describe('Review comments and decision reasons (e2e)', () => {
     await TestApp.close();
   });
 
-  function upload(file: string) {
+  function upload(file: string, testName = 'login') {
     return authRequest(app)
-      .post('/api/v1/projects/shop/tests/login/upload?testKind=image')
+      .post(`/api/v1/projects/shop/tests/${testName}/upload?testKind=image`)
       .field('viewport', '1920x1080')
       .field('browser', 'Chrome')
       .field('environment', 'staging')
@@ -124,6 +124,36 @@ describe('Review comments and decision reasons (e2e)', () => {
       .expect(200);
   });
 
+  it('resolves a comment on the branch the thread belongs to', async () => {
+    // The thread of a branch-owned test lives on that branch's test row, so a
+    // resolve without the branch would look for the comment under the default
+    // branch's test and answer 404. The route takes the branch for exactly this
+    // reason; the caller (the panel) always has it.
+    await upload(baseline, 'login')
+      .field('branch', 'feature/resolve')
+      .expect(201);
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/projects/shop/tests/login/comments')
+      .set('Cookie', cookie)
+      .send({ body: 'Feature branch discussion', branch: 'feature/resolve' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .patch(
+        `/api/v1/projects/shop/tests/login/comments/${created.body.id as string}/resolve?branch=feature/resolve`,
+      )
+      .set('Cookie', cookie)
+      .expect(200);
+
+    // The default branch only inherits that test; it does not own the comment.
+    await request(app.getHttpServer())
+      .patch(
+        `/api/v1/projects/shop/tests/login/comments/${created.body.id as string}/resolve`,
+      )
+      .set('Cookie', cookie)
+      .expect(404);
+  });
+
   it('stores a structured approval reason on the audit row', async () => {
     await upload(baseline).expect(201);
     await upload(mismatch).expect(201);
@@ -188,6 +218,97 @@ describe('Review comments and decision reasons (e2e)', () => {
     expect(list.body).toHaveLength(200);
     expect(list.body[0].body).toBe('comment 6');
     expect(list.body[199].body).toBe('comment 205');
+  });
+
+  it('pages past the default window with a cursor, without a gap or a repeat', async () => {
+    await upload(baseline).expect(201);
+    const test = await db.unifiedTest.findFirstOrThrow({
+      where: { name: 'login' },
+    });
+    await db.reviewComment.createMany({
+      data: Array.from({ length: 205 }, (_, index) => ({
+        projectName: 'shop',
+        testId: test.id,
+        body: `comment ${String(index + 1)}`,
+        author: 'alice',
+        createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, index)),
+      })),
+    });
+
+    const first = await request(app.getHttpServer())
+      .get('/api/v1/projects/shop/tests/login/comments')
+      .set('Cookie', cookie)
+      .expect(200);
+
+    // The cursor is the oldest comment of the page the caller holds.
+    const older = await request(app.getHttpServer())
+      .get(
+        `/api/v1/projects/shop/tests/login/comments?before=${first.body[0].id as string}`,
+      )
+      .set('Cookie', cookie)
+      .expect(200);
+
+    expect(older.body.map((row: { body: string }) => row.body)).toEqual([
+      'comment 1',
+      'comment 2',
+      'comment 3',
+      'comment 4',
+      'comment 5',
+    ]);
+
+    // Two pages chained through the cursor are a partition: every comment
+    // exactly once, still oldest-first.
+    const newestTwo = await request(app.getHttpServer())
+      .get('/api/v1/projects/shop/tests/login/comments?limit=2')
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(newestTwo.body.map((row: { body: string }) => row.body)).toEqual([
+      'comment 204',
+      'comment 205',
+    ]);
+
+    const nextTwo = await request(app.getHttpServer())
+      .get(
+        `/api/v1/projects/shop/tests/login/comments?limit=2&before=${newestTwo.body[0].id as string}`,
+      )
+      .set('Cookie', cookie)
+      .expect(200);
+    expect(nextTwo.body.map((row: { body: string }) => row.body)).toEqual([
+      'comment 202',
+      'comment 203',
+    ]);
+  });
+
+  it('rejects a cursor from another thread and a page outside the window', async () => {
+    await upload(baseline).expect(201);
+    await upload(baseline, 'signup').expect(201);
+    const other = await db.unifiedTest.findFirstOrThrow({
+      where: { name: 'signup' },
+    });
+    // A cursor anchors "older than this row in that thread". A row from another
+    // test would start this page at a point this thread never reached, so it is
+    // a 404 rather than a silent read.
+    const foreign = await db.reviewComment.create({
+      data: {
+        projectName: 'shop',
+        testId: other.id,
+        body: 'Another thread',
+        author: 'alice',
+      },
+    });
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/projects/shop/tests/login/comments?before=${foreign.id}`)
+      .set('Cookie', cookie)
+      .expect(404);
+
+    // The page size is a window, not a request for the whole thread: an
+    // oversized page is refused (the shared validation pipe answers 422)
+    // instead of being silently clamped.
+    await request(app.getHttpServer())
+      .get('/api/v1/projects/shop/tests/login/comments?limit=201')
+      .set('Cookie', cookie)
+      .expect(422);
   });
 
   it('deletes the comments of a deleted test', async () => {

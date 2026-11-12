@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import CommentsPanel from "@/components/comments/CommentsPanel.vue";
+import { COMMENT_PAGE_SIZE } from "@/domains/comments/comment.model";
 import { TEST_ID } from "@/lib/test-ids";
 
 const { mockList, mockCreate, mockResolve } = vi.hoisted(() => ({
@@ -43,6 +44,13 @@ function lastCount(wrapper: {
   emitted: (name: string) => unknown[][] | undefined;
 }) {
   const events = wrapper.emitted("update:count") ?? [];
+  return events[events.length - 1];
+}
+
+function lastHasOlder(wrapper: {
+  emitted: (name: string) => unknown[][] | undefined;
+}) {
+  const events = wrapper.emitted("update:hasOlder") ?? [];
   return events[events.length - 1];
 }
 
@@ -119,7 +127,7 @@ describe("CommentsPanel", () => {
 
     expect(mockList).toHaveBeenCalledWith({
       path: { projectName: "checkout", testName: "login" },
-      query: { branch: "main" },
+      query: { branch: "main", limit: COMMENT_PAGE_SIZE },
     });
   });
 
@@ -225,6 +233,7 @@ describe("CommentsPanel", () => {
     await vi.waitFor(() =>
       expect(mockResolve).toHaveBeenCalledWith({
         path: { projectName: "checkout", testName: "login", id: "c-1" },
+        query: { branch: "main" },
       }),
     );
   });
@@ -234,7 +243,7 @@ describe("CommentsPanel", () => {
     await waitForComments(wrapper, 2);
     expect(mockList).toHaveBeenLastCalledWith({
       path: { projectName: "checkout", testName: "login" },
-      query: { branch: "main" },
+      query: { branch: "main", limit: COMMENT_PAGE_SIZE },
     });
 
     await wrapper
@@ -244,7 +253,11 @@ describe("CommentsPanel", () => {
     await vi.waitFor(() =>
       expect(mockList).toHaveBeenLastCalledWith({
         path: { projectName: "checkout", testName: "login" },
-        query: { branch: "main", comparisonId: "cmp-1" },
+        query: {
+          branch: "main",
+          comparisonId: "cmp-1",
+          limit: COMMENT_PAGE_SIZE,
+        },
       }),
     );
   });
@@ -272,5 +285,62 @@ describe("CommentsPanel", () => {
 
     await vi.waitFor(() => expect(wrapper.text()).toContain("No comments yet"));
     expect(lastCount(wrapper)).toEqual([0]);
+  });
+
+  it("offers no older page when the first page is short", async () => {
+    const wrapper = mountPanel();
+    await waitForComments(wrapper, 2);
+
+    expect(lastHasOlder(wrapper)).toEqual([false]);
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.commentsLoadOlder}"]`).exists(),
+    ).toBe(false);
+  });
+
+  it("loads older comments through the cursor and stops at the thread end", async () => {
+    // A full page is the only "there may be more" signal an array response
+    // carries, so this is also the page that must offer the control.
+    const fullPage = Array.from({ length: COMMENT_PAGE_SIZE }, (_, index) =>
+      commentDto({ id: `c-${index}`, body: `comment ${index}` }),
+    );
+    mockList.mockResolvedValueOnce({ data: fullPage }).mockResolvedValueOnce({
+      data: [commentDto({ id: "older", body: "First" })],
+    });
+
+    const wrapper = mountPanel();
+    await waitForComments(wrapper, COMMENT_PAGE_SIZE);
+    expect(lastHasOlder(wrapper)).toEqual([true]);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.commentsLoadOlder}"]`)
+      .trigger("click");
+
+    // The cursor is the oldest comment of the page the panel already holds.
+    await vi.waitFor(() =>
+      expect(mockList).toHaveBeenLastCalledWith({
+        path: { projectName: "checkout", testName: "login" },
+        query: {
+          branch: "main",
+          limit: COMMENT_PAGE_SIZE,
+          before: "c-0",
+        },
+      }),
+    );
+
+    // The older page is stitched in front, so the thread stays chronological.
+    await vi.waitFor(() =>
+      expect(
+        wrapper.findAll(`[data-testid="${TEST_ID.commentRow}"]`).length,
+      ).toBe(COMMENT_PAGE_SIZE + 1),
+    );
+    const rows = wrapper.findAll(`[data-testid="${TEST_ID.commentRow}"]`);
+    expect(rows[0]!.text()).toContain("First");
+
+    // A short page is the thread end: the control is gone and the count is
+    // exact again.
+    expect(lastHasOlder(wrapper)).toEqual([false]);
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.commentsLoadOlder}"]`).exists(),
+    ).toBe(false);
   });
 });

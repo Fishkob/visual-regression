@@ -1928,18 +1928,41 @@
           },
           {
             "name": "comparisonId",
-            "required": true,
+            "required": false,
             "in": "query",
+            "description": "Only comments anchored to this comparison",
             "schema": {
               "type": "string"
             }
           },
           {
             "name": "branch",
-            "required": true,
+            "required": false,
             "in": "query",
+            "description": "Branch to read (defaults to the project default branch)",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Cursor: the id of the oldest comment already received; returns older comments",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Page size",
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "default": 200,
+              "type": "number"
             }
           }
         ],
@@ -1963,7 +1986,7 @@
             "sessionCookie": []
           }
         ],
-        "summary": "List review comments for a test or comparison",
+        "summary": "List review comments for a test or comparison (paged by cursor)",
         "tags": [
           "Review comments"
         ]
@@ -2045,6 +2068,15 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branch",
+            "required": false,
+            "in": "query",
+            "description": "Branch the thread belongs to (defaults to the project default)",
             "schema": {
               "type": "string"
             }

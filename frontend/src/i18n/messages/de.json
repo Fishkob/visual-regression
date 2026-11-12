@@ -1299,6 +1299,8 @@
     "resolveError": "Kommentar konnte nicht erledigt werden",
     "resolvedBy": "Erledigt von {user}",
     "resolvedGroup": "Erledigt ({count})",
+    "loadOlder": "Ältere Kommentare laden",
+    "loadingOlder": "Ältere Kommentare werden geladen…",
     "submitHint": "Strg + Enter"
   }
 }

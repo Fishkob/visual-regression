@@ -88,7 +88,7 @@ The one-time link that carries a newly issued temporary password to its user. Cr
 _Avoid_: Invitation mail, reset link, activation token
 
 **ReviewComment**:
-A plain-text discussion entry on a test, optionally anchored to a comparison. Threads resolve instead of deleting; the read returns the newest 200 (oldest→newest for display). `testId` is a foreign key with `ON DELETE CASCADE`, so deleting the test — or the branch or project above it — removes the discussion in the same transaction. `comparisonId` deliberately has no foreign key: approval deletes the comparison, and the discussion that led to it survives (ADR-064).
+A plain-text discussion entry on a test, optionally anchored to a comparison. Threads resolve instead of deleting; the read is paged newest-first (oldest→newest for display) and pages backwards with the `before` cursor — the id of the oldest comment the caller holds, resolved to the `(createdAt, id)` pair the query sorts by so a page neither skips nor repeats a row. A page holds at most `COMMENT_PAGE_SIZE` (200); the array response carries no total, so a full page is the only "there may be older" signal the client has (the rail's tab count then reads `200+`). `testId` is a foreign key with `ON DELETE CASCADE`, so deleting the test — or the branch or project above it — removes the discussion in the same transaction. `comparisonId` deliberately has no foreign key: approval deletes the comparison, and the discussion that led to it survives (ADR-064).
 _Avoid_: Note, annotation, message
 
 **ReviewAssignment**:

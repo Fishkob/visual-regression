@@ -15,18 +15,43 @@ export class ReviewCommentRepository extends BaseRepository {
     return this.client.reviewComment.create({ data: input });
   }
 
-  // The window is the NEWEST 200 comments (a thread's recent discussion is
-  // what a reviewer needs; the oldest 200 would freeze the thread after 200
-  // posts). The caller still receives them oldest→newest so the UI chronology
-  // stays, hence the in-memory reverse after the bounded desc query.
-  async listForTest(testId: string, comparisonId?: string) {
+  // One page of the thread, newest window first (a reviewer needs the recent
+  // discussion; the oldest page would freeze the thread). The caller receives
+  // the page oldest→newest so the chronology stays, hence the in-memory reverse
+  // after the bounded desc query.
+  //
+  // `before` is the cursor: the (createdAt, id) pair of the oldest comment the
+  // caller already holds. `id` alone is not time-ordered, so the pair is the
+  // key — and the same pair, descending, is the ORDER BY, which is what makes
+  // "strictly after the cursor" a total order with no skipped or repeated row.
+  // `createdAt` is TIMESTAMP(3), so the millisecond the cursor carries is the
+  // stored value, not a truncation of it.
+  async listForTest(
+    testId: string,
+    query: {
+      comparisonId?: string;
+      before?: { id: string; createdAt: Date };
+      limit: number;
+    },
+  ) {
     const rows = await this.client.reviewComment.findMany({
       where: {
         testId,
-        ...(comparisonId ? { comparisonId } : {}),
+        ...(query.comparisonId ? { comparisonId: query.comparisonId } : {}),
+        ...(query.before
+          ? {
+              OR: [
+                { createdAt: { lt: query.before.createdAt } },
+                {
+                  createdAt: query.before.createdAt,
+                  id: { lt: query.before.id },
+                },
+              ],
+            }
+          : {}),
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: 200,
+      take: query.limit,
     });
     return rows.reverse();
   }

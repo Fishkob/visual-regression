@@ -25,6 +25,21 @@ export interface CommentView {
 
 const MAX_BODY = 4000;
 
+// The thread read is paged newest-first: a test's discussion is read from the
+// recent end, and an unbounded read would grow with the thread. One page is the
+// window a reviewer needs; older pages are reached with the `before` cursor,
+// whose id is the oldest comment the caller holds. The limit is both the
+// default page and the maximum, so a client cannot ask for "the whole thread"
+// in one request and call it pagination.
+export const COMMENT_PAGE_SIZE = 200;
+
+export interface CommentListQuery {
+  comparisonId?: string;
+  branch?: string;
+  before?: string;
+  limit?: number;
+}
+
 @Injectable()
 export class ReviewCommentService {
   constructor(
@@ -107,15 +122,37 @@ export class ReviewCommentService {
   async list(
     projectName: string,
     testName: string,
-    comparisonId?: string,
-    branch?: string,
+    query: CommentListQuery = {},
   ): Promise<CommentView[]> {
+    const limit = query.limit ?? COMMENT_PAGE_SIZE;
+    if (limit < 1 || limit > COMMENT_PAGE_SIZE) {
+      throw new DomainError(
+        `limit must be between 1 and ${COMMENT_PAGE_SIZE}`,
+        'BAD_REQUEST',
+      );
+    }
     const test = await this.testResolver.findTest(
       projectName,
       testName,
-      branch,
+      query.branch,
     );
-    const rows = await this.comments.listForTest(test.id, comparisonId);
+    // A cursor is only meaningful inside the thread it was read from. Resolving
+    // it through the row (rather than trusting the id) also yields the
+    // createdAt half of the pair; a cursor from another test is a 404, not a
+    // silent read of this thread from an unrelated point.
+    const cursor = query.before
+      ? await this.comments.findById(query.before)
+      : null;
+    if (query.before && cursor?.testId !== test.id) {
+      throw new DomainError('Comment not found', 'NOT_FOUND');
+    }
+    const rows = await this.comments.listForTest(test.id, {
+      comparisonId: query.comparisonId,
+      before: cursor
+        ? { id: cursor.id, createdAt: cursor.createdAt }
+        : undefined,
+      limit,
+    });
     return rows.map((row) => this.toView(row));
   }
 

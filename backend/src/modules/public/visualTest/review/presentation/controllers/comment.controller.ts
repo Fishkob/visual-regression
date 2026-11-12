@@ -27,6 +27,8 @@ import { ReviewCommentService } from '@public/visualTest/review/application/revi
 import {
   CommentDto,
   CreateCommentDto,
+  ListCommentsQueryDto,
+  ResolveCommentQueryDto,
 } from '@public/visualTest/review/presentation/dto/comment.dto';
 
 @ApiTags('Review comments')
@@ -36,20 +38,21 @@ export class ReviewCommentController {
   constructor(private readonly comments: ReviewCommentService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List review comments for a test or comparison' })
+  @ApiOperation({
+    summary: 'List review comments for a test or comparison (paged by cursor)',
+  })
   @ApiOkResponse({ type: [CommentDto] })
   async list(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
-    @Query('comparisonId') comparisonId?: string,
-    @Query('branch') branch?: string,
+    @Query() query: ListCommentsQueryDto,
   ): Promise<CommentDto[]> {
-    const rows = await this.comments.list(
-      projectName,
-      testName,
-      comparisonId,
-      branch,
-    );
+    const rows = await this.comments.list(projectName, testName, {
+      comparisonId: query.comparisonId,
+      branch: query.branch,
+      before: query.before,
+      limit: query.limit,
+    });
     return plainToInstance(CommentDto, rows, {
       excludeExtraneousValues: true,
     });
@@ -82,7 +85,7 @@ export class ReviewCommentController {
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
     @Param('testName', ProjectTestNameValidationPipe) testName: string,
     @Param('id') id: string,
-    @Query('branch') branch: string | undefined,
+    @Query() query: ResolveCommentQueryDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<CommentDto> {
     const row = await this.comments.resolve(
@@ -90,7 +93,7 @@ export class ReviewCommentController {
       testName,
       id,
       requireActor(req),
-      branch,
+      query.branch,
     );
     return plainToInstance(CommentDto, row, {
       excludeExtraneousValues: true,
