@@ -2,11 +2,15 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import type { CreatedUserDto } from "@sdk";
 import { mockApi, type FulfillResponse } from "./routes/api.routes";
 import {
+  BRANCHES_RESPONSE,
+  PROJECT_CHECKOUT_UI_RESPONSE,
   PROJECTS_PENDING_RESPONSE,
   REVIEW_INBOX_RESPONSE,
 } from "./mocks/projects.mocks";
 import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
+import { API_KEYS_RESPONSE } from "./mocks/apiKeys.mocks";
 import type { AppShell } from "@/AppShell.story.ts";
+import type { Routed as ProjectDetailRouted } from "@/views/ProjectDetailView.story";
 import type { Routed as ProjectSettingsRouted } from "@/views/ProjectSettingsView.story";
 import { TEST_ID } from "@/lib/test-ids";
 import {
@@ -196,6 +200,30 @@ test.describe("Rename project dialog focus", () => {
   });
 });
 
+test.describe("API key rotation dialog focus", () => {
+  // Rotation is the one key action that mints a credential the admin has to
+  // copy right away; the dialog must be operable without a pointer.
+  test("moves focus into the rotation dialog and closes on Escape", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [["**/api/v1/api-keys", API_KEYS_RESPONSE]]);
+
+    const component = await mount("views/ApiKeysView/ApiKeys");
+    const trigger = component.getByTestId(TEST_ID.rotateApiKey).first();
+    await trigger.click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect.poll(() => focusIsInside(dialog)).toBe(true);
+
+    await page.keyboard.press("Escape");
+
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+});
+
 test.describe("Global search palette focus", () => {
   test("opens with the keyboard shortcut, focuses the input and closes on Escape", async ({
     mount,
@@ -247,6 +275,40 @@ test.describe("Global search palette focus", () => {
 
     await expect(palette).toBeHidden();
     await expect(component.getByTestId(TEST_ID.searchTrigger)).toBeFocused();
+  });
+});
+
+test.describe("Bulk delete dialog focus", () => {
+  // The typed confirmation is the last guard before an irreversible delete.
+  // Focus moves into it, Escape leaves without deleting, and focus returns to
+  // the button the dialog was opened from.
+  test("moves focus into the typed confirmation and closes on Escape", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+
+    const component = await mount<typeof ProjectDetailRouted>(
+      "views/ProjectDetailView/Routed",
+      { initialRoute: "/projects/checkout-ui" },
+    );
+
+    await component.getByTestId(TEST_ID.testSelectRow).first().click();
+    const trigger = component.getByTestId(TEST_ID.testBulkDelete);
+    await trigger.click();
+
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toBeVisible();
+    await expect.poll(() => focusIsInside(dialog)).toBe(true);
+
+    await page.keyboard.press("Escape");
+
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
   });
 });
 

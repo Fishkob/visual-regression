@@ -4,19 +4,28 @@ import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import ApiKeysView from "@/views/ApiKeysView.vue";
 import { TEST_ID } from "@/lib/test-ids";
 
-const { mockFindAll, mockCreate, mockRemove, mockProjects } = vi.hoisted(
-  () => ({
-    mockFindAll: vi.fn(),
-    mockCreate: vi.fn(),
-    mockRemove: vi.fn(),
-    mockProjects: vi.fn(),
-  }),
-);
+const {
+  mockFindAll,
+  mockCreate,
+  mockRemove,
+  mockRotate,
+  mockRevoke,
+  mockProjects,
+} = vi.hoisted(() => ({
+  mockFindAll: vi.fn(),
+  mockCreate: vi.fn(),
+  mockRemove: vi.fn(),
+  mockRotate: vi.fn(),
+  mockRevoke: vi.fn(),
+  mockProjects: vi.fn(),
+}));
 
 vi.mock("@sdk", () => ({
   apiKeysControllerFindAll: (...args: unknown[]) => mockFindAll(...args),
   apiKeysControllerCreate: (...args: unknown[]) => mockCreate(...args),
   apiKeysControllerRemove: (...args: unknown[]) => mockRemove(...args),
+  apiKeysControllerRotate: (...args: unknown[]) => mockRotate(...args),
+  apiKeysControllerRevoke: (...args: unknown[]) => mockRevoke(...args),
   projectsControllerGetProjectsWithPendingFlag: (...args: unknown[]) =>
     mockProjects(...args),
 }));
@@ -146,6 +155,24 @@ beforeEach(() => {
         { id: "p2", name: "admin-ui" },
       ],
     },
+  });
+  mockRotate.mockResolvedValue({
+    data: {
+      id: "k4",
+      name: "nightly",
+      rawKey: "rotated-secret-value",
+      keyHint: "rote",
+      scopes: ["upload"],
+      projectNames: [],
+      expiresAt: null,
+    },
+  });
+  mockRevoke.mockResolvedValue({
+    data: keyDto({
+      revokedAt: minutesAgo(1),
+      revokedReason: "compromised",
+      status: "revoked",
+    }),
   });
 });
 
@@ -394,6 +421,190 @@ describe("ApiKeysView", () => {
 
     await vi.waitFor(() =>
       expect(mockRemove).toHaveBeenCalledWith({ path: { id: "k2" } }),
+    );
+  });
+
+  it("offers rotate only for an active key that was not already replaced", async () => {
+    mockFindAll.mockResolvedValue({
+      data: [
+        keyDto({ id: "k1", name: "active-key" }),
+        keyDto({
+          id: "k2",
+          name: "retiring-key",
+          revokedReason: "rotated",
+          replacedById: "k1",
+        }),
+        keyDto({
+          id: "k3",
+          name: "revoked-key",
+          status: "revoked",
+          revokedAt: minutesAgo(5),
+          revokedReason: "rotated",
+          replacedById: null,
+        }),
+        keyDto({
+          id: "k4",
+          name: "expired-key",
+          status: "expired",
+          expiresAt: minutesAgo(5),
+        }),
+      ],
+    });
+
+    const wrapper = mountView();
+    await waitForRows(wrapper, 4);
+
+    const rowFor = (text: string) =>
+      wrapper
+        .findAll(`[data-testid="${TEST_ID.apiKeyRow}"]`)
+        .find((row) => row.text().includes(text))!;
+
+    expect(
+      rowFor("active-key")
+        .find(`[data-testid="${TEST_ID.rotateApiKey}"]`)
+        .exists(),
+    ).toBe(true);
+    expect(
+      rowFor("active-key")
+        .find(`[data-testid="${TEST_ID.revokeApiKey}"]`)
+        .exists(),
+    ).toBe(true);
+
+    // A retiring key is already replaced: revoking it early is useful,
+    // rotating it again would mint a second successor.
+    expect(
+      rowFor("retiring-key")
+        .find(`[data-testid="${TEST_ID.rotateApiKey}"]`)
+        .exists(),
+    ).toBe(false);
+    expect(
+      rowFor("retiring-key")
+        .find(`[data-testid="${TEST_ID.revokeApiKey}"]`)
+        .exists(),
+    ).toBe(true);
+
+    for (const dead of ["revoked-key", "expired-key"]) {
+      expect(
+        rowFor(dead).find(`[data-testid="${TEST_ID.rotateApiKey}"]`).exists(),
+      ).toBe(false);
+      expect(
+        rowFor(dead).find(`[data-testid="${TEST_ID.revokeApiKey}"]`).exists(),
+      ).toBe(false);
+      expect(
+        rowFor(dead).find(`[data-testid="${TEST_ID.deleteApiKey}"]`).exists(),
+      ).toBe(true);
+    }
+  });
+
+  it("rotates a key with a grace window and reveals the replacement", async () => {
+    mockFindAll.mockResolvedValue({
+      data: [keyDto({ id: "k1", name: "nightly" })],
+    });
+
+    const wrapper = mountView();
+    await waitForRows(wrapper, 1);
+
+    await wrapper
+      .find(`[data-testid="${TEST_ID.rotateApiKey}"]`)
+      .trigger("click");
+    await vi.waitFor(() =>
+      expect(
+        wrapper.find(`[data-testid="${TEST_ID.rotateApiKeyGrace}"]`).exists(),
+      ).toBe(true),
+    );
+
+    const grace = wrapper.get(`[data-testid="${TEST_ID.rotateApiKeyGrace}"]`);
+    expect((grace.element as HTMLInputElement).value).toBe("60");
+    await grace.setValue("15");
+    await wrapper.find("form").trigger("submit");
+
+    await vi.waitFor(() =>
+      expect(mockRotate).toHaveBeenCalledWith({
+        path: { id: "k1" },
+        body: { graceMinutes: 15 },
+      }),
+    );
+
+    // The successor's raw key replaces the create reveal: same dialog, honest
+    // title.
+    await vi.waitFor(() =>
+      expect(
+        wrapper.find(`[data-testid="${TEST_ID.apiKeyRevealValue}"]`).exists(),
+      ).toBe(true),
+    );
+    expect(wrapper.text()).toContain("New key after rotation");
+    expect(
+      wrapper.get(`[data-testid="${TEST_ID.apiKeyRevealValue}"]`).text(),
+    ).toBe("rotated-secret-value");
+  });
+
+  it("refuses a grace window the API would reject", async () => {
+    const wrapper = mountView();
+    await waitForRows(wrapper, 2);
+
+    await wrapper
+      .find(`[data-testid="${TEST_ID.rotateApiKey}"]`)
+      .trigger("click");
+    await vi.waitFor(() =>
+      expect(
+        wrapper.find(`[data-testid="${TEST_ID.rotateApiKeyGrace}"]`).exists(),
+      ).toBe(true),
+    );
+
+    const grace = wrapper.get(`[data-testid="${TEST_ID.rotateApiKeyGrace}"]`);
+    const submit = () =>
+      wrapper.get(`[data-testid="${TEST_ID.rotateApiKeySubmit}"]`);
+
+    // An empty or fractional value must not silently become 0.
+    await grace.setValue("");
+    expect(submit().attributes("disabled")).toBeDefined();
+    await grace.setValue("0.5");
+    expect(submit().attributes("disabled")).toBeDefined();
+    await grace.setValue("1441");
+    expect(submit().attributes("disabled")).toBeDefined();
+
+    await wrapper.find("form").trigger("submit");
+    expect(mockRotate).not.toHaveBeenCalled();
+
+    await grace.setValue("0");
+    expect(submit().attributes("disabled")).toBeUndefined();
+    await wrapper.find("form").trigger("submit");
+
+    await vi.waitFor(() =>
+      expect(mockRotate).toHaveBeenCalledWith({
+        path: { id: "k1" },
+        body: { graceMinutes: 0 },
+      }),
+    );
+  });
+
+  it("revokes a key with a reason and keeps the row for the audit trail", async () => {
+    mockFindAll.mockResolvedValue({
+      data: [keyDto({ id: "k1", name: "nightly" })],
+    });
+
+    const wrapper = mountView();
+    await waitForRows(wrapper, 1);
+
+    await wrapper
+      .find(`[data-testid="${TEST_ID.revokeApiKey}"]`)
+      .trigger("click");
+    await vi.waitFor(() =>
+      expect(
+        wrapper.find(`[data-testid="${TEST_ID.revokeApiKeyReason}"]`).exists(),
+      ).toBe(true),
+    );
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.revokeApiKeyReason}"]`)
+      .setValue("  compromised in CI  ");
+    await wrapper.find("form").trigger("submit");
+
+    await vi.waitFor(() =>
+      expect(mockRevoke).toHaveBeenCalledWith({
+        path: { id: "k1" },
+        body: { reason: "compromised in CI" },
+      }),
     );
   });
 });

@@ -6,6 +6,8 @@ import {
   useApiKeysQuery,
   useCreateApiKey,
   useDeleteApiKey,
+  useRevokeApiKey,
+  useRotateApiKey,
 } from "@/composables/useApiKeys";
 import { mapIssuedApiKey } from "@/domains/api-keys/api-key.mapper";
 import type {
@@ -20,7 +22,9 @@ import { Button } from "@/components/ui/button";
 import AsyncState from "@/components/AsyncState.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import CreateApiKeyDialog from "@/components/api-keys/CreateApiKeyDialog.vue";
+import RevokeApiKeyDialog from "@/components/api-keys/RevokeApiKeyDialog.vue";
 import RevealApiKeyDialog from "@/components/api-keys/RevealApiKeyDialog.vue";
+import RotateApiKeyDialog from "@/components/api-keys/RotateApiKeyDialog.vue";
 
 const { t } = useI18n();
 const STATUS_KEY: Record<ApiKey["status"], string> = {
@@ -31,13 +35,22 @@ const STATUS_KEY: Record<ApiKey["status"], string> = {
 const { data: apiKeys, isLoading, error, refetch } = useApiKeysQuery();
 const createKey = useCreateApiKey();
 const deleteKey = useDeleteApiKey();
+const rotateKey = useRotateApiKey();
+const revokeKey = useRevokeApiKey();
 
 const createOpen = ref(false);
 const revealOpen = ref(false);
 const revealKey = ref<IssuedApiKey | null>(null);
+// The reveal dialog serves both "here is your new key" moments; the title says
+// which one it is, because a rotation's key replaces a working credential.
+const revealedAfterRotation = ref(false);
 
 const deleteOpen = ref(false);
 const deleteTarget = ref<ApiKey | null>(null);
+const rotateOpen = ref(false);
+const rotateTarget = ref<ApiKey | null>(null);
+const revokeOpen = ref(false);
+const revokeTarget = ref<ApiKey | null>(null);
 
 const keys = computed(() => apiKeys.value ?? []);
 const activeCount = computed(
@@ -74,8 +87,21 @@ function badgeClass(key: ApiKey): string {
     : statusClass[key.status];
 }
 
+// A rotating key is already replaced: rotating it again would mint a second
+// successor for a row that is about to stop working anyway. Revoking stays open
+// for it, because killing the old key early is exactly what a retiring key is
+// for. Revoked and expired keys authenticate nothing, so neither action applies.
+function canRotate(key: ApiKey): boolean {
+  return key.status === "active" && !isRetiring(key);
+}
+
+function canRevoke(key: ApiKey): boolean {
+  return key.status === "active";
+}
+
 function openCreate() {
   createKey.reset();
+  revealedAfterRotation.value = false;
   createOpen.value = true;
 }
 
@@ -87,6 +113,51 @@ function submitCreate(payload: CreateApiKeyInput) {
       revealOpen.value = true;
     },
   });
+}
+
+function requestRotate(key: ApiKey) {
+  rotateKey.reset();
+  rotateTarget.value = key;
+  rotateOpen.value = true;
+}
+
+function submitRotate(payload: { graceMinutes: number }) {
+  const target = rotateTarget.value;
+  if (!target) return;
+  rotateKey.mutate(
+    { id: target.id, ...payload },
+    {
+      onSuccess: (issued) => {
+        rotateOpen.value = false;
+        rotateTarget.value = null;
+        // The successor's raw key exists once, so it goes straight to the same
+        // reveal dialog creation uses.
+        revealedAfterRotation.value = true;
+        revealKey.value = mapIssuedApiKey(issued);
+        revealOpen.value = true;
+      },
+    },
+  );
+}
+
+function requestRevoke(key: ApiKey) {
+  revokeKey.reset();
+  revokeTarget.value = key;
+  revokeOpen.value = true;
+}
+
+function submitRevoke(payload: { reason?: string }) {
+  const target = revokeTarget.value;
+  if (!target) return;
+  revokeKey.mutate(
+    { id: target.id, ...payload },
+    {
+      onSuccess: () => {
+        revokeOpen.value = false;
+        revokeTarget.value = null;
+      },
+    },
+  );
 }
 
 function requestDelete(key: ApiKey) {
@@ -268,7 +339,29 @@ function absolute(iso: string | null): string | undefined {
               </p>
             </div>
 
-            <div class="flex shrink-0 items-center justify-end gap-2">
+            <div class="flex flex-wrap shrink-0 items-center justify-end gap-2">
+              <Button
+                v-if="canRotate(key)"
+                type="button"
+                variant="outline"
+                size="sm"
+                :aria-label="t('apiKeys.rotateAria', { name: key.name })"
+                :data-testid="TEST_ID.rotateApiKey"
+                @click="requestRotate(key)"
+              >
+                {{ t("apiKeys.rotate") }}
+              </Button>
+              <Button
+                v-if="canRevoke(key)"
+                type="button"
+                variant="outline"
+                size="sm"
+                :aria-label="t('apiKeys.revokeAria', { name: key.name })"
+                :data-testid="TEST_ID.revokeApiKey"
+                @click="requestRevoke(key)"
+              >
+                {{ t("apiKeys.revoke") }}
+              </Button>
               <Button
                 type="button"
                 variant="destructive"
@@ -300,8 +393,26 @@ function absolute(iso: string | null): string | undefined {
     <RevealApiKeyDialog
       :open="revealOpen"
       :issued-key="revealKey"
-      :title="t('apiKeys.created')"
+      :title="
+        revealedAfterRotation ? t('apiKeys.rotated') : t('apiKeys.created')
+      "
       @update:open="revealOpen = $event"
+    />
+
+    <RotateApiKeyDialog
+      :open="rotateOpen"
+      :key-name="rotateTarget?.name"
+      :pending="rotateKey.isPending.value"
+      @update:open="rotateOpen = $event"
+      @submit="submitRotate"
+    />
+
+    <RevokeApiKeyDialog
+      :open="revokeOpen"
+      :key-name="revokeTarget?.name"
+      :pending="revokeKey.isPending.value"
+      @update:open="revokeOpen = $event"
+      @submit="submitRevoke"
     />
 
     <ConfirmDialog

@@ -38,7 +38,10 @@ once. `graceMinutes` (default 0) keeps the previous key working for that long, s
 pipeline can be switched without a failed build; omitting `expiresInDays` inherits
 the predecessor's remaining lifetime. Revocation is immediate and records the
 reason in the audit trail. The dashboard shows owner, scopes, project badge, last
-use and expiry per key and offers the one action it should: delete.
+use and expiry per key and offers the same lifecycle from the row: **Rotate**
+(with the grace window), **Revoke** (with an optional reason) and **Delete** (the
+hard removal). A retiring key can be revoked early but not rotated again; a
+revoked or expired key only offers delete.
 
 ## 2. Upload and wait
 

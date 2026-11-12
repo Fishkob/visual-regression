@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: living document · Last reviewed: 2026-11-11 · Owner: maintainers
+Status: living document · Last reviewed: 2026-11-12 · Owner: maintainers
 
 Phases 1–6 are shipped (R1–R26), and the phase-by-phase record — scope,
 acceptance criteria, verification notes, design sketches, the alternatives that
@@ -28,29 +28,49 @@ asks for it) or `trigger` (starts when the named condition holds).
 
 | ID  | Item                                  | Why now / who asks                                                                      | Size | Priority  |
 | --- | ------------------------------------- | --------------------------------------------------------------------------------------- | ---- | --------- |
-| N4  | Typed-confirmation bulk delete        | Bulk test deletion has an API but no multi-row UI, and the delete is irreversible.      | M    | now       |
 | N2  | Cursor pagination for review comments | The read is capped at the newest 200 per test, with no way past them (ADR-040).         | S    | on demand |
-| N10 | Variant-level mute                    | Mute is per test, so it covers every variant; the run gate has no rule for a muted one. | M    | on demand |
+| N10 | Variant-level mute                    | Mute is per test, so one flaky variant silences every variant of that test.             | M    | on demand |
 | N12 | Trusted-header auth behind a proxy    | An IdP proxy authenticates, the guard trusts a header: no dependency, so ADR-025 holds. | S    | on demand |
-| N13 | API-key revoke/rotate in the UI       | The only key action the UI offers is the destructive delete; revoke keeps the row.      | S    | on demand |
 
 N12 covers the deployment that already runs an IdP proxy; one that insists on
 OIDC or SAML inside the app itself stays out of scope.
 
-N4's size is `M` rather than `S–M`: the test list has no selection model at all
-(its rows are variants inside one accordion group per test), and the confirm
-dialog has no mode that requires typing a name — both have to be built.
-
-N13 is a scope question before it is code: `POST /api-keys/:id/rotate` (grace
-window, so CI keeps working until the key is swapped) and `POST
-/api-keys/:id/revoke` (the row and its audit trail stay) are implemented and
-documented in [ci-integration.md](ci-integration.md), while the key list's only
-action is the hard delete. The single recorded mention of the current split is a
-line in [testing.md](testing.md#frontend-e2e-coverage); either that decision is
-confirmed, or the two actions get their buttons.
+N10 lost its second half: the run gate no longer counts a muted pending
+comparison (`run-state.policy.ts` subtracts `mutedPending`), so muted work already
+does not fail a run. What remains is granularity — a test-level mute covers every
+variant, and a variant that is known-unstable cannot be muted on its own.
 
 ### Shipped
 
+- **N13 — rotate and revoke in the API-key list** (2026-11-12). The list could
+  already render a revoked or a retiring key, but its only action was the hard
+  delete — the one action that takes the row and its audit trail with it. A live
+  key now offers Rotate (active, not already replaced) and Revoke (any active
+  key, including a retiring one); revoked and expired rows keep only Delete.
+  Rotate asks for the endpoint's grace window (0–1440 minutes, default 60) and
+  hands the successor's one-time raw key to the same reveal dialog creation uses,
+  with its own title; Revoke takes an optional reason (≤200 characters) and keeps
+  the row. The backend is unchanged — both were already session-only admin
+  routes. Component tests pin the per-status visibility, the grace validation
+  and both payloads, the CT suite pins the rotate/reveal and revoke flows, and a
+  keyboard case pins the rotation dialog's focus. The line in
+  [ci-integration.md](ci-integration.md#key-lifecycle) claiming the dashboard
+  offers "the one action it should: delete" is gone with the code it described.
+- **N4 — typed-confirmation bulk delete** (2026-11-12). The project page's
+  accordion group is the test, so selection is per test, not per variant row: a
+  header checkbox marks the whole test, "select all" takes every test the branch
+  owns, and a group that only exists as an inherited shadow on this branch gets
+  no checkbox because the endpoint would answer `NOT_FOUND` for it. The delete
+  goes through the existing `POST .../bulk/test-deletions` with the branch, lands
+  its per-test failures in the existing failure dialog, and refreshes the
+  directory, the project counts and the inbox. `ConfirmDialog` gained a typed
+  confirmation: the selection is deleted only after the project name is typed,
+  and the text resets on every reopening so a reopened dialog cannot be confirmed
+  by a leftover match; callers that pass no phrase keep the plain confirm. A
+  component test pins the payload, select-all and the failure rows, the CT flow
+  pins disabled → typed → request, the CT keyboard case pins focus in / Escape /
+  focus back, and the endpoint's own behaviour stays covered by
+  `bulk-actions.e2e-spec.ts`.
 - **N3 — project rename UI** (2026-11-11). The settings page gained the project's
   name as its first section and the dialog behind it; an admin (and a member — the
   PATCH endpoint is gated by the API-key scope, not by `@Roles`) renames without

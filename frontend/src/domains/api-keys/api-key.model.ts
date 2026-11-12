@@ -13,6 +13,12 @@ export const DEFAULT_API_KEY_SCOPES: ApiKeyScope[] = ["upload"];
 // label, so the API and the dialog must refuse the same length.
 export const API_KEY_NAME_MAX_LENGTH = 50;
 
+// Mirrors MAX_GRACE_MINUTES in the rotate DTO (24 h) and the revoke DTO's
+// reason limit: the dialog validates the same bounds the API enforces, so a
+// number the server would reject never leaves the form.
+export const API_KEY_GRACE_MAX_MINUTES = 1440;
+export const API_KEY_REVOKE_REASON_MAX_LENGTH = 200;
+
 export const API_KEY_SCOPE_DESCRIPTION: Record<ApiKeyScope, string> = {
   upload: "Upload captures and read the job status of those uploads.",
   read: "Read projects, runs, trends and audit data.",

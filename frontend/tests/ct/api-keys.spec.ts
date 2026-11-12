@@ -3,6 +3,8 @@ import {
   API_KEYS_EMPTY_RESPONSE,
   API_KEYS_RESPONSE,
   CREATED_API_KEY_RESPONSE,
+  REVOKED_API_KEY_RESPONSE,
+  ROTATED_API_KEY_RESPONSE,
 } from "./mocks/apiKeys.mocks";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -32,15 +34,29 @@ async function mockApiKeysBackend(
       }),
     }),
   );
-  await page.route(`**${API_KEYS_PATH}/*`, (route) =>
-    route.request().method() === "DELETE"
-      ? route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({ success: true }),
-        })
-      : route.continue(),
-  );
+  // One row action per lifecycle step: delete removes, rotate answers with the
+  // successor's one-time key, revoke returns the row it retired.
+  await page.route(`**${API_KEYS_PATH}/**`, async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (request.method() === "DELETE") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ success: true }),
+      });
+      return;
+    }
+    if (request.method() === "POST" && path.endsWith("/rotate")) {
+      await route.fulfill(ROTATED_API_KEY_RESPONSE);
+      return;
+    }
+    if (request.method() === "POST" && path.endsWith("/revoke")) {
+      await route.fulfill(REVOKED_API_KEY_RESPONSE);
+      return;
+    }
+    await route.continue();
+  });
 }
 
 test.describe("API keys", () => {
@@ -175,5 +191,93 @@ test.describe("API keys", () => {
     await page.getByTestId(TEST_ID.dialogConfirm).click();
 
     expect((await request).method()).toBe("DELETE");
+  });
+
+  test("offers rotate only for active keys and revoke for every live key", async ({
+    mount,
+    page,
+  }) => {
+    await mockApiKeysBackend(page);
+
+    const component = await mount("views/ApiKeysView/ApiKeys");
+    const rows = component.getByTestId(TEST_ID.apiKeyRow);
+    await expect(rows).toHaveCount(4);
+
+    const active = rows.filter({ hasText: "ci-upload" });
+    await expect(active.getByTestId(TEST_ID.rotateApiKey)).toBeVisible();
+    await expect(active.getByTestId(TEST_ID.revokeApiKey)).toBeVisible();
+
+    // A retiring key is already replaced: revoking it early is useful, a second
+    // rotation would mint another successor.
+    const retiring = rows.filter({ hasText: "release-check" });
+    await expect(retiring.getByTestId(TEST_ID.rotateApiKey)).toHaveCount(0);
+    await expect(retiring.getByTestId(TEST_ID.revokeApiKey)).toBeVisible();
+
+    // A revoked key authenticates nothing; only the hard delete remains.
+    const revoked = rows.filter({ hasText: "retired-ci" });
+    await expect(revoked.getByTestId(TEST_ID.rotateApiKey)).toHaveCount(0);
+    await expect(revoked.getByTestId(TEST_ID.revokeApiKey)).toHaveCount(0);
+  });
+
+  test("rotates a key after a grace window and reveals the successor", async ({
+    mount,
+    page,
+  }) => {
+    await mockApiKeysBackend(page);
+
+    const component = await mount("views/ApiKeysView/ApiKeys");
+    const row = component
+      .getByTestId(TEST_ID.apiKeyRow)
+      .filter({ hasText: "ci-upload" });
+    await row.getByTestId(TEST_ID.rotateApiKey).click();
+
+    const grace = page.getByTestId(TEST_ID.rotateApiKeyGrace);
+    await expect(grace).toHaveValue("60");
+    await grace.fill("15");
+
+    const request = page.waitForRequest(
+      (candidate) =>
+        candidate.method() === "POST" &&
+        new URL(candidate.url()).pathname === `${API_KEYS_PATH}/k1/rotate`,
+    );
+    await page.getByTestId(TEST_ID.rotateApiKeySubmit).click();
+
+    expect(JSON.parse((await request).postData() ?? "{}")).toEqual({
+      graceMinutes: 15,
+    });
+    await expect(page.getByTestId(TEST_ID.apiKeyReveal)).toBeVisible();
+    await expect(page.getByTestId(TEST_ID.apiKeyRevealValue)).toHaveText(
+      "rotated-secret-value-9c1d",
+    );
+  });
+
+  test("revokes a key with a reason and keeps the row", async ({
+    mount,
+    page,
+  }) => {
+    await mockApiKeysBackend(page);
+
+    const component = await mount("views/ApiKeysView/ApiKeys");
+    const row = component
+      .getByTestId(TEST_ID.apiKeyRow)
+      .filter({ hasText: "ci-upload" });
+    await row.getByTestId(TEST_ID.revokeApiKey).click();
+
+    const reason = page.getByTestId(TEST_ID.revokeApiKeyReason);
+    await reason.fill("compromised in CI");
+
+    const request = page.waitForRequest(
+      (candidate) =>
+        candidate.method() === "POST" &&
+        new URL(candidate.url()).pathname === `${API_KEYS_PATH}/k1/revoke`,
+    );
+    await page.getByTestId(TEST_ID.revokeApiKeySubmit).click();
+
+    expect(JSON.parse((await request).postData() ?? "{}")).toEqual({
+      reason: "compromised in CI",
+    });
+    await expect(reason).toBeHidden();
+    // Revoking keeps the row; only Delete removes it.
+    await expect(component.getByTestId(TEST_ID.apiKeyRow)).toHaveCount(4);
   });
 });

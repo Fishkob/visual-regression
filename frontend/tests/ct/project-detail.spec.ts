@@ -590,3 +590,74 @@ test.describe("ProjectDetail row actions", () => {
     );
   });
 });
+
+test.describe("ProjectDetail bulk delete", () => {
+  test("deletes the selected tests only after the project name is typed", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+
+    let bulkBody: unknown;
+    await page.route(
+      "**/api/v1/projects/checkout-ui/bulk/test-deletions",
+      async (route) => {
+        bulkBody = route.request().postDataJSON();
+        const { testNames } = bulkBody as { testNames: string[] };
+        await route.fulfill({
+          status: 201,
+          contentType: "application/json",
+          body: JSON.stringify({
+            deleted: testNames.map((id) => ({ id, success: true })),
+            failed: [],
+          }),
+        });
+      },
+    );
+
+    const component = await mount<typeof Routed>(
+      "views/ProjectDetailView/Routed",
+      { initialRoute: "/projects/checkout-ui" },
+    );
+
+    const checkout = component
+      .getByTestId(TEST_ID.testResultCard)
+      .filter({ hasText: "checkout-flow" });
+    await checkout.getByTestId(TEST_ID.testSelectRow).check();
+    await expect(component.getByTestId(TEST_ID.testBulkBar)).toContainText(
+      "1 test selected",
+    );
+
+    await component.getByTestId(TEST_ID.testBulkDelete).click();
+
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toBeVisible();
+    await expect(page.getByTestId(TEST_ID.dialogDescription)).toContainText(
+      "Deletes 1 test with every variant",
+    );
+
+    // The click alone is not the confirmation: the project name has to be typed.
+    const confirm = page.getByTestId(TEST_ID.dialogConfirm);
+    await expect(confirm).toBeDisabled();
+    await page.getByTestId(TEST_ID.dialogRequiredText).fill("checkout-u");
+    await expect(confirm).toBeDisabled();
+    await page.getByTestId(TEST_ID.dialogRequiredText).fill("checkout-ui");
+    await expect(confirm).toBeEnabled();
+    await confirm.click();
+
+    await expect
+      .poll(() => bulkBody)
+      .toEqual({
+        testNames: ["checkout-flow"],
+        branch: "main",
+      });
+    await expect(dialog).toBeHidden();
+    await expect(component.getByTestId(TEST_ID.testBulkBar)).toContainText(
+      "0 tests selected",
+    );
+  });
+});
