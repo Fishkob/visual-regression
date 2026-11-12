@@ -1,18 +1,21 @@
-import { unref } from "vue";
+import { computed, unref } from "vue";
 import type { QueryClient } from "@tanstack/vue-query";
+import { useInfiniteQuery } from "@tanstack/vue-query";
 import {
   reviewCommentControllerCreate,
   reviewCommentControllerList,
   reviewCommentControllerResolve,
   type CommentDto,
 } from "@sdk";
+import { unwrapSdkData } from "@/lib/sdk";
 import { translateMessage as tm } from "@/lib/i18n-messages";
 import { useSdkMutation } from "@/composables/useSdkMutation";
-import { useSdkQuery, type MaybeRef } from "@/composables/useDomainQuery";
+import type { MaybeRef } from "@/composables/useDomainQuery";
 import { mapComment, mapComments } from "@/domains/comments/comment.mapper";
-import type {
-  CreateReviewCommentInput,
-  ReviewComment,
+import {
+  COMMENT_PAGE_SIZE,
+  type CreateReviewCommentInput,
+  type ReviewComment,
 } from "@/domains/comments/comment.model";
 import {
   commentQueryKeys,
@@ -23,6 +26,11 @@ function invalidate(client: QueryClient) {
   client.invalidateQueries({ queryKey: commentQueryKeys.lists() });
 }
 
+// The thread is read newest-first and paged by cursor. A page that comes back
+// full may have an older neighbour — that is the only signal an array response
+// carries — so `hasOlder` is exactly "the last page filled the window", and the
+// thread end is a short (or empty) page. Pages are held newest-first and
+// stitched in reverse so the panel still renders one chronological list.
 export function useReviewComments(
   projectName: MaybeRef<string>,
   testName: MaybeRef<string>,
@@ -30,36 +38,56 @@ export function useReviewComments(
   comparisonId: MaybeRef<string | undefined>,
   onlyComparison: MaybeRef<boolean>,
 ) {
-  const query = useSdkQuery({
-    // The generated list DTO still marks both query members as required, while
-    // the endpoint treats them as optional filters. Build only the supplied
-    // members and cast at the SDK seam so an "all comments" read sends neither.
-    args: {
-      projectName,
-      testName,
-      branch,
-      comparisonId,
-      onlyComparison,
-    },
-    required: ["projectName", "testName"],
-    keyOf: ({ projectName, testName, branch, comparisonId, onlyComparison }) =>
-      commentQueryKeys.list(projectName, testName, {
-        ...(onlyComparison && comparisonId ? { comparisonId } : {}),
-        ...(branch ? { branch } : {}),
-      }),
-    sdkFn: ({ projectName, testName, branch, comparisonId, onlyComparison }) =>
-      reviewCommentControllerList({
-        path: { projectName, testName },
-        query: {
-          ...(onlyComparison && comparisonId ? { comparisonId } : {}),
-          ...(branch ? { branch } : {}),
-        } as unknown as CommentListFilters as {
-          comparisonId: string;
-          branch: string;
-        },
-      }),
-    map: (dtos: CommentDto[] | undefined) => mapComments(dtos),
+  const filters = computed<CommentListFilters>(() => {
+    const scopedComparison = unref(onlyComparison)
+      ? unref(comparisonId)
+      : undefined;
+    const scopedBranch = unref(branch);
+    return {
+      ...(scopedComparison ? { comparisonId: scopedComparison } : {}),
+      ...(scopedBranch ? { branch: scopedBranch } : {}),
+    };
   });
+
+  const enabled = computed(() =>
+    Boolean(unref(projectName) && unref(testName)),
+  );
+
+  const query = useInfiniteQuery({
+    queryKey: computed(() =>
+      enabled.value
+        ? commentQueryKeys.list(
+            unref(projectName),
+            unref(testName),
+            filters.value,
+          )
+        : [],
+    ),
+    enabled,
+    initialPageParam: undefined as string | undefined,
+    queryFn: async ({ pageParam }) => {
+      const response = await reviewCommentControllerList({
+        path: {
+          projectName: unref(projectName),
+          testName: unref(testName),
+        },
+        query: {
+          ...filters.value,
+          limit: COMMENT_PAGE_SIZE,
+          ...(pageParam ? { before: pageParam } : {}),
+        },
+      });
+      return mapComments(unwrapSdkData<CommentDto[]>(response));
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage.length === COMMENT_PAGE_SIZE ? lastPage[0]?.id : undefined,
+  });
+
+  // Pages arrive newest-first, each page oldest→newest inside; reversing the
+  // page order before flattening keeps the thread chronological.
+  const comments = computed<ReviewComment[]>(() =>
+    [...(query.data.value?.pages ?? [])].reverse().flat(),
+  );
 
   const create = useSdkMutation<CommentDto, CreateReviewCommentInput>({
     mutationFn: (input) =>
@@ -87,6 +115,7 @@ export function useReviewComments(
           testName: unref(testName),
           id,
         },
+        query: unref(branch) ? { branch: unref(branch) } : undefined,
       }),
     successMessage: tm("comments.resolvedToast"),
     errorMessage: tm("comments.resolveError"),
@@ -94,8 +123,13 @@ export function useReviewComments(
   });
 
   return {
-    ...query,
-    comments: query.data as unknown as ReviewComment[] | undefined,
+    data: comments,
+    isLoading: computed(() => query.isLoading.value),
+    error: computed(() => query.error.value),
+    refetch: query.refetch,
+    hasOlder: computed(() => query.hasNextPage.value),
+    isFetchingOlder: computed(() => query.isFetchingNextPage.value),
+    fetchOlder: () => query.fetchNextPage(),
     create,
     resolve,
     mapCreated: (dto: CommentDto | undefined) => mapComment(dto as CommentDto),

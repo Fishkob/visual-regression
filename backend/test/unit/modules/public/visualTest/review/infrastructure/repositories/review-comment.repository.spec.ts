@@ -65,9 +65,44 @@ describe('ReviewCommentRepository', () => {
         oldest,
       ]);
 
-      const rows = await repository.listForTest('test-1');
+      const rows = await repository.listForTest('test-1', { limit: 200 });
 
       expect(rows.map((row) => row.id)).toEqual(['c-1', 'c-2', 'c-3']);
+    });
+
+    it('pages with the (createdAt, id) pair the query sorts by', async () => {
+      // The cursor is a pair: a bare id is not time-ordered, and a bare
+      // timestamp would drop the tie-break between comments written in the same
+      // millisecond. The filter must be exactly "sorts after the cursor" in the
+      // same descending order, or a page skips or repeats a row.
+      mockClient.reviewComment.findMany.mockResolvedValue([]);
+
+      await repository.listForTest('test-1', {
+        comparisonId: 'cmp-1',
+        before: {
+          id: 'c-2',
+          createdAt: new Date('2026-01-02T00:00:00.000Z'),
+        },
+        limit: 50,
+      });
+
+      expect(mockClient.reviewComment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            testId: 'test-1',
+            comparisonId: 'cmp-1',
+            OR: [
+              { createdAt: { lt: new Date('2026-01-02T00:00:00.000Z') } },
+              {
+                createdAt: new Date('2026-01-02T00:00:00.000Z'),
+                id: { lt: 'c-2' },
+              },
+            ],
+          }),
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 50,
+        }),
+      );
     });
   });
 });

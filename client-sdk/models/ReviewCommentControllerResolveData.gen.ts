@@ -7,6 +7,11 @@ export type ReviewCommentControllerResolveData = {
         testName: string;
         id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * Branch the thread belongs to (defaults to the project default)
+         */
+        branch?: string;
+    };
     url: '/projects/{projectName}/tests/{testName}/comments/{id}/resolve';
 };

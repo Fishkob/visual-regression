@@ -1299,6 +1299,8 @@
     "resolveError": "Could not resolve the comment",
     "resolvedBy": "Resolved by {user}",
     "resolvedGroup": "Resolved ({count})",
+    "loadOlder": "Load older comments",
+    "loadingOlder": "Loading older comments…",
     "submitHint": "Ctrl + Enter"
   }
 }

@@ -45,6 +45,18 @@ const counts = reactive<Record<TabKey, number>>({
   approvals: 0,
 });
 
+// The thread is paged, so a full page only tells us there *may* be older
+// comments; the tab then says "at least N" instead of pretending the loaded
+// page is the whole discussion.
+const commentsHaveOlder = ref(false);
+
+function tabCount(key: TabKey): string {
+  const count = counts[key];
+  return key === "comments" && commentsHaveOlder.value
+    ? `${count}+`
+    : `${count}`;
+}
+
 const active = ref<TabKey>("comments");
 const userPicked = ref(false);
 
@@ -154,7 +166,7 @@ function onKeydown(event: KeyboardEvent) {
           "
           :data-testid="TEST_ID.activityTabCount"
         >
-          {{ counts[tab.key] }}
+          {{ tabCount(tab.key) }}
         </span>
       </button>
     </div>
@@ -173,6 +185,7 @@ function onKeydown(event: KeyboardEvent) {
         :comparison-id="comparisonId"
         :read-only="readOnly"
         @update:count="counts.comments = $event"
+        @update:has-older="commentsHaveOlder = $event"
       />
     </div>
 

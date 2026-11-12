@@ -138,14 +138,63 @@ describe('ReviewCommentService', () => {
     });
     comments.listForTest.mockResolvedValue([row]);
 
-    await service.list('shop', 'login', undefined, 'feature/x');
+    await service.list('shop', 'login', { branch: 'feature/x' });
 
     expect(testResolver.findTest).toHaveBeenCalledWith(
       'shop',
       'login',
       'feature/x',
     );
-    expect(comments.listForTest).toHaveBeenCalledWith('test-1', undefined);
+    expect(comments.listForTest).toHaveBeenCalledWith('test-1', {
+      comparisonId: undefined,
+      before: undefined,
+      limit: 200,
+    });
+  });
+
+  it('pages a thread from the cursor pair instead of re-reading the newest 200', async () => {
+    const cursor = {
+      ...row,
+      id: 'c-40',
+      createdAt: new Date('2026-01-02T00:00:00Z'),
+    };
+    comments.findById.mockResolvedValue(cursor);
+    comments.listForTest.mockResolvedValue([row]);
+
+    await service.list('shop', 'login', { before: 'c-40', limit: 50 });
+
+    expect(comments.listForTest).toHaveBeenCalledWith('test-1', {
+      comparisonId: undefined,
+      before: { id: 'c-40', createdAt: cursor.createdAt },
+      limit: 50,
+    });
+  });
+
+  it('rejects a cursor that belongs to another thread', async () => {
+    // A cursor from a different test cannot anchor this thread: answering with
+    // rows would silently start the page at a point that test never saw, so the
+    // missing cursor is a 404 like a missing filter value.
+    comments.findById.mockResolvedValue({ ...row, testId: 'test-2' });
+
+    await expect(
+      service.list('shop', 'login', { before: 'c-1' }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+
+    expect(comments.listForTest).not.toHaveBeenCalled();
+  });
+
+  it('rejects a page size outside the window instead of clamping it', async () => {
+    // A silent clamp would answer a request for 500 comments with 200 and no
+    // hint that the page was cut — the same silent truncation the cursor exists
+    // to remove.
+    await expect(
+      service.list('shop', 'login', { limit: 201 }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    await expect(
+      service.list('shop', 'login', { limit: 0 }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+
+    expect(comments.listForTest).not.toHaveBeenCalled();
   });
 
   it('resolves a comment on the owning branch', async () => {

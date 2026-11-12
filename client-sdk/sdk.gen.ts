@@ -596,7 +596,7 @@ export const projectsBulkControllerMove = <ThrowOnError extends boolean = false>
 });
 
 /**
- * List review comments for a test or comparison
+ * List review comments for a test or comparison (paged by cursor)
  */
 export const reviewCommentControllerList = <ThrowOnError extends boolean = false>(options: Options<ReviewCommentControllerListData, ThrowOnError>): RequestResult<ReviewCommentControllerListResponses, unknown, ThrowOnError> => (options.client ?? client).get<ReviewCommentControllerListResponses, unknown, ThrowOnError>({
     security: [{

@@ -6,9 +6,23 @@ export type ReviewCommentControllerListData = {
         projectName: string;
         testName: string;
     };
-    query: {
-        comparisonId: string;
-        branch: string;
+    query?: {
+        /**
+         * Only comments anchored to this comparison
+         */
+        comparisonId?: string;
+        /**
+         * Branch to read (defaults to the project default branch)
+         */
+        branch?: string;
+        /**
+         * Cursor: the id of the oldest comment already received; returns older comments
+         */
+        before?: string;
+        /**
+         * Page size
+         */
+        limit?: number;
     };
     url: '/projects/{projectName}/tests/{testName}/comments';
 };

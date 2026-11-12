@@ -22,9 +22,11 @@ const props = defineProps<{
 }>();
 
 // The rail owns the section header and its tab, so this panel is content only.
-// It reports the thread size upwards so the tab can carry the count.
+// It reports the thread size upwards so the tab can carry the count — and
+// whether an older page exists, because the count then reads "at least N".
 const emit = defineEmits<{
   "update:count": [count: number];
+  "update:hasOlder": [hasOlder: boolean];
 }>();
 
 const { t } = useI18n();
@@ -37,6 +39,9 @@ const {
   isLoading,
   error,
   refetch,
+  hasOlder,
+  isFetchingOlder,
+  fetchOlder,
   create,
   resolve,
 } = useReviewComments(
@@ -50,6 +55,9 @@ const {
 const list = computed(() => comments.value ?? []);
 
 watch(list, (thread) => emit("update:count", thread.length), {
+  immediate: true,
+});
+watch(hasOlder, (older) => emit("update:hasOlder", older), {
   immediate: true,
 });
 
@@ -133,6 +141,24 @@ function resolvedMeta(comment: ReviewComment): string {
             <span class="sr-only">{{ t("common.loading") }}</span>
           </div>
         </template>
+
+        <div v-if="hasOlder" class="flex justify-center py-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            class="text-xs text-muted-foreground"
+            :disabled="isFetchingOlder"
+            :data-testid="TEST_ID.commentsLoadOlder"
+            @click="fetchOlder"
+          >
+            {{
+              isFetchingOlder
+                ? t("comments.loadingOlder")
+                : t("comments.loadOlder")
+            }}
+          </Button>
+        </div>
 
         <ul v-if="openComments.length > 0" class="divide-y">
           <li

@@ -6,7 +6,7 @@ import { TEST_ID } from "@/lib/test-ids";
 const CommentsPanelStub = {
   name: "CommentsPanel",
   template: "<div />",
-  emits: ["update:count"],
+  emits: ["update:count", "update:hasOlder"],
   props: ["projectName", "testName", "branch", "comparisonId", "readOnly"],
 };
 
@@ -123,6 +123,22 @@ describe("DetailActivityRail", () => {
     ).toBe("true");
     expect(visiblePanel(wrapper)).toBe("history");
     expect(tab(wrapper, TEST_ID.activityTabHistory).text()).toContain("2");
+  });
+
+  it("marks a paged comment count as at least that many", async () => {
+    const wrapper = mountRail();
+    const comments = wrapper.findComponent({ name: "CommentsPanel" });
+
+    await reportCount(wrapper, "CommentsPanel", 200);
+    await comments.vm.$emit("update:hasOlder", true);
+
+    expect(tab(wrapper, TEST_ID.activityTabComments).text()).toContain("200+");
+
+    // The last page is the thread end: the tab goes back to the exact count.
+    await comments.vm.$emit("update:hasOlder", false);
+
+    expect(tab(wrapper, TEST_ID.activityTabComments).text()).toContain("200");
+    expect(tab(wrapper, TEST_ID.activityTabComments).text()).not.toContain("+");
   });
 
   it("prefers the discussion over the history when both have content", async () => {

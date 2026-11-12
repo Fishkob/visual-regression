@@ -26,11 +26,10 @@ including tests, docs and review (`S` ≈ 1–3 days, `M` ≈ 1–2 weeks, `L` �
 2–4 weeks). `Priority` is `now` (next up), `on demand` (starts when a deployment
 asks for it) or `trigger` (starts when the named condition holds).
 
-| ID  | Item                                  | Why now / who asks                                                                      | Size | Priority  |
-| --- | ------------------------------------- | --------------------------------------------------------------------------------------- | ---- | --------- |
-| N2  | Cursor pagination for review comments | The read is capped at the newest 200 per test, with no way past them (ADR-040).         | S    | on demand |
-| N10 | Variant-level mute                    | Mute is per test, so one flaky variant silences every variant of that test.             | M    | on demand |
-| N12 | Trusted-header auth behind a proxy    | An IdP proxy authenticates, the guard trusts a header: no dependency, so ADR-025 holds. | S    | on demand |
+| ID  | Item                               | Why now / who asks                                                                      | Size | Priority  |
+| --- | ---------------------------------- | --------------------------------------------------------------------------------------- | ---- | --------- |
+| N10 | Variant-level mute                 | Mute is per test, so one flaky variant silences every variant of that test.             | M    | on demand |
+| N12 | Trusted-header auth behind a proxy | An IdP proxy authenticates, the guard trusts a header: no dependency, so ADR-025 holds. | S    | on demand |
 
 N12 covers the deployment that already runs an IdP proxy; one that insists on
 OIDC or SAML inside the app itself stays out of scope.
@@ -41,6 +40,25 @@ does not fail a run. What remains is granularity — a test-level mute covers ev
 variant, and a variant that is known-unstable cannot be muted on its own.
 
 ### Shipped
+
+- **N2 — cursor pagination for review comments** (2026-11-12). The read still
+  returns the newest 200, but it now takes `limit` (1–200) and `before` — the id
+  of the oldest comment the caller holds — so a thread is no longer frozen at its
+  200th-newest post. The cursor is the `(createdAt, id)` pair the query already
+  sorts by (and `createdAt` is `TIMESTAMP(3)`), so a page neither skips nor
+  repeats a row; a cursor from another thread is a 404, not a silent read from an
+  unrelated point. The response stays a `CommentDto[]`: a full page is the only
+  "there may be older" signal that shape carries, so the panel's "load older"
+  control appears on a full page, disappears at the thread end, and the rail's
+  tab count reads `200+` until then — no envelope, no client-SDK major. The list
+  query became a DTO (whitelist, so an unknown parameter is a 422), and that DTO
+  closed a hole the resolve route had: `branch` was read from `@Query` but never
+  reached the OpenAPI contract, so no client could send the branch a comment on a
+  feature branch needs — it can now, and "resolves a comment on the branch the
+  thread belongs to" pins both answers. The panel's thread is a TanStack infinite
+  query that stitches older pages in front; the repository's policy test, the
+  service's cursor cases, a 205-comment two-page e2e partition and the panel's
+  load-older test pin it.
 
 - **N13 — rotate and revoke in the API-key list** (2026-11-12). The list could
   already render a revoked or a retiring key, but its only action was the hard

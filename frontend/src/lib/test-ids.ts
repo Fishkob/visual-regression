@@ -64,6 +64,7 @@ export const TEST_ID = {
   commentsSubmit: "comments-submit",
   commentsResolvedToggle: "comments-resolved-toggle",
   commentsResolvedGroup: "comments-resolved-group",
+  commentsLoadOlder: "comments-load-older",
   commentRow: "comment-row",
   commentResolve: "comment-resolve",
   commentResolved: "comment-resolved",
