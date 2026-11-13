@@ -101,8 +101,7 @@ expect("@fishkob/vrt ComparisonOutcome", root.ComparisonOutcome, "object");
 expect("@fishkob/vrt/client createClient", client.createClient, "function");
 expect("@fishkob/vrt/client createConfig", client.createConfig, "function");
 expect("@fishkob/vrt/upload-many uploadMany", uploadMany.uploadMany, "function");
-expect("@fishkob/vrt/playwright createVrtReporter", playwright.createVrtReporter, "function");
-expect("@fishkob/vrt/playwright default export", playwright.default, "function");
+expect("@fishkob/vrt/playwright createVrt", playwright.createVrt, "function");
 process.stdout.write(`  ${Object.keys(root).length} runtime exports\n`);
 '
 
@@ -111,22 +110,23 @@ cat >consumer.ts <<'TS'
 import { uploadControllerUpload, type ClientOptions, type UploadControllerUploadResponse } from '@fishkob/vrt';
 import { createClient, createConfig } from '@fishkob/vrt/client';
 import { uploadMany, type CaptureUpload, type CaptureUploadResult } from '@fishkob/vrt/upload-many';
-import { createVrtReporter, type PlaywrightReporterOptions } from '@fishkob/vrt/playwright';
+import { createVrt, type VrtClientOptions, type VrtTestInfo } from '@fishkob/vrt/playwright';
 
 export const consumers: [
   typeof uploadControllerUpload,
   typeof createClient,
   typeof createConfig,
   typeof uploadMany,
-  typeof createVrtReporter,
-] = [uploadControllerUpload, createClient, createConfig, uploadMany, createVrtReporter];
+  typeof createVrt,
+] = [uploadControllerUpload, createClient, createConfig, uploadMany, createVrt];
 
 export type ConsumerTypes = [
   ClientOptions,
   UploadControllerUploadResponse,
   CaptureUpload,
   CaptureUploadResult,
-  PlaywrightReporterOptions,
+  VrtClientOptions,
+  VrtTestInfo,
 ];
 TS
 TSC="$PROJECT_ROOT/client-sdk/node_modules/.bin/tsc"

@@ -161,9 +161,11 @@ The run's JUnit, HTML and CSV reports come from
 `GET /api/v1/projects/{project}/runs/{runKey}/report/{format}`; the formats are
 described in [Reports and trends](#5-reports-and-trends).
 
-## 4. Playwright reporter (SDK)
+## 4. Playwright captures (SDK)
 
-The TypeScript client ships a Playwright reporter that uploads a test's screenshot attachment when the test ends. It needs no Playwright dependency at runtime and never fails the test run when VRT is unreachable.
+The TypeScript client uploads what a test captures — a page, a buffer or a PDF —
+with one call. There is no reporter and no attachment, so nothing is inferred
+from Playwright's artifact list and the bytes never pass through `test-results/`.
 
 The client is published to npm as `@fishkob/vrt` and versions independently of the platform. It speaks `/api/v1`, so any recent client works with any server on that API version. For an installation without registry access, pack the package where the registry is reachable and carry the tarball over — npm is the artifact store, the release page carries the notes ([ADR-073](adr/ADR-073-release-assets-and-immutable-releases.md)).
 
@@ -176,38 +178,77 @@ npm i ./fishkob-vrt-1.0.0.tgz
 ```
 
 ```ts
-// playwright.config.ts
-import { defineConfig } from "@playwright/test";
+// tests/vrt.ts
+import { createVrt } from "@fishkob/vrt/playwright";
 
-export default defineConfig({
-  reporter: [
-    ["list"],
-    [
-      "@fishkob/vrt/playwright",
-      {
-        apiUrl: "https://vrt.example.com/api/v1",
-        apiKey: process.env.VRT_API_KEY!,
-        project: "checkout",
-        runKey: process.env.CI_RUN_ID,
-        branch: process.env.CI_BRANCH || "main",
-        environment: "ci",
-        uploadOnFailureOnly: false,
-      },
-    ],
-  ],
+export const vrt = createVrt({
+  apiUrl: "https://vrt.example.com/api/v1",
+  apiKey: process.env.VRT_API_KEY!,
+  project: "checkout",
+  runKey: process.env.CI_RUN_ID,
+  branch: process.env.CI_BRANCH || "main",
+  environment: "ci",
 });
 ```
 
-- The reporter uploads the first attachment whose content type or name looks like a screenshot (`image/png`) or PDF, into `<project>`, and names the test after the Playwright title path. A test name is a path segment, so it is reduced to `[A-Za-z0-9_-]`, at most 100 characters: `checkout.spec.ts / cart summary` becomes `checkout-spec-ts-cart-summary`. An over-long name keeps a stable hash of the full title path, so two tests that share a prefix stay two tests.
-- The test attaches the capture itself: `testInfo.attach("screenshot", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" })`. Playwright attaches a `toHaveScreenshot` image only when it writes or diffs a snapshot, so a matching assertion uploads nothing of its own.
-- `uploadOnFailureOnly: true` uploads only failed/timed-out tests; `skipRetries: true` ignores Playwright's retry attempts so only the final result is uploaded.
-- `concurrency`/`maxAttempts` are forwarded to `uploadMany` (default 4 / 3). Upload failures are collected in `reporter.results()` and via `onUpload`; they do not fail the test run.
-- `apiUrl` is the API root and carries `/api/v1`.
-- See [client-sdk/README.md](../client-sdk/README.md) for the full `uploadMany` API, the other subpath imports and how the tarball is built.
+```ts
+// checkout.spec.ts
+import { test } from "@playwright/test";
+import { vrt } from "./vrt";
+
+test("cart summary", async ({ page }, testInfo) => {
+  await page.goto("/cart");
+  await vrt.capture(testInfo, page);
+});
+```
+
+- `capture(testInfo, page)` screenshots the page (`fullPage: true` unless `{ fullPage: false }`) and uploads it immediately into `<project>`, under the title path reduced to `[A-Za-z0-9_-]`, at most 100 characters: `checkout.spec.ts / cart summary` becomes `checkout-spec-ts-cart-summary`. An over-long name keeps a stable hash of the full title path, so two tests that share a prefix stay two tests.
+- Bytes work as well: `vrt.capture(testInfo, await page.pdf(), { kind: "pdf" })` for a PDF, or a buffer you produced yourself. A PDF buffer is recognised by its `%PDF-` header when `kind` is omitted.
+- The first capture of a variant creates the project, the branch and the baseline; later captures are compared against it. `viewport`, `browser` and `environment` are the Variant and are matched verbatim, case included.
+- A failed upload never fails the test run: `capture` resolves to a `CaptureUploadResult` (`ok: false`, `error`) and `onUpload` receives it. A page that cannot be screenshotted throws — that is a test bug, not an upload failure.
+- The remaining client options (`commitSha`/`commitMessage`/`ciUrl`, `configPath`, `maxAttempts`, `onUpload`, `onConfigError`) are on `VrtClientOptions` in the published types.
+- See [client-sdk/README.md](../client-sdk/README.md) for the full API and how the tarball is built.
+
+### Upload failures only
+
+Call the client from an `afterEach` and skip the tests that ended as expected:
+
+```ts
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus) return;
+  await vrt.capture(testInfo, page);
+});
+```
+
+The hook runs per attempt. A suite that does not want a flaky first attempt in
+the inbox checks `testInfo.retry` as well.
+
+### Turning uploads off
+
+The `capture` call is the switch: leave it out for a test, or make the client
+conditional so a pipeline without the secret sends nothing while the tests keep
+calling `vrt?.capture(testInfo, page)`:
+
+```ts
+const apiKey = process.env.VRT_API_KEY;
+
+export const vrt = apiKey
+  ? createVrt({
+      apiUrl: "https://vrt.example.com/api/v1",
+      apiKey,
+      project: "checkout",
+    })
+  : undefined;
+```
+
+There is no per-test ignore list and no server-side upload filter: the API stores
+whatever a key is allowed to send. The key is therefore the server-side control —
+`scopes` (an `upload` key cannot read or approve) and `projectNames` (the projects
+it may touch) ([permissions](permissions.md)).
 
 ### Config-as-code thresholds (`.vrt.json`)
 
-A repository can carry its visual tolerances next to the tests. The reporter
+A repository can carry its visual tolerances next to the tests. The client
 reads `.vrt.json` from the working directory (override with `configPath`) and
 sends the matching value as the upload's `pixelDiffThreshold`:
 
@@ -220,7 +261,7 @@ sends the matching value as the upload's `pixelDiffThreshold`:
 }
 ```
 
-- Keys are the reporter's canonical name (`<title path joined with " / ">`), the
+- Keys are the client's canonical name (`<title path joined with " / ">`), the
   reduced name the dashboard shows, the bare test title, or the last path
   segment.
 - The server applies the value when the upload creates the baseline. On an

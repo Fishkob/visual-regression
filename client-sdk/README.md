@@ -4,12 +4,12 @@ Typed TypeScript client for the Visual Regression API. The generated surface
 lives in `index.ts`/`sdk.gen.ts`/`models/` (never edit those by hand); this
 README covers how the package ships and the two hand-written helpers on top:
 
-| Import                     | Content                                                  |
-| -------------------------- | -------------------------------------------------------- |
-| `@fishkob/vrt`             | every generated SDK function, DTO type and enum          |
-| `@fishkob/vrt/client`      | `createClient` / `createConfig` for a raw configured SDK |
-| `@fishkob/vrt/upload-many` | bounded-concurrency batch upload with 429/5xx retries    |
-| `@fishkob/vrt/playwright`  | a Playwright reporter that uploads screenshot attachments |
+| Import                     | Content                                                    |
+| -------------------------- | ---------------------------------------------------------- |
+| `@fishkob/vrt`             | every generated SDK function, DTO type and enum            |
+| `@fishkob/vrt/client`      | `createClient` / `createConfig` for a raw configured SDK   |
+| `@fishkob/vrt/upload-many` | bounded-concurrency batch upload with 429/5xx retries      |
+| `@fishkob/vrt/playwright`  | a Playwright capture API that uploads what a test captures |
 
 The package has **zero runtime dependencies** (it uses `globalThis.fetch`) and
 ships as ESM only; it needs Node 20 or newer.
@@ -28,7 +28,7 @@ a client release names the client, not the server.
 
 For a setup without registry access, pack the package where the registry is
 reachable and carry the tarball over — npm is the artifact store, the release page
-carries the notes ([ADR-073](../docs/adr/ADR-073-release-assets-and-immutable-releases.md)):
+carries the notes ([ADR-073](https://github.com/Fishkob/visual-regression/blob/main/docs/adr/ADR-073-release-assets-and-immutable-releases.md)):
 
 ```bash
 npm pack @fishkob/vrt@1.0.0    # produces fishkob-vrt-1.0.0.tgz
@@ -37,7 +37,7 @@ npm i ./fishkob-vrt-1.0.0.tgz
 
 Both channels carry the compiled `dist/` and the MIT licence at the repository
 root. Decision and rationale:
-[ADR-069](../docs/adr/ADR-069-independent-client-version.md).
+[ADR-069](https://github.com/Fishkob/visual-regression/blob/main/docs/adr/ADR-069-independent-client-version.md).
 
 ## Versioning
 
@@ -76,7 +76,7 @@ await uploadControllerUpload({
 
 The response is a discriminated union on `status` — `identical`,
 `baseline_created` or `comparison_queued` (which carries the `jobId` to poll).
-[docs/ci-integration.md](../docs/ci-integration.md) describes the wait/gate flow
+[docs/ci-integration.md](https://github.com/Fishkob/visual-regression/blob/main/docs/ci-integration.md) describes the wait/gate flow
 those statuses drive.
 
 ## `uploadMany` (batch)
@@ -103,9 +103,9 @@ const failed = results.filter((result) => !result.ok);
 
 ### Config-as-code (`.vrt.json`)
 
-The reporter reads per-test pixel thresholds from `.vrt.json` in the working
-directory (override with `configPath`); `uploadMany` callers can set the same
-field directly on a capture.
+The capture client reads per-test pixel thresholds from `.vrt.json` in the
+working directory (override with `configPath`); `uploadMany` callers can set the
+same field directly on a capture.
 
 ```json
 {
@@ -116,7 +116,7 @@ field directly on a capture.
 }
 ```
 
-- Keys are the reporter's canonical test name (title path joined with `" / "`);
+- Keys are the client's canonical test name (title path joined with `" / "`);
   the bare title and the last path segment are accepted as fallbacks.
 - The server applies the value when the upload creates the baseline and can only
   **tighten** an existing baseline. Raising a threshold auto-accepts pending
@@ -126,42 +126,92 @@ field directly on a capture.
 - `parseVrtConfig`, `thresholdForTest` and `VRT_CONFIG_FILE` are exported from
   `@fishkob/vrt/upload-many` for custom callers.
 
-## Playwright reporter
+## Playwright captures
+
+The client uploads what the test captures — there is no reporter and no
+attachment. Create it once next to the tests:
 
 ```ts
-// playwright.config.ts
-import { defineConfig } from '@playwright/test';
+// tests/vrt.ts
+import { createVrt } from '@fishkob/vrt/playwright';
 
-export default defineConfig({
-  reporter: [
-    ['list'],
-    [
-      '@fishkob/vrt/playwright',
-      {
-        apiUrl: 'https://vrt.example.com/api/v1',
-        apiKey: process.env.VRT_API_KEY!,
-        project: 'checkout',
-        runKey: process.env.GITHUB_RUN_ID,
-        branch: process.env.GITHUB_HEAD_REF || 'main',
-        environment: 'ci',
-        uploadOnFailureOnly: false,
-      },
-    ],
-  ],
+export const vrt = createVrt({
+  apiUrl: 'https://vrt.example.com/api/v1',
+  apiKey: process.env.VRT_API_KEY!,
+  project: 'checkout',
+  branch: process.env.CI_BRANCH || 'main',
+  viewport: '1920x1080',
+  browser: 'chromium',
+  environment: 'staging',
+  runKey: process.env.CI_RUN_ID, // groups this pipeline's uploads
 });
 ```
 
-The reporter uploads the first `screenshot`/`.png` (or `.pdf`) attachment of
-each test, so the test attaches the capture itself
-(`testInfo.attach('screenshot', { body: await page.screenshot(), contentType: 'image/png' })`);
-Playwright attaches a `toHaveScreenshot` image only when it writes or diffs a
-snapshot, so a matching assertion uploads nothing. The test name comes from the
-Playwright title path, reduced to the API's name characters
-(`checkout.spec.ts / cart summary` → `checkout-spec-ts-cart-summary`, at most
-100 characters). The module's default export is the reporter class — that is
-what the config above loads — and `createVrtReporter` is the programmatic entry
-point. `onEnd()` never fails the test run when VRT is unreachable; inspect
-`reporter.results()` or use `onUpload` to log upload failures.
+and call it in the test:
+
+```ts
+import { test } from '@playwright/test';
+import { vrt } from './vrt';
+
+test('cart summary', async ({ page }, testInfo) => {
+  await page.goto('/cart');
+  await vrt.capture(testInfo, page); // full page, uploaded now
+});
+```
+
+- `capture(testInfo, page)` screenshots the page (`fullPage: true`; pass
+  `{ fullPage: false }` for the viewport) and uploads it immediately under the
+  test's title path, reduced to the API's name characters:
+  `checkout.spec.ts / cart summary` becomes `checkout-spec-ts-cart-summary`, at
+  most 100 characters.
+- Any bytes work too: `await vrt.capture(testInfo, await page.pdf(), { kind: 'pdf' })`
+  for a PDF, or a buffer you produced yourself. A PDF buffer is recognised by
+  its `%PDF-` header when `kind` is omitted.
+- The first capture of a variant creates the project, the branch and the
+  baseline; later captures are compared against it. `viewport`, `browser` and
+  `environment` are the Variant and are matched verbatim, case included.
+- A failed upload does not fail the test run: `capture` resolves to a
+  `CaptureUploadResult` with `ok: false` and `error`, and `onUpload` receives it.
+  A page that cannot be screenshotted throws, because that is a test bug rather
+  than an upload failure.
+- The remaining options (`commitSha`/`commitMessage`/`ciUrl`, `configPath`,
+  `maxAttempts`, `onUpload`, `onConfigError`) are documented on `VrtClientOptions`
+  in the published types.
+
+### Failure-only
+
+Call the client from an `afterEach` and skip the tests that ended as expected:
+
+```ts
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus) return;
+  await vrt.capture(testInfo, page);
+});
+```
+
+### Turning it off
+
+The `capture` call is the switch: leave it out for a single test, or make the
+client conditional so a pipeline without the key sends nothing and the tests can
+keep calling `vrt?.capture(testInfo, page)`:
+
+```ts
+const apiKey = process.env.VRT_API_KEY;
+
+export const vrt = apiKey
+  ? createVrt({
+      apiUrl: 'https://vrt.example.com/api/v1',
+      apiKey,
+      project: 'checkout',
+    })
+  : undefined;
+```
+
+The instance stores what the key is allowed to send, so `scopes` and
+`projectNames` are the server-side narrowing
+([permissions](https://github.com/Fishkob/visual-regression/blob/main/docs/permissions.md)).
+The pipeline rules around runs, gates and thresholds are in
+[ci-integration.md](https://github.com/Fishkob/visual-regression/blob/main/docs/ci-integration.md#4-playwright-captures-sdk).
 
 ## In this repository
 

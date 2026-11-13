@@ -24,8 +24,8 @@ client-sdk/
   client/               # Generated HTTP client (fetch-based, zero deps)
   core/                 # Runtime utilities (serializers, auth, SSE)
   models/               # One file per DTO
-  src/                  # Manual helpers: upload-many.ts, playwright-reporter.ts
-  src/__tests__/        # Manual tests (smoke, upload-many, playwright-reporter)
+  src/                  # Manual helpers: upload-many.ts, playwright-capture.ts
+  src/__tests__/        # Manual tests (smoke, upload-many, playwright-capture)
   scripts/              # Build step: fix-esm-specifiers.mjs
   tsconfig.build.json   # Publish build: excludes tests, disables maps
   dist/                 # tsc output for external consumers (gitignored)
@@ -48,13 +48,13 @@ The package is **published to npm** as `@fishkob/vrt` by `.github/workflows/rele
 
 - `tsc` does not rewrite import specifiers, and the generator emits them extensionless (`./sdk.gen`, `./client`). Node's ESM resolver infers neither extensions nor a directory `index.js`, so `scripts/fix-esm-specifiers.mjs` rewrites every relative specifier in `dist/` as the last build step. It fails the build on a specifier it cannot resolve — never "fix" a failure by loosening it.
 - `tsconfig.build.json` sets `types: ["node"]` explicitly. The `exclude` list turns implicit `@types` loading off, so without it the build loses `node:` and `Buffer` types.
-- Public types must not name Node globals (`Buffer`, `NodeJS.*`): a consumer type-checking with `lib: dom` fails on them. Use `Uint8Array` and structural interfaces, as `PlaywrightAttachment` does.
+- Public types must not name Node globals (`Buffer`, `NodeJS.*`): a consumer type-checking with `lib: dom` fails on them. Use `Uint8Array` and structural interfaces, as `VrtPage` and `VrtTestInfo` do.
 - Anything added to `exports` must be exercised by `scripts/check-client-sdk-package.sh` (import in Node ESM + consumer type check).
 
 ## Conventions
 
 - Generated files have `.gen.ts` suffix — never edit these
-- Only manual files: `package.json`, `tsconfig.json`, `tsconfig.build.json`, `vitest.config.ts`, `README.md`, `src/upload-many.ts`, `src/playwright-reporter.ts`, `scripts/fix-esm-specifiers.mjs`, and the specs under `src/__tests__/`
+- Only manual files: `package.json`, `tsconfig.json`, `tsconfig.build.json`, `vitest.config.ts`, `README.md`, `src/upload-many.ts`, `src/playwright-capture.ts`, `scripts/fix-esm-specifiers.mjs`, and the specs under `src/__tests__/`
 - Manual helpers are exposed as subpath exports: `@fishkob/vrt/upload-many`, `@fishkob/vrt/playwright`, `@fishkob/vrt/client`
 - Frontend wraps SDK responses with `getData()` helper (unwraps `{ data, error }` shape)
 - Regenerate whenever Prisma schema or controller DTOs change

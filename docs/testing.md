@@ -96,7 +96,7 @@ own — `playwright-e2e.config.ts` sets one 10s expect timeout for the suite.
 | Audit filters and CSV export                                                       | `audit.spec.ts`                   |
 | Webhooks: create, edit, activate, test, deliveries, replay, delete, SSRF rejection | `webhooks.spec.ts`                |
 | Runs: list/detail, approve all, finish, JUnit/HTML/CSV reports                     | `runs.spec.ts`                    |
-| Reporter upload: browser screenshot → baseline, identical, pending review          | `reporter-upload.spec.ts`         |
+| Capture upload: browser screenshot → baseline, identical, pending review           | `capture-upload.spec.ts`          |
 | Trends metrics and range switch                                                    | `trends.spec.ts`                  |
 | Variant gallery, overview page, PDF overview note                                  | `test-overview.spec.ts`           |
 | Global search, theme persistence, locale switch, logout                            | `search-theme-locale.spec.ts`     |
