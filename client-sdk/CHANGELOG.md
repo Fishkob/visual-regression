@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.0](https://github.com/Fishkob/visual-regression/compare/vrt-client-v3.0.0...vrt-client-v3.1.0) (2026-11-13)
+
+
+### Features
+
+* **review:** page the comment thread by cursor ([#72](https://github.com/Fishkob/visual-regression/issues/72)) ([9b8fe4d](https://github.com/Fishkob/visual-regression/commit/9b8fe4d6a29765b1d7af396b769f441cc14e897b))
+* **webhooks:** notify when a comparison job fails for good ([#68](https://github.com/Fishkob/visual-regression/issues/68)) ([5e2547c](https://github.com/Fishkob/visual-regression/commit/5e2547c74d2c046025c07a66ed64088f71691ca3))
+
 ## [3.0.0](https://github.com/Fishkob/visual-regression/compare/vrt-client-v2.0.0...vrt-client-v3.0.0) (2026-11-09)
 
 

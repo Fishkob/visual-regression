@@ -70,6 +70,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 074 | [TOTP Two-Factor Authentication Is Removed](./ADR-074-remove-totp-two-factor-authentication.md)                                        | Accepted (supersedes 062; the TOTP half of 034)                       |
 | 075 | [A Temporary Password Travels in a One-Time Link](./ADR-075-temporary-passwords-travel-in-one-time-links.md)                           | Accepted (amends 031's account lifecycle)                             |
 | 076 | [A Failed Comparison Job Is Published Through an Observer](./ADR-076-job-failure-notifications.md)                                     | Accepted (closes the `job.failed` deferral of 029)                    |
+| 077 | [Release Pull Requests Do Not Block Each Other](./ADR-077-release-prs-do-not-block-each-other.md)                                      | Accepted (supplements 069; supersedes none)                           |
 
 ## Numbering
 
