@@ -22,6 +22,7 @@ table below is the subset a first deployment usually has to change.
 | `TRUST_PROXY`                                         | Trust `X-Forwarded-For` from the reverse proxy (see above)                                  |
 | `BASELINE_HISTORY_LIMIT`                              | Replaced baselines kept per test variant for restore (default 10, max 100)                  |
 | `AUDIT_RETENTION_DAYS`                                | Days the worker keeps the audit trail (default 90, `0` keeps it forever)                    |
+| `OUTCOME_RETENTION_DAYS`                              | Days the worker keeps the trend history (default 400, `0` keeps it forever)                 |
 | `APP_PUBLIC_URL`                                      | Dashboard base used to build links in webhook payloads                                      |
 | `AUTH_COOKIE_SECURE`                                  | `Secure` flag on the session cookie — required by Compose, defaults to `true` in production |
 
@@ -184,15 +185,13 @@ of 10 that is exactly 100 connections, so either cap the HPA, lower
 ## Retention runs in the worker
 
 All scheduled retention (runs, jobs, sessions, share links, webhook payloads,
-audit rows, orphaned storage objects) lives in the worker process, not the API. A
-deployment without a worker keeps serving requests but never prunes anything; the
-Helm chart and `docker-compose.yml` both ship a worker. Two workers are safe —
-every task takes a Postgres advisory lock before it runs.
+audit rows, outcome history, orphaned storage objects) lives in the worker
+process, not the API. A deployment without a worker keeps serving requests but
+never prunes anything; the Helm chart and `docker-compose.yml` both ship a worker.
+Two workers are safe — every task takes a Postgres advisory lock before it runs.
 
-One table is deliberately **not** pruned: `ComparisonOutcomeEvent` (the
-trend/flake history, attributed by project name). It is append-only and grows
-with usage; size the database accordingly, or archive/purge it on your own
-schedule if a retention policy requires it.
+Every table the product writes has a window now; two of them delete rows a reviewer
+would otherwise still be looking at:
 
 The audit trail is pruned after `AUDIT_RETENTION_DAYS` (default 90; `0` keeps it
 forever). A deployment with a compliance duty sets `0` and inherits the growth;
@@ -205,6 +204,15 @@ a 30-day trail over 30-day backups leaves nothing to scope from. The sweep delet
 the oldest rows first in batches of 10 000, at most 1 000 000 per run, so a
 deployment upgrading with years of trail clears it over several nights instead of
 in one long transaction.
+
+The trend/flake history (`ComparisonOutcomeEvent`, attributed by project id) is
+pruned after `OUTCOME_RETENTION_DAYS` (default 400; `0` keeps it forever). The
+default is derived from the window the trends endpoint serves — it clamps at 365
+days — so the default deletes only rows no query can reach; lowering it trades
+history on the trends page for space, and the same batching and per-run ceiling
+apply. Nothing a user could still see is deleted at the default, but the deletion
+is irreversible: set `0` before upgrading if the raw history has to stay complete.
+See [ADR-079](adr/ADR-079-outcome-history-retention.md).
 
 Everything else has a configurable window (`RUN_HISTORY_RETENTION_DAYS`, `JOB_RETENTION_DAYS`,
 `WEBHOOK_DELIVERY_RETENTION_DAYS`, `BRANCH_RETENTION_DAYS`, session expiry, 7 days for

@@ -164,6 +164,10 @@ worker:
     # deployment with a compliance duty sets "0" here — the worker runs the sweep,
     # so the backend's own default is not what decides this one.
     AUDIT_RETENTION_DAYS: "90"
+    # How many days the worker keeps the comparison outcome history (trends and
+    # flake rates); 0 keeps it forever. The trends endpoint serves at most 365
+    # days, so the default only deletes rows no read path can reach.
+    OUTCOME_RETENTION_DAYS: "400"
   resources:
     requests:
       cpu: 100m

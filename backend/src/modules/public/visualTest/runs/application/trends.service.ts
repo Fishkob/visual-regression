@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { MAX_TREND_WINDOW_DAYS } from '@common/domain/trend-window';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ComparisonOutcomeService } from '@public/visualTest/core/application/services/comparison-outcome.service';
 import type { TrendWindow } from '@public/visualTest/core/infrastructure/repositories/comparison-outcome.repository';
@@ -18,7 +19,7 @@ export class TrendsService {
 
   async get(projectName: string, days = 30): Promise<ProjectTrends> {
     const project = await this.projects.requireByName(projectName);
-    const windowDays = Math.min(Math.max(days, 1), 365);
+    const windowDays = Math.min(Math.max(days, 1), MAX_TREND_WINDOW_DAYS);
     const now = new Date();
     const trends = await this.outcomes.trends(project.id, windowDays, now);
     const from = new Date(now.getTime() - windowDays * 24 * 60 * 60 * 1000);
