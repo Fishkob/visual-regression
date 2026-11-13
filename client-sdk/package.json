@@ -1,7 +1,7 @@
 {
   "name": "@fishkob/vrt",
   "version": "3.1.0",
-  "description": "Typed TypeScript client for the Visual Regression API: capture uploads, batch upload with retries and a Playwright reporter",
+  "description": "Typed TypeScript client for the Visual Regression API: capture uploads, batch upload with retries and an explicit Playwright capture helper",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -20,7 +20,7 @@
     "visual-regression",
     "visual-testing",
     "screenshot-testing",
-    "playwright-reporter",
+    "playwright",
     "openapi",
     "vrt"
   ],
@@ -41,8 +41,8 @@
       "default": "./dist/src/upload-many.js"
     },
     "./playwright": {
-      "types": "./dist/src/playwright-reporter.d.ts",
-      "default": "./dist/src/playwright-reporter.js"
+      "types": "./dist/src/playwright-capture.d.ts",
+      "default": "./dist/src/playwright-capture.js"
     },
     "./package.json": "./package.json"
   },

@@ -1,20 +1,19 @@
 import { expect, test } from "@playwright/test";
 import type { APIRequestContext } from "@playwright/test";
 import { TEST_ID } from "@/lib/test-ids";
-import { createVrtReporter } from "../../../client-sdk/src/playwright-reporter";
-import type { VrtPlaywrightReporter } from "../../../client-sdk/src/playwright-reporter";
+import { createVrt } from "../../../client-sdk/src/playwright-capture";
 import type { CaptureUploadResult } from "../../../client-sdk/src/upload-many";
 
-// The upload path the README describes, run against our own instance: a real
-// browser screenshot goes through the Playwright reporter, and the server
-// decides between baseline, identical and review. The reporter is the product
-// code users configure, so this spec is the one place its whole pipeline — the
-// attachment, the title-path name, uploadMany and the API key — runs for real.
+// The capture path the README describes, run against our own instance: a real
+// browser screenshot goes through createVrt().capture(), and the server decides
+// between baseline, identical and review. The client is the product code users
+// configure, so this spec is the one place its whole pipeline — the title path,
+// the upload and the API key — runs for real.
 
 const API = "/api/v1";
 const TEST_FILE = "checkout.spec.ts";
 const TEST_TITLE = "cart summary";
-// What the reporter derives from `checkout.spec.ts / cart summary`: a test name
+// What the client derives from `checkout.spec.ts / cart summary`: a test name
 // the API accepts (letters, digits, hyphens, underscores).
 const TEST_NAME = "checkout-spec-ts-cart-summary";
 const VARIANT = {
@@ -22,13 +21,14 @@ const VARIANT = {
   browser: "chromium",
   environment: "staging",
 } as const;
+const TEST_INFO = { title: TEST_TITLE, titlePath: [TEST_FILE, TEST_TITLE] };
 
 let projectName: string;
 let keyId: string | undefined;
 
-test.describe("Playwright reporter upload", () => {
+test.describe("Playwright capture upload", () => {
   test.beforeEach(() => {
-    projectName = `e2e-reporter-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    projectName = `e2e-capture-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   });
 
   test.afterEach(async ({ page }) => {
@@ -57,30 +57,27 @@ test.describe("Playwright reporter upload", () => {
     const key = (await created.json()) as { id: string; rawKey: string };
     keyId = key.id;
 
-    const reporter = createVrtReporter({
+    const vrt = createVrt({
       apiUrl,
       apiKey: key.rawKey,
       project: projectName,
       ...VARIANT,
     });
 
-    const capture = await page.screenshot();
-
-    const baseline = await upload(reporter, capture);
+    const baseline = await vrt.capture(TEST_INFO, page);
     expect(
       baseline,
       `upload failed: ${String(baseline.status)} ${baseline.error ?? ""}`,
     ).toMatchObject({ ok: true });
     expect(statusOf(baseline)).toBe("baseline_created");
 
-    // Same bytes, same variant: the upload is content-addressed and short-circuits.
-    const repeated = await upload(reporter, capture);
+    // Same pixels, same variant: the upload is content-addressed and short-circuits.
+    const repeated = await vrt.capture(TEST_INFO, page);
     expect(statusOf(repeated)).toBe("identical");
 
     await page.goto("/api-keys");
     await expect(page.getByTestId(TEST_ID.newApiKey)).toBeVisible();
-    const changed = await page.screenshot();
-    const queued = await upload(reporter, changed);
+    const queued = await vrt.capture(TEST_INFO, page);
     expect(statusOf(queued)).toBe("comparison_queued");
 
     const jobId = (queued.data as { jobId?: string }).jobId;
@@ -97,27 +94,6 @@ test.describe("Playwright reporter upload", () => {
     await expect(page.getByTestId(TEST_ID.badgeMismatch)).toBeVisible();
   });
 });
-
-async function upload(
-  reporter: VrtPlaywrightReporter,
-  png: Buffer,
-): Promise<CaptureUploadResult> {
-  reporter.onTestEnd(
-    { title: TEST_TITLE, titlePath: () => [TEST_FILE, TEST_TITLE] },
-    {
-      status: "passed",
-      retry: 0,
-      attachments: [
-        { name: "screenshot", contentType: "image/png", body: png },
-      ],
-    },
-  );
-  await reporter.onEnd();
-  const results = reporter.results();
-  const result = results[results.length - 1];
-  if (!result) throw new Error("The reporter uploaded nothing");
-  return result;
-}
 
 function statusOf(result: CaptureUploadResult): string {
   const data = result.data as { status?: string } | undefined;

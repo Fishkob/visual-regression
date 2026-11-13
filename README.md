@@ -90,78 +90,79 @@ Production setup (TLS, reverse proxy, backups, Kubernetes):
 ## Wire it into your project
 
 The platform keeps the baselines; your tests keep producing the pixels. Nothing
-goes into the application — a capture is the screenshot your test already takes.
+goes into the application — a capture is a screenshot your test already takes,
+and it is sent only when the test hands it to the client.
 
 **1. Give CI a key.** Create one under **API keys** in the dashboard and store it
 as a pipeline secret. `upload` sends captures; gating a run also reads its status
 (`read`) and finishes it (`admin`) —
 [scopes and rotation](docs/ci-integration.md#1-authenticate).
 
-**2. Attach the capture in your test.** One call inside the test you already
-have:
-
-```ts
-// checkout.spec.ts
-test("cart summary", async ({ page }, testInfo) => {
-  await page.goto("/cart");
-
-  await testInfo.attach("screenshot", {
-    body: await page.screenshot({ fullPage: true }),
-    contentType: "image/png",
-  });
-});
-```
-
-**3. Point Playwright at your instance.** The client ships a reporter that uploads
-each test's first screenshot attachment and names the test after its title path,
-reduced to the characters a name may use (`checkout.spec.ts / cart summary` becomes
-`checkout-spec-ts-cart-summary`); a `runKey` groups the uploads of one pipeline
-into a run. The client is on npm as `@fishkob/vrt` and has its own version line —
-it speaks `/api/v1`, so it is not tied to a platform release
-([client SDK](client-sdk/README.md#install)):
+**2. Create the client next to your tests.** The client ships a Playwright helper
+that uploads what the test captures — no reporter, no attachments, one call in
+the test. It is on npm as `@fishkob/vrt` and has its own version line — it speaks
+`/api/v1`, so it is not tied to a platform release
+([client SDK](client-sdk/README.md#playwright-captures)):
 
 ```bash
 npm i @fishkob/vrt
 ```
 
 ```ts
-// playwright.config.ts
-import { defineConfig } from "@playwright/test";
+// tests/vrt.ts
+import { createVrt } from "@fishkob/vrt/playwright";
 
-export default defineConfig({
-  reporter: [
-    ["list"],
-    [
-      "@fishkob/vrt/playwright",
-      {
-        apiUrl: "https://vrt.example.com/api/v1",
-        apiKey: process.env.VRT_API_KEY!,
-        project: "checkout",
-        branch: process.env.CI_BRANCH || "main",
-        viewport: "1920x1080",
-        browser: "chromium",
-        environment: "staging",
-        runKey: process.env.CI_RUN_ID, // groups this pipeline's uploads
-      },
-    ],
-  ],
+export const vrt = createVrt({
+  apiUrl: "https://vrt.example.com/api/v1",
+  apiKey: process.env.VRT_API_KEY!,
+  project: "checkout",
+  branch: process.env.CI_BRANCH || "main",
+  viewport: "1920x1080",
+  browser: "chromium",
+  environment: "staging",
+  runKey: process.env.CI_RUN_ID, // groups this pipeline's uploads
 });
 ```
 
-The first upload of `checkout-spec-ts-cart-summary` creates the project, the
-branch and the baseline; later captures are compared against it. The project name
-is yours; a test name is a path segment, so it stays `[A-Za-z0-9_-]` and at most
-100 characters. `viewport`, `browser` and `environment` are the Variant — matched
-verbatim, case included, so a changed value is a new baseline that passes without
-comparing. Any other stack posts the same fields to
-`/api/v1/projects/:project/tests/:test/upload?testKind=image`
+**3. Capture in the test.** One call inside the test you already have:
+
+```ts
+// checkout.spec.ts
+import { test } from "@playwright/test";
+import { vrt } from "./vrt";
+
+test("cart summary", async ({ page }, testInfo) => {
+  await page.goto("/cart");
+  await vrt.capture(testInfo, page);
+});
+```
+
+The capture is named after the test's title path, reduced to the characters a
+name may use (`checkout.spec.ts / cart summary` becomes
+`checkout-spec-ts-cart-summary`, at most 100 characters); its first upload
+creates the project, the branch and the baseline, later captures are compared
+against it. The project name is yours. `viewport`, `browser` and `environment`
+are the Variant — matched verbatim, case included, so a changed value is a new
+baseline that passes without comparing. A buffer or a PDF works the same way:
+`vrt.capture(testInfo, await page.pdf(), { kind: "pdf" })`. Any other stack posts
+the same fields to `/api/v1/projects/:project/tests/:test/upload?testKind=image`
 ([curl](docs/ci-integration.md#2-upload-and-wait)).
 
-The comparison runs after the test, so no test can assert on it: with a `runKey`
-set, close the run after the test command and fail the job unless its state is
-`passed` — a reviewer's approval in the inbox is what lets the next run through
+**4. Gate the run and decide what reaches the instance.** The upload only queues
+the comparison, so no test can assert on it: with a `runKey` set, close the run
+after the test command and fail the job unless its state is `passed` — a
+reviewer's approval in the inbox is what lets the next run through
 ([runs and gates](docs/ci-integration.md#3-runs-and-gates)). Without a `runKey`,
 gate on the job wait the upload returns instead.
+
+The `capture` call is the only thing that sends: leave it out for a test, call
+it from an `afterEach` that skips expected results to upload failures only, or
+make the client conditional on the key to keep a whole pipeline off
+([turning uploads off](docs/ci-integration.md#turning-uploads-off)). Narrowing on
+the instance side happens at the key: its scopes and its `projectNames` allowlist
+decide what may be uploaded ([permissions](docs/permissions.md)). An upload never
+fails the test run either: a wrong key or an unreachable instance ends up in the
+result and `onUpload`, not in the exit code.
 
 ## How it works
 
@@ -178,18 +179,19 @@ More detail and diagrams: [docs/architecture/overview.md](docs/architecture/over
 
 ## Documentation
 
-| I want to…                                         | Read                                                   |
-| -------------------------------------------------- | ------------------------------------------------------ |
-| put it into a pipeline                             | [docs/ci-integration.md](docs/ci-integration.md)       |
-| clean up a branch after its merge                  | [docs/branches.md](docs/branches.md)                   |
-| run it locally / contribute                        | [docs/local-development.md](docs/local-development.md) |
-| deploy it (Kubernetes, TLS, backups, secrets)      | [docs/deployment.md](docs/deployment.md)               |
-| know what the test suites cover                    | [docs/testing.md](docs/testing.md)                     |
-| send review events somewhere                       | [docs/webhooks.md](docs/webhooks.md)                   |
-| understand roles, keys and API scopes              | [docs/permissions.md](docs/permissions.md)             |
-| understand a term (`Variant`, `Run`, `Threshold`…) | [CONTEXT.md](CONTEXT.md)                               |
-| see why something is the way it is                 | [docs/adr/](docs/adr/) — 61 decision records           |
-| know what is next                                  | [docs/roadmap.md](docs/roadmap.md)                     |
+| I want to…                                         | Read                                                              |
+| -------------------------------------------------- | ----------------------------------------------------------------- |
+| put it into a pipeline                             | [docs/ci-integration.md](docs/ci-integration.md)                  |
+| switch uploads off in a pipeline                   | [turning uploads off](docs/ci-integration.md#turning-uploads-off) |
+| clean up a branch after its merge                  | [docs/branches.md](docs/branches.md)                              |
+| run it locally / contribute                        | [docs/local-development.md](docs/local-development.md)            |
+| deploy it (Kubernetes, TLS, backups, secrets)      | [docs/deployment.md](docs/deployment.md)                          |
+| know what the test suites cover                    | [docs/testing.md](docs/testing.md)                                |
+| send review events somewhere                       | [docs/webhooks.md](docs/webhooks.md)                              |
+| understand roles, keys and API scopes              | [docs/permissions.md](docs/permissions.md)                        |
+| understand a term (`Variant`, `Run`, `Threshold`…) | [CONTEXT.md](CONTEXT.md)                                          |
+| see why something is the way it is                 | [docs/adr/](docs/adr/) — 68 decision records                      |
+| know what is next                                  | [docs/roadmap.md](docs/roadmap.md)                                |
 
 ## Status
 
