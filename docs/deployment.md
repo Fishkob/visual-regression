@@ -21,6 +21,7 @@ table below is the subset a first deployment usually has to change.
 | `CORS_ORIGIN`                                         | Browser origins allowed to call the API (see below)                                         |
 | `TRUST_PROXY`                                         | Trust `X-Forwarded-For` from the reverse proxy (see above)                                  |
 | `BASELINE_HISTORY_LIMIT`                              | Replaced baselines kept per test variant for restore (default 10, max 100)                  |
+| `AUDIT_RETENTION_DAYS`                                | Days the worker keeps the audit trail (default 90, `0` keeps it forever)                    |
 | `APP_PUBLIC_URL`                                      | Dashboard base used to build links in webhook payloads                                      |
 | `AUTH_COOKIE_SECURE`                                  | `Secure` flag on the session cookie — required by Compose, defaults to `true` in production |
 
@@ -183,16 +184,28 @@ of 10 that is exactly 100 connections, so either cap the HPA, lower
 ## Retention runs in the worker
 
 All scheduled retention (runs, jobs, sessions, share links, webhook payloads,
-orphaned storage objects) lives in the worker process, not the API. A deployment
-without a worker keeps serving requests but never prunes anything; the Helm
-chart and `docker-compose.yml` both ship a worker. Two workers are safe — every
-task takes a Postgres advisory lock before it runs.
+audit rows, orphaned storage objects) lives in the worker process, not the API. A
+deployment without a worker keeps serving requests but never prunes anything; the
+Helm chart and `docker-compose.yml` both ship a worker. Two workers are safe —
+every task takes a Postgres advisory lock before it runs.
 
-Two tables are deliberately **not** pruned: `AuditEvent` (the compliance
-trail, including the IP/user-agent written when a share link is opened) and
-`ComparisonOutcomeEvent` (the trend/flake history, attributed by project name).
-Both are append-only and grow with usage; size the database accordingly, or
-archive/purge them on your own schedule if a retention policy requires it.
+One table is deliberately **not** pruned: `ComparisonOutcomeEvent` (the
+trend/flake history, attributed by project name). It is append-only and grows
+with usage; size the database accordingly, or archive/purge it on your own
+schedule if a retention policy requires it.
+
+The audit trail is pruned after `AUDIT_RETENTION_DAYS` (default 90; `0` keeps it
+forever). A deployment with a compliance duty sets `0` and inherits the growth;
+the default exists because the trail carries the IP and user agent of every
+share-link open and because an unbounded table is a cost nobody chose. An existing
+deployment starts pruning at this window after the upgrade, so set `0` before
+upgrading if the trail must stay complete. Do not set the window shorter than the
+backup window — the trail is what names the deletion a restore has to scope to, so
+a 30-day trail over 30-day backups leaves nothing to scope from. The sweep deletes
+the oldest rows first in batches of 10 000, at most 1 000 000 per run, so a
+deployment upgrading with years of trail clears it over several nights instead of
+in one long transaction.
+
 Everything else has a configurable window (`RUN_HISTORY_RETENTION_DAYS`, `JOB_RETENTION_DAYS`,
 `WEBHOOK_DELIVERY_RETENTION_DAYS`, `BRANCH_RETENTION_DAYS`, session expiry, 7 days for
 expired share links).

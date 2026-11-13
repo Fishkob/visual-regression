@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: living document · Last reviewed: 2026-11-12 · Owner: maintainers
+Status: living document · Last reviewed: 2026-11-13 · Owner: maintainers
 
 Phases 1–6 are shipped (R1–R26), and the phase-by-phase record — scope,
 acceptance criteria, verification notes, design sketches, the alternatives that
@@ -41,6 +41,17 @@ does not fail a run. What remains is granularity — a test-level mute covers ev
 variant, and a variant that is known-unstable cannot be muted on its own.
 
 ### Shipped
+
+- **Audit trail retention** (2026-11-13). The one table the docs promised never to
+  prune now has a window: `AUDIT_RETENTION_DAYS` (default 90, `0` keeps the trail
+  forever) and `AuditRetentionTask` delete audit rows older than it under the same
+  advisory-lock cron as the other twelve sweeps, reporting
+  `cleanup_audit_events_deleted`/`_last_run`. 90 rather than 30 because the trail
+  is what names the deletion a restore has to scope to, so it must never be
+  shorter than the backup window; a compliance deployment sets `0`. What did not
+  ship is a narrowing of the actions the trail records — approvals, comments and
+  assignments are still written, because that is a decision about what counts as
+  audit, not a volume fix ([ADR-078](adr/ADR-078-audit-trail-retention.md)).
 
 - **N2 — cursor pagination for review comments** (2026-11-12). The read still
   returns the newest 200, but it now takes `limit` (1–200) and `before` — the id
@@ -135,12 +146,13 @@ variant, and a variant that is known-unstable cannot be muted on its own.
    `POST .../runs/:key/finish`, and a maintenance task closes runs idle for 24 h. A
    shorter quiet period would spare callers that forget the call, but it guesses
    when a pipeline is done — and a wrong guess reads as a passing gate.
-3. **Does the audit trail need a retention policy?** `AuditEvent` and
-   `ComparisonOutcomeEvent` are append-only by design and grow with usage.
-   `share.access` rows are the fastest-growing case
-   (formerly candidate N6): they come from every share-link open, so they are worth
-   deciding here rather than pruning alone, which would break append-only for one
-   action type. See
+3. **Does `ComparisonOutcomeEvent` need a retention policy?** It is the one
+   append-only table left: one row per recorded comparison, the trend/flake history
+   attributed by project name. `AuditEvent` now has a window
+   (`AUDIT_RETENTION_DAYS`, [ADR-078](adr/ADR-078-audit-trail-retention.md)); the
+   outcome history is the same shape of growth with a different reader — the
+   trends page — so pruning it removes history a user looks at, not only a
+   forensic trail. See
    [deployment.md](deployment.md#retention-runs-in-the-worker) for the operator's
    side of that trade.
 

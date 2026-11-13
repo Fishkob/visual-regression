@@ -22,6 +22,7 @@ import { StorageSizeBackfillTask } from '@internal/data-deletion/tasks/storage-s
 import { WebhookDeliveryCleanupTask } from '@internal/data-deletion/tasks/webhook-delivery-cleanup.task';
 import { ShareLinkCleanupTask } from '@internal/data-deletion/tasks/share-link-cleanup.task';
 import { BranchRetentionTask } from '@internal/data-deletion/tasks/branch-retention.task';
+import { AuditRetentionTask } from '@internal/data-deletion/tasks/audit-retention.task';
 import { OrphanCleanupService } from './services/orphan-cleanup.service';
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
     WebhookDeliveryCleanupTask,
     ShareLinkCleanupTask,
     BranchRetentionTask,
+    AuditRetentionTask,
     {
       provide: MAINTENANCE_TASKS,
       useFactory: (
@@ -65,6 +67,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         webhookDeliveryCleanupTask: WebhookDeliveryCleanupTask,
         shareLinkCleanupTask: ShareLinkCleanupTask,
         branchRetentionTask: BranchRetentionTask,
+        auditRetentionTask: AuditRetentionTask,
       ) =>
         [
           orphanCleanupService,
@@ -79,6 +82,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
           webhookDeliveryCleanupTask,
           shareLinkCleanupTask,
           branchRetentionTask,
+          auditRetentionTask,
         ] as MaintenanceTask[],
       inject: [
         OrphanCleanupService,
@@ -93,6 +97,7 @@ import { OrphanCleanupService } from './services/orphan-cleanup.service';
         WebhookDeliveryCleanupTask,
         ShareLinkCleanupTask,
         BranchRetentionTask,
+        AuditRetentionTask,
       ],
     },
   ],

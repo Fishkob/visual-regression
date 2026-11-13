@@ -76,7 +76,7 @@ One outbox row per event × endpoint. Written in the same transaction as the dom
 _Avoid_: Webhook job, message, notification
 
 **AuditEvent**:
-An immutable record of a sensitive action (approval, baseline restore, deletion, webhook change) with actor, action, project/test/branch names, target and metadata. Rows have no foreign keys, so they outlive the rows they name.
+An immutable record of a sensitive action (approval, baseline restore, deletion, webhook change) with actor, action, project/test/branch names, target and metadata. Rows have no foreign keys, so they outlive the rows they name — up to the deployment's retention window (`AUDIT_RETENTION_DAYS`, default 90, `0` keeps them forever; see [deployment.md](docs/deployment.md#retention-runs-in-the-worker)).
 _Avoid_: Log entry, history row
 
 **Role**:

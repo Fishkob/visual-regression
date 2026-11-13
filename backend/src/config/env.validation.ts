@@ -97,6 +97,14 @@ export const envValidationSchema = Joi.object({
     .description(
       'How many days to retain delivered/failed webhook payloads (they contain reviewer text).',
     ),
+  AUDIT_RETENTION_DAYS: Joi.number()
+    .integer()
+    .min(0)
+    .max(3650)
+    .default(90)
+    .description(
+      'How many days to keep the audit trail (0 keeps it forever). Deleting audit rows is irreversible, so the window should never be shorter than the backup window it has to scope a restore from.',
+    ),
 
   // Baseline history
   BASELINE_HISTORY_LIMIT: Joi.number()
