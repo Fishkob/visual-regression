@@ -7,6 +7,17 @@
 > resolve, and the repository starts at `v1.0.0`. Treat every tag below as
 > immutable history — it is never moved, and a released version is never reused.
 
+## [3.1.0](https://github.com/Fishkob/visual-regression/compare/v3.0.0...v3.1.0) (2026-11-13)
+
+
+### Features
+
+* bulk test deletion and API-key lifecycle in the UI ([#71](https://github.com/Fishkob/visual-regression/issues/71)) ([6908e66](https://github.com/Fishkob/visual-regression/commit/6908e664fefefd0b287c7ca5cb471bce2fb831cc))
+* **projects:** rename a project from its settings page ([#70](https://github.com/Fishkob/visual-regression/issues/70)) ([5ca20a5](https://github.com/Fishkob/visual-regression/commit/5ca20a5344213438ae62fbc1a62a75c36b6d6445))
+* **review:** make the pixel threshold discoverable and readable ([5c25570](https://github.com/Fishkob/visual-regression/commit/5c25570757bcfe715890406f3fb6d14b7756b708))
+* **review:** page the comment thread by cursor ([#72](https://github.com/Fishkob/visual-regression/issues/72)) ([9b8fe4d](https://github.com/Fishkob/visual-regression/commit/9b8fe4d6a29765b1d7af396b769f441cc14e897b))
+* **webhooks:** notify when a comparison job fails for good ([#68](https://github.com/Fishkob/visual-regression/issues/68)) ([5e2547c](https://github.com/Fishkob/visual-regression/commit/5e2547c74d2c046025c07a66ed64088f71691ca3))
+
 ## [3.0.0](https://github.com/Fishkob/visual-regression/compare/v2.0.0...v3.0.0) (2026-11-09)
 
 
