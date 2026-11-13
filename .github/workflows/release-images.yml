@@ -7,6 +7,12 @@ on:
         description: "Release tag to build (vX.Y.Z)"
         required: true
         type: string
+    # Optional, so a fork without the token still builds: the chart bump then
+    # falls back to `github.token` and keeps the approval step that token forces
+    # on the pull request it opens.
+    secrets:
+      RELEASE_PLEASE_TOKEN:
+        required: false
   workflow_dispatch:
     inputs:
       ref:
@@ -192,7 +198,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-          token: ${{ github.token }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
 
       # The version comes from the job that built the images, not from main:
       # by the time this runs, main may already carry the next release.
@@ -220,7 +226,7 @@ jobs:
       - name: Open the chart bump pull request
         env:
           VERSION: ${{ needs.version.outputs.value }}
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
         run: |
           BRANCH="chore/chart-images-${VERSION}"
           git config user.name "github-actions[bot]"
