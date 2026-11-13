@@ -806,7 +806,7 @@ describe("InteractiveImageViewer", () => {
 
     const baseline = stageOf(wrapper, TEST_ID.panelBaseline);
     const candidate = stageOf(wrapper, TEST_ID.panelCandidate);
-    expect(baseline.attributes("style")).toContain("translate(40px, 0px)");
+    expect(translateOf(baseline.attributes("style"))).toEqual([40, 0]);
     expect(candidate.attributes("style")).toBe(baseline.attributes("style"));
   });
 
@@ -828,8 +828,8 @@ describe("InteractiveImageViewer", () => {
     await nextTick();
 
     expect(
-      stageOf(wrapper, TEST_ID.panelBaseline).attributes("style"),
-    ).toContain("translate(30px, 20px)");
+      translateOf(stageOf(wrapper, TEST_ID.panelBaseline).attributes("style")),
+    ).toEqual([30, 20]);
 
     window.dispatchEvent(new MouseEvent("mouseup"));
     window.dispatchEvent(
@@ -837,8 +837,8 @@ describe("InteractiveImageViewer", () => {
     );
     await nextTick();
     expect(
-      stageOf(wrapper, TEST_ID.panelBaseline).attributes("style"),
-    ).toContain("translate(30px, 20px)");
+      translateOf(stageOf(wrapper, TEST_ID.panelBaseline).attributes("style")),
+    ).toEqual([30, 20]);
   });
 
   it("restores the last view mode and zoom from localStorage", () => {
