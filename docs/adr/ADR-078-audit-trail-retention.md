@@ -11,6 +11,10 @@ Enforced by: `AUDIT_RETENTION_DAYS` (`config/env.validation.ts`,
 `DataDeletionModule`'s `MAINTENANCE_TASKS`, and the `cleanup_audit_events_*`
 gauges.
 
+Amended 2026-11-13: `ComparisonOutcomeEvent` — named here as the one table left
+unpruned — got a window of its own in
+[ADR-079](./ADR-079-outcome-history-retention.md).
+
 ## Context
 
 `AuditEvent` was the one table the product promised never to prune. The promise
@@ -98,8 +102,8 @@ The audit trail is pruned after a configurable window.
 ## Consequences
 
 - [deployment.md](../deployment.md#retention-runs-in-the-worker) lists `AuditEvent`
-  among the configurable windows; `ComparisonOutcomeEvent` is the one table left
-  unpruned.
+  among the configurable windows; `ComparisonOutcomeEvent` was the one table left
+  unpruned at the time (closed by [ADR-079](./ADR-079-outcome-history-retention.md)).
 - A deployment with a compliance duty sets `AUDIT_RETENTION_DAYS=0` and inherits
   the growth it previously had no choice about.
 - The audit stops promising an answer older than the window. Operators document
@@ -114,6 +118,7 @@ The audit trail is pruned after a configurable window.
   previously documented "never pruned" promise: the release note has to say it,
   and the Helm chart exposes the worker's value so an operator can opt out.
 - The roadmap's open question about audit retention becomes the narrower question
-  about `ComparisonOutcomeEvent`, which is still append-only forever.
+  about `ComparisonOutcomeEvent`, which was append-only forever until
+  [ADR-079](./ADR-079-outcome-history-retention.md).
 - `CONTEXT.md` states the window in the `AuditEvent` glossary entry, because
   "rows outlive the rows they name" is no longer unconditional.

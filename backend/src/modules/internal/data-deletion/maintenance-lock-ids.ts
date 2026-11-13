@@ -17,4 +17,5 @@ export const MAINTENANCE_LOCK_IDS = {
   shareLinkCleanup: 1012,
   branchRetention: 1013,
   auditRetention: 1014,
+  outcomeRetention: 1015,
 } as const;

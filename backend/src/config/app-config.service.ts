@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService as NestConfigService } from '@nestjs/config';
+import { OUTCOME_RETENTION_DEFAULT_DAYS } from '@common/domain/trend-window';
 
 // The typed view of the validated environment. The object groups are built
 // once, lazily, on first access and then reused: guards, pipes, and the logger
@@ -25,6 +26,7 @@ interface AppConfigSnapshot {
   jobRetention: { days: number };
   webhookRetention: { days: number };
   auditRetention: { days: number };
+  outcomeRetention: { days: number };
   baselineHistory: { limit: number };
   retention: { runHistoryDays: number; branchRetentionDays: number };
   appPublicUrl: string;
@@ -106,6 +108,10 @@ export class AppConfigService {
 
   get auditRetention() {
     return this.s.auditRetention;
+  }
+
+  get outcomeRetention() {
+    return this.s.outcomeRetention;
   }
 
   get appPublicUrl() {
@@ -251,6 +257,15 @@ export class AppConfigService {
       // then deletes nothing (0 is not "delete everything older than now").
       auditRetention: {
         days: this.config.get<number>('AUDIT_RETENTION_DAYS') ?? 90,
+      },
+      // The outcome history feeds a read that is itself capped at
+      // MAX_TREND_WINDOW_DAYS, so the default windows past anything a query can
+      // ask for — it deletes rows nobody can read, not history a user reads.
+      // 0 keeps it forever.
+      outcomeRetention: {
+        days:
+          this.config.get<number>('OUTCOME_RETENTION_DAYS') ??
+          OUTCOME_RETENTION_DEFAULT_DAYS,
       },
       baselineHistory: {
         // Falls back to the Joi default on the pre-Joi bootstrap path, like the

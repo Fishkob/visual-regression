@@ -1,5 +1,9 @@
 import * as Joi from 'joi';
 import { UPLOAD_HARD_LIMIT_MB } from '@config/upload-limits';
+import {
+  MAX_TREND_WINDOW_DAYS,
+  OUTCOME_RETENTION_DEFAULT_DAYS,
+} from '@common/domain/trend-window';
 
 // Swagger export only reads decorators and doesn't need real infra.
 // process.argv is available before any module code runs, so we can
@@ -104,6 +108,14 @@ export const envValidationSchema = Joi.object({
     .default(90)
     .description(
       'How many days to keep the audit trail (0 keeps it forever). Deleting audit rows is irreversible, so the window should never be shorter than the backup window it has to scope a restore from.',
+    ),
+  OUTCOME_RETENTION_DAYS: Joi.number()
+    .integer()
+    .min(0)
+    .max(3650)
+    .default(OUTCOME_RETENTION_DEFAULT_DAYS)
+    .description(
+      `How many days to keep the comparison outcome history the trends page reads (0 keeps it forever). The default (${OUTCOME_RETENTION_DEFAULT_DAYS}) is derived from the ${MAX_TREND_WINDOW_DAYS}-day window the trends endpoint serves, so it deletes only rows no read path can reach.`,
     ),
 
   // Baseline history

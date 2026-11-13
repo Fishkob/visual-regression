@@ -39,6 +39,8 @@ x-app-env: &app-env
   WEBHOOK_DELIVERY_RETENTION_DAYS: ${WEBHOOK_DELIVERY_RETENTION_DAYS:-30}
   # 90 days by default; 0 keeps the audit trail forever.
   AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-90}
+  # 400 days by default; 0 keeps the outcome history forever.
+  OUTCOME_RETENTION_DAYS: ${OUTCOME_RETENTION_DAYS:-400}
   # 0 = off (the default). The sweep runs in the worker, so the worker needs it.
   BRANCH_RETENTION_DAYS: ${BRANCH_RETENTION_DAYS:-0}
   UPLOAD_RATE_LIMIT_PER_MINUTE: ${UPLOAD_RATE_LIMIT_PER_MINUTE:-240}

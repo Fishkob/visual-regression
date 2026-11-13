@@ -1,14 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { MAX_TREND_WINDOW_DAYS } from '@common/domain/trend-window';
 
 export class TrendsQueryDto {
-  @ApiPropertyOptional({ default: 30, minimum: 1, maximum: 365 })
+  @ApiPropertyOptional({
+    default: 30,
+    minimum: 1,
+    maximum: MAX_TREND_WINDOW_DAYS,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(365)
+  @Max(MAX_TREND_WINDOW_DAYS)
   days?: number;
 }
 

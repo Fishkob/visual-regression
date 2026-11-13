@@ -6,6 +6,9 @@ Accepted — 2026-10-25.
 
 Superseded by: ADR-049 (the project is denormalized onto the outcome row instead of joined from the live schema).
 
+Amended 2026-11-13: the `ComparisonOutcomeEvent` retention follow-up named under
+Consequences shipped as [ADR-079](./ADR-079-outcome-history-retention.md).
+
 ## Context
 
 Reports and trends need per-comparison outcomes: how many comparisons ran, how
@@ -61,9 +64,9 @@ completed comparison:
 
 - Trends are approximate under crashes and for very old rows whose test was
   deleted (the project-scoped join drops them).
-- The table grows with comparisons and nothing prunes it today: R15 (shipped)
-  covers run/job/session retention, not `ComparisonOutcomeEvent`, so a retention
-  task plus archive/export is an open follow-up rather than a planned slice of
-  that roadmap item.
+- The table grows with comparisons and nothing pruned it when this was written:
+  R15 (shipped) covers run/job/session retention, not `ComparisonOutcomeEvent`. A
+  retention task shipped as [ADR-079](./ADR-079-outcome-history-retention.md); an
+  archive/export did not.
 - The outcome history is not a replacement for audit: it records comparison
   results, not who approved what.

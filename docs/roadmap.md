@@ -42,6 +42,18 @@ variant, and a variant that is known-unstable cannot be muted on its own.
 
 ### Shipped
 
+- **Outcome-history retention** (2026-11-13). The last append-only table has a
+  window: `OUTCOME_RETENTION_DAYS` (default 400, `0` keeps it forever) and
+  `OutcomeRetentionTask` delete trend/flake rows older than it under the same
+  advisory-lock cron, reporting `cleanup_outcomes_deleted`/`_last_run`. The
+  default is not a history decision: it is derived from `MAX_TREND_WINDOW_DAYS`
+  (`common/domain/trend-window.ts`), the 365-day clamp the trends endpoint serves,
+  so at the default the sweep only deletes rows no read path can return — and
+  raising the clamp raises the default with it. Batches of 10 000 ids, at most 100
+  batches per run, like the audit sweep. What did not ship is a per-project window
+  (nobody asked; the reader is already project-scoped) and an archive/export (the
+  deferred partitioning shape) ([ADR-079](adr/ADR-079-outcome-history-retention.md)).
+
 - **Audit trail retention** (2026-11-13). The one table the docs promised never to
   prune now has a window: `AUDIT_RETENTION_DAYS` (default 90, `0` keeps the trail
   forever) and `AuditRetentionTask` delete audit rows older than it under the same
@@ -146,15 +158,6 @@ variant, and a variant that is known-unstable cannot be muted on its own.
    `POST .../runs/:key/finish`, and a maintenance task closes runs idle for 24 h. A
    shorter quiet period would spare callers that forget the call, but it guesses
    when a pipeline is done — and a wrong guess reads as a passing gate.
-3. **Does `ComparisonOutcomeEvent` need a retention policy?** It is the one
-   append-only table left: one row per recorded comparison, the trend/flake history
-   attributed by project name. `AuditEvent` now has a window
-   (`AUDIT_RETENTION_DAYS`, [ADR-078](adr/ADR-078-audit-trail-retention.md)); the
-   outcome history is the same shape of growth with a different reader — the
-   trends page — so pruning it removes history a user looks at, not only a
-   forensic trail. See
-   [deployment.md](deployment.md#retention-runs-in-the-worker) for the operator's
-   side of that trade.
 
 ## Considered and rejected
 
