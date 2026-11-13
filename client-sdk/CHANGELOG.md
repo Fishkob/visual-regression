@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0](https://github.com/Fishkob/visual-regression/compare/vrt-client-v3.1.0...vrt-client-v4.0.0) (2026-11-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **client-sdk:** @fishkob/vrt/playwright no longer exports the reporter. Replace `testInfo.attach("screenshot", ...)` and the reporter config with `createVrt({...})` and `await vrt.capture(testInfo, page)`; `uploadOnFailureOnly` becomes the afterEach pattern documented in docs/ci-integration.md.
+
+### Features
+
+* **client-sdk:** capture explicitly instead of through attachments ([#89](https://github.com/Fishkob/visual-regression/issues/89)) ([bf273e9](https://github.com/Fishkob/visual-regression/commit/bf273e9cc78fcc1fc2f260f4885099476970bd0b))
+
 ## [3.1.0](https://github.com/Fishkob/visual-regression/compare/vrt-client-v3.0.0...vrt-client-v3.1.0) (2026-11-13)
 
 
