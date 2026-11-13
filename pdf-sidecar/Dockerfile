@@ -20,7 +20,7 @@ RUN set -eux; \
 
 # A bare `3-` is a floating major: the Maven that builds the shipped jar would
 # change without a diff.
-FROM maven:3.10.0-eclipse-temurin-27-alpine@sha256:da769f72b34d193553bdd6c2bc7706caad361afa2a28866f2aa8430e2c5e0f36 AS build
+FROM maven:3-eclipse-temurin-26-alpine@sha256:109854e6e32bfbfa8b582da4a61e2839252e5b8a25f13dbc62e88938ff29a724 AS build
 WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline -q
