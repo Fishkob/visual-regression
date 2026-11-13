@@ -35,9 +35,16 @@ jobs:
       tag_name: ${{ steps.release.outputs.tag_name }}
       client_tag_name: ${{ steps.release.outputs['client-sdk--tag_name'] }}
     steps:
+      # The release PR is opened with a token, not `github.token`: a pull request
+      # created by the repository token has no trusted author, so every workflow
+      # run it starts waits for a maintainer's approval. `RELEASE_PLEASE_TOKEN`
+      # is a fine-grained token with `contents`, `pull-requests` and `issues`
+      # write; without it the job falls back to `github.token` and keeps the
+      # approval step described in docs/deployment.md.
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         id: release
         with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
@@ -84,6 +91,11 @@ jobs:
     # release was cut: the tag is the artifact users pin.
     with:
       ref: ${{ needs.release-please.outputs.tag_name }}
+    # The chart bump opens its own pull request and inherits the same problem:
+    # with `github.token` its CI waits for a maintainer's approval. Empty when
+    # the secret is unset, which is the documented fallback.
+    secrets:
+      RELEASE_PLEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
   publish-client-sdk:
     name: Publish the client SDK
