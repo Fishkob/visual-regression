@@ -24,6 +24,7 @@ interface AppConfigSnapshot {
   pdfSidecar: { url: string; timeout: number; healthUrl: string | undefined };
   jobRetention: { days: number };
   webhookRetention: { days: number };
+  auditRetention: { days: number };
   baselineHistory: { limit: number };
   retention: { runHistoryDays: number; branchRetentionDays: number };
   appPublicUrl: string;
@@ -101,6 +102,10 @@ export class AppConfigService {
 
   get webhookRetention() {
     return this.s.webhookRetention;
+  }
+
+  get auditRetention() {
+    return this.s.auditRetention;
   }
 
   get appPublicUrl() {
@@ -240,6 +245,12 @@ export class AppConfigService {
       },
       webhookRetention: {
         days: this.config.get<number>('WEBHOOK_DELIVERY_RETENTION_DAYS') ?? 30,
+      },
+      // The audit trail is the one window whose off-state must stay reachable:
+      // a deployment that has to keep the trail forever sets 0, and the sweep
+      // then deletes nothing (0 is not "delete everything older than now").
+      auditRetention: {
+        days: this.config.get<number>('AUDIT_RETENTION_DAYS') ?? 90,
       },
       baselineHistory: {
         // Falls back to the Joi default on the pre-Joi bootstrap path, like the

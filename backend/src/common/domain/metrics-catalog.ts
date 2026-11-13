@@ -61,6 +61,8 @@ export const METRICS = {
   cleanupWebhookDeliveriesLastRun: 'cleanup_webhook_deliveries_last_run',
   cleanupShareLinksDeleted: 'cleanup_share_links_deleted',
   cleanupShareLinksLastRun: 'cleanup_share_links_last_run',
+  cleanupAuditEventsDeleted: 'cleanup_audit_events_deleted',
+  cleanupAuditEventsLastRun: 'cleanup_audit_events_last_run',
   storageSizeBackfilled: 'storage_size_backfilled_total',
 } as const;
 

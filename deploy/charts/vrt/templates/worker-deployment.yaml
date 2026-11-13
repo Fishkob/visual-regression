@@ -95,6 +95,8 @@ spec:
               value: {{ .Values.worker.env.LOG_LEVEL }}
             - name: DATABASE_POOL_MAX
               value: "{{ .Values.worker.env.DATABASE_POOL_MAX }}"
+            - name: AUDIT_RETENTION_DAYS
+              value: "{{ .Values.worker.env.AUDIT_RETENTION_DAYS }}"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "{{ .Values.worker.env.OTEL_EXPORTER_OTLP_ENDPOINT }}"
           resources:

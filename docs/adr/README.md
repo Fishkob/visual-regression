@@ -43,7 +43,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 047 | [Delete Removes an API Key, Used or Not](./ADR-047-delete-removes-an-api-key.md)                                                       | Accepted (partially supersedes 025)                                   |
 | 048 | [Changed Regions Come From the Worker](./ADR-048-changed-regions.md)                                                                   | Accepted                                                              |
 | 049 | [Outcome Rows Carry Their Project Name](./ADR-049-outcome-project-attribution.md)                                                      | Accepted (partially supersedes 033)                                   |
-| 050 | [Approval Votes Are Audit and Outlive the Test](./ADR-050-approval-votes-are-audit.md)                                                 | Superseded by 066                                                     |
+| 050 | [Approval Votes Are Audit and Outlive the Test](./ADR-050-approval-votes-are-audit.md)                                                 | Superseded by 066 (never-pruned half by 078)                          |
 | 051 | [A Lost Webhook Lease Consumes an Attempt](./ADR-051-lease-expiry-consumes-a-retry.md)                                                 | Accepted (partially supersedes 042)                                   |
 | 052 | [PDF Pages Have a Pixel Budget](./ADR-052-pdf-page-pixel-budget.md)                                                                    | Accepted (complements 046)                                            |
 | 053 | [Sessions Have an Absolute Lifetime](./ADR-053-session-absolute-lifetime.md)                                                           | Accepted (complements 034)                                            |
@@ -71,6 +71,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 075 | [A Temporary Password Travels in a One-Time Link](./ADR-075-temporary-passwords-travel-in-one-time-links.md)                           | Accepted (amends 031's account lifecycle)                             |
 | 076 | [A Failed Comparison Job Is Published Through an Observer](./ADR-076-job-failure-notifications.md)                                     | Accepted (closes the `job.failed` deferral of 029)                    |
 | 077 | [Release Pull Requests Do Not Block Each Other](./ADR-077-release-prs-do-not-block-each-other.md)                                      | Accepted (supplements 069; supersedes none)                           |
+| 078 | [The Audit Trail Has a Retention Window](./ADR-078-audit-trail-retention.md)                                                           | Accepted (supersedes the never-pruned half of 050)                    |
 
 ## Numbering
 

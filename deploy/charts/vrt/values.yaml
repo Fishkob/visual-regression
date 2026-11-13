@@ -160,6 +160,10 @@ worker:
     LOG_LEVEL: info
     OTEL_EXPORTER_OTLP_ENDPOINT: ""
     DATABASE_POOL_MAX: "10"
+    # How many days the worker keeps the audit trail; 0 keeps it forever. A
+    # deployment with a compliance duty sets "0" here — the worker runs the sweep,
+    # so the backend's own default is not what decides this one.
+    AUDIT_RETENTION_DAYS: "90"
   resources:
     requests:
       cpu: 100m

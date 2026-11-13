@@ -16,4 +16,5 @@ export const MAINTENANCE_LOCK_IDS = {
   webhookDeliveryCleanup: 1011,
   shareLinkCleanup: 1012,
   branchRetention: 1013,
+  auditRetention: 1014,
 } as const;
