@@ -42,19 +42,19 @@ images:
   # overwrites them.
   backend:
     name: visual-regression-backend
-    tag: 3.1.0
+    tag: 5.0.0
   frontend:
     name: visual-regression-frontend
-    tag: 3.1.0
+    tag: 5.0.0
   worker:
     name: visual-regression-worker
-    tag: 3.1.0
+    tag: 5.0.0
   pdfSidecar:
     name: pdf-sidecar
-    tag: 3.1.0
+    tag: 5.0.0
   migrate:
     name: visual-regression-migrate
-    tag: 3.1.0
+    tag: 5.0.0
 
 tls:
   enabled: false
