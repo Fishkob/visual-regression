@@ -26,13 +26,14 @@ including tests, docs and review (`S` ≈ 1–3 days, `M` ≈ 1–2 weeks, `L` �
 2–4 weeks). `Priority` is `now` (next up), `on demand` (starts when a deployment
 asks for it) or `trigger` (starts when the named condition holds).
 
-| ID  | Item                               | Why now / who asks                                                                      | Size | Priority  |
-| --- | ---------------------------------- | --------------------------------------------------------------------------------------- | ---- | --------- |
-| N10 | Variant-level mute                 | Mute is per test, so one flaky variant silences every variant of that test.             | M    | on demand |
-| N12 | Trusted-header auth behind a proxy | An IdP proxy authenticates, the guard trusts a header: no dependency, so ADR-025 holds. | S    | on demand |
+| ID  | Item               | Why now / who asks                                                          | Size | Priority  |
+| --- | ------------------ | --------------------------------------------------------------------------- | ---- | --------- |
+| N10 | Variant-level mute | Mute is per test, so one flaky variant silences every variant of that test. | M    | on demand |
 
-N12 covers the deployment that already runs an IdP proxy; one that insists on
-OIDC or SAML inside the app itself stays out of scope.
+SSO is not a candidate: a header a proxy supplies looks like the cheap path, but
+it makes the API's network boundary the security boundary, so it is rejected
+below. OIDC/SAML inside the app would reopen ADR-025's dependency decision and
+stays out of scope until a deployment asks for it.
 
 N10 lost its second half: the run gate no longer counts a muted pending
 comparison (`run-state.policy.ts` subtracts `mutedPending`), so muted work already
@@ -163,6 +164,20 @@ person-reach that an integration covers today. **Revisit trigger:** a deployment
 needs to reach a **person** (a named reviewer, a digest, an escalation) rather than
 a channel, and cannot do it with the webhook they already receive.
 
+### Trusted-header auth (proxy-injected identity) — dropped (2026-11-12)
+
+The cheap SSO path reads well: an authenticating proxy puts `X-Auth-Request-User`
+on every request and the guard trusts it, so no IdP client enters the app. It was
+built (candidate N12) and dropped before merge, because the header is an unsigned
+claim the app cannot verify: the API's network boundary becomes the security
+boundary, and one exposed backend port turns `x-auth-request-user: admin` into a
+login. It also widened the one function that defines "authenticated" with a
+credential that has no session row, no in-app logout and a bypassed
+`mustChangePassword` — three documented exceptions around a rule that had none.
+**Revisit trigger:** a deployment that runs an IdP proxy asks for it and accepts
+the exposure rule in writing — or decide OIDC/SAML as its own ADR. ADR-025
+rejected the dependency; that is the decision to reopen, not this workaround.
+
 ### Reject endpoint — out of scope (ADR-023)
 
 Pending changes are retired by a newer upload, threshold auto-accept or deletion.
@@ -180,8 +195,9 @@ shield a branch from the sweep.
 
 ### Also deferred
 
-SSO/OIDC/SAML beyond an IdP proxy in front (N12), a built-in crawler or browser
-capture (the platform stays capture-agnostic), and multi-tenancy/orgs
+SSO/OIDC/SAML inside the app (see the trusted-header rejection above; ADR-025 names
+the dependency decision a deployment would have to reopen), a built-in crawler or
+browser capture (the platform stays capture-agnostic), and multi-tenancy/orgs
 (single-tenant self-hosting is the product).
 
 ## Maintaining this document
