@@ -163,7 +163,7 @@ described in [Reports and trends](#5-reports-and-trends).
 
 ## 4. Playwright reporter (SDK)
 
-The TypeScript client ships a Playwright reporter that uploads a test's screenshot attachment when the test ends. It needs no Playwright dependency at runtime and never fails the test run when VRT is unreachable.
+The TypeScript client ships a Playwright reporter that uploads a test's screenshot attachment when the test ends. A test without such an attachment uploads nothing — the reporter never takes a screenshot itself, so the tests decide which pixels reach the server. It needs no Playwright dependency at runtime and never fails the test run when VRT is unreachable.
 
 The client is published to npm as `@fishkob/vrt` and versions independently of the platform. It speaks `/api/v1`, so any recent client works with any server on that API version. For an installation without registry access, pack the package where the registry is reachable and carry the tarball over — npm is the artifact store, the release page carries the notes ([ADR-073](adr/ADR-073-release-assets-and-immutable-releases.md)).
 
@@ -191,7 +191,6 @@ export default defineConfig({
         runKey: process.env.CI_RUN_ID,
         branch: process.env.CI_BRANCH || "main",
         environment: "ci",
-        uploadOnFailureOnly: false,
       },
     ],
   ],
@@ -199,8 +198,8 @@ export default defineConfig({
 ```
 
 - The reporter uploads the first attachment whose content type or name looks like a screenshot (`image/png`) or PDF, into `<project>`, and names the test after the Playwright title path. A test name is a path segment, so it is reduced to `[A-Za-z0-9_-]`, at most 100 characters: `checkout.spec.ts / cart summary` becomes `checkout-spec-ts-cart-summary`. An over-long name keeps a stable hash of the full title path, so two tests that share a prefix stay two tests.
-- The test attaches the capture itself: `testInfo.attach("screenshot", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" })`. Playwright attaches a `toHaveScreenshot` image only when it writes or diffs a snapshot, so a matching assertion uploads nothing of its own.
-- `uploadOnFailureOnly: true` uploads only failed/timed-out tests; `skipRetries: true` ignores Playwright's retry attempts so only the final result is uploaded.
+- The test attaches the capture itself, and that is the opt-in: `testInfo.attach("screenshot", { body: await page.screenshot({ fullPage: true }), contentType: "image/png" })`. A test that attaches nothing uploads nothing, so only the tests that make the call become baselines; the [README](../README.md#wire-it-into-your-project) shows a `capture()` helper with an env switch for the visual job. Playwright's own `screenshot` option attaches an image too, and the reporter uploads it like any other. A matching `toHaveScreenshot` assertion attaches nothing, so it uploads nothing.
+- `uploadOnFailureOnly: true` uploads only failed/timed-out tests — triage, not baselines; `skipRetries: true` ignores Playwright's retry attempts so only the final result is uploaded.
 - `concurrency`/`maxAttempts` are forwarded to `uploadMany` (default 4 / 3). Upload failures are collected in `reporter.results()` and via `onUpload`; they do not fail the test run.
 - `apiUrl` is the API root and carries `/api/v1`.
 - See [client-sdk/README.md](../client-sdk/README.md) for the full `uploadMany` API, the other subpath imports and how the tarball is built.

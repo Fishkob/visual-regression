@@ -89,35 +89,55 @@ Production setup (TLS, reverse proxy, backups, Kubernetes):
 
 ## Wire it into your project
 
-The platform keeps the baselines; your tests keep producing the pixels. Nothing
-goes into the application — a capture is the screenshot your test already takes.
+The platform keeps the baselines; your tests keep producing the pixels. A capture
+is a screenshot your test already takes — nothing is instrumented in the app —
+and **only an attached screenshot is uploaded**: no attachment, no request, so you
+decide test by test which pixels reach the server.
 
 **1. Give CI a key.** Create one under **API keys** in the dashboard and store it
 as a pipeline secret. `upload` sends captures; gating a run also reads its status
 (`read`) and finishes it (`admin`) —
 [scopes and rotation](docs/ci-integration.md#1-authenticate).
 
-**2. Attach the capture in your test.** One call inside the test you already
-have:
+**2. Attach a capture only where you want one.** The reporter never takes a
+screenshot on its own: it uploads the first screenshot or PDF attachment of a
+test that ends. Call a small helper from the tests worth guarding, after their
+assertions; every other test uploads nothing:
 
 ```ts
-// checkout.spec.ts
-test("cart summary", async ({ page }, testInfo) => {
-  await page.goto("/cart");
+// e2e/capture.ts
+import type { Page, TestInfo } from "@playwright/test";
+
+// Only the visual job sets VRT_CAPTURE=1; every other run takes no screenshot at all.
+export async function capture(page: Page, testInfo: TestInfo) {
+  if (process.env.VRT !== "1") return;
 
   await testInfo.attach("screenshot", {
     body: await page.screenshot({ fullPage: true }),
     contentType: "image/png",
   });
+}
+```
+
+```ts
+// checkout.spec.ts
+test("cart summary", async ({ page }, testInfo) => {
+  await page.goto("/cart");
+  // … the assertions this test already has …
+
+  await capture(page, testInfo); // the only line that makes it upload
 });
 ```
 
-**3. Point Playwright at your instance.** The client ships a reporter that uploads
-each test's first screenshot attachment and names the test after its title path,
-reduced to the characters a name may use (`checkout.spec.ts / cart summary` becomes
-`checkout-spec-ts-cart-summary`); a `runKey` groups the uploads of one pipeline
-into a run. The client is on npm as `@fishkob/vrt` and has its own version line —
-it speaks `/api/v1`, so it is not tied to a platform release
+Run the job that should upload with `VRT_CAPTURE=1`; without it the helper returns
+before the screenshot, so a normal e2e run uploads nothing.
+
+**3. Point Playwright at your instance.** The client ships the reporter, which
+uploads one capture per test. It names the test after its title path, reduced to
+the characters a name may use (`checkout.spec.ts / cart summary` becomes
+`checkout-spec-ts-cart-summary`), and a `runKey` groups the uploads of one
+pipeline into a run. The client is on npm as `@fishkob/vrt` and has its own
+version line — it speaks `/api/v1`, so it is not tied to a platform release
 ([client SDK](client-sdk/README.md#install)):
 
 ```bash
@@ -156,6 +176,12 @@ verbatim, case included, so a changed value is a new baseline that passes withou
 comparing. Any other stack posts the same fields to
 `/api/v1/projects/:project/tests/:test/upload?testKind=image`
 ([curl](docs/ci-integration.md#2-upload-and-wait)).
+
+One thing to watch: Playwright's own `screenshot` option writes an attachment
+named `screenshot`, and the reporter cannot tell it from the one your test
+attaches — with `screenshot: "on"` every test uploads. For failure triage,
+`screenshot: "only-on-failure"` together with `uploadOnFailureOnly: true` sends
+only the tests that broke; that is not a baseline set.
 
 The comparison runs after the test, so no test can assert on it: with a `runKey`
 set, close the run after the test command and fail the job unless its state is

@@ -144,19 +144,22 @@ export default defineConfig({
         runKey: process.env.GITHUB_RUN_ID,
         branch: process.env.GITHUB_HEAD_REF || 'main',
         environment: 'ci',
-        uploadOnFailureOnly: false,
       },
     ],
   ],
 });
 ```
 
-The reporter uploads the first `screenshot`/`.png` (or `.pdf`) attachment of
-each test, so the test attaches the capture itself
-(`testInfo.attach('screenshot', { body: await page.screenshot(), contentType: 'image/png' })`);
-Playwright attaches a `toHaveScreenshot` image only when it writes or diffs a
-snapshot, so a matching assertion uploads nothing. The test name comes from the
-Playwright title path, reduced to the API's name characters
+Nothing is uploaded for a test that attaches no image: the reporter never takes
+a screenshot, it looks at the attachments of a test that ended and uploads the
+first screenshot or PDF attachment. The test therefore opts in explicitly with
+`testInfo.attach('screenshot', { body: await page.screenshot(), contentType: 'image/png' })`,
+and only the tests that make that call reach the server — the
+[README](../README.md#wire-it-into-your-project) has a `capture()` helper with an
+env switch. Playwright's own `screenshot` option attaches an image as well and
+the reporter uploads it like any other; `uploadOnFailureOnly: true` restricts
+uploads to failed tests, `skipRetries: true` to the final attempt. The test name
+comes from the Playwright title path, reduced to the API's name characters
 (`checkout.spec.ts / cart summary` → `checkout-spec-ts-cart-summary`, at most
 100 characters). The module's default export is the reporter class — that is
 what the config above loads — and `createVrtReporter` is the programmatic entry
