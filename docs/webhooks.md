@@ -50,7 +50,7 @@ Every review event is written as a `WebhookDelivery` row **in the same transacti
 
 `job.failed` is the one exception, and it does not weaken the guarantee: there is no review transaction to ride, because the job's failure is the queue's own write. The queue publishes the terminal failure through an observer seam and the outbox row is written right after that write commits ([ADR-076](adr/ADR-076-job-failure-notifications.md)). The failed job row is the durable record either way; the webhook is the report, so a crash in the millisecond between the two loses the notification, not the failure. The failed job is also visible in the run page and the DLQ.
 
-Delivery history is not pruned yet. Email is deliberately not sent at all.
+Delivery rows are an outbox, not a history: a terminal row (delivered or failed) is deleted after `WEBHOOK_DELIVERY_RETENTION_DAYS`, while `PENDING` and `PROCESSING` rows are never touched — they are still owed to the receiver. The window exists because a payload carries reviewer-supplied comment text, approval notes and usernames. See [deployment.md](deployment.md#retention-runs-in-the-worker). Email is deliberately not sent at all.
 
 ---
 
