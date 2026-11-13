@@ -71,6 +71,16 @@ const stageOf = (wrapper: ReturnType<typeof mountViewer>, panelId: string) =>
 const byId = (wrapper: ReturnType<typeof mountViewer>, id: string) =>
   wrapper.find(`[data-testid="${id}"]`);
 
+// jsdom serialises a CSS transform back through the parser, and `translate()`
+// drops a trailing zero: `translate(0px, 0px)` reads `translate(0px)`. Comparing
+// the arguments keeps the assertion about the pan, not about the serialiser.
+const translateOf = (style: string | undefined): [number, number] => {
+  const args = style?.match(/translate\(([^)]*)\)/)?.[1];
+  if (!args) throw new Error(`no translate() in style: ${style}`);
+  const [x, y = "0"] = args.split(",").map((value) => value.trim());
+  return [Number.parseFloat(x), Number.parseFloat(y)];
+};
+
 const pressKey = async (
   target: EventTarget,
   key: string,
@@ -336,9 +346,9 @@ describe("InteractiveImageViewer", () => {
     await byId(wrapper, TEST_ID.modeWipe).trigger("click");
     await pressKey(byId(wrapper, TEST_ID.wipeHandle).element, "ArrowLeft");
 
-    expect(stageOf(wrapper, TEST_ID.panelWipe).attributes("style")).toContain(
-      "translate(0px, 0px)",
-    );
+    expect(
+      translateOf(stageOf(wrapper, TEST_ID.panelWipe).attributes("style")),
+    ).toEqual([0, 0]);
     expect(byId(wrapper, TEST_ID.wipeHandle).attributes("aria-valuenow")).toBe(
       "48",
     );
@@ -397,14 +407,14 @@ describe("InteractiveImageViewer", () => {
     await byId(wrapper, TEST_ID.zoomIn).trigger("click");
     await pressKey(window, "ArrowRight");
     expect(
-      stageOf(wrapper, TEST_ID.panelBaseline).attributes("style"),
-    ).toContain("translate(40px, 0px)");
+      translateOf(stageOf(wrapper, TEST_ID.panelBaseline).attributes("style")),
+    ).toEqual([40, 0]);
 
     await byId(wrapper, TEST_ID.zoomReset).trigger("click");
 
     expect(
-      stageOf(wrapper, TEST_ID.panelBaseline).attributes("style"),
-    ).toContain("translate(0px, 0px)");
+      translateOf(stageOf(wrapper, TEST_ID.panelBaseline).attributes("style")),
+    ).toEqual([0, 0]);
     expect(byId(wrapper, TEST_ID.fitToggle).attributes("aria-pressed")).toBe(
       "true",
     );
@@ -449,8 +459,8 @@ describe("InteractiveImageViewer", () => {
       "true",
     );
     expect(
-      stageOf(wrapper, TEST_ID.panelBaseline).attributes("style"),
-    ).toContain("translate(0px, 0px)");
+      translateOf(stageOf(wrapper, TEST_ID.panelBaseline).attributes("style")),
+    ).toEqual([0, 0]);
   });
 
   it("disables zoom out at minimum zoom (50%)", async () => {
@@ -796,7 +806,7 @@ describe("InteractiveImageViewer", () => {
 
     const baseline = stageOf(wrapper, TEST_ID.panelBaseline);
     const candidate = stageOf(wrapper, TEST_ID.panelCandidate);
-    expect(baseline.attributes("style")).toContain("translate(40px, 0px)");
+    expect(translateOf(baseline.attributes("style"))).toEqual([40, 0]);
     expect(candidate.attributes("style")).toBe(baseline.attributes("style"));
   });
 
@@ -818,8 +828,8 @@ describe("InteractiveImageViewer", () => {
     await nextTick();
 
     expect(
-      stageOf(wrapper, TEST_ID.panelBaseline).attributes("style"),
-    ).toContain("translate(30px, 20px)");
+      translateOf(stageOf(wrapper, TEST_ID.panelBaseline).attributes("style")),
+    ).toEqual([30, 20]);
 
     window.dispatchEvent(new MouseEvent("mouseup"));
     window.dispatchEvent(
@@ -827,8 +837,8 @@ describe("InteractiveImageViewer", () => {
     );
     await nextTick();
     expect(
-      stageOf(wrapper, TEST_ID.panelBaseline).attributes("style"),
-    ).toContain("translate(30px, 20px)");
+      translateOf(stageOf(wrapper, TEST_ID.panelBaseline).attributes("style")),
+    ).toEqual([30, 20]);
   });
 
   it("restores the last view mode and zoom from localStorage", () => {
