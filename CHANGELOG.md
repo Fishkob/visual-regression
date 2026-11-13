@@ -7,6 +7,17 @@
 > resolve, and the repository starts at `v1.0.0`. Treat every tag below as
 > immutable history — it is never moved, and a released version is never reused.
 
+## [4.0.0](https://github.com/Fishkob/visual-regression/compare/v3.1.0...v4.0.0) (2026-11-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **ops:** an existing deployment starts pruning the audit trail at 90 days after the upgrade. Set `AUDIT_RETENTION_DAYS=0` before upgrading if the trail must stay complete.
+
+### Features
+
+* **ops:** prune the audit trail after AUDIT_RETENTION_DAYS ([#84](https://github.com/Fishkob/visual-regression/issues/84)) ([02f95e6](https://github.com/Fishkob/visual-regression/commit/02f95e6184a7db27c82ab0b0ecc1d3ddb269da5d))
+
 ## [3.1.0](https://github.com/Fishkob/visual-regression/compare/v3.0.0...v3.1.0) (2026-11-13)
 
 
