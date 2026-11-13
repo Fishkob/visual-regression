@@ -7,6 +7,35 @@
 > resolve, and the repository starts at `v1.0.0`. Treat every tag below as
 > immutable history — it is never moved, and a released version is never reused.
 
+## [5.0.0](https://github.com/Fishkob/visual-regression/compare/v4.0.0...v5.0.0) (2026-11-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **client-sdk:** @fishkob/vrt/playwright no longer exports the reporter. Replace `testInfo.attach("screenshot", ...)` and the reporter config with `createVrt({...})` and `await vrt.capture(testInfo, page)`; `uploadOnFailureOnly` becomes the afterEach pattern documented in docs/ci-integration.md.
+* **ops:** an existing deployment starts deleting outcome rows older than 400 days after the upgrade. Nothing a user can still query is lost, but the deletion is irreversible — set `OUTCOME_RETENTION_DAYS=0` before upgrading if the raw history has to stay complete.
+* **ops:** an existing deployment starts pruning the audit trail at 90 days after the upgrade. Set `AUDIT_RETENTION_DAYS=0` before upgrading if the trail must stay complete.
+* **users:** `POST /users` and `POST /users/:id/reset-password` no longer return `temporaryPassword`. The regenerated SDK, the admin dialog that now shows the link, and the e2e suites move with them. ADR-075 supersedes the account-lifecycle bullets of ADR-031.
+* **auth:** remove TOTP two-factor authentication ([#53](https://github.com/Fishkob/visual-regression/issues/53))
+
+### Features
+
+* **auth:** remove TOTP two-factor authentication ([#53](https://github.com/Fishkob/visual-regression/issues/53)) ([4b291ed](https://github.com/Fishkob/visual-regression/commit/4b291ed6b3188a1c8dec3a6d7ec5eea23c56be2e))
+* bulk test deletion and API-key lifecycle in the UI ([#71](https://github.com/Fishkob/visual-regression/issues/71)) ([6908e66](https://github.com/Fishkob/visual-regression/commit/6908e664fefefd0b287c7ca5cb471bce2fb831cc))
+* **client-sdk:** capture explicitly instead of through attachments ([#89](https://github.com/Fishkob/visual-regression/issues/89)) ([bf273e9](https://github.com/Fishkob/visual-regression/commit/bf273e9cc78fcc1fc2f260f4885099476970bd0b))
+* **ops:** prune the audit trail after AUDIT_RETENTION_DAYS ([#84](https://github.com/Fishkob/visual-regression/issues/84)) ([02f95e6](https://github.com/Fishkob/visual-regression/commit/02f95e6184a7db27c82ab0b0ecc1d3ddb269da5d))
+* **ops:** prune the outcome history after OUTCOME_RETENTION_DAYS ([#87](https://github.com/Fishkob/visual-regression/issues/87)) ([20afba9](https://github.com/Fishkob/visual-regression/commit/20afba92c72a4e4245be99f7545d0d71644c7418))
+* **projects:** rename a project from its settings page ([#70](https://github.com/Fishkob/visual-regression/issues/70)) ([5ca20a5](https://github.com/Fishkob/visual-regression/commit/5ca20a5344213438ae62fbc1a62a75c36b6d6445))
+* **review:** make the pixel threshold discoverable and readable ([5c25570](https://github.com/Fishkob/visual-regression/commit/5c25570757bcfe715890406f3fb6d14b7756b708))
+* **review:** page the comment thread by cursor ([#72](https://github.com/Fishkob/visual-regression/issues/72)) ([9b8fe4d](https://github.com/Fishkob/visual-regression/commit/9b8fe4d6a29765b1d7af396b769f441cc14e897b))
+* **users:** issue one-time invite links instead of temporary passwords ([#60](https://github.com/Fishkob/visual-regression/issues/60)) ([f3e5976](https://github.com/Fishkob/visual-regression/commit/f3e5976732b3d93e3e9161e3b1fb9e0ec8a76460))
+* **webhooks:** notify when a comparison job fails for good ([#68](https://github.com/Fishkob/visual-regression/issues/68)) ([5e2547c](https://github.com/Fishkob/visual-regression/commit/5e2547c74d2c046025c07a66ed64088f71691ca3))
+
+
+### Bug Fixes
+
+* **security:** verify release artifacts and fail closed on deploy defaults ([0182fac](https://github.com/Fishkob/visual-regression/commit/0182fac6c007e3ca0b0702176605447a13e76ebd))
+
 ## [4.0.0](https://github.com/Fishkob/visual-regression/compare/v3.1.0...v4.0.0) (2026-11-13)
 
 
