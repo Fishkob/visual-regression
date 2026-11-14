@@ -10,7 +10,13 @@
 // Exit code is 1 when a source file is covered by neither suite — that is the
 // one gap a merged report can prove, and it is the gap that otherwise hides
 // behind two green runs.
-import { readFileSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import {
+  readFileSync,
+  readdirSync,
+  mkdirSync,
+  writeFileSync,
+  existsSync,
+} from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -175,6 +181,38 @@ rows.push({
 const isSchemaOrTypeOnly = (file) =>
   file.includes('/dto/') || file.endsWith('.type.ts');
 
+// A file that no suite even *loaded* is in neither map, so everything above is
+// blind to it: the report would show 100% of a set the file was never part of.
+// Walk the source tree instead, minus what no configuration instruments (module
+// wiring, type modules, the entry points), and treat "absent from both maps" as
+// the gap it is.
+const NEVER_INSTRUMENTED = [
+  /\.module\.ts$/,
+  /\.types\.ts$/,
+  /\.d\.ts$/,
+  /\/main\.ts$/,
+  /\/generated\//,
+  /\/test\//,
+  /^src\/scripts\//,
+  /^src\/tracing\.setup\.ts$/,
+];
+
+function walkSource(dir, found = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) walkSource(path, found);
+    else if (entry.name.endsWith('.ts')) found.push(relative(root, path));
+  }
+  return found;
+}
+
+const loadedBySomeSuite = new Set(files);
+const neverLoaded = walkSource(join(root, 'src'))
+  .filter((file) => !NEVER_INSTRUMENTED.some((pattern) => pattern.test(file)))
+  .filter((file) => !isSchemaOrTypeOnly(file))
+  .filter((file) => !loadedBySomeSuite.has(file))
+  .sort();
+
 for (const file of files) {
   if (isSchemaOrTypeOnly(file)) continue;
   const entry = totals(merged, join(root, file));
@@ -191,10 +229,20 @@ console.log('-'.repeat(56));
 for (const row of rows) console.log(formatLine(row));
 console.log(`\nMerged coverage written to ${relative(root, outDir)}/`);
 
+if (neverLoaded.length > 0) {
+  console.error(
+    `\n${neverLoaded.length} file(s) no suite even loads (absent from both maps):\n` +
+      neverLoaded.map((file) => `  - ${file}`).join('\n'),
+  );
+}
+
 if (uncoveredByBoth.length > 0) {
   console.error(
     `\n${uncoveredByBoth.length} file(s) no suite touches at all:\n` +
       uncoveredByBoth.map((file) => `  - ${file}`).join('\n'),
   );
+}
+
+if (uncoveredByBoth.length > 0 || neverLoaded.length > 0) {
   process.exit(1);
 }
