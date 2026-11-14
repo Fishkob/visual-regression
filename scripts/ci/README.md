@@ -9,7 +9,7 @@ product documentation; the flow it wraps is described in
 
 ## Usage
 
-Pin a tag or SHA; the examples use `v3.4.0`.
+Pin a tag or SHA; the examples use the current platform release `v5.0.0`.
 
 ```yaml
 name: Visual regression
@@ -24,7 +24,7 @@ jobs:
       - name: Capture login
         run: ./scripts/capture-login.sh # writes artifacts/login.png
 
-      - uses: Fishkob/visual-regression@v3.4.0
+      - uses: Fishkob/visual-regression@v5.0.0
         with:
           api-url: https://vrt.example.com
           api-key: ${{ secrets.VRT_API_KEY }}
@@ -97,7 +97,7 @@ the run instead of on a single comparison. `commit`, `commit-message` and `ci-ur
 are only sent when a run key is set.
 
 ```yaml
-- uses: Fishkob/visual-regression@v3.4.0
+- uses: Fishkob/visual-regression@v5.0.0
   with:
     api-url: https://vrt.example.com
     api-key: ${{ secrets.VRT_API_KEY }}
@@ -192,7 +192,7 @@ key: set `run-key` or a top-level `runKey` in the manifest.
 ```
 
 ```yaml
-- uses: Fishkob/visual-regression@v3.4.0
+- uses: Fishkob/visual-regression@v5.0.0
   with:
     api-url: https://vrt.example.com
     api-key: ${{ secrets.VRT_API_KEY }}

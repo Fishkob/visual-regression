@@ -5,6 +5,11 @@
 Accepted — 2026-11-01. Supersedes the `ApprovalVote` cleanup decision in
 [ADR-042](./ADR-042-review-artifact-lifecycle.md).
 
+Superseded by: [ADR-066](./ADR-066-remove-the-four-eyes-approval-gate.md) (the
+vote-retention decision) and
+[ADR-078](./ADR-078-audit-trail-retention.md) (the "kept forever" half). The
+`Approval` row still outlives the test.
+
 ## Context
 
 ADR-042 treated `ApprovalVote` like `ReviewComment`: a row with no foreign key to
