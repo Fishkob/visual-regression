@@ -6,13 +6,13 @@ decision behind this layout — and the alternatives it rejected — is in
 
 ## Suites
 
-| Suite                                         | Runner             | What it covers                                                                                                         | Infrastructure                                    | Speed  |
-| --------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------ |
-| **Unit** (`*.spec.ts`)                        | Vitest             | Business logic, domain rules, service orchestration; all infrastructure mocked                                         | none                                              | fast   |
-| **Backend E2E** (`*.e2e-spec.ts`)             | Vitest + supertest | Full HTTP round-trip: controller → pipes → guards → interceptors → service → repository → real Postgres/RustFS/sidecar | Postgres, RustFS, pdf-sidecar                     | medium |
-| **Frontend E2E** (`frontend/tests/e2e/`)      | Playwright         | Real user flows: upload → navigate → review → approve                                                                  | the full stack                                    | slow   |
-| **Component** (CT, `frontend/tests/ct/`)      | Playwright         | One Vue page in a real browser, rendered through the story gallery; keyboard operation and focus management included   | Vite dev server                                   | medium |
-| **Visual / A11y** (`frontend/tests/quality/`) | Playwright         | Every gallery case in light and dark: committed screenshot baselines plus an axe WCAG A/AA scan of the at-rest page    | the quality image (`frontend/Dockerfile.quality`) | medium |
+| Suite                                         | Runner             | What it covers                                                                                                                                    | Infrastructure                                    | Speed  |
+| --------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------ |
+| **Unit** (`*.spec.ts`)                        | Vitest             | Business logic, domain rules, service orchestration; all infrastructure mocked                                                                    | none                                              | fast   |
+| **Backend E2E** (`*.e2e-spec.ts`)             | Vitest + supertest | Full HTTP round-trip: controller → pipes → guards → interceptors → service → repository → real Postgres/RustFS/sidecar                            | Postgres, RustFS, pdf-sidecar                     | medium |
+| **Frontend E2E** (`frontend/tests/e2e/`)      | Playwright         | Real user flows: upload → navigate → review → approve                                                                                             | the full stack                                    | slow   |
+| **Component** (CT, `frontend/tests/ct/`)      | Playwright         | One Vue page in a real browser, rendered through the story gallery; keyboard operation and focus management included                              | Vite dev server                                   | medium |
+| **Visual / A11y** (`frontend/tests/quality/`) | Playwright         | Every gallery case in light and dark: a committed screenshot baseline plus an axe WCAG A/AA scan; overlay cases are opened first and scanned only | the quality image (`frontend/Dockerfile.quality`) | medium |
 
 There is no integration-test suite. A repository test against real Postgres
 without HTTP existed once and was dropped on 2026-07-25;
@@ -24,6 +24,15 @@ the running application when the property under test is a database guarantee
 the same time cannot be produced through the HTTP surface, and a mocked client
 cannot hold a lock.
 
+One component is outside every suite: `pdf-sidecar/` (Java 25) ships two JUnit
+classes that nothing runs — the quality image, the CodeQL build and the Docker
+build all pass `-DskipTests`, and no job calls `mvn test`. The sidecar is
+exercised only black-box, through the backend e2e suite's PDF flows, so a unit
+regression in `PdfCompareService` is caught by the pixels it produces, if at
+all. Turning those tests on is a CI job away, but it needs one local
+`mvn -B test` first: they have never run, and a gate on an unverified suite is
+worse than the gap.
+
 ## How the suites are wired
 
 - **Backend unit** — `Test.createTestingModule()` with providers replaced by
@@ -34,9 +43,14 @@ cannot hold a lock.
 - **Frontend unit** — Vitest + jsdom + `@vue/test-utils`; SDK calls are mocked
   with `vi.mock('@sdk/...')` and a fresh TanStack `queryClient` per test. Idioms
   live in [`frontend/AGENTS.md`](../frontend/AGENTS.md). The suite also carries
-  two cross-cutting invariants: `gallery-coverage.test.ts` (every route has a
-  quality case or a documented opt-out) and `fixtures-contract.test.ts` (every
-  browser fixture is bound to the generated SDK type).
+  four cross-cutting invariants: `gallery-coverage.test.ts` (every route has a
+  quality case or a documented opt-out), `fixtures-contract.test.ts` (every
+  browser fixture is bound to the generated SDK type), `route-invariants.test.ts`
+  (every route has a title key that exists in both locales, the public and admin
+  route sets are pinned, and every view has a browser spec or its own) and
+  `invalidation-contract.test.ts` (every helper in `src/lib/invalidation.ts`
+  refreshes the reads it owns, checked against a seeded `QueryClient` so the
+  framework's prefix matching decides).
 - **Frontend E2E** — Playwright against a running frontend.
 - **Component and quality suites** — both read the **story gallery**: a Vite page
   (`frontend/playwright/gallery/`) that resolves `*.story.ts` files through
@@ -113,22 +127,38 @@ share links, webhook management/delivery/replay, storage/quota, PDF pipeline and
 maintenance sweeps. Each spec resets the `vrt_e2e` database and calls the real
 app through supertest.
 
-Two of them assert database guarantees rather than HTTP contracts, because the
-HTTP surface cannot produce the input: `job-queue-concurrency.e2e-spec.ts` drives
-the queue from the running app (concurrent claims, stall reclaim, ownership
-loss, backoff) and `concurrent-review.e2e-spec.ts` races two uploads and two
-approvals. The two specs carry nine cases today, and each was checked to fail
-when its mechanism is removed. They are the exception
+Some of them assert a database or filesystem guarantee rather than an HTTP
+contract, because the HTTP surface cannot produce the input — or because the
+mechanism only shows itself when real rows are at stake. They drive the running
+app instead:
+
+| Spec                                               | Drives                                                               | Cases |
+| -------------------------------------------------- | -------------------------------------------------------------------- | ----: |
+| `job-queue-concurrency.e2e-spec.ts`                | the queue: concurrent claims, stall reclaim, ownership loss, backoff |    10 |
+| `concurrent-review.e2e-spec.ts`                    | two racing uploads and two racing approvals                          |     2 |
+| `pending-comparison-invariant.e2e-spec.ts`         | the advisory lock behind "one reviewable comparison per variant"     |     4 |
+| `notifications/webhook-delivery-lease.e2e-spec.ts` | the webhook lease: concurrent claims, a live lease, an expired one   |     3 |
+| `data-deletion/outcome-retention.e2e-spec.ts`      | the destructive outcome sweep against real rows                      |     5 |
+
+That is 24 cases, and each was checked to fail when its mechanism is removed:
+a spec that stays green after the `FOR UPDATE`, the lock or the batch loop is
+removed proves nothing. They are the exception
 [ADR-054](adr/ADR-054-coverage-per-layer-and-real-database-races.md) allows and
 the evidence [ADR-059](adr/ADR-059-query-policy-vs-mechanism.md) points at when it
-forbids a unit test to assert a locking mechanism.
+forbids a unit test to assert a locking mechanism. Two of them are there for the
+reason one level up: a unit spec pins the cutoff or the statement they _ask for_,
+which would stay green if a comparison were off by a timezone, if the
+`deleteMany` matched nothing, or if the batch loop stopped one pass early — the
+ways a retention task silently keeps or loses history; and a string test on
+`FOR UPDATE SKIP LOCKED` stays green for the claim that has no lock at all.
 
-One mechanism assertion is still in the unit suite:
-`webhook-delivery.repository.spec.ts` asserts the claim SQL contains
-`FOR UPDATE SKIP LOCKED`, because no concurrency case exists for the webhook
-lease yet. [ADR-059](adr/ADR-059-query-policy-vs-mechanism.md) names it as the
-exception; it carries an `eslint-disable-next-line` with that reason in the code
-and goes when the case arrives, not before.
+The race case is also why the last mechanism assertion is gone from the unit
+suite. `webhook-delivery.repository.spec.ts` used to check the claim SQL for
+`FOR UPDATE SKIP LOCKED` under an `eslint-disable-next-line`, because no
+concurrency case existed for the lease. `webhook-delivery-lease.e2e-spec.ts`
+now drives 24 concurrent claims and fails with duplicate ids — 24 claims
+returning 6 distinct rows — when the clause is removed, so the string assertion
+had nothing left to prove and is deleted.
 
 `health/boot-smoke.e2e-spec.ts` covers the other gap: every other spec boots the
 hand-built `TestApp`, which re-states the global prefix and the validation pipe
@@ -150,9 +180,17 @@ excluded from the unit gate for that reason, like `src/main.ts`.
   checked on every push — the reason the previous global threshold sat red
   unnoticed was that the local gate ran `unitTest` without coverage.
 - The e2e run writes its own map (`coverage/e2e`). `pnpm run coverage:all` runs
-  both suites, merges the maps per file and fails when a file with statements is
-  executed by neither suite. That merge is a report, not the gate: it needs
-  Docker and ~3 minutes.
+  both suites and merges the maps per file; `backend/scripts/merge-coverage.mjs`
+  fails on two different gaps — a file with statements that one suite loads and
+  never executes, and a file that **neither map contains at all**. The second is
+  the one the first cannot see: an unreached file is simply absent, so the
+  percentage over the remaining set looks healthy. The check walks `src/`
+  instead of trusting the maps, and skips only what no configuration
+  instruments (module wiring, type modules, the entry points).
+- CI runs that merge as a gate: the backend e2e job runs its suite with
+  coverage, re-runs the unit suite (~20 s, cheaper than shipping the map
+  between jobs) and merges. Locally it stays an on-demand report, because the
+  e2e half wants Docker and ~3 minutes.
 - The frontend unit run is gated the same way (`frontend/vite.config.ts`):
   `domains`, `composables`, `lib`, `i18n` and `components` each carry their own
   numbers plus a global floor, and `scripts/verify.sh` runs `test:coverage`, not
@@ -179,7 +217,8 @@ excluded from the unit gate for that reason, like `src/main.ts`.
   `local/no-locking-clause-assertions` rejects a locking token inside a
   `toContain` / `toMatch` literal in `test/unit/` — the mechanism half of
   [ADR-059](adr/ADR-059-query-policy-vs-mechanism.md), enforced instead of
-  remembered.
+  remembered. It has no exceptions left: the one it was written around (the
+  webhook lease) now has a race case in `test/e2e/`.
 - The pre-commit hook runs the unit tests of the workspace whose files changed
   (`lint-staged`), without coverage — the gate is the push hook.
 - The client SDK is gated as an **artifact**, not only as source:
@@ -193,9 +232,37 @@ excluded from the unit gate for that reason, like `src/main.ts`.
   `quality.sh` refuses a `--no-build` run whose image has another architecture.
   `toHaveScreenshot` tolerates 0.01% differing pixels (anti-aliasing noise on
   glyph and border edges), which is orders of magnitude below any layout change.
-- The quality suite is `en-US`, one 1440x900 viewport, Chromium only. Axe scans
-  the page at rest; dialogs, menus and the command palette are covered by
-  `tests/ct/keyboard.spec.ts` (focus in, Escape, focus return, first Tab stop).
+- The quality suite is `en-US`, one 1440x900 viewport, Chromium only. A case is
+  either photographed and scanned, or — when it is an overlay — scanned only,
+  with the reason recorded in `scanOnly`: the page beneath already carries a
+  baseline, and what an overlay breaks is labelling, `aria-modal` and contrast.
+  An overlay case declares `openTestId` (the control that opens it) and
+  `overlayTestId` (what proves it is open); the type no longer allows one
+  without the other. Three overlay patterns are covered this way: a form dialog,
+  the command palette and the retention dry-run dialog.
+- Contrast inside an overlay is **measured, not inferred**: axe files every text
+  node in a `position: fixed` dialog as `incomplete` ("background color could not
+  be determined"), which the page cases treat as blocking. `tests/quality/contrast.ts`
+  resolves the nearest opaque background through a canvas (Tailwind v4 emits
+  `oklch()`, which a naive `rgb()` parser silently drops) and computes the WCAG
+  ratio. It fails below 4.5:1 (3:1 for large text) and also fails when it cannot
+  resolve a background or measure nothing at all — the two ways such a check
+  goes quietly green.
+- Keyboard operation and focus are the CT suite's job
+  (`tests/ct/keyboard.spec.ts`). The two layers are complementary: axe reads the
+  open overlay's semantics, the CT spec drives its keyboard behaviour — focus
+  moves in, Tab stays inside, a nested overlay closes before its parent, Escape
+  closes, focus returns to the trigger.
+- Covered today: the create-project, invite, rename, API-key rotation,
+  bulk-delete and share dialogs, the branch-target dialog together with the
+  select inside it, the retention dry-run dialog and the search palette (which
+  also covers opening from its keyboard shortcut).
+- **Not yet covered**, each because it opens through a write or a table row and
+  needs its own fixture: the bulk-failure, baseline-preview, webhook-secret,
+  assign-review, approval-decision and storage-edit dialogs, the row-action menus
+  (`UserRowActions`, `RowActionsCell`, `BranchActionsMenu`) and the standalone
+  `Select` comboboxes outside the branch dialog. Adding one is a row in
+  `tests/ct/keyboard.spec.ts`, not a new pattern.
 
 ## Commands
 

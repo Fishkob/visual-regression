@@ -210,7 +210,20 @@ jobs:
           STORAGE_SECRET_KEY: rustfsadmin
           STORAGE_BUCKET: vrt
           STORAGE_USE_SSL: "false"
-        run: pnpm run test:e2e:ci
+        # Coverage variant of the same run: the e2e half of the merged map.
+        run: pnpm run test:e2e:ci:cov
+
+      # The unit suite is ~20s, cheaper than shipping its map across jobs, and
+      # running it here keeps the merge self-contained. `coverage:merge` fails on
+      # a source file that a suite loads and never executes, and on a file that
+      # neither map contains — the gap two green runs hide by construction.
+      - name: Run the unit suite for the merged map
+        working-directory: backend
+        run: pnpm run test:cov
+
+      - name: Merge the unit and e2e coverage maps
+        working-directory: backend
+        run: pnpm run coverage:merge
 
       - name: Check migration drift
         run: |

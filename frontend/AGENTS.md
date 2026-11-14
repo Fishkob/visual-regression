@@ -82,9 +82,18 @@ src/
   `--no-build` run against an image of another architecture. Regenerating the
   baselines on the pinned image must be a no-op; if it is not, the platform or
   the image changed and every snapshot needs review, not a blind `--update`.
-- Keyboard operation and focus are part of the CT suite
-  (`tests/ct/keyboard.spec.ts`): a dialog or overlay you add needs a case there
-  (focus moves in, Escape closes, focus returns). Axe only sees the page at rest.
+- An overlay (dialog, menu, palette) needs **two** cases, because the two layers
+  answer different questions:
+  - a quality case in `tests/quality/cases.ts` with `openTestId` (the control
+    that opens it) and `overlayTestId` (what proves it is open), marked
+    `scanOnly` with a reason. Axe then reads the open overlay's semantics —
+    labelling, `aria-modal`, roles — and `tests/quality/contrast.ts` measures the
+    contrast of its text, which axe cannot resolve for a `position: fixed`
+    dialog.
+  - a case in `tests/ct/keyboard.spec.ts`: focus moves in, Escape closes, focus
+    returns to the trigger.
+- Keyboard behaviour is the CT suite's job; the quality suite does not click
+  through flows. It opens the overlay and nothing more.
 
 ### Domain mapper tests
 
@@ -111,8 +120,12 @@ src/
   `components`) plus a global floor. Raise a number after closing a gap; never
   lower one to make a red run green. `scripts/verify.sh` runs this variant.
 - `src/router/index.ts`, `src/views/**` and `src/components/**/*.vue` stay out of
-  the denominator: the router is wiring, the views and components are CT-covered.
-  Non-`.vue` modules under `src/components/` stay in scope.
+  the denominator: the router is wiring (its table invariants are asserted by
+  `src/__tests__/route-invariants.test.ts`), and a view or component is covered
+  by a browser spec instead. Non-`.vue` modules under `src/components/` stay in
+  scope. The exclusion is a claim about the browser suite, so
+  `route-invariants.test.ts` fails the unit run for a view that has neither a CT
+  mount nor an own spec and is not listed there with a reason.
 
 ### Browser fixtures
 
@@ -141,11 +154,12 @@ src/
 - A new component therefore needs one of the two, plus a `data-testid` on
   whatever the test must find; a component that only the quality suite reaches
   is not covered, it is merely rendered.
-- Because views and `.vue` components are CT-covered, the Vitest coverage gate
-  (`vite.config.ts` → `test.coverage`) measures the **logic layer only**:
-  `src/views/**` and `src/components/**/*.vue` are excluded from its denominator.
-  Non-`.vue` modules under `src/components/` stay in scope. Adding a view does
-  therefore not move the coverage number — its coverage comes from the CT spec.
+- Because views and `.vue` components are covered by a browser spec, the Vitest
+  coverage gate (`vite.config.ts` → `test.coverage`) measures the **logic layer
+  only**: `src/views/**` and `src/components/**/*.vue` are excluded from its
+  denominator. Non-`.vue` modules under `src/components/` stay in scope. Adding a
+  view does therefore not move the coverage number — its coverage comes from the
+  CT spec.
 
 ### Language-independent selectors
 

@@ -76,7 +76,11 @@ const emit = defineEmits<{
           </Button>
         </div>
 
-        <dl v-else-if="preview" class="grid gap-2 text-sm sm:grid-cols-2">
+        <dl
+          v-else-if="preview"
+          class="grid gap-2 text-sm sm:grid-cols-2"
+          :data-testid="TEST_ID.storagePreviewResults"
+        >
           <div class="rounded-md border p-2">
             <dt class="text-xs text-muted-foreground">
               {{ t("storagePreview.baseline") }}

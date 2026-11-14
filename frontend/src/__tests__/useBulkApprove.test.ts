@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ref } from "vue";
 import type { BulkApproveResultDto } from "@sdk";
 import { useBulkApprove } from "@/composables/useBulkApprove";
+import { invalidateAfterBulkApprove } from "@/lib/invalidation";
 
 const { mockApproveAll, mockUseSdkMutation, configs } = vi.hoisted(() => {
   const configs: {
@@ -86,27 +87,19 @@ describe("useBulkApprove", () => {
     ).toBe("Approved 2 variants (1 failed)");
   });
 
-  it("invalidates every review surface after the batch", () => {
+  it("invalidates exactly what the shared bulk-approve helper owns", () => {
     useBulkApprove(ref("checkout"), ref("login"));
-    const client = { invalidateQueries: vi.fn() };
+    const used = { invalidateQueries: vi.fn() };
+    const shared = { invalidateQueries: vi.fn() };
 
-    configs.current!.invalidate(client);
+    configs.current!.invalidate(used);
+    invalidateAfterBulkApprove(shared as never);
 
-    expect(client.invalidateQueries).toHaveBeenCalledTimes(8);
-    const keys = client.invalidateQueries.mock.calls.map((call) => {
-      const [arg] = call as [{ queryKey: readonly unknown[] }];
-      return arg.queryKey[0];
-    });
-    expect(keys).toEqual(
-      expect.arrayContaining([
-        "visual-tests",
-        "pdf-tests",
-        "projects",
-        "pending-tests",
-        "review-inbox",
-        "branches",
-        "approvals",
-      ]),
+    // Comparing against the helper instead of a count: the copy of this list
+    // that used to live in the composable had silently lost the runs
+    // invalidation, so "8 calls" was green while the runs page stayed stale.
+    expect(used.invalidateQueries.mock.calls).toEqual(
+      shared.invalidateQueries.mock.calls,
     );
   });
 });

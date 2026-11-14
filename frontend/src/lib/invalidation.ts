@@ -231,10 +231,14 @@ export function invalidateAfterTestMetadataChange(client: QueryClient) {
 }
 
 // A retention/quota update changes the storage read (the server echoes the
-// normalized values) and nothing else.
+// normalized values) and the cleanup preview: the dry-run answers "what would
+// these settings delete", so a preview fetched before the save describes the
+// previous settings and would show the operator a stale deletion count for as
+// long as it stays cached.
 export function invalidateProjectStorage(
   client: QueryClient,
   projectName: string,
 ) {
   client.invalidateQueries({ queryKey: storageQueryKeys.detail(projectName) });
+  client.invalidateQueries({ queryKey: storageQueryKeys.preview(projectName) });
 }

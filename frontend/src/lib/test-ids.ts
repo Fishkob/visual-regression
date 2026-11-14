@@ -153,6 +153,7 @@ export const TEST_ID = {
   storageSave: "storage-save",
   storagePreviewAction: "storage-preview-action",
   storagePreviewDialog: "storage-preview-dialog",
+  storagePreviewResults: "storage-preview-results",
   storagePreviewLoading: "storage-preview-loading",
   storagePreviewError: "storage-preview-error",
   storagePreviewRetry: "storage-preview-retry",

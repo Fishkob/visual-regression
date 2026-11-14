@@ -76,8 +76,9 @@ export default defineConfig({
         "src/components/ui/**",
         // Wiring, not logic: the route table plus createRouter. Every guard it
         // installs is tested through lib/auth-guard and lib/route-focus, the
-        // table invariants by router-routes.test.ts, and the navigation itself
-        // by the e2e suite against the real router. The lazy `component: () =>
+        // table invariants (a title key per route, the public and admin route
+        // sets) by route-invariants.test.ts, and the navigation itself by the
+        // e2e suite against the real router. The lazy `component: () =>
         // import(...)` entries can never execute under Vitest, so the file
         // would cap the layer at a number that says nothing about test quality.
         "src/router/index.ts",

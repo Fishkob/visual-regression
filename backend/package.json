@@ -33,6 +33,7 @@
     "test:watch": "vitest",
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
     "test:e2e:ci": "pnpm run db:prepare && pnpm run test:e2e",
+    "test:e2e:ci:cov": "pnpm run db:prepare && pnpm run test:cov:e2e",
     "test:ui": "vitest --ui",
     "db:prepare": "pnpm run prisma:generate && POSTGRES_HOST=localhost POSTGRES_PORT=5432 POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres POSTGRES_DB=vrt pnpm exec prisma migrate deploy",
     "prisma:generate": "POSTGRES_HOST=localhost POSTGRES_PORT=5432 POSTGRES_USER=postgres POSTGRES_PASSWORD=postgres POSTGRES_DB=vrt pnpm exec prisma generate",

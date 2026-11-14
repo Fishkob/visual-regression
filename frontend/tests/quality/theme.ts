@@ -1,6 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
-import type { Theme } from "./cases";
+import { mockApi } from "../ct/routes/api.routes";
+import type { QualityCase, Theme } from "./cases";
 
 const DISABLE_ANIMATIONS =
   "*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;caret-color:transparent!important}";
@@ -53,4 +54,45 @@ export function collectPageErrors(page: Page): string[] {
   const messages: string[] = [];
   page.on("pageerror", (error) => messages.push(error.message));
   return messages;
+}
+
+// The string a gallery case is mounted by. Structural on purpose: the specs get
+// Playwright's `mount` fixture, and this file does not need to import the CT
+// types to take it.
+export type MountStory = (
+  story: string,
+  props?: Record<string, unknown>,
+) => Promise<unknown>;
+
+// The single place that turns a case into a page: mocks, theme, mount, wait,
+// and — when the case is about an overlay — the interaction that opens it. Both
+// quality specs call this, so a case cannot be prepared one way for the shot and
+// another for the scan.
+export async function mountQualityCase(
+  page: Page,
+  mount: MountStory,
+  qualityCase: QualityCase,
+  theme: Theme,
+): Promise<string[]> {
+  const pageErrors = collectPageErrors(page);
+
+  if (qualityCase.routes) {
+    await mockApi(page, qualityCase.routes);
+  }
+  await preparePage(page, theme);
+  await mount(qualityCase.story, qualityCase.props);
+  await waitForReady(page, qualityCase.readyTestId, theme);
+  if (qualityCase.readyAlsoTestId) {
+    for (const testId of [qualityCase.readyAlsoTestId].flat()) {
+      await expect(page.getByTestId(testId).first()).toBeVisible();
+    }
+  }
+  if (qualityCase.openTestId) {
+    await page.getByTestId(qualityCase.openTestId).first().click();
+    await expect(
+      page.getByTestId(qualityCase.overlayTestId).first(),
+    ).toBeVisible();
+  }
+
+  return pageErrors;
 }
