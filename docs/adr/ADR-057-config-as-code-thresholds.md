@@ -15,6 +15,11 @@ half, `playwright-capture.test.ts` ("applies the threshold from the repository
 config") — the capture client that reads `.vrt.json` replaced the Playwright
 reporter named in the decision ([ADR-080](./ADR-080-explicit-captures-not-attachments.md)).
 
+Amended — the Playwright reporter named in the decision was removed by
+[ADR-080](./ADR-080-explicit-captures-not-attachments.md): the capture client
+`createVrt` reads `.vrt.json` and sends the resolved value instead, so the rule
+itself is unchanged.
+
 ## Context
 
 A pixel threshold lives on the baseline screenshot of one variant
@@ -48,9 +53,9 @@ review gate — that would let a pipeline approve its own visual changes.
   pendings that already exist. That is why it does not need the auto-accept
   sweep of a per-variant raise. The UI states this.
 - **Config-as-code.** A repository file `.vrt.json` carries
-  `{ "thresholds": { "<test name>": <pixels> } }`. The Playwright reporter and
-  `uploadMany` send the resolved value as the upload's `pixelDiffThreshold`
-  field. The server:
+  `{ "thresholds": { "<test name>": <pixels> } }`. The capture client
+  (`createVrt`) and `uploadMany` send the resolved value as the upload's
+  `pixelDiffThreshold` field. The server:
   - stores it when the upload creates the baseline (there is no pending row to
     widen yet);
   - on an existing baseline, applies it only when it is **lower** than the
