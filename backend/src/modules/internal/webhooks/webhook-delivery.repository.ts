@@ -107,8 +107,9 @@ export class WebhookDeliveryRepository extends BaseRepository {
   async claimDue(limit: number): Promise<WebhookDeliveryRow[]> {
     await this.reclaimExpired();
     const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 100);
-    return this.client.$queryRawUnsafe<WebhookDeliveryRow[]>(
-      `UPDATE "WebhookDelivery"
+    return this.client.$queryRaw<WebhookDeliveryRow[]>(
+      Prisma.sql`
+       UPDATE "WebhookDelivery"
        SET "status" = 'PROCESSING'::"WebhookDeliveryStatus",
            "claimedAt" = NOW()
        WHERE "id" IN (

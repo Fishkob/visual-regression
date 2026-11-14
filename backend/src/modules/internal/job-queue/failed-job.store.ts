@@ -96,12 +96,11 @@ export class FailedJobStore extends BaseRepository implements IFailedJobStore {
   // are actually gone.
   async deleteFailedJobRows(ids: string[]): Promise<string[]> {
     if (ids.length === 0) return [];
-    const deleted = await this.client.$queryRawUnsafe<{ id: string }[]>(
-      `DELETE FROM "ComparisonJob"
-       WHERE id = ANY($1::text[]) AND status = $2
+    const deleted = await this.client.$queryRaw<{ id: string }[]>(
+      Prisma.sql`
+       DELETE FROM "ComparisonJob"
+       WHERE id = ANY(${ids}::text[]) AND status = ${JobStatus.FAILED}
        RETURNING id`,
-      ids,
-      JobStatus.FAILED,
     );
     return deleted.map((row) => row.id);
   }

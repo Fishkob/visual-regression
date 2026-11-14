@@ -69,7 +69,7 @@ function makeMockPrisma() {
       deleteMany: vi.fn(),
       count: vi.fn(),
     },
-    $queryRawUnsafe: vi.fn(),
+    $queryRaw: vi.fn(),
     $executeRaw: vi.fn(),
     $transaction: vi.fn(),
   };
@@ -305,7 +305,7 @@ describe('PostgresJobQueue', () => {
 
   describe('claimNext', () => {
     it('claims the next available pending job', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([{ id: 'job-1' }]);
+      prisma.client.$queryRaw.mockResolvedValue([{ id: 'job-1' }]);
       prisma.client.comparisonJob.update.mockResolvedValue({});
       prisma.client.comparisonJob.findUnique.mockResolvedValue({
         id: 'job-1',
@@ -327,7 +327,7 @@ describe('PostgresJobQueue', () => {
         expect.objectContaining({ id: 'job-1' }),
       );
       expect(prisma.client.$transaction).toHaveBeenCalled();
-      expect(prisma.client.$queryRawUnsafe).toHaveBeenCalled();
+      expect(prisma.client.$queryRaw).toHaveBeenCalled();
       expect(prisma.client.comparisonJob.update).toHaveBeenCalledWith({
         where: { id: 'job-1' },
         data: {
@@ -339,7 +339,7 @@ describe('PostgresJobQueue', () => {
     });
 
     it('returns null when no job available', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([]);
+      prisma.client.$queryRaw.mockResolvedValue([]);
 
       const processor = vi.fn();
       await queue.processNext(processor);
@@ -350,7 +350,7 @@ describe('PostgresJobQueue', () => {
     });
 
     it('claims stalled jobs and increments their attempts', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([
+      prisma.client.$queryRaw.mockResolvedValue([
         {
           id: 'stalled-job',
           status: 'PROCESSING',
@@ -385,7 +385,7 @@ describe('PostgresJobQueue', () => {
     });
 
     it('moves an exhausted stalled job to FAILED instead of processing it', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([
+      prisma.client.$queryRaw.mockResolvedValue([
         {
           id: 'exhausted-job',
           status: 'PROCESSING',
@@ -409,7 +409,7 @@ describe('PostgresJobQueue', () => {
     });
 
     it('claims jobs whose heartbeat is stale', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([
+      prisma.client.$queryRaw.mockResolvedValue([
         {
           id: 'hung-job',
           status: 'PROCESSING',
@@ -438,18 +438,18 @@ describe('PostgresJobQueue', () => {
     });
 
     it('reclaims stalled PROCESSING jobs by heartbeat staleness only', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([]);
+      prisma.client.$queryRaw.mockResolvedValue([]);
 
       await queue.processNext(vi.fn());
 
-      const [sql, ...params] = prisma.client.$queryRawUnsafe.mock.calls[0];
-      expect(sql).toContain('"heartbeatAt" < $2');
-      expect(sql).not.toContain('processingStartedAt');
-      expect(params).toHaveLength(2);
+      const [query] = prisma.client.$queryRaw.mock.calls[0];
+      expect(query.text).toContain('"heartbeatAt" < $2');
+      expect(query.text).not.toContain('processingStartedAt');
+      expect(query.values).toHaveLength(2);
     });
 
     it('queries the pending branch only when no stalled job was claimable', async () => {
-      prisma.client.$queryRawUnsafe
+      prisma.client.$queryRaw
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ id: 'job-1', status: 'PENDING' }]);
       prisma.client.comparisonJob.update.mockResolvedValue({});
@@ -464,25 +464,25 @@ describe('PostgresJobQueue', () => {
 
       await queue.processNext(vi.fn().mockResolvedValue(undefined));
 
-      expect(prisma.client.$queryRawUnsafe).toHaveBeenCalledTimes(2);
-      const [stalledSql] = prisma.client.$queryRawUnsafe.mock.calls[0];
-      const [pendingSql] = prisma.client.$queryRawUnsafe.mock.calls[1];
-      expect(stalledSql).toContain('"heartbeatAt"');
-      expect(pendingSql).toContain('"nextAttemptAt"');
-      expect(pendingSql).not.toContain('"heartbeatAt"');
+      expect(prisma.client.$queryRaw).toHaveBeenCalledTimes(2);
+      const [stalledQuery] = prisma.client.$queryRaw.mock.calls[0];
+      const [pendingQuery] = prisma.client.$queryRaw.mock.calls[1];
+      expect(stalledQuery.text).toContain('"heartbeatAt"');
+      expect(pendingQuery.text).toContain('"nextAttemptAt"');
+      expect(pendingQuery.text).not.toContain('"heartbeatAt"');
     });
 
     it('also reclaims PROCESSING jobs whose heartbeatAt is NULL (never beat)', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([]);
+      prisma.client.$queryRaw.mockResolvedValue([]);
 
       await queue.processNext(vi.fn());
 
-      const [sql] = prisma.client.$queryRawUnsafe.mock.calls[0];
-      expect(sql).toContain('"heartbeatAt" IS NULL');
+      const [query] = prisma.client.$queryRaw.mock.calls[0];
+      expect(query.text).toContain('"heartbeatAt" IS NULL');
     });
 
     it('a stalled-then-failed job consumes exactly one budget unit per run (crash counted once at reclaim, failure once at markFailed)', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([
+      prisma.client.$queryRaw.mockResolvedValue([
         {
           id: 'stalled-job',
           status: 'PROCESSING',
@@ -523,9 +523,9 @@ describe('PostgresJobQueue', () => {
     });
 
     it('falls through to a pending job when the stalled one exhausted its budget', async () => {
-      prisma.client.$queryRawUnsafe.mockImplementation((sql: string) =>
+      prisma.client.$queryRaw.mockImplementation((query: { text: string }) =>
         Promise.resolve(
-          sql.includes('"nextAttemptAt"')
+          query.text.includes('"nextAttemptAt"')
             ? [
                 {
                   id: 'pending-job',
@@ -571,7 +571,7 @@ describe('PostgresJobQueue', () => {
     });
 
     it('does not throw and fails a job with an undecodable payload immediately', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([
+      prisma.client.$queryRaw.mockResolvedValue([
         { id: 'poison-job', status: 'PENDING', attempts: 0, maxAttempts: 3 },
       ]);
       prisma.client.comparisonJob.update.mockResolvedValue({});
@@ -607,7 +607,7 @@ describe('PostgresJobQueue', () => {
   const heartbeatStartedAt = new Date('2025-01-01T00:00:00Z');
 
   function claimProcessingJob(id = 'job-1') {
-    prisma.client.$queryRawUnsafe.mockResolvedValue([
+    prisma.client.$queryRaw.mockResolvedValue([
       { id, status: 'PROCESSING', attempts: 0, maxAttempts: 3 },
     ]);
     prisma.client.comparisonJob.update.mockResolvedValue({});
@@ -786,7 +786,7 @@ describe('PostgresJobQueue', () => {
 
   describe('markFailed with retry decision', () => {
     it('updates job status to PENDING with incremented attempts on retry', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([
+      prisma.client.$queryRaw.mockResolvedValue([
         { id: 'job-1', status: 'PROCESSING', attempts: 0, maxAttempts: 3 },
       ]);
       prisma.client.comparisonJob.update.mockResolvedValue({});
@@ -822,7 +822,7 @@ describe('PostgresJobQueue', () => {
 
   describe('permanent failure handling', () => {
     it('fails a job immediately when the processor throws a non-retryable DomainError', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([
+      prisma.client.$queryRaw.mockResolvedValue([
         { id: 'job-1', status: 'PENDING', attempts: 0, maxAttempts: 3 },
       ]);
       prisma.client.comparisonJob.update.mockResolvedValue({});
@@ -1027,7 +1027,7 @@ describe('PostgresJobQueue', () => {
 
   describe('claimNext payload decode failure', () => {
     it('fails a corrupt-payload job immediately without retrying it', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([
+      prisma.client.$queryRaw.mockResolvedValue([
         { id: 'job-1', status: 'PENDING', attempts: 0, maxAttempts: 3 },
       ]);
       prisma.client.comparisonJob.update.mockResolvedValue({});
@@ -1060,7 +1060,7 @@ describe('PostgresJobQueue', () => {
 
   describe('runJob heartbeat lifecycle', () => {
     it('starts and stops heartbeat around successful processing', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([{ id: 'job-1' }]);
+      prisma.client.$queryRaw.mockResolvedValue([{ id: 'job-1' }]);
       prisma.client.comparisonJob.update.mockResolvedValue({});
       prisma.client.comparisonJob.findUnique.mockResolvedValue({
         id: 'job-1',
@@ -1087,7 +1087,7 @@ describe('PostgresJobQueue', () => {
     });
 
     it('starts and stops heartbeat around failed processing', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([{ id: 'job-1' }]);
+      prisma.client.$queryRaw.mockResolvedValue([{ id: 'job-1' }]);
       prisma.client.comparisonJob.update.mockResolvedValue({});
       prisma.client.comparisonJob.findUnique.mockResolvedValue({
         id: 'job-1',
