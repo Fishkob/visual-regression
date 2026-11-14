@@ -4,6 +4,17 @@
 
 Accepted — 2026-11-21
 
+Enforced by: `effectivePixelThreshold` in `threshold-policy.ts`, the single owner
+of "baseline, else project default, else 0", pinned by `threshold-policy.spec.ts`;
+`config-thresholds.e2e-spec.ts` ("applies a threshold to a new baseline, tightens
+an existing one and ignores a raise"), which proves the tighten-only rule against
+real Postgres; the `@Roles('ADMIN')` + `@Scope('admin')` pair on
+`PATCH :projectName/pixel-threshold` together with its `project.pixel-threshold`
+audit row, so a CI credential cannot widen the gate; and, for the repository
+half, `playwright-capture.test.ts` ("applies the threshold from the repository
+config") — the capture client that reads `.vrt.json` replaced the Playwright
+reporter named in the decision ([ADR-080](./ADR-080-explicit-captures-not-attachments.md)).
+
 ## Context
 
 A pixel threshold lives on the baseline screenshot of one variant
