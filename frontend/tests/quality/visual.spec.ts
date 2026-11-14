@@ -1,25 +1,25 @@
 import { expect, test } from "@playwright/test";
 
-import { mockApi } from "../ct/routes/api.routes";
 import { QUALITY_CASES, THEMES } from "./cases";
-import { collectPageErrors, preparePage, waitForReady } from "./theme";
+import { mountQualityCase } from "./theme";
 
-for (const qualityCase of QUALITY_CASES) {
+// A case that carries a `scanOnly` reason is reached and scanned by the a11y
+// spec but not photographed: it is an overlay, and the page beneath it already
+// has a baseline. The reason is required by `gallery-coverage.test.ts`, so a
+// case cannot quietly drop out of the shot.
+const PHOTOGRAPHED = QUALITY_CASES.filter(
+  (qualityCase) => qualityCase.scanOnly === undefined,
+);
+
+for (const qualityCase of PHOTOGRAPHED) {
   for (const theme of THEMES) {
     test(`${qualityCase.name} (${theme})`, async ({ mount, page }) => {
-      const pageErrors = collectPageErrors(page);
-
-      if (qualityCase.routes) {
-        await mockApi(page, qualityCase.routes);
-      }
-      await preparePage(page, theme);
-      await mount(qualityCase.story, qualityCase.props);
-      await waitForReady(page, qualityCase.readyTestId, theme);
-      if (qualityCase.readyAlsoTestId) {
-        for (const testId of [qualityCase.readyAlsoTestId].flat()) {
-          await expect(page.getByTestId(testId).first()).toBeVisible();
-        }
-      }
+      const pageErrors = await mountQualityCase(
+        page,
+        mount,
+        qualityCase,
+        theme,
+      );
 
       const mask = qualityCase.maskTestIds?.map((id) => page.getByTestId(id));
 

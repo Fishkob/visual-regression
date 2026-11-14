@@ -1,6 +1,10 @@
 import type { StorageControllerGetResponses } from "@sdk/models/StorageControllerGetResponses.gen";
 
 import { TEST_ID } from "@/lib/test-ids";
+import {
+  RETENTION_PREVIEW_RESPONSE,
+  STORAGE_PREVIEW_GLOB,
+} from "../ct/mocks/projectSettings.mocks";
 
 import {
   BRANCHES_RESPONSE,
@@ -46,7 +50,7 @@ export type Theme = "light" | "dark";
 
 export const THEMES: Theme[] = ["light", "dark"];
 
-export interface QualityCase {
+interface QualityCaseBase {
   name: string;
   story: string;
   props?: Record<string, unknown>;
@@ -58,7 +62,21 @@ export interface QualityCase {
   readyAlsoTestId?: string | string[];
   // Dynamic content (counts, avatars) that must not make screenshots flaky.
   maskTestIds?: string[];
+  // Reachable and scanned, but deliberately not photographed. Needs the reason.
+  // An overlay is the case for this: the page underneath already has a baseline,
+  // and the property an overlay can silently break — labelling, `aria-modal`,
+  // contrast of the text on the overlay tint — is exactly what the scan reads.
+  scanOnly?: string;
 }
+
+// Opening an overlay is a pair: the control that opens it and the element that
+// proves it is open. Modelled as a union so a case cannot declare one without
+// the other — a click nobody waits on scans whatever was on screen first.
+type OverlayStep =
+  | { openTestId?: undefined; overlayTestId?: undefined }
+  | { openTestId: string; overlayTestId: string };
+
+export type QualityCase = QualityCaseBase & OverlayStep;
 
 const PROJECTS_GLOB = "**/api/v1/projects/pending*";
 // The detail route is paginated: the request carries ?skip&take, and a glob
@@ -373,5 +391,65 @@ export const QUALITY_CASES: QualityCase[] = [
       ["**/api/v1/projects/*/trends*", TRENDS_RESPONSE],
     ],
     readyTestId: TEST_ID.trendsComparisons,
+  },
+  // Overlays. Until these cases existed the scan only ever saw a page at rest,
+  // so `aria-modal`, the dialog's accessible name and description, the focus
+  // order inside it and the contrast of text on the overlay tint had no gate at
+  // all — the one place axe cannot reach on its own. Each case clicks the
+  // control that opens one overlay and then scans it. None is photographed: the
+  // page underneath already carries a baseline, and an overlay's failure mode is
+  // the labelling and contrast the scan reads, not a moved pixel.
+  //
+  // One case per overlay primitive, not per dialog: a reka-ui Dialog wrapper, a
+  // combobox-backed palette and a dialog whose content arrives from a request.
+  {
+    name: "projects-new-dialog",
+    story: "views/ProjectsView/Projects",
+    routes: [
+      [PROJECTS_GLOB, PROJECTS_PENDING_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+    ],
+    readyTestId: TEST_ID.tableRow,
+    openTestId: TEST_ID.newProject,
+    overlayTestId: TEST_ID.projectNameInput,
+    scanOnly:
+      "The new-project form dialog: the form semantics, the group select and " +
+      "the field labels are only in the DOM while it is open.",
+  },
+  {
+    name: "search-palette",
+    story: "AppShell/AppShell",
+    props: { initialRoute: "/projects" },
+    routes: [
+      [PROJECTS_GLOB, PROJECTS_PENDING_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/review/pending*", REVIEW_INBOX_RESPONSE],
+    ],
+    readyTestId: TEST_ID.tableRow,
+    openTestId: TEST_ID.searchTrigger,
+    overlayTestId: TEST_ID.globalSearchDialog,
+    scanOnly:
+      "The command palette: a dialog wrapping a combobox and a listbox, the " +
+      "roles that a page-at-rest scan never sees.",
+  },
+  {
+    name: "storage-preview-dialog",
+    story: "views/ProjectSettingsView/Routed",
+    props: { initialRoute: "/projects/checkout-ui/settings" },
+    routes: [
+      [PROJECT_STORAGE_GLOB, PROJECT_STORAGE_RESPONSE],
+      [STORAGE_PREVIEW_GLOB, RETENTION_PREVIEW_RESPONSE],
+      [PROJECT_WEBHOOKS_GLOB, WEBHOOKS_RESPONSE],
+      [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
+    ],
+    readyTestId: TEST_ID.storageUsage,
+    readyAlsoTestId: TEST_ID.projectSettingsWebhooks,
+    openTestId: TEST_ID.storagePreviewAction,
+    // The results, not the dialog: waiting for the fetched content also proves
+    // the dry-run answered, so the scan never reads the loading state.
+    overlayTestId: TEST_ID.storagePreviewResults,
+    scanOnly:
+      "The retention dry-run dialog: a description list of what the sweeps " +
+      "would delete, rendered from a request when it opens.",
   },
 ];

@@ -312,6 +312,147 @@ test.describe("Bulk delete dialog focus", () => {
   });
 });
 
+// The three overlays below had no keyboard case at all: they open, they close on
+// a click, and nothing asserted that a keyboard user can get in, stay in and get
+// out again. They are the patterns the rest of the page's overlays share — a
+// dialog over a page, a dialog wrapping a combobox, and a dialog whose content
+// arrives from a request — so a new one should be a row here, not a new theory.
+async function expectDialogKeyboardContract(
+  page: Page,
+  component: Locator,
+  options: {
+    trigger: string;
+    dialog: string;
+    // Content that only exists once the dialog's request answered; waiting for
+    // it keeps the tab walk off a spinner.
+    waitFor?: string;
+    firstFocus?: string;
+    tabStops?: number;
+  },
+): Promise<void> {
+  const trigger = component.getByTestId(options.trigger).first();
+  await trigger.click();
+
+  const dialog = page.getByTestId(options.dialog);
+  await expect(dialog).toBeVisible();
+
+  // The focus container is the dialog element, not the test id: several dialogs
+  // put their id on an inner wrapper while the footer buttons (cancel, confirm,
+  // close) live beside it. Checking the wrapper would report a working focus
+  // trap as broken the moment Tab reaches the dialog's own actions.
+  const container = page.getByRole("dialog").first();
+  await expect.poll(() => focusIsInside(container)).toBe(true);
+  if (options.waitFor) {
+    await expect(page.getByTestId(options.waitFor)).toBeVisible();
+  }
+  if (options.firstFocus) {
+    await expect(page.getByTestId(options.firstFocus)).toBeFocused();
+  }
+
+  const stops = options.tabStops ?? 5;
+  for (let stop = 0; stop < stops; stop += 1) {
+    await page.keyboard.press("Tab");
+    await expect
+      .poll(() => focusIsInside(container), {
+        message: `focus left the dialog after tab stop ${stop + 1}`,
+      })
+      .toBe(true);
+  }
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+}
+
+test.describe("Share links dialog focus", () => {
+  test("moves focus into the share dialog, keeps it there and closes on Escape", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+
+    const component = await mount<typeof ProjectDetailRouted>(
+      "views/ProjectDetailView/Routed",
+      { initialRoute: "/projects/checkout-ui" },
+    );
+
+    await expectDialogKeyboardContract(page, component, {
+      trigger: TEST_ID.shareAction,
+      dialog: TEST_ID.shareDialog,
+    });
+  });
+});
+
+test.describe("Branch target dialog focus", () => {
+  test("traps focus and closes its select before closing itself", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
+    ]);
+
+    const component = await mount<typeof ProjectDetailRouted>(
+      "views/ProjectDetailView/Routed",
+      {
+        initialRoute: "/projects/checkout-ui?branch=feature%2Fcheckout-v2",
+      },
+    );
+
+    // Reached through the row menu, so this one does not fit the helper: the
+    // trigger that opens the dialog is itself inside an overlay that is gone by
+    // the time the dialog closes.
+    await component.getByTestId(TEST_ID.branchActionsButton).click();
+    await page.getByTestId(TEST_ID.branchChangeTarget).click();
+
+    const dialog = page.getByTestId(TEST_ID.branchTargetDialog);
+    await expect(dialog).toBeVisible();
+    await expect.poll(() => focusIsInside(dialog)).toBe(true);
+
+    // A dialog that wraps a combobox has two overlays stacked. Escape must close
+    // the inner one and leave the dialog standing, or a keyboard user who opened
+    // the wrong option loses the form they were filling.
+    await page.getByTestId(TEST_ID.branchTargetSelect).click();
+    const listbox = page.getByRole("listbox");
+    await expect(listbox).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(listbox).toBeHidden();
+    await expect(dialog).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+  });
+});
+
+test.describe("Retention preview dialog focus", () => {
+  test("waits for the dry-run, traps focus and closes on Escape", async ({
+    mount,
+    page,
+  }) => {
+    await mockProjectSettings(page);
+
+    const component = await mount<typeof ProjectSettingsRouted>(
+      "views/ProjectSettingsView/Routed",
+      { initialRoute: SETTINGS_ROUTE },
+    );
+
+    // The only automated gate on this dialog: nothing else opens it, and the
+    // request it fires on open is mocked in the shared settings mocks.
+    await expectDialogKeyboardContract(page, component, {
+      trigger: TEST_ID.storagePreviewAction,
+      dialog: TEST_ID.storagePreviewDialog,
+      waitFor: TEST_ID.storagePreviewResults,
+    });
+  });
+});
+
 test.describe("Tab order", () => {
   test("reaches real controls for the first tab stops of the page", async ({
     mount,

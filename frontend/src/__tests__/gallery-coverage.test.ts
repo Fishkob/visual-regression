@@ -12,7 +12,12 @@ import { QUALITY_CASES } from "../../tests/quality/cases";
 const ROUTE_CASES: Record<string, string[]> = {
   login: ["login"],
   "review-inbox": ["inbox"],
-  "project-list": ["projects", "app-shell"],
+  "project-list": [
+    "projects",
+    "app-shell",
+    "projects-new-dialog",
+    "search-palette",
+  ],
   groups: ["groups"],
   "change-password": ["change-password"],
   users: ["users"],
@@ -21,7 +26,7 @@ const ROUTE_CASES: Record<string, string[]> = {
   "api-keys": ["api-keys"],
   audit: ["audit"],
   "project-detail": ["project-detail"],
-  "project-settings": ["project-settings"],
+  "project-settings": ["project-settings", "storage-preview-dialog"],
   "project-webhooks": ["webhooks"],
   "project-runs": ["runs"],
   "run-detail": ["run-detail"],
@@ -111,5 +116,29 @@ describe("gallery coverage", () => {
     const names = QUALITY_CASES.map((qualityCase) => qualityCase.name);
 
     expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("states why a case is scanned but not photographed", () => {
+    // The visual spec skips these, so the reason is the only record that the
+    // omission was a decision. Same rule as NOT_IN_GALLERY above.
+    for (const qualityCase of QUALITY_CASES) {
+      if (qualityCase.scanOnly === undefined) continue;
+      expect(qualityCase.scanOnly.length, qualityCase.name).toBeGreaterThan(20);
+    }
+  });
+
+  it("sends every overlay case through the click that opens it", () => {
+    // An overlay case is worthless if nothing brings the overlay into view:
+    // axe would scan the page behind it and report a clean bill of health. The
+    // pair is enforced by the type, so what is left to assert is that the walk
+    // actually reaches one.
+    const overlays = QUALITY_CASES.filter(
+      (qualityCase) => qualityCase.openTestId !== undefined,
+    );
+
+    expect(overlays.length).toBeGreaterThan(0);
+    for (const overlay of overlays) {
+      expect(overlay.overlayTestId, overlay.name).toBeTruthy();
+    }
   });
 });
