@@ -1,15 +1,25 @@
 #!/usr/bin/env node
-// Merges the unit and the e2e coverage maps into one picture and reports which
-// layer each suite is responsible for.
+// Answers one question: does any source file escape both backend suites?
 //
 // Vitest writes one coverage map per run and has no cross-run merge, so the two
 // v8 maps are combined here: per file, the hit counts of the same statement,
 // function and branch ids are added. The maps come from the same source, so
 // their id spaces agree; a file that only one suite touched keeps its own map.
 //
-// Exit code is 1 when a source file is covered by neither suite — that is the
-// one gap a merged report can prove, and it is the gap that otherwise hides
-// behind two green runs.
+// Deliberately not a coverage report. There is no per-layer percentage table,
+// because the number it would print is not the number a threshold can use: each
+// suite reports the files *it* loaded, so "80% by the e2e suite" means eighty
+// percent of a different denominator than the unit gate holds. The thresholds
+// live in the two vitest configs, per layer, where the suite that owns the layer
+// measures it (ADR-054, ADR-055).
+//
+// Two gaps survive that split, and both hide behind two green runs:
+//
+//   1. a file one suite loads and never executes — present in a map at 0;
+//   2. a file no suite loads at all — present in neither map, so anything that
+//      builds its file list from the maps cannot see it.
+//
+// Exit code is 1 when either list is non-empty.
 import {
   readFileSync,
   readdirSync,
@@ -24,20 +34,6 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const unitPath = join(root, 'coverage/unit/coverage-final.json');
 const e2ePath = join(root, 'coverage/e2e/coverage-final.json');
 const outDir = join(root, 'coverage/merged');
-
-// Same buckets as the thresholds in vitest.config.ts, so the report answers the
-// question the gate asks. `presentation` is listed separately: no unit tests
-// assert on it by design, the HTTP suite is its owner.
-const LAYERS = [
-  ['public core/domain', (file) => file.includes('/core/domain/')],
-  ['public application', (file) => file.includes('/application/')],
-  ['public infrastructure', (file) => file.includes('/infrastructure/')],
-  ['public presentation', (file) => file.includes('/presentation/')],
-  ['internal', (file) => file.startsWith('src/modules/internal/')],
-  ['common', (file) => file.startsWith('src/common/')],
-  ['config', (file) => file.startsWith('src/config/')],
-  ['prisma', (file) => file.startsWith('src/prisma/')],
-];
 
 function readCoverage(path, label) {
   if (!existsSync(path)) {
@@ -98,33 +94,6 @@ function totals(map, file) {
   };
 }
 
-function pct([covered, total]) {
-  return total === 0 ? 100 : (100 * covered) / total;
-}
-
-function sum(entries) {
-  const acc = { statements: [0, 0], functions: [0, 0], branches: [0, 0] };
-  for (const entry of entries) {
-    for (const key of Object.keys(acc)) {
-      acc[key][0] += entry[key][0];
-      acc[key][1] += entry[key][1];
-    }
-  }
-  return acc;
-}
-
-function formatLine(row) {
-  const cell = (value) => value.toFixed(1).padStart(6);
-  const unknown = (p) => (p === null ? '     –' : cell(p));
-  return [
-    row.name.padEnd(24),
-    String(row.files).padStart(5),
-    unknown(row.unit),
-    unknown(row.e2e),
-    unknown(row.merged),
-  ].join('');
-}
-
 const unit = readCoverage(unitPath, 'unit');
 const e2e = readCoverage(e2ePath, 'e2e');
 const merged = merge(unit, e2e);
@@ -138,43 +107,6 @@ writeFileSync(
 const files = Object.keys(merged)
   .map((file) => relative(root, file))
   .sort();
-const rows = [];
-let uncoveredByBoth = [];
-
-for (const [name, matches] of LAYERS) {
-  const bucket = files.filter((file) => matches(file));
-  const describe = (map) => {
-    const entries = bucket.map((file) => totals(map, join(root, file)));
-    const seen = entries.filter(Boolean);
-    if (seen.length === 0) return null;
-    const key = 'statements';
-    return pct(sum(seen)[key]);
-  };
-  // A file may be absent from a map when the suite never loaded it; the merged
-  // percentage is what matters, but the per-suite column must not pretend.
-  rows.push({
-    name,
-    files: bucket.length,
-    unit: describe(unit),
-    e2e: describe(e2e),
-    merged: describe(merged),
-  });
-}
-
-const all = (map) => {
-  const entries = files.map((file) => totals(map, join(root, file)));
-  const seen = entries.filter(Boolean);
-  return seen.length === 0 ? 0 : pct(sum(seen).statements);
-};
-
-rows.push({
-  name: 'all files',
-  files: files.length,
-  unit: all(unit),
-  e2e: all(e2e),
-  merged: all(merged),
-});
-
 // A file only counts as a gap when it has statements that never ran. Files with
 // no statements (type aliases) and the DTO classes (the API schema, held out of
 // the unit gate for the same reason) are not gaps.
@@ -213,6 +145,7 @@ const neverLoaded = walkSource(join(root, 'src'))
   .filter((file) => !loadedBySomeSuite.has(file))
   .sort();
 
+const uncoveredByBoth = [];
 for (const file of files) {
   if (isSchemaOrTypeOnly(file)) continue;
   const entry = totals(merged, join(root, file));
@@ -221,13 +154,16 @@ for (const file of files) {
   }
 }
 
-console.log('\nStatements covered per layer (unit / e2e / both):\n');
+const mapSizes = `${Object.keys(unit).length} from the unit suite, ${Object.keys(e2e).length} from the e2e suite`;
 console.log(
-  ['layer'.padEnd(24), 'files', '  unit', '   e2e', '  both'].join(''),
+  `\nMerged ${files.length} file(s) (${mapSizes}) into ${relative(root, outDir)}/`,
 );
-console.log('-'.repeat(56));
-for (const row of rows) console.log(formatLine(row));
-console.log(`\nMerged coverage written to ${relative(root, outDir)}/`);
+
+if (neverLoaded.length === 0 && uncoveredByBoth.length === 0) {
+  console.log(
+    'No gap: every source file is loaded by a suite, and every file a suite loads executes something.',
+  );
+}
 
 if (neverLoaded.length > 0) {
   console.error(
@@ -238,7 +174,7 @@ if (neverLoaded.length > 0) {
 
 if (uncoveredByBoth.length > 0) {
   console.error(
-    `\n${uncoveredByBoth.length} file(s) no suite touches at all:\n` +
+    `\n${uncoveredByBoth.length} file(s) a suite loads and never executes:\n` +
       uncoveredByBoth.map((file) => `  - ${file}`).join('\n'),
   );
 }
