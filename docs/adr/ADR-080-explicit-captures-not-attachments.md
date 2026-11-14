@@ -9,6 +9,15 @@ Accepted — 2026-11-13. Replaces the attachment-reading Playwright reporter in
 does not change the API contract or the platform; the client keeps its own
 release line ([ADR-069](./ADR-069-independent-client-version.md)).
 
+Enforced by: `scripts/check-client-sdk-package.sh`, which packs the release
+tarball and requires `createVrt` from `@fishkob/vrt/playwright` to load in Node
+ESM and to type-check a consumer under both `nodenext` and `bundler`; and
+`client-sdk/src/__tests__/playwright-capture.test.ts`, which pins the contract
+(a page, a `Uint8Array` or a `Blob`; a PDF recognised by its header; a failed
+upload resolving to `ok: false` instead of throwing). Not enforced: the absence
+of the reporter — nothing fails if an attachment-reading export returns, and
+reintroducing one would take a new ADR rather than a revert.
+
 ## Context
 
 The first Playwright integration was a reporter: it looked at the attachments a

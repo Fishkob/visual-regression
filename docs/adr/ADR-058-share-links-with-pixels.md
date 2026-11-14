@@ -5,6 +5,15 @@
 Accepted — 2026-11-21. Supersedes the "no screenshot URLs" part of
 [ADR-038](ADR-038-share-links.md).
 
+Enforced by: `share-link.service.spec.ts` ("resolves a TEST share with signed URLs
+for the reviewable diff", "omits the diff when the test has no reviewable
+comparison"); the signing call in `ShareLinkService.resolve`, which signs the
+baseline, candidate and diff URL on every resolve instead of storing them on the
+share row; and the typed `PublicShareDto.comparison` member the SDK and the
+frontend mapper read instead of a free-form record. Not enforced: that project
+and run shares stay metadata-only — no test fails if a thumbnail is added to
+their payload.
+
 ## Context
 
 ADR-038 shipped read-only share links whose public payload was deliberately
