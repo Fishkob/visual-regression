@@ -187,10 +187,17 @@ excluded from the unit gate for that reason, like `src/main.ts`.
   percentage over the remaining set looks healthy. The check walks `src/`
   instead of trusting the maps, and skips only what no configuration
   instruments (module wiring, type modules, the entry points).
+- The merge deliberately prints **no per-layer percentage table**. Each suite
+  reports the files _it_ loaded, so "80% by the e2e suite" is a percentage of a
+  different denominator than the unit gate holds, and a table invites exactly
+  that comparison. The numbers that gate live in the two vitest configs, one
+  block per layer, where the suite that owns the layer measures it; the merge
+  answers the one question a percentage cannot — whether a file escaped both
+  suites — and prints the file list when it did.
 - CI runs that merge as a gate: the backend e2e job runs its suite with
   coverage, re-runs the unit suite (~20 s, cheaper than shipping the map
-  between jobs) and merges. Locally it stays an on-demand report, because the
-  e2e half wants Docker and ~3 minutes.
+  between jobs) and merges. Locally it stays an on-demand run, because the e2e
+  half wants Docker and ~3 minutes.
 - The frontend unit run is gated the same way (`frontend/vite.config.ts`):
   `domains`, `composables`, `lib`, `i18n` and `components` each carry their own
   numbers plus a global floor, and `scripts/verify.sh` runs `test:coverage`, not
