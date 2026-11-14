@@ -82,13 +82,12 @@ describe('WebhookDeliveryRepository', () => {
       expect(sql).toContain('"claimedAt" = NOW()');
       expect(sql).toContain('RETURNING "id"');
       expect(sql).toContain('"claimedAt"');
-      // The named exception in ADR-059: the lease has no concurrency case yet,
-      // so this is the only check that the lock is still in the statement. It
-      // goes when a race case in webhook-delivery.e2e-spec.ts arrives; the gap
-      // is recorded in docs/testing.md.
-      // eslint-disable-next-line local/no-locking-clause-assertions
-      expect(sql).toContain('FOR UPDATE SKIP LOCKED');
       expect(sql).toContain('LIMIT 20');
+      // The lock itself is not asserted here: a string test on `FOR UPDATE SKIP
+      // LOCKED` stays green for the bug it is meant to catch (ADR-059). It is
+      // proven by the race case in
+      // `test/e2e/notifications/webhook-delivery-lease.e2e-spec.ts`, which
+      // fails with duplicate ids when the clause is removed.
     });
 
     it('keeps the claim bounded even when the caller asks for more', async () => {
