@@ -6,6 +6,9 @@ Accepted — 2026-10-25; Amended 2026-10-25 (human-only 4-eyes keyed by principa
 id; the review policy is ADMIN-owned — see
 [ADR-041](./ADR-041-review-governance-human-4-eyes.md)).
 
+Superseded by: [ADR-066](./ADR-066-remove-the-four-eyes-approval-gate.md) for the
+4-eyes half; the assignment and due-date decision stands.
+
 ## Context
 
 The inbox is a shared queue. There is no ownership ("who reviews this?"), no due

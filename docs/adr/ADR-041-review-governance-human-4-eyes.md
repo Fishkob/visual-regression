@@ -4,6 +4,10 @@
 
 Accepted — 2026-10-25
 
+Superseded by: [ADR-066](./ADR-066-remove-the-four-eyes-approval-gate.md) — the
+approval quorum, the human-only vote mechanism and the `review-policy` endpoint
+are gone; the pixel-threshold governance decided here survives.
+
 ## Context
 
 The R19 review found two governance gaps:

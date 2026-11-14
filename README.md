@@ -190,6 +190,7 @@ More detail and diagrams: [docs/architecture/overview.md](docs/architecture/over
 | send review events somewhere                       | [docs/webhooks.md](docs/webhooks.md)                              |
 | understand roles, keys and API scopes              | [docs/permissions.md](docs/permissions.md)                        |
 | understand a term (`Variant`, `Run`, `Threshold`…) | [CONTEXT.md](CONTEXT.md)                                          |
+| run the optional metrics and dashboards stack      | [docs/observability.md](docs/observability.md)                    |
 | see why something is the way it is                 | [docs/adr/](docs/adr/) — 68 decision records                      |
 | know what is next                                  | [docs/roadmap.md](docs/roadmap.md)                                |
 
