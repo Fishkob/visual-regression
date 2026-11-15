@@ -23,6 +23,7 @@ import {
 } from "@/domains/runs/run.model";
 import { runsQueryKeys } from "@/domains/runs/query-keys";
 import { triggerDownload } from "@/lib/download";
+import { unwrapSdkData } from "@/lib/sdk";
 import {
   invalidateAfterRunApproveAll,
   invalidateRun,
@@ -33,6 +34,34 @@ import { RUNS_PAGE_SIZE } from "@/lib/pagination";
 // finish while a reviewer watches it. Five seconds keeps the queue honest
 // without hammering the derived status query, and passed/failed stop the poll.
 export const RUN_DETAIL_POLL_INTERVAL_MS = 5_000;
+
+// The server approves at most APPROVE_ALL_MAX (100) comparisons per request:
+// each is its own serial transaction, and the proxy cuts a request after 60 s.
+// A run with more pending rows is drained in repeated idempotent calls — the
+// server always takes the oldest pending rows, so the next call sees the next
+// batch. The request cap bounds a run whose rows all fail.
+export const RUN_APPROVE_ALL_BATCH = 100;
+const RUN_APPROVE_ALL_MAX_REQUESTS = 10;
+
+// The drain loop, separated from the mutation so it is testable without the SDK
+// or a query client: call the endpoint until a call is short (the last batch),
+// approves nothing (every remaining row failed) or the request cap is reached.
+export async function approveAllInBatches(
+  fetchBatch: () => Promise<RunApproveAllResultDto | undefined>,
+): Promise<RunApproveAllResultDto> {
+  const totals: RunApproveAllResultDto = { approved: 0, failed: [] };
+  for (let request = 0; request < RUN_APPROVE_ALL_MAX_REQUESTS; request++) {
+    const batch = await fetchBatch();
+    const approved = batch?.approved ?? 0;
+    const failed = batch?.failed ?? [];
+    totals.approved += approved;
+    totals.failed.push(...failed);
+    if (approved === 0 || approved + failed.length < RUN_APPROVE_ALL_BATCH) {
+      break;
+    }
+  }
+  return totals;
+}
 
 // One server page of runs. The branch is optional: absent means the project's
 // cross-branch read (the server treats an omitted branch as "all branches").
@@ -117,15 +146,18 @@ export function useRunMutations(
   });
 
   const approveAll = useSdkMutation<RunApproveAllResultDto, void>({
-    mutationFn: () => {
+    mutationFn: async () => {
       const branchName = unref(branch);
-      return runsControllerApproveAll({
-        path: {
-          projectName: unref(projectName),
-          runKey: unref(runKey),
-        },
-        ...(branchName ? { query: { branch: branchName } } : {}),
+      const path = {
+        projectName: unref(projectName),
+        runKey: unref(runKey),
+      };
+      const query = branchName ? { query: { branch: branchName } } : {};
+      const totals = await approveAllInBatches(async () => {
+        const response = await runsControllerApproveAll({ path, ...query });
+        return unwrapSdkData<RunApproveAllResultDto>(response);
       });
+      return { data: totals };
     },
     // The batch answers partial results, so the success toast must say so: a
     // silent "approved" on a half-failed batch would be a lie.
