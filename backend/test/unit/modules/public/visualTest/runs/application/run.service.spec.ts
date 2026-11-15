@@ -4,10 +4,8 @@ import { RunService } from '@public/visualTest/runs/application/run.service';
 import { RunRepository } from '@public/visualTest/core/infrastructure/repositories/run.repository';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
-import {
-  ApprovalBatch,
-  ApprovalService,
-} from '@public/visualTest/review/application/approval.service';
+import { ApprovalBatch } from '@public/visualTest/review/application/approval-batch';
+import { ApprovalService } from '@public/visualTest/review/application/approval.service';
 import { createMock } from '@test/utils/create-mock';
 import { createMockProjectRepository } from '@test/utils/mocks';
 

@@ -1,9 +1,7 @@
 import type { Mocked } from 'vitest';
 import { BulkActionService } from '@public/visualTest/review/application/bulk-action.service';
-import {
-  ApprovalBatch,
-  ApprovalService,
-} from '@public/visualTest/review/application/approval.service';
+import { ApprovalBatch } from '@public/visualTest/review/application/approval-batch';
+import { ApprovalService } from '@public/visualTest/review/application/approval.service';
 import { ProjectService } from '@public/visualTest/catalog/application/project.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
