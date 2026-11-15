@@ -168,6 +168,27 @@ Recommended order: `lint` → `typecheck:all` → `format` → `unitTest`
 └── client-sdk/                # Generated TypeScript SDK
 ```
 
+## Where to read next
+
+The setup above gets a stack running; these four reads explain why it is shaped
+the way it is, in the order a new contributor needs them:
+
+1. **[CONTEXT.md](../CONTEXT.md)** — the domain vocabulary. Read the terms
+   before the code: a `Variant`, a `Run` and a `Comparison` are not the words a
+   reader assumes.
+2. **[docs/testing.md](testing.md)** — which suite owns which layer, and why a
+   unit spec may assert query policy but never a lock (ADR-054, ADR-059).
+3. **[ADR-036 — test lifecycle](adr/ADR-036-test-lifecycle.md)** and
+   **[ADR-024 — migrations](adr/024-database-migrations.md)** — the two
+   decisions most changes touch.
+4. **[docs/roadmap.md](roadmap.md)** — what is shipped, what is next, and which
+   candidates were deliberately not taken.
+
+The ADR folder is a history, not a book: after those, open the one a comment or
+a commit names. `backend/AGENTS.md`, `frontend/AGENTS.md` and
+`client-sdk/AGENTS.md` hold the workspace conventions an editor needs, and
+`CONTRIBUTING.md` says where a new rule belongs.
+
 ## Ports
 
 | Service     | Local | Docker |
