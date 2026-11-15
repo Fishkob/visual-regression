@@ -91,7 +91,8 @@ src/
   over several tables, `= ANY(array)` guards, `ON CONFLICT`/`RETURNING` primitives. A raw query then
   lives in the repository that owns the rule, as a `Prisma.sql` fragment with its parameters bound —
   never a hand-built string. Do not reach for raw SQL to save a round-trip: parallelise the ORM calls
-  (`Promise.all`) or batch them first.
+  (`Promise.all`) or batch them first. Enforced by ESLint: `$queryRawUnsafe` and `$executeRawUnsafe`
+  fail `no-restricted-syntax` in `src/**`.
 
 ## State-Change Conventions
 

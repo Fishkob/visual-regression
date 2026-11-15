@@ -21,8 +21,7 @@ import type {
   IJobProducer,
   IJobQueue,
 } from '@common/domain/job-queue.interface';
-import { JobStatus } from '@/prisma/client';
-import type { Prisma } from '@/prisma/client';
+import { JobStatus, Prisma } from '@/prisma/client';
 import type { QueuedJob } from '@common/domain/job-queue.interface';
 import {
   JOB_FAILURE_OBSERVERS,
@@ -181,30 +180,6 @@ export class PostgresJobQueue
         // index in createdAt order and stop at the first match. Stalled jobs are
         // tried first because they are the oldest work: they were claimed before
         // any pending row.
-        const claim = `
-        SELECT id, status, attempts, "maxAttempts" FROM "ComparisonJob"
-         WHERE status = $1
-           AND %CONDITION%
-         ORDER BY "createdAt"
-         LIMIT 1
-         FOR UPDATE SKIP LOCKED`;
-
-        const stalled = await tx.$queryRawUnsafe<
-          {
-            id: string;
-            status: JobStatus;
-            attempts: number;
-            maxAttempts: number | null;
-          }[]
-        >(
-          claim.replace(
-            '%CONDITION%',
-            `("heartbeatAt" IS NULL OR "heartbeatAt" < $2)`,
-          ),
-          JobStatus.PROCESSING,
-          stallThreshold,
-        );
-
         interface ClaimRow {
           id: string;
           status: JobStatus;
@@ -212,13 +187,30 @@ export class PostgresJobQueue
           maxAttempts: number | null;
         }
 
+        const claimFor = (
+          status: JobStatus,
+          condition: Prisma.Sql,
+        ): Prisma.Sql => Prisma.sql`
+        SELECT id, status, attempts, "maxAttempts" FROM "ComparisonJob"
+         WHERE status = ${status}
+           AND ${condition}
+         ORDER BY "createdAt"
+         LIMIT 1
+         FOR UPDATE SKIP LOCKED`;
+
+        const stalled = await tx.$queryRaw<ClaimRow[]>(
+          claimFor(
+            JobStatus.PROCESSING,
+            Prisma.sql`("heartbeatAt" IS NULL OR "heartbeatAt" < ${stallThreshold})`,
+          ),
+        );
+
         const claimPending = (): Promise<ClaimRow[]> =>
-          tx.$queryRawUnsafe<ClaimRow[]>(
-            claim.replace(
-              '%CONDITION%',
-              `("nextAttemptAt" IS NULL OR "nextAttemptAt" <= NOW())`,
+          tx.$queryRaw<ClaimRow[]>(
+            claimFor(
+              JobStatus.PENDING,
+              Prisma.sql`("nextAttemptAt" IS NULL OR "nextAttemptAt" <= NOW())`,
             ),
-            JobStatus.PENDING,
           );
 
         let row: ClaimRow | undefined = stalled[0];

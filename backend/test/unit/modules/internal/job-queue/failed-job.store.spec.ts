@@ -22,7 +22,7 @@ function makeMockPrisma() {
         findUnique: vi.fn(),
         deleteMany: vi.fn(),
       },
-      $queryRawUnsafe: vi.fn(),
+      $queryRaw: vi.fn(),
     },
   };
 }
@@ -158,7 +158,7 @@ describe('FailedJobStore', () => {
 
   describe('deleteFailedJobRows', () => {
     it('deletes DB rows guarded by FAILED status and returns the deleted ids', async () => {
-      prisma.client.$queryRawUnsafe.mockResolvedValue([
+      prisma.client.$queryRaw.mockResolvedValue([
         { id: 'job-1' },
         { id: 'job-2' },
       ]);
@@ -166,18 +166,16 @@ describe('FailedJobStore', () => {
       const result = await service.deleteFailedJobRows(['job-1', 'job-2']);
 
       expect(result).toEqual(['job-1', 'job-2']);
-      expect(prisma.client.$queryRawUnsafe).toHaveBeenCalledWith(
-        expect.stringContaining('DELETE FROM "ComparisonJob"'),
-        ['job-1', 'job-2'],
-        'FAILED',
-      );
+      const [query] = prisma.client.$queryRaw.mock.calls[0];
+      expect(query.text).toContain('DELETE FROM "ComparisonJob"');
+      expect(query.values).toEqual([['job-1', 'job-2'], 'FAILED']);
     });
 
     it('does nothing for an empty id list', async () => {
       const result = await service.deleteFailedJobRows([]);
 
       expect(result).toEqual([]);
-      expect(prisma.client.$queryRawUnsafe).not.toHaveBeenCalled();
+      expect(prisma.client.$queryRaw).not.toHaveBeenCalled();
     });
   });
 

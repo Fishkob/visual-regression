@@ -128,6 +128,32 @@ export default tseslint.config(
     },
   },
   {
+    // AGENTS.md, Prisma: a raw query is a `Prisma.sql` fragment with its
+    // parameters bound, never a hand-built string. The Unsafe variants take a
+    // plain string, so nothing stops the next edit from interpolating a value
+    // there; this turns the convention into a gate. `Prisma.raw` stays legal for
+    // a constant the statement needs as text — every new use of it is a review
+    // question of its own.
+    files: ['src/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression > MemberExpression[property.name='$queryRawUnsafe']",
+          message:
+            'Bind the values with Prisma.sql/Prisma.join and call $queryRaw instead (AGENTS.md, Prisma).',
+        },
+        {
+          selector:
+            "CallExpression > MemberExpression[property.name='$executeRawUnsafe']",
+          message:
+            'Bind the values with Prisma.sql/Prisma.join and call $executeRaw instead (AGENTS.md, Prisma).',
+        },
+      ],
+    },
+  },
+  {
     files: ['test/**/*.ts', 'vitest.config.ts', 'vitest.config.e2e.ts'],
     languageOptions: {
       globals: {

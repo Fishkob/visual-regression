@@ -9,7 +9,7 @@ import { createMock } from '@test/utils/create-mock';
 function makeMockClient() {
   return {
     $executeRaw: vi.fn(),
-    $queryRawUnsafe: vi.fn(),
+    $queryRaw: vi.fn(),
     webhookDelivery: { update: vi.fn(), updateMany: vi.fn() },
   };
 }
@@ -59,7 +59,7 @@ describe('WebhookDeliveryRepository', () => {
   describe('claimDue', () => {
     it('reclaims expired claims before claiming the due rows', async () => {
       mockClient.webhookDelivery.updateMany.mockResolvedValue({ count: 0 });
-      mockClient.$queryRawUnsafe.mockResolvedValue([delivery()]);
+      mockClient.$queryRaw.mockResolvedValue([delivery()]);
 
       await repository.claimDue(10);
 
@@ -68,21 +68,23 @@ describe('WebhookDeliveryRepository', () => {
       expect(mockClient.webhookDelivery.updateMany).toHaveBeenCalledTimes(2);
       expect(
         mockClient.webhookDelivery.updateMany.mock.invocationCallOrder[1],
-      ).toBeLessThan(mockClient.$queryRawUnsafe.mock.invocationCallOrder[0]);
+      ).toBeLessThan(mockClient.$queryRaw.mock.invocationCallOrder[0]);
     });
 
     it('stamps claimedAt on the claimed rows and returns it', async () => {
       mockClient.webhookDelivery.updateMany.mockResolvedValue({ count: 0 });
-      mockClient.$queryRawUnsafe.mockResolvedValue([delivery()]);
+      mockClient.$queryRaw.mockResolvedValue([delivery()]);
 
       const rows = await repository.claimDue(20);
 
       expect(rows).toHaveLength(1);
-      const sql = mockClient.$queryRawUnsafe.mock.calls[0][0] as string;
-      expect(sql).toContain('"claimedAt" = NOW()');
-      expect(sql).toContain('RETURNING "id"');
-      expect(sql).toContain('"claimedAt"');
-      expect(sql).toContain('LIMIT 20');
+      const [query] = mockClient.$queryRaw.mock.calls[0] as [
+        { text: string; values: unknown[] },
+      ];
+      expect(query.text).toContain('"claimedAt" = NOW()');
+      expect(query.text).toContain('RETURNING "id"');
+      expect(query.text).toContain('"claimedAt"');
+      expect(query.values).toContain(20);
       // The lock itself is not asserted here: a string test on `FOR UPDATE SKIP
       // LOCKED` stays green for the bug it is meant to catch (ADR-059). It is
       // proven by the race case in
@@ -92,23 +94,29 @@ describe('WebhookDeliveryRepository', () => {
 
     it('keeps the claim bounded even when the caller asks for more', async () => {
       mockClient.webhookDelivery.updateMany.mockResolvedValue({ count: 0 });
-      mockClient.$queryRawUnsafe.mockResolvedValue([]);
+      mockClient.$queryRaw.mockResolvedValue([]);
 
       await repository.claimDue(5_000);
 
-      const sql = mockClient.$queryRawUnsafe.mock.calls[0][0] as string;
-      expect(sql).toContain('LIMIT 100');
+      const [query] = mockClient.$queryRaw.mock.calls[0] as [
+        { text: string; values: unknown[] },
+      ];
+      expect(query.values).toContain(100);
     });
 
     it('still selects only due PENDING rows', async () => {
       mockClient.webhookDelivery.updateMany.mockResolvedValue({ count: 0 });
-      mockClient.$queryRawUnsafe.mockResolvedValue([]);
+      mockClient.$queryRaw.mockResolvedValue([]);
 
       await repository.claimDue(10);
 
-      const sql = mockClient.$queryRawUnsafe.mock.calls[0][0] as string;
-      expect(sql).toContain(`"status" = 'PENDING'::"WebhookDeliveryStatus"`);
-      expect(sql).toContain(
+      const [query] = mockClient.$queryRaw.mock.calls[0] as [
+        { text: string; values: unknown[] },
+      ];
+      expect(query.text).toContain(
+        `"status" = 'PENDING'::"WebhookDeliveryStatus"`,
+      );
+      expect(query.text).toContain(
         '("nextAttemptAt" IS NULL OR "nextAttemptAt" <= NOW())',
       );
     });

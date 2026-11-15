@@ -6,7 +6,7 @@ import { PostgresJobQueue } from '@internal/job-queue/postgres-job-queue';
 import { WORKER_TIMING } from '@common/utils/worker-timing';
 
 // These cases exist because the unit spec can only assert on the SQL text the
-// queue sends to a mocked `$queryRawUnsafe`. Whether `FOR UPDATE SKIP LOCKED`
+// queue sends to a mocked `$queryRaw`. Whether `FOR UPDATE SKIP LOCKED`
 // actually hands a row to exactly one claimant, whether a stale heartbeat is
 // the *only* thing that makes a PROCESSING job reclaimable, and whether the
 // ownership guard really stops a superseded worker from writing are all
