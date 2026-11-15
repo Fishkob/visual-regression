@@ -130,10 +130,10 @@ export default tseslint.config(
   {
     // AGENTS.md, Prisma: a raw query is a `Prisma.sql` fragment with its
     // parameters bound, never a hand-built string. The Unsafe variants take a
-    // plain string, so nothing stops the next edit from interpolating a value
-    // there; this turns the convention into a gate. `Prisma.raw` stays legal for
-    // a constant the statement needs as text — every new use of it is a review
-    // question of its own.
+    // plain string and `Prisma.raw` splices text, so nothing stops the next edit
+    // from interpolating a value there; these selectors turn the convention into
+    // a gate. A genuine identifier that cannot be a parameter needs an explicit
+    // disable with its reason, which is the review this exists to force.
     files: ['src/**/*.ts'],
     rules: {
       'no-restricted-syntax': [
@@ -149,6 +149,12 @@ export default tseslint.config(
             "CallExpression > MemberExpression[property.name='$executeRawUnsafe']",
           message:
             'Bind the values with Prisma.sql/Prisma.join and call $executeRaw instead (AGENTS.md, Prisma).',
+        },
+        {
+          selector:
+            "CallExpression > MemberExpression[property.name='raw'][object.name='Prisma']",
+          message:
+            'Prisma.raw splices text into the statement. Build it from Prisma.sql fragments; if an identifier genuinely cannot be a parameter, disable this with the reason (AGENTS.md, Prisma).',
         },
       ],
     },
