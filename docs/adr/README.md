@@ -74,6 +74,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 078 | [The Audit Trail Has a Retention Window](./ADR-078-audit-trail-retention.md)                                                           | Accepted (supersedes the never-pruned half of 050)                    |
 | 079 | [The Outcome History Has a Retention Window](./ADR-079-outcome-history-retention.md)                                                   | Accepted (narrows 078's unpruned table; replaces 033's follow-up)     |
 | 080 | [Captures Are Explicit Calls, Not Playwright Attachments](./ADR-080-explicit-captures-not-attachments.md)                              | Accepted                                                              |
+| 081 | [Internal Maintenance Tasks May Reuse Public Application Services](./ADR-081-internal-maintenance-may-reuse-public-services.md)        | Accepted (extends 013 §1's exception)                                 |
 
 ## Numbering
 
