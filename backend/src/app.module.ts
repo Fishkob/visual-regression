@@ -60,8 +60,8 @@ import { HttpMetricsInterceptor } from '@common/http/http-metrics.interceptor';
       useClass: RateLimitGuard,
     },
     {
-      // Response serialization is a global guard rather than an opt-in call
-      // site: every DTO instance returned has its fields filtered to those
+      // Response serialization is a global interceptor rather than an opt-in
+      // call site: every DTO instance returned has its fields filtered to those
       // marked @Expose, so a new entity shape cannot leak because a controller
       // forgot a plainToInstance({ excludeExtraneousValues: true }). Plain
       // objects pass through untouched (class-transformer only filters class

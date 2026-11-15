@@ -9,6 +9,7 @@ import { JobQueueModule } from '@internal/job-queue/job-queue.module';
 import { VisualTestApplicationModule } from '@public/visualTest/core/visual-test-application.module';
 import { UploadIntake } from '@public/visualTest/intake/application/upload-intake.service';
 import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
+import { RunUploadRecorder } from '@public/visualTest/intake/application/run-upload-recorder';
 import { PdfSidecarModule } from '@internal/pdf-sidecar/pdf-sidecar.module';
 import { AuditModule } from '@internal/audit/audit.module';
 import { UploadController } from '@public/visualTest/intake/presentation/controllers/upload.controller';
@@ -53,6 +54,7 @@ import {
   providers: [
     UploadIntake,
     UploadDecisionResolver,
+    RunUploadRecorder,
     JobStatusService,
     ComparisonJobStatusRepository,
     { provide: JOB_STATUS_POLLING, useValue: DEFAULT_JOB_STATUS_POLLING },

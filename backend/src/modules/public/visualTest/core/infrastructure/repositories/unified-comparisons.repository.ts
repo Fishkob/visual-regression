@@ -249,6 +249,7 @@ export class UnifiedComparisonsRepository extends BaseRepository {
       throw new DomainError(
         `Comparison "${id}" is not PENDING_APPROVAL and cannot be approved`,
         'CONFLICT',
+        'comparison_not_pending',
       );
     }
     return comparison.diffImageUrl ? [comparison.diffImageUrl] : [];

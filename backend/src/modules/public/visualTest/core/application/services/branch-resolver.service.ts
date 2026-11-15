@@ -211,21 +211,33 @@ export class BranchResolver {
     targetBranchId: string,
   ): Promise<void> {
     if (branchId === targetBranchId) {
-      throw new DomainError('A branch cannot target itself', 'CONFLICT');
+      throw new DomainError(
+        'A branch cannot target itself',
+        'CONFLICT',
+        'branch_target_conflict',
+      );
     }
     const target = await this.branches.findById(targetBranchId);
     if (target?.projectId !== projectId) {
       throw new DomainError('Target branch not found', 'NOT_FOUND');
     }
     if (target.isArchived) {
-      throw new DomainError('Target branch is archived', 'CONFLICT');
+      throw new DomainError(
+        'Target branch is archived',
+        'CONFLICT',
+        'branch_archived',
+      );
     }
 
     let cursor: string | null = targetBranchId;
     const visited = new Set<string>();
     while (cursor) {
       if (cursor === branchId) {
-        throw new DomainError('Branch target creates a cycle', 'CONFLICT');
+        throw new DomainError(
+          'Branch target creates a cycle',
+          'CONFLICT',
+          'branch_target_conflict',
+        );
       }
       if (visited.has(cursor)) break;
       visited.add(cursor);

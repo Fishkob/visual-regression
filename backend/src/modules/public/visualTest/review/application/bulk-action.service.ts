@@ -5,11 +5,11 @@ import { TestDeletionService } from '@public/visualTest/core/application/service
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import {
-  ApprovalService,
   bulkFailureMessage,
   type ApproveTarget,
   type ListedApprovalBatch,
-} from '@public/visualTest/review/application/approval.service';
+} from '@public/visualTest/review/application/approval-batch';
+import { ApprovalService } from '@public/visualTest/review/application/approval.service';
 import { ProjectService } from '@public/visualTest/catalog/application/project.service';
 
 export interface BulkItemResult {

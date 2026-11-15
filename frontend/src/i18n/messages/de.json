@@ -43,6 +43,13 @@
     "requestFailed": "Anfrage fehlgeschlagen",
     "skipToContent": "Zum Inhalt springen"
   },
+  "errorReasons": {
+    "branchArchived": "Der Zielbranch ist archiviert.",
+    "branchTargetConflict": "Dieses Branch-Ziel ist ungültig (Selbstbezug oder Zyklus).",
+    "comparisonNotPending": "Dieser Vergleich ist nicht mehr offen – bitte neu laden.",
+    "comparisonSuperseded": "Dieser Vergleich wurde durch einen neueren Upload ersetzt – bitte neu laden.",
+    "testInherited": "Dieser Test ist vom Parent-Branch geerbt und kann hier nicht geändert werden."
+  },
   "pagination": {
     "label": "Seitennavigation",
     "previous": "Zurück",

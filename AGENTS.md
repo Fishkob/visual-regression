@@ -27,7 +27,7 @@ Walkthrough: `docs/local-development.md`
 | `pnpm run dev`          | Backend + frontend hot reload (requires infra) |
 | `pnpm run dev:backend`  | Backend only                                   |
 | `pnpm run dev:frontend` | Frontend only                                  |
-| `pnpm run bootstrap`    | Install deps + generate SDK + build            |
+| `pnpm run bootstrap`    | Prepare DB + generate SDK + build              |
 
 ## Testing
 
@@ -156,6 +156,6 @@ Full conventions in `client-sdk/AGENTS.md`. The facts an agent needs before reac
 
 ## Current State
 
-**lint ✓ | typecheck:all ✓ | format ✓ | backend unit 1946/1946 + coverage gate ✓ | frontend unit 1208/1208 + coverage gate ✓ | frontend visual 50/50 + a11y 50/50 ✓ (quality image, last run) | backend e2e 290/290 · frontend CT 113/113** — the outcome history is pruned by `OutcomeRetentionTask` after `OUTCOME_RETENTION_DAYS` (default 400, derived from the 365-day trends window, `0` keeps it forever); verified by the full backend unit+coverage suite, the frontend unit+coverage suite, the OpenAPI export (no SDK drift) and the i18n check. The frontend e2e suite, the quality image and the backend e2e suite were not re-run here (e2e needs Docker and the seeder's `E2E_API_KEY`, the baselines need the pinned amd64 image); no route or page changed. Re-run the suites for current counts.
+**lint ✓ | typecheck ✓ | format ✓ | beide Unit-Suiten mit Coverage-Gate ✓ | Backend-E2E · Frontend-CT · Visual/A11y in CI ✓** — the outcome history is pruned by `OutcomeRetentionTask` after `OUTCOME_RETENTION_DAYS` (default 400, derived from the 365-day trends window, `0` keeps it forever). This block names the gates, not the counts: the counts it used to carry were stale within a week, and a run's own output is the only current number. Suite coverage and the infrastructure each suite needs: [docs/testing.md](docs/testing.md).
 
 The upload → compare → review → approve pipeline is complete for both image and PDF kinds, including threshold auto-accept, per-variant status derivation, API-key CI authentication, the self-hosting installer (`./install.sh`), worker retry/deadline hardening, config-as-code thresholds (`.vrt.json`), a project default threshold, share links that show the diff, and worker/queue observability. Phases 1–6 of the roadmap (R1–R26) are shipped; the history lives in git and the CHANGELOG, and `docs/roadmap.md` now lists only the open candidates.

@@ -34,7 +34,7 @@ import { UploadDecisionResolver } from '@public/visualTest/intake/application/up
 import { AuditService } from '@internal/audit/audit.service';
 import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import type { JobData } from '@common/domain/job-data.types';
-import { RunResolver } from '@public/visualTest/core/application/services/run-resolver.service';
+import { RunUploadRecorder } from '@public/visualTest/intake/application/run-upload-recorder';
 import { ImageNormalizer } from '@public/visualTest/core/application/services/image-normalizer.service';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { BranchRepository } from '@public/visualTest/core/infrastructure/repositories/branch.repository';
@@ -94,7 +94,7 @@ export class UploadIntake {
     private readonly screenshots: UnifiedScreenshotRepository,
     @Inject(JOB_PRODUCER) private readonly jobQueue: IJobProducer,
     @Inject(PDF_PAGE_COUNTER) private readonly pageCounter: IPdfPageCounter,
-    private readonly runs: RunResolver,
+    private readonly runUploads: RunUploadRecorder,
     private readonly images: ImageNormalizer,
     private readonly tests: UnifiedTestRepository,
     private readonly audit: AuditService,
@@ -226,9 +226,9 @@ export class UploadIntake {
       if (!fresh) {
         return { change: noop(), result: { superseded: false } };
       }
-      const run = await this.resolveRun(fresh.branch, params);
+      const run = await this.runUploads.resolveForUpload(fresh.branch, params);
       if (run) {
-        await this.recordRunUpload(
+        await this.runUploads.recordUpload(
           run.id,
           fresh.testId,
           kind,
@@ -284,9 +284,9 @@ export class UploadIntake {
     pageCount?: number,
     fileHash?: string,
   ): Promise<StateChangeOutcome<AnyUploadResult>> {
-    const run = await this.resolveRun(branch, params);
+    const run = await this.runUploads.resolveForUpload(branch, params);
     if (run && fileHash) {
-      await this.recordRunUpload(
+      await this.runUploads.recordUpload(
         run.id,
         fresh.testId,
         kind,
@@ -386,40 +386,6 @@ export class UploadIntake {
       jobId,
       ...(runKey ? { runKey } : {}),
     };
-  }
-
-  private recordRunUpload(
-    runId: string,
-    testId: string,
-    kind: TestKind,
-    params: UploadParams,
-    contentHash: string,
-    outcome: ComparisonOutcome,
-  ): Promise<void> {
-    return this.runs.recordUpload({
-      runId,
-      testId,
-      kind,
-      viewport: params.viewport,
-      browser: params.browser,
-      environment: params.environment,
-      contentHash,
-      outcome,
-    });
-  }
-
-  private resolveRun(
-    branch: ResolvedBranch,
-    params: UploadParams,
-  ): Promise<Run | null> {
-    return this.runs.resolveForUpload({
-      projectId: branch.projectId,
-      branchId: branch.branchId,
-      runKey: params.runKey,
-      commitSha: params.commitSha,
-      commitMessage: params.commitMessage,
-      ciUrl: params.ciUrl,
-    });
   }
 
   private async writeBaseline(

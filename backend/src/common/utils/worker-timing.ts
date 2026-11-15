@@ -9,9 +9,13 @@
 //                                liveness heartbeat keeps /health `ok` while
 //                                the queue is still the one deciding "job is
 //                                actually dead" at 60s;
-//   maxPollIntervalMs (30s)     <  pollStallThresholdMs (150s) — a wedged poll
-//                                loop (no cycle completes) is only reported as
-//                                `error` after 5x the max backoff;
+//   maxPollIntervalMs (5s)      <  pollStallThresholdMs (150s) — the live
+//                                heartbeat (30s) refreshes the poll timestamp
+//                                while a long job runs, so the window must fit
+//                                several heartbeats; a wedged poll loop (no
+//                                cycle completes) is reported after 30x the
+//                                max backoff. The old 30s cap made an idle
+//                                worker wait up to 30s for a fresh job.
 //   drainTimeoutMs (30s)        — upper bound on waiting for the in-flight job
 //                                at shutdown; the poller claims nothing after
 //                                SIGTERM, so this only bounds the last job.
@@ -28,7 +32,7 @@
 // three files that must stay in sync by convention.
 export const WORKER_TIMING = {
   minPollIntervalMs: 2000,
-  maxPollIntervalMs: 30_000,
+  maxPollIntervalMs: 5000,
   workerHealthHeartbeatMs: 30_000,
   drainTimeoutMs: 30_000,
   pollStallThresholdMs: 150_000,

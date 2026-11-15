@@ -143,6 +143,7 @@ export type { CreateUserDto } from './models/CreateUserDto.gen';
 export type { CreateWebhookDto } from './models/CreateWebhookDto.gen';
 export type { DailyOutcomeDto } from './models/DailyOutcomeDto.gen';
 export type { DetailedHealthDto } from './models/DetailedHealthDto.gen';
+export type { ErrorResponseDto } from './models/ErrorResponseDto.gen';
 export type { FlakeRateDto } from './models/FlakeRateDto.gen';
 export type { HealthControllerCheckData } from './models/HealthControllerCheckData.gen';
 export type { HealthControllerCheckDatabaseData } from './models/HealthControllerCheckDatabaseData.gen';

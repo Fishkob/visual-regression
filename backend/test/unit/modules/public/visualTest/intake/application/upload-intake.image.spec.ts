@@ -6,6 +6,7 @@ import {
   uploadObjectName,
 } from '@public/visualTest/intake/application/upload-intake.service';
 import { UploadDecisionResolver } from '@public/visualTest/intake/application/upload-decision.resolver';
+import { RunUploadRecorder } from '@public/visualTest/intake/application/run-upload-recorder';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { BranchBaselineResolver } from '@public/visualTest/core/application/services/branch-baseline-resolver.service';
 import { BranchTestRepository } from '@public/visualTest/core/infrastructure/repositories/branch-test.repository';
@@ -159,6 +160,7 @@ describe('UploadIntake (image kind)', () => {
       providers: [
         UploadIntake,
         UploadDecisionResolver,
+        RunUploadRecorder,
         { provide: UnifiedTestRepository, useValue: tests },
         { provide: BranchResolver, useValue: branches },
         {

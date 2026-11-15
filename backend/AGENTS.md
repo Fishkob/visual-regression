@@ -62,7 +62,8 @@ src/
 
 - Domain errors via `DomainError` with `code` property (`NOT_FOUND`, `CONFLICT`, `BAD_REQUEST`, `INVALID_STATE`, `INTERNAL_ERROR`)
 - `AllExceptionsFilter` catches DomainError → maps code to HTTP status, Prisma `P2002`→409, `P2025`→404, einen 4xx, den eine Middleware an ihren Fehler gehängt hat (z. B. body-parser `413` bei zu großem Body) → dieser Status, unknown→500
-- Response includes `{ statusCode, message, timestamp, path, traceId }`
+- Response includes `{ statusCode, message, timestamp, path, traceId }`, and for a `DomainError` also `code` + `reason`
+- `reason` ist die einzige maschinenlesbare Verfeinerung des Codes (`DOMAIN_ERROR_REASONS` in `common/domain/domain-error.ts`). Nur für Fälle, in denen ein Client anders reagiert (Review neu laden, auf dem Parent-Branch approven, Branch-Ziel korrigieren) — nicht pro Meldung. Die Liste wird als OpenAPI-Enum veröffentlicht (`ErrorResponseDto`), damit das SDK sie typisiert; `ErrorResponseDto` muss deshalb in `extraModels` von `bootstrap.ts` **und** `scripts/swagger-export.ts` stehen. Ein neuer Reason ohne Export lässt `test/unit/scripts/swagger-contract.spec.ts` rot werden, weil der Test das committete `swagger.json` liest.
 
 ## Testing
 

@@ -1,4 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  DOMAIN_ERROR_REASONS,
+  type DomainErrorReason,
+} from '@common/domain/domain-error';
 export class ErrorResponseDto {
   @ApiProperty({ example: 400 })
   statusCode!: number;
@@ -17,6 +21,13 @@ export class ErrorResponseDto {
 
   @ApiPropertyOptional({ example: 'E_UNIQUE_CONSTRAINT' })
   code?: string;
+
+  @ApiPropertyOptional({
+    enum: DOMAIN_ERROR_REASONS,
+    description:
+      'Machine-readable refinement of `code` for failures a client can act on differently. Absent when the plain code says everything.',
+  })
+  reason?: DomainErrorReason;
 
   @ApiPropertyOptional({
     type: Object,

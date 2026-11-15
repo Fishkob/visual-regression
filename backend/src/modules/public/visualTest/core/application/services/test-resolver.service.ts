@@ -61,6 +61,7 @@ export class TestResolver {
         throw new DomainError(
           `Test "${testName}" is inherited from branch "${inherited.inheritedFrom}" and cannot be modified here`,
           'CONFLICT',
+          'test_inherited',
         );
       }
       throw new DomainError(`Test "${testName}" not found`, 'NOT_FOUND');

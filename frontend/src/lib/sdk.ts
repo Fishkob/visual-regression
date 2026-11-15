@@ -20,10 +20,33 @@ export function getData<T>(result: unknown): T | undefined {
 // error member is a string (often) or an object carrying a `message`.
 import { translateMessage as tm } from "@/lib/i18n-messages";
 
+// A `reason` refines the coarse `code` the API sends (DomainError on the
+// backend) and is the only error detail a client can act on: the message is
+// prose and stays English even in a German UI. A value this client does not
+// know falls through to the message, so a newer backend cannot break an older
+// bundle.
+const ERROR_REASON_KEYS: Record<string, string> = {
+  branch_archived: "errorReasons.branchArchived",
+  branch_target_conflict: "errorReasons.branchTargetConflict",
+  comparison_not_pending: "errorReasons.comparisonNotPending",
+  comparison_superseded: "errorReasons.comparisonSuperseded",
+  test_inherited: "errorReasons.testInherited",
+};
+
+export function sdkErrorReason(error: unknown): string | undefined {
+  if (typeof error === "object" && error) {
+    const reason = (error as { reason?: unknown }).reason;
+    if (typeof reason === "string") return reason;
+  }
+  return undefined;
+}
+
 export function sdkErrorMessage(
   error: unknown,
   fallback = tm("common.requestFailed"),
 ): string {
+  const reasonKey = ERROR_REASON_KEYS[sdkErrorReason(error) ?? ""];
+  if (reasonKey) return tm(reasonKey);
   if (typeof error === "string") return error;
   if (typeof error === "object" && error) {
     const message = (error as { message?: unknown }).message;

@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { DomainError } from '@common/domain/domain-error';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
+import { ApprovalService } from '@public/visualTest/review/application/approval.service';
 import {
-  ApprovalService,
+  APPROVE_ALL_MAX,
   type CountedApprovalBatch,
-} from '@public/visualTest/review/application/approval.service';
+} from '@public/visualTest/review/application/approval-batch';
 import {
   RunRepository,
   type RunWithBranch,
@@ -167,7 +168,14 @@ export class RunService {
     branchName?: string,
   ): Promise<CountedApprovalBatch> {
     const run = await this.requireRun(projectName, runKey, branchName);
-    const pending = await this.runs.pendingComparisonsForRun(run.id, 500);
+    // Same cap as every other approve-many: one request carries one batch of
+    // serial approval transactions. A run with more pending rows is drained by
+    // the caller repeating the call (the oldest rows come first, so the second
+    // call sees the next batch).
+    const pending = await this.runs.pendingComparisonsForRun(
+      run.id,
+      APPROVE_ALL_MAX,
+    );
     // A muted test does not hold the gate (run-state.policy.ts), so a bulk
     // approval must not silently approve the work its owner deferred: those rows
     // stay pending until the mute is lifted and a reviewer looks at them.

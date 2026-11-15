@@ -29,8 +29,8 @@ import { hashToken } from './token-hash';
 
 // The single "what does it mean to be authenticated" rule. A request passes if
 // it carries a valid, unexpired session cookie OR a valid api key header.
-// Public endpoints are marked with @Public(). Registered as a global APP_GUARD
-// (Task 10), so every endpoint is protected unless explicitly opted out.
+// Public endpoints are marked with @Public(). Registered as a global APP_GUARD,
+// so every endpoint is protected unless explicitly opted out.
 @Injectable()
 export class AuthenticationGuard implements CanActivate {
   constructor(

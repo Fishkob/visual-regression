@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { unref } from "vue";
 import {
+  RUN_APPROVE_ALL_BATCH,
   RUN_DETAIL_POLL_INTERVAL_MS,
+  approveAllInBatches,
   useRunDetail,
   useRuns,
 } from "@/composables/useRuns";
@@ -202,5 +204,57 @@ describe("useRunDetail", () => {
       }),
     ).toBe(false);
     expect(interval({ state: { data: undefined } })).toBe(false);
+  });
+});
+
+describe("approveAllInBatches", () => {
+  it("stops after one short batch", async () => {
+    const fetchBatch = vi.fn().mockResolvedValue({ approved: 5, failed: [] });
+
+    const totals = await approveAllInBatches(fetchBatch);
+
+    expect(fetchBatch).toHaveBeenCalledTimes(1);
+    expect(totals).toEqual({ approved: 5, failed: [] });
+  });
+
+  it("drains full batches and keeps their failures", async () => {
+    const failure = { comparisonId: "c-1", error: "stale" };
+    const fetchBatch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        approved: RUN_APPROVE_ALL_BATCH,
+        failed: [],
+      })
+      .mockResolvedValueOnce({ approved: 3, failed: [failure] });
+
+    const totals = await approveAllInBatches(fetchBatch);
+
+    expect(fetchBatch).toHaveBeenCalledTimes(2);
+    expect(totals.approved).toBe(RUN_APPROVE_ALL_BATCH + 3);
+    expect(totals.failed).toEqual([failure]);
+  });
+
+  it("does not repeat a full batch that approved nothing", async () => {
+    const failure = { comparisonId: "c-1", error: "stale" };
+    const fetchBatch = vi
+      .fn()
+      .mockResolvedValue({ approved: 0, failed: [failure] });
+
+    const totals = await approveAllInBatches(fetchBatch);
+
+    expect(fetchBatch).toHaveBeenCalledTimes(1);
+    expect(totals).toEqual({ approved: 0, failed: [failure] });
+  });
+
+  it("caps the number of requests for a run that never drains", async () => {
+    const fetchBatch = vi.fn().mockResolvedValue({
+      approved: RUN_APPROVE_ALL_BATCH,
+      failed: [],
+    });
+
+    const totals = await approveAllInBatches(fetchBatch);
+
+    expect(fetchBatch).toHaveBeenCalledTimes(10);
+    expect(totals.approved).toBe(10 * RUN_APPROVE_ALL_BATCH);
   });
 });
