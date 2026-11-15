@@ -8,6 +8,7 @@ import { AppLoggerService } from '@common/logging/app-logger.service';
 import { AppConfigService } from '@config/app-config.service';
 import { loadEnv, readBootstrapEnv } from '@config/bootstrap-env';
 import { createValidationPipe } from '@common/http/validation-pipe';
+import { ErrorResponseDto } from '@common/dto/error-response.dto';
 import { SESSION_COOKIE } from '@common/http/session-cookie';
 import { WorkerHealthServer } from '@internal/worker/worker-health-server';
 import { bootstrapAdmin } from '@internal/auth/bootstrap-admin';
@@ -121,7 +122,13 @@ function configureSwagger(
     )
     .build();
 
-  const document = SwaggerModule.createDocument(app, config);
+  // `extraModels` is what puts ErrorResponseDto into components/schemas even
+  // though no controller returns it directly: without it the generated SDK
+  // types every error body as `unknown` and a client cannot read `code`/
+  // `reason`.
+  const document = SwaggerModule.createDocument(app, config, {
+    extraModels: [ErrorResponseDto],
+  });
   SwaggerModule.setup('docs', app, document);
 }
 

@@ -134,6 +134,7 @@ export class ComparisonEntity {
       throw new DomainError(
         'Cannot approve a comparison that is not pending approval',
         'INVALID_STATE',
+        'comparison_not_pending',
       );
     }
     return new ApprovalDecision(

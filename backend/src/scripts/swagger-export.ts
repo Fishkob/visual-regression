@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { SwaggerAppModule } from '../swagger-app.module';
 import { AppConfigService } from '@config/app-config.service';
 import { DetailedHealthDto } from '../modules/internal/health/health.types';
+import { ErrorResponseDto } from '@common/dto/error-response.dto';
 import { UploadIntake } from '@public/visualTest/intake/application/upload-intake.service';
 import { TestResolver } from '@public/visualTest/core/application/services/test-resolver.service';
 import { ProjectService } from '@public/visualTest/catalog/application/project.service';
@@ -114,7 +115,7 @@ async function main() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {
-    extraModels: [DetailedHealthDto],
+    extraModels: [DetailedHealthDto, ErrorResponseDto],
   });
 
   writeFileSync('./swagger.json', JSON.stringify(document, null, 2));

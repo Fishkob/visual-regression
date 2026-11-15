@@ -8842,6 +8842,69 @@
           "username",
           "temporaryPassword"
         ]
+      },
+      "ErrorResponseDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 400
+          },
+          "message": {
+            "type": "string",
+            "example": "Bad Request"
+          },
+          "error": {
+            "type": "string",
+            "example": "Bad Request"
+          },
+          "path": {
+            "type": "string",
+            "example": "/api/projects"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2025-10-20T12:00:00Z"
+          },
+          "code": {
+            "type": "string",
+            "example": "E_UNIQUE_CONSTRAINT"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "branch_archived",
+              "branch_target_conflict",
+              "comparison_not_pending",
+              "comparison_superseded",
+              "test_inherited"
+            ],
+            "description": "Machine-readable refinement of `code` for failures a client can act on differently. Absent when the plain code says everything."
+          },
+          "errors": {
+            "example": [
+              {
+                "field": "name",
+                "messages": [
+                  "must not be empty"
+                ]
+              }
+            ],
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "traceId": {
+            "type": "string",
+            "example": "4d9b0e1e-449d-47e1-8c3b-5b54e3c76f47",
+            "description": "Unique request trace ID for debugging/log correlation"
+          }
+        },
+        "required": [
+          "statusCode",
+          "message"
+        ]
       }
     }
   },

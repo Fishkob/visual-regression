@@ -107,7 +107,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       host,
       statusCode,
       exception.message,
-      { ...(exception.code ? { code: exception.code } : {}) },
+      {
+        ...(exception.code ? { code: exception.code } : {}),
+        ...(exception.reason ? { reason: exception.reason } : {}),
+      },
       (traceId) =>
         `Domain error [${traceId}] ${exception.message} (${String(statusCode)})`,
       exception.stack,

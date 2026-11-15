@@ -43,6 +43,13 @@
     "requestFailed": "Request failed",
     "skipToContent": "Skip to content"
   },
+  "errorReasons": {
+    "branchArchived": "The target branch is archived.",
+    "branchTargetConflict": "That branch target is invalid (self-reference or cycle).",
+    "comparisonNotPending": "This comparison is no longer pending — refresh to review the latest.",
+    "comparisonSuperseded": "This comparison was superseded by a newer upload — refresh to review the latest.",
+    "testInherited": "This test is inherited from the parent branch and cannot be changed here."
+  },
   "pagination": {
     "label": "Pagination",
     "previous": "Previous",
