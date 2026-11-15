@@ -1,6 +1,8 @@
 import type { Mocked } from 'vitest';
+import { Test, TestingModule } from '@nestjs/testing';
 import { BranchBaselineResolver } from '@public/visualTest/core/application/services/branch-baseline-resolver.service';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
+import type { VariantBaselineRow } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { Variant } from '@public/visualTest/core/domain/value-objects/variant.vo';
 import { createMock } from '@test/utils/create-mock';
@@ -353,6 +355,180 @@ describe('BranchBaselineResolver', () => {
       screenshots.findBaselineOnChain.mockResolvedValue(null);
 
       await expect(resolver.peekEffectiveBaseline(input)).resolves.toBeNull();
+    });
+  });
+
+  // The two entry points are twins over the same owned/inherited/clone tree:
+  // `resolveForVariant` may write, `peekEffectiveBaseline` must not, but for the
+  // same input both have to name the same effective baseline. Each fixture seeds
+  // BOTH calls with their own mocks, so a write on one side cannot feed the
+  // other, and the comparison is between the two answers, not against a literal.
+  describe('equivalence with peekEffectiveBaseline', () => {
+    const input = {
+      testId: 'test-1',
+      testName: 'login',
+      branchId: 'br-feature',
+      variant,
+    };
+
+    type Seed = (
+      mockedVariants: Mocked<VariantStore>,
+      mockedScreenshots: Mocked<UnifiedScreenshotRepository>,
+    ) => void;
+
+    interface ChainSource {
+      testId: string;
+      imageHash: string;
+      imageUrl: string;
+      pageCount: number | null;
+      pixelDiffThreshold: number;
+    }
+
+    function baselineRow(
+      overrides: Partial<VariantBaselineRow> = {},
+    ): VariantBaselineRow {
+      return {
+        id: 'base-1',
+        testId: 'test-1',
+        type: 'BASELINE',
+        imageHash: 'hash-1',
+        imageUrl: 'http://storage/hash-1.png',
+        pageCount: null,
+        pixelDiffThreshold: 0,
+        createdAt: new Date(),
+        ...overrides,
+      };
+    }
+
+    function chainSource(overrides: Partial<ChainSource> = {}): ChainSource {
+      return {
+        testId: 'test-main',
+        imageHash: 'hash-1',
+        imageUrl: 'http://storage/hash-1.png',
+        pageCount: null,
+        pixelDiffThreshold: 0,
+        ...overrides,
+      };
+    }
+
+    async function resolverFor(seed: Seed): Promise<BranchBaselineResolver> {
+      const mockedVariants = createMock<VariantStore>();
+      const mockedScreenshots = createMock<UnifiedScreenshotRepository>();
+      seed(mockedVariants, mockedScreenshots);
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          BranchBaselineResolver,
+          { provide: VariantStore, useValue: mockedVariants },
+          { provide: UnifiedScreenshotRepository, useValue: mockedScreenshots },
+        ],
+      }).compile();
+      return module.get(BranchBaselineResolver);
+    }
+
+    // The comparable part of both answers: which content the variant effectively
+    // holds on this branch, and `null` when it holds no baseline at all.
+    const effectiveHash = (
+      result: { imageHash: string } | null,
+    ): string | null => (result === null ? null : result.imageHash);
+
+    async function effectiveHashByBothMethods(
+      seed: Seed,
+    ): Promise<{ peeked: string | null; resolved: string | null }> {
+      const peeked = await (
+        await resolverFor(seed)
+      ).peekEffectiveBaseline(input);
+      const resolved = await (await resolverFor(seed)).resolveForVariant(input);
+      return {
+        peeked: effectiveHash(peeked),
+        resolved: effectiveHash(resolved),
+      };
+    }
+
+    const seedOwned: Seed = (mockedVariants, mockedScreenshots) => {
+      mockedVariants.findVariantWithBaseline.mockResolvedValue({
+        baselineId: 'base-owned',
+        isInherited: false,
+        baseline: baselineRow({
+          id: 'base-owned',
+          imageHash: 'owned-hash',
+          imageUrl: 'http://storage/owned.png',
+        }),
+      });
+      mockedScreenshots.findBaselineOnChain.mockResolvedValue(null);
+    };
+
+    const seedStaleClone: Seed = (mockedVariants, mockedScreenshots) => {
+      mockedVariants.findVariantWithBaseline.mockResolvedValue({
+        baselineId: 'base-clone',
+        isInherited: true,
+        baseline: baselineRow({
+          id: 'base-clone',
+          imageHash: 'stale-hash',
+          imageUrl: 'http://storage/stale.png',
+        }),
+      });
+      mockedScreenshots.findBaselineOnChain.mockResolvedValue(
+        chainSource({
+          imageHash: 'target-hash',
+          imageUrl: 'http://storage/target.png',
+        }),
+      );
+      // The refresh writes the chain's content onto the clone, so the effective
+      // content is the target's — the stale row is what stays behind.
+      mockedScreenshots.updateInheritedBaseline.mockResolvedValue(
+        baselineRow({
+          id: 'base-clone',
+          imageHash: 'target-hash',
+          imageUrl: 'http://storage/target.png',
+        }),
+      );
+    };
+
+    const seedPinnedClone: Seed = (mockedVariants, mockedScreenshots) => {
+      mockedVariants.findVariantWithBaseline.mockResolvedValue({
+        baselineId: 'base-clone',
+        isInherited: true,
+        baseline: baselineRow({
+          id: 'base-clone',
+          imageHash: 'pinned-hash',
+          imageUrl: 'http://storage/pinned.png',
+        }),
+      });
+      // The target lost its baseline, so the clone is pinned to its own content.
+      mockedScreenshots.findBaselineOnChain.mockResolvedValue(null);
+      mockedScreenshots.markBaselineOwned.mockResolvedValue(undefined);
+    };
+
+    const seedNoBaseline: Seed = (mockedVariants, mockedScreenshots) => {
+      mockedVariants.findVariantWithBaseline.mockResolvedValue(null);
+      mockedScreenshots.findBaselineOnChain.mockResolvedValue(null);
+    };
+
+    it('delivers the same effective baseline for an owned baseline', async () => {
+      const { peeked, resolved } = await effectiveHashByBothMethods(seedOwned);
+
+      expect(peeked).toEqual(resolved);
+    });
+
+    it('delivers the same effective baseline for a stale clone', async () => {
+      const { peeked, resolved } =
+        await effectiveHashByBothMethods(seedStaleClone);
+
+      expect(peeked).toEqual(resolved);
+    });
+
+    it('delivers the same effective baseline for a pinned clone', async () => {
+      const { peeked, resolved } =
+        await effectiveHashByBothMethods(seedPinnedClone);
+
+      expect(peeked).toEqual(resolved);
+    });
+
+    it('delivers the same effective baseline when neither branch nor chain has one', async () => {
+      const { peeked, resolved } =
+        await effectiveHashByBothMethods(seedNoBaseline);
+
+      expect(peeked).toEqual(resolved);
     });
   });
 });

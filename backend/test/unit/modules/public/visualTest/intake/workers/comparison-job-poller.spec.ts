@@ -8,6 +8,7 @@ import {
   IWorkerHealth,
 } from '@common/domain/worker-health.interface';
 import { AppLoggerService } from '@common/logging/app-logger.service';
+import { WORKER_TIMING } from '@common/utils/worker-timing';
 import { createMockLogger } from '@test/utils/mocks';
 import { createMock } from '@test/utils/create-mock';
 import type { JobData } from '@common/domain/job-data.types';
@@ -202,19 +203,19 @@ describe('ComparisonJobPoller', () => {
 
       await triggerLatestPoll();
       expect(capturedTimeouts).toHaveLength(3);
-      expect(capturedTimeouts[2].ms).toBe(8000);
+      expect(capturedTimeouts[2].ms).toBe(WORKER_TIMING.maxPollIntervalMs);
 
       await triggerLatestPoll();
       expect(capturedTimeouts).toHaveLength(4);
-      expect(capturedTimeouts[3].ms).toBe(16000);
+      expect(capturedTimeouts[3].ms).toBe(WORKER_TIMING.maxPollIntervalMs);
 
       await triggerLatestPoll();
       expect(capturedTimeouts).toHaveLength(5);
-      expect(capturedTimeouts[4].ms).toBe(30000);
+      expect(capturedTimeouts[4].ms).toBe(WORKER_TIMING.maxPollIntervalMs);
 
       await triggerLatestPoll();
       expect(capturedTimeouts).toHaveLength(6);
-      expect(capturedTimeouts[5].ms).toBe(30000);
+      expect(capturedTimeouts[5].ms).toBe(WORKER_TIMING.maxPollIntervalMs);
     });
 
     it('resets interval to minimum when job is found after empty polls', async () => {
@@ -232,7 +233,7 @@ describe('ComparisonJobPoller', () => {
 
       await triggerLatestPoll();
       expect(capturedTimeouts).toHaveLength(3);
-      expect(capturedTimeouts[2].ms).toBe(8000);
+      expect(capturedTimeouts[2].ms).toBe(WORKER_TIMING.maxPollIntervalMs);
 
       await triggerLatestPoll();
       expect(capturedTimeouts).toHaveLength(4);
