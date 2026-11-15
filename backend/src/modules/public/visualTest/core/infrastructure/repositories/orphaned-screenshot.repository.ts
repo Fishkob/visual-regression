@@ -47,11 +47,6 @@ const CANDIDATE_OWNING_JOB_STATUSES = [
 export const ORPHAN_SWEEP_BATCH_SIZE = 5000;
 export const ORPHAN_DELETE_CHUNK_SIZE = 1000;
 
-// The batch size rendered as SQL text: `LIMIT $n` makes the parameter type
-// inference depend on the driver's number encoding, and the value is never
-// caller-controlled.
-const ORPHAN_SWEEP_LIMIT = Prisma.raw(String(ORPHAN_SWEEP_BATCH_SIZE));
-
 function chunk<T>(items: readonly T[], size: number): T[][] {
   const chunks: T[][] = [];
   for (let i = 0; i < items.length; i += size) {
@@ -217,7 +212,7 @@ export class OrphanedScreenshotRepository
           WHERE c."baselineId" = s.id
         )
         AND ${ORPHAN_GRACE_ELAPSED(criteria.defaultGraceHours)}
-      LIMIT ${ORPHAN_SWEEP_LIMIT}
+      LIMIT ${ORPHAN_SWEEP_BATCH_SIZE}
     `);
   }
 }

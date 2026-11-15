@@ -175,8 +175,10 @@ describe('OrphanedScreenshotRepository', () => {
 
       await repository.findOrphanedBaseline({ defaultGraceHours: 24 });
 
-      const sql = sqlText(mockClient.$queryRaw.mock.calls[0] as unknown[]);
-      expect(sql).toContain(`LIMIT ${ORPHAN_SWEEP_BATCH_SIZE}`);
+      const call = mockClient.$queryRaw.mock.calls[0] as unknown[];
+      const sql = sqlText(call);
+      expect(sql).toContain('LIMIT ?');
+      expect(sqlValues(call)).toContain(ORPHAN_SWEEP_BATCH_SIZE);
       expect(sql).not.toContain('LIMIT LIMIT');
     });
   });
