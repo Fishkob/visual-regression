@@ -24,14 +24,13 @@ the running application when the property under test is a database guarantee
 the same time cannot be produced through the HTTP surface, and a mocked client
 cannot hold a lock.
 
-One component is outside every suite: `pdf-sidecar/` (Java 25) ships two JUnit
-classes that nothing runs — the quality image, the CodeQL build and the Docker
-build all pass `-DskipTests`, and no job calls `mvn test`. The sidecar is
-exercised only black-box, through the backend e2e suite's PDF flows, so a unit
-regression in `PdfCompareService` is caught by the pixels it produces, if at
-all. Turning those tests on is a CI job away, but it needs one local
-`mvn -B test` first: they have never run, and a gate on an unverified suite is
-worse than the gap.
+`pdf-sidecar/` (Java 25) runs its own suite: 30 JUnit tests — the compare
+endpoint against a started Javalin server, plus the telemetry endpoint rules —
+executed by `mvn -B test` in `pdf-sidecar/`, the `PDF Sidecar Tests` job in
+`ci-backend.yml`. The Docker build and the CodeQL build keep `-DskipTests`: the
+build ships, the job proves. The backend e2e suite still covers the sidecar
+black-box through the PDF flows, so a regression is also caught by the pixels it
+produces.
 
 ## How the suites are wired
 

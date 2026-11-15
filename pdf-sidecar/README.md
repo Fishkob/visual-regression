@@ -17,3 +17,15 @@ docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
 ```
 
 Metrics are exposed via the Prometheus HTTP exporter on port 9464 and collected by the Prometheus scrape job. Traces are sent via OTLP to the OTEL Collector → Tempo → Grafana.
+
+## Test
+
+```bash
+mvn -B test
+```
+
+30 JUnit tests: `CompareServiceTest` starts the Javalin server and drives the
+`/compare` endpoint (upload limits, PNG/PDF validation, the diff output), and
+`TelemetryTest` pins the OTLP endpoint rules. CI runs the same command in the
+`PDF Sidecar Tests` job (`ci-backend.yml`); the Docker build and the CodeQL build
+keep `-DskipTests`, so shipping and proving stay separate.
