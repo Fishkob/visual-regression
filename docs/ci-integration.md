@@ -209,6 +209,52 @@ test("cart summary", async ({ page }, testInfo) => {
 - The remaining client options (`commitSha`/`commitMessage`/`ciUrl`, `configPath`, `maxAttempts`, `onUpload`, `onConfigError`) are on `VrtClientOptions` in the published types.
 - See [client-sdk/README.md](../client-sdk/README.md) for the full API and how the tarball is built.
 
+### Element captures (selector)
+
+A page screenshot is the default. For one element, take the locator's screenshot
+and hand those bytes to the client; the locator is a CSS selector, `getByRole`
+or `getByTestId`, as usual:
+
+```ts
+test("cart summary", async ({ page }, testInfo) => {
+  await page.goto("/cart");
+
+  const summary = page.locator("#cart-summary");
+  await vrt.capture(testInfo, await summary.screenshot());
+});
+```
+
+The upload is the element's box, not the page around it: `fullPage` and the
+page's size do not apply, and the variant, retry, run and threshold rules above
+are unchanged. The box is also the screenshot's size, so a change that resizes
+the element is a dimension mismatch and follows the test's size policy
+([Notes and limits](#6-notes-and-limits)) — a container that grows with its
+content turns every content change into a size change.
+
+The test name is the identity, not the selector: one test owns one screenshot
+per variant, so two elements in one test collide (latest wins). Name the tests
+after the elements instead:
+
+```ts
+for (const section of ["summary", "totals", "shipping"]) {
+  test(`cart ${section}`, async ({ page }, testInfo) => {
+    await page.goto("/cart");
+    await vrt.capture(
+      testInfo,
+      await page.locator(`#cart-${section}`).screenshot(),
+    );
+  });
+}
+```
+
+Playwright waits for the element (attached, visible, stable) but not for the data
+inside it: settle async content first, or the empty box becomes a valid baseline
+and the next capture fails the comparison for the wrong reason. A job that
+uploads through the [GitHub Action](#7-the-github-action) instead of the SDK
+writes the element to a file with
+`screenshot({ path: "artifacts/cart-summary.png" })` and passes that path as
+`file:`.
+
 ### Upload failures only
 
 Call the client from an `afterEach` and skip the tests that ended as expected:

@@ -148,6 +148,22 @@ baseline that passes without comparing. A buffer or a PDF works the same way:
 the same fields to `/api/v1/projects/:project/tests/:test/upload?testKind=image`
 ([curl](docs/ci-integration.md#2-upload-and-wait)).
 
+One element instead of the page is the same call with the element's screenshot —
+a CSS selector, `getByRole` or `getByTestId`:
+
+```ts
+test("cart summary", async ({ page }, testInfo) => {
+  await page.goto("/cart");
+  await vrt.capture(testInfo, await page.locator("#cart-summary").screenshot());
+});
+```
+
+The upload is the element's box, not the page around it (`fullPage` does not
+apply), and the test name is still the identity: two elements captured in one
+test overwrite each other, so name the tests after the elements — a loop over
+`["summary", "totals"]` gives two baselines. Size policy, lazy content and the
+Action path: [element captures](docs/ci-integration.md#element-captures-selector).
+
 **4. Gate the run and decide what reaches the instance.** The upload only queues
 the comparison, so no test can assert on it: with a `runKey` set, close the run
 after the test command and fail the job unless its state is `passed` — a
