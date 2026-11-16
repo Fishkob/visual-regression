@@ -4,7 +4,9 @@ Deploys the full stack (backend, worker, frontend, pdf-sidecar, PostgreSQL, Rust
 
 > **Support status: best effort.** The supported deployment path is Docker Compose (`./install.sh`) — it is the one CI exercises end to end and the one that gets fixed first. The chart here is checked by `helm lint` and `helm template` ([chart-validate.yml](../.github/workflows/chart-validate.yml)) and by nothing else: no deployed smoke test, no cluster in CI, no coverage by `./scripts/verify.sh`. Treat this page as a well-tested starting point, not as a guarantee.
 >
-> **Not using Kubernetes?** For a single host, use the Compose installer: `./install.sh` — install, upgrade and day-to-day commands are in the [README quick start](../README.md#quick-start).
+> **Not using Kubernetes?** The Compose path for a single host — domain, TLS,
+> backups and upgrade included — is [self-hosting.md](self-hosting.md); the
+> 30-second version is in the [README quick start](../README.md#quick-start).
 
 ## Environment Variables
 
@@ -516,16 +518,21 @@ setting, not a code change, so nothing in the repository can enforce it:
 ## Verifying a Release
 
 Every release artifact is built from a tag that is verified to be an ancestor of
-`main`, and carries provenance you can check without trusting this repository:
+`main`, and carries provenance you can check without trusting this repository.
+The platform tag and the client version are different numbers — the two lines
+release independently:
 
 ```bash
+VRT_VERSION=X.Y.Z          # the platform release, e.g. 5.0.0
+VRT_CLIENT_VERSION=X.Y.Z   # the client release, e.g. 4.0.0
+
 # Container image: provenance, SBOM and the signed attestation
-gh attestation verify oci://ghcr.io/fishkob/visual-regression-backend:1.0.0 \
+gh attestation verify "oci://ghcr.io/fishkob/visual-regression-backend:${VRT_VERSION}" \
   --owner Fishkob
-docker buildx imagetools inspect ghcr.io/fishkob/visual-regression-backend:1.0.0
+docker buildx imagetools inspect "ghcr.io/fishkob/visual-regression-backend:${VRT_VERSION}"
 
 # npm package: the tarball is published with provenance
-npm view @fishkob/vrt@1.0.0 dist.integrity
+npm view "@fishkob/vrt@${VRT_CLIENT_VERSION}" dist.integrity
 npm audit signatures
 ```
 

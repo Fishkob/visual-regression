@@ -2,7 +2,8 @@
 
 > **Self-hosting?** This guide is the developer setup (pnpm, hot reload,
 > `./scripts/dev.sh reset` wipes data). To run the Docker stack, use `./install.sh`
-> — see the [README quick start](../README.md#quick-start).
+> — see the [README quick start](../README.md#quick-start) and
+> [self-hosting.md](self-hosting.md).
 
 ## Prerequisites
 
