@@ -50,6 +50,10 @@ x-app-env: &app-env
   ADMIN_RATE_LIMIT_PER_MINUTE: ${ADMIN_RATE_LIMIT_PER_MINUTE:-120}
   BASELINE_HISTORY_LIMIT: ${BASELINE_HISTORY_LIMIT:-10}
   APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost}
+  # Swagger UI + the OpenAPI document at /docs/. Off under NODE_ENV=production
+  # unless set; the document names every route, so keep it off on a reachable
+  # host.
+  SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
   # Build identity reported by /api/v1/health. install.sh derives these from the
   # checkout; the fallbacks apply when the stack is started without it (dev.sh).
   APP_VERSION: ${APP_VERSION:-dev}

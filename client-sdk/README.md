@@ -17,10 +17,10 @@ ships as ESM only; it needs Node 20 or newer.
 ## Install
 
 The client is published to npm as `@fishkob/vrt` and has its own version line,
-independent of the platform release. Pin the exact version:
+independent of the platform release. Pin the major (or the exact version):
 
 ```bash
-npm i @fishkob/vrt@1.0.0   # or: pnpm add @fishkob/vrt@1.0.0
+npm i @fishkob/vrt@4   # or: pnpm add @fishkob/vrt@4
 ```
 
 It speaks `/api/v1`, so it works with any server that serves that API version —
@@ -31,8 +31,8 @@ reachable and carry the tarball over — npm is the artifact store, the release 
 carries the notes ([ADR-073](https://github.com/Fishkob/visual-regression/blob/main/docs/adr/ADR-073-release-assets-and-immutable-releases.md)):
 
 ```bash
-npm pack @fishkob/vrt@1.0.0    # produces fishkob-vrt-1.0.0.tgz
-npm i ./fishkob-vrt-1.0.0.tgz
+npm pack @fishkob/vrt@4    # produces fishkob-vrt-<version>.tgz
+npm i ./fishkob-vrt-<version>.tgz
 ```
 
 Both channels carry the compiled `dist/` and the MIT licence at the repository

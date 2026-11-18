@@ -170,11 +170,11 @@ from Playwright's artifact list and the bytes never pass through `test-results/`
 The client is published to npm as `@fishkob/vrt` and versions independently of the platform. It speaks `/api/v1`, so any recent client works with any server on that API version. For an installation without registry access, pack the package where the registry is reachable and carry the tarball over — npm is the artifact store, the release page carries the notes ([ADR-073](adr/ADR-073-release-assets-and-immutable-releases.md)).
 
 ```bash
-npm i @fishkob/vrt@1.0.0
+npm i @fishkob/vrt@4
 
 # offline mirror: pack where the registry is reachable, install where it is not
-npm pack @fishkob/vrt@1.0.0        # produces fishkob-vrt-1.0.0.tgz
-npm i ./fishkob-vrt-1.0.0.tgz
+npm pack @fishkob/vrt@4            # produces fishkob-vrt-<version>.tgz
+npm i ./fishkob-vrt-<version>.tgz
 ```
 
 ```ts

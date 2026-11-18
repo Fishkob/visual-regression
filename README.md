@@ -63,28 +63,37 @@ boundary, so the host, the network path and TLS are yours to own
 ## Quick start
 
 [Docker](https://docs.docker.com/get-docker/) with Compose v2 is the only
-prerequisite (macOS, Linux, or Windows via WSL); the first build takes a few
-minutes:
+prerequisite (macOS, Linux, or Windows via WSL; the installer also needs `curl`).
+Ports 80, 3000, 3001, 5432, 9000 and 9001 must be free — only 80 is reachable
+from outside the host. The first build takes a few minutes:
 
 ```bash
 git clone https://github.com/Fishkob/visual-regression.git
 cd visual-regression
 ./install.sh          # generates secrets, builds the stack, waits for health
-./install.sh --seed   # optional: demo projects to click through (needs pnpm)
+./install.sh --seed   # optional: demo projects to click through (needs pnpm, Node ≥ 24.15)
 ```
 
 Open <http://localhost> and log in with the credentials the installer printed
 (`admin` by default). The password is stored as `BOOTSTRAP_ADMIN_PASSWORD` in the
-generated `.env` and should be removed after the first login. If port 80 is taken,
-set `FRONTEND_PORT` in `.env` and rerun `./install.sh up`.
+generated `.env` and should be removed after the first login. A fresh instance is
+empty: there are no projects until the first upload creates one. If port 80 is
+taken, set `FRONTEND_PORT` in `.env` and rerun `./install.sh up`.
 
 Day to day: `./install.sh up`, `down` and `logs` start, stop and tail the stack; an
 upgrade is `git pull && ./install.sh up` — the migration job runs before the new
-backend. `./install.sh --fresh` wipes the database and storage volumes and starts
-clean.
+backend, so [take a backup first](docs/self-hosting.md#backups).
+`./install.sh --fresh` wipes the database and storage volumes and starts clean —
+there is no confirmation and no undo.
+
+This install is a localhost one: plain HTTP, and screenshots are served from
+`http://localhost:9000`. To reach it from other machines or over HTTPS, follow
+[running it on a host](docs/self-hosting.md) — it lists the four settings that
+change.
 
 Ports and the service layout: [docs/local-development.md](docs/local-development.md#ports).
-Production setup (TLS, reverse proxy, backups, Kubernetes):
+Running it for a team (domain, TLS, backups, upgrade):
+[docs/self-hosting.md](docs/self-hosting.md). Kubernetes:
 [docs/deployment.md](docs/deployment.md).
 
 ## Wire it into your project
@@ -171,6 +180,9 @@ reviewer's approval in the inbox is what lets the next run through
 ([runs and gates](docs/ci-integration.md#3-runs-and-gates)). Without a `runKey`,
 gate on the job wait the upload returns instead.
 
+On GitHub Actions the composite action wraps steps 2–4: one step uploads a file
+and can finish the run ([the GitHub Action](docs/ci-integration.md#7-the-github-action)).
+
 The `capture` call is the only thing that sends: leave it out for a test, call
 it from an `afterEach` that skips expected results to upload failures only, or
 make the client conditional on the key to keep a whole pipeline off
@@ -195,20 +207,23 @@ More detail and diagrams: [docs/architecture/overview.md](docs/architecture/over
 
 ## Documentation
 
-| I want to…                                         | Read                                                              |
-| -------------------------------------------------- | ----------------------------------------------------------------- |
-| put it into a pipeline                             | [docs/ci-integration.md](docs/ci-integration.md)                  |
-| switch uploads off in a pipeline                   | [turning uploads off](docs/ci-integration.md#turning-uploads-off) |
-| clean up a branch after its merge                  | [docs/branches.md](docs/branches.md)                              |
-| run it locally / contribute                        | [docs/local-development.md](docs/local-development.md)            |
-| deploy it (Kubernetes, TLS, backups, secrets)      | [docs/deployment.md](docs/deployment.md)                          |
-| know what the test suites cover                    | [docs/testing.md](docs/testing.md)                                |
-| send review events somewhere                       | [docs/webhooks.md](docs/webhooks.md)                              |
-| understand roles, keys and API scopes              | [docs/permissions.md](docs/permissions.md)                        |
-| understand a term (`Variant`, `Run`, `Threshold`…) | [CONTEXT.md](CONTEXT.md)                                          |
-| run the optional metrics and dashboards stack      | [docs/observability.md](docs/observability.md)                    |
-| see why something is the way it is                 | [docs/adr/](docs/adr/) — 68 decision records                      |
-| know what is next                                  | [docs/roadmap.md](docs/roadmap.md)                                |
+| I want to…                                         | Read                                                                                                             |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| put it into a pipeline                             | [docs/ci-integration.md](docs/ci-integration.md)                                                                 |
+| switch uploads off in a pipeline                   | [turning uploads off](docs/ci-integration.md#turning-uploads-off)                                                |
+| look up API endpoints and payloads                 | `/docs/` (Swagger UI; off in production, `SWAGGER_ENABLED=true`) or [backend/swagger.json](backend/swagger.json) |
+| clean up a branch after its merge                  | [docs/branches.md](docs/branches.md)                                                                             |
+| run it locally / contribute                        | [docs/local-development.md](docs/local-development.md)                                                           |
+| run it for a team (domain, TLS, backups)           | [docs/self-hosting.md](docs/self-hosting.md)                                                                     |
+| deploy it on Kubernetes                            | [docs/deployment.md](docs/deployment.md)                                                                         |
+| fix a start that failed                            | [troubleshooting](docs/self-hosting.md#troubleshooting)                                                          |
+| know what the test suites cover                    | [docs/testing.md](docs/testing.md)                                                                               |
+| send review events somewhere                       | [docs/webhooks.md](docs/webhooks.md)                                                                             |
+| understand roles, keys and API scopes              | [docs/permissions.md](docs/permissions.md)                                                                       |
+| understand a term (`Variant`, `Run`, `Threshold`…) | [CONTEXT.md](CONTEXT.md)                                                                                         |
+| run the optional metrics and dashboards stack      | [docs/observability.md](docs/observability.md)                                                                   |
+| see why something is the way it is                 | [docs/adr/](docs/adr/) — the decision history                                                                    |
+| know what is next                                  | [docs/roadmap.md](docs/roadmap.md)                                                                               |
 
 ## Status
 
