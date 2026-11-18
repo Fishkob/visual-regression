@@ -52,7 +52,17 @@ TLS, four values change and one stays as it is:
 | `APP_PUBLIC_URL`     | `http://localhost`      | `https://vrt.example.com` (webhook/report links) |
 | `RUSTFS_PUBLIC_URL`  | `http://localhost:9000` | `https://vrt-storage.example.com` (see below)    |
 | `AUTH_COOKIE_SECURE` | `false`                 | `true` — makes the session cookie HTTPS-only     |
-| `TRUST_PROXY`        | `true`                  | keep `true`; a proxy is still in front           |
+| `TRUST_PROXY`        | `true`                  | `true` while exactly one proxy is in front       |
+
+The backend trusts exactly one `X-Forwarded-For` hop — the bundled nginx, which
+appends the address it saw — so `TRUST_PROXY=true` holds only while that is the
+_only_ proxy in front of the API. Put a second one in front of nginx (Caddy
+forwarding everything to `:8080`, a cloud load balancer) and every request
+reaches Nest with the outer proxy's address instead of the client's: the per-IP
+budgets collapse into one deployment-wide bucket (ten failed logins lock out
+every user), and `Session.ip` records the proxy for all of them. The example
+below avoids that by sending `/api` straight to the backend, so Caddy is the one
+hop.
 
 `CORS_ORIGIN` stays at its default when the bundled nginx serves the UI: the
 browser calls `/api` on the same origin, so there is no cross-origin request.
@@ -61,15 +71,18 @@ separate API host, or the Vite dev server on `:5173`).
 
 The storage needs its own host because the API returns **presigned** URLs whose
 SigV4 signature covers the `Host` header, and the review page renders them as
-`<img src>`. The public URL must therefore be the exact origin the browser uses:
-a path prefix does not work, because a proxy that strips it would change the
-signed path. That has two consequences:
+`<img src>`. The public URL must therefore be the exact origin the browser uses,
+with no path: the presigner appends `/<bucket>/<object>` to whatever base path it
+is given, and a path-style store reads the first segment after the host as the
+bucket — so a prefix sends every request to a bucket named after it, while a
+proxy that strips the prefix changes the path the signature covers. That has two
+consequences:
 
 - an HTTPS UI needs an HTTPS storage origin, or the browser blocks the images as
   mixed content;
 - the storage host must resolve for the user, not only for the containers.
 
-The full rule (no bucket name in the value, `/bucket/<object>` is appended) is in
+The full rule (no bucket name in the value either) is in
 [serving screenshots](deployment.md#serving-screenshots-rustfs-must-be-browser-reachable).
 
 ### Example: Caddy on the same host
@@ -78,7 +91,14 @@ Set `FRONTEND_PORT=8080` in `.env`, then:
 
 ```caddy
 vrt.example.com {
-	reverse_proxy 127.0.0.1:8080
+	# `/api` goes straight to the backend, so Caddy is the one proxy that
+	# TRUST_PROXY trusts; the UI keeps coming from the bundled nginx.
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3000
+	}
+	handle {
+		reverse_proxy 127.0.0.1:8080
+	}
 }
 
 vrt-storage.example.com {
@@ -87,10 +107,16 @@ vrt-storage.example.com {
 ```
 
 Caddy obtains the certificates, preserves the incoming `Host` header — which is
-exactly what RustFS verifies — and sets `X-Forwarded-For`/`-Proto`, which is what
-`TRUST_PROXY` reads. With nginx the equivalent needs
-`proxy_set_header Host $host;` — without it every presigned URL fails with
-`SignatureDoesNotMatch`.
+exactly what RustFS verifies — and sets `X-Forwarded-For`/`-Proto`, which the
+backend reads. Add the same `handle /docs/*` block when `SWAGGER_ENABLED=true`.
+With nginx the storage equivalent needs `proxy_set_header Host $host;` — without
+it every presigned URL fails with `SignatureDoesNotMatch`.
+
+Forwarding everything to `:8080` instead, with the API behind two proxies, is the
+case [above](#going-beyond-localhost) warns about: nginx appends Caddy's address
+and the backend reads it as the client. Making the UI hop work as well needs
+`proxy_set_header X-Forwarded-For $http_x_forwarded_for;` in the frontend's nginx
+config, so Caddy's sanitised value survives instead of being appended to.
 
 Then `./install.sh up` (Compose re-reads `.env`; `docker compose up -d` is
 enough when only variables changed) and check from a **client** machine, not the
