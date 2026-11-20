@@ -22,7 +22,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <javalin.version>7.2.4</javalin.version>
     <!-- Note: using 1.x (not 3.0.1 as originally planned) because the 3.x artifact does not exist on Maven Central -->
-    <pdfcompare.version>1.2.11</pdfcompare.version>
+    <pdfcompare.version>1.2.13</pdfcompare.version>
   </properties>
 
   <dependencyManagement>
@@ -31,32 +31,32 @@
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>2.22.4</version>
+        <version>2.23.0</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-core</artifactId>
-        <version>2.22.4</version>
+        <version>2.23.0</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-annotations</artifactId>
-        <version>2.22</version>
+        <version>2.23</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-server</artifactId>
-        <version>12.1.14</version>
+        <version>12.1.15</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-http</artifactId>
-        <version>12.1.14</version>
+        <version>12.1.15</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-security</artifactId>
-        <version>12.1.14</version>
+        <version>12.1.15</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -96,17 +96,17 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-api</artifactId>
-      <version>1.67.0</version>
+      <version>1.68.0</version>
     </dependency>
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-sdk</artifactId>
-      <version>1.67.0</version>
+      <version>1.68.0</version>
     </dependency>
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-exporter-otlp</artifactId>
-      <version>1.67.0</version>
+      <version>1.68.0</version>
     </dependency>
   </dependencies>
 
