@@ -138,7 +138,7 @@ const createError = computed(() => createProject.error.value);
 
 // Bulk move is a writer tool: VIEWERs get no checkboxes or bulk bar (the
 // backend answers 403 for them anyway).
-const { canWrite } = useCurrentRole();
+const { canWrite, seesAllProjects } = useCurrentRole();
 const bulkMove = useBulkMoveProjects();
 const {
   selectedIds,
@@ -382,12 +382,16 @@ function create(payload: { name: string; groupId?: string }) {
             :title="
               hasActiveFilters
                 ? t('projects.emptyFilteredTitle')
-                : t('projects.emptyTitle')
+                : !seesAllProjects
+                  ? t('projects.emptyScopedTitle')
+                  : t('projects.emptyTitle')
             "
             :description="
               hasActiveFilters
                 ? t('projects.emptyFilteredBody')
-                : t('projects.emptyBody')
+                : !seesAllProjects
+                  ? t('projects.emptyScopedBody')
+                  : t('projects.emptyBody')
             "
           />
           <div v-if="!hasActiveFilters" class="flex justify-center">

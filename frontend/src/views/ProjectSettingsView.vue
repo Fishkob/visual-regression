@@ -8,6 +8,7 @@ import ProjectWebhooksPanel from "@/components/webhooks/ProjectWebhooksPanel.vue
 import RenameProjectDialog from "@/components/projects/RenameProjectDialog.vue";
 import ThresholdSettingsDialog from "@/components/projects/ThresholdSettingsDialog.vue";
 import ProjectStoragePanel from "@/components/storage/ProjectStoragePanel.vue";
+import ProjectTeamPanel from "@/components/teams/ProjectTeamPanel.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useCurrentRole } from "@/composables/useAuth";
@@ -105,6 +106,12 @@ function handleRenamed(name: string) {
         </Button>
       </div>
     </section>
+
+    <!-- Ownership sits next to the name: the team is what decides who sees the
+    project at all, and it is a governance setting an ADMIN owns, not a normal
+    project edit. The panel shows every caller the current owner and only
+    renders the control for an admin. -->
+    <ProjectTeamPanel v-if="isAdmin" :project-name="projectName" />
 
     <section
       class="rounded-xl border bg-card p-4 shadow-sm"

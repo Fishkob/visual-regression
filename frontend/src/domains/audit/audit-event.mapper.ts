@@ -27,6 +27,11 @@ export const AUDIT_ACTION_LABEL: Record<AuditAction, string> = {
   "review.comment-resolve": "Review comment resolved",
   "project.pixel-threshold": "Project threshold changed",
   "test.threshold": "Threshold changed",
+  "team.create": "Team created",
+  "team.update": "Team renamed",
+  "team.delete": "Team deleted",
+  "team.members": "Team members changed",
+  "team.project-assign": "Project team changed",
 };
 
 // The action column is a plain string in the schema, so a future value must

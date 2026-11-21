@@ -13,6 +13,9 @@ export interface InboxListQuery {
   tag?: string;
   // Server-side scope for reviewers who only want their own assignments.
   assignedToMe?: boolean;
+  // The team lens (ADR-082): narrows the queue to the projects one team owns,
+  // inside the caller's own project scope.
+  teamId?: string;
 }
 
 export const reviewInboxQueryKeys = {

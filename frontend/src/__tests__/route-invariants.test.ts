@@ -46,6 +46,7 @@ const WITHOUT_AUTH_META = new Set(["not-found"]);
 // both fail.
 const ADMIN_ROUTES: Record<string, string> = {
   users: "user administration",
+  teams: "team administration",
   "api-keys": "API-key issue and revocation",
   audit: "the audit trail and its export",
   "project-webhooks": "webhook endpoints and their signing secrets",

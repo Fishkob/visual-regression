@@ -83,6 +83,8 @@ const user = (overrides: Partial<CurrentUser> = {}): CurrentUser => ({
   username: "alice",
   role: "MEMBER",
   mustChangePassword: false,
+  seesAllProjects: false,
+  teams: [],
   ...overrides,
 });
 
@@ -120,6 +122,8 @@ describe("useMeQuery", () => {
       username: "alice",
       role: "ADMIN",
       mustChangePassword: true,
+      seesAllProjects: false,
+      teams: [],
     });
   });
 
@@ -132,6 +136,22 @@ describe("useMeQuery", () => {
 });
 
 describe("useCurrentRole", () => {
+  it("treats a payload without the flag as unrestricted", () => {
+    // The neutral default: an older backend (or a hand-built payload) must not
+    // tell a principal that its team has no projects.
+    queryData(user({ seesAllProjects: undefined as never }));
+    const { seesAllProjects } = useCurrentRole();
+
+    expect(seesAllProjects.value).toBe(true);
+  });
+
+  it("follows a scoped session", () => {
+    queryData(user({ seesAllProjects: false }));
+    const { seesAllProjects } = useCurrentRole();
+
+    expect(seesAllProjects.value).toBe(false);
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     queryData(null);
@@ -188,6 +208,8 @@ describe("useLogin", () => {
       username: "alice",
       role: "MEMBER",
       mustChangePassword: false,
+      seesAllProjects: false,
+      teams: [],
     });
     expect(push).toHaveBeenCalledWith({ name: "review-inbox" });
   });
@@ -251,6 +273,8 @@ describe("useChangePassword", () => {
         username: "alice",
         role: "MEMBER",
         mustChangePassword: false,
+        seesAllProjects: false,
+        teams: [],
       },
     );
     expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({

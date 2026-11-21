@@ -32,8 +32,20 @@ export const ROLE_BADGE_VARIANT: Record<
   VIEWER: "outline",
 };
 
+export interface CurrentTeam {
+  id: string;
+  name: string;
+}
+
 export interface CurrentUser {
   username: string;
   role: UserRole;
   mustChangePassword: boolean;
+  // True when the account is not project-scoped at all (an ADMIN, or a key
+  // without an owner or allowlist). The UI uses it to say "all projects" instead
+  // of naming teams, so it must default to false when the wire leaves it out.
+  seesAllProjects: boolean;
+  // The teams the caller belongs to. They scope project access (ADR-082); this
+  // model only carries them, the API is what enforces the scope.
+  teams: CurrentTeam[];
 }

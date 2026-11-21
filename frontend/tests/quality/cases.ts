@@ -13,6 +13,11 @@ import {
   REVIEW_INBOX_RESPONSE,
 } from "../ct/mocks/projects.mocks";
 import { GROUPS_RESPONSE } from "../ct/mocks/groups.mocks";
+import { TEAMS_GLOB, TEAMS_RESPONSE } from "../ct/mocks/teams.mocks";
+import {
+  USERS_GLOB,
+  USERS_RESPONSE as TEAM_USERS_RESPONSE,
+} from "../ct/mocks/users.mocks";
 import { API_KEYS_RESPONSE } from "../ct/mocks/apiKeys.mocks";
 import { WEBHOOKS_RESPONSE } from "../ct/mocks/webhooks.mocks";
 import { PDF_TEST_DETAILS_BASELINE_NO_PAGE_COUNT } from "../ct/mocks/pdfTest.mocks";
@@ -154,11 +159,17 @@ export const QUALITY_CASES: QualityCase[] = [
       [PROJECT_STORAGE_GLOB, PROJECT_STORAGE_RESPONSE],
       [PROJECT_WEBHOOKS_GLOB, WEBHOOKS_RESPONSE],
       [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
+      [TEAMS_GLOB, TEAMS_RESPONSE],
     ],
-    // The settings page is also the home of the endpoint administration, so the
-    // shot has to wait for that section instead of only the storage aggregate.
+    // The settings page is also the home of the endpoint administration and of
+    // the team assignment, so the shot waits for those sections instead of only
+    // the storage aggregate — otherwise it can catch "loading teams" and the
+    // baseline becomes a race.
     readyTestId: TEST_ID.storageUsage,
-    readyAlsoTestId: TEST_ID.projectSettingsWebhooks,
+    readyAlsoTestId: [
+      TEST_ID.projectSettingsWebhooks,
+      TEST_ID.projectTeamSelect,
+    ],
     // "Created 3 months ago" is relative to the run; its absolute value lives in
     // the title attribute, which the mask hides along with the label.
     maskTestIds: [TEST_ID.webhookCreated],
@@ -301,6 +312,19 @@ export const QUALITY_CASES: QualityCase[] = [
     props: { initialRoute: "/users" },
     routes: [["**/api/v1/users", USERS_RESPONSE]],
     readyTestId: TEST_ID.userRow,
+  },
+  {
+    // Team administration. The member picker ships with the page and reads the
+    // account list on mount, so both endpoints are mocked: an unmocked users call
+    // would paint its error state into the dialog behind the list.
+    name: "teams",
+    story: "views/TeamsView/Routed",
+    props: { initialRoute: "/teams" },
+    routes: [
+      [TEAMS_GLOB, TEAMS_RESPONSE],
+      [USERS_GLOB, TEAM_USERS_RESPONSE],
+    ],
+    readyTestId: TEST_ID.teamRow,
   },
   {
     name: "security",

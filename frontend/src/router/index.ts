@@ -49,6 +49,16 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/teams",
+    name: "teams",
+    component: () => import("@/views/TeamsView.vue"),
+    meta: {
+      requiresAuth: true,
+      requiresRole: "ADMIN",
+      titleKey: "teams.title",
+    },
+  },
+  {
     path: "/forbidden",
     name: "forbidden",
     component: () => import("@/views/ForbiddenView.vue"),
