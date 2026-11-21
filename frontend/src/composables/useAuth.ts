@@ -53,7 +53,11 @@ export function useCurrentRole() {
   const role = computed(() => me.value?.role ?? DEFAULT_ROLE);
   const isAdmin = computed(() => isAdminRole(role.value));
   const canWrite = computed(() => canWriteRole(role.value));
-  return { role, isAdmin, canWrite };
+  // Whether anything is scoped at all (ADR-082). The permission helpers above
+  // answer "what may this role do"; this answers "how much does it see", which is
+  // what an empty list has to explain.
+  const seesAllProjects = computed(() => me.value?.seesAllProjects !== false);
+  return { role, isAdmin, canWrite, seesAllProjects };
 }
 
 // Login ends here: cache the fresh session so the guard can release the next

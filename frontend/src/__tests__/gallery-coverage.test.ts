@@ -19,6 +19,7 @@ const ROUTE_CASES: Record<string, string[]> = {
     "search-palette",
   ],
   groups: ["groups"],
+  teams: ["teams"],
   "change-password": ["change-password"],
   users: ["users"],
   forbidden: ["forbidden"],

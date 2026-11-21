@@ -12,6 +12,8 @@ import type { ProjectsControllerGetProjectsWithPendingFlagResponses } from "@sdk
 import type { PublicShareControllerResolveResponses } from "@sdk/models/PublicShareControllerResolveResponses.gen";
 import type { PublicUserInviteControllerPreviewResponses } from "@sdk/models/PublicUserInviteControllerPreviewResponses.gen";
 import type { RunsControllerDetailResponses } from "@sdk/models/RunsControllerDetailResponses.gen";
+import type { TeamsControllerListResponses } from "@sdk/models/TeamsControllerListResponses.gen";
+import type { UsersControllerListResponses } from "@sdk/models/UsersControllerListResponses.gen";
 import type { ReviewInboxControllerGetPendingResponses } from "@sdk/models/ReviewInboxControllerGetPendingResponses.gen";
 import type { StorageControllerGetResponses } from "@sdk/models/StorageControllerGetResponses.gen";
 import type { TestVariantsDto } from "@sdk/models/TestVariantsDto.gen";
@@ -34,6 +36,14 @@ import {
   GROUPS_EMPTY_RESPONSE,
   GROUPS_RESPONSE,
 } from "../../tests/ct/mocks/groups.mocks";
+import {
+  TEAMS_EMPTY_RESPONSE,
+  TEAMS_RESPONSE,
+} from "../../tests/ct/mocks/teams.mocks";
+import {
+  USERS_ONE_RESPONSE,
+  USERS_RESPONSE,
+} from "../../tests/ct/mocks/users.mocks";
 import {
   PDF_TEST_DETAILS_BASELINE_NO_PAGE_COUNT,
   PDF_TEST_DETAILS_EMPTY,
@@ -211,6 +221,41 @@ describe("groups fixtures", () => {
       GROUPS_EMPTY_RESPONSE,
     );
     expect(body).toEqual([]);
+  });
+});
+
+describe("team fixtures", () => {
+  it("binds the team list to TeamDto", () => {
+    const body = parse<TeamsControllerListResponses[200]>(TEAMS_RESPONSE);
+    expect(body.length).toBeGreaterThan(0);
+    for (const team of body) {
+      expect(typeof team.id).toBe("string");
+      expect(typeof team.createdAt).toBe("string");
+      expect(Array.isArray(team.members)).toBe(true);
+      expect(Array.isArray(team.projects)).toBe(true);
+    }
+  });
+
+  it("binds the empty team list to TeamDto", () => {
+    const body = parse<TeamsControllerListResponses[200]>(TEAMS_EMPTY_RESPONSE);
+    expect(body).toEqual([]);
+  });
+});
+
+describe("team member picker fixtures", () => {
+  it("binds the account list to UserDto", () => {
+    const body = parse<UsersControllerListResponses[200]>(USERS_RESPONSE);
+    expect(body.map((user) => user.id)).toContain("u-1");
+    for (const user of body) {
+      expect(["ADMIN", "MEMBER", "VIEWER"]).toContain(user.role);
+      expect(typeof user.isActive).toBe("boolean");
+    }
+  });
+
+  it("binds the single-account list to UserDto", () => {
+    expect(
+      parse<UsersControllerListResponses[200]>(USERS_ONE_RESPONSE),
+    ).toHaveLength(1);
   });
 });
 

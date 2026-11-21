@@ -3,6 +3,7 @@ import type { RetentionPreviewDto } from "@sdk/models/RetentionPreviewDto.gen";
 import { mockApi, type FulfillResponse } from "../routes/api.routes";
 import { PROJECT_CHECKOUT_UI_RESPONSE } from "./projects.mocks";
 import { WEBHOOKS_RESPONSE } from "./webhooks.mocks";
+import { TEAMS_GLOB, TEAMS_RESPONSE } from "./teams.mocks";
 
 // The settings page is the home of the per-project admin surfaces: the name,
 // the pixel threshold, the storage quota and the webhook endpoints. Three specs
@@ -58,6 +59,7 @@ export async function mockProjectSettings(page: Page): Promise<void> {
     [STORAGE_GLOB, STORAGE_RESPONSE],
     [STORAGE_PREVIEW_GLOB, RETENTION_PREVIEW_RESPONSE],
     [WEBHOOKS_GLOB, WEBHOOKS_RESPONSE],
+    [TEAMS_GLOB, TEAMS_RESPONSE],
     ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
   ]);
 }
@@ -87,6 +89,7 @@ export async function mockRenamedProject(
   await mockApi(page, [
     [`**/api/v1/projects/${name}/storage`, STORAGE_RESPONSE],
     [`**/api/v1/projects/${name}/webhooks`, WEBHOOKS_RESPONSE],
+    [TEAMS_GLOB, TEAMS_RESPONSE],
     [`**/api/v1/projects/${name}*`, renamed],
   ]);
 }

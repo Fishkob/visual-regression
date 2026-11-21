@@ -5,6 +5,11 @@ import {
   SETTINGS_ROUTE,
 } from "./mocks/projectSettings.mocks";
 import type { Routed } from "../../src/views/ProjectSettingsView.story";
+import {
+  TEAMS_GLOB,
+  TEAMS_RESPONSE,
+  TEAMS_WITH_PROJECT_RESPONSE,
+} from "./mocks/teams.mocks";
 import { TEST_ID } from "@/lib/test-ids";
 
 // The settings page is the home of the per-project admin surfaces: the name,
@@ -150,5 +155,54 @@ test.describe("ProjectSettings", () => {
 
     await page.getByTestId(TEST_ID.projectRenameInput).fill("checkout-ui-2");
     await expect(save).toBeEnabled();
+  });
+
+  test("moves the project out of its team and reports the shared state", async ({
+    mount,
+    page,
+  }) => {
+    // Stateful on purpose: the page re-reads the team list after the write, so a
+    // static answer would snap the dropdown back to the old owner and hide a
+    // broken invalidation.
+    let ownedByTeam = true;
+    await page.route(TEAMS_GLOB, (route) =>
+      route.fulfill(ownedByTeam ? TEAMS_WITH_PROJECT_RESPONSE : TEAMS_RESPONSE),
+    );
+    let patched: unknown;
+    await page.route("**/api/v1/projects/checkout-ui/team", async (route) => {
+      patched = route.request().postDataJSON();
+      const body = patched as { teamId: string | null };
+      ownedByTeam = body.teamId !== null;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          projectId: "p-1",
+          projectName: "checkout-ui",
+          teamId: body.teamId,
+          teamName: body.teamId === null ? null : "Checkout",
+        }),
+      });
+    });
+
+    const component = await mount<typeof Routed>(
+      "views/ProjectSettingsView/Routed",
+      { initialRoute: SETTINGS_ROUTE },
+    );
+
+    await expect(
+      component.getByTestId(TEST_ID.projectTeamCurrent),
+    ).toContainText("Owner: Checkout");
+
+    await component.getByTestId(TEST_ID.projectTeamSelect).click();
+    await page.getByRole("option", { name: "No team (shared)" }).click();
+    await component.getByTestId(TEST_ID.projectTeamSave).click();
+
+    // `null` is the shared state, and it has to reach the API as null rather
+    // than as an omitted field.
+    await expect.poll(() => patched).toEqual({ teamId: null });
+    await expect(
+      component.getByTestId(TEST_ID.projectTeamCurrent),
+    ).toContainText("Shared");
   });
 });

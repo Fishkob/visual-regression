@@ -21,6 +21,11 @@ export const AUDIT_ACTIONS = [
   "review.comment-resolve",
   "project.pixel-threshold",
   "test.threshold",
+  "team.create",
+  "team.update",
+  "team.delete",
+  "team.members",
+  "team.project-assign",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -66,6 +66,11 @@ const ACTION_KEY: Record<AuditAction, string> = {
   "review.comment-resolve": "audit.actions.reviewCommentResolve",
   "project.pixel-threshold": "audit.actions.projectPixelThreshold",
   "test.threshold": "audit.actions.testThreshold",
+  "team.create": "audit.actions.teamCreate",
+  "team.update": "audit.actions.teamUpdate",
+  "team.delete": "audit.actions.teamDelete",
+  "team.members": "audit.actions.teamMembers",
+  "team.project-assign": "audit.actions.teamProjectAssign",
 };
 
 function actionLabel(action: string): string {

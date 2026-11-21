@@ -1,5 +1,10 @@
 import type { MeDto } from "@sdk";
-import { DEFAULT_ROLE, isUserRole, type CurrentUser } from "./auth.model";
+import {
+  DEFAULT_ROLE,
+  isUserRole,
+  type CurrentTeam,
+  type CurrentUser,
+} from "./auth.model";
 
 // The generated MeDto types role/mustChangePassword as required, but an older
 // backend (or a hand-built payload) may omit them. The mapper is the only place
@@ -10,5 +15,11 @@ export function mapMe(dto: MeDto | undefined): CurrentUser | null {
     username: dto.username,
     role: isUserRole(dto.role) ? dto.role : DEFAULT_ROLE,
     mustChangePassword: dto.mustChangePassword === true,
+    seesAllProjects: dto.seesAllProjects === true,
+    teams: (dto.teams ?? []).flatMap((team): CurrentTeam[] =>
+      typeof team?.id === "string" && typeof team?.name === "string"
+        ? [{ id: team.id, name: team.name }]
+        : [],
+    ),
   };
 }
