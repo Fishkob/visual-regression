@@ -39,6 +39,7 @@ import {
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import type { AnyUploadResult } from '@common/domain/unified-upload-result.type';
 import { ComparisonOutcome } from '@common/domain/upload-outcome';
 import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
@@ -52,6 +53,7 @@ import type { AuthenticatedRequest } from '@common/http/authenticated-request';
   IdenticalResultDto,
   ComparisonQueuedResultDto,
 )
+@ProjectScoped()
 @Controller('projects/:projectName/tests')
 export class UploadController {
   constructor(private readonly uploadIntake: UploadIntake) {}

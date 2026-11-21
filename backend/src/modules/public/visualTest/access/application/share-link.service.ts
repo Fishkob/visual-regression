@@ -3,6 +3,7 @@ import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 
 import { randomBytes } from 'node:crypto';
 import { DomainError } from '@common/domain/domain-error';
+import { scopeAllows, type ProjectScope } from '@common/domain/project-scope';
 import {
   PASSWORD_HASHER,
   type PasswordHasherPort,
@@ -217,9 +218,19 @@ export class ShareLinkService {
     );
   }
 
-  async revoke(id: string, actor: string): Promise<ShareLinkView> {
+  async revoke(
+    id: string,
+    actor: string,
+    scope: ProjectScope,
+  ): Promise<ShareLinkView> {
     const row = await this.links.findById(id);
     if (!row) throw new DomainError('Share link not found', 'NOT_FOUND');
+    // The route names no project — the link row does — so the guard cannot check
+    // it and this is the one place that can (ADR-082). A foreign link is "not
+    // found", exactly like a foreign project.
+    if (!scopeAllows(scope, row.project.id)) {
+      throw new DomainError('Share link not found', 'NOT_FOUND');
+    }
     return this.uow.execute(async () => {
       const revoked = row.revokedAt ? row : await this.links.revoke(id);
       await this.audit.record({

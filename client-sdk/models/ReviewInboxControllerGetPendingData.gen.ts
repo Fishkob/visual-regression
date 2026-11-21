@@ -41,6 +41,10 @@ export type ReviewInboxControllerGetPendingData = {
          */
         groupId?: string;
         /**
+         * Team id: only the projects this team owns. An id outside the caller’s scope matches nothing.
+         */
+        teamId?: string;
+        /**
          * Case-insensitive search across the test name and the project name
          */
         q?: string;

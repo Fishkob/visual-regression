@@ -3,12 +3,19 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '@common/http/public.decorator';
 import { IS_SESSION_ONLY_KEY } from '@common/http/session-only.decorator';
 import { ROLES_KEY, type AppRole } from '@common/http/roles.decorator';
+import {
+  PROJECT_ROUTE_KEY,
+  type ProjectRouteKind,
+} from '@common/http/project-route.decorator';
+import { scopeAllows, type ProjectScope } from '@common/domain/project-scope';
+import { ProjectScopeService } from '@internal/teams/project-scope.service';
 import { ACCOUNT_LIFECYCLE_KEY } from '@common/http/account-lifecycle.decorator';
 import { isCredentialLive } from './credential-liveness.policy';
 import {
@@ -38,6 +45,7 @@ export class AuthenticationGuard implements CanActivate {
     private readonly repo: AuthRepository,
     private readonly apiKeyService: ApiKeyService,
     private readonly appConfig: AppConfigService,
+    private readonly projectScopes: ProjectScopeService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -72,6 +80,11 @@ export class AuthenticationGuard implements CanActivate {
         };
         this.enforceSameOrigin(request);
         this.enforceAccess(context, request);
+        // One resolution per request (ADR-082): the guard checks the named
+        // project with it, and the read models below consume the same value.
+        const scope = await this.projectScopes.forUser(user.id, user.role);
+        request.auth.projectScope = scope;
+        await this.enforceProjectRoute(context, request, scope, 'user');
         await this.touchSession(session, request);
         await this.slideSessionExpiry(session, request, context);
         return true;
@@ -98,7 +111,14 @@ export class AuthenticationGuard implements CanActivate {
           projectIds: resolved.projectIds,
         };
         this.enforceAccess(context, request);
-        await this.enforceApiKeyAccess(context, request);
+        this.enforceApiKeyScopes(context, request);
+        const scope = await this.projectScopes.forApiKey({
+          ownerId: resolved.ownerId,
+          ownerRole: resolved.ownerRole,
+          allowlist: resolved.projectIds,
+        });
+        request.auth.projectScope = scope;
+        await this.enforceProjectRoute(context, request, scope, 'apiKey');
         return true;
       }
     }
@@ -106,12 +126,13 @@ export class AuthenticationGuard implements CanActivate {
     throw new UnauthorizedException('Authentication required');
   }
 
-  // API keys carry explicit scopes and an optional project allowlist. Sessions
-  // are governed by the R9 role matrix; keys never inherit the owner's role.
-  private async enforceApiKeyAccess(
+  // What an API key may *do*: its declared scopes. The project allowlist used to
+  // be checked here too; it now lives in the one project-scope rule below
+  // (ADR-082), so a key and a session answer "which projects" the same way.
+  private enforceApiKeyScopes(
     context: ExecutionContext,
     request: AuthenticatedRequest,
-  ): Promise<void> {
+  ): void {
     const auth = request.auth;
     if (!auth?.apiKeyId) return;
     const scopes = auth.scopes ?? [];
@@ -135,35 +156,72 @@ export class AuthenticationGuard implements CanActivate {
         `API key is missing the "${required.join('" or "')}" scope`,
       );
     }
-    // The allowlist holds ids, so a rename neither narrows nor widens a key and
-    // a recycled name cannot inherit another project's access. The route only
-    // knows the name, so it is resolved once here.
-    const allowlist = auth.projectIds ?? [];
-    if (allowlist.length === 0) return;
+  }
+
+  // The one place a route's projects are enforced (ADR-082). The route declares
+  // what it is (see project-route.decorator.ts); this reads the declaration and
+  // answers, it does not guess from the path. A route that declares nothing is
+  // refused, so a new endpoint fails closed instead of inheriting "everything".
+  private async enforceProjectRoute(
+    context: ExecutionContext,
+    request: AuthenticatedRequest,
+    scope: ProjectScope,
+    principalType: 'user' | 'apiKey',
+  ): Promise<void> {
+    const kind = this.reflector.getAllAndOverride<ProjectRouteKind>(
+      PROJECT_ROUTE_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (!kind) {
+      throw new ForbiddenException('This endpoint declares no project scope');
+    }
+    if (kind !== 'scoped') {
+      // A key restricted to specific projects cannot be handed a cross-project
+      // answer yet: the list reads are narrowed in the next step. Declared, not
+      // guessed — this is the rule the path regex used to encode, minus the
+      // path.
+      if (
+        principalType === 'apiKey' &&
+        (request.auth?.projectIds?.length ?? 0)
+      ) {
+        throw new ForbiddenException(
+          'This API key is restricted to specific projects',
+        );
+      }
+      return;
+    }
     const rawProject = request.params?.projectName;
     const projectName = Array.isArray(rawProject) ? rawProject[0] : rawProject;
-    if (projectName) {
-      const projectId = await this.repo.findProjectIdByName(projectName);
-      if (!projectId || !allowlist.includes(projectId)) {
+    // A scoped route may resolve its project from the row it names instead of
+    // the path (`DELETE /share-links/:id`); only the owner of that row can
+    // check it, so the guard stays out of the way and the service asserts.
+    if (!projectName) return;
+    // Nothing to refuse, so nothing to look up: an unrestricted principal pays no
+    // query for the check (the service still loads the project it needs).
+    if (scope.kind === 'all') return;
+    const projectId = await this.repo.findProjectIdByName(projectName);
+    if (projectId === null) {
+      // No such project. A restricted key learns nothing (unrestricted ones
+      // returned above, so they keep the service's own 404); a session falls
+      // through to the same 404 a foreign project gets — the two answers must
+      // not differ.
+      if (principalType === 'apiKey') {
         throw new ForbiddenException(
           `API key is not allowed to access project "${projectName}"`,
         );
       }
       return;
     }
-    // Project-spanning reads cannot be safely filtered for a scoped key; a key
-    // with an allowlist is confined to project-scoped routes. `review` (the
-    // cross-project inbox) and `groups` belong in this list: neither names a
-    // project, and both returned every project's rows to an allowlisted key.
-    if (
-      /^\/api\/v1\/(projects|review|groups|inbox|audit|users|search)(\/|$)/.test(
-        request.path ?? '',
-      )
-    ) {
+    if (scopeAllows(scope, projectId)) return;
+    if (principalType === 'apiKey') {
       throw new ForbiddenException(
-        'This API key is restricted to specific projects',
+        `API key is not allowed to access project "${projectName}"`,
       );
     }
+    // A distinguishable 403 would confirm that another team's project exists,
+    // and project names are user-supplied and guessable — so "not yours" and
+    // "no such project" get the same answer.
+    throw new NotFoundException(`Project "${projectName}" not found`);
   }
 
   // Session cookies are SameSite=Lax, which already blocks most cross-site

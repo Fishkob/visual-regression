@@ -166,11 +166,17 @@ describe('Auth (e2e)', () => {
       .expect(200);
 
     // The read carries the caller's role and the two states the UI gates on
-    // (R9 auth hardening); a user created without a role is a MEMBER.
+    // (R9 auth hardening); a user created without a role is a MEMBER. `teams`
+    // is the membership list the team scope will be derived from (ADR-082) —
+    // empty here, because this account belongs to no team.
     expect(res.body).toEqual({
       username: 'admin',
       role: 'MEMBER',
       mustChangePassword: false,
+      // A MEMBER in no team is still scoped: the projects of its teams plus the
+      // shared ones, which is not "all projects" (ADR-082).
+      seesAllProjects: false,
+      teams: [],
     });
   });
 

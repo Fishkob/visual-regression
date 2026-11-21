@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaConnection } from '@/prisma/prisma-connection';
+import { projectIdFilter } from '@/prisma/project-scope-filter';
+import type { ProjectScope } from '@common/domain/project-scope';
 import type { TestKind, TestStatus } from '@/prisma/client';
 
 export interface SearchProjectHit {
@@ -46,18 +48,25 @@ export class SearchRepository {
     return this.connection.client;
   }
 
-  async search(query: string, limit: number): Promise<SearchResults> {
+  async search(
+    query: string,
+    limit: number,
+    scope: ProjectScope,
+  ): Promise<SearchResults> {
     const contains = { contains: query, mode: 'insensitive' as const };
+    // A finder may only find what the caller can open (ADR-082): all three
+    // result kinds are filtered by the same project filter.
+    const projectsInScope = projectIdFilter(scope);
     const [projects, tests, branches] = await Promise.all([
       this.client.project.findMany({
-        where: { name: contains },
+        where: { name: contains, ...projectsInScope },
         select: { name: true },
         orderBy: { name: 'asc' },
         take: limit,
       }),
       this.client.unifiedTest.findMany({
         where: {
-          branch: { isArchived: false },
+          branch: { isArchived: false, project: projectsInScope },
           OR: [
             { name: contains },
             { branch: { name: contains } },
@@ -81,6 +90,7 @@ export class SearchRepository {
       this.client.branch.findMany({
         where: {
           isArchived: false,
+          project: projectsInScope,
           OR: [{ name: contains }, { project: { name: contains } }],
         },
         select: {

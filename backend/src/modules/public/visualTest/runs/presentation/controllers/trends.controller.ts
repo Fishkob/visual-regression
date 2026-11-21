@@ -3,6 +3,7 @@ import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import { TrendsService } from '@public/visualTest/runs/application/trends.service';
 import {
   TrendsDto,
@@ -10,6 +11,7 @@ import {
 } from '@public/visualTest/runs/presentation/dto/trends.dto';
 
 @ApiTags('Reports')
+@ProjectScoped()
 @Controller('projects/:projectName/trends')
 export class TrendsController {
   constructor(private readonly trends: TrendsService) {}

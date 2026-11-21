@@ -9,8 +9,12 @@ A named container for visual regression tests, representing a web application or
 _Avoid_: Application, site
 
 **Group**:
-An organizational label that bundles Projects for navigation and inbox grouping. Groups do not affect a Project's tests or review state.
+An organizational label that bundles Projects for navigation and inbox grouping. Groups do not affect a Project's tests or review state, and they grant no access — that is a Team's business.
 _Avoid_: Category, folder, tag
+
+**Team**:
+A named owner of Projects with a member list. A Project belongs to at most one Team (`Project.teamId`); no Team means *shared*, visible to every authenticated principal. Ownership does not confer administration and membership does not confer a Role: only `ADMIN` administers Teams, and how much a member may do inside their Projects is still the global Role. A principal sees the Projects of its Teams plus every shared one ([ADR-082](docs/adr/ADR-082-team-scoped-project-access.md)). The rule has one owner: a `ProjectScope` resolved per request and hung on the request. Any route that names a Project outside it answers `404`, and every read that crosses Projects takes the scope as a required argument — the project list, the review inbox and its branch list, global search, the group badges and the reviewer's own assignment list. The audit trail is the exception and needs none: it is `ADMIN`-only, and an admin's scope is everything. The review inbox can additionally be narrowed to one Team (`teamId`), and that lens narrows *within* the scope — naming a Team the caller cannot see matches nothing rather than widening the read. `/auth/me` says whether the caller is scoped at all (`seesAllProjects`), which is what lets the UI say "all projects" instead of naming Teams. Creating, renaming and deleting Teams, changing members and assigning Projects to them is `ADMIN`-only, session-only and audited.
+_Avoid_: Group (navigation, not access), organization, tenant (Teams do not split the user directory or the audit trail)
 
 **Branch**:
 A named line of development inside a Project. Owns its own UnifiedTests, baselines, comparisons and review state. Every Project has exactly one default Branch (`main` by migration); a feature Branch inherits its target Branch's baseline until the first approval pins the variant to the Branch. Omitting `branch` in an API call means the project's default branch.

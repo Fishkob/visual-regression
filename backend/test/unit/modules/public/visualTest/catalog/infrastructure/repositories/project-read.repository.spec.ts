@@ -2,6 +2,7 @@ import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ProjectReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-read.repository';
+import { ALL_PROJECTS } from '@common/domain/project-scope';
 import { VariantStore } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { createMock } from '@test/utils/create-mock';
@@ -192,7 +193,11 @@ describe('ProjectReadRepository', () => {
           { projectId: 'proj-2', testCount: BigInt(1) },
         ]);
 
-      const result = await repository.getAllWithPendingFlag();
+      const result = await repository.getAllWithPendingFlag(
+        undefined,
+        undefined,
+        ALL_PROJECTS,
+      );
 
       expect(result.data[0]).toMatchObject({
         id: 'proj-1',
@@ -223,7 +228,11 @@ describe('ProjectReadRepository', () => {
       mockClient.project.findMany.mockResolvedValue([]);
       mockClient.project.count.mockResolvedValue(0);
 
-      const result = await repository.getAllWithPendingFlag();
+      const result = await repository.getAllWithPendingFlag(
+        undefined,
+        undefined,
+        ALL_PROJECTS,
+      );
 
       expect(result.data).toEqual([]);
       expect(result.total).toBe(0);
@@ -233,7 +242,11 @@ describe('ProjectReadRepository', () => {
       mockClient.project.findMany.mockResolvedValue([]);
       mockClient.project.count.mockResolvedValue(10);
 
-      await repository.getAllWithPendingFlag({ skip: 5, take: 5 });
+      await repository.getAllWithPendingFlag(
+        { skip: 5, take: 5 },
+        undefined,
+        ALL_PROJECTS,
+      );
 
       expect(mockClient.project.findMany).toHaveBeenCalledWith({
         where: {},
@@ -244,14 +257,34 @@ describe('ProjectReadRepository', () => {
       });
     });
 
+    it('filters the list to the caller’s projects', async () => {
+      mockClient.project.findMany.mockResolvedValue([]);
+      mockClient.project.count.mockResolvedValue(0);
+
+      await repository.getAllWithPendingFlag(undefined, undefined, {
+        kind: 'ids',
+        ids: new Set(['proj-1', 'proj-shared']),
+      });
+
+      expect(mockClient.project.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: { in: ['proj-1', 'proj-shared'] } },
+        }),
+      );
+      expect(mockClient.project.count).toHaveBeenCalledWith({
+        where: { id: { in: ['proj-1', 'proj-shared'] } },
+      });
+    });
+
     it('applies the search and group filters in the query, not client-side', async () => {
       mockClient.project.findMany.mockResolvedValue([]);
       mockClient.project.count.mockResolvedValue(0);
 
-      await repository.getAllWithPendingFlag(undefined, {
-        q: '  checkout  ',
-        groupId: 'unassigned',
-      });
+      await repository.getAllWithPendingFlag(
+        undefined,
+        { q: '  checkout  ', groupId: 'unassigned' },
+        ALL_PROJECTS,
+      );
 
       const where = {
         name: { contains: 'checkout', mode: 'insensitive' },

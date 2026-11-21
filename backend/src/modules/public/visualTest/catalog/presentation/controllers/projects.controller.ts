@@ -22,7 +22,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
-import { requireActor } from '@common/http/authenticated-principal';
+import {
+  requireActor,
+  requireProjectScope,
+} from '@common/http/authenticated-principal';
 import { Roles } from '@common/http/roles.decorator';
 import { ComparisonStatus } from '@public/visualTest/core/domain/types/visual-test.types';
 import { ProjectService } from '@public/visualTest/catalog/application/project.service';
@@ -39,6 +42,11 @@ import type { TestKind } from '@common/domain/test-kind';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import {
+  GlobalRoute,
+  ProjectScoped,
+  ProjectSpanning,
+} from '@common/http/project-route.decorator';
 import { PaginationDto } from '@common/dto/pagination.dto';
 export class ComparisonStatusWrapper {
   @ApiProperty({
@@ -60,6 +68,7 @@ export class ProjectsController {
   @Scope('read')
   @Get('/pending')
   @ApiOperation({ summary: 'Get all projects with pending flag' })
+  @ProjectSpanning()
   @ApiOkResponse({
     description: 'Returns all projects with their pending flag (true/false)',
     schema: {
@@ -83,11 +92,15 @@ export class ProjectsController {
       },
     },
   })
-  async getProjectsWithPendingFlag(@Query() query: ProjectsListQueryDto) {
-    return this.projectService.getAllWithPendingFlag(query, {
-      q: query.q,
-      groupId: query.groupId,
-    });
+  async getProjectsWithPendingFlag(
+    @Query() query: ProjectsListQueryDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.projectService.getAllWithPendingFlag(
+      query,
+      { q: query.q, groupId: query.groupId },
+      requireProjectScope(req),
+    );
   }
 
   @Roles('ADMIN')
@@ -104,6 +117,7 @@ export class ProjectsController {
     description: 'Project deleted successfully',
     schema: { example: { success: true } },
   })
+  @ProjectScoped()
   @ApiNotFoundResponse({ description: 'Project not found' })
   async deleteProject(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
@@ -128,6 +142,7 @@ export class ProjectsController {
       },
     },
   })
+  @GlobalRoute()
   @ApiConflictResponse({ description: 'Project name already in use' })
   async create(@Body() dto: CreateProjectDto): Promise<ProjectDto> {
     return this.projectService.create(dto.name, dto.groupId);
@@ -136,6 +151,7 @@ export class ProjectsController {
   @Scope('admin')
   @Patch(':projectName')
   @ApiOperation({ summary: 'Move a project to another group' })
+  @ProjectScoped()
   @ApiOkResponse({ type: ProjectDto })
   async updateProject(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
@@ -167,6 +183,7 @@ export class ProjectsController {
     type: ProjectPixelThresholdDto,
     description: 'The project now applies the returned default threshold',
   })
+  @ProjectScoped()
   @ApiNotFoundResponse({ description: 'Project not found' })
   async updatePixelThreshold(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,
@@ -183,11 +200,15 @@ export class ProjectsController {
   @Scope('read')
   @Get()
   @ApiOperation({ summary: 'Get all projects' })
+  @ProjectSpanning()
   @ApiOkResponse({
     description: 'Returns all projects',
   })
-  async getAllProjects(@Query() pagination: PaginationDto) {
-    return this.projectService.findAll(pagination);
+  async getAllProjects(
+    @Query() pagination: PaginationDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.projectService.findAll(pagination, requireProjectScope(req));
   }
 
   @Scope('read')
@@ -204,6 +225,7 @@ export class ProjectsController {
     type: ProjectDto,
     description: 'Returns a project including its latest test statuses',
   })
+  @ProjectScoped()
   @ApiNotFoundResponse({ description: 'Project not found' })
   async getOneProject(
     @Param('projectName', ProjectNameValidationPipe) projectName: string,

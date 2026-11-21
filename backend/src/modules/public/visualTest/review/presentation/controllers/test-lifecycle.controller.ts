@@ -7,6 +7,7 @@ import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import { TestLifecycleService } from '@public/visualTest/review/application/test-lifecycle.service';
 import {
   TestMetadataDto,
@@ -14,6 +15,7 @@ import {
 } from '@public/visualTest/review/presentation/dto/test-lifecycle.dto';
 
 @ApiTags('Tests')
+@ProjectScoped()
 @Controller('projects/:projectName/tests/:testName/metadata')
 export class TestLifecycleController {
   constructor(private readonly lifecycle: TestLifecycleService) {}

@@ -7,9 +7,14 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
-import { requireActor } from '@common/http/authenticated-principal';
+import {
+  requireActor,
+  requireProjectScope,
+} from '@common/http/authenticated-principal';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectSpanning } from '@common/http/project-route.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import { BulkActionService } from '@public/visualTest/review/application/bulk-action.service';
 import {
   BulkApprovalDto,
@@ -21,6 +26,7 @@ import {
 } from '@public/visualTest/review/presentation/dto/bulk-action.dto';
 
 @ApiTags('Bulk actions')
+@ProjectScoped()
 @Controller('projects/:projectName/bulk')
 export class BulkActionsController {
   constructor(private readonly bulk: BulkActionService) {}
@@ -70,6 +76,7 @@ export class BulkActionsController {
 }
 
 @ApiTags('Bulk actions')
+@ProjectSpanning()
 @Controller('projects')
 export class ProjectsBulkController {
   constructor(private readonly bulk: BulkActionService) {}
@@ -80,10 +87,14 @@ export class ProjectsBulkController {
     summary: 'Move up to 100 projects into a group (null clears the group)',
   })
   @ApiOkResponse({ type: BulkMoveResultDto })
-  async move(@Body() dto: BulkMoveProjectsDto): Promise<BulkMoveResultDto> {
+  async move(
+    @Body() dto: BulkMoveProjectsDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<BulkMoveResultDto> {
     const result = await this.bulk.moveProjects(
       dto.projectNames,
       dto.groupId ?? null,
+      requireProjectScope(req),
     );
     return plainToInstance(BulkMoveResultDto, result, {
       excludeExtraneousValues: true,

@@ -11,6 +11,7 @@ import type {
 } from '@common/domain/maintenance-task.interface';
 import { MAINTENANCE_LOCK_IDS } from '@internal/data-deletion/maintenance-lock-ids';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import { ALL_PROJECTS } from '@common/domain/project-scope';
 import { UnifiedScreenshotRepository } from '@public/visualTest/core/infrastructure/repositories/unified-screenshot.repository';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 
@@ -33,7 +34,9 @@ export class StorageSizeBackfillTask implements MaintenanceTask {
   ) {}
 
   async execute(): Promise<MaintenanceResult> {
-    const projects = await this.projects.findAll();
+    // A maintenance sweep has no principal: it sees every project, and says so
+    // explicitly instead of relying on a default (ADR-082).
+    const projects = await this.projects.findAll(undefined, ALL_PROJECTS);
     let updated = 0;
     for (const project of projects.data) {
       const missingScreenshots = await this.screenshots.findMissingSizes(

@@ -11,6 +11,7 @@ import {
 import { plainToInstance } from 'class-transformer';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import { StorageUsageService } from '@public/visualTest/core/application/services/storage-usage.service';
 import { RetentionPreviewService } from '@public/visualTest/access/application/retention-preview.service';
 import { RetentionPreviewDto } from '@public/visualTest/access/presentation/dto/retention-preview.dto';
@@ -21,6 +22,7 @@ import {
 } from '@public/visualTest/access/presentation/dto/storage.dto';
 
 @ApiTags('Storage')
+@ProjectScoped()
 @Controller('projects/:projectName/storage')
 export class StorageController {
   constructor(

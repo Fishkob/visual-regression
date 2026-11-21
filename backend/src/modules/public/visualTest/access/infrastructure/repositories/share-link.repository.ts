@@ -16,12 +16,15 @@ export interface CreateShareLinkInput {
 
 // Every read carries the project name: the route and the DTO keep speaking
 // `projectName`, while the row itself only stores the stable id.
+// The project's id rides along with its name: the revoke route names no project
+// (the row does), so the service checks the caller's project scope against this
+// id (ADR-082).
 export const SHARE_LINK_PROJECT_INCLUDE = {
-  project: { select: { name: true } },
+  project: { select: { id: true, name: true } },
 } as const;
 
 export type ShareLinkWithProject = ShareLink & {
-  project: { name: string };
+  project: { id: string; name: string };
 };
 
 @Injectable()

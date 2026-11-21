@@ -14,10 +14,17 @@ import {
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { AppLoggerService } from '@common/logging/app-logger.service';
 import { createMock } from '@test/utils/create-mock';
+import { ALL_PROJECTS } from '@common/domain/project-scope';
+import type { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { createMockLogger } from '@test/utils/mocks';
 describe('ProjectsController', () => {
   let controller: ProjectsController;
   let projectService: Mocked<ProjectService>;
+  // The guard resolves the scope per request; a controller test only has to hand
+  // it on, so a request carrying one is enough.
+  const request = {
+    auth: { username: 'alice', userId: 'u1', role: 'MEMBER' },
+  } as unknown as AuthenticatedRequest;
 
   beforeEach(async () => {
     projectService = createMock<ProjectService>();
@@ -60,6 +67,10 @@ describe('ProjectsController', () => {
 
       const result = await controller.getProjectsWithPendingFlag(
         new PaginationDto(),
+        {
+          ...request,
+          auth: { ...request.auth!, projectScope: ALL_PROJECTS },
+        } as AuthenticatedRequest,
       );
 
       expect(result).toMatchObject({
@@ -150,7 +161,10 @@ describe('ProjectsController', () => {
         },
       });
 
-      const result = await controller.getAllProjects(new PaginationDto());
+      const result = await controller.getAllProjects(new PaginationDto(), {
+        ...request,
+        auth: { ...request.auth!, projectScope: ALL_PROJECTS },
+      } as AuthenticatedRequest);
 
       expect(result).toMatchObject({
         data: [expect.objectContaining({ id: 'proj-1' })],

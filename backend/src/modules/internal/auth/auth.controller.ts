@@ -26,6 +26,7 @@ import { PublicEndpoint } from '@common/http/public.decorator';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { GlobalRoute } from '@common/http/project-route.decorator';
 import {
   readSessionToken,
   SESSION_COOKIE,
@@ -33,6 +34,8 @@ import {
 } from '@common/http/session-cookie';
 import { AppConfigService } from '@config/app-config.service';
 import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
+import { TeamsService } from '@internal/teams/teams.service';
+import { ProjectScopeService } from '@internal/teams/project-scope.service';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { MeDto } from './dto/me.dto';
@@ -45,11 +48,14 @@ import { SessionDto } from './dto/session.dto';
 // that would fix it. `@Public` handlers inside still short-circuit earlier.
 @ApiTags('Auth')
 @AccountLifecycle()
+@GlobalRoute()
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly appConfig: AppConfigService,
+    private readonly teams: TeamsService,
+    private readonly projectScopes: ProjectScopeService,
   ) {}
 
   @PublicEndpoint()
@@ -79,6 +85,10 @@ export class AuthController {
       username: result.username,
       role: result.role,
       mustChangePassword: result.mustChangePassword,
+      seesAllProjects:
+        (await this.projectScopes.forUser(result.userId, result.role)).kind ===
+        'all',
+      teams: await this.teams.teamsForUser(result.userId),
     };
   }
 
@@ -152,7 +162,7 @@ export class AuthController {
   @Get('me')
   @ApiSecurity('apiKeyAuth')
   @ApiOkResponse({ type: MeDto })
-  me(@Req() req: AuthenticatedRequest): MeDto {
+  async me(@Req() req: AuthenticatedRequest): Promise<MeDto> {
     // The global guard attaches auth to every non-public route.
     const auth = req.auth;
     if (!auth) {
@@ -162,6 +172,9 @@ export class AuthController {
       username: auth.username,
       role: auth.role,
       mustChangePassword: auth.mustChangePassword ?? false,
+      seesAllProjects: auth.projectScope?.kind === 'all',
+      // An API key has no user row to be a member of a team with.
+      teams: auth.userId ? await this.teams.teamsForUser(auth.userId) : [],
     };
   }
 
@@ -197,6 +210,10 @@ export class AuthController {
       username: auth.username,
       role: auth.role,
       mustChangePassword: false,
+      seesAllProjects:
+        (await this.projectScopes.forUser(auth.userId, auth.role)).kind ===
+        'all',
+      teams: await this.teams.teamsForUser(auth.userId),
     };
   }
 }

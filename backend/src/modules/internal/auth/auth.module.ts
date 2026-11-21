@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppConfigModule } from '@config/app-config.module';
 import { PrismaModule } from '@prisma/prisma.module';
 import { AuditModule } from '@internal/audit/audit.module';
+import { TeamsModule } from '@internal/teams/teams.module';
 import {
   PASSWORD_HASHER,
   type PasswordHasherPort,
@@ -14,7 +15,7 @@ import { AuthenticationGuard } from './authentication.guard';
 import { hashPassword, verifyPassword } from './password-hasher';
 
 @Module({
-  imports: [AppConfigModule, PrismaModule, AuditModule],
+  imports: [AppConfigModule, PrismaModule, AuditModule, TeamsModule],
   controllers: [AuthController],
   providers: [
     AuthService,

@@ -9,11 +9,13 @@ import {
 import { ApiExcludeController, ApiExcludeEndpoint } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { PublicEndpoint } from '@common/http/public.decorator';
+import { GlobalRoute } from '@common/http/project-route.decorator';
 import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 import { LogIngestionService } from './log-ingestion.service';
 
 @ApiExcludeController()
 @PublicEndpoint()
+@GlobalRoute()
 @Controller('log')
 export class LogIngestionController {
   constructor(private readonly logIngestion: LogIngestionService) {}

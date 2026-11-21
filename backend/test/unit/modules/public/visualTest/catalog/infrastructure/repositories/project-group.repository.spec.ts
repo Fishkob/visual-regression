@@ -2,6 +2,7 @@ import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionContext } from '@/prisma/transaction-context';
 import { ProjectGroupRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-group.repository';
+import { ALL_PROJECTS } from '@common/domain/project-scope';
 import { createMock } from '@test/utils/create-mock';
 
 function makeMockClient() {
@@ -58,12 +59,33 @@ describe('ProjectGroupRepository', () => {
         },
       ]);
 
-      await expect(repository.findAll()).resolves.toEqual([
+      await expect(repository.findAll(ALL_PROJECTS)).resolves.toEqual([
         { id: 'g1', name: 'Checkout', createdAt, projectCount: 2 },
       ]);
       expect(mockClient.projectGroup.findMany).toHaveBeenCalledWith({
         orderBy: { name: 'asc' },
-        include: { _count: { select: { projects: true } } },
+        include: { _count: { select: { projects: { where: {} } } } },
+      });
+    });
+
+    it('counts only the projects the caller may see', async () => {
+      mockClient.projectGroup.findMany.mockResolvedValue([]);
+
+      await repository.findAll({
+        kind: 'ids',
+        ids: new Set(['p-1', 'p-shared']),
+      });
+
+      // The badge must not count another team's products.
+      expect(mockClient.projectGroup.findMany).toHaveBeenCalledWith({
+        orderBy: { name: 'asc' },
+        include: {
+          _count: {
+            select: {
+              projects: { where: { id: { in: ['p-1', 'p-shared'] } } },
+            },
+          },
+        },
       });
     });
   });

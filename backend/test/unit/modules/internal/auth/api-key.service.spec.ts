@@ -21,7 +21,7 @@ function makeRow(overrides: Partial<ApiKeyRow> = {}): ApiKeyRow {
     ownerId: 'u1',
     scopes: ['upload', 'read', 'approve'],
     projectIds: [],
-    owner: { username: 'alice' },
+    owner: { username: 'alice', role: 'MEMBER' },
     createdBy: 'alice',
     createdAt: new Date('2026-01-01T00:00:00Z'),
     lastUsedAt: null,
@@ -523,6 +523,7 @@ describe('ApiKeyService', () => {
         id: 'k1',
         name: 'ci-upload',
         ownerId: 'u1',
+        ownerRole: 'MEMBER',
         scopes: ['upload', 'read', 'approve'],
         projectIds: [],
       });
@@ -551,6 +552,7 @@ describe('ApiKeyService', () => {
         id: 'k1',
         name: 'ci-upload',
         ownerId: 'u1',
+        ownerRole: 'MEMBER',
         scopes: ['upload', 'read', 'approve'],
         projectIds: [],
       });
@@ -613,6 +615,7 @@ describe('ApiKeyService', () => {
         id: 'k1',
         name: 'ci-upload',
         ownerId: 'u1',
+        ownerRole: 'MEMBER',
         scopes: ['upload', 'read', 'approve'],
         projectIds: [],
       });

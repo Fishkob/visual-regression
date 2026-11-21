@@ -2,6 +2,7 @@ import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectService } from '@public/visualTest/catalog/application/project.service';
+import { ALL_PROJECTS } from '@common/domain/project-scope';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ProjectReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-read.repository';
 import { ProjectGroupRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-group.repository';
@@ -394,14 +395,16 @@ describe('ProjectService', () => {
         total: 0,
       });
 
-      await service.getAllWithPendingFlag(pagination, {
-        q: 'checkout',
-        groupId: 'unassigned',
-      });
+      await service.getAllWithPendingFlag(
+        pagination,
+        { q: 'checkout', groupId: 'unassigned' },
+        ALL_PROJECTS,
+      );
 
       expect(projectRead.getAllWithPendingFlag).toHaveBeenCalledWith(
         { skip: 0, take: 20 },
         { q: 'checkout', groupId: 'unassigned' },
+        ALL_PROJECTS,
       );
     });
 
@@ -433,11 +436,16 @@ describe('ProjectService', () => {
         total: 2,
       });
 
-      const result = await service.getAllWithPendingFlag(pagination);
+      const result = await service.getAllWithPendingFlag(
+        pagination,
+        undefined,
+        ALL_PROJECTS,
+      );
 
       expect(projectRead.getAllWithPendingFlag).toHaveBeenCalledWith(
         { skip: 0, take: 20 },
         undefined,
+        ALL_PROJECTS,
       );
       expect(result.data).toHaveLength(2);
       expect(result.data[0]).toEqual({
@@ -463,9 +471,12 @@ describe('ProjectService', () => {
         total: 1,
       });
 
-      const result = await service.findAll(pagination);
+      const result = await service.findAll(pagination, ALL_PROJECTS);
 
-      expect(projects.findAll).toHaveBeenCalledWith({ skip: 0, take: 20 });
+      expect(projects.findAll).toHaveBeenCalledWith(
+        { skip: 0, take: 20 },
+        ALL_PROJECTS,
+      );
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe('proj-1');
       expect(result.data[0].name).toBe('my-project');

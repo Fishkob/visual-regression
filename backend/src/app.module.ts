@@ -24,6 +24,7 @@ import { AuthenticationGuard } from '@internal/auth/authentication.guard';
 import { RateLimitModule } from '@internal/rate-limit/rate-limit.module';
 import { AuditModule } from '@internal/audit/audit.module';
 import { UsersModule } from '@internal/users/users.module';
+import { TeamsModule } from '@internal/teams/teams.module';
 import { RateLimitGuard } from '@internal/rate-limit/rate-limit.guard';
 import { AllExceptionsFilter } from '@common/http/all-exceptions.filter';
 import { LoggingInterceptor } from '@common/http/logging.interceptor';
@@ -48,6 +49,7 @@ import { HttpMetricsInterceptor } from '@common/http/http-metrics.interceptor';
     RateLimitModule,
     AuditModule,
     UsersModule,
+    TeamsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
