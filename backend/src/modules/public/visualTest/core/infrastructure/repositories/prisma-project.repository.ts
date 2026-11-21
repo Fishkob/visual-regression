@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@/prisma/base.repository';
+import { projectIdFilter } from '@/prisma/project-scope-filter';
+import type { ProjectScope } from '@common/domain/project-scope';
 import { findManyWithCount } from '@/prisma/find-many-with-count';
 import { DomainError } from '@common/domain/domain-error';
 import { PrismaClient } from '@/prisma/client';
@@ -17,6 +19,7 @@ export interface ProjectData {
   name: string;
   createdAt: Date;
   groupId?: string | null;
+  teamId?: string | null;
   baselineRevisionLimit?: number | null;
   runHistoryDays?: number | null;
   branchRetentionDays?: number | null;
@@ -53,13 +56,17 @@ export class ProjectRepository extends BaseRepository {
     return project;
   }
 
-  async findAll(pagination?: {
-    skip: number;
-    take: number;
-  }): Promise<{ data: ProjectData[]; total: number }> {
+  // Scoped read (ADR-082): the caller's own projects plus the shared ones. The
+  // scope is a required argument so a list endpoint cannot be written without
+  // deciding who may see it.
+  async findAll(
+    pagination: { skip: number; take: number } | undefined,
+    scope: ProjectScope,
+  ): Promise<{ data: ProjectData[]; total: number }> {
     const { data, total } = await findManyWithCount<ProjectData>(
       this.client.project,
       {
+        where: projectIdFilter(scope),
         orderBy: { createdAt: 'desc' },
         skip: pagination?.skip,
         take: pagination?.take,
@@ -103,6 +110,19 @@ export class ProjectRepository extends BaseRepository {
     return this.client.project.update({
       where: { name: projectName },
       data: { groupId },
+    });
+  }
+
+  // The one writer of `Project.teamId` (ADR-082). `null` means "shared": the
+  // project stays visible to every principal, which is why unassigning is a
+  // write that must be audited just like assigning.
+  async updateTeamByName(
+    projectName: string,
+    teamId: string | null,
+  ): Promise<ProjectData> {
+    return this.client.project.update({
+      where: { name: projectName },
+      data: { teamId },
     });
   }
 

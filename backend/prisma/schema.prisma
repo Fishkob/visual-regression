@@ -7,12 +7,48 @@ model ProjectGroup {
   @@map("ProjectGroup")
 }
 
+// An owner of Projects and the set of Users who may see them (ADR-082). Null on
+// `Project.teamId` means "shared": every authenticated principal may see it, so
+// tagging a project is the act that narrows access, never the act of creating
+// one. A project belongs to at most one team; sharing is a separate, additive
+// decision if it is ever needed.
+model Team {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  createdBy String?
+  createdAt DateTime     @default(now())
+  members   TeamMember[]
+  projects  Project[]
+
+  @@map("Team")
+}
+
+// Membership is the only way to narrow a principal's project access: there is
+// no per-user project grant (ADR-082). Both sides cascade — a deleted user or
+// team leaves no dangling membership.
+model TeamMember {
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([teamId, userId])
+  @@index([userId])
+  @@map("TeamMember")
+}
+
 model Project {
   id                     String             @id @default(cuid())
   name                   String             @unique
   createdAt              DateTime           @default(now())
   groupId                String?
   group                  ProjectGroup?      @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  teamId                 String?
+  // `Restrict`, not `SetNull`: a cascade would silently turn a team's products
+  // into shared ones, which is a widening nobody asked for. Deleting a team with
+  // projects is refused (ADR-082).
+  team                   Team?              @relation(fields: [teamId], references: [id], onDelete: Restrict)
   defaultBranchId        String?            @unique
   defaultBranch          Branch?            @relation("DefaultBranch", fields: [defaultBranchId], references: [id], onDelete: SetNull)
   baselineRevisionLimit  Int?
@@ -43,6 +79,7 @@ model Project {
   shareLinks             ShareLink[]
 
   @@index([groupId])
+  @@index([teamId])
   // Trigram index for the case-insensitive substring search (project list,
   // global search): `ILIKE '%q%'` cannot use a btree, so without it every search
   // is a sequential scan. Requires the `pg_trgm` extension, which the
@@ -499,6 +536,7 @@ model User {
   assignments ReviewAssignment[] @relation("AssignmentAssignee")
   apiKeys     ApiKey[]           @relation("ApiKeyOwner")
   invite      UserInvite?
+  teams       TeamMember[]
 
   @@index([role, isActive])
   @@map("User")
@@ -593,7 +631,7 @@ model ShareLink {
 }
 
 model ReviewComment {
-  id           String    @id @default(cuid())
+  id           String      @id @default(cuid())
   projectName  String
   branchName   String?
   // The test owns the discussion: the row dies with it (ON DELETE CASCADE), and
@@ -608,7 +646,7 @@ model ReviewComment {
   author       String
   resolvedAt   DateTime?
   resolvedBy   String?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime    @default(now())
 
   @@index([testId, createdAt])
   @@index([comparisonId])

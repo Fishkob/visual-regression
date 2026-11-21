@@ -16,10 +16,15 @@ import {
 import { plainToInstance } from 'class-transformer';
 import type { Request } from 'express';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
-import { requireActor } from '@common/http/authenticated-principal';
+import {
+  requireActor,
+  requireProjectScope,
+} from '@common/http/authenticated-principal';
 import { PublicEndpoint } from '@common/http/public.decorator';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { ProjectScoped } from '@common/http/project-route.decorator';
+import { GlobalRoute } from '@common/http/project-route.decorator';
 import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 import { ShareLinkService } from '@public/visualTest/access/application/share-link.service';
 import {
@@ -31,6 +36,7 @@ import {
 } from '@public/visualTest/access/presentation/dto/share-link.dto';
 
 @ApiTags('Share links')
+@ProjectScoped()
 @Controller('projects/:projectName/share-links')
 @SessionOnly()
 export class ShareLinksController {
@@ -73,6 +79,7 @@ export class ShareLinksController {
 }
 
 @ApiTags('Share links')
+@ProjectScoped()
 @Controller('share-links')
 @SessionOnly()
 export class ShareLinkRevokeController {
@@ -85,7 +92,11 @@ export class ShareLinkRevokeController {
     @Param('id') id: string,
     @Req() req: AuthenticatedRequest,
   ): Promise<ShareLinkDto> {
-    const revoked = await this.shares.revoke(id, requireActor(req));
+    const revoked = await this.shares.revoke(
+      id,
+      requireActor(req),
+      requireProjectScope(req),
+    );
     return plainToInstance(ShareLinkDto, revoked, {
       excludeExtraneousValues: true,
     });
@@ -93,6 +104,7 @@ export class ShareLinkRevokeController {
 }
 
 @ApiTags('Share links')
+@GlobalRoute()
 @Controller('public/shares')
 export class PublicShareController {
   constructor(private readonly shares: ShareLinkService) {}

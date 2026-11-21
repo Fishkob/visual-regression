@@ -26,6 +26,7 @@ import {
 import { PublicEndpoint } from '@common/http/public.decorator';
 import { Roles } from '@common/http/roles.decorator';
 import { SessionOnly } from '@common/http/session-only.decorator';
+import { GlobalRoute } from '@common/http/project-route.decorator';
 import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 import { UsersService } from '@internal/users/users.service';
 import {
@@ -39,6 +40,7 @@ import {
 } from '@internal/users/dto/user.dto';
 
 @ApiTags('Users')
+@GlobalRoute()
 @Controller('users')
 @Roles('ADMIN')
 @SessionOnly()
@@ -114,6 +116,7 @@ export class UsersController {
 // and mail scanners fetch every URL they see, and a reveal that ran on GET would
 // be used up before the human clicked it.
 @ApiTags('User invites')
+@GlobalRoute()
 @Controller('public/user-invites')
 export class PublicUserInviteController {
   constructor(private readonly users: UsersService) {}

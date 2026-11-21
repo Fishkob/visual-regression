@@ -21,6 +21,7 @@ import { AppConfigService } from '@config/app-config.service';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import { PaginatedResponseDto } from '@common/dto/paginated-response.dto';
 import { paginatedQuery } from '@common/utils/paginated-query';
 import { RunService } from '@public/visualTest/runs/application/run.service';
@@ -54,6 +55,7 @@ function toRunDto(run: RunWithBranch): RunDto {
 }
 
 @ApiTags('Runs')
+@ProjectScoped()
 @Controller('projects/:projectName/runs')
 export class RunsController {
   constructor(

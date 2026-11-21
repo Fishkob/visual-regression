@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { ProjectScope } from '@common/domain/project-scope';
 import { plainToInstance } from 'class-transformer';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { paginatedQuery } from '@common/utils/paginated-query';
@@ -11,19 +12,23 @@ export class ReviewInboxService {
 
   async getPending(
     pagination: PaginationDto,
-    filters?: {
-      branchName?: string;
-      projectName?: string;
-      kind?: string;
-      groupId?: string;
-      q?: string;
-      runKey?: string;
-      tag?: string;
-      assigneeId?: string;
-    },
+    filters:
+      | {
+          branchName?: string;
+          projectName?: string;
+          kind?: string;
+          groupId?: string;
+          teamId?: string;
+          q?: string;
+          runKey?: string;
+          tag?: string;
+          assigneeId?: string;
+        }
+      | undefined,
+    scope: ProjectScope,
   ) {
     return paginatedQuery(
-      (args) => this.inbox.findPending(args, filters),
+      (args) => this.inbox.findPending(args, filters, scope),
       pagination,
       (row) =>
         plainToInstance(PendingReviewDto, row, {
@@ -32,7 +37,10 @@ export class ReviewInboxService {
     );
   }
 
-  async getBranchNames(): Promise<string[]> {
-    return this.inbox.findPendingBranchNames();
+  async getBranchNames(
+    scope: ProjectScope,
+    teamId?: string,
+  ): Promise<string[]> {
+    return this.inbox.findPendingBranchNames(scope, teamId);
   }
 }

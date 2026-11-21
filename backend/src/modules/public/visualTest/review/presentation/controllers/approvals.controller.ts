@@ -15,6 +15,7 @@ import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testna
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { requireActor } from '@common/http/authenticated-principal';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import {
   ApproveComparisonBodyDto,
   ApproveResultDto,
@@ -24,6 +25,7 @@ import { ApprovalDto } from '@public/visualTest/review/presentation/dto/approval
 import { mapApprovalToDto } from '@public/visualTest/review/infrastructure/mappers/approval.mapper';
 
 @ApiTags('Approvals')
+@ProjectScoped()
 @Controller('projects/:projectName/tests/:testName')
 export class ApprovalsController {
   constructor(private readonly approvals: ApprovalService) {}

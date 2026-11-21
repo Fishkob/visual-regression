@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@/prisma/base.repository';
 import { DomainError } from '@common/domain/domain-error';
+import { projectIdFilter } from '@/prisma/project-scope-filter';
+import type { ProjectScope } from '@common/domain/project-scope';
 
 export interface ProjectGroupSummary {
   id: string;
@@ -31,10 +33,15 @@ function toSummary(row: GroupRow): ProjectGroupSummary {
 // open.
 @Injectable()
 export class ProjectGroupRepository extends BaseRepository {
-  async findAll(): Promise<ProjectGroupSummary[]> {
+  // The count is the number of projects in the group *that the caller may see*
+  // (ADR-082): a group badge that counted the other team's products would leak
+  // how much they have.
+  async findAll(scope: ProjectScope): Promise<ProjectGroupSummary[]> {
     const rows = await this.client.projectGroup.findMany({
       orderBy: { name: 'asc' },
-      include: { _count: { select: { projects: true } } },
+      include: {
+        _count: { select: { projects: { where: projectIdFilter(scope) } } },
+      },
     });
     return rows.map(toSummary);
   }

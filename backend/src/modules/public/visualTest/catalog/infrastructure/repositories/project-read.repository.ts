@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaConnection } from '@/prisma/prisma-connection';
+import { projectIdFilter } from '@/prisma/project-scope-filter';
+import type { ProjectScope } from '@common/domain/project-scope';
 import { Prisma } from '@/prisma/client';
 import { REVIEWABLE_PENDING_SQL } from '@public/visualTest/core/infrastructure/repositories/reviewable-pending.sql';
 import {
@@ -117,18 +119,16 @@ export class ProjectReadRepository {
   }
 
   async getAllWithPendingFlag(
-    pagination?: {
-      skip: number;
-      take: number;
-    },
-    filters?: { q?: string; groupId?: string },
+    pagination: { skip: number; take: number } | undefined,
+    filters: { q?: string; groupId?: string } | undefined,
+    scope: ProjectScope,
   ): Promise<{
     data: ProjectPendingFlag[];
     total: number;
   }> {
     // Server-side search + group filter: the project list pages through the
     // result, so filtering client-side would only filter the current page.
-    const where: Prisma.ProjectWhereInput = {};
+    const where: Prisma.ProjectWhereInput = { ...projectIdFilter(scope) };
     const search = filters?.q?.trim();
     if (search) where.name = { contains: search, mode: 'insensitive' };
     if (filters?.groupId === UNASSIGNED_GROUP_FILTER) where.groupId = null;

@@ -23,6 +23,7 @@ import {
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import { ReviewCommentService } from '@public/visualTest/review/application/review-comment.service';
 import {
   CommentDto,
@@ -32,6 +33,7 @@ import {
 } from '@public/visualTest/review/presentation/dto/comment.dto';
 
 @ApiTags('Review comments')
+@ProjectScoped()
 @Controller('projects/:projectName/tests/:testName/comments')
 @SessionOnly()
 export class ReviewCommentController {

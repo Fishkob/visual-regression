@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PublicEndpoint } from '@common/http/public.decorator';
+import { ProjectSpanning } from '@common/http/project-route.decorator';
 import { DlqService } from './dlq.service';
 import { AdminAuthGuard } from './admin-auth.guard';
 import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
@@ -17,6 +18,7 @@ import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 // applies.
 @ApiTags('DLQ')
 @PublicEndpoint()
+@ProjectSpanning()
 @Controller('admin/dlq')
 @RateLimit('admin')
 @UseGuards(AdminAuthGuard)

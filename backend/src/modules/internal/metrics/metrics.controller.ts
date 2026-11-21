@@ -1,10 +1,12 @@
 import { Controller, Get, Header, UseGuards } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { PublicEndpoint } from '@common/http/public.decorator';
+import { GlobalRoute } from '@common/http/project-route.decorator';
 import { MetricsService } from './metrics.service';
 import { MetricsAuthGuard } from './metrics-auth.guard';
 @ApiTags('Metrics')
 @PublicEndpoint()
+@GlobalRoute()
 @Controller('metrics')
 @UseGuards(MetricsAuthGuard)
 export class MetricsController {

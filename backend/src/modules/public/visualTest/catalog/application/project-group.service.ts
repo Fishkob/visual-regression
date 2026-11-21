@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { ProjectScope } from '@common/domain/project-scope';
 import {
   ProjectGroupRepository,
   type ProjectGroupSummary,
@@ -8,8 +9,8 @@ import {
 export class ProjectGroupService {
   constructor(private readonly groups: ProjectGroupRepository) {}
 
-  findAll(): Promise<ProjectGroupSummary[]> {
-    return this.groups.findAll();
+  findAll(scope: ProjectScope): Promise<ProjectGroupSummary[]> {
+    return this.groups.findAll(scope);
   }
 
   create(name: string): Promise<ProjectGroupSummary> {

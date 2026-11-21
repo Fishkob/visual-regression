@@ -17,6 +17,7 @@ import type { AuthUserRow } from './auth.repository';
 
 export interface LoginResult {
   token: string;
+  userId: string;
   username: string;
   role: 'ADMIN' | 'MEMBER' | 'VIEWER';
   mustChangePassword: boolean;
@@ -101,6 +102,7 @@ export class AuthService {
     });
     return {
       token,
+      userId: user.id,
       username: user.username,
       role: user.role,
       mustChangePassword: user.mustChangePassword,

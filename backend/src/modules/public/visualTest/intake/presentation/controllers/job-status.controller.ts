@@ -10,6 +10,7 @@ import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-valid
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import { JobStatusService } from '@public/visualTest/intake/application/job-status.service';
 import { DEFAULT_JOB_STATUS_POLLING } from '@public/visualTest/intake/application/job-status-polling';
 import {
@@ -18,6 +19,7 @@ import {
 } from '@public/visualTest/intake/presentation/dto/job-status.dto';
 
 @ApiTags('Upload')
+@ProjectScoped()
 @Controller('projects/:projectName/tests')
 export class JobStatusController {
   constructor(private readonly jobStatus: JobStatusService) {}

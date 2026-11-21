@@ -3,6 +3,11 @@
 export type ReviewInboxControllerGetBranchesData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Team id: only the branches of the projects this team owns
+         */
+        teamId?: string;
+    };
     url: '/review/branches';
 };

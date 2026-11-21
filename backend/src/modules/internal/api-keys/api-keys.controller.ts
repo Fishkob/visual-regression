@@ -21,6 +21,7 @@ import { SessionOnly } from '@common/http/session-only.decorator';
 import { Roles } from '@common/http/roles.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { requireActor } from '@common/http/authenticated-principal';
+import { GlobalRoute } from '@common/http/project-route.decorator';
 import { ApiKeyService, type ApiKeyView } from '@internal/auth/api-key.service';
 import {
   ApiKeyDto,
@@ -37,6 +38,7 @@ import {
 // for the whole platform. Bootstrap provisioning stays on POST /admin/api-keys
 // (x-admin-key) so a first key exists before any session does.
 @ApiTags('API Keys')
+@GlobalRoute()
 @Controller('api-keys')
 @SessionOnly()
 @Roles('ADMIN')
