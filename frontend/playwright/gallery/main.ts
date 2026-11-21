@@ -50,6 +50,10 @@ queryClient.setQueryData(authQueryKeys.me(), {
   username: "gallery-user",
   role: "ADMIN",
   mustChangePassword: false,
+  // The gallery renders the unrestricted admin view; a scoped session would need
+  // per-story fixtures for its empty states.
+  seesAllProjects: true,
+  teams: [],
 });
 
 async function mountNext({

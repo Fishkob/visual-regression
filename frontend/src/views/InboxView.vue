@@ -16,7 +16,8 @@ import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import InboxProjectSection from "@/components/inbox/InboxProjectSection.vue";
 import PaginationBar from "@/components/PaginationBar.vue";
 import { Button } from "@/components/ui/button";
-import { useCurrentRole } from "@/composables/useAuth";
+import { useCurrentRole, useMeQuery } from "@/composables/useAuth";
+import { useTeamsQuery } from "@/composables/useTeams";
 import { useBulkApproveSelection } from "@/composables/useBulkActions";
 import { useBulkSelection } from "@/composables/useBulkSelection";
 import {
@@ -45,6 +46,10 @@ import { TEST_ID } from "@/lib/test-ids";
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
+// One read for the whole page: what this role may do (`canWrite`), how much it
+// sees (`seesAllProjects`) and which teams it belongs to (`me.teams`).
+const { isAdmin, canWrite, seesAllProjects } = useCurrentRole();
+const { data: me } = useMeQuery();
 
 const page = computed({
   get: () => {
@@ -104,6 +109,23 @@ const group = computed<string>({
     const query = { ...route.query };
     if (!value || value === FILTER_ALL) delete query.group;
     else query.group = value;
+    delete query.page;
+    void router.replace({ query });
+  },
+});
+
+// The team lens (ADR-082) rides in the URL like the rest of the review scope: a
+// deep link and the review loop's "return to inbox" both restore it. It narrows
+// within the caller's own project scope; naming a foreign team matches nothing.
+const team = computed<string>({
+  get: () => {
+    const requested = route.query.team;
+    return typeof requested === "string" && requested ? requested : FILTER_ALL;
+  },
+  set: (value: string) => {
+    const query = { ...route.query };
+    if (!value || value === FILTER_ALL) delete query.team;
+    else query.team = value;
     delete query.page;
     void router.replace({ query });
   },
@@ -200,6 +222,7 @@ const queryParams = computed<InboxListQuery>(() => ({
   ...(runFilter.value ? { runKey: runFilter.value } : {}),
   ...(tagFilter.value ? { tag: tagFilter.value } : {}),
   ...(assignedToMe.value ? { assignedToMe: true } : {}),
+  ...(team.value !== FILTER_ALL ? { teamId: team.value } : {}),
 }));
 
 const { items, sections, total, isLoading, error, refetch } =
@@ -207,7 +230,24 @@ const { items, sections, total, isLoading, error, refetch } =
 
 // The group/branch choices must describe the whole pending set, not the page.
 const { data: groupsData } = useGroupsQuery();
-const { data: branchData } = useInboxBranchesQuery();
+const { data: branchData } = useInboxBranchesQuery(
+  computed(() => (team.value === FILTER_ALL ? undefined : team.value)),
+);
+
+// An admin may walk one team's queue; everyone else only has its own teams to
+// choose from, and `/auth/me` already carries them.
+const { data: teamsData } = useTeamsQuery(isAdmin);
+const teamOptions = computed(() =>
+  isAdmin.value
+    ? (teamsData.value ?? []).map((entry) => ({
+        value: entry.id,
+        label: entry.name,
+      }))
+    : (me.value?.teams ?? []).map((entry) => ({
+        value: entry.id,
+        label: entry.name,
+      })),
+);
 
 const groupOptions = computed(() => [
   ...(groupsData.value ?? []).map((entry) => ({
@@ -239,6 +279,7 @@ const hasActiveFilters = computed(
     kind.value !== FILTER_ALL ||
     group.value !== FILTER_ALL ||
     branch.value !== FILTER_ALL ||
+    team.value !== FILTER_ALL ||
     runFilter.value.length > 0 ||
     tagFilter.value.length > 0 ||
     assignedToMe.value,
@@ -246,7 +287,6 @@ const hasActiveFilters = computed(
 
 // Bulk selection is a writer tool: a VIEWER sees the queue and can walk it, but
 // gets no checkboxes or bulk bar (the backend would answer 403 anyway).
-const { canWrite } = useCurrentRole();
 const bulkApprove = useBulkApproveSelection();
 const {
   selectedIds,
@@ -383,6 +423,16 @@ function confirmBulkApprove() {
           <p class="text-sm text-muted-foreground">
             {{ t("inbox.emptyBody") }}
           </p>
+          <!-- "Nothing to do" is only true for a principal that can see the
+          whole installation; a team-scoped inbox may be empty because its team
+          has no projects yet (ADR-082). -->
+          <p
+            v-if="!seesAllProjects"
+            class="text-sm text-muted-foreground"
+            :data-testid="TEST_ID.inboxScopedEmpty"
+          >
+            {{ t("inbox.emptyScopedBody") }}
+          </p>
           <RouterLink
             to="/projects"
             class="text-sm font-medium text-primary underline-offset-4 hover:underline"
@@ -463,6 +513,30 @@ function confirmBulkApprove() {
               :value="branchOption"
             >
               {{ branchOption }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <!-- The team lens is offered only where there is something to choose:
+        one team is no choice, and an unscoped principal already sees the whole
+        installation. -->
+        <Select v-if="teamOptions.length > 1" v-model="team">
+          <SelectTrigger
+            class="w-44"
+            :aria-label="t('inbox.teamLabel')"
+            :data-testid="TEST_ID.inboxFilterTeam"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="FILTER_ALL">{{
+              t("inbox.allTeams")
+            }}</SelectItem>
+            <SelectItem
+              v-for="teamOption in teamOptions"
+              :key="teamOption.value"
+              :value="teamOption.value"
+            >
+              {{ teamOption.label }}
             </SelectItem>
           </SelectContent>
         </Select>

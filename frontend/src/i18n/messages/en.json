@@ -3,6 +3,7 @@
     "inbox": "Inbox",
     "projects": "Projects",
     "groups": "Groups",
+    "teams": "Teams",
     "apiKeys": "API keys",
     "users": "Users",
     "audit": "Audit",
@@ -155,7 +156,10 @@
     "unassigned": "Unassigned",
     "myReviews": "My reviews",
     "assignedToMeLabel": "Show only reviews assigned to me",
-    "overdue": "{count} overdue review | {count} overdue reviews"
+    "overdue": "{count} overdue review | {count} overdue reviews",
+    "emptyScopedBody": "Only the projects of your teams and projects without a team are listed here.",
+    "teamLabel": "Team",
+    "allTeams": "All teams"
   },
   "projects": {
     "title": "Projects",
@@ -186,7 +190,9 @@
     "deleteProject": "Delete project",
     "deleteTitle": "Delete project",
     "deleteButton": "Delete",
-    "pendingLabel": "pending"
+    "pendingLabel": "pending",
+    "emptyScopedTitle": "Your team has no projects yet",
+    "emptyScopedBody": "You see the projects of your teams and every project without a team. An admin assigns projects to a team."
   },
   "newProject": {
     "title": "New project",
@@ -449,6 +455,47 @@
     "nameRequired": "Name is required",
     "errorFallback": "Could not save group"
   },
+  "teams": {
+    "title": "Teams",
+    "subtitle": "A project belongs to at most one team; without a team it stays visible to every signed-in person (\"shared\"). Assign the members here.",
+    "newTeam": "New team",
+    "errorTitle": "Failed to load teams",
+    "emptyTitle": "No teams yet",
+    "emptyDescription": "Create a team to assign projects to several people.",
+    "memberCount": "{count} member | {count} members",
+    "projectNames": "Projects: {projects}",
+    "noProjects": "No projects",
+    "members": "Members",
+    "membersAria": "Manage the members of {name}",
+    "rename": "Rename",
+    "renameAria": "Rename {name}",
+    "delete": "Delete",
+    "deleteAria": "Delete {name}",
+    "deleteTitle": "Delete team",
+    "deleteDescription": "The team is deleted; projects and tests stay untouched. While the team still owns projects, the server refuses the delete.",
+    "deleteFailedTitle": "The team was not deleted",
+    "deleteErrorFallback": "The team could not be deleted."
+  },
+  "teamForm": {
+    "newTitle": "New team",
+    "renameTitle": "Rename team",
+    "newDescription": "A team bundles projects and members.",
+    "renameDescription": "Update the display name.",
+    "name": "Name",
+    "nameRequired": "Name is required",
+    "nameCharset": "Only letters, digits, spaces, dashes and underscores.",
+    "nameHelp": "Letters, digits, spaces, dashes and underscores, at most 80 characters.",
+    "errorFallback": "Could not save team"
+  },
+  "teamMembers": {
+    "title": "Members of {name}",
+    "description": "The selection replaces the member list in full.",
+    "legend": "Members",
+    "emptyTitle": "Only one account",
+    "emptyDescription": "A team needs at least a second account. Invite more people to assign members.",
+    "loadError": "Failed to load users",
+    "saveError": "The members could not be saved"
+  },
   "runState": {
     "open": "Open",
     "pending": "Pending",
@@ -708,7 +755,12 @@
       "reviewComment": "Review comment",
       "reviewCommentResolve": "Review comment resolved",
       "projectPixelThreshold": "Project threshold changed",
-      "testThreshold": "Threshold changed"
+      "testThreshold": "Threshold changed",
+      "teamCreate": "Team created",
+      "teamUpdate": "Team renamed",
+      "teamDelete": "Team deleted",
+      "teamMembers": "Team members changed",
+      "teamProjectAssign": "Project team changed"
     }
   },
   "webhookEvent": {
@@ -1164,7 +1216,18 @@
     "approvedForTest": "Approved {variant} of \"{test}\"",
     "approveForTestError": "Could not approve {variant} of \"{test}\"",
     "refreshDetailsError": "Could not refresh the details",
-    "importEmpty": "The import came back empty"
+    "importEmpty": "The import came back empty",
+    "teamAssigned": "Project assigned to the team",
+    "teamUnassigned": "Project is now shared",
+    "teamAssignError": "Assignment failed",
+    "teamCreated": "Team created",
+    "teamCreateError": "Could not create the team",
+    "teamRenamed": "Team renamed",
+    "teamRenameError": "Could not rename the team",
+    "teamDeleted": "Team deleted",
+    "teamDeleteError": "Could not delete the team",
+    "teamMembersSaved": "Members saved",
+    "teamMembersError": "Could not save the members"
   },
   "confirm": {
     "deleteProject": "Are you sure you want to delete \"{name}\"? This action cannot be undone."
@@ -1309,5 +1372,17 @@
     "loadOlder": "Load older comments",
     "loadingOlder": "Loading older comments…",
     "submitHint": "Ctrl + Enter"
+  },
+  "projectTeam": {
+    "title": "Team ownership",
+    "description": "A project belongs to at most one team. Without a team it stays visible to every signed-in person (“shared”).",
+    "owner": "Owner: {name}",
+    "shared": "Shared — visible to everyone",
+    "loading": "Loading teams …",
+    "error": "Teams could not be loaded",
+    "selectLabel": "Team",
+    "sharedOption": "No team (shared)",
+    "save": "Save",
+    "saveError": "The ownership could not be saved"
   }
 }

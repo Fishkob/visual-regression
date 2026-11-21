@@ -36,7 +36,14 @@ vi.mock("@sdk", () => ({
 // The route is real enough to react to router.replace: the page reads `page`
 // from the URL, so a filter apply must be able to move the route back to page 1.
 vi.mock("@/composables/useAuth", () => ({
-  useCurrentRole: () => ({ canWrite: true }),
+  useCurrentRole: () => ({
+    isAdmin: false,
+    canWrite: true,
+    seesAllProjects: true,
+  }),
+  // The inbox's team lens reads the caller's memberships from `/auth/me`; with
+  // none there is no lens to render.
+  useMeQuery: () => ({ data: { value: { teams: [] } } }),
 }));
 
 vi.mock("vue-router", async () => {
@@ -111,6 +118,13 @@ async function waitForItems(
   );
 }
 
+function lastBranchesQuery() {
+  const calls = mockBranches.mock.calls;
+  return calls[calls.length - 1]![0] as {
+    query: { teamId?: string };
+  };
+}
+
 function lastPendingQuery() {
   const calls = mockPending.mock.calls;
   return calls[calls.length - 1]![0] as {
@@ -119,6 +133,7 @@ function lastPendingQuery() {
       take: number;
       runKey?: string;
       assignedToMe?: boolean;
+      teamId?: string;
     };
   };
 }
@@ -307,6 +322,24 @@ describe("InboxView assignments", () => {
       take: 50,
       assignedToMe: true,
     });
+  });
+
+  it("reads the team lens from the URL and sends it to the server", async () => {
+    // The lens rides in the URL like the rest of the review scope, and it has to
+    // reach the read: a deep link is how an operator shares "this team's queue".
+    routeState.route!.query = { team: "team-checkout" };
+
+    const wrapper = mountView();
+    await waitForItems(wrapper, 1);
+
+    expect(lastPendingQuery().query).toEqual({
+      skip: 0,
+      take: 50,
+      teamId: "team-checkout",
+    });
+    // The branch choices follow the lens, so the dropdown cannot offer a branch
+    // the queue is not showing.
+    expect(lastBranchesQuery().query).toEqual({ teamId: "team-checkout" });
   });
 
   it("keeps my reviews when another filter changes", async () => {
