@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@/prisma/base.repository';
+import type { ProjectScope } from '@common/domain/project-scope';
 
 export interface CreateAssignmentInput {
   projectId: string;
@@ -10,6 +11,10 @@ export interface CreateAssignmentInput {
   assigneeUsername: string;
   assignedBy: string;
   dueAt: Date | null;
+}
+
+function projectIdWhere(scope: ProjectScope): { projectId?: { in: string[] } } {
+  return scope.kind === 'all' ? {} : { projectId: { in: [...scope.ids] } };
 }
 
 @Injectable()
@@ -29,11 +34,19 @@ export class ReviewAssignmentRepository extends BaseRepository {
     });
   }
 
-  async listForAssignee(assigneeId: string, includeCompleted = false) {
+  // Scoped (ADR-082): an assignment is a work item on a project, so a reviewer
+  // only sees the items of projects it can open. `projectIds === null` means
+  // "unrestricted", which is what a system reader passes.
+  async listForAssignee(
+    assigneeId: string,
+    includeCompleted: boolean,
+    scope: ProjectScope,
+  ) {
     return this.client.reviewAssignment.findMany({
       where: {
         assigneeId,
         ...(includeCompleted ? {} : { completedAt: null }),
+        ...projectIdWhere(scope),
       },
       include: {
         test: { select: { name: true, kind: true } },
@@ -76,12 +89,13 @@ export class ReviewAssignmentRepository extends BaseRepository {
     });
   }
 
-  async overdue(assigneeId: string, now: Date) {
+  async overdue(assigneeId: string, now: Date, scope: ProjectScope) {
     return this.client.reviewAssignment.findMany({
       where: {
         assigneeId,
         completedAt: null,
         dueAt: { lt: now },
+        ...projectIdWhere(scope),
       },
       include: {
         test: { select: { name: true, kind: true } },

@@ -11,6 +11,11 @@ import {
 } from '@public/visualTest/review/application/approval-batch';
 import { ApprovalService } from '@public/visualTest/review/application/approval.service';
 import { ProjectService } from '@public/visualTest/catalog/application/project.service';
+import {
+  ProjectRepository,
+  projectNotFound,
+} from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import { scopeAllows, type ProjectScope } from '@common/domain/project-scope';
 
 export interface BulkItemResult {
   id: string;
@@ -31,6 +36,7 @@ export class BulkActionService {
     private readonly tests: UnifiedTestRepository,
     private readonly branches: BranchResolver,
     private readonly projects: ProjectService,
+    private readonly projectRows: ProjectRepository,
   ) {}
 
   async approve(
@@ -106,14 +112,24 @@ export class BulkActionService {
     return { deleted, failed };
   }
 
+  // This is the one write whose projects arrive in the body instead of the path,
+  // so the guard cannot see them (ADR-082). Each name is checked against the
+  // caller's scope before it is written, and a foreign name fails its own item
+  // instead of aborting the batch — the same per-item contract the other bulk
+  // actions already have.
   async moveProjects(
     projectNames: string[],
     groupId: string | null,
+    scope: ProjectScope,
   ): Promise<{ moved: BulkItemResult[]; failed: BulkItemResult[] }> {
     const moved: BulkItemResult[] = [];
     const failed: BulkItemResult[] = [];
     for (const projectName of projectNames) {
       try {
+        const project = await this.projectRows.requireByName(projectName);
+        if (!scopeAllows(scope, project.id)) {
+          throw projectNotFound(projectName);
+        }
         await this.projects.updateProjectGroup(projectName, { groupId });
         moved.push({ id: projectName, success: true });
       } catch (error) {

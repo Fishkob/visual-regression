@@ -9,6 +9,7 @@ import {
 } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { PublicEndpoint } from '@common/http/public.decorator';
+import { GlobalRoute } from '@common/http/project-route.decorator';
 import { MetricsAuthGuard } from '@internal/metrics/metrics-auth.guard';
 import {
   type BuildInfo,
@@ -28,6 +29,7 @@ import { HealthChecker } from './health-checker.service';
 //     They report the raw probe error, which can name an internal host.
 @ApiTags('Health')
 @PublicEndpoint()
+@GlobalRoute()
 @Controller('health')
 export class HealthController {
   constructor(private readonly checker: HealthChecker) {}

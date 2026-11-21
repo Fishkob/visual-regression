@@ -1,6 +1,7 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectGroupService } from '@public/visualTest/catalog/application/project-group.service';
+import { ALL_PROJECTS } from '@common/domain/project-scope';
 import { ProjectGroupRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-group.repository';
 import { createMock } from '@test/utils/create-mock';
 
@@ -26,7 +27,7 @@ describe('ProjectGroupService', () => {
       { id: 'g1', name: 'Checkout', createdAt: new Date(), projectCount: 2 },
     ];
     groups.findAll.mockResolvedValue(rows);
-    await expect(service.findAll()).resolves.toEqual(rows);
+    await expect(service.findAll(ALL_PROJECTS)).resolves.toEqual(rows);
   });
 
   it('creates a group', async () => {

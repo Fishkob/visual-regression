@@ -4,6 +4,8 @@ import { findManyWithCount } from '@/prisma/find-many-with-count';
 import { Prisma } from '@/prisma/client';
 import type { TestKind } from '@common/domain/test-kind';
 import { UNASSIGNED_GROUP_FILTER } from '@common/domain/group-filter';
+import { projectIdFilter } from '@/prisma/project-scope-filter';
+import type { ProjectScope } from '@common/domain/project-scope';
 import {
   REVIEWABLE_PENDING_SQL,
   reviewablePendingWhere,
@@ -92,17 +94,21 @@ export class ReviewInboxRepository {
   }
 
   async findPending(
-    pagination?: { skip: number; take: number },
-    filters?: {
-      branchName?: string;
-      projectName?: string;
-      kind?: string;
-      groupId?: string;
-      q?: string;
-      runKey?: string;
-      tag?: string;
-      assigneeId?: string;
-    },
+    pagination: { skip: number; take: number } | undefined,
+    filters:
+      | {
+          branchName?: string;
+          projectName?: string;
+          kind?: string;
+          groupId?: string;
+          teamId?: string;
+          q?: string;
+          runKey?: string;
+          tag?: string;
+          assigneeId?: string;
+        }
+      | undefined,
+    scope: ProjectScope,
   ): Promise<{
     data: PendingReviewRow[];
     total: number;
@@ -117,11 +123,18 @@ export class ReviewInboxRepository {
       archivedScope(filters?.branchName),
     );
 
-    const projectWhere: Prisma.ProjectWhereInput = {};
+    // The caller's projects, shared ones included: the inbox is the review entry
+    // point, and it must not list work the caller cannot open (ADR-082).
+    const projectWhere: Prisma.ProjectWhereInput = {
+      ...projectIdFilter(scope),
+    };
     if (filters?.projectName) projectWhere.name = filters.projectName;
     if (filters?.groupId === UNASSIGNED_GROUP_FILTER)
       projectWhere.groupId = null;
     else if (filters?.groupId) projectWhere.groupId = filters.groupId;
+    // The team lens. It narrows *within* the scope, so naming a team the caller
+    // cannot see matches nothing instead of widening the read.
+    if (filters?.teamId) projectWhere.teamId = filters.teamId;
     if (Object.keys(projectWhere).length > 0) {
       branchWhere.project = projectWhere;
     }
@@ -210,13 +223,20 @@ export class ReviewInboxRepository {
   // The branch choices for the inbox filter. Derived from the pending set
   // rather than a page of it, so the dropdown does not lose branches as the
   // list paginates.
-  async findPendingBranchNames(): Promise<string[]> {
+  async findPendingBranchNames(
+    scope: ProjectScope,
+    teamId?: string,
+  ): Promise<string[]> {
+    const projectIds = scope.kind === 'all' ? null : [...scope.ids];
     const rows = await this.client.$queryRaw<{ name: string }[]>(Prisma.sql`
       SELECT DISTINCT b.name AS name
       FROM "UnifiedComparison" c
       JOIN "UnifiedTest" t ON t.id = c."testId"
       JOIN "Branch" b ON b.id = t."branchId"
+      JOIN "Project" p ON p.id = b."projectId"
       WHERE ${REVIEWABLE_PENDING_SQL} AND b."isArchived" = false
+        ${projectIds ? Prisma.sql`AND p.id IN (${Prisma.join(projectIds)})` : Prisma.empty}
+        ${teamId ? Prisma.sql`AND p."teamId" = ${teamId}` : Prisma.empty}
       ORDER BY b.name ASC
     `);
     return rows.map((row) => row.name);

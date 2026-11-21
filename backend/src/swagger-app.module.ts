@@ -12,6 +12,7 @@ import { AuthModule } from '@internal/auth/auth.module';
 import { AdminApiKeysModule } from '@internal/admin/admin-api-keys.module';
 import { ApiKeysModule } from '@internal/api-keys/api-keys.module';
 import { UsersModule } from '@internal/users/users.module';
+import { TeamsModule } from '@internal/teams/teams.module';
 @Module({
   imports: [
     CoreInfrastructureModule,
@@ -27,6 +28,7 @@ import { UsersModule } from '@internal/users/users.module';
     AdminApiKeysModule,
     ApiKeysModule,
     UsersModule,
+    TeamsModule,
   ],
 })
 export class SwaggerAppModule {}

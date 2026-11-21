@@ -29,8 +29,10 @@ import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { requireActor } from '@common/http/authenticated-principal';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 
 @ApiTags('Tests')
+@ProjectScoped()
 @Controller('projects/:projectName/tests')
 export class TestCommandsController {
   constructor(private readonly testCommand: TestCommandService) {}

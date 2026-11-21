@@ -16,6 +16,7 @@ import type { RunWithBranch } from '@public/visualTest/core/infrastructure/repos
 import { RunRepository } from '@public/visualTest/core/infrastructure/repositories/run.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
 import { ReviewAssignmentService } from '@public/visualTest/review/application/review-assignment.service';
+import { ALL_PROJECTS } from '@common/domain/project-scope';
 import { ReviewAssignmentRepository } from '@public/visualTest/review/infrastructure/repositories/review-assignment.repository';
 import { createMock } from '@test/utils/create-mock';
 import { createMockProjectRepository, createMockUoW } from '@test/utils/mocks';
@@ -514,9 +515,13 @@ describe('ReviewAssignmentService', () => {
     it('lists the open assignments of the assignee', async () => {
       assignments.listForAssignee.mockResolvedValue([makeAssignment()]);
 
-      const result = await service.mine('user-1');
+      const result = await service.mine('user-1', false, ALL_PROJECTS);
 
-      expect(assignments.listForAssignee).toHaveBeenCalledWith('user-1', false);
+      expect(assignments.listForAssignee).toHaveBeenCalledWith(
+        'user-1',
+        false,
+        ALL_PROJECTS,
+      );
       expect(result).toEqual([
         {
           id: 'assignment-1',
@@ -536,9 +541,13 @@ describe('ReviewAssignmentService', () => {
     });
 
     it('includes completed assignments when the caller asks for them', async () => {
-      await service.mine('user-1', true);
+      await service.mine('user-1', true, ALL_PROJECTS);
 
-      expect(assignments.listForAssignee).toHaveBeenCalledWith('user-1', true);
+      expect(assignments.listForAssignee).toHaveBeenCalledWith(
+        'user-1',
+        true,
+        ALL_PROJECTS,
+      );
     });
 
     it('derives isOverdue from an open assignment with a past due date', async () => {
@@ -562,7 +571,7 @@ describe('ReviewAssignmentService', () => {
         }),
       ]);
 
-      const result = await service.mine('user-1');
+      const result = await service.mine('user-1', false, ALL_PROJECTS);
 
       expect(
         result.map((row) => [row.id, row.isOverdue, row.testName, row.runKey]),
@@ -588,11 +597,12 @@ describe('ReviewAssignmentService', () => {
         makeAssignment({ dueAt, run: { key: 'run-42' } }),
       ]);
 
-      const result = await service.overdue('user-1');
+      const result = await service.overdue('user-1', ALL_PROJECTS);
 
       expect(assignments.overdue).toHaveBeenCalledWith(
         'user-1',
         expect.any(Date),
+        ALL_PROJECTS,
       );
       expect(result).toEqual([
         expect.objectContaining({

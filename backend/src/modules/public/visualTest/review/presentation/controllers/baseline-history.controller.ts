@@ -14,6 +14,7 @@ import { BranchQuery } from '@common/http/branch-query.decorator';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testname-validation.pipe';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import { BaselineHistoryService } from '@public/visualTest/core/application/services/baseline-history.service';
 import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/variant.dto';
 import {
@@ -27,6 +28,7 @@ import {
 // so it lives beside the other test commands rather than in the read
 // controller.
 @ApiTags('Tests')
+@ProjectScoped()
 @Controller('projects/:projectName/tests')
 export class BaselineHistoryController {
   constructor(private readonly history: BaselineHistoryService) {}

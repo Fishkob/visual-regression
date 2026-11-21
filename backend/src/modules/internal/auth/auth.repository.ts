@@ -34,7 +34,10 @@ export interface ApiKeyRow {
   ownerId: string | null;
   scopes: string[];
   projectIds: string[];
-  owner?: { username: string } | null;
+  // The role rides along because an API key's project scope is the intersection
+  // of its owner's scope and its own allowlist (ADR-082), and an admin owner is
+  // unrestricted.
+  owner?: { username: string; role: 'ADMIN' | 'MEMBER' | 'VIEWER' } | null;
   createdBy: string | null;
   createdAt: Date;
   lastUsedAt: Date | null;
@@ -266,21 +269,21 @@ export class AuthRepository extends BaseRepository {
   async findApiKeyByHash(keyHash: string): Promise<ApiKeyRow | null> {
     return this.client.apiKey.findUnique({
       where: { keyHash },
-      include: { owner: { select: { username: true } } },
+      include: { owner: { select: { username: true, role: true } } },
     });
   }
 
   async findApiKeyById(id: string): Promise<ApiKeyRow | null> {
     return this.client.apiKey.findUnique({
       where: { id },
-      include: { owner: { select: { username: true } } },
+      include: { owner: { select: { username: true, role: true } } },
     });
   }
 
   async listApiKeys(): Promise<ApiKeyRow[]> {
     return this.client.apiKey.findMany({
       orderBy: { createdAt: 'desc' },
-      include: { owner: { select: { username: true } } },
+      include: { owner: { select: { username: true, role: true } } },
     });
   }
 

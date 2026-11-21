@@ -10,6 +10,7 @@ import { ProjectGroupRepository } from '@public/visualTest/catalog/infrastructur
 import { BranchCommandService } from '@public/visualTest/catalog/application/branch-command.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { DomainError } from '@common/domain/domain-error';
+import type { ProjectScope } from '@common/domain/project-scope';
 import { AuditService } from '@internal/audit/audit.service';
 import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import { PaginationDto } from '@common/dto/pagination.dto';
@@ -40,18 +41,19 @@ export class ProjectService {
 
   async getAllWithPendingFlag(
     pagination: PaginationDto,
-    filters?: { q?: string; groupId?: string },
+    filters: { q?: string; groupId?: string } | undefined,
+    scope: ProjectScope,
   ) {
     return paginatedQuery(
-      (args) => this.projectRead.getAllWithPendingFlag(args, filters),
+      (args) => this.projectRead.getAllWithPendingFlag(args, filters, scope),
       pagination,
       mapProjectSummaryToDto,
     );
   }
 
-  async findAll(pagination: PaginationDto) {
+  async findAll(pagination: PaginationDto, scope: ProjectScope) {
     return paginatedQuery(
-      (args) => this.projects.findAll(args),
+      (args) => this.projects.findAll(args, scope),
       pagination,
       mapProjectToDto,
     );

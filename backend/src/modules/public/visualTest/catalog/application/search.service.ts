@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { ProjectScope } from '@common/domain/project-scope';
 import {
   SearchRepository,
   type SearchResults,
@@ -10,6 +11,7 @@ export class SearchService {
 
   async query(
     rawQuery: string,
+    scope: ProjectScope,
     limit = 8,
   ): Promise<SearchResults & { query: string }> {
     const query = rawQuery.trim();
@@ -19,6 +21,7 @@ export class SearchService {
     const results = await this.search.search(
       query,
       Math.min(Math.max(limit, 1), 20),
+      scope,
     );
     return { query, ...results };
   }

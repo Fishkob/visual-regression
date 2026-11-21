@@ -254,7 +254,7 @@ describe('AuthRepository', () => {
 
     expect(mockClient.apiKey.findUnique).toHaveBeenCalledWith({
       where: { keyHash: 'keyhash' },
-      include: { owner: { select: { username: true } } },
+      include: { owner: { select: { username: true, role: true } } },
     });
     expect(result).toEqual({ id: 'k1', name: 'ci-upload', revokedAt: null });
   });
@@ -266,7 +266,7 @@ describe('AuthRepository', () => {
 
     expect(mockClient.apiKey.findUnique).toHaveBeenCalledWith({
       where: { id: 'k1' },
-      include: { owner: { select: { username: true } } },
+      include: { owner: { select: { username: true, role: true } } },
     });
   });
 
@@ -277,7 +277,7 @@ describe('AuthRepository', () => {
 
     expect(mockClient.apiKey.findMany).toHaveBeenCalledWith({
       orderBy: { createdAt: 'desc' },
-      include: { owner: { select: { username: true } } },
+      include: { owner: { select: { username: true, role: true } } },
     });
     expect(result).toEqual([{ id: 'k1' }]);
   });

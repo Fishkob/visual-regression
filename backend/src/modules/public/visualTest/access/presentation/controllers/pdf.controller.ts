@@ -21,10 +21,12 @@ import { ProjectTestNameValidationPipe } from '@common/http/pipes/project-testna
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 import type { Response } from 'express';
 
 @ApiTags('Tests')
+@ProjectScoped()
 @Controller('projects/:projectName/tests')
 export class PdfController {
   constructor(

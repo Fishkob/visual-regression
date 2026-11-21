@@ -23,6 +23,7 @@ import { requireActor } from '@common/http/authenticated-principal';
 import { Roles } from '@common/http/roles.decorator';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import { BranchReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/branch-read.repository';
 import { BranchCommandService } from '@public/visualTest/catalog/application/branch-command.service';
 import {
@@ -32,6 +33,7 @@ import {
 } from '@public/visualTest/catalog/presentation/dto/branch.dto';
 
 @ApiTags('Branches')
+@ProjectScoped()
 @Controller('projects/:projectName/branches')
 export class BranchesController {
   constructor(

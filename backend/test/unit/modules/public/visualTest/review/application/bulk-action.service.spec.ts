@@ -7,6 +7,8 @@ import { TestDeletionService } from '@public/visualTest/core/application/service
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
+import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import { ALL_PROJECTS } from '@common/domain/project-scope';
 import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
 
@@ -18,6 +20,7 @@ describe('BulkActionService', () => {
   let tests: Mocked<UnifiedTestRepository>;
   let branches: Mocked<BranchResolver>;
   let projects: Mocked<ProjectService>;
+  let projectRows: Mocked<ProjectRepository>;
 
   beforeEach(() => {
     approvals = createMock<ApprovalService>();
@@ -35,6 +38,12 @@ describe('BulkActionService', () => {
     });
     projects = createMock<ProjectService>();
     projects.updateProjectGroup.mockResolvedValue({} as never);
+    projectRows = createMock<ProjectRepository>();
+    projectRows.requireByName.mockImplementation(async (name: string) => ({
+      id: `p-${name}`,
+      name,
+      createdAt: new Date('2026-01-01'),
+    }));
     service = new BulkActionService(
       approvals,
       deletion,
@@ -42,6 +51,7 @@ describe('BulkActionService', () => {
       tests,
       branches,
       projects,
+      projectRows,
     );
   });
 
@@ -111,7 +121,7 @@ describe('BulkActionService', () => {
       .mockResolvedValueOnce({} as never)
       .mockRejectedValueOnce(new DomainError('Project not found', 'NOT_FOUND'));
 
-    const result = await service.moveProjects(['a', 'b'], 'g1');
+    const result = await service.moveProjects(['a', 'b'], 'g1', ALL_PROJECTS);
 
     expect(result.moved).toEqual([{ id: 'a', success: true }]);
     // A DomainError's message is written for the client, so it is returned.
@@ -120,12 +130,34 @@ describe('BulkActionService', () => {
     ]);
   });
 
+  it('refuses a project outside the caller scope without aborting the batch', async () => {
+    // The names arrive in the body, so this is the one bulk write the guard
+    // cannot check (ADR-082).
+    const result = await service.moveProjects(['mine', 'theirs'], 'g1', {
+      kind: 'ids',
+      ids: new Set(['p-mine']),
+    });
+
+    expect(result.moved).toEqual([{ id: 'mine', success: true }]);
+    expect(result.failed).toEqual([
+      {
+        id: 'theirs',
+        success: false,
+        error: 'Project "theirs" not found',
+      },
+    ]);
+    expect(projects.updateProjectGroup).not.toHaveBeenCalledWith(
+      'theirs',
+      expect.anything(),
+    );
+  });
+
   it('does not leak an internal error message into a bulk row', async () => {
     projects.updateProjectGroup.mockRejectedValueOnce(
       new Error('connect ECONNREFUSED 10.0.0.5:5432'),
     );
 
-    const result = await service.moveProjects(['a'], 'g1');
+    const result = await service.moveProjects(['a'], 'g1', ALL_PROJECTS);
 
     expect(result.failed).toEqual([
       { id: 'a', success: false, error: 'Move failed' },

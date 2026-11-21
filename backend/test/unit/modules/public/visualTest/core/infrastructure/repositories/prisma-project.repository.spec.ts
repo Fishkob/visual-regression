@@ -2,6 +2,7 @@ import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TransactionContext } from '@/prisma/transaction-context';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
+import { ALL_PROJECTS } from '@common/domain/project-scope';
 import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
 
@@ -90,17 +91,36 @@ describe('ProjectRepository', () => {
       mockClient.project.findMany.mockResolvedValue(projects);
       mockClient.project.count.mockResolvedValue(2);
 
-      const result = await repository.findAll();
+      const result = await repository.findAll(undefined, ALL_PROJECTS);
 
       expect(result.data).toEqual(projects);
       expect(result.total).toBe(2);
       expect(mockClient.project.findMany).toHaveBeenCalledWith({
+        where: {},
         orderBy: { createdAt: 'desc' },
         skip: undefined,
         take: undefined,
       });
+      expect(mockClient.project.count).toHaveBeenCalledWith({ where: {} });
+    });
+
+    it('filters the list to the caller’s projects', async () => {
+      mockClient.project.findMany.mockResolvedValue([]);
+      mockClient.project.count.mockResolvedValue(0);
+
+      await repository.findAll(undefined, {
+        kind: 'ids',
+        ids: new Set(['proj-1', 'proj-shared']),
+      });
+
+      // The shared project is in the set, so the read needs no second branch.
+      expect(mockClient.project.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: { in: ['proj-1', 'proj-shared'] } },
+        }),
+      );
       expect(mockClient.project.count).toHaveBeenCalledWith({
-        where: undefined,
+        where: { id: { in: ['proj-1', 'proj-shared'] } },
       });
     });
 
@@ -108,9 +128,10 @@ describe('ProjectRepository', () => {
       mockClient.project.findMany.mockResolvedValue([]);
       mockClient.project.count.mockResolvedValue(10);
 
-      await repository.findAll({ skip: 5, take: 5 });
+      await repository.findAll({ skip: 5, take: 5 }, ALL_PROJECTS);
 
       expect(mockClient.project.findMany).toHaveBeenCalledWith({
+        where: {},
         orderBy: { createdAt: 'desc' },
         skip: 5,
         take: 5,
@@ -121,7 +142,7 @@ describe('ProjectRepository', () => {
       mockClient.project.findMany.mockResolvedValue([]);
       mockClient.project.count.mockResolvedValue(0);
 
-      const result = await repository.findAll();
+      const result = await repository.findAll(undefined, ALL_PROJECTS);
 
       expect(result.data).toEqual([]);
       expect(result.total).toBe(0);

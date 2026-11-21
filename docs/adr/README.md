@@ -24,7 +24,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 028 | [Baseline Revisions](./ADR-028-baseline-revisions.md)                                                                                  | Accepted                                                              |
 | 029 | [Webhook Delivery](./ADR-029-webhook-delivery.md)                                                                                      | Accepted                                                              |
 | 030 | [Run Grouping](./ADR-030-run-grouping.md)                                                                                              | Accepted                                                              |
-| 031 | [Users, Roles & Permissions](./ADR-031-users-roles-permissions.md)                                                                     | Accepted                                                              |
+| 031 | [Users, Roles & Permissions](./ADR-031-users-roles-permissions.md)                                                                     | Accepted (per-project ACL alternative replaced by 082)                |
 | 032 | [Image Formats & Size Policy](./ADR-032-image-formats.md)                                                                              | Accepted                                                              |
 | 033 | [Comparison Outcome History](./ADR-033-comparison-outcome-history.md)                                                                  | Accepted (project attribution superseded by 049)                      |
 | 034 | [Auth Hardening](./ADR-034-auth-hardening.md)                                                                                          | Accepted                                                              |
@@ -75,6 +75,7 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 079 | [The Outcome History Has a Retention Window](./ADR-079-outcome-history-retention.md)                                                   | Accepted (narrows 078's unpruned table; replaces 033's follow-up)     |
 | 080 | [Captures Are Explicit Calls, Not Playwright Attachments](./ADR-080-explicit-captures-not-attachments.md)                              | Accepted                                                              |
 | 081 | [Internal Maintenance Tasks May Reuse Public Application Services](./ADR-081-internal-maintenance-may-reuse-public-services.md)        | Accepted (extends 013 §1's exception)                                 |
+| 082 | [Project Access Is Scoped by Team Membership](./ADR-082-team-scoped-project-access.md)                                                 | Accepted (partially supersedes 031's ACL alternative)                 |
 
 ## Numbering
 

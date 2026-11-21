@@ -1,6 +1,10 @@
 import 'reflect-metadata';
 import { createHash } from 'node:crypto';
-import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Mocked } from 'vitest';
@@ -9,16 +13,20 @@ import { API_KEY_SCOPE_KEY } from '@common/http/api-key-scope.decorator';
 import { IS_PUBLIC_KEY } from '@common/http/public.decorator';
 import { IS_SESSION_ONLY_KEY } from '@common/http/session-only.decorator';
 import { ROLES_KEY } from '@common/http/roles.decorator';
+import { PROJECT_ROUTE_KEY } from '@common/http/project-route.decorator';
+import { ALL_PROJECTS } from '@common/domain/project-scope';
 import { AppConfigService } from '@config/app-config.service';
 import { ApiKeyService } from '@internal/auth/api-key.service';
 import { AuthRepository } from '@internal/auth/auth.repository';
 import { AuthenticationGuard } from '@internal/auth/authentication.guard';
 import { createMock } from '@test/utils/create-mock';
+import { ProjectScopeService } from '@internal/teams/project-scope.service';
 
 describe('AuthenticationGuard', () => {
   let guard: AuthenticationGuard;
   let mockRepository: Mocked<AuthRepository>;
   let mockApiKeyService: Mocked<ApiKeyService>;
+  let mockScopes: Mocked<ProjectScopeService>;
 
   const appConfig = {
     auth: {
@@ -32,11 +40,23 @@ describe('AuthenticationGuard', () => {
   } as unknown as AppConfigService;
 
   class TestController {}
+  // Every route declares what it is about projects (ADR-082); the guard refuses
+  // one that does not. `spanning` is the neutral default for the tests that only
+  // care about authentication, authorization or api-key scopes.
   const testHandler = () => {};
+  Reflect.defineMetadata(PROJECT_ROUTE_KEY, 'spanning', testHandler);
   // A GET route that declares the read scope, for the tests that build their
   // own context instead of using apiKeyContext.
   const readScopedHandler = () => {};
   Reflect.defineMetadata(API_KEY_SCOPE_KEY, ['read'], readScopedHandler);
+  Reflect.defineMetadata(PROJECT_ROUTE_KEY, 'spanning', readScopedHandler);
+
+  // A handler with the route metadata a test wants to exercise.
+  function projectRoute(kind: 'scoped' | 'spanning' | 'global') {
+    const handler = () => {};
+    Reflect.defineMetadata(PROJECT_ROUTE_KEY, kind, handler);
+    return handler;
+  }
 
   const response = { cookie: vi.fn() };
 
@@ -74,6 +94,9 @@ describe('AuthenticationGuard', () => {
     response.cookie.mockClear();
     mockRepository = createMock<AuthRepository>();
     mockApiKeyService = createMock<ApiKeyService>();
+    mockScopes = createMock<ProjectScopeService>();
+    mockScopes.forUser.mockResolvedValue(ALL_PROJECTS);
+    mockScopes.forApiKey.mockResolvedValue(ALL_PROJECTS);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -82,6 +105,7 @@ describe('AuthenticationGuard', () => {
         { provide: AuthRepository, useValue: mockRepository },
         { provide: ApiKeyService, useValue: mockApiKeyService },
         { provide: AppConfigService, useValue: appConfig },
+        { provide: ProjectScopeService, useValue: mockScopes },
       ],
     }).compile();
 
@@ -168,6 +192,127 @@ describe('AuthenticationGuard', () => {
       sessionId: 's1',
       role: 'MEMBER',
       mustChangePassword: false,
+      projectScope: ALL_PROJECTS,
+    });
+  });
+
+  it('refuses a session on a project outside its scope, and says 404', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue(
+      mockSession(new Date(Date.now() + 60_000)),
+    );
+    mockRepository.findUserById.mockResolvedValue({
+      id: 'u1',
+      username: 'alice',
+      passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      createdAt: new Date(),
+    });
+    mockScopes.forUser.mockResolvedValue({
+      kind: 'ids',
+      ids: new Set(['p-mine']),
+    });
+    mockRepository.findProjectIdByName.mockImplementation((name: string) =>
+      Promise.resolve(name === 'mine' ? 'p-mine' : 'p-other'),
+    );
+
+    const contextFor = (projectName: string) => {
+      const request = {
+        headers: { cookie: 'vrt_session=tok' },
+        method: 'GET',
+        path: `/api/v1/projects/${projectName}`,
+        params: { projectName },
+      };
+      return {
+        ctx: {
+          getClass: () => TestController,
+          getHandler: () => projectRoute('scoped'),
+          switchToHttp: () => ({
+            getRequest: () => request,
+            getResponse: () => response,
+          }),
+        } as unknown as Parameters<AuthenticationGuard['canActivate']>[0],
+        request,
+      };
+    };
+
+    const mine = contextFor('mine');
+    await expect(guard.canActivate(mine.ctx)).resolves.toBe(true);
+    expect(
+      (mine.request as { auth?: { projectScope?: unknown } }).auth
+        ?.projectScope,
+    ).toEqual({ kind: 'ids', ids: new Set(['p-mine']) });
+
+    // Another team's project is indistinguishable from one that does not exist.
+    await expect(guard.canActivate(contextFor('other').ctx)).rejects.toThrow(
+      NotFoundException,
+    );
+    await expect(guard.canActivate(contextFor('other').ctx)).rejects.toThrow(
+      'Project "other" not found',
+    );
+  });
+
+  it('refuses a route that declares no project scope', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue(
+      mockSession(new Date(Date.now() + 60_000)),
+    );
+    mockRepository.findUserById.mockResolvedValue({
+      id: 'u1',
+      username: 'alice',
+      passwordHash: 'salt:hash',
+      role: 'MEMBER',
+      isActive: true,
+      mustChangePassword: false,
+      deactivatedAt: null,
+      createdBy: null,
+      createdAt: new Date(),
+    });
+    const undeclaredHandler = () => {};
+
+    // Fail closed: an undeclared route is a route nobody decided about.
+    await expect(
+      guard.canActivate(
+        mockContext({ cookie: 'vrt_session=tok' }, undeclaredHandler),
+      ),
+    ).rejects.toThrow(/declares no project scope/);
+  });
+
+  it('refuses an api key whose owner cannot see the project', async () => {
+    mockRepository.findSessionByTokenHash.mockResolvedValue(null);
+    mockApiKeyService.resolveApiKey.mockResolvedValue({
+      id: 'k1',
+      name: 'ci',
+      ownerId: 'u1',
+      ownerRole: 'MEMBER',
+      scopes: ['read'],
+      projectIds: [],
+    });
+    mockScopes.forApiKey.mockResolvedValue({
+      kind: 'ids',
+      ids: new Set(['p-mine']),
+    });
+    mockRepository.findProjectIdByName.mockResolvedValue('p-other');
+
+    await expect(
+      guard.canActivate(
+        apiKeyContext({
+          method: 'GET',
+          path: '/api/v1/projects/other/runs',
+          params: { projectName: 'other' },
+          scope: ['read'],
+          route: 'scoped',
+        }),
+      ),
+    ).rejects.toThrow(/not allowed to access project "other"/);
+    // A key is not a person: its refusal stays a 403, which the CI operator can
+    // read in the log.
+    expect(mockScopes.forApiKey).toHaveBeenCalledWith({
+      ownerId: 'u1',
+      ownerRole: 'MEMBER',
+      allowlist: [],
     });
   });
 
@@ -405,6 +550,7 @@ describe('AuthenticationGuard', () => {
       id: 'k1',
       name: 'ci',
       ownerId: 'u1',
+      ownerRole: 'ADMIN',
       scopes: ['upload', 'read', 'approve'],
       projectIds: [],
     });
@@ -433,6 +579,7 @@ describe('AuthenticationGuard', () => {
       apiKeyId: 'k1',
       scopes: ['upload', 'read', 'approve'],
       projectIds: [],
+      projectScope: ALL_PROJECTS,
     });
   });
 
@@ -577,6 +724,7 @@ describe('AuthenticationGuard', () => {
     path: string;
     params?: Record<string, string>;
     scope?: string[];
+    route?: 'scoped' | 'spanning' | 'global';
   }) {
     const request = {
       headers: { 'x-api-key': 'rawkey' },
@@ -590,6 +738,11 @@ describe('AuthenticationGuard', () => {
     if (options.scope) {
       Reflect.defineMetadata(API_KEY_SCOPE_KEY, options.scope, handler);
     }
+    Reflect.defineMetadata(
+      PROJECT_ROUTE_KEY,
+      options.route ?? 'spanning',
+      handler,
+    );
     return {
       getClass: () => TestController,
       getHandler: () => handler,
@@ -605,6 +758,7 @@ describe('AuthenticationGuard', () => {
       id: 'k1',
       name: 'ci',
       ownerId: 'u1',
+      ownerRole: 'ADMIN',
       scopes: ['upload'],
       projectIds: [],
     });
@@ -625,6 +779,7 @@ describe('AuthenticationGuard', () => {
       id: 'k1',
       name: 'ci',
       ownerId: 'u1',
+      ownerRole: 'ADMIN',
       scopes: ['upload'],
       projectIds: [],
     });
@@ -654,6 +809,7 @@ describe('AuthenticationGuard', () => {
       id: 'k1',
       name: 'ci',
       ownerId: 'u1',
+      ownerRole: 'ADMIN',
       scopes: ['upload', 'read'],
       projectIds: [],
     });
@@ -683,6 +839,7 @@ describe('AuthenticationGuard', () => {
       id: 'k1',
       name: 'ci',
       ownerId: 'u1',
+      ownerRole: 'ADMIN',
       scopes: ['approve'],
       projectIds: [],
     });
@@ -706,6 +863,7 @@ describe('AuthenticationGuard', () => {
       id: 'k1',
       name: 'ci',
       ownerId: 'u1',
+      ownerRole: 'ADMIN',
       scopes: ['read', 'upload', 'approve', 'admin'],
       projectIds: [],
     });
@@ -724,8 +882,15 @@ describe('AuthenticationGuard', () => {
       id: 'k1',
       name: 'ci',
       ownerId: 'u1',
+      ownerRole: 'ADMIN',
       scopes: ['read'],
       projectIds: ['p-allowed'],
+    });
+    // The scope is the resolver's answer: the allowlist intersected with the
+    // owner's own scope.
+    mockScopes.forApiKey.mockResolvedValue({
+      kind: 'ids',
+      ids: new Set(['p-allowed']),
     });
     mockRepository.findProjectIdByName.mockImplementation((name: string) =>
       Promise.resolve(name === 'allowed' ? 'p-allowed' : null),
@@ -738,6 +903,7 @@ describe('AuthenticationGuard', () => {
           path: '/api/v1/projects/other/runs',
           params: { projectName: 'other' },
           scope: ['read'],
+          route: 'scoped',
         }),
       ),
     ).rejects.toThrow(/not allowed to access project "other"/);
@@ -748,6 +914,7 @@ describe('AuthenticationGuard', () => {
           path: '/api/v1/projects/allowed/runs',
           params: { projectName: 'allowed' },
           scope: ['read'],
+          route: 'scoped',
         }),
       ),
     ).resolves.toBe(true);
@@ -767,6 +934,7 @@ describe('AuthenticationGuard', () => {
       id: 'k1',
       name: 'ci',
       ownerId: 'u1',
+      ownerRole: 'ADMIN',
       scopes: ['read'],
       projectIds: ['p-allowed'],
     });
@@ -798,6 +966,7 @@ describe('AuthenticationGuard', () => {
       id: 'k1',
       name: 'ci',
       ownerId: 'u1',
+      ownerRole: 'ADMIN',
       scopes: ['admin'],
       projectIds: [],
     });
@@ -829,6 +998,7 @@ describe('AuthenticationGuard', () => {
       id: 'k1',
       name: 'ci',
       ownerId: 'u1',
+      ownerRole: 'ADMIN',
       scopes: ['upload', 'read', 'approve'],
       projectIds: [],
     });
@@ -846,6 +1016,7 @@ describe('AuthenticationGuard', () => {
   describe('session-only endpoints', () => {
     const sessionOnlyHandler = () => {};
     Reflect.defineMetadata(IS_SESSION_ONLY_KEY, true, sessionOnlyHandler);
+    Reflect.defineMetadata(PROJECT_ROUTE_KEY, 'global', sessionOnlyHandler);
 
     it('rejects a valid api key with 403', async () => {
       mockRepository.findSessionByTokenHash.mockResolvedValue(null);
@@ -853,6 +1024,7 @@ describe('AuthenticationGuard', () => {
         id: 'k1',
         name: 'ci',
         ownerId: 'u1',
+        ownerRole: 'ADMIN',
         scopes: ['upload', 'read', 'approve'],
         projectIds: [],
       });
@@ -870,6 +1042,7 @@ describe('AuthenticationGuard', () => {
         id: 'k1',
         name: 'ci',
         ownerId: 'u1',
+        ownerRole: 'ADMIN',
         scopes: ['upload', 'read', 'approve'],
         projectIds: [],
       });
@@ -922,6 +1095,7 @@ describe('AuthenticationGuard', () => {
         id: 'k1',
         name: 'ci',
         ownerId: 'u1',
+        ownerRole: 'ADMIN',
         scopes: ['upload', 'read', 'approve'],
         projectIds: [],
       });
