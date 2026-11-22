@@ -25,6 +25,7 @@ import { AccountLifecycle } from '@common/http/account-lifecycle.decorator';
 import { PublicEndpoint } from '@common/http/public.decorator';
 import { SessionOnly } from '@common/http/session-only.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { requireProjectScope } from '@common/http/authenticated-principal';
 import { Scope } from '@common/http/api-key-scope.decorator';
 import { GlobalRoute } from '@common/http/project-route.decorator';
 import {
@@ -210,9 +211,10 @@ export class AuthController {
       username: auth.username,
       role: auth.role,
       mustChangePassword: false,
-      seesAllProjects:
-        (await this.projectScopes.forUser(auth.userId, auth.role)).kind ===
-        'all',
+      // The guard already resolved the scope for this request (ADR-082); a
+      // password change neither moves the caller between teams nor changes the
+      // role, so a second resolution would only be a second query.
+      seesAllProjects: requireProjectScope(req).kind === 'all',
       teams: await this.teams.teamsForUser(auth.userId),
     };
   }
