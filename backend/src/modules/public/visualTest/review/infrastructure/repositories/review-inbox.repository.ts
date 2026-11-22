@@ -227,7 +227,10 @@ export class ReviewInboxRepository {
     scope: ProjectScope,
     teamId?: string,
   ): Promise<string[]> {
+    // An empty set is not "no filter": a principal that sees no project has no
+    // branch to choose, and `Prisma.join([])` throws instead of answering `()`.
     const projectIds = scope.kind === 'all' ? null : [...scope.ids];
+    if (projectIds?.length === 0) return [];
     const rows = await this.client.$queryRaw<{ name: string }[]>(Prisma.sql`
       SELECT DISTINCT b.name AS name
       FROM "UnifiedComparison" c

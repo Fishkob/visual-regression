@@ -326,6 +326,17 @@ describe('ReviewInboxRepository', () => {
     expect(sql.values).toEqual(expect.arrayContaining(['team-1']));
   });
 
+  // A principal in no team of a deployment where every project is tagged sees
+  // nothing. `Prisma.join` refuses an empty list, so the empty scope must never
+  // reach the query builder — the endpoint answers "no branches", not a 500.
+  it('offers no branch when the caller sees no project', async () => {
+    await expect(
+      repository.findPendingBranchNames({ kind: 'ids', ids: new Set() }),
+    ).resolves.toEqual([]);
+
+    expect(mockClient.$queryRaw).not.toHaveBeenCalled();
+  });
+
   it('lists the distinct pending branch names', async () => {
     mockClient.$queryRaw.mockResolvedValue([
       { name: 'feature/x' },
