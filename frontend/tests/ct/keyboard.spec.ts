@@ -8,10 +8,16 @@ import {
   REVIEW_INBOX_RESPONSE,
 } from "./mocks/projects.mocks";
 import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
+import { TEAMS_GLOB, TEAMS_RESPONSE } from "./mocks/teams.mocks";
+import {
+  USERS_GLOB,
+  USERS_RESPONSE as TEAM_USERS_RESPONSE,
+} from "./mocks/users.mocks";
 import { API_KEYS_RESPONSE } from "./mocks/apiKeys.mocks";
 import type { AppShell } from "@/AppShell.story.ts";
 import type { Routed as ProjectDetailRouted } from "@/views/ProjectDetailView.story";
 import type { Routed as ProjectSettingsRouted } from "@/views/ProjectSettingsView.story";
+import type { Routed as TeamsRouted } from "@/views/TeamsView.story";
 import { TEST_ID } from "@/lib/test-ids";
 import {
   mockProjectSettings,
@@ -214,6 +220,129 @@ test.describe("API key rotation dialog focus", () => {
     await trigger.click();
 
     const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect.poll(() => focusIsInside(dialog)).toBe(true);
+
+    await page.keyboard.press("Escape");
+
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+});
+
+test.describe("Team create and rename dialog focus", () => {
+  // Team administration is the only place a project's visibility is decided
+  // (ADR-082), and the form is its only way in: an admin who cannot reach it
+  // without a pointer cannot hand out access at all.
+  test("moves focus into the team form and back to its trigger", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      [TEAMS_GLOB, TEAMS_RESPONSE],
+      [USERS_GLOB, TEAM_USERS_RESPONSE],
+    ]);
+
+    const component = await mount<typeof TeamsRouted>(
+      "views/TeamsView/Routed",
+      {
+        initialRoute: "/teams",
+      },
+    );
+    await expect(component.getByTestId(TEST_ID.teamRow).first()).toBeVisible();
+
+    const trigger = component.getByTestId(TEST_ID.newTeam);
+    await trigger.click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(page.getByTestId(TEST_ID.teamNameInput)).toBeFocused();
+    await expect.poll(() => focusIsInside(dialog)).toBe(true);
+
+    for (let stop = 0; stop < 4; stop++) {
+      await page.keyboard.press("Tab");
+      await expect
+        .poll(() => focusIsInside(dialog), {
+          message: `focus left the dialog after tab stop ${stop + 1}`,
+        })
+        .toBe(true);
+    }
+
+    await page.keyboard.press("Escape");
+
+    await expect(dialog).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+});
+
+test.describe("Team members dialog focus", () => {
+  // The member picker is a checkbox list, so it is the one dialog in the admin
+  // surface a keyboard user could plausibly drive alone — if focus lands in it.
+  // The complete set is submitted, so a lost focus also risks a wrong write.
+  test("traps focus in the member picker and closes on Escape", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      [TEAMS_GLOB, TEAMS_RESPONSE],
+      [USERS_GLOB, TEAM_USERS_RESPONSE],
+    ]);
+
+    const component = await mount<typeof TeamsRouted>(
+      "views/TeamsView/Routed",
+      {
+        initialRoute: "/teams",
+      },
+    );
+    const trigger = component.getByTestId(TEST_ID.teamMembers).first();
+    await trigger.click();
+
+    // The picker's own container is the body slot; the dialog's footer buttons
+    // live beside it, so containment is asked of the dialog, not of the body.
+    await expect(page.getByTestId(TEST_ID.teamMembersDialog)).toBeVisible();
+    const dialog = page.getByRole("dialog");
+    await expect.poll(() => focusIsInside(dialog)).toBe(true);
+
+    for (let stop = 0; stop < 6; stop++) {
+      await page.keyboard.press("Tab");
+      await expect
+        .poll(() => focusIsInside(dialog), {
+          message: `focus left the dialog after tab stop ${stop + 1}`,
+        })
+        .toBe(true);
+    }
+
+    await page.keyboard.press("Escape");
+
+    await expect(page.getByTestId(TEST_ID.teamMembersDialog)).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+});
+
+test.describe("Team delete dialog focus", () => {
+  // A destructive confirm that a keyboard user cannot dismiss with Escape is a
+  // trap: the delete is refused with a 409 while the team owns projects, so the
+  // dialog is not always the end of the flow.
+  test("closes the delete confirmation on Escape and returns focus", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      [TEAMS_GLOB, TEAMS_RESPONSE],
+      [USERS_GLOB, TEAM_USERS_RESPONSE],
+    ]);
+
+    const component = await mount<typeof TeamsRouted>(
+      "views/TeamsView/Routed",
+      {
+        initialRoute: "/teams",
+      },
+    );
+    const trigger = component.getByTestId(TEST_ID.teamDelete).first();
+    await trigger.click();
+
+    // A destructive confirm is an alert dialog, not a dialog.
+    const dialog = page.getByRole("alertdialog");
     await expect(dialog).toBeVisible();
     await expect.poll(() => focusIsInside(dialog)).toBe(true);
 
