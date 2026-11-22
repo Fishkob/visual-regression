@@ -72,7 +72,10 @@ export class ProjectGroupsController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a project group' })
   @ApiOkResponse({ description: 'Projects move to Unassigned' })
-  async remove(@Param('id') id: string): Promise<{ success: true }> {
-    return this.groups.delete(id);
+  async remove(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<{ success: true }> {
+    return this.groups.delete(id, requireProjectScope(req));
   }
 }

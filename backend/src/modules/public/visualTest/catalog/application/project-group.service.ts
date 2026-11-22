@@ -21,8 +21,10 @@ export class ProjectGroupService {
     return this.groups.rename(id, name);
   }
 
-  async delete(id: string): Promise<{ success: true }> {
-    await this.groups.delete(id);
+  // The scope rides along because deleting a group is a write across projects:
+  // the FK clears the label on every project in it (ADR-082).
+  async delete(id: string, scope: ProjectScope): Promise<{ success: true }> {
+    await this.groups.delete(id, scope);
     return { success: true };
   }
 }

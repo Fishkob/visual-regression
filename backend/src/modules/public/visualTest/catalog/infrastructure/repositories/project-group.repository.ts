@@ -83,10 +83,29 @@ export class ProjectGroupRepository extends BaseRepository {
     return toSummary(row);
   }
 
-  async delete(id: string): Promise<void> {
-    const group = await this.client.projectGroup.findUnique({ where: { id } });
+  async delete(id: string, scope: ProjectScope): Promise<void> {
+    const group = await this.client.projectGroup.findUnique({
+      where: { id },
+      include: { _count: { select: { projects: true } } },
+    });
     if (!group) {
       throw new DomainError(`Group "${id}" not found`, 'NOT_FOUND');
+    }
+    // Deleting the group clears its label on every project in it (the FK is
+    // `SetNull`), including the projects this caller cannot see — a boundary a
+    // member can cross by deleting a label is not a boundary (ADR-082). The
+    // count of the foreign ones stays unspoken, for the same reason the guard
+    // answers 404 instead of 403: a number confirms what exists.
+    if (scope.kind !== 'all') {
+      const visible = await this.client.project.count({
+        where: { groupId: id, ...projectIdFilter(scope) },
+      });
+      if (visible < group._count.projects) {
+        throw new DomainError(
+          'This group still holds projects you cannot see; an admin has to delete it',
+          'CONFLICT',
+        );
+      }
     }
     await this.client.projectGroup.delete({ where: { id } });
   }

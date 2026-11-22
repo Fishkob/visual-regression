@@ -55,6 +55,9 @@ describe('ProjectGroupService', () => {
 
   it('deletes a group and returns success', async () => {
     groups.delete.mockResolvedValue(undefined);
-    await expect(service.delete('g1')).resolves.toEqual({ success: true });
+    await expect(service.delete('g1', ALL_PROJECTS)).resolves.toEqual({
+      success: true,
+    });
+    expect(groups.delete).toHaveBeenCalledWith('g1', ALL_PROJECTS);
   });
 });
