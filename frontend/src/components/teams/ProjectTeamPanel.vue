@@ -20,8 +20,8 @@ import { TEST_ID } from "@/lib/test-ids";
 const SHARED = "__shared__";
 
 // Admin-only surface, mounted by the settings page behind `isAdmin`: the team
-// read is an ADMIN route, and ownership does not change anything a MEMBER can do
-// yet (the scoping it implies is a later step).
+// read is an ADMIN route, and ownership decides which members can open the
+// project at all (ADR-082).
 const props = defineProps<{ projectName: string }>();
 
 const { t } = useI18n();

@@ -109,8 +109,8 @@ function handleRenamed(name: string) {
 
     <!-- Ownership sits next to the name: the team is what decides who sees the
     project at all, and it is a governance setting an ADMIN owns, not a normal
-    project edit. The panel shows every caller the current owner and only
-    renders the control for an admin. -->
+    project edit. The team read and the assignment are ADMIN routes, so the panel
+    renders only for an admin. -->
     <ProjectTeamPanel v-if="isAdmin" :project-name="projectName" />
 
     <section

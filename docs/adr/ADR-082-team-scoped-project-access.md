@@ -15,6 +15,14 @@ surface they do not have, and a declaration that is false is worse than none. Th
 requirement is unchanged: a route declares exactly one kind and the contract test
 refuses a route without one.
 
+Amended 2026-11-22: two sentences had become false without a decision changing.
+The landing order no longer restates which steps have landed (the roadmap owns
+status), and the audit consequence no longer claims a scope filter — the trail is
+`ADMIN`-only, so it needs none. One deviation is named rather than fixed:
+decision 2's "the project settings page must say so" holds for an `ADMIN` only,
+because that panel reads the admin-only team list; a `MEMBER` sees which projects
+they may open, not who owns them.
+
 Enforced by: `ProjectScope` as a required (non-optional) parameter on every
 project-spanning read (compile error when omitted, like `actor: string`), the
 route metadata `@ProjectScoped()` / `@ProjectSpanning()` checked by
@@ -180,9 +188,10 @@ of one global role do today.
   because deleting the team would silently turn its products into shared ones.
   The service answers `409` with the count; the operator moves the projects
   first.
-- **Audit and approval rows** already carry `projectId` (ADR-061), so the audit
-  read filters by scope without a name lookup. User-administration rows have no
-  project and stay `ADMIN`-only.
+- **Audit and approval rows** already carry `projectId` (ADR-061), so a scope
+  filter would need no name lookup. No such filter is applied to the audit read:
+  the trail is `ADMIN`-only, whose scope is everything. User-administration rows
+  have no project and stay `ADMIN`-only.
 - **The frontend mirrors, it does not enforce**: `/auth/me` carries the caller's
   teams and whether it sees everything; nav, the inbox's project filter and the
   empty states read that. A stale UI is still handled as an error, never as
@@ -198,10 +207,9 @@ of one global role do today.
 
 ## Landing order
 
-Nothing below may ship half-applied; each step leaves a green gate. (Steps 1–4
-are the code as it stands, except the inbox's team _lens_ — the `teamId` filter is
-in the API and tested, its control in the filter bar is not built; step 5 is the
-documentation close-out.)
+Nothing below may ship half-applied; each step leaves a green gate. Step 5 is the
+documentation close-out, and which steps have landed is
+[`docs/roadmap.md`](../roadmap.md)'s answer — not this one's.
 
 1. Schema, migration, `Team`/`TeamMember` administration (session-only, admin,
    audited) and the project→team assignment on the project settings page.
@@ -210,8 +218,9 @@ documentation close-out.)
    named-project routes outside the scope, and the API-key allowlist moves onto
    the same primitive. (At this point a member and a key see the same set.)
 3. The project-spanning reads: inbox, project list and counts, search, groups,
-   audit, assignments — each with a repository policy test and one e2e case
-   proving a foreign project is absent, not merely unopened.
+   assignments — each with a repository policy test and one e2e case proving a
+   foreign project is absent, not merely unopened. The audit trail stays
+   `ADMIN`-only and needs no filter.
 4. The frontend: `/me`, team admin screens, the inbox's team lens, empty states.
 5. Documentation: `CONTEXT.md` term + `Group` amendment, `docs/permissions.md`
    scope column, and moving this item out of the roadmap's candidates.

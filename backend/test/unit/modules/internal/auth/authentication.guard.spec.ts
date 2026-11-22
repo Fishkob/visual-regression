@@ -939,8 +939,9 @@ describe('AuthenticationGuard', () => {
       projectIds: ['p-allowed'],
     });
 
-    // Neither route names a project, so an allowlist cannot filter them: they
-    // used to return every project's pending work and group list.
+    // Neither route names a project, so the allowlist cannot narrow the answer
+    // itself — the scope filter would, but a key that declared its projects is
+    // refused the cross-project surface instead of being handed a page of it.
     await expect(
       guard.canActivate(
         apiKeyContext({

@@ -8,11 +8,10 @@ import { hashPassword } from '@internal/auth/password-hasher';
 import { hashToken } from '@internal/auth/token-hash';
 import { AppConfigService } from '@config/app-config.service';
 
-// The enforcement half of ADR-082 (landing step 2): a route that names a project
-// is refused outside the caller's scope, and "not yours" is indistinguishable
-// from "does not exist". The list reads are narrowed in the next step, so this
-// suite also pins that gap on purpose — when the inbox and the project list learn
-// the scope, those expectations have to change with it.
+// The enforcement half of ADR-082: a route that names a project is refused
+// outside the caller's scope, and "not yours" is indistinguishable from "does not
+// exist". The list reads are narrowed by the same scope, and each surface below
+// asserts that a foreign project is absent rather than merely unopened.
 describe('Team-scoped project access (e2e)', () => {
   let app: INestApplication;
   let db: PrismaClient;
@@ -206,8 +205,9 @@ describe('Team-scoped project access (e2e)', () => {
 
     await withKey('/api/v1/projects/checkout-ui').expect(200);
     await withKey('/api/v1/projects/billing-api').expect(403);
-    // A cross-project read cannot be filtered yet, so a restricted key stays out
-    // of it — the rule the path table used to encode.
+    // A key that named its projects is refused the cross-project reads even
+    // though they are filtered: the narrower answer is the one the allowlist
+    // asked for, and a key cannot widen itself back into the inbox.
     await withKey('/api/v1/review/pending').expect(403);
   });
 
@@ -282,7 +282,10 @@ describe('Team-scoped project access (e2e)', () => {
       `/api/v1/review/pending?teamId=${billing.id}`,
     ).expect(200);
     expect(foreign.body.data).toEqual([]);
-    await asMember(`/api/v1/review/branches?teamId=${billing.id}`).expect([]);
+    const foreignBranches = await asMember(
+      `/api/v1/review/branches?teamId=${billing.id}`,
+    ).expect(200);
+    expect(foreignBranches.body).toEqual([]);
 
     // An admin may use the lens to walk one team's queue.
     const asAdminBilling = await asAdmin(

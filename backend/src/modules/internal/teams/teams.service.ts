@@ -24,9 +24,7 @@ export interface ProjectTeamView {
 // Team administration (ADR-082). Every write is transaction-riding and audited —
 // membership and project ownership decide who may see which product, so a change
 // without a record of who made it is the one thing this surface must not
-// produce. Nothing here narrows a read yet: the enforcement half is a separate
-// step, and until it lands `Project.teamId = null` and a tagged project behave
-// identically.
+// produce.
 @Injectable()
 export class TeamsService {
   constructor(

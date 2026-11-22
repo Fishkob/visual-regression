@@ -53,26 +53,26 @@ team.
 
 Steps 1–4 have landed: the schema and the admin API, the one predicate with its
 route declarations and the guard, the list reads, and the frontend (the Teams
-page, the project settings panel, `seesAllProjects`, the honest empty states).
-Two things are left in step 4 — the inbox's team _lens_ (the API and its filter
-exist and are tested, the filter control does not ship yet) — and step 5, which
-moves this row to **Shipped**.
+page, the project settings panel, `seesAllProjects`, the inbox's team _lens_ and
+its filter control, the honest empty states). What is left is step 5, which moves
+this row to **Shipped**.
 
 Each step is green on its own:
 
 1. **Schema and administration** — `Team`, `TeamMember`, `Project.teamId`
    (`onDelete: Restrict`), admin-only session-only CRUD, the project→team
-   assignment in the project settings, audited (`team.create`,
-   `team.member-*`, `team.project-assign`, `team.delete`). No enforcement yet.
+   assignment in the project settings, audited (`team.create`, `team.update`,
+   `team.members`, `team.project-assign`, `team.delete`). No enforcement yet.
 2. **One predicate** — `ProjectScope` (`'all'` | ids) resolved once per request;
    route metadata `@ProjectScoped()` / `@ProjectSpanning()` with a contract test
    over `swagger.json`; the guard refuses a foreign `:projectName` with **404**
    (not 403 — a project name is guessable) and the API-key allowlist moves onto
    the same primitive, intersected with its owner's scope.
 3. **The list reads** — review inbox and its branch list, project list and its
-   pending counts, global search, group counts, audit, assignments; each read
-   takes `scope: ProjectScope` as a required argument, so omitting it does not
-   compile. One e2e case per surface proving a foreign project is _absent_.
+   pending counts, global search, group counts, assignments; each read takes
+   `scope: ProjectScope` as a required argument, so omitting it does not compile.
+   One e2e case per surface proving a foreign project is _absent_. The audit
+   trail is not one of them: it is `ADMIN`-only and needs no filter.
 4. **The frontend** — `/auth/me` carries the caller's teams and a
    `seesAllProjects` flag; team administration screens; the inbox's team lens and
    the empty states ("your team has no projects yet", not a create button).

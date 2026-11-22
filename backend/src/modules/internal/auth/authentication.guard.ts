@@ -176,10 +176,11 @@ export class AuthenticationGuard implements CanActivate {
       throw new ForbiddenException('This endpoint declares no project scope');
     }
     if (kind !== 'scoped') {
-      // A key restricted to specific projects cannot be handed a cross-project
-      // answer yet: the list reads are narrowed in the next step. Declared, not
-      // guessed — this is the rule the path regex used to encode, minus the
-      // path.
+      // A key that named its projects is refused every cross-project answer, even
+      // the reads that are filtered by the scope: the allowlist asked for a
+      // narrower surface than "the inbox of my projects", and a refusal cannot
+      // turn into a leak the way an unfiltered list can. Declared, not guessed —
+      // this is the rule the path regex used to encode, minus the path.
       if (
         principalType === 'apiKey' &&
         (request.auth?.projectIds?.length ?? 0)
