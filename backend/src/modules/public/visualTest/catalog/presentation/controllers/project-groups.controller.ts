@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -15,6 +16,9 @@ import {
 } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { AuthenticatedRequest } from '@common/http/authenticated-request';
+import { requireProjectScope } from '@common/http/authenticated-principal';
+import { ProjectSpanning } from '@common/http/project-route.decorator';
 import { ProjectGroupService } from '@public/visualTest/catalog/application/project-group.service';
 import {
   CreateProjectGroupDto,
@@ -23,6 +27,7 @@ import {
 } from '@public/visualTest/catalog/presentation/dto/project-group.dto';
 
 @ApiTags('Groups')
+@ProjectSpanning()
 @Controller('groups')
 export class ProjectGroupsController {
   constructor(private readonly groups: ProjectGroupService) {}
@@ -31,8 +36,8 @@ export class ProjectGroupsController {
   @Get()
   @ApiOperation({ summary: 'List project groups' })
   @ApiOkResponse({ type: [ProjectGroupDto] })
-  async findAll(): Promise<ProjectGroupDto[]> {
-    const rows = await this.groups.findAll();
+  async findAll(@Req() req: AuthenticatedRequest): Promise<ProjectGroupDto[]> {
+    const rows = await this.groups.findAll(requireProjectScope(req));
     return rows.map((row) =>
       plainToInstance(ProjectGroupDto, row, { excludeExtraneousValues: true }),
     );
@@ -67,7 +72,10 @@ export class ProjectGroupsController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a project group' })
   @ApiOkResponse({ description: 'Projects move to Unassigned' })
-  async remove(@Param('id') id: string): Promise<{ success: true }> {
-    return this.groups.delete(id);
+  async remove(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<{ success: true }> {
+    return this.groups.delete(id, requireProjectScope(req));
   }
 }

@@ -1,4 +1,5 @@
 import { UnauthorizedException } from '@nestjs/common';
+import type { ProjectScope } from '@common/domain/project-scope';
 import type { Principal } from '@common/domain/principal';
 import type { AuthenticatedRequest } from './authenticated-request';
 
@@ -55,4 +56,16 @@ export function requireUserActor(req: AuthenticatedRequest): {
     throw new UnauthorizedException('This action requires a signed-in user');
   }
   return { id: principal.principalId, username: principal.username };
+}
+
+// The caller's project scope, resolved once by the global guard. There is no
+// fallback to "all" on purpose: a route that reads projects without a scope
+// would be a leak, so a missing scope fails instead of widening.
+export function requireProjectScope(req: AuthenticatedRequest): ProjectScope {
+  requireAuthenticatedPrincipal(req);
+  const scope = req.auth?.projectScope;
+  if (!scope) {
+    throw new UnauthorizedException('Authentication required');
+  }
+  return scope;
 }

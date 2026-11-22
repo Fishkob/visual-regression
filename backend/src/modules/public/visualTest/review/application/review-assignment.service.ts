@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaUnitOfWork } from '@/prisma/prisma-unit-of-work';
 import { DomainError } from '@common/domain/domain-error';
+import type { ProjectScope } from '@common/domain/project-scope';
 import { AuditService } from '@internal/audit/audit.service';
 import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import { AuthRepository } from '@internal/auth/auth.repository';
@@ -149,16 +150,24 @@ export class ReviewAssignmentService {
 
   async mine(
     assigneeId: string,
-    includeCompleted = false,
+    includeCompleted: boolean,
+    scope: ProjectScope,
   ): Promise<AssignmentView[]> {
     return (
-      await this.assignments.listForAssignee(assigneeId, includeCompleted)
+      await this.assignments.listForAssignee(
+        assigneeId,
+        includeCompleted,
+        scope,
+      )
     ).map((row) => this.toView(row));
   }
 
-  async overdue(assigneeId: string): Promise<AssignmentView[]> {
-    return (await this.assignments.overdue(assigneeId, new Date())).map((row) =>
-      this.toView(row),
+  async overdue(
+    assigneeId: string,
+    scope: ProjectScope,
+  ): Promise<AssignmentView[]> {
+    return (await this.assignments.overdue(assigneeId, new Date(), scope)).map(
+      (row) => this.toView(row),
     );
   }
 

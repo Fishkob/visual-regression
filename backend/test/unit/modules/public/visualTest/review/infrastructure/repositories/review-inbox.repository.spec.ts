@@ -1,6 +1,7 @@
 import type { Mocked } from 'vitest';
 import { PrismaConnection } from '@/prisma/prisma-connection';
 import { ReviewInboxRepository } from '@public/visualTest/review/infrastructure/repositories/review-inbox.repository';
+import { ALL_PROJECTS } from '@common/domain/project-scope';
 import { createMock } from '@test/utils/create-mock';
 
 function makeMockClient() {
@@ -70,7 +71,11 @@ describe('ReviewInboxRepository', () => {
       { projectName: 'checkout-ui', branchName: 'feature/x', count: 2n },
     ]);
 
-    const result = await repository.findPending();
+    const result = await repository.findPending(
+      undefined,
+      undefined,
+      ALL_PROJECTS,
+    );
 
     expect(result.total).toBe(1);
     expect(result.data[0]).toEqual({
@@ -119,7 +124,11 @@ describe('ReviewInboxRepository', () => {
       { projectName: 'checkout-ui', branchName: 'main', count: 1n },
     ]);
 
-    const result = await repository.findPending();
+    const result = await repository.findPending(
+      undefined,
+      undefined,
+      ALL_PROJECTS,
+    );
 
     expect(result.data[0]).toMatchObject({
       branchName: 'main',
@@ -135,7 +144,11 @@ describe('ReviewInboxRepository', () => {
     mockClient.unifiedComparison.findMany.mockResolvedValue([]);
     mockClient.unifiedComparison.count.mockResolvedValue(0);
 
-    await repository.findPending(undefined, { projectName: 'checkout-ui' });
+    await repository.findPending(
+      undefined,
+      { projectName: 'checkout-ui' },
+      ALL_PROJECTS,
+    );
 
     expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -153,7 +166,11 @@ describe('ReviewInboxRepository', () => {
     mockClient.unifiedComparison.findMany.mockResolvedValue([]);
     mockClient.unifiedComparison.count.mockResolvedValue(0);
 
-    await repository.findPending(undefined, { branchName: 'feature/old' });
+    await repository.findPending(
+      undefined,
+      { branchName: 'feature/old' },
+      ALL_PROJECTS,
+    );
 
     expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -173,7 +190,11 @@ describe('ReviewInboxRepository', () => {
       { projectName: 'checkout-ui', branchName: 'feature/x', count: 1n },
     ]);
 
-    await repository.findPending(undefined, { branchName: 'feature/old' });
+    await repository.findPending(
+      undefined,
+      { branchName: 'feature/old' },
+      ALL_PROJECTS,
+    );
 
     // The page narrowed to the named branch; the count has to narrow the same
     // way instead of applying the archived exclusion — otherwise the project
@@ -189,7 +210,7 @@ describe('ReviewInboxRepository', () => {
     mockClient.unifiedComparison.findMany.mockResolvedValue([row()]);
     mockClient.$queryRaw.mockResolvedValue([]);
 
-    await repository.findPending();
+    await repository.findPending(undefined, undefined, ALL_PROJECTS);
 
     const sql = (
       mockClient.$queryRaw.mock.calls[0]![0] as { strings: readonly string[] }
@@ -201,11 +222,11 @@ describe('ReviewInboxRepository', () => {
     mockClient.unifiedComparison.findMany.mockResolvedValue([]);
     mockClient.unifiedComparison.count.mockResolvedValue(0);
 
-    await repository.findPending(undefined, {
-      kind: 'pdf',
-      groupId: 'unassigned',
-      q: 'login',
-    });
+    await repository.findPending(
+      undefined,
+      { kind: 'pdf', groupId: 'unassigned', q: 'login' },
+      ALL_PROJECTS,
+    );
 
     expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -230,23 +251,112 @@ describe('ReviewInboxRepository', () => {
     );
   });
 
+  it('filters the queue to the caller’s projects', async () => {
+    mockClient.unifiedComparison.findMany.mockResolvedValue([]);
+    mockClient.unifiedComparison.count.mockResolvedValue(0);
+
+    await repository.findPending(undefined, undefined, {
+      kind: 'ids',
+      ids: new Set(['p-1', 'p-shared']),
+    });
+
+    expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          test: expect.objectContaining({
+            branch: expect.objectContaining({
+              project: { id: { in: ['p-1', 'p-shared'] } },
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('applies the team lens inside the scope', async () => {
+    mockClient.unifiedComparison.findMany.mockResolvedValue([]);
+    mockClient.unifiedComparison.count.mockResolvedValue(0);
+
+    await repository.findPending(
+      undefined,
+      { teamId: 'team-1' },
+      { kind: 'ids', ids: new Set(['p-1', 'p-2']) },
+    );
+
+    // Both conditions, not either: the lens narrows what the scope allowed.
+    expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          test: expect.objectContaining({
+            branch: expect.objectContaining({
+              project: { id: { in: ['p-1', 'p-2'] }, teamId: 'team-1' },
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('confines the branch list to the caller’s projects', async () => {
+    mockClient.$queryRaw.mockResolvedValue([]);
+
+    await repository.findPendingBranchNames({
+      kind: 'ids',
+      ids: new Set(['p-1', 'p-shared']),
+    });
+
+    const sql = mockClient.$queryRaw.mock.calls[0]![0] as {
+      strings: readonly string[];
+      values: readonly unknown[];
+    };
+    expect(sql.strings.join('?')).toContain('p.id IN');
+    expect(sql.values).toEqual(expect.arrayContaining(['p-1', 'p-shared']));
+  });
+
+  it('applies the team lens to the branch list too', async () => {
+    mockClient.$queryRaw.mockResolvedValue([]);
+
+    await repository.findPendingBranchNames(ALL_PROJECTS, 'team-1');
+
+    const sql = mockClient.$queryRaw.mock.calls[0]![0] as {
+      strings: readonly string[];
+      values: readonly unknown[];
+    };
+    expect(sql.strings.join('?')).toContain('p."teamId" =');
+    expect(sql.values).toEqual(expect.arrayContaining(['team-1']));
+  });
+
+  // A principal in no team of a deployment where every project is tagged sees
+  // nothing. `Prisma.join` refuses an empty list, so the empty scope must never
+  // reach the query builder — the endpoint answers "no branches", not a 500.
+  it('offers no branch when the caller sees no project', async () => {
+    await expect(
+      repository.findPendingBranchNames({ kind: 'ids', ids: new Set() }),
+    ).resolves.toEqual([]);
+
+    expect(mockClient.$queryRaw).not.toHaveBeenCalled();
+  });
+
   it('lists the distinct pending branch names', async () => {
     mockClient.$queryRaw.mockResolvedValue([
       { name: 'feature/x' },
       { name: 'main' },
     ]);
 
-    await expect(repository.findPendingBranchNames()).resolves.toEqual([
-      'feature/x',
-      'main',
-    ]);
+    await expect(
+      repository.findPendingBranchNames(ALL_PROJECTS),
+    ).resolves.toEqual(['feature/x', 'main']);
   });
 
   it('applies pagination', async () => {
     mockClient.unifiedComparison.findMany.mockResolvedValue([]);
     mockClient.unifiedComparison.count.mockResolvedValue(0);
 
-    await repository.findPending({ skip: 10, take: 5 });
+    await repository.findPending(
+      { skip: 10, take: 5 },
+      undefined,
+      ALL_PROJECTS,
+    );
 
     expect(mockClient.unifiedComparison.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ skip: 10, take: 5 }),

@@ -55,6 +55,7 @@ describe("AppSidebar role visibility", () => {
     const wrapper = mountSidebar("ADMIN");
 
     expect(has(wrapper, TEST_ID.usersNavLink)).toBe(true);
+    expect(has(wrapper, TEST_ID.navTeams)).toBe(true);
     expect(has(wrapper, TEST_ID.navApiKeys)).toBe(true);
     expect(has(wrapper, TEST_ID.auditNavLink)).toBe(true);
     // The pages every role can open stay visible.
@@ -69,6 +70,7 @@ describe("AppSidebar role visibility", () => {
     const wrapper = mountSidebar("MEMBER");
 
     expect(has(wrapper, TEST_ID.usersNavLink)).toBe(false);
+    expect(has(wrapper, TEST_ID.navTeams)).toBe(false);
     expect(has(wrapper, TEST_ID.navApiKeys)).toBe(false);
     expect(has(wrapper, TEST_ID.auditNavLink)).toBe(false);
     expect(has(wrapper, TEST_ID.navInbox)).toBe(true);
@@ -79,6 +81,7 @@ describe("AppSidebar role visibility", () => {
     const wrapper = mountSidebar("VIEWER");
 
     expect(has(wrapper, TEST_ID.usersNavLink)).toBe(false);
+    expect(has(wrapper, TEST_ID.navTeams)).toBe(false);
     expect(has(wrapper, TEST_ID.navApiKeys)).toBe(false);
     expect(has(wrapper, TEST_ID.auditNavLink)).toBe(false);
     expect(has(wrapper, TEST_ID.navProjects)).toBe(true);

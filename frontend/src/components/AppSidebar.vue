@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   UserCog,
   Users,
+  UsersRound,
   PanelLeftClose,
   PanelLeftOpen,
   Menu,
@@ -51,6 +52,7 @@ const onProjects = computed(
 const onGroups = computed(
   () => route.path === "/groups" || route.path.startsWith("/groups/"),
 );
+const onTeams = computed(() => route.path === "/teams");
 const onApiKeys = computed(() => route.path === "/api-keys");
 const onAudit = computed(() => route.path === "/audit");
 const onUsers = computed(() => route.path === "/users");
@@ -186,6 +188,23 @@ const pending = computed(() => pendingCount.value ?? 0);
       >
         <Users class="h-4 w-4 shrink-0" />
         <span :class="collapsed ? 'md:hidden' : ''">{{ t("nav.groups") }}</span>
+      </RouterLink>
+
+      <RouterLink
+        v-if="isAdmin"
+        to="/teams"
+        class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+        :class="[
+          { 'bg-muted text-foreground': onTeams },
+          collapsed ? 'md:justify-center md:px-0' : '',
+        ]"
+        :aria-current="onTeams ? 'page' : undefined"
+        :aria-label="collapsed ? t('nav.teams') : undefined"
+        :title="collapsed ? t('nav.teams') : undefined"
+        :data-testid="TEST_ID.navTeams"
+      >
+        <UsersRound class="h-4 w-4 shrink-0" />
+        <span :class="collapsed ? 'md:hidden' : ''">{{ t("nav.teams") }}</span>
       </RouterLink>
 
       <RouterLink

@@ -55,6 +55,14 @@ export class ReviewInboxPaginationDto extends BranchPaginationDto {
 
   @ApiPropertyOptional({
     description:
+      'Team id: only the projects this team owns. An id outside the caller’s scope matches nothing.',
+  })
+  @IsOptional()
+  @IsString()
+  teamId?: string;
+
+  @ApiPropertyOptional({
+    description:
       'Case-insensitive search across the test name and the project name',
   })
   @IsOptional()

@@ -23,9 +23,11 @@ import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { BranchQuery } from '@common/http/branch-query.decorator';
 import { Scope } from '@common/http/api-key-scope.decorator';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import { PaginatedResponseDto } from '@common/dto/paginated-response.dto';
 
 @ApiTags('Tests')
+@ProjectScoped()
 @Controller('projects/:projectName/tests')
 export class TestsQueriesController {
   constructor(private readonly testQuery: TestQueryService) {}

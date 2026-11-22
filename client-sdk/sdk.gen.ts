@@ -127,6 +127,9 @@ import type { ProjectsControllerUpdatePixelThresholdErrors } from './models/Proj
 import type { ProjectsControllerUpdatePixelThresholdResponses } from './models/ProjectsControllerUpdatePixelThresholdResponses.gen';
 import type { ProjectsControllerUpdateProjectData } from './models/ProjectsControllerUpdateProjectData.gen';
 import type { ProjectsControllerUpdateProjectResponses } from './models/ProjectsControllerUpdateProjectResponses.gen';
+import type { ProjectTeamControllerAssignData } from './models/ProjectTeamControllerAssignData.gen';
+import type { ProjectTeamControllerAssignErrors } from './models/ProjectTeamControllerAssignErrors.gen';
+import type { ProjectTeamControllerAssignResponses } from './models/ProjectTeamControllerAssignResponses.gen';
 import type { PublicShareControllerResolveData } from './models/PublicShareControllerResolveData.gen';
 import type { PublicShareControllerResolveResponses } from './models/PublicShareControllerResolveResponses.gen';
 import type { PublicUserInviteControllerPreviewData } from './models/PublicUserInviteControllerPreviewData.gen';
@@ -176,6 +179,16 @@ import type { StorageControllerPreviewRetentionResponses } from './models/Storag
 import type { StorageControllerUpdateData } from './models/StorageControllerUpdateData.gen';
 import type { StorageControllerUpdateErrors } from './models/StorageControllerUpdateErrors.gen';
 import type { StorageControllerUpdateResponses } from './models/StorageControllerUpdateResponses.gen';
+import type { TeamsControllerCreateData } from './models/TeamsControllerCreateData.gen';
+import type { TeamsControllerCreateResponses } from './models/TeamsControllerCreateResponses.gen';
+import type { TeamsControllerListData } from './models/TeamsControllerListData.gen';
+import type { TeamsControllerListResponses } from './models/TeamsControllerListResponses.gen';
+import type { TeamsControllerRemoveData } from './models/TeamsControllerRemoveData.gen';
+import type { TeamsControllerRemoveResponses } from './models/TeamsControllerRemoveResponses.gen';
+import type { TeamsControllerRenameData } from './models/TeamsControllerRenameData.gen';
+import type { TeamsControllerRenameResponses } from './models/TeamsControllerRenameResponses.gen';
+import type { TeamsControllerReplaceMembersData } from './models/TeamsControllerReplaceMembersData.gen';
+import type { TeamsControllerReplaceMembersResponses } from './models/TeamsControllerReplaceMembersResponses.gen';
 import type { TestCommandsControllerDeleteVisualTestData } from './models/TestCommandsControllerDeleteVisualTestData.gen';
 import type { TestCommandsControllerDeleteVisualTestResponses } from './models/TestCommandsControllerDeleteVisualTestResponses.gen';
 import type { TestCommandsControllerUpdateThresholdData } from './models/TestCommandsControllerUpdateThresholdData.gen';
@@ -803,6 +816,100 @@ export const authControllerChangePassword = <ThrowOnError extends boolean = fals
             type: 'apiKey'
         }],
     url: '/auth/change-password',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List teams with members and owned projects
+ */
+export const teamsControllerList = <ThrowOnError extends boolean = false>(options?: Options<TeamsControllerListData, ThrowOnError>): RequestResult<TeamsControllerListResponses, unknown, ThrowOnError> => (options?.client ?? client).get<TeamsControllerListResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/teams',
+    ...options
+});
+
+/**
+ * Create a team
+ */
+export const teamsControllerCreate = <ThrowOnError extends boolean = false>(options: Options<TeamsControllerCreateData, ThrowOnError>): RequestResult<TeamsControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<TeamsControllerCreateResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/teams',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete a team that owns no projects
+ */
+export const teamsControllerRemove = <ThrowOnError extends boolean = false>(options: Options<TeamsControllerRemoveData, ThrowOnError>): RequestResult<TeamsControllerRemoveResponses, unknown, ThrowOnError> => (options.client ?? client).delete<TeamsControllerRemoveResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/teams/{id}',
+    ...options
+});
+
+/**
+ * Rename a team
+ */
+export const teamsControllerRename = <ThrowOnError extends boolean = false>(options: Options<TeamsControllerRenameData, ThrowOnError>): RequestResult<TeamsControllerRenameResponses, unknown, ThrowOnError> => (options.client ?? client).patch<TeamsControllerRenameResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/teams/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Replace the member set of a team
+ */
+export const teamsControllerReplaceMembers = <ThrowOnError extends boolean = false>(options: Options<TeamsControllerReplaceMembersData, ThrowOnError>): RequestResult<TeamsControllerReplaceMembersResponses, unknown, ThrowOnError> => (options.client ?? client).put<TeamsControllerReplaceMembersResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/teams/{id}/members',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Assign a project to a team, or null to make it shared
+ */
+export const projectTeamControllerAssign = <ThrowOnError extends boolean = false>(options: Options<ProjectTeamControllerAssignData, ThrowOnError>): RequestResult<ProjectTeamControllerAssignResponses, ProjectTeamControllerAssignErrors, ThrowOnError> => (options.client ?? client).patch<ProjectTeamControllerAssignResponses, ProjectTeamControllerAssignErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/team',
     ...options,
     headers: {
         'Content-Type': 'application/json',

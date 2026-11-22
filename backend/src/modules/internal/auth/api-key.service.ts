@@ -285,6 +285,9 @@ export class ApiKeyService {
     id: string;
     name: string;
     ownerId: string | null;
+    // The owner's role is what the guard needs to resolve the key's project
+    // scope: an admin-owned key inherits an unrestricted scope (ADR-082).
+    ownerRole: 'ADMIN' | 'MEMBER' | 'VIEWER' | null;
     scopes: ApiKeyScope[];
     projectIds: string[];
   } | null> {
@@ -295,6 +298,7 @@ export class ApiKeyService {
       id: row.id,
       name: row.name,
       ownerId: row.ownerId,
+      ownerRole: row.owner?.role ?? null,
       scopes: row.scopes as ApiKeyScope[],
       projectIds: row.projectIds,
     };

@@ -26,9 +26,10 @@ including tests, docs and review (`S` ≈ 1–3 days, `M` ≈ 1–2 weeks, `L` �
 2–4 weeks). `Priority` is `now` (next up), `on demand` (starts when a deployment
 asks for it) or `trigger` (starts when the named condition holds).
 
-| ID  | Item               | Why now / who asks                                                          | Size | Priority  |
-| --- | ------------------ | --------------------------------------------------------------------------- | ---- | --------- |
-| N10 | Variant-level mute | Mute is per test, so one flaky variant silences every variant of that test. | M    | on demand |
+| ID  | Item                       | Why now / who asks                                                               | Size | Priority  |
+| --- | -------------------------- | -------------------------------------------------------------------------------- | ---- | --------- |
+| N10 | Variant-level mute         | Mute is per test, so one flaky variant silences every variant of that test.      | M    | on demand |
+| N14 | Team-scoped project access | A reviewer on one product sees every product's baselines, inbox and audit trail. | L    | now       |
 
 SSO is not a candidate: a header a proxy supplies looks like the cheap path, but
 it makes the API's network boundary the security boundary, so it is rejected
@@ -39,6 +40,51 @@ N10 lost its second half: the run gate no longer counts a muted pending
 comparison (`run-state.policy.ts` subtracts `mutedPending`), so muted work already
 does not fail a run. What remains is granularity — a test-level mute covers every
 variant, and a variant that is known-unstable cannot be muted on its own.
+
+### N14 — team-scoped project access
+
+The decision is [ADR-082](adr/ADR-082-team-scoped-project-access.md); this is how
+it lands. A project belongs to at most one team (`Project.teamId`, nullable and
+indexed), a user joins teams, and the union of the user's teams plus every
+untagged project is what the principal may see. `Project.teamId = null` means
+_shared_, which is what makes the upgrade a no-op: the migration tags nothing and
+every existing project stays visible to everybody until an operator assigns a
+team.
+
+Steps 1–4 have landed: the schema and the admin API, the one predicate with its
+route declarations and the guard, the list reads, and the frontend (the Teams
+page, the project settings panel, `seesAllProjects`, the inbox's team _lens_ and
+its filter control, the honest empty states). What is left is step 5, which moves
+this row to **Shipped**.
+
+Each step is green on its own:
+
+1. **Schema and administration** — `Team`, `TeamMember`, `Project.teamId`
+   (`onDelete: Restrict`), admin-only session-only CRUD, the project→team
+   assignment in the project settings, audited (`team.create`, `team.update`,
+   `team.members`, `team.project-assign`, `team.delete`). No enforcement yet.
+2. **One predicate** — `ProjectScope` (`'all'` | ids) resolved once per request;
+   route metadata `@ProjectScoped()` / `@ProjectSpanning()` with a contract test
+   over `swagger.json`; the guard refuses a foreign `:projectName` with **404**
+   (not 403 — a project name is guessable) and the API-key allowlist moves onto
+   the same primitive, intersected with its owner's scope.
+3. **The list reads** — review inbox and its branch list, project list and its
+   pending counts, global search, group counts, assignments; each read takes
+   `scope: ProjectScope` as a required argument, so omitting it does not compile.
+   One e2e case per surface proving a foreign project is _absent_. The audit
+   trail is not one of them: it is `ADMIN`-only and needs no filter.
+4. **The frontend** — `/auth/me` carries the caller's teams and a
+   `seesAllProjects` flag; team administration screens; the inbox's team lens and
+   the empty states ("your team has no projects yet", not a create button).
+5. **The documentation** — `CONTEXT.md` gains `Team` and amends `Group` to say
+   access is scoped by teams; `docs/permissions.md` gains the scope dimension;
+   this row moves to **Shipped**.
+
+Deliberately out of scope, each its own future decision: a team-lead role
+(team administration stays `ADMIN`), per-user project grants, a project shared by
+several teams, and branch- or test-level scopes. Team deletion is refused while
+the team owns projects (`409` with the count), because a cascade would silently
+turn its products into shared ones.
 
 ### Shipped
 
@@ -213,7 +259,10 @@ shield a branch from the sweep.
 SSO/OIDC/SAML inside the app (see the trusted-header rejection above; ADR-025 names
 the dependency decision a deployment would have to reopen), a built-in crawler or
 browser capture (the platform stays capture-agnostic), and multi-tenancy/orgs
-(single-tenant self-hosting is the product).
+(single-tenant self-hosting is the product). N14 is not that: a team scopes which
+projects a person sees, while a tenant would split the user directory, the audit
+trail and the deployment configuration — one directory and one audit trail stay
+([ADR-082](adr/ADR-082-team-scoped-project-access.md), "Scope of this decision").
 
 ## Maintaining this document
 

@@ -61,6 +61,7 @@ export function useReviewInboxQuery(
           ...(queryRef.value.runKey ? { runKey: queryRef.value.runKey } : {}),
           ...(queryRef.value.tag ? { tag: queryRef.value.tag } : {}),
           ...(queryRef.value.assignedToMe ? { assignedToMe: true } : {}),
+          ...(queryRef.value.teamId ? { teamId: queryRef.value.teamId } : {}),
         },
       }),
     map: mapReviewInbox,
@@ -79,12 +80,23 @@ export function useReviewInboxSections(
 
 // The filter's branch choices come from the pending set, not from the current
 // page, so pagination cannot hide a branch from the dropdown.
-export function useInboxBranchesQuery() {
+export function useInboxBranchesQuery(
+  teamId: MaybeRef<string | undefined> = undefined,
+) {
+  const teamIdRef = computed(() => unref(teamId));
   return useDomainQuery<string[]>({
-    queryKey: reviewInboxQueryKeys.branches(),
+    // The lens is part of the key: a filtered inbox offers a different set of
+    // branches, and a cached unfiltered answer would offer branches the queue is
+    // not showing.
+    queryKey: computed(() => [
+      ...reviewInboxQueryKeys.branches(),
+      ...(teamIdRef.value ? [teamIdRef.value] : []),
+    ]),
     ...INBOX_FOCUS_OPTIONS,
     queryFn: async () => {
-      const response = await reviewInboxControllerGetBranches();
+      const response = await reviewInboxControllerGetBranches({
+        query: teamIdRef.value ? { teamId: teamIdRef.value } : {},
+      });
       return unwrapSdkData<string[]>(response) ?? [];
     },
   });

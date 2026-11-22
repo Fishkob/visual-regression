@@ -6,7 +6,7 @@ function metaOf(name: string) {
 }
 
 describe("route role declarations", () => {
-  it.each(["users", "api-keys", "audit", "project-webhooks"])(
+  it.each(["users", "teams", "api-keys", "audit", "project-webhooks"])(
     "protects %s with the ADMIN role",
     (name) => {
       expect(metaOf(name)?.requiresAuth).toBe(true);

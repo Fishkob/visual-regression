@@ -8,6 +8,7 @@ import {
 import { plainToInstance } from 'class-transformer';
 import { Roles } from '@common/http/roles.decorator';
 import { SessionOnly } from '@common/http/session-only.decorator';
+import { ProjectSpanning } from '@common/http/project-route.decorator';
 import {
   createPaginatedResponse,
   PaginatedResponseDto,
@@ -24,6 +25,7 @@ import {
 // the deployment, so a long-lived CI key must not be able to read it (ADR-035).
 // Writes are performed by the owning services, never by an HTTP caller.
 @ApiTags('Audit')
+@ProjectSpanning()
 @Controller('audit')
 @SessionOnly()
 @Roles('ADMIN')

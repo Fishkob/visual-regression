@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { PublicEndpoint } from '@common/http/public.decorator';
+import { GlobalRoute } from '@common/http/project-route.decorator';
 import { AdminAuthGuard } from '@internal/dlq/admin-auth.guard';
 import { RateLimit } from '@internal/rate-limit/rate-limit.decorator';
 import { ApiKeyService } from '@internal/auth/api-key.service';
@@ -23,6 +24,7 @@ const ADMIN_KEY_ACTOR = 'admin-api-key';
 // applies, so a key can be provisioned before any product credential exists.
 @ApiTags('Admin')
 @PublicEndpoint()
+@GlobalRoute()
 @Controller('admin/api-keys')
 @RateLimit('admin')
 @UseGuards(AdminAuthGuard)

@@ -1,6 +1,7 @@
 import type { Mocked } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReviewInboxService } from '@public/visualTest/review/application/review-inbox.service';
+import { ALL_PROJECTS } from '@common/domain/project-scope';
 import { ReviewInboxRepository } from '@public/visualTest/review/infrastructure/repositories/review-inbox.repository';
 import { createMock } from '@test/utils/create-mock';
 import { PaginationDto } from '@common/dto/pagination.dto';
@@ -52,7 +53,11 @@ describe('ReviewInboxService', () => {
       total: 1,
     });
 
-    const result = await service.getPending(new PaginationDto());
+    const result = await service.getPending(
+      new PaginationDto(),
+      undefined,
+      ALL_PROJECTS,
+    );
 
     expect(result.data[0]).toMatchObject({
       comparisonId: 'c1',
@@ -71,7 +76,7 @@ describe('ReviewInboxService', () => {
   it('lists the branches that have pending reviews', async () => {
     inbox.findPendingBranchNames.mockResolvedValue(['main', 'feature/x']);
 
-    await expect(service.getBranchNames()).resolves.toEqual([
+    await expect(service.getBranchNames(ALL_PROJECTS)).resolves.toEqual([
       'main',
       'feature/x',
     ]);
@@ -80,14 +85,16 @@ describe('ReviewInboxService', () => {
   it('passes branch and project filters to the repository', async () => {
     inbox.findPending.mockResolvedValue({ data: [], total: 0 });
 
-    await service.getPending(new PaginationDto(), {
-      branchName: 'feature/x',
-      projectName: 'checkout-ui',
-    });
+    await service.getPending(
+      new PaginationDto(),
+      { branchName: 'feature/x', projectName: 'checkout-ui' },
+      ALL_PROJECTS,
+    );
 
-    expect(inbox.findPending).toHaveBeenCalledWith(expect.anything(), {
-      branchName: 'feature/x',
-      projectName: 'checkout-ui',
-    });
+    expect(inbox.findPending).toHaveBeenCalledWith(
+      expect.anything(),
+      { branchName: 'feature/x', projectName: 'checkout-ui' },
+      ALL_PROJECTS,
+    );
   });
 });

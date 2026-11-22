@@ -23,6 +23,7 @@ import { Roles } from '@common/http/roles.decorator';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import { requireActor } from '@common/http/authenticated-principal';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
+import { ProjectScoped } from '@common/http/project-route.decorator';
 import { WebhookSettingsService } from '@public/visualTest/notifications/application/webhook-settings.service';
 import {
   CreateWebhookDto,
@@ -38,6 +39,7 @@ import {
 // key (the CI credential) cannot read or edit endpoints, and a MEMBER/VIEWER
 // session cannot exfiltrate review notifications.
 @ApiTags('Webhooks')
+@ProjectScoped()
 @Controller('projects/:projectName/webhooks')
 @SessionOnly()
 @Roles('ADMIN')

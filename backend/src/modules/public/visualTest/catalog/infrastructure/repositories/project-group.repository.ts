@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { BaseRepository } from '@/prisma/base.repository';
 import { DomainError } from '@common/domain/domain-error';
+import { projectIdFilter } from '@/prisma/project-scope-filter';
+import type { ProjectScope } from '@common/domain/project-scope';
 
 export interface ProjectGroupSummary {
   id: string;
@@ -31,10 +33,15 @@ function toSummary(row: GroupRow): ProjectGroupSummary {
 // open.
 @Injectable()
 export class ProjectGroupRepository extends BaseRepository {
-  async findAll(): Promise<ProjectGroupSummary[]> {
+  // The count is the number of projects in the group *that the caller may see*
+  // (ADR-082): a group badge that counted the other team's products would leak
+  // how much they have.
+  async findAll(scope: ProjectScope): Promise<ProjectGroupSummary[]> {
     const rows = await this.client.projectGroup.findMany({
       orderBy: { name: 'asc' },
-      include: { _count: { select: { projects: true } } },
+      include: {
+        _count: { select: { projects: { where: projectIdFilter(scope) } } },
+      },
     });
     return rows.map(toSummary);
   }
@@ -76,10 +83,29 @@ export class ProjectGroupRepository extends BaseRepository {
     return toSummary(row);
   }
 
-  async delete(id: string): Promise<void> {
-    const group = await this.client.projectGroup.findUnique({ where: { id } });
+  async delete(id: string, scope: ProjectScope): Promise<void> {
+    const group = await this.client.projectGroup.findUnique({
+      where: { id },
+      include: { _count: { select: { projects: true } } },
+    });
     if (!group) {
       throw new DomainError(`Group "${id}" not found`, 'NOT_FOUND');
+    }
+    // Deleting the group clears its label on every project in it (the FK is
+    // `SetNull`), including the projects this caller cannot see — a boundary a
+    // member can cross by deleting a label is not a boundary (ADR-082). The
+    // count of the foreign ones stays unspoken, for the same reason the guard
+    // answers 404 instead of 403: a number confirms what exists.
+    if (scope.kind !== 'all') {
+      const visible = await this.client.project.count({
+        where: { groupId: id, ...projectIdFilter(scope) },
+      });
+      if (visible < group._count.projects) {
+        throw new DomainError(
+          'This group still holds projects you cannot see; an admin has to delete it',
+          'CONFLICT',
+        );
+      }
     }
     await this.client.projectGroup.delete({ where: { id } });
   }

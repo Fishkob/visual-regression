@@ -3,6 +3,7 @@
     "inbox": "Posteingang",
     "projects": "Projekte",
     "groups": "Gruppen",
+    "teams": "Teams",
     "apiKeys": "API-Schlüssel",
     "users": "Benutzer",
     "audit": "Audit",
@@ -155,7 +156,10 @@
     "unassigned": "Nicht zugewiesen",
     "myReviews": "Meine Prüfungen",
     "assignedToMeLabel": "Nur mir zugewiesene Prüfungen anzeigen",
-    "overdue": "{count} überfällige Prüfung | {count} überfällige Prüfungen"
+    "overdue": "{count} überfällige Prüfung | {count} überfällige Prüfungen",
+    "emptyScopedBody": "Sichtbar sind hier nur die Projekte deiner Teams und Projekte ohne Team.",
+    "teamLabel": "Team",
+    "allTeams": "Alle Teams"
   },
   "projects": {
     "title": "Projekte",
@@ -186,7 +190,9 @@
     "deleteProject": "Projekt löschen",
     "deleteTitle": "Projekt löschen",
     "deleteButton": "Löschen",
-    "pendingLabel": "ausstehend"
+    "pendingLabel": "ausstehend",
+    "emptyScopedTitle": "Dein Team hat noch keine Projekte",
+    "emptyScopedBody": "Sichtbar sind die Projekte deiner Teams und alle Projekte ohne Team. Ein Admin ordnet Projekte einem Team zu."
   },
   "newProject": {
     "title": "Neues Projekt",
@@ -449,6 +455,47 @@
     "nameRequired": "Name ist erforderlich",
     "errorFallback": "Gruppe konnte nicht gespeichert werden"
   },
+  "teams": {
+    "title": "Teams",
+    "subtitle": "Ein Projekt gehört höchstens einem Team; ohne Team ist es für alle angemeldeten Personen sichtbar („geteilt“). Mitglieder ordnest du hier zu.",
+    "newTeam": "Neues Team",
+    "errorTitle": "Teams konnten nicht geladen werden",
+    "emptyTitle": "Noch keine Teams",
+    "emptyDescription": "Erstelle ein Team, um Projekte mehreren Personen zuzuordnen.",
+    "memberCount": "{count} Mitglied | {count} Mitglieder",
+    "projectNames": "Projekte: {projects}",
+    "noProjects": "Keine Projekte",
+    "members": "Mitglieder",
+    "membersAria": "Mitglieder von {name} verwalten",
+    "rename": "Umbenennen",
+    "renameAria": "{name} umbenennen",
+    "delete": "Löschen",
+    "deleteAria": "{name} löschen",
+    "deleteTitle": "Team löschen",
+    "deleteDescription": "Das Team wird gelöscht; Projekte und Tests bleiben unberührt. Solange das Team noch Projekte besitzt, lehnt der Server das Löschen ab.",
+    "deleteFailedTitle": "Team wurde nicht gelöscht",
+    "deleteErrorFallback": "Das Team konnte nicht gelöscht werden."
+  },
+  "teamForm": {
+    "newTitle": "Neues Team",
+    "renameTitle": "Team umbenennen",
+    "newDescription": "Ein Team bündelt Projekte und Mitglieder.",
+    "renameDescription": "Aktualisiere den Anzeigenamen.",
+    "name": "Name",
+    "nameRequired": "Name ist erforderlich",
+    "nameCharset": "Nur Buchstaben, Zahlen, Leerzeichen, Bindestriche und Unterstriche.",
+    "nameHelp": "Buchstaben, Zahlen, Leerzeichen, Bindestriche und Unterstriche, höchstens 80 Zeichen.",
+    "errorFallback": "Team konnte nicht gespeichert werden"
+  },
+  "teamMembers": {
+    "title": "Mitglieder von {name}",
+    "description": "Die Auswahl ersetzt die Mitgliederliste vollständig.",
+    "legend": "Mitglieder",
+    "emptyTitle": "Nur ein Konto",
+    "emptyDescription": "Für ein Team braucht es mindestens ein zweites Konto. Lade weitere Personen ein, um Mitglieder zuzuordnen.",
+    "loadError": "Benutzer konnten nicht geladen werden",
+    "saveError": "Mitglieder konnten nicht gespeichert werden"
+  },
   "runState": {
     "open": "Offen",
     "pending": "Ausstehend",
@@ -708,7 +755,12 @@
       "reviewComment": "Review-Kommentar",
       "reviewCommentResolve": "Review-Kommentar aufgelöst",
       "projectPixelThreshold": "Projekt-Schwelle geändert",
-      "testThreshold": "Schwellenwert geändert"
+      "testThreshold": "Schwellenwert geändert",
+      "teamCreate": "Team erstellt",
+      "teamUpdate": "Team umbenannt",
+      "teamDelete": "Team gelöscht",
+      "teamMembers": "Team-Mitglieder geändert",
+      "teamProjectAssign": "Team-Zugehörigkeit geändert"
     }
   },
   "webhookEvent": {
@@ -1164,7 +1216,18 @@
     "approvedForTest": "{variant} von „{test}“ genehmigt",
     "approveForTestError": "{variant} von „{test}“ konnte nicht genehmigt werden",
     "refreshDetailsError": "Details konnten nicht aktualisiert werden",
-    "importEmpty": "Der Import kam leer zurück"
+    "importEmpty": "Der Import kam leer zurück",
+    "teamAssigned": "Projekt dem Team zugewiesen",
+    "teamUnassigned": "Projekt ist jetzt geteilt",
+    "teamAssignError": "Zuweisung fehlgeschlagen",
+    "teamCreated": "Team erstellt",
+    "teamCreateError": "Team konnte nicht erstellt werden",
+    "teamRenamed": "Team umbenannt",
+    "teamRenameError": "Team konnte nicht umbenannt werden",
+    "teamDeleted": "Team gelöscht",
+    "teamDeleteError": "Team konnte nicht gelöscht werden",
+    "teamMembersSaved": "Mitglieder gespeichert",
+    "teamMembersError": "Mitglieder konnten nicht gespeichert werden"
   },
   "confirm": {
     "deleteProject": "Möchtest du „{name}\" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
@@ -1309,5 +1372,17 @@
     "loadOlder": "Ältere Kommentare laden",
     "loadingOlder": "Ältere Kommentare werden geladen…",
     "submitHint": "Strg + Enter"
+  },
+  "projectTeam": {
+    "title": "Team-Zugehörigkeit",
+    "description": "Ein Projekt gehört höchstens einem Team. Ohne Team ist es für alle angemeldeten Personen sichtbar („geteilt“).",
+    "owner": "Eigentümer: {name}",
+    "shared": "Geteilt – für alle sichtbar",
+    "loading": "Teams werden geladen …",
+    "error": "Teams konnten nicht geladen werden",
+    "selectLabel": "Team",
+    "sharedOption": "Kein Team (geteilt)",
+    "save": "Speichern",
+    "saveError": "Die Zugehörigkeit konnte nicht gespeichert werden"
   }
 }

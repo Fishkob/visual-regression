@@ -9,6 +9,11 @@ route (ADR-074); the exemption itself is unchanged.
 Amended — API-key permissions moved to scopes (ADR-035/045); account lifecycle
 is metadata-driven.
 
+Amended 2026-11-20: the "per-project memberships" rejected alternative is
+replaced by [ADR-082](./ADR-082-team-scoped-project-access.md) (project access
+scoped by team membership). The global role and its single enforcement point
+stand; the decision below is unchanged.
+
 ## Context
 
 The platform has one bootstrap admin and every authenticated principal is

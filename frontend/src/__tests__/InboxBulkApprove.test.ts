@@ -25,7 +25,12 @@ vi.mock("@sdk", () => ({
 }));
 
 vi.mock("@/composables/useAuth", () => ({
-  useCurrentRole: () => ({ canWrite: canWriteRef.value }),
+  useCurrentRole: () => ({
+    isAdmin: false,
+    canWrite: canWriteRef.value,
+    seesAllProjects: true,
+  }),
+  useMeQuery: () => ({ data: { value: { teams: [] } } }),
 }));
 
 vi.mock("vue-sonner", () => ({
