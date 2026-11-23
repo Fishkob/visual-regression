@@ -433,7 +433,8 @@
   },
   "groups": {
     "title": "Groups",
-    "subtitle": "Groups bundle projects for the sidebar and the inbox. A project's tests and review state stay untouched.",
+    "axisBadge": "Organization",
+    "subtitle": "Groups only organize: they bundle projects for the sidebar and the inbox. They grant no access — who may see a project is decided by its team.",
     "newGroup": "New group",
     "errorTitle": "Failed to load groups",
     "emptyTitle": "No groups yet",
@@ -457,7 +458,8 @@
   },
   "teams": {
     "title": "Teams",
-    "subtitle": "A project belongs to at most one team; without a team it stays visible to every signed-in person (\"shared\"). Assign the members here.",
+    "axisBadge": "Access",
+    "subtitle": "Teams decide access: a project belongs to at most one team, and without a team it stays visible to every signed-in person (\"shared\"). Assign the members here.",
     "newTeam": "New team",
     "errorTitle": "Failed to load teams",
     "emptyTitle": "No teams yet",

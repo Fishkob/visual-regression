@@ -2,13 +2,13 @@
 import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import {
+  Folder,
   Inbox,
   KeyRound,
   LayoutGrid,
   ScrollText,
   ShieldCheck,
   UserCog,
-  Users,
   UsersRound,
   PanelLeftClose,
   PanelLeftOpen,
@@ -186,7 +186,7 @@ const pending = computed(() => pendingCount.value ?? 0);
         :title="collapsed ? t('nav.groups') : undefined"
         :data-testid="TEST_ID.navGroups"
       >
-        <Users class="h-4 w-4 shrink-0" />
+        <Folder class="h-4 w-4 shrink-0" />
         <span :class="collapsed ? 'md:hidden' : ''">{{ t("nav.groups") }}</span>
       </RouterLink>
 

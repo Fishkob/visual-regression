@@ -8,6 +8,7 @@ import {
   useDeleteGroup,
 } from "@/composables/useGroups";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import GroupFormDialog from "@/components/groups/GroupFormDialog.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import AsyncState from "@/components/AsyncState.vue";
@@ -83,9 +84,12 @@ function confirmDelete() {
   <div class="space-y-6">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 class="text-xl font-semibold tracking-tight">
-          {{ t("groups.title") }}
-        </h1>
+        <div class="flex flex-wrap items-center gap-2">
+          <h1 class="text-xl font-semibold tracking-tight">
+            {{ t("groups.title") }}
+          </h1>
+          <Badge variant="outline">{{ t("groups.axisBadge") }}</Badge>
+        </div>
         <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
           {{ t("groups.subtitle") }}
         </p>

@@ -9,6 +9,7 @@ import {
   useReplaceTeamMembers,
 } from "@/composables/useTeams";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import TeamFormDialog from "@/components/teams/TeamFormDialog.vue";
 import TeamMembersDialog from "@/components/teams/TeamMembersDialog.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
@@ -117,9 +118,12 @@ function projectNames(team: Team): string {
   <div class="space-y-6" :data-testid="TEST_ID.teamsView">
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 class="text-xl font-semibold tracking-tight">
-          {{ t("teams.title") }}
-        </h1>
+        <div class="flex flex-wrap items-center gap-2">
+          <h1 class="text-xl font-semibold tracking-tight">
+            {{ t("teams.title") }}
+          </h1>
+          <Badge variant="outline">{{ t("teams.axisBadge") }}</Badge>
+        </div>
         <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
           {{ t("teams.subtitle") }}
         </p>

@@ -107,8 +107,11 @@ your own team, a project of another team, and a **shared** one.
 project. The three demo logins use the published password from `DEMO_USER_PASSWORD`
 (`demo-password`; `SEED_DEMO_USER_PASSWORD` overrides it) and are ordinary
 accounts — no forced password change, so a demo can log in again after a re-seed.
-`admin-ui` keeps its Backoffice group membership on purpose: a group is
-navigation, so it may hold a project its namesake team does not own. The fixtures
+`admin-ui` keeps its `Internal tools` group membership on purpose: a group is
+navigation, so a folder may hold a shared project next to a team-owned one. The
+demo groups are named `Customer-facing` and `Internal tools` — deliberately not
+like the teams, because a group is a folder and the two must not read as one
+concept. The fixtures
 are `DEMO_USERS`, `DEMO_TEAMS` and `DEMO_SHARED_PROJECTS` in
 [`fixtures.ts`](../backend/src/scripts/seeds/fixtures.ts); `buildTeamPlan` refuses
 a set that leaves a demo project neither owned nor shared.
