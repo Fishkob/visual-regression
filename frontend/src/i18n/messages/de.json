@@ -433,7 +433,8 @@
   },
   "groups": {
     "title": "Gruppen",
-    "subtitle": "Gruppen bündeln Projekte für die Navigation und den Posteingang. Tests und Prüfstatus eines Projekts bleiben unberührt.",
+    "axisBadge": "Nur Organisation",
+    "subtitle": "Gruppen organisieren nur: Sie bündeln Projekte für die Seitenleiste und den Posteingang. Sie gewähren keinen Zugriff – wer ein Projekt sehen darf, entscheidet sein Team.",
     "newGroup": "Neue Gruppe",
     "errorTitle": "Gruppen konnten nicht geladen werden",
     "emptyTitle": "Noch keine Gruppen",
@@ -457,7 +458,8 @@
   },
   "teams": {
     "title": "Teams",
-    "subtitle": "Ein Projekt gehört höchstens einem Team; ohne Team ist es für alle angemeldeten Personen sichtbar („geteilt“). Mitglieder ordnest du hier zu.",
+    "axisBadge": "Zugriff",
+    "subtitle": "Teams entscheiden über den Zugriff: Ein Projekt gehört höchstens einem Team; ohne Team ist es für alle angemeldeten Personen sichtbar („geteilt“). Mitglieder ordnest du hier zu.",
     "newTeam": "Neues Team",
     "errorTitle": "Teams konnten nicht geladen werden",
     "emptyTitle": "Noch keine Teams",

@@ -120,9 +120,9 @@ export const DEMO_USERS: readonly DemoUserSeed[] = [
 // The multi-team half of the demo dataset (ADR-082): two teams own one project
 // each and `admin-ui` stays shared, so a visitor sees the three states the
 // scope distinguishes — my team's project, another team's project, and a shared
-// one — instead of three identical rows. `admin-ui` keeps its Backoffice group
-// membership: a group is navigation, so it may hold a project its namesake team
-// does not own.
+// one — instead of three identical rows. `admin-ui` keeps its `Internal tools`
+// group membership: a group is navigation, so a folder may hold a project no
+// team owns.
 export const DEMO_TEAMS: Readonly<Record<string, readonly string[]>> = {
   Storefront: ['checkout-ui'],
   Backoffice: ['dashboard-ui'],

@@ -12,6 +12,9 @@
         </h2>
         <template v-if="project">
           <Badge variant="secondary" :data-testid="TEST_ID.projectGroupBadge">
+            <!-- The badge names the project's folder, not its owner: the team
+                 decides access and is only shown on the admin team page. -->
+            <Folder aria-hidden="true" />
             {{ project.groupName || t("projects.unassigned") }}
           </Badge>
           <span
@@ -219,7 +222,14 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import { ListChecks, Settings, Share2, TrendingUp, Webhook } from "@lucide/vue";
+import {
+  Folder,
+  ListChecks,
+  Settings,
+  Share2,
+  TrendingUp,
+  Webhook,
+} from "@lucide/vue";
 
 import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import AsyncState from "@/components/AsyncState.vue";

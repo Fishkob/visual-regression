@@ -60,10 +60,12 @@ const DEMO_RUNS: Record<
 };
 
 // Groups make the dashboard's grouping surfaces (projects, inbox, filters)
-// non-empty in a local demo.
+// non-empty in a local demo. Their names deliberately differ from the teams in
+// `seed:teams`: a group is a folder, so matching names would read as one
+// concept and invite exactly the mix-up the two surfaces must not have.
 const DEMO_GROUPS: Record<string, string[]> = {
-  Storefront: ['checkout-ui'],
-  Backoffice: ['dashboard-ui', 'admin-ui'],
+  'Customer-facing': ['checkout-ui'],
+  'Internal tools': ['dashboard-ui', 'admin-ui'],
 };
 
 async function deleteExistingProjects() {

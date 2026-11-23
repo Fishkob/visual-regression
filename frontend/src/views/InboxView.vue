@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { RouterLink, useRoute, useRouter } from "vue-router";
+import { Folder } from "@lucide/vue";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -38,7 +39,10 @@ import {
   isTestKind,
   type TestKind,
 } from "@/domains/test-kind";
-import { UNASSIGNED_GROUP_QUERY } from "@/domains/groups/group-section";
+import {
+  UNASSIGNED_GROUP_KEY,
+  UNASSIGNED_GROUP_QUERY,
+} from "@/domains/groups/group-section";
 import type { InboxListQuery } from "@/domains/pending-tests/query-keys";
 import { INBOX_PAGE_SIZE } from "@/lib/pagination";
 import { TEST_ID } from "@/lib/test-ids";
@@ -611,7 +615,16 @@ function confirmBulkApprove() {
       </div>
 
       <div v-for="section in sections" :key="section.key" class="space-y-4">
-        <h2 class="text-sm font-semibold text-muted-foreground">
+        <h2
+          class="flex items-center gap-2 text-sm font-semibold text-muted-foreground"
+        >
+          <!-- A section is a group (a folder for navigation), never an access
+               boundary; the icon keeps it from reading as a team. -->
+          <Folder
+            v-if="section.key !== UNASSIGNED_GROUP_KEY"
+            class="h-3.5 w-3.5 shrink-0"
+            aria-hidden="true"
+          />
           {{ section.name }}
         </h2>
         <InboxProjectSection
