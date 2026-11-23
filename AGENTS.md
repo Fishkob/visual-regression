@@ -11,7 +11,7 @@
 ./scripts/dev.sh local    # Install deps + prepare env (then `pnpm run dev` for hot reload)
 ./scripts/dev.sh infra     # Start infra only (postgres, rustfs, pdf-sidecar)
 ./scripts/dev.sh docker    # All services in Docker (production-like)
-./scripts/dev.sh seed      # Seed database with demo + e2e + dev data
+./scripts/dev.sh seed      # Seed database with demo + e2e + dev + team data
 ./scripts/dev.sh stop      # Stop Docker services
 ./scripts/dev.sh delete    # Stop and remove all data + builds
 ./scripts/dev.sh reset     # Full reset: delete → infra → local

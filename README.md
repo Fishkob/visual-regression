@@ -10,10 +10,13 @@ your CI pipeline, compare them against **branch-scoped baselines**, and approve 
 change on a review page built for finding the one block that moved.
 
 Built for a **private network** — you run it inside your own infrastructure, one
-operator and one trust domain, on `docker compose` or Kubernetes. Every signed-in
-user can read every project by design: per-team isolation is deliberately not a
-boundary, so the host, the network path and TLS are yours to own
-([SECURITY.md](SECURITY.md)). No cloud account, no per-snapshot billing.
+operator and one trust domain, on `docker compose` or Kubernetes. Teams own
+projects and decide who sees them
+([ADR-082](docs/adr/ADR-082-team-scoped-project-access.md)): a project without a
+team stays **shared** and visible to every signed-in user, so a fresh install
+behaves like one team. Isolation between mutually distrusting customers is
+deliberately not a boundary, so the host, the network path and TLS are yours to
+own ([SECURITY.md](SECURITY.md)). No cloud account, no per-snapshot billing.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="frontend/tests/quality/__screenshots__/visual-test-details-regions-dark.png">
