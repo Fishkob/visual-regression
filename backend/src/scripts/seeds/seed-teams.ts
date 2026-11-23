@@ -1,0 +1,231 @@
+import { hashPassword } from '@internal/auth/password-hasher';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@/prisma/client';
+import {
+  DEMO_SHARED_PROJECTS,
+  DEMO_TEAMS,
+  DEMO_USERS,
+  DEMO_USER_PASSWORD,
+  PROJECT_NAMES,
+} from './fixtures';
+import {
+  buildTeamPlan,
+  type DemoTeamFixtures,
+  type TeamSeedPlan,
+} from './team-plan';
+/**
+ * Team Seeder - seeds the multi-team demo (ADR-082)
+ * - Demo users, two teams that own one demo project each, one shared project
+ * - Writes users, teams and `Project.teamId` through Prisma, not through the
+ *   admin API: both surfaces are `@SessionOnly` + `@Roles('ADMIN')` by design,
+ *   and a seeder must not log in as a human admin whose password is either
+ *   one-time (the bootstrap admin) or already rotated
+ * - Needs the projects `seed-demo` creates, so it runs last in `seed:all`
+ * - Idempotent and self-healing: it upserts by name/username, replaces each
+ *   member set and re-states every demo project's team, so a hand-edited demo
+ *   is repaired by the next run instead of accumulating
+ */
+
+const DEMO_TEAM_FIXTURES: DemoTeamFixtures = {
+  demoProjects: PROJECT_NAMES.DEMO,
+  users: DEMO_USERS,
+  teams: DEMO_TEAMS,
+  sharedProjects: DEMO_SHARED_PROJECTS,
+};
+
+/**
+ * The database the backend itself reads, so the seeded rows are the ones the
+ * running API serves. `prisma.config.ts` builds its URL from the POSTGRES_*
+ * variables instead, so those are the fallback: a Docker installation passes
+ * them to the seeder from its `.env` (which carries no DATABASE_URL, because
+ * compose injects the container-internal one). `SEED_DATABASE_URL` is the
+ * override for a host/port that fits neither.
+ */
+function resolveDatabaseUrl(): string {
+  const explicit = process.env.SEED_DATABASE_URL?.trim();
+  if (explicit) return explicit;
+
+  const runtime = process.env.DATABASE_URL?.trim();
+  if (runtime) return runtime;
+
+  const {
+    POSTGRES_HOST,
+    POSTGRES_PORT,
+    POSTGRES_USER,
+    POSTGRES_PASSWORD,
+    POSTGRES_DB,
+  } = process.env;
+  if (POSTGRES_USER && POSTGRES_PASSWORD && POSTGRES_DB) {
+    const host = POSTGRES_HOST?.trim() || 'localhost';
+    const port = POSTGRES_PORT?.trim() || '5432';
+    return `postgresql://${encodeURIComponent(POSTGRES_USER)}:${encodeURIComponent(
+      POSTGRES_PASSWORD,
+    )}@${host}:${port}/${POSTGRES_DB}`;
+  }
+
+  throw new Error(
+    'No database configured: set DATABASE_URL (what the backend reads), the POSTGRES_* variables (what prisma.config.ts reads), or SEED_DATABASE_URL. The seed scripts do not load backend/.env.local themselves — ./scripts/dev.sh seed passes them, a direct `pnpm run seed:teams` needs them exported.',
+  );
+}
+
+function describeTarget(connectionString: string): string {
+  try {
+    const url = new URL(connectionString);
+    return `${url.hostname}:${url.port || '5432'}${url.pathname}`;
+  } catch {
+    return '(unparseable connection string)';
+  }
+}
+
+async function assertDemoProjects(
+  prisma: PrismaClient,
+  plan: TeamSeedPlan,
+): Promise<void> {
+  const names = [
+    ...new Set([
+      ...plan.teams.flatMap((team) => [...team.projectNames]),
+      ...plan.sharedProjects,
+    ]),
+  ];
+  const rows = await prisma.project.findMany({
+    where: { name: { in: names } },
+    select: { name: true },
+  });
+  const found = new Set(rows.map((row) => row.name));
+  const missing = names.filter((name) => !found.has(name));
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing demo project(s): ${missing.join(', ')}. This seeder needs the projects the demo seed creates — run ./scripts/dev.sh seed (or pnpm run seed:demo) first.`,
+    );
+  }
+}
+
+async function seedUsers(
+  prisma: PrismaClient,
+  plan: TeamSeedPlan,
+  passwordHash: string,
+): Promise<Map<string, string>> {
+  const ids = new Map<string, string>();
+
+  for (const user of plan.users) {
+    const row = await prisma.user.upsert({
+      where: { username: user.username },
+      create: {
+        username: user.username,
+        passwordHash,
+        role: user.role,
+        mustChangePassword: false,
+      },
+      update: {
+        passwordHash,
+        role: user.role,
+        mustChangePassword: false,
+        isActive: true,
+        deactivatedAt: null,
+      },
+    });
+    // The password was just replaced, so a session opened with the previous one
+    // must not survive the seed.
+    await prisma.session.deleteMany({ where: { userId: row.id } });
+
+    ids.set(user.username, row.id);
+    console.log(`  User "${user.username}" (${user.role}) ready`);
+  }
+
+  return ids;
+}
+
+async function seedTeams(
+  prisma: PrismaClient,
+  plan: TeamSeedPlan,
+  userIds: ReadonlyMap<string, string>,
+): Promise<void> {
+  for (const team of plan.teams) {
+    const row = await prisma.team.upsert({
+      where: { name: team.name },
+      create: { name: team.name },
+      update: {},
+    });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.teamMember.deleteMany({ where: { teamId: row.id } });
+      if (team.usernames.length > 0) {
+        await tx.teamMember.createMany({
+          data: team.usernames.map((username) => ({
+            teamId: row.id,
+            userId: userIds.get(username)!,
+          })),
+        });
+      }
+      // Release whatever this team used to own and claim its fixture projects,
+      // so a project that moved between fixtures does not stay on both.
+      await tx.project.updateMany({
+        where: { teamId: row.id, name: { notIn: [...team.projectNames] } },
+        data: { teamId: null },
+      });
+      await tx.project.updateMany({
+        where: { name: { in: [...team.projectNames] } },
+        data: { teamId: row.id },
+      });
+    });
+
+    const projects = team.projectNames.join(', ');
+    const members = team.usernames.join(', ') || '(no members)';
+    console.log(`  Team "${team.name}" -> ${projects} [${members}]`);
+  }
+
+  await prisma.project.updateMany({
+    where: { name: { in: [...plan.sharedProjects] } },
+    data: { teamId: null },
+  });
+}
+
+async function seed(): Promise<void> {
+  const plan = buildTeamPlan(DEMO_TEAM_FIXTURES);
+  const connectionString = resolveDatabaseUrl();
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({
+      connectionString,
+      max: 2,
+      // `PrismaConnection` pins UTC for the same reason: DateTime columns are
+      // `timestamp(3)` without a zone, so a server-local timezone would store
+      // wall time in columns the schema treats as UTC.
+      options: '-c timezone=UTC',
+    }),
+  });
+
+  console.log(
+    `Seeding TEAM demo data directly into ${describeTarget(connectionString)}...\n`,
+  );
+
+  try {
+    await assertDemoProjects(prisma, plan);
+
+    const password = process.env.SEED_DEMO_USER_PASSWORD ?? DEMO_USER_PASSWORD;
+    const passwordHash = await hashPassword(password);
+    const userIds = await seedUsers(prisma, plan, passwordHash);
+    await seedTeams(prisma, plan, userIds);
+
+    console.log('\nTeam seeding complete!');
+    console.log(
+      `  Shared (no team, every signed-in user): ${plan.sharedProjects.join(', ')}`,
+    );
+    console.log(
+      `  Demo logins: ${plan.users.map((user) => user.username).join(', ')} — password "${password}"`,
+    );
+    console.log(
+      '  The project scope is resolved per request, so a running backend needs no restart.',
+    );
+    console.log(
+      '  These rows carry no audit entry: they are written through Prisma, not the admin API.',
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+seed().catch((err: unknown) => {
+  console.error('Seeding failed:', (err as Error).message);
+  process.exit(1);
+});

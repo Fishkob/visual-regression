@@ -94,6 +94,42 @@ export function demoStoryState(project: string, test: string): DemoStoryState {
   return DEMO_STORY[project]?.[test] ?? 'pending';
 }
 
+export type DemoUserRole = 'MEMBER' | 'VIEWER';
+
+export interface DemoUserSeed {
+  readonly username: string;
+  readonly role: DemoUserRole;
+  /** Team memberships are stated on the user, so both lists cannot drift. */
+  readonly teams: readonly string[];
+}
+
+// Demo logins for the seeded teams. The password is a published value on
+// purpose: it opens a demo account on a throwaway local dataset, which the
+// demo seed deletes and rewrites on every run. `SEED_DEMO_USER_PASSWORD`
+// replaces it where a seeded installation is handed out to people.
+export const DEMO_USER_PASSWORD = 'demo-password';
+
+export const DEMO_USERS: readonly DemoUserSeed[] = [
+  { username: 'storefront-lead', role: 'MEMBER', teams: ['Storefront'] },
+  { username: 'backoffice-lead', role: 'MEMBER', teams: ['Backoffice'] },
+  // Belongs to no team, so it sees only the shared project: the "my teams own
+  // nothing" state a scoped caller can be in.
+  { username: 'demo-viewer', role: 'VIEWER', teams: [] },
+];
+
+// The multi-team half of the demo dataset (ADR-082): two teams own one project
+// each and `admin-ui` stays shared, so a visitor sees the three states the
+// scope distinguishes — my team's project, another team's project, and a shared
+// one — instead of three identical rows. `admin-ui` keeps its Backoffice group
+// membership: a group is navigation, so it may hold a project its namesake team
+// does not own.
+export const DEMO_TEAMS: Readonly<Record<string, readonly string[]>> = {
+  Storefront: ['checkout-ui'],
+  Backoffice: ['dashboard-ui'],
+};
+
+export const DEMO_SHARED_PROJECTS: readonly string[] = ['admin-ui'];
+
 const MUTE_WINDOW_DAYS = 14;
 const APPROVAL_POLL_MS = 1_000;
 const APPROVAL_TIMEOUT_MS = 90_000;

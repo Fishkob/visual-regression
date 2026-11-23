@@ -56,12 +56,14 @@ pnpm run dev:frontend   # Frontend on :5173
 
 ## Seeding demo data
 
-`./scripts/dev.sh seed` runs three seeders against the authenticated REST API: a
-demo set (projects, tests, variants, groups, CI runs and feature branches), the
-e2e fixtures, and a dev project. `./install.sh --seed` runs the same three inside a
-Docker stack.
+`./scripts/dev.sh seed` runs four seeders: a demo set (projects, tests, variants,
+groups, CI runs and feature branches), the e2e fixtures, a dev project, and the
+multi-team demo. The first three talk to the authenticated REST API; the fourth
+writes users, teams and project ownership straight into the database
+([why](#multi-team-demo-data)). `./install.sh --seed` runs the same four from the
+host against the Docker stack, so they need the published ports (`:3000`, `:5432`).
 
-All three authenticate with an API key, so they need `SEED_API_KEY`:
+The three REST seeders authenticate with an API key, so they need `SEED_API_KEY`:
 
 - `./scripts/dev.sh seed` sources `backend/.env.local` — set `SEED_API_KEY` there,
   or set `ADMIN_API_KEY` and `dev.sh` provisions a `dev-seed` key with every scope
@@ -88,6 +90,49 @@ slower with the limit enabled.
 Approving a seeded test waits for the worker to produce the comparison (the demo
 seed polls the variant read) — a seed run therefore needs the worker up, just like
 the review UI does.
+
+### Multi-team demo data
+
+`seed:teams` gives the demo dataset the three states the project scope
+distinguishes ([ADR-082](adr/ADR-082-team-scoped-project-access.md)): a project of
+your own team, a project of another team, and a **shared** one.
+
+| Team       | Owns           | Member             |
+| ---------- | -------------- | ------------------ |
+| Storefront | `checkout-ui`  | `storefront-lead`  |
+| Backoffice | `dashboard-ui` | `backoffice-lead`  |
+| — shared   | `admin-ui`     | everyone signed in |
+
+`demo-viewer` (VIEWER) belongs to no team and therefore sees only the shared
+project. The three demo logins use the published password from `DEMO_USER_PASSWORD`
+(`demo-password`; `SEED_DEMO_USER_PASSWORD` overrides it) and are ordinary
+accounts — no forced password change, so a demo can log in again after a re-seed.
+`admin-ui` keeps its Backoffice group membership on purpose: a group is
+navigation, so it may hold a project its namesake team does not own. The fixtures
+are `DEMO_USERS`, `DEMO_TEAMS` and `DEMO_SHARED_PROJECTS` in
+[`fixtures.ts`](../backend/src/scripts/seeds/fixtures.ts); `buildTeamPlan` refuses
+a set that leaves a demo project neither owned nor shared.
+
+Unlike the other three, this seeder does not use the REST API: user and team
+administration is session-only and `ADMIN`-only by design, and a seeder must not
+log in as a human admin whose password is one-time (the bootstrap admin) or
+already rotated. It therefore talks to the database itself:
+
+- `DATABASE_URL` (what the backend reads) wins, then the `POSTGRES_*` variables
+  (what `prisma.config.ts` reads), then `SEED_DATABASE_URL` as the explicit
+  override.
+- `./scripts/dev.sh seed` passes the `POSTGRES_*` set, so the normal path needs
+  no setup; `pnpm run seed:teams` alone needs them exported like `SEED_API_KEY`,
+  and it needs **no** API key.
+- It is idempotent and self-healing: users are upserted by name, each member set
+  is replaced, and every demo project's team is re-stated, so a re-run repairs a
+  hand-edited demo instead of piling up. It also deletes the demo users' sessions,
+  so a re-seed logs them out.
+- Order matters: the demo seed deletes all projects before it writes, so
+  `seed:teams` runs last (`seed:all` does) and fails loudly when the demo projects
+  are missing.
+- The rows it writes carry no audit entry — they go through Prisma, not the
+  audited admin API.
 
 ## Testing
 

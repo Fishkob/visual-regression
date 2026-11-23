@@ -48,10 +48,16 @@ what the code protects against.
 
 - The operator controls the host, the database, the object store and the
   network path, and keeps the deployment patched.
-- Every signed-in user is **trusted to read every project**. Roles (`ADMIN`,
-  `MEMBER`, `VIEWER`) are global (see [docs/permissions.md](docs/permissions.md));
-  per-project isolation between mutually distrusting teams is **not** a security
-  boundary. The only per-project restriction is an API key's allowlist.
+- Every signed-in user is **trusted to read the projects it is granted**. Teams
+  ([ADR-082](docs/adr/ADR-082-team-scoped-project-access.md)) narrow that set: a
+  member sees its own teams' projects plus every _shared_ (team-less) project,
+  and a route naming a project outside its scope answers `404`. A team is an
+  organizational split between colleagues inside the one trust domain — it shares
+  the database, the bucket, the user directory and the audit trail — so it is
+  **not** isolation between mutually distrusting customers. Roles (`ADMIN`,
+  `MEMBER`, `VIEWER`) stay global (see [docs/permissions.md](docs/permissions.md));
+  the only other per-project restriction is an API key's allowlist, which is
+  intersected with its owner's team scope.
 - The network between browser, backend, database and object store is trusted, or
   is made trustworthy with TLS. Screenshots, baselines and PDFs are usually
   proprietary, so a deployment reachable from an untrusted network needs TLS.
