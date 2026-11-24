@@ -1,5 +1,4 @@
 import { hashPassword } from '@internal/auth/password-hasher';
-import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/prisma/client';
 import {
   DEMO_SHARED_PROJECTS,
@@ -13,6 +12,11 @@ import {
   type DemoTeamFixtures,
   type TeamSeedPlan,
 } from './team-plan';
+import {
+  createSeedClient,
+  describeSeedTarget,
+  resolveDatabaseUrl,
+} from './seed-db';
 /**
  * Team Seeder - seeds the multi-team demo (ADR-082, ADR-083)
  * - Demo users, three teams, every demo project owned, one of them also shared
@@ -32,50 +36,6 @@ const DEMO_TEAM_FIXTURES: DemoTeamFixtures = {
   teams: DEMO_TEAMS,
   sharedProjects: DEMO_SHARED_PROJECTS,
 };
-
-/**
- * The database the backend itself reads, so the seeded rows are the ones the
- * running API serves. `prisma.config.ts` builds its URL from the POSTGRES_*
- * variables instead, so those are the fallback: a Docker installation passes
- * them to the seeder from its `.env` (which carries no DATABASE_URL, because
- * compose injects the container-internal one). `SEED_DATABASE_URL` is the
- * override for a host/port that fits neither.
- */
-function resolveDatabaseUrl(): string {
-  const explicit = process.env.SEED_DATABASE_URL?.trim();
-  if (explicit) return explicit;
-
-  const runtime = process.env.DATABASE_URL?.trim();
-  if (runtime) return runtime;
-
-  const {
-    POSTGRES_HOST,
-    POSTGRES_PORT,
-    POSTGRES_USER,
-    POSTGRES_PASSWORD,
-    POSTGRES_DB,
-  } = process.env;
-  if (POSTGRES_USER && POSTGRES_PASSWORD && POSTGRES_DB) {
-    const host = POSTGRES_HOST?.trim() || 'localhost';
-    const port = POSTGRES_PORT?.trim() || '5432';
-    return `postgresql://${encodeURIComponent(POSTGRES_USER)}:${encodeURIComponent(
-      POSTGRES_PASSWORD,
-    )}@${host}:${port}/${POSTGRES_DB}`;
-  }
-
-  throw new Error(
-    'No database configured: set DATABASE_URL (what the backend reads), the POSTGRES_* variables (what prisma.config.ts reads), or SEED_DATABASE_URL. The seed scripts do not load backend/.env.local themselves — ./scripts/dev.sh seed passes them, a direct `pnpm run seed:teams` needs them exported.',
-  );
-}
-
-function describeTarget(connectionString: string): string {
-  try {
-    const url = new URL(connectionString);
-    return `${url.hostname}:${url.port || '5432'}${url.pathname}`;
-  } catch {
-    return '(unparseable connection string)';
-  }
-}
 
 async function assertDemoProjects(
   prisma: PrismaClient,
@@ -190,19 +150,10 @@ async function seedTeams(
 async function seed(): Promise<void> {
   const plan = buildTeamPlan(DEMO_TEAM_FIXTURES);
   const connectionString = resolveDatabaseUrl();
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg({
-      connectionString,
-      max: 2,
-      // `PrismaConnection` pins UTC for the same reason: DateTime columns are
-      // `timestamp(3)` without a zone, so a server-local timezone would store
-      // wall time in columns the schema treats as UTC.
-      options: '-c timezone=UTC',
-    }),
-  });
+  const prisma = createSeedClient();
 
   console.log(
-    `Seeding TEAM demo data directly into ${describeTarget(connectionString)}...\n`,
+    `Seeding TEAM demo data directly into ${describeSeedTarget(connectionString)}...\n`,
   );
 
   try {

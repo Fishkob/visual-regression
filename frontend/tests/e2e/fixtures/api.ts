@@ -42,31 +42,25 @@ async function apiFetch(pathname: string, init: RequestInit = {}) {
   });
 }
 
-// A project always has an owner (ADR-083), so the fixture creates (or reuses) a
-// team first. Every seeded run uses one fixture team; a spec that asserts the
-// owner builds its own through the teams page.
-const FIXTURE_TEAM = "e2e-fixture-team";
+// A project always has an owner (ADR-083), and team administration is
+// session-only — an API key cannot create a team. The suite therefore reuses the
+// owner of the seeded `e2e-project`: `seed:e2e` creates it before the run, so
+// every fixture project lands in the same team as the rest of the e2e data.
+const SEEDED_PROJECT = "e2e-project";
 
-async function ensureTeam(): Promise<void> {
-  const existing = await apiFetch("/teams");
-  const teams = existing.ok
-    ? ((await existing.json()) as { name: string }[])
-    : [];
-  if (teams.some((team) => team.name === FIXTURE_TEAM)) return;
-  await apiFetch("/teams", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: FIXTURE_TEAM }),
-  });
+async function seededTeamId(): Promise<string> {
+  const res = await apiFetch(`/projects/${encodeURIComponent(SEEDED_PROJECT)}`);
+  if (res.ok) {
+    const project = (await res.json()) as { teamId?: string };
+    if (project.teamId) return project.teamId;
+  }
+  throw new Error(
+    `No owning team to reuse: ${SEEDED_PROJECT} is missing or has none. Run the seeded e2e data first (cd backend && pnpm exec tsx src/scripts/seeds/seed-e2e.ts).`,
+  );
 }
 
 export async function createProject(name: string): Promise<Response> {
-  await ensureTeam();
-  const teams = await apiFetch("/teams");
-  const list = teams.ok
-    ? ((await teams.json()) as { id: string; name: string }[])
-    : [];
-  const teamId = list.find((team) => team.name === FIXTURE_TEAM)?.id;
+  const teamId = await seededTeamId();
   return apiFetch("/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

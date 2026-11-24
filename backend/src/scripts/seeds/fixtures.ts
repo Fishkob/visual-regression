@@ -1,6 +1,7 @@
 import * as path from 'path';
 import request from 'supertest';
 import { withRateLimitRetry } from './rate-limit-retry';
+import { ensureSeedTeam, SEED_DEFAULT_TEAM } from './seed-db';
 
 export const BASE_URL = process.env.SEED_BASE_URL ?? 'http://localhost:3000';
 
@@ -276,44 +277,8 @@ export async function verifyApiKeyAuth(apiKey: string): Promise<void> {
 }
 
 // A project always has an owner (ADR-083), so a seeder that creates one has to
-// name a team. `general` is the adopting team of the ADR-083 migration; the demo
-// seed (`seed-teams`) reassigns the demo projects to their real owners afterwards.
-export const SEED_DEFAULT_TEAM = 'general';
-
-interface SeedTeam {
-  id: string;
-  name: string;
-}
-
-export async function ensureTeam(
-  apiKey: string,
-  name: string = SEED_DEFAULT_TEAM,
-): Promise<SeedTeam> {
-  const list = await request(BASE_URL)
-    .get('/api/v1/teams')
-    .set(seedAuth(apiKey));
-  const teams = (list.body as SeedTeam[] | undefined) ?? [];
-  const existing = teams.find((team) => team.name === name);
-  if (existing) return existing;
-
-  process.stdout.write(`Creating team "${name}"... `);
-  const res = await withRateLimitRetry(`creating team "${name}"`, () =>
-    request(BASE_URL)
-      .post('/api/v1/teams')
-      .set('Content-Type', 'application/json')
-      .set(seedAuth(apiKey))
-      .send({ name }),
-  );
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const id = String(res.body?.id ?? '');
-  if (res.status !== 201 || !id) {
-    console.log(`\n  ${res.status}`);
-    throw new Error(`Could not create team "${name}" (HTTP ${res.status}).`);
-  }
-  console.log(`done (${id})`);
-  return { id, name };
-}
-
+// name a team. The team row is written directly (`ensureSeedTeam`), because team
+// administration is session-only and a seeder only holds an API key.
 export async function createProject(
   apiKey: string,
   name: string,
@@ -321,7 +286,7 @@ export async function createProject(
 ): Promise<void> {
   process.stdout.write(`Creating project "${name}"... `);
 
-  const team = await ensureTeam(apiKey, teamName);
+  const team = await ensureSeedTeam(teamName);
   const res = await withRateLimitRetry(`creating project "${name}"`, () =>
     request(BASE_URL)
       .post('/api/v1/projects')
