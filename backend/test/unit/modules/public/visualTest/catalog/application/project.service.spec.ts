@@ -493,6 +493,8 @@ describe('ProjectService', () => {
         createdAt,
         groupId: null,
         groupName: null,
+        teamId: null,
+        teamName: null,
         branchName: 'main',
         pixelDiffThreshold: null,
         defaultBranchName: 'main',

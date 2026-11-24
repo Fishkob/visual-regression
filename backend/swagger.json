@@ -5776,6 +5776,16 @@
             "example": "Checkout",
             "nullable": true
           },
+          "teamId": {
+            "type": "string",
+            "example": "team_123",
+            "nullable": true
+          },
+          "teamName": {
+            "type": "string",
+            "example": "Storefront",
+            "nullable": true
+          },
           "branchName": {
             "type": "string",
             "example": "feature/x"

@@ -8,7 +8,7 @@ import ProjectWebhooksPanel from "@/components/webhooks/ProjectWebhooksPanel.vue
 import RenameProjectDialog from "@/components/projects/RenameProjectDialog.vue";
 import ThresholdSettingsDialog from "@/components/projects/ThresholdSettingsDialog.vue";
 import ProjectStoragePanel from "@/components/storage/ProjectStoragePanel.vue";
-import ProjectTeamPanel from "@/components/teams/ProjectTeamPanel.vue";
+import ProjectAffiliationSection from "@/components/projects/ProjectAffiliationSection.vue";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useCurrentRole } from "@/composables/useAuth";
@@ -107,11 +107,17 @@ function handleRenamed(name: string) {
       </div>
     </section>
 
-    <!-- Ownership sits next to the name: the team is what decides who sees the
-    project at all, and it is a governance setting an ADMIN owns, not a normal
-    project edit. The team read and the assignment are ADMIN routes, so the panel
-    renders only for an admin. -->
-    <ProjectTeamPanel v-if="isAdmin" :project-name="projectName" />
+    <!-- Both axes in one place: the group is the navigation label, the team is
+    what decides who sees the project at all. The team name is read-only for
+    everyone the project is visible to; only an ADMIN may change it, because
+    that is a governance write rather than a normal project edit. -->
+    <ProjectAffiliationSection
+      v-if="project"
+      :project-name="projectName"
+      :group-name="project.groupName ?? null"
+      :team-name="project.teamName ?? null"
+      :can-manage-team="isAdmin"
+    />
 
     <section
       class="rounded-xl border bg-card p-4 shadow-sm"

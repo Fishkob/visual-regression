@@ -15,6 +15,8 @@ export type ProjectDto = {
     visualTests?: Array<VisualTestDto>;
     groupId?: string | null;
     groupName?: string | null;
+    teamId?: string | null;
+    teamName?: string | null;
     branchName?: string;
     defaultBranchName?: string;
     pendingCount?: number;

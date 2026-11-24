@@ -64,4 +64,33 @@ test.describe("App shell sidebar", () => {
       await expect(label).toBeHidden();
     }
   });
+
+  // Groups and Teams used to sit next to each other as two equal entries, which
+  // made them read as one concept. The block boundary is what tells an operator
+  // that one is a member-maintained label and the other governs access.
+  test("separates the daily surfaces from administration", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      ["**/api/v1/review/pending*", REVIEW_INBOX_RESPONSE],
+    ]);
+
+    const component = await mount<typeof AppShell>("AppShell/AppShell", {
+      initialRoute: "/projects",
+    });
+
+    const admin = component.getByTestId(TEST_ID.navAdministrationSection);
+    await expect(admin).toContainText("Administration");
+    await expect(admin.getByTestId(TEST_ID.navTeams)).toBeVisible();
+
+    // The groups stay above the line: a MEMBER maintains them.
+    await expect(admin.getByTestId(TEST_ID.navGroups)).toHaveCount(0);
+
+    const account = component.getByTestId(TEST_ID.navAccountSection);
+    await expect(account).toContainText("Account");
+    await expect(account.getByTestId(TEST_ID.securityNavLink)).toBeVisible();
+  });
 });

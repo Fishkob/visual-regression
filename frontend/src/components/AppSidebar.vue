@@ -190,93 +190,130 @@ const pending = computed(() => pendingCount.value ?? 0);
         <span :class="collapsed ? 'md:hidden' : ''">{{ t("nav.groups") }}</span>
       </RouterLink>
 
-      <RouterLink
+      <!-- The daily surfaces sit above this line, everything that governs the
+      installation below it. Groups stay up top because a MEMBER maintains them,
+      while the team pages are ADMIN-only; side by side the two read as one
+      concept, which is what the axis badges on their pages have to undo. -->
+      <div
         v-if="isAdmin"
-        to="/teams"
-        class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-        :class="[
-          { 'bg-muted text-foreground': onTeams },
-          collapsed ? 'md:justify-center md:px-0' : '',
-        ]"
-        :aria-current="onTeams ? 'page' : undefined"
-        :aria-label="collapsed ? t('nav.teams') : undefined"
-        :title="collapsed ? t('nav.teams') : undefined"
-        :data-testid="TEST_ID.navTeams"
+        class="mt-2 space-y-1 border-t pt-2"
+        :data-testid="TEST_ID.navAdministrationSection"
       >
-        <UsersRound class="h-4 w-4 shrink-0" />
-        <span :class="collapsed ? 'md:hidden' : ''">{{ t("nav.teams") }}</span>
-      </RouterLink>
+        <p
+          class="px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+          :class="collapsed ? 'md:hidden' : ''"
+        >
+          {{ t("nav.administration") }}
+        </p>
 
-      <RouterLink
-        v-if="isAdmin"
-        to="/api-keys"
-        class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-        :class="[
-          { 'bg-muted text-foreground': onApiKeys },
-          collapsed ? 'md:justify-center md:px-0' : '',
-        ]"
-        :aria-current="onApiKeys ? 'page' : undefined"
-        :aria-label="collapsed ? t('nav.apiKeys') : undefined"
-        :title="collapsed ? t('nav.apiKeys') : undefined"
-        :data-testid="TEST_ID.navApiKeys"
-      >
-        <KeyRound class="h-4 w-4 shrink-0" />
-        <span :class="collapsed ? 'md:hidden' : ''">{{
-          t("nav.apiKeys")
-        }}</span>
-      </RouterLink>
+        <RouterLink
+          v-if="isAdmin"
+          to="/teams"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          :class="[
+            { 'bg-muted text-foreground': onTeams },
+            collapsed ? 'md:justify-center md:px-0' : '',
+          ]"
+          :aria-current="onTeams ? 'page' : undefined"
+          :aria-label="collapsed ? t('nav.teams') : undefined"
+          :title="collapsed ? t('nav.teams') : undefined"
+          :data-testid="TEST_ID.navTeams"
+        >
+          <UsersRound class="h-4 w-4 shrink-0" />
+          <span :class="collapsed ? 'md:hidden' : ''">{{
+            t("nav.teams")
+          }}</span>
+        </RouterLink>
 
-      <RouterLink
-        v-if="isAdmin"
-        to="/users"
-        class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-        :class="[
-          { 'bg-muted text-foreground': onUsers },
-          collapsed ? 'md:justify-center md:px-0' : '',
-        ]"
-        :aria-current="onUsers ? 'page' : undefined"
-        :aria-label="collapsed ? t('nav.users') : undefined"
-        :title="collapsed ? t('nav.users') : undefined"
-        :data-testid="TEST_ID.usersNavLink"
-      >
-        <UserCog class="h-4 w-4 shrink-0" />
-        <span :class="collapsed ? 'md:hidden' : ''">{{ t("nav.users") }}</span>
-      </RouterLink>
+        <RouterLink
+          v-if="isAdmin"
+          to="/api-keys"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          :class="[
+            { 'bg-muted text-foreground': onApiKeys },
+            collapsed ? 'md:justify-center md:px-0' : '',
+          ]"
+          :aria-current="onApiKeys ? 'page' : undefined"
+          :aria-label="collapsed ? t('nav.apiKeys') : undefined"
+          :title="collapsed ? t('nav.apiKeys') : undefined"
+          :data-testid="TEST_ID.navApiKeys"
+        >
+          <KeyRound class="h-4 w-4 shrink-0" />
+          <span :class="collapsed ? 'md:hidden' : ''">{{
+            t("nav.apiKeys")
+          }}</span>
+        </RouterLink>
 
-      <RouterLink
-        v-if="isAdmin"
-        to="/audit"
-        class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-        :class="[
-          { 'bg-muted text-foreground': onAudit },
-          collapsed ? 'md:justify-center md:px-0' : '',
-        ]"
-        :aria-current="onAudit ? 'page' : undefined"
-        :aria-label="collapsed ? t('nav.audit') : undefined"
-        :title="collapsed ? t('nav.audit') : undefined"
-        :data-testid="TEST_ID.auditNavLink"
-      >
-        <ScrollText class="h-4 w-4 shrink-0" />
-        <span :class="collapsed ? 'md:hidden' : ''">{{ t("nav.audit") }}</span>
-      </RouterLink>
+        <RouterLink
+          v-if="isAdmin"
+          to="/users"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          :class="[
+            { 'bg-muted text-foreground': onUsers },
+            collapsed ? 'md:justify-center md:px-0' : '',
+          ]"
+          :aria-current="onUsers ? 'page' : undefined"
+          :aria-label="collapsed ? t('nav.users') : undefined"
+          :title="collapsed ? t('nav.users') : undefined"
+          :data-testid="TEST_ID.usersNavLink"
+        >
+          <UserCog class="h-4 w-4 shrink-0" />
+          <span :class="collapsed ? 'md:hidden' : ''">{{
+            t("nav.users")
+          }}</span>
+        </RouterLink>
 
-      <RouterLink
-        to="/settings/security"
-        class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-        :class="[
-          { 'bg-muted text-foreground': onSecurity },
-          collapsed ? 'md:justify-center md:px-0' : '',
-        ]"
-        :aria-current="onSecurity ? 'page' : undefined"
-        :aria-label="collapsed ? t('nav.security') : undefined"
-        :title="collapsed ? t('nav.security') : undefined"
-        :data-testid="TEST_ID.securityNavLink"
+        <RouterLink
+          v-if="isAdmin"
+          to="/audit"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          :class="[
+            { 'bg-muted text-foreground': onAudit },
+            collapsed ? 'md:justify-center md:px-0' : '',
+          ]"
+          :aria-current="onAudit ? 'page' : undefined"
+          :aria-label="collapsed ? t('nav.audit') : undefined"
+          :title="collapsed ? t('nav.audit') : undefined"
+          :data-testid="TEST_ID.auditNavLink"
+        >
+          <ScrollText class="h-4 w-4 shrink-0" />
+          <span :class="collapsed ? 'md:hidden' : ''">{{
+            t("nav.audit")
+          }}</span>
+        </RouterLink>
+      </div>
+
+      <!-- Personal, not administrative: a VIEWER changes their own password here
+      too, so this block is neither admin-gated nor part of the admin block. -->
+      <div
+        class="mt-2 space-y-1 border-t pt-2"
+        :data-testid="TEST_ID.navAccountSection"
       >
-        <ShieldCheck class="h-4 w-4 shrink-0" />
-        <span :class="collapsed ? 'md:hidden' : ''">{{
-          t("nav.security")
-        }}</span>
-      </RouterLink>
+        <p
+          class="px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground"
+          :class="collapsed ? 'md:hidden' : ''"
+        >
+          {{ t("nav.account") }}
+        </p>
+
+        <RouterLink
+          to="/settings/security"
+          class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          :class="[
+            { 'bg-muted text-foreground': onSecurity },
+            collapsed ? 'md:justify-center md:px-0' : '',
+          ]"
+          :aria-current="onSecurity ? 'page' : undefined"
+          :aria-label="collapsed ? t('nav.security') : undefined"
+          :title="collapsed ? t('nav.security') : undefined"
+          :data-testid="TEST_ID.securityNavLink"
+        >
+          <ShieldCheck class="h-4 w-4 shrink-0" />
+          <span :class="collapsed ? 'md:hidden' : ''">{{
+            t("nav.security")
+          }}</span>
+        </RouterLink>
+      </div>
     </nav>
   </aside>
 </template>

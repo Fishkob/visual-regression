@@ -128,8 +128,14 @@ describe('Team-scoped project access (e2e)', () => {
     request(app.getHttpServer()).get(path).set('Cookie', adminCookie);
 
   it('lets a member read the project of its team and the shared one', async () => {
-    await asMember('/api/v1/projects/checkout-ui').expect(200);
-    await asMember('/api/v1/projects/shared-ui').expect(200);
+    const owned = await asMember('/api/v1/projects/checkout-ui').expect(200);
+    const shared = await asMember('/api/v1/projects/shared-ui').expect(200);
+
+    // The owner's name rides on the project read a member already performs:
+    // reading it is not administering it (ADR-082 amendment). It is the answer
+    // to "why do I see this", which the ADMIN-only team list cannot give.
+    expect(owned.body).toMatchObject({ teamName: 'Checkout' });
+    expect(shared.body).toMatchObject({ teamId: null, teamName: null });
   });
 
   it('answers 404 for another team’s project, exactly like a missing one', async () => {

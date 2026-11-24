@@ -37,6 +37,10 @@ export interface Project {
   hasPendingTests: boolean;
   groupId?: string | null;
   groupName?: string | null;
+  // Read-only: the owning team decides who may open the project, and naming it
+  // is not administering it (ADR-082). Assignment stays on the settings panel.
+  teamId?: string | null;
+  teamName?: string | null;
   branchName?: string;
   defaultBranchName?: string;
   pixelDiffThreshold?: number | null;

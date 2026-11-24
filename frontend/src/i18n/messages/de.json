@@ -8,6 +8,8 @@
     "users": "Benutzer",
     "audit": "Audit",
     "security": "Sicherheit",
+    "administration": "Administration",
+    "account": "Konto",
     "expand": "Seitenleiste erweitern",
     "collapse": "Seitenleiste einklappen",
     "main": "Hauptnavigation",
@@ -1375,10 +1377,16 @@
     "loadingOlder": "Ältere Kommentare werden geladen…",
     "submitHint": "Strg + Enter"
   },
+  "projectAffiliation": {
+    "title": "Zugehörigkeit",
+    "description": "Zwei Achsen: Die Gruppe ist ein Label für Seitenleiste und Posteingang, das Team entscheidet über den Zugriff.",
+    "groupLabel": "Gruppe",
+    "groupUnassigned": "Nicht zugewiesen",
+    "groupHint": "Bündelt Projekte für die Navigation, ohne Einfluss auf Tests oder Prüfstatus. Änderbar über die Projektliste – dort per Mehrfachauswahl.",
+    "teamLabel": "Team",
+    "teamHint": "Entscheidet, wer das Projekt sehen darf. Ohne Team ist es für alle angemeldeten Personen sichtbar."
+  },
   "projectTeam": {
-    "title": "Team-Zugehörigkeit",
-    "description": "Ein Projekt gehört höchstens einem Team. Ohne Team ist es für alle angemeldeten Personen sichtbar („geteilt“).",
-    "owner": "Eigentümer: {name}",
     "shared": "Geteilt – für alle sichtbar",
     "loading": "Teams werden geladen …",
     "error": "Teams konnten nicht geladen werden",

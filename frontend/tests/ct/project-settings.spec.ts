@@ -52,6 +52,23 @@ test.describe("ProjectSettings", () => {
     );
   });
 
+  test("shows both axes of the project's affiliation", async ({ mount }) => {
+    const component = await mount<typeof Routed>(
+      "views/ProjectSettingsView/Routed",
+      { initialRoute: SETTINGS_ROUTE },
+    );
+
+    // The group is a navigation label and the team decides the access; the page
+    // that edits a project has to name both instead of leaving the group to the
+    // project list and the team to an admin-only corner.
+    await expect(
+      component.getByTestId(TEST_ID.projectAffiliationGroup),
+    ).toHaveText("Checkout");
+    await expect(
+      component.getByTestId(TEST_ID.projectTeamCurrent),
+    ).toHaveText("Shared — visible to everyone");
+  });
+
   test("shows the project's webhook endpoints and opens the editor", async ({
     mount,
     page,
@@ -190,9 +207,10 @@ test.describe("ProjectSettings", () => {
       { initialRoute: SETTINGS_ROUTE },
     );
 
+    // The team row names the owner directly; the row label already says "Team".
     await expect(
       component.getByTestId(TEST_ID.projectTeamCurrent),
-    ).toContainText("Owner: Checkout");
+    ).toHaveText("Checkout");
 
     await component.getByTestId(TEST_ID.projectTeamSelect).click();
     await page.getByRole("option", { name: "No team (shared)" }).click();

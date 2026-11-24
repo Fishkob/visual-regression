@@ -100,8 +100,10 @@ describe('project-response.mapper', () => {
           id: 'proj-1',
           name: 'checkout-ui',
           createdAt,
-          groupId: null,
-          groupName: null,
+          groupId: 'group-1',
+          groupName: 'Checkout',
+          teamId: 'team-1',
+          teamName: 'Storefront',
           branchName: 'main',
           pixelDiffThreshold: null,
           defaultBranchName: 'main',
@@ -138,6 +140,10 @@ describe('project-response.mapper', () => {
 
       expect(dto).toBeInstanceOf(ProjectDto);
       expect(dto.meta).toMatchObject({ page: 1, total: 1 });
+      expect(dto.groupId).toBe('group-1');
+      expect(dto.groupName).toBe('Checkout');
+      expect(dto.teamId).toBe('team-1');
+      expect(dto.teamName).toBe('Storefront');
       expect(dto.filterOptions).toEqual({
         viewports: ['1920x1080'],
         browsers: ['chrome'],

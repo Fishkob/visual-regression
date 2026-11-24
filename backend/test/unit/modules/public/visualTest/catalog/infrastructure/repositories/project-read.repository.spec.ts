@@ -73,6 +73,7 @@ describe('ProjectReadRepository', () => {
       name: 'my-project',
       createdAt: new Date(),
       group: null,
+      team: null,
     };
 
     it('returns the project with its variant page and filter options', async () => {
@@ -108,6 +109,8 @@ describe('ProjectReadRepository', () => {
         createdAt: project.createdAt,
         groupId: null,
         groupName: null,
+        teamId: null,
+        teamName: null,
         branchName: 'main',
         defaultBranchName: 'main',
         variants: [variantRow],
@@ -169,6 +172,34 @@ describe('ProjectReadRepository', () => {
 
       expect(result).toBeNull();
       expect(variants.findProjectVariantPage).not.toHaveBeenCalled();
+    });
+
+    // Both labels are read by the project read, so a project that carries a
+    // group and a team answers "where does this belong" and "who may see it" in
+    // one payload (ADR-082 amendment: naming the owner is not administering it).
+    it('carries the owning group and team', async () => {
+      mockClient.project.findUnique.mockResolvedValue({
+        ...project,
+        group: { id: 'g1', name: 'Checkout' },
+        team: { id: 't1', name: 'Storefront' },
+      });
+
+      const result =
+        await repository.getWithLatestVariantStatuses('my-project');
+
+      expect(result).toMatchObject({
+        groupId: 'g1',
+        groupName: 'Checkout',
+        teamId: 't1',
+        teamName: 'Storefront',
+      });
+      expect(mockClient.project.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            team: { select: { id: true, name: true } },
+          }),
+        }),
+      );
     });
   });
 

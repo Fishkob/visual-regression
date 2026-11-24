@@ -97,6 +97,22 @@ export class ProjectDto {
   @Expose()
   groupName?: string | null;
 
+  @ApiPropertyOptional({ example: 'team_123', nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  teamId?: string | null;
+
+  // Read-only, and visible to every principal that may open the project:
+  // naming the owner is not administering it, and "why do I see this?" needs an
+  // answer that does not require an ADMIN read. Assignment stays ADMIN-only on
+  // `PATCH /projects/:projectName/team` (ADR-082).
+  @ApiPropertyOptional({ example: 'Storefront', nullable: true, type: String })
+  @IsOptional()
+  @IsString()
+  @Expose()
+  teamName?: string | null;
+
   @ApiPropertyOptional({ example: 'feature/x' })
   @IsOptional()
   @IsString()

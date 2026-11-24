@@ -8,6 +8,8 @@
     "users": "Users",
     "audit": "Audit",
     "security": "Security",
+    "administration": "Administration",
+    "account": "Account",
     "expand": "Expand sidebar",
     "collapse": "Collapse sidebar",
     "main": "Main",
@@ -1375,10 +1377,16 @@
     "loadingOlder": "Loading older comments…",
     "submitHint": "Ctrl + Enter"
   },
+  "projectAffiliation": {
+    "title": "Affiliation",
+    "description": "Two axes: the group is a sidebar and inbox label, the team decides the access.",
+    "groupLabel": "Group",
+    "groupUnassigned": "Unassigned",
+    "groupHint": "Bundles projects for navigation, with no effect on tests or review state. Change it on the project list — there via multi-select.",
+    "teamLabel": "Team",
+    "teamHint": "Decides who may see the project. Without a team it stays visible to every signed-in person."
+  },
   "projectTeam": {
-    "title": "Team ownership",
-    "description": "A project belongs to at most one team. Without a team it stays visible to every signed-in person (“shared”).",
-    "owner": "Owner: {name}",
     "shared": "Shared — visible to everyone",
     "loading": "Loading teams …",
     "error": "Teams could not be loaded",

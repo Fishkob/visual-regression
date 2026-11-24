@@ -51,6 +51,8 @@ export function mapProjectDetailToDto(
       createdAt: project.createdAt,
       groupId: project.groupId,
       groupName: project.groupName,
+      teamId: project.teamId,
+      teamName: project.teamName,
       branchName: project.branchName,
       defaultBranchName: project.defaultBranchName,
       pixelDiffThreshold: project.pixelDiffThreshold,

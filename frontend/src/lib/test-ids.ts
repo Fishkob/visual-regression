@@ -25,6 +25,8 @@ export const TEST_ID = {
   inboxScopedEmpty: "inbox-scoped-empty",
   navTeams: "nav-teams",
   navApiKeys: "nav-api-keys",
+  navAdministrationSection: "nav-administration-section",
+  navAccountSection: "nav-account-section",
   auditNavLink: "audit-nav-link",
   inboxBadge: "inbox-badge",
 
@@ -435,6 +437,10 @@ export const TEST_ID = {
   projectTeamSelect: "project-team-select",
   projectTeamSave: "project-team-save",
   projectTeamRetry: "project-team-retry",
+
+  projectAffiliationSection: "project-affiliation-section",
+  projectAffiliationGroupRow: "project-affiliation-group-row",
+  projectAffiliationGroup: "project-affiliation-group",
 
   webhooksLink: "webhooks-link",
   webhooksView: "webhooks-view",

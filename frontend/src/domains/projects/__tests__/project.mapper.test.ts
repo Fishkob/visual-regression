@@ -118,6 +118,21 @@ describe("mapProject", () => {
     });
   });
 
+  it("maps the owning team, and keeps an unowned project on null", () => {
+    const owned = mapProject({
+      id: "1",
+      name: "p",
+      teamId: "t1",
+      teamName: "Storefront",
+    });
+    expect(owned.teamId).toBe("t1");
+    expect(owned.teamName).toBe("Storefront");
+
+    const shared = mapProject({ id: "2", name: "q" });
+    expect(shared.teamId).toBeNull();
+    expect(shared.teamName).toBeNull();
+  });
+
   it("maps inherited test metadata", () => {
     const project = mapProject({
       name: "app",

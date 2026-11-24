@@ -31,6 +31,8 @@ export interface ProjectWithVariants {
   createdAt: Date;
   groupId: string | null;
   groupName: string | null;
+  teamId: string | null;
+  teamName: string | null;
   branchName: string;
   defaultBranchName: string;
   pixelDiffThreshold: number | null;
@@ -80,7 +82,10 @@ export class ProjectReadRepository {
   ): Promise<ProjectWithVariants | null> {
     const project = await this.client.project.findUnique({
       where: { name: projectName },
-      include: { group: { select: { id: true, name: true } } },
+      include: {
+        group: { select: { id: true, name: true } },
+        team: { select: { id: true, name: true } },
+      },
     });
     if (!project) return null;
 
@@ -109,6 +114,8 @@ export class ProjectReadRepository {
       createdAt: project.createdAt,
       groupId: project.group?.id ?? null,
       groupName: project.group?.name ?? null,
+      teamId: project.team?.id ?? null,
+      teamName: project.team?.name ?? null,
       branchName: branch.branchName,
       defaultBranchName,
       pixelDiffThreshold: project.pixelDiffThreshold,
