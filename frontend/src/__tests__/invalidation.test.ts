@@ -3,7 +3,7 @@ import {
   invalidatePdfTestDetails,
   invalidateProjectDetail,
   invalidateProjectList,
-  invalidateProjectsForGroupChange,
+  invalidateProjectsForAssignmentChange,
   invalidateVisualTestDetails,
 } from "@/lib/invalidation";
 
@@ -83,12 +83,12 @@ describe("invalidation", () => {
     expect(countRoot(client, "approvals")).toBe(1);
   });
 
-  it("invalidateProjectsForGroupChange invalidates groups and the inbox exactly once", () => {
+  it("invalidateProjectsForAssignmentChange invalidates teams and the inbox exactly once", () => {
     const client = createClient();
 
-    invalidateProjectsForGroupChange(client as never);
+    invalidateProjectsForAssignmentChange(client as never);
 
-    expect(countRoot(client, "groups")).toBe(1);
+    expect(countRoot(client, "teams")).toBe(1);
     expect(countRoot(client, "review-inbox")).toBe(1);
   });
 });

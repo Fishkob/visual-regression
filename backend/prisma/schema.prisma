@@ -1,17 +1,7 @@
-model ProjectGroup {
-  id        String    @id @default(cuid())
-  name      String    @unique
-  createdAt DateTime  @default(now())
-  projects  Project[]
-
-  @@map("ProjectGroup")
-}
-
-// An owner of Projects and the set of Users who may see them (ADR-082). Null on
-// `Project.teamId` means "shared": every authenticated principal may see it, so
-// tagging a project is the act that narrows access, never the act of creating
-// one. A project belongs to at most one team; sharing is a separate, additive
-// decision if it is ever needed.
+// An owner of Projects and the set of Users who may see them (ADR-082). Every
+// project has exactly one owner (ADR-083): `Project.teamId` is required, so a
+// project cannot be written without one and "who is responsible" is answerable
+// for every project, including the ones everyone may look at.
 model Team {
   id        String       @id @default(cuid())
   name      String       @unique
@@ -42,13 +32,15 @@ model Project {
   id                     String             @id @default(cuid())
   name                   String             @unique
   createdAt              DateTime           @default(now())
-  groupId                String?
-  group                  ProjectGroup?      @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  teamId                 String?
+  teamId                 String
   // `Restrict`, not `SetNull`: a cascade would silently turn a team's products
-  // into shared ones, which is a widening nobody asked for. Deleting a team with
-  // projects is refused (ADR-082).
-  team                   Team?              @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  // into an unowned set, which is a state that does not exist (ADR-083).
+  // Deleting a team with projects is refused (ADR-082).
+  team                   Team               @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  // Everyone may read this project in addition to the owner's members (ADR-083).
+  // It is a described property, not a second owner: it grants no administration,
+  // and the owner keeps seeing the project whatever the flag says.
+  isShared               Boolean            @default(false)
   defaultBranchId        String?            @unique
   defaultBranch          Branch?            @relation("DefaultBranch", fields: [defaultBranchId], references: [id], onDelete: SetNull)
   baselineRevisionLimit  Int?
@@ -78,7 +70,6 @@ model Project {
   assignments            ReviewAssignment[]
   shareLinks             ShareLink[]
 
-  @@index([groupId])
   @@index([teamId])
   // Trigram index for the case-insensitive substring search (project list,
   // global search): `ILIKE '%q%'` cannot use a btree, so without it every search

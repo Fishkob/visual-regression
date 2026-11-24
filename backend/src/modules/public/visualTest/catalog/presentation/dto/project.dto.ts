@@ -2,6 +2,7 @@ import { Expose, Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Allow,
+  IsBoolean,
   IsDate,
   IsDefined,
   IsIn,
@@ -23,7 +24,6 @@ import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/var
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { PaginationMetaDto } from '@common/dto/paginated-response.dto';
 import { TEST_KINDS } from '@common/domain/test-kind';
-import { UNASSIGNED_GROUP_FILTER } from '@common/domain/group-filter';
 import {
   NAME_REGEXP,
   MAX_NAME_LENGTH,
@@ -85,17 +85,33 @@ export class ProjectDto {
   @Type(() => VisualTestDto)
   visualTests?: VisualTestDto[];
 
-  @ApiPropertyOptional({ example: 'group_123', nullable: true, type: String })
+  @ApiPropertyOptional({ example: 'team_123', type: String })
   @IsOptional()
   @IsString()
   @Expose()
-  groupId?: string | null;
+  teamId?: string;
 
-  @ApiPropertyOptional({ example: 'Checkout', nullable: true, type: String })
+  // Read-only, and visible to every principal that may open the project:
+  // naming the owner is not administering it, and "why do I see this?" needs an
+  // answer that does not require an ADMIN read. Assignment stays ADMIN-only on
+  // `PATCH /projects/:projectName/team` (ADR-082).
+  @ApiPropertyOptional({ example: 'Storefront', type: String })
   @IsOptional()
   @IsString()
   @Expose()
-  groupName?: string | null;
+  teamName?: string;
+
+  // Read-only too: the flag says everybody may read the project in addition to
+  // the owner's members. Changing it is `PATCH /projects/:projectName/visibility`
+  // (ADR-083).
+  @ApiPropertyOptional({
+    description:
+      'True when every authenticated principal may read the project in addition to the owning team',
+    example: false,
+  })
+  @IsOptional()
+  @Expose()
+  isShared?: boolean;
 
   @ApiPropertyOptional({ example: 'feature/x' })
   @IsOptional()
@@ -198,11 +214,19 @@ export class CreateProjectDto {
   })
   name!: string;
 
-  @ApiPropertyOptional({ example: 'group_123', type: String })
+  // Optional on the wire, not in the rule: a missing id falls back to the
+  // creator's own first team, and a member that belongs to none is refused with
+  // `409` by the service (ADR-083). The dialog preselects that same first team.
+  @ApiPropertyOptional({
+    description:
+      'The team that will own the project. Omitted: the creator’s first team.',
+    example: 'team_123',
+    type: String,
+  })
   @IsOptional()
   @IsString()
   @MinLength(1)
-  groupId?: string;
+  teamId?: string;
 }
 
 export class UpdateProjectDto {
@@ -228,16 +252,6 @@ export class UpdateProjectDto {
     message: 'This project name is reserved and cannot be used',
   })
   name?: string;
-
-  @ApiPropertyOptional({
-    description: 'Group id, or null to move the project to Unassigned',
-    nullable: true,
-    type: String,
-  })
-  @IsOptional()
-  @IsString()
-  @MinLength(1)
-  groupId?: string | null;
 
   @ApiPropertyOptional({
     description: 'Branch to promote to the project default',
@@ -291,11 +305,34 @@ export class UpdateThresholdDto {
   threshold!: number;
 }
 
+// Its own route, the sibling of `PATCH /projects/:projectName/team`: widening who
+// may read a project is a governance decision, so it must not ride on the generic
+// project patch, which is gated by an API-key scope rather than by `@Roles`
+// (ADR-083).
+export class UpdateProjectVisibilityDto {
+  @ApiProperty({
+    description:
+      'True makes the project readable by every authenticated principal in addition to the owning team',
+    example: true,
+  })
+  @IsBoolean()
+  isShared!: boolean;
+}
+
+export class ProjectVisibilityDto {
+  @ApiProperty({ example: 'checkout-ui' })
+  @Expose()
+  projectName!: string;
+
+  @ApiProperty({ example: true })
+  @Expose()
+  isShared!: boolean;
+}
+
 // The whole query object is validated as one DTO so whitelist/forbidNonWhitelisted
 // can reject genuinely unknown params without rejecting the endpoint's own// extra params (kind) as if they were stray.
-// The project list's query: pagination plus the server-side search and group
-// filter the list UI drives. Filtering belongs on the server because the view
-// only loads one page.
+// The project list's query: pagination plus the server-side search the list UI
+// drives. Filtering belongs on the server because the view only loads one page.
 export class ProjectsListQueryDto extends PaginationDto {
   @ApiPropertyOptional({
     description: 'Case-insensitive project-name search',
@@ -304,13 +341,6 @@ export class ProjectsListQueryDto extends PaginationDto {
   @IsString()
   @MaxLength(MAX_NAME_LENGTH)
   q?: string;
-
-  @ApiPropertyOptional({
-    description: `Group id, or "${UNASSIGNED_GROUP_FILTER}" for projects without a group`,
-  })
-  @IsOptional()
-  @IsString()
-  groupId?: string;
 }
 
 // The project overview query: one page of variant rows plus the filters the

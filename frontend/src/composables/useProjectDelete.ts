@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { projectsControllerDeleteProject } from "@sdk";
 import type { Project } from "@/domains/projects/project.model";
 import {
-  invalidateProjectsForGroupChange,
+  invalidateProjectsForAssignmentChange,
   invalidateProjectDetail,
 } from "@/lib/invalidation";
 import { useEntityDeleteMutation } from "@/composables/useEntityDeleteMutation";
@@ -30,7 +30,7 @@ export function useProjectDelete() {
     errorMessage: tm("toast.projectDeleteError"),
 
     invalidate: (client, projectName) => {
-      invalidateProjectsForGroupChange(client);
+      invalidateProjectsForAssignmentChange(client);
       invalidateProjectDetail(client, projectName);
     },
   });

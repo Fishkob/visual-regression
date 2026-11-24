@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { mockApi, mockReviewBackend } from "./routes/api.routes";
+import { TEAMS_GLOB, TEAMS_RESPONSE } from "./mocks/teams.mocks";
 import {
   REVIEW_INBOX_BRANCHES_RESPONSE,
   REVIEW_INBOX_EMPTY_RESPONSE,
@@ -11,28 +12,25 @@ import {
   makePendingItem,
   makeReviewableDetails,
 } from "./mocks/reviewLoop.mocks";
-import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
 import { TEST_ID } from "@/lib/test-ids";
 import type { AppShell } from "../../src/AppShell.story";
 
 const INBOX_ENDPOINT = "**/api/v1/review/pending*";
 
 // The inbox filters and pages on the server now, so the CT mock answers the
-// query it receives. Groups and branches are separate reads.
+// query it receives. Branches are a separate read.
 async function mockInbox(
   page: Page,
   response: { body: string },
 ): Promise<void> {
   const rows = JSON.parse(response.body).data as Array<{
     projectName: string;
-    groupId: string | null;
     testName: string;
     kind: string;
     branchName: string;
   }>;
 
   await mockApi(page, [
-    ["**/api/v1/groups", GROUPS_RESPONSE],
     [
       "**/api/v1/review/branches",
       {
@@ -47,7 +45,6 @@ async function mockInbox(
     const url = new URL(route.request().url());
     const search = url.searchParams.get("q")?.toLowerCase() ?? "";
     const kind = url.searchParams.get("kind");
-    const groupId = url.searchParams.get("groupId");
     const branch = url.searchParams.get("branch");
 
     const data = rows.filter((row) => {
@@ -56,13 +53,8 @@ async function mockInbox(
         row.testName.toLowerCase().includes(search) ||
         row.projectName.toLowerCase().includes(search);
       const matchesKind = !kind || row.kind === kind;
-      const matchesGroup =
-        !groupId ||
-        (groupId === "unassigned"
-          ? row.groupId === null
-          : row.groupId === groupId);
       const matchesBranch = !branch || row.branchName === branch;
-      return matchesSearch && matchesKind && matchesGroup && matchesBranch;
+      return matchesSearch && matchesKind && matchesBranch;
     });
 
     await route.fulfill({
@@ -74,7 +66,7 @@ async function mockInbox(
 }
 
 test.describe("Review inbox", () => {
-  test("groups pending reviews by group and project", async ({
+  test("sections pending reviews by the owning team", async ({
     mount,
     page,
   }) => {
@@ -82,8 +74,10 @@ test.describe("Review inbox", () => {
 
     const component = await mount("views/InboxView/Inbox");
 
+    // Every block names the team that owns it: the section header is the answer
+    // to "why is this review here" (ADR-084).
     await expect(component).toContainText("Checkout");
-    await expect(component).toContainText("Unassigned");
+    await expect(component).toContainText("Platform");
     await expect(component.getByTestId(TEST_ID.inboxItem)).toHaveCount(2);
 
     const sections = component.getByTestId(TEST_ID.inboxProjectSection);
@@ -114,22 +108,34 @@ test.describe("Review inbox", () => {
     await expect(page).toHaveURL(/[?&]kind=pdf/);
   });
 
-  test("filters by group", async ({ mount, page }) => {
+  // The team lens stays (ADR-084 decision 4): a section header labels a block,
+  // the lens narrows the page, and those answer different questions.
+  test("narrows the page with the team lens", async ({ mount, page }) => {
     await mockInbox(page, REVIEW_INBOX_RESPONSE);
+    // The lens is offered only where there is a choice, so the fixture needs two
+    // teams: one team is no choice, and an unscoped principal sees everything.
+    await page.route(TEAMS_GLOB, (route) => route.fulfill(TEAMS_RESPONSE));
+    await page.route("**/api/v1/review/pending*", async (route) => {
+      const body = JSON.parse(REVIEW_INBOX_RESPONSE.body) as {
+        data: Array<{ teamId: string }>;
+      };
+      const teamId = new URL(route.request().url()).searchParams.get("teamId");
+      const data = body.data.filter((row) => !teamId || row.teamId === teamId);
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data, meta: { total: data.length } }),
+      });
+    });
 
     const component = await mount("views/InboxView/Inbox");
+    await component.getByTestId(TEST_ID.inboxFilterTeam).click();
+    await page.getByRole("option", { name: "Platform" }).click();
 
-    await component.getByTestId(TEST_ID.filterGroup).click();
-    await page.getByRole("option", { name: "Checkout" }).click();
-
-    const sections = component.getByTestId(TEST_ID.inboxProjectSection);
-    await expect(sections).toHaveCount(1);
-    await expect(sections.first()).toContainText("checkout-ui");
-    await expect(sections.first().getByTestId(TEST_ID.inboxItem)).toHaveCount(
-      1,
-    );
-    await expect(component).not.toContainText("admin-ui");
-    await expect(page).toHaveURL(/[?&]group=g1/);
+    await expect(page).toHaveURL(/[?&]team=team-platform/);
+    await expect(component.getByTestId(TEST_ID.inboxItem)).toHaveCount(1);
+    await expect(component).toContainText("Platform");
+    await expect(component).not.toContainText("checkout-ui");
   });
 
   test("searches by test name or project name", async ({ mount, page }) => {

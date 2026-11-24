@@ -135,13 +135,13 @@ export class TeamsRepository extends BaseRepository {
     });
   }
 
-  // The scope a session sees, as ids (ADR-082): every project of the user's
-  // teams plus every untagged project, because a project without a team is
-  // shared. One indexed query; the shared rule lives here and nowhere else.
+  // The scope a session sees, as ids (ADR-082, ADR-083): every project of the
+  // user's teams plus every shared project. One indexed query; the shared rule
+  // lives here and nowhere else.
   async findVisibleProjectIdsForUser(userId: string): Promise<string[]> {
     const rows = await this.client.project.findMany({
       where: {
-        OR: [{ teamId: null }, { team: { members: { some: { userId } } } }],
+        OR: [{ team: { members: { some: { userId } } } }, { isShared: true }],
       },
       select: { id: true },
     });

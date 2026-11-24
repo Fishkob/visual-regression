@@ -4,7 +4,6 @@ import {
   PROJECTS_PENDING_EMPTY_RESPONSE,
   PROJECTS_PENDING_RESPONSE,
 } from "./mocks/projects.mocks";
-import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
 import { TEST_ID } from "@/lib/test-ids";
 
 // The project list filters on the server now, so the CT mock must answer the
@@ -41,21 +40,24 @@ test.describe("ProjectList", () => {
   test("shows projects", async ({ mount, page }) => {
     await mockApi(page, [
       ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
     ]);
 
     const component = await mount("views/ProjectsView/Projects");
     await expect(component).toContainText("checkout-ui");
     await expect(component).toContainText("dashboard-ui");
     await expect(component).toContainText("admin-ui");
+    // Both blocks name the owning team: the section header is the axis the
+    // project lives on (ADR-084).
     await expect(component).toContainText("Checkout");
-    await expect(component).toContainText("Unassigned");
+    await expect(component).toContainText("Platform");
   });
 
-  test("opens the new project dialog", async ({ mount, page }) => {
+  test("opens the new project dialog and preselects the first team", async ({
+    mount,
+    page,
+  }) => {
     await mockApi(page, [
       ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
     ]);
 
     const component = await mount("views/ProjectsView/Projects");
@@ -63,14 +65,49 @@ test.describe("ProjectList", () => {
 
     await expect(page.getByTestId(TEST_ID.projectNameInput)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.projectFormSubmit)).toBeDisabled();
+    // A project always has an owner (ADR-083), and the dialog picks the first
+    // team so the form is submittable without a second decision.
+    await expect(page.getByTestId(TEST_ID.newProjectTeam)).toHaveText(
+      "Storefront",
+    );
+    await expect(page.getByTestId(TEST_ID.newProjectNoTeam)).toHaveCount(0);
+
     await page.getByTestId(TEST_ID.projectNameInput).fill("new-project");
     await expect(page.getByTestId(TEST_ID.projectFormSubmit)).toBeEnabled();
+  });
+
+  // A member that belongs to no team cannot own a project, so the dialog says so
+  // instead of sending a request the API answers with 409.
+  test("explains a member without a team instead of a dead form", async ({
+    mount,
+    page,
+  }) => {
+    await page.route("**/api/v1/teams", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([]),
+      }),
+    );
+    await mockApi(page, [
+      ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
+      [
+        "**/api/v1/teams",
+        { status: 200, contentType: "application/json", body: "[]" },
+      ],
+    ]);
+
+    const component = await mount("views/ProjectsView/Projects");
+    await component.getByTestId(TEST_ID.newProject).click();
+
+    await expect(page.getByTestId(TEST_ID.newProjectNoTeam)).toBeVisible();
+    await page.getByTestId(TEST_ID.projectNameInput).fill("new-project");
+    await expect(page.getByTestId(TEST_ID.projectFormSubmit)).toBeDisabled();
   });
 
   test("creates a project and navigates to it", async ({ mount, page }) => {
     await mockApi(page, [
       ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       [
         "**/api/v1/projects",
         {
@@ -84,7 +121,18 @@ test.describe("ProjectList", () => {
     const component = await mount("views/ProjectsView/Projects");
     await component.getByTestId(TEST_ID.newProject).click();
     await page.getByTestId(TEST_ID.projectNameInput).fill("new-project");
+    const created = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        new URL(request.url()).pathname === "/api/v1/projects",
+    );
     await page.getByTestId(TEST_ID.projectFormSubmit).click();
+
+    // The owner rides along: the API refuses a project without one.
+    expect((await created).postDataJSON()).toMatchObject({
+      name: "new-project",
+      teamId: "team-storefront",
+    });
 
     await page.waitForURL((url) => url.pathname === "/projects/new-project");
   });
@@ -121,7 +169,7 @@ test.describe("ProjectList", () => {
         body: JSON.stringify({ success: true }),
       });
     });
-    await mockApi(page, [["**/api/v1/groups", GROUPS_RESPONSE]]);
+    await mockApi(page, []);
 
     const component = await mount("views/ProjectsView/Projects");
 
@@ -151,7 +199,7 @@ test.describe("ProjectList", () => {
       await new Promise((resolve) => setTimeout(resolve, 750));
       await route.fulfill(PROJECTS_PENDING_RESPONSE);
     });
-    await mockApi(page, [["**/api/v1/groups", GROUPS_RESPONSE]]);
+    await mockApi(page, []);
 
     const component = await mount("views/ProjectsView/Projects");
 
@@ -161,24 +209,8 @@ test.describe("ProjectList", () => {
     await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(3);
   });
 
-  test("filters by group", async ({ mount, page }) => {
-    await mockApi(page, [["**/api/v1/groups", GROUPS_RESPONSE]]);
-    await mockFilteredProjects(page);
-
-    const component = await mount("views/ProjectsView/Projects");
-
-    await component.getByTestId(TEST_ID.filterGroup).click();
-    await page.getByRole("option", { name: "Checkout" }).click();
-
-    const rows = component.getByTestId(TEST_ID.tableRow);
-    await expect(rows).toHaveCount(2);
-    await expect(rows.nth(0)).toContainText("checkout-ui");
-    await expect(rows.nth(1)).toContainText("dashboard-ui");
-    await expect(component).not.toContainText("admin-ui");
-  });
-
   test("filters by search", async ({ mount, page }) => {
-    await mockApi(page, [["**/api/v1/groups", GROUPS_RESPONSE]]);
+    await mockApi(page, []);
     await mockFilteredProjects(page);
 
     const component = await mount("views/ProjectsView/Projects");
@@ -196,7 +228,6 @@ test.describe("ProjectList", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/pending*", PROJECTS_PENDING_EMPTY_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
     ]);
 
     const component = await mount("views/ProjectsView/Projects");
@@ -210,7 +241,6 @@ test.describe("ProjectList", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/pending*", PROJECTS_PENDING_EMPTY_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
     ]);
 
     const component = await mount("views/ProjectsView/Projects");
@@ -223,75 +253,15 @@ test.describe("ProjectList", () => {
     mount,
     page,
   }) => {
-    await mockApi(page, [["**/api/v1/groups", GROUPS_RESPONSE]]);
+    await mockApi(page, []);
     await mockFilteredProjects(page);
 
     const component = await mount("views/ProjectsView/Projects");
     await component.getByTestId(TEST_ID.projectSearch).fill("missing");
 
     await expect(component).toContainText("No projects match these filters");
-    await expect(component).toContainText("Try a different search or group.");
+    await expect(component).toContainText("Try a different search.");
     await expect(component.getByTestId(TEST_ID.newProjectEmpty)).toHaveCount(0);
-  });
-
-  test("creates a group inline from the new project dialog", async ({
-    mount,
-    page,
-  }) => {
-    let created = false;
-    await mockApi(page, [
-      ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-    ]);
-    await page.route("**/api/v1/groups", async (route) => {
-      if (route.request().method() === "POST") {
-        created = true;
-        await route.fulfill({
-          status: 201,
-          contentType: "application/json",
-          body: JSON.stringify({
-            id: "g3",
-            name: "Payments",
-            createdAt: "2026-10-22T10:00:00.000Z",
-            projectCount: 0,
-          }),
-        });
-        return;
-      }
-      const groups = JSON.parse(GROUPS_RESPONSE.body) as Array<{
-        id: string;
-        name: string;
-        createdAt: string;
-        projectCount: number;
-      }>;
-      if (created) {
-        groups.push({
-          id: "g3",
-          name: "Payments",
-          createdAt: "2026-10-22T10:00:00.000Z",
-          projectCount: 0,
-        });
-      }
-      await route.fulfill({
-        status: GROUPS_RESPONSE.status,
-        contentType: GROUPS_RESPONSE.contentType,
-        body: JSON.stringify(groups),
-      });
-    });
-
-    const component = await mount("views/ProjectsView/Projects");
-    await component.getByTestId(TEST_ID.newProject).click();
-
-    const createRequest = page.waitForRequest(
-      (request) =>
-        request.method() === "POST" &&
-        new URL(request.url()).pathname === "/api/v1/groups",
-    );
-    await page.getByTestId(TEST_ID.projectNewGroupName).fill("Payments");
-    await page.getByTestId(TEST_ID.projectAddGroup).click();
-    await createRequest;
-
-    await page.getByTestId(TEST_ID.projectGroupSelect).click();
-    await expect(page.getByRole("option", { name: "Payments" })).toBeVisible();
   });
 
   test("shows an error with retry when loading fails", async ({
@@ -303,7 +273,6 @@ test.describe("ProjectList", () => {
         "**/api/v1/projects/pending*",
         { status: 500, contentType: "application/json", body: "{}" },
       ],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
     ]);
 
     const component = await mount("views/ProjectsView/Projects");
@@ -314,34 +283,5 @@ test.describe("ProjectList", () => {
       timeout: 15_000,
     });
     await expect(component).toContainText("Failed to load projects");
-  });
-});
-
-test.describe("ProjectList stale group link", () => {
-  test.use({
-    baseURL:
-      "http://localhost:5173/playwright/gallery/index.html?group=missing",
-  });
-
-  test("resets an unknown group filter to all groups", async ({
-    mount,
-    page,
-  }) => {
-    await mockApi(page, [
-      ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-    ]);
-    // Delay the groups response so the router's initial navigation settles
-    // before the query resolves; the watch then validates against a real link.
-    await page.route("**/api/v1/groups", async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 250));
-      await route.fulfill(GROUPS_RESPONSE);
-    });
-
-    const component = await mount("views/ProjectsView/Projects");
-
-    await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(3);
-    await expect
-      .poll(() => new URL(page.url()).searchParams.get("group"))
-      .toBeNull();
   });
 });

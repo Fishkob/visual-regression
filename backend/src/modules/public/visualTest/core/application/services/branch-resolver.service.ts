@@ -78,12 +78,17 @@ export class BranchResolver {
     }
   }
 
+  // An upload never creates a project (ADR-083): creating one requires an owner,
+  // and a CI upload has no caller whose team it could name. So the project is
+  // resolved and an unknown name answers 404 — the same answer every other
+  // project-naming route gives, and the reason a missing project cannot silently
+  // appear from a typo in a CI script. The branch may still be materialized.
   async resolveForUpload(
     projectName: string,
     branchName?: string,
     targetBranchName?: string,
   ): Promise<ResolvedBranch> {
-    const project = await this.projects.getOrCreate(projectName);
+    const project = await this.projects.requireByName(projectName);
     let defaultBranch = await this.branches.findDefault(project.id);
     defaultBranch ??= await this.branches.createDefault(project.id);
 

@@ -5,8 +5,9 @@ import { mapReviewInbox, mapReviewInboxItem } from "../review-inbox.mapper";
 const dto = (overrides: Partial<PendingReviewDto> = {}): PendingReviewDto => ({
   comparisonId: "c1",
   projectName: "Checkout",
-  groupId: "g1",
-  groupName: "Shop",
+  teamId: "t1",
+  teamName: "Storefront",
+  isShared: true,
   testName: "cart",
   kind: "image",
   branchName: "main",
@@ -30,8 +31,9 @@ describe("mapReviewInboxItem", () => {
     expect(mapReviewInboxItem(dto())).toEqual({
       comparisonId: "c1",
       projectName: "Checkout",
-      groupId: "g1",
-      groupName: "Shop",
+      teamId: "t1",
+      teamName: "Storefront",
+      isShared: true,
       testName: "cart",
       kind: "image",
       branchName: "main",
@@ -61,16 +63,20 @@ describe("mapReviewInboxItem", () => {
     expect(mapReviewInboxItem(dto({ kind: "video" })).kind).toBeUndefined();
   });
 
-  it("defaults group fields and page count to null", () => {
+  // The owner and the flag decide which block the row lands in, so a wire that
+  // leaves them out must not render "undefined" as a section header.
+  it("defaults the owner and the page count", () => {
     const item = mapReviewInboxItem(
       dto({
-        groupId: undefined,
-        groupName: undefined,
+        teamId: undefined,
+        teamName: undefined,
+        isShared: undefined,
         mismatchPageCount: undefined,
       }),
     );
-    expect(item.groupId).toBeNull();
-    expect(item.groupName).toBeNull();
+    expect(item.teamId).toBe("");
+    expect(item.teamName).toBe("");
+    expect(item.isShared).toBe(false);
     expect(item.mismatchPageCount).toBeNull();
   });
 

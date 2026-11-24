@@ -17,7 +17,6 @@ export class ReviewInboxService {
           branchName?: string;
           projectName?: string;
           kind?: string;
-          groupId?: string;
           teamId?: string;
           q?: string;
           runKey?: string;

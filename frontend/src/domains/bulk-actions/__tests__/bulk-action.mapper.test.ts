@@ -3,14 +3,9 @@ import {
   mapBulkApproveResult,
   mapBulkDeleteResult,
   mapBulkItem,
-  mapBulkMoveResult,
   mergeBulkApproveResults,
 } from "../bulk-action.mapper";
-import {
-  bulkApproveSummary,
-  bulkFailureRows,
-  bulkMoveSummary,
-} from "../bulk-action.model";
+import { bulkApproveSummary, bulkFailureRows } from "../bulk-action.model";
 
 const item = (overrides: Record<string, unknown> = {}) => ({
   id: "c-1",
@@ -63,19 +58,7 @@ describe("mapBulkApproveResult", () => {
   });
 });
 
-describe("mapBulkMoveResult / mapBulkDeleteResult", () => {
-  it("maps the move buckets", () => {
-    expect(
-      mapBulkMoveResult({
-        moved: [item({ id: "checkout" })],
-        failed: [item({ id: "admin", success: false, error: "group missing" })],
-      }),
-    ).toEqual({
-      moved: [{ id: "checkout", success: true, error: null }],
-      failed: [{ id: "admin", success: false, error: "group missing" }],
-    });
-  });
-
+describe("mapBulkDeleteResult", () => {
   it("maps the delete buckets", () => {
     expect(
       mapBulkDeleteResult({
@@ -89,7 +72,6 @@ describe("mapBulkMoveResult / mapBulkDeleteResult", () => {
   });
 
   it("defaults missing payloads", () => {
-    expect(mapBulkMoveResult(undefined)).toEqual({ moved: [], failed: [] });
     expect(mapBulkDeleteResult(undefined)).toEqual({
       deleted: [],
       failed: [],
@@ -148,18 +130,6 @@ describe("bulk summaries", () => {
         failed: [{ id: "b", success: false, error: "boom" }],
       }),
     ).toBe("Approved 1 change, 1 failed");
-  });
-
-  it("counts moved projects", () => {
-    expect(
-      bulkMoveSummary({
-        moved: [
-          { id: "a", success: true, error: null },
-          { id: "b", success: true, error: null },
-        ],
-        failed: [{ id: "c", success: false, error: "boom" }],
-      }),
-    ).toBe("Moved 2 projects, 1 failed");
   });
 });
 

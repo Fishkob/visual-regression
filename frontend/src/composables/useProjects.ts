@@ -37,9 +37,6 @@ export function useProjectsWithPendingQuery(
           skip,
           take,
           ...(queryRef.value.q ? { q: queryRef.value.q } : {}),
-          ...(queryRef.value.groupId
-            ? { groupId: queryRef.value.groupId }
-            : {}),
         },
       }),
     map: mapProjects,

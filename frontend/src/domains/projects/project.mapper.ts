@@ -37,8 +37,9 @@ export function mapProject(dto: ProjectDto): Project {
     id: String(dto.id ?? ""),
     name: dto.name ?? "",
     hasPendingTests: hasPending,
-    groupId: dto.groupId ?? null,
-    groupName: dto.groupName ?? null,
+    teamId: dto.teamId ?? "",
+    teamName: dto.teamName ?? "",
+    isShared: dto.isShared === true,
     ...(dto.branchName ? { branchName: dto.branchName } : {}),
     ...(dto.defaultBranchName
       ? { defaultBranchName: dto.defaultBranchName }

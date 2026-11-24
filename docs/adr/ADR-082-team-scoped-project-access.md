@@ -8,6 +8,11 @@ global role decision (`ADMIN`/`MEMBER`/`VIEWER`, one enforcement point in the
 guard) stands unchanged. Does not open multi-tenancy — see **Scope of this
 decision**.
 
+Superseded by: [ADR-083](./ADR-083-project-always-has-a-team.md) — decisions 1
+and 2 only. The owner becomes mandatory and _shared_ becomes an explicit flag on
+the project; every other decision, and the enforcement it names, stands as
+written.
+
 Amended 2026-11-20: decision 7's "every route carries one of two decorators" has
 three — `@ProjectScoped()`, `@ProjectSpanning()` and `@GlobalRoute()` — because a
 two-value rule forced `/health`, `/auth/login` and `/api-keys` to claim a project
@@ -22,6 +27,16 @@ status), and the audit consequence no longer claims a scope filter — the trail
 decision 2's "the project settings page must say so" holds for an `ADMIN` only,
 because that panel reads the admin-only team list; a `MEMBER` sees which projects
 they may open, not who owns them.
+
+Amended 2026-11-23: that deviation is closed. The project read
+(`GET /projects/:projectName`) carries `teamId`/`teamName` for every principal
+that may open the project, so a `MEMBER` answers "who owns this, and why do I see
+it" from the payload it had to read anyway — no second, `ADMIN`-only read.
+Naming the owner is not administering it: the caller already sees the project,
+which is the fact the name explains. Changing the owner stays `ADMIN`-only and
+session-only on `PATCH /projects/:projectName/team`. The settings panel now shows
+both axes of a project side by side — the group label and the team access —
+instead of leaving the group to the project list and the team behind `isAdmin`.
 
 Enforced by: `ProjectScope` as a required (non-optional) parameter on every
 project-spanning read (compile error when omitted, like `actor: string`), the

@@ -1,6 +1,7 @@
 import * as path from 'path';
 import request from 'supertest';
 import { withRateLimitRetry } from './rate-limit-retry';
+import { ensureSeedTeam, SEED_DEFAULT_TEAM } from './seed-db';
 
 export const BASE_URL = process.env.SEED_BASE_URL ?? 'http://localhost:3000';
 
@@ -117,17 +118,20 @@ export const DEMO_USERS: readonly DemoUserSeed[] = [
   { username: 'demo-viewer', role: 'VIEWER', teams: [] },
 ];
 
-// The multi-team half of the demo dataset (ADR-082): two teams own one project
-// each and `admin-ui` stays shared, so a visitor sees the three states the
-// scope distinguishes — my team's project, another team's project, and a shared
-// one — instead of three identical rows. `admin-ui` keeps its `Internal tools`
-// group membership: a group is navigation, so a folder may hold a project no
-// team owns.
+// The multi-team half of the demo dataset (ADR-082, ADR-083): every project has
+// an owner, and `admin-ui` is *shared* on top of its owner, so a visitor sees the
+// three states the scope distinguishes — my team's project, another team's
+// project, and one everybody may open — instead of three identical rows. The
+// adopting team is `general`, the same name the ADR-083 migration uses for
+// projects that had no owner: an ordinary team with no special rules.
 export const DEMO_TEAMS: Readonly<Record<string, readonly string[]>> = {
   Storefront: ['checkout-ui'],
   Backoffice: ['dashboard-ui'],
+  general: ['admin-ui'],
 };
 
+// Owned by `general` *and* flagged visible to everyone. The two properties are
+// independent now: one says who maintains it, the other who may look.
 export const DEMO_SHARED_PROJECTS: readonly string[] = ['admin-ui'];
 
 const MUTE_WINDOW_DAYS = 14;
@@ -272,18 +276,23 @@ export async function verifyApiKeyAuth(apiKey: string): Promise<void> {
   }
 }
 
+// A project always has an owner (ADR-083), so a seeder that creates one has to
+// name a team. The team row is written directly (`ensureSeedTeam`), because team
+// administration is session-only and a seeder only holds an API key.
 export async function createProject(
   apiKey: string,
   name: string,
+  teamName: string = SEED_DEFAULT_TEAM,
 ): Promise<void> {
   process.stdout.write(`Creating project "${name}"... `);
 
+  const team = await ensureSeedTeam(teamName);
   const res = await withRateLimitRetry(`creating project "${name}"`, () =>
     request(BASE_URL)
       .post('/api/v1/projects')
       .set('Content-Type', 'application/json')
       .set(seedAuth(apiKey))
-      .send({ name }),
+      .send({ name, teamId: team.id }),
   );
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -491,59 +500,5 @@ export async function seedBranches(
     if (seed.archive) {
       await archiveBranch(apiKey, seed.project, seed.branch);
     }
-  }
-}
-
-export interface SeedGroup {
-  id: string;
-  name: string;
-}
-
-// Seeding is idempotent: a repeated run reuses the group instead of failing on
-// the unique name, so `dev.sh seed` can be run any number of times.
-export async function ensureGroup(
-  apiKey: string,
-  name: string,
-): Promise<SeedGroup> {
-  const list = await request(BASE_URL)
-    .get('/api/v1/groups')
-    .set(seedAuth(apiKey));
-  const groups = (list.body as SeedGroup[] | undefined) ?? [];
-  const existing = groups.find((group) => group.name === name);
-  if (existing) return existing;
-
-  process.stdout.write(`Creating group "${name}"... `);
-  const res = await withRateLimitRetry(`creating group "${name}"`, () =>
-    request(BASE_URL)
-      .post('/api/v1/groups')
-      .set('Content-Type', 'application/json')
-      .set(seedAuth(apiKey))
-      .send({ name }),
-  );
-  if (res.status !== 201) {
-    throw new Error(`Could not create group "${name}" (HTTP ${res.status}).`);
-  }
-  console.log('done');
-  return res.body as SeedGroup;
-}
-
-export async function assignProjectGroup(
-  apiKey: string,
-  project: string,
-  groupId: string,
-): Promise<void> {
-  process.stdout.write(`  Moving "${project}" into its group... `);
-  const res = await withRateLimitRetry(`moving project "${project}"`, () =>
-    request(BASE_URL)
-      .patch(`/api/v1/projects/${encodeURIComponent(project)}`)
-      .set('Content-Type', 'application/json')
-      .set(seedAuth(apiKey))
-      .send({ groupId }),
-  );
-  console.log(String(res.status));
-  if (res.status !== 200) {
-    throw new Error(
-      `Could not move project "${project}" (HTTP ${res.status}).`,
-    );
   }
 }

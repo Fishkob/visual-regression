@@ -5,7 +5,6 @@ import { useRouter } from "vue-router";
 import { useRouteParams } from "@/composables/useRouteParams";
 import { usePdfTestDetailsPage } from "@/composables/useTestDetailsPage";
 import { useReviewShortcuts } from "@/composables/useReviewShortcuts";
-import { useProjectDetailQuery } from "@/composables/useProjects";
 import { isInheritedOrigin } from "@/domains/branches/branch-origin";
 import { isApproved } from "@/domains/test-status";
 import type { TestKind } from "@/domains/test-kind";
@@ -34,9 +33,6 @@ const {
   inboxFilters,
 } = useRouteParams();
 const router = useRouter();
-
-const { data: project } = useProjectDetailQuery(projectName, branch);
-const groupName = computed(() => project.value?.groupName ?? undefined);
 
 const {
   data,
@@ -110,7 +106,6 @@ useReviewShortcuts({
        top, the review action sits opposite the name. -->
   <TestDetailsHeader
     :test-name="testName"
-    :group-name="groupName"
     :branch="branch"
     :kind="kind"
     :is-inherited="isInherited"

@@ -11,11 +11,6 @@ export interface BulkApproveResult {
   failed: BulkItemResult[];
 }
 
-export interface BulkMoveResult {
-  moved: BulkItemResult[];
-  failed: BulkItemResult[];
-}
-
 export interface BulkDeleteResult {
   deleted: BulkItemResult[];
   failed: BulkItemResult[];
@@ -48,12 +43,6 @@ export function bulkApproveSummary(result: BulkApproveResult): string {
     parts.push(`${result.failed.length} failed`);
   }
   return parts.join(", ");
-}
-
-export function bulkMoveSummary(result: BulkMoveResult): string {
-  const moved = plural(result.moved.length, "project", "projects");
-  if (result.failed.length === 0) return `Moved ${moved}`;
-  return `Moved ${moved}, ${result.failed.length} failed`;
 }
 
 // Failure rows for the dialog: look up the label captured before the request so

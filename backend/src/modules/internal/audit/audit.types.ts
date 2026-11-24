@@ -33,6 +33,7 @@ export const AUDIT_ACTIONS = {
   shareAccess: 'share.access',
   reviewAssign: 'review.assign',
   projectPixelThreshold: 'project.pixel-threshold',
+  projectVisibility: 'project.visibility',
   storageRetention: 'storage.retention',
   testThreshold: 'test.threshold',
   reviewComplete: 'review.complete',

@@ -1,19 +1,10 @@
-import { Body, Controller, Param, Patch, Post, Req } from '@nestjs/common';
-import {
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Param, Post, Req } from '@nestjs/common';
+import { ApiCreatedResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
-import {
-  requireActor,
-  requireProjectScope,
-} from '@common/http/authenticated-principal';
+import { requireActor } from '@common/http/authenticated-principal';
 import { ProjectNameValidationPipe } from '@common/http/pipes/project-name-validation.pipe';
 import { Scope } from '@common/http/api-key-scope.decorator';
-import { ProjectSpanning } from '@common/http/project-route.decorator';
 import { ProjectScoped } from '@common/http/project-route.decorator';
 import { BulkActionService } from '@public/visualTest/review/application/bulk-action.service';
 import {
@@ -21,8 +12,6 @@ import {
   BulkApprovalResultDto,
   BulkDeleteResultDto,
   BulkDeleteTestsDto,
-  BulkMoveProjectsDto,
-  BulkMoveResultDto,
 } from '@public/visualTest/review/presentation/dto/bulk-action.dto';
 
 @ApiTags('Bulk actions')
@@ -70,33 +59,6 @@ export class BulkActionsController {
       requireActor(req),
     );
     return plainToInstance(BulkDeleteResultDto, result, {
-      excludeExtraneousValues: true,
-    });
-  }
-}
-
-@ApiTags('Bulk actions')
-@ProjectSpanning()
-@Controller('projects')
-export class ProjectsBulkController {
-  constructor(private readonly bulk: BulkActionService) {}
-
-  @Scope('admin')
-  @Patch('bulk/group')
-  @ApiOperation({
-    summary: 'Move up to 100 projects into a group (null clears the group)',
-  })
-  @ApiOkResponse({ type: BulkMoveResultDto })
-  async move(
-    @Body() dto: BulkMoveProjectsDto,
-    @Req() req: AuthenticatedRequest,
-  ): Promise<BulkMoveResultDto> {
-    const result = await this.bulk.moveProjects(
-      dto.projectNames,
-      dto.groupId ?? null,
-      requireProjectScope(req),
-    );
-    return plainToInstance(BulkMoveResultDto, result, {
       excludeExtraneousValues: true,
     });
   }

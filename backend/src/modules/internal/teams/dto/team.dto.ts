@@ -8,7 +8,6 @@ import {
   IsString,
   Matches,
   MaxLength,
-  ValidateIf,
 } from 'class-validator';
 
 // Mirrors the project-name rule (letters, digits, space, dash, underscore): a
@@ -66,17 +65,13 @@ export class ReplaceTeamMembersDto {
 export class AssignProjectTeamDto {
   @ApiProperty({
     type: String,
-    nullable: true,
     description:
-      'The team that owns the project, or null to make it shared (every authenticated principal keeps seeing it).',
+      'The team that owns the project. A project always has one, so this moves it instead of clearing it; "everyone may read it" is the separate `isShared` flag.',
     example: 'team_1',
   })
-  // A missing property is rejected, an explicit null is accepted: unassigning is
-  // a real write and must be spelled out, not inferred from an empty body.
-  @ValidateIf((dto: AssignProjectTeamDto) => dto.teamId !== null)
   @IsString()
   @IsNotEmpty()
-  teamId!: string | null;
+  teamId!: string;
 }
 
 export class TeamMemberDto {
@@ -148,17 +143,13 @@ export class ProjectTeamDto {
   @Expose()
   projectName!: string;
 
-  @ApiPropertyOptional({
-    type: String,
-    nullable: true,
-    description: 'Null means the project is shared',
-  })
+  @ApiProperty({ type: String, description: 'The team that owns the project' })
   @Expose()
-  teamId?: string | null;
+  teamId!: string;
 
-  @ApiPropertyOptional({ type: String, nullable: true })
+  @ApiProperty({ example: 'Storefront', type: String })
   @Expose()
-  teamName?: string | null;
+  teamName!: string;
 }
 
 export class TeamRefDto {

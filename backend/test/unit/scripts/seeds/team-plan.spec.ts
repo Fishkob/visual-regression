@@ -12,14 +12,18 @@ function makeFixtures(
       { username: 'checkout-lead', role: 'MEMBER', teams: ['Checkout'] },
       { username: 'viewer', role: 'VIEWER', teams: [] },
     ],
-    teams: { Checkout: ['checkout-ui'], Backoffice: ['dashboard-ui'] },
+    teams: {
+      Checkout: ['checkout-ui'],
+      Backoffice: ['dashboard-ui'],
+      general: ['admin-ui'],
+    },
     sharedProjects: ['admin-ui'],
     ...overrides,
   };
 }
 
 describe('buildTeamPlan', () => {
-  it('maps every demo project to its team or to shared', () => {
+  it('maps every demo project to its owning team', () => {
     const plan = buildTeamPlan(makeFixtures());
 
     expect(plan.teams).toEqual([
@@ -29,6 +33,7 @@ describe('buildTeamPlan', () => {
         usernames: ['checkout-lead'],
       },
       { name: 'Backoffice', projectNames: ['dashboard-ui'], usernames: [] },
+      { name: 'general', projectNames: ['admin-ui'], usernames: [] },
     ]);
     expect(plan.sharedProjects).toEqual(['admin-ui']);
   });
@@ -49,10 +54,11 @@ describe('buildTeamPlan', () => {
     expect(plan.teams.map((team) => team.usernames)).toEqual([
       ['both'],
       ['both'],
+      [],
     ]);
   });
 
-  it('rejects a demo project that is neither owned nor shared', () => {
+  it('rejects a demo project that no team owns', () => {
     expect(() =>
       buildTeamPlan(
         makeFixtures({
@@ -64,7 +70,7 @@ describe('buildTeamPlan', () => {
           ],
         }),
       ),
-    ).toThrow(/billing-ui belong to no team and are not listed as shared/);
+    ).toThrow(/billing-ui belong to no team/);
   });
 
   it('rejects a project owned by two teams', () => {
@@ -77,10 +83,24 @@ describe('buildTeamPlan', () => {
     ).toThrow(/owned by both "Checkout" and "Backoffice"/);
   });
 
-  it('rejects a project that is owned and shared at once', () => {
+  it('accepts a project that is owned and shared at once', () => {
+    const plan = buildTeamPlan(
+      makeFixtures({ sharedProjects: ['checkout-ui'] }),
+    );
+
+    expect(plan.sharedProjects).toEqual(['checkout-ui']);
+    expect(plan.teams[0].projectNames).toEqual(['checkout-ui']);
+  });
+
+  it('rejects a shared project that no team owns', () => {
     expect(() =>
-      buildTeamPlan(makeFixtures({ sharedProjects: ['checkout-ui'] })),
-    ).toThrow(/owned by "Checkout" and listed in DEMO_SHARED_PROJECTS/);
+      buildTeamPlan(
+        makeFixtures({
+          teams: { Checkout: ['checkout-ui'], Backoffice: ['dashboard-ui'] },
+          sharedProjects: ['admin-ui'],
+        }),
+      ),
+    ).toThrow(/admin-ui".*no team owns/);
   });
 
   it('rejects a team naming a project outside the demo set', () => {

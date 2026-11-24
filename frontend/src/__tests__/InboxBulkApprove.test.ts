@@ -50,7 +50,9 @@ function pendingDto(overrides: Record<string, unknown> = {}) {
   return {
     comparisonId: "c-1",
     projectName: "checkout",
-    groupId: null,
+    teamId: "t1",
+    teamName: "Storefront",
+    isShared: false,
     groupName: null,
     testName: "checkout-flow",
     kind: "image",

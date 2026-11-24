@@ -43,7 +43,6 @@ const {
 const router = useRouter();
 
 const { data: project } = useProjectDetailQuery(projectName, branch);
-const groupName = computed(() => project.value?.groupName ?? undefined);
 
 /* ------------------------------------------------------------- */
 /* PAGE LOGIC (EXTRACTED)                                        */
@@ -153,7 +152,6 @@ useReviewShortcuts({
        headline and two buttons instead of a row of ten chips. -->
   <TestDetailsHeader
     :test-name="testName"
-    :group-name="groupName"
     :branch="branch"
     :kind="kind"
     :is-inherited="isInherited"

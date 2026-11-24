@@ -166,17 +166,23 @@ export class PendingReviewDto {
   @Expose()
   projectName!: string;
 
-  @ApiPropertyOptional({ nullable: true, type: String })
-  @IsOptional()
+  // The owner of the project this pending row belongs to. Both lists section by
+  // it (ADR-084), and the name is readable by every principal that may open the
+  // project — the same rule as the project read (ADR-083).
+  @ApiProperty({ type: String })
   @IsString()
   @Expose()
-  groupId?: string | null;
+  teamId!: string;
 
-  @ApiPropertyOptional({ nullable: true, type: String })
-  @IsOptional()
+  @ApiProperty({ example: 'Storefront' })
   @IsString()
   @Expose()
-  groupName?: string | null;
+  teamName!: string;
+
+  @ApiProperty({ example: false })
+  @IsBoolean()
+  @Expose()
+  isShared!: boolean;
 
   @ApiProperty()
   @IsString()

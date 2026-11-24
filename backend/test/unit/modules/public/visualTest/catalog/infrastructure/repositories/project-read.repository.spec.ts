@@ -72,7 +72,8 @@ describe('ProjectReadRepository', () => {
       id: 'proj-1',
       name: 'my-project',
       createdAt: new Date(),
-      group: null,
+      isShared: false,
+      team: { id: 't1', name: 'Storefront' },
     };
 
     it('returns the project with its variant page and filter options', async () => {
@@ -106,8 +107,9 @@ describe('ProjectReadRepository', () => {
         id: 'proj-1',
         name: 'my-project',
         createdAt: project.createdAt,
-        groupId: null,
-        groupName: null,
+        teamId: 't1',
+        teamName: 'Storefront',
+        isShared: false,
         branchName: 'main',
         defaultBranchName: 'main',
         variants: [variantRow],
@@ -170,6 +172,33 @@ describe('ProjectReadRepository', () => {
       expect(result).toBeNull();
       expect(variants.findProjectVariantPage).not.toHaveBeenCalled();
     });
+
+    // Both labels are read by the project read, so a project that carries a
+    // group and a team answers "where does this belong" and "who may see it" in
+    // one payload (ADR-082 amendment: naming the owner is not administering it).
+    it('carries the owning team and the shared flag', async () => {
+      mockClient.project.findUnique.mockResolvedValue({
+        ...project,
+        isShared: true,
+        team: { id: 't1', name: 'Storefront' },
+      });
+
+      const result =
+        await repository.getWithLatestVariantStatuses('my-project');
+
+      expect(result).toMatchObject({
+        teamId: 't1',
+        teamName: 'Storefront',
+        isShared: true,
+      });
+      expect(mockClient.project.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            team: { select: { id: true, name: true } },
+          }),
+        }),
+      );
+    });
   });
 
   describe('getAllWithPendingFlag', () => {
@@ -179,9 +208,16 @@ describe('ProjectReadRepository', () => {
           id: 'proj-1',
           name: 'a',
           createdAt: new Date(),
-          group: { id: 'g1', name: 'Checkout' },
+          isShared: false,
+          team: { id: 't1', name: 'Storefront' },
         },
-        { id: 'proj-2', name: 'b', createdAt: new Date(), group: null },
+        {
+          id: 'proj-2',
+          name: 'b',
+          createdAt: new Date(),
+          isShared: true,
+          team: { id: 't1', name: 'Storefront' },
+        },
       ]);
       mockClient.project.count.mockResolvedValue(2);
       mockClient.$queryRaw
@@ -201,16 +237,18 @@ describe('ProjectReadRepository', () => {
 
       expect(result.data[0]).toMatchObject({
         id: 'proj-1',
-        groupId: 'g1',
-        groupName: 'Checkout',
+        teamId: 't1',
+        teamName: 'Storefront',
+        isShared: false,
         pendingCount: 3,
         testCount: 2,
         hasPendingComparisons: true,
       });
       expect(result.data[1]).toMatchObject({
         id: 'proj-2',
-        groupId: null,
-        groupName: null,
+        teamId: 't1',
+        teamName: 'Storefront',
+        isShared: true,
         pendingCount: 0,
         testCount: 1,
         hasPendingComparisons: false,
@@ -220,7 +258,7 @@ describe('ProjectReadRepository', () => {
         orderBy: { createdAt: 'desc' },
         skip: undefined,
         take: undefined,
-        include: { group: { select: { id: true, name: true } } },
+        include: { team: { select: { id: true, name: true } } },
       });
     });
 
@@ -253,7 +291,7 @@ describe('ProjectReadRepository', () => {
         orderBy: { createdAt: 'desc' },
         skip: 5,
         take: 5,
-        include: { group: { select: { id: true, name: true } } },
+        include: { team: { select: { id: true, name: true } } },
       });
     });
 
@@ -276,26 +314,23 @@ describe('ProjectReadRepository', () => {
       });
     });
 
-    it('applies the search and group filters in the query, not client-side', async () => {
+    it('applies the search filter in the query, not client-side', async () => {
       mockClient.project.findMany.mockResolvedValue([]);
       mockClient.project.count.mockResolvedValue(0);
 
       await repository.getAllWithPendingFlag(
         undefined,
-        { q: '  checkout  ', groupId: 'unassigned' },
+        { q: '  checkout  ' },
         ALL_PROJECTS,
       );
 
-      const where = {
-        name: { contains: 'checkout', mode: 'insensitive' },
-        groupId: null,
-      };
+      const where = { name: { contains: 'checkout', mode: 'insensitive' } };
       expect(mockClient.project.findMany).toHaveBeenCalledWith({
         where,
         orderBy: { createdAt: 'desc' },
         skip: undefined,
         take: undefined,
-        include: { group: { select: { id: true, name: true } } },
+        include: { team: { select: { id: true, name: true } } },
       });
       expect(mockClient.project.count).toHaveBeenCalledWith({ where });
     });

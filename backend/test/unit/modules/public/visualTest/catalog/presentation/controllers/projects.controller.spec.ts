@@ -97,53 +97,61 @@ describe('ProjectsController', () => {
 
   describe('create', () => {
     it('creates a project and returns the DTO', async () => {
-      const dto: CreateProjectDto = { name: 'new-project' };
+      const dto: CreateProjectDto = { name: 'new-project', teamId: 'team-1' };
       const expected = {
         id: 'proj-3',
         name: 'new-project',
         createdAt: new Date(),
         groupId: null,
         groupName: null,
+        teamId: 'team-1',
+        teamName: 'Storefront',
+        isShared: false,
         pendingCount: 0,
         testCount: 0,
         pending: false,
       };
       projectService.create.mockResolvedValue(expected);
 
-      const result = await controller.create(dto);
+      const result = await controller.create(dto, {
+        auth: { username: 'alice', userId: 'u1', role: 'MEMBER' },
+      } as never);
 
       expect(result).toEqual(expected);
-      expect(projectService.create).toHaveBeenCalledWith(
-        'new-project',
-        undefined,
-      );
+      // The owner rule reads team membership, which is keyed by the stable user
+      // id — the display name the audit trail records is not enough.
+      expect(projectService.create).toHaveBeenCalledWith(dto, {
+        userId: 'u1',
+        role: 'MEMBER',
+      });
     });
   });
 
   describe('updateProject', () => {
-    it('moves a project to a group and returns group fields', async () => {
-      const dto: UpdateProjectDto = { groupId: 'group-1' };
-      const expected = {
-        id: 'proj-1',
-        name: 'checkout-ui',
-        createdAt: new Date(),
-        groupId: 'group-1',
-        groupName: 'Checkout',
-        pendingCount: 3,
-        testCount: 4,
-        pending: true,
+    it('renames, then applies the rest of the patch under the new name', async () => {
+      const dto: UpdateProjectDto = {
+        name: 'checkout-ui-v2',
+        defaultBranchName: 'release/1.2',
       };
-      projectService.updateProjectGroup.mockResolvedValue(expected);
+      const expected = { id: 'proj-1', name: 'checkout-ui-v2' };
+      projectService.updateDefaultBranch.mockResolvedValue(expected as never);
 
       const result = await controller.updateProject('checkout-ui', dto, {
         auth: { username: 'ada', userId: 'user-1' },
       } as never);
 
-      expect(result).toEqual(expected);
-      expect(projectService.updateProjectGroup).toHaveBeenCalledWith(
+      expect(projectService.rename).toHaveBeenCalledWith(
         'checkout-ui',
+        'checkout-ui-v2',
+        'ada',
+      );
+      // The rename moves the address: the rest of the patch lands on the new
+      // name, not on the one the caller used.
+      expect(projectService.updateDefaultBranch).toHaveBeenCalledWith(
+        'checkout-ui-v2',
         dto,
       );
+      expect(result).toEqual(expected);
     });
   });
 

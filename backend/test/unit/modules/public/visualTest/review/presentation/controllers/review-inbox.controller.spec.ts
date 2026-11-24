@@ -46,7 +46,6 @@ describe('ReviewInboxController', () => {
         branchName: 'feature/x',
         projectName: 'checkout-ui',
         kind: undefined,
-        groupId: undefined,
         q: undefined,
       },
       ALL_PROJECTS,
@@ -68,7 +67,6 @@ describe('ReviewInboxController', () => {
         branchName: undefined,
         projectName: '',
         kind: undefined,
-        groupId: undefined,
         q: undefined,
       },
       ALL_PROJECTS,
@@ -83,7 +81,7 @@ describe('ReviewInboxController', () => {
       Object.assign(new ReviewInboxPaginationDto(), {
         q: '  login  ',
         kind: 'pdf',
-        groupId: 'unassigned',
+        teamId: 't-1',
       }),
       undefined,
     );
@@ -94,7 +92,7 @@ describe('ReviewInboxController', () => {
         branchName: undefined,
         projectName: undefined,
         kind: 'pdf',
-        groupId: 'unassigned',
+        teamId: 't-1',
         q: 'login',
       },
       ALL_PROJECTS,

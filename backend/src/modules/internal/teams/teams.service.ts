@@ -17,8 +17,8 @@ import { ProjectRepository } from '@public/visualTest/core/infrastructure/reposi
 export interface ProjectTeamView {
   projectId: string;
   projectName: string;
-  teamId: string | null;
-  teamName: string | null;
+  teamId: string;
+  teamName: string;
 }
 
 // Team administration (ADR-082). Every write is transaction-riding and audited —
@@ -133,14 +133,14 @@ export class TeamsService {
 
   async remove(actor: string, id: string): Promise<{ success: true }> {
     const team = await this.require(id);
-    // Deleting the team would turn its projects into shared ones — a widening
-    // nobody asked for, so an owning team is a conflict, not a cascade. The
-    // foreign key is `Restrict`, and the P2003 below is the same answer when a
-    // concurrent assignment slips between this count and the delete.
+    // A project always has an owner, so deleting an owning team would leave its
+    // projects unowned — a state that does not exist. The foreign key is
+    // `Restrict`, and the P2003 below is the same answer when a concurrent
+    // assignment slips between this count and the delete.
     const projects = await this.teams.countProjects(id);
     if (projects > 0) {
       throw new ConflictException(
-        `Team "${team.name}" still owns ${projects} project${projects === 1 ? '' : 's'}; move or unassign them first`,
+        `Team "${team.name}" still owns ${projects} project${projects === 1 ? '' : 's'}; move them to another team first`,
       );
     }
     await this.uow.execute(async () => {
@@ -149,7 +149,7 @@ export class TeamsService {
       } catch (error) {
         if ((error as { code?: string }).code === 'P2003') {
           throw new ConflictException(
-            `Team "${team.name}" still owns projects; move or unassign them first`,
+            `Team "${team.name}" still owns projects; move them to another team first`,
           );
         }
         throw error;
@@ -168,27 +168,30 @@ export class TeamsService {
     return { success: true };
   }
 
-  // `teamId = null` is the deliberate "shared" state, so unassigning is a write
-  // with a trail — it widens who can see the project.
+  // Moving a project to another team is a write with a trail: it changes who
+  // gets to see the project, and the old owner loses it. There is no "unassign"
+  // any more (ADR-083) — a project always has an owner, and "everyone may read
+  // it" is the separate visibility flag.
   async assignProject(
     actor: string,
     projectName: string,
-    teamId: string | null,
+    teamId: string,
   ): Promise<ProjectTeamView> {
     const project = await this.projects.requireByName(projectName);
-    const team = teamId ? await this.require(teamId) : null;
-    const fromTeamId = project.teamId ?? null;
-    if (fromTeamId === (team?.id ?? null)) {
+    const team = await this.require(teamId);
+    if (project.teamId === team.id) {
       return {
         projectId: project.id,
         projectName: project.name,
-        teamId: team?.id ?? null,
-        teamName: team?.name ?? null,
+        teamId: team.id,
+        teamName: team.name,
       };
     }
-    const fromTeam = fromTeamId ? await this.teams.findById(fromTeamId) : null;
+    const fromTeam = project.teamId
+      ? await this.teams.findById(project.teamId)
+      : null;
     await this.uow.execute(async () => {
-      await this.projects.updateTeamByName(projectName, team?.id ?? null);
+      await this.projects.updateTeamByName(projectName, team.id);
       await this.audit.record({
         actor,
         action: AUDIT_ACTIONS.teamProjectAssign,
@@ -197,15 +200,15 @@ export class TeamsService {
         targetId: project.id,
         metadata: {
           from: fromTeam?.name ?? null,
-          to: team?.name ?? null,
+          to: team.name,
         },
       });
     });
     return {
       projectId: project.id,
       projectName: project.name,
-      teamId: team?.id ?? null,
-      teamName: team?.name ?? null,
+      teamId: team.id,
+      teamName: team.name,
     };
   }
 

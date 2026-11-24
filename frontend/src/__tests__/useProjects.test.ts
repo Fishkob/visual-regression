@@ -67,7 +67,7 @@ describe("useProjectsWithPendingQuery", () => {
       },
     });
 
-    useProjectsWithPendingQuery({ page: 2, q: "check", groupId: "g1" });
+    useProjectsWithPendingQuery({ page: 2, q: "check" });
 
     const result = (await queryOptions.current!.queryFn()) as {
       items: Project[];
@@ -85,7 +85,6 @@ describe("useProjectsWithPendingQuery", () => {
         skip: PROJECTS_PAGE_SIZE,
         take: PROJECTS_PAGE_SIZE,
         q: "check",
-        groupId: "g1",
       },
     });
   });

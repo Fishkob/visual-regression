@@ -75,7 +75,9 @@ This directory documents the key architectural decisions for the Visual Regressi
 | 079 | [The Outcome History Has a Retention Window](./ADR-079-outcome-history-retention.md)                                                   | Accepted (narrows 078's unpruned table; replaces 033's follow-up)     |
 | 080 | [Captures Are Explicit Calls, Not Playwright Attachments](./ADR-080-explicit-captures-not-attachments.md)                              | Accepted                                                              |
 | 081 | [Internal Maintenance Tasks May Reuse Public Application Services](./ADR-081-internal-maintenance-may-reuse-public-services.md)        | Accepted (extends 013 §1's exception)                                 |
-| 082 | [Project Access Is Scoped by Team Membership](./ADR-082-team-scoped-project-access.md)                                                 | Accepted (partially supersedes 031's ACL alternative)                 |
+| 082 | [Project Access Is Scoped by Team Membership](./ADR-082-team-scoped-project-access.md)                                                 | Accepted (partially supersedes 031; decisions 1–2 superseded by 083)  |
+| 083 | [A Project Always Has a Team, and “Everyone” Is a Flag](./ADR-083-project-always-has-a-team.md)                                        | Accepted (partially supersedes 082)                                   |
+| 084 | [The Team Is the Only Project Axis (Groups Are Dropped)](./ADR-084-team-is-the-only-project-axis.md)                                   | Accepted (retires the `Group` term)                                   |
 
 ## Numbering
 

@@ -3,23 +3,22 @@ import { PrismaModule } from '@prisma/prisma.module';
 import { AppConfigModule } from '@config/app-config.module';
 import { AuditModule } from '@internal/audit/audit.module';
 import { StorageModule } from '@internal/storage/storage.module';
+import { TeamsModule } from '@internal/teams/teams.module';
 import { VisualTestInfraModule } from '@public/visualTest/core/visual-test-infra.module';
 import { VisualTestApplicationModule } from '@public/visualTest/core/visual-test-application.module';
 import { ProjectsController } from '@public/visualTest/catalog/presentation/controllers/projects.controller';
-import { ProjectGroupsController } from '@public/visualTest/catalog/presentation/controllers/project-groups.controller';
+import { ProjectVisibilityController } from '@public/visualTest/catalog/presentation/controllers/project-visibility.controller';
 import { BranchesController } from '@public/visualTest/catalog/presentation/controllers/branches.controller';
 import { SearchController } from '@public/visualTest/catalog/presentation/controllers/search.controller';
 import { ProjectService } from '@public/visualTest/catalog/application/project.service';
-import { ProjectGroupService } from '@public/visualTest/catalog/application/project-group.service';
 import { BranchCommandService } from '@public/visualTest/catalog/application/branch-command.service';
 import { SearchService } from '@public/visualTest/catalog/application/search.service';
-import { ProjectGroupRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-group.repository';
 import { ProjectReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-read.repository';
 import { BranchReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/branch-read.repository';
 import { SearchRepository } from '@public/visualTest/catalog/infrastructure/repositories/search.repository';
 
-// The catalog: what exists and where it lives — Project, Group, Branch and the
-// global search that finds a materialized test by name. Named after the nouns
+// The catalog: what exists and where it lives — Project, Branch and the global
+// search that finds a materialized test by name. Named after the nouns
 // CONTEXT.md already uses, so "which module owns a Project?" has an answer.
 @Module({
   imports: [
@@ -29,19 +28,21 @@ import { SearchRepository } from '@public/visualTest/catalog/infrastructure/repo
     AuditModule,
     VisualTestInfraModule,
     VisualTestApplicationModule,
+    // For `TeamsRepository`: creating a project needs the caller's teams and the
+    // team it names as owner (ADR-083). `TeamsModule` imports nothing from the
+    // catalog, so this is not a cycle.
+    TeamsModule,
   ],
   controllers: [
     ProjectsController,
-    ProjectGroupsController,
+    ProjectVisibilityController,
     BranchesController,
     SearchController,
   ],
   providers: [
     ProjectService,
-    ProjectGroupService,
     BranchCommandService,
     SearchService,
-    ProjectGroupRepository,
     ProjectReadRepository,
     BranchReadRepository,
     SearchRepository,

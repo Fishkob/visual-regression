@@ -15,7 +15,7 @@ export class ProjectScopeService {
   constructor(private readonly teams: TeamsRepository) {}
 
   // A session: an admin is unrestricted, everyone else sees the projects of
-  // their teams plus every shared (untagged) project.
+  // their teams plus every shared project (ADR-083).
   async forUser(userId: string, role: string): Promise<ProjectScope> {
     if (role === 'ADMIN') return ALL_PROJECTS;
     const ids = await this.teams.findVisibleProjectIdsForUser(userId);

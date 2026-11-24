@@ -35,20 +35,6 @@ export class BulkDeleteTestsDto {
   branch?: string;
 }
 
-export class BulkMoveProjectsDto {
-  @ApiProperty({ type: String, isArray: true, maxItems: BULK_LIMIT })
-  @IsArray()
-  @ArrayNotEmpty()
-  @ArrayMaxSize(BULK_LIMIT)
-  @IsString({ each: true })
-  projectNames!: string[];
-
-  @ApiPropertyOptional({ type: String, nullable: true })
-  @IsOptional()
-  @IsString()
-  groupId?: string | null;
-}
-
 export class BulkItemResultDto {
   @ApiProperty()
   @Expose()
@@ -77,16 +63,6 @@ export class BulkDeleteResultDto {
   @ApiProperty({ type: BulkItemResultDto, isArray: true })
   @Expose()
   deleted!: BulkItemResultDto[];
-
-  @ApiProperty({ type: BulkItemResultDto, isArray: true })
-  @Expose()
-  failed!: BulkItemResultDto[];
-}
-
-export class BulkMoveResultDto {
-  @ApiProperty({ type: BulkItemResultDto, isArray: true })
-  @Expose()
-  moved!: BulkItemResultDto[];
 
   @ApiProperty({ type: BulkItemResultDto, isArray: true })
   @Expose()

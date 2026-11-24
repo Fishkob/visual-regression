@@ -5,8 +5,9 @@ import type { VariantDto } from './VariantDto.gen';
 export type PendingReviewDto = {
     comparisonId: string;
     projectName: string;
-    groupId?: string | null;
-    groupName?: string | null;
+    teamId: string;
+    teamName: string;
+    isShared: boolean;
     testName: string;
     kind: string;
     branchName: string;

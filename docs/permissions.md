@@ -12,12 +12,13 @@ authentication guard (ADR-031); the UI mirrors it by hiding controls.
 | Assign reviews, complete own assignment                |  yes  |        yes         |   no   |
 | Comment / resolve review threads                       |  yes  |        yes         |   no   |
 | Delete tests/variants                                  |  yes  |        yes         |   no   |
-| Create/update branches, groups, webhooks               |  yes  | yes (webhooks: no) |   no   |
+| Create projects (in an own team), branches, webhooks   |  yes  | yes (webhooks: no) |   no   |
 | Delete projects/branches                               |  yes  |         no         |   no   |
 | Webhook settings, audit log                            |  yes  |         no         |   no   |
 | API keys                                               |  yes  |         no         |   no   |
 | Users and roles                                        |  yes  |         no         |   no   |
 | Teams: create/rename/delete, members, assign a project |  yes  |         no         |   no   |
+| Publish a project (visible to everyone)                |  yes  |         no         |   no   |
 
 Notes:
 
@@ -35,16 +36,21 @@ Notes:
   `admin` grants project/branch deletion and other writes but `@SessionOnly`
   still blocks users, API keys, webhooks and audit. Existing keys keep their
   previous upload/read/approve capabilities.
-- **Teams** group people and own projects (`Project.teamId`; no team means
-  _shared_). Administering them is `ADMIN`-only, session-only and audited
-  (`team.create`, `team.update`, `team.delete`, `team.members`,
-  `team.project-assign`). What a caller may see is resolved per request into a
-  `ProjectScope`: any route that names a project outside it answers `404` (an
-  API key gets `403`), and an API key is confined to the intersection of its
-  owner's scope and its own allowlist. The cross-project reads (review inbox and
-  its branch list, project list, global search, group badges, the caller's own
-  assignments) are narrowed by the same scope — see
-  [ADR-082](./adr/ADR-082-team-scoped-project-access.md).
+- **Teams** group people and own projects. Every project has exactly one owner
+  (`Project.teamId` is required, ADR-083); "everyone may read it" is the separate
+  `isShared` flag, not the absence of an owner. Creating a project therefore
+  names a team: an `ADMIN` may name any, a `MEMBER` only one of its own, and a
+  member that belongs to none is refused with `409`. Administering teams is
+  `ADMIN`-only, session-only and audited (`team.create`, `team.update`,
+  `team.delete`, `team.members`, `team.project-assign`). Publishing a project
+  (`isShared`) is `ADMIN`-only, session-only and audited (`project.visibility`);
+  naming the owner is not, because the read already carries it. What a caller may
+  see is resolved per request into a `ProjectScope`: any route that names a
+  project outside it answers `404` (an API key gets `403`), and an API key is
+  confined to the intersection of its owner's scope and its own allowlist. The
+  cross-project reads (review inbox and its branch list, project list, global
+  search, the caller's own assignments) are narrowed by the same scope — see
+  [ADR-083](./adr/ADR-083-project-always-has-a-team.md).
 - **VIEWER** is read-only globally: every non-GET request returns `403`, with
   the exception of `/auth/logout` and `/auth/change-password`.
 - **Temporary password**: `mustChangePassword` blocks every route except

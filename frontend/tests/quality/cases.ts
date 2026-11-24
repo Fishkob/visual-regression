@@ -12,8 +12,11 @@ import {
   PROJECTS_PENDING_RESPONSE,
   REVIEW_INBOX_RESPONSE,
 } from "../ct/mocks/projects.mocks";
-import { GROUPS_RESPONSE } from "../ct/mocks/groups.mocks";
-import { TEAMS_GLOB, TEAMS_RESPONSE } from "../ct/mocks/teams.mocks";
+import {
+  TEAMS_GLOB,
+  TEAMS_RESPONSE,
+  TEAMS_WITH_PROJECT_RESPONSE,
+} from "../ct/mocks/teams.mocks";
 import {
   USERS_GLOB,
   USERS_RESPONSE as TEAM_USERS_RESPONSE,
@@ -134,10 +137,7 @@ export const QUALITY_CASES: QualityCase[] = [
   {
     name: "projects",
     story: "views/ProjectsView/Projects",
-    routes: [
-      [PROJECTS_GLOB, PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
-    ],
+    routes: [[PROJECTS_GLOB, PROJECTS_PENDING_RESPONSE]],
     readyTestId: TEST_ID.tableRow,
   },
   {
@@ -146,7 +146,6 @@ export const QUALITY_CASES: QualityCase[] = [
     props: { initialRoute: "/projects/checkout-ui" },
     routes: [
       [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ],
     readyTestId: TEST_ID.tableRow,
@@ -159,7 +158,9 @@ export const QUALITY_CASES: QualityCase[] = [
       [PROJECT_STORAGE_GLOB, PROJECT_STORAGE_RESPONSE],
       [PROJECT_WEBHOOKS_GLOB, WEBHOOKS_RESPONSE],
       [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
-      [TEAMS_GLOB, TEAMS_RESPONSE],
+      // The project's own owner: the fixture set has it owned by Checkout, so the
+      // shot shows a filled assignment control instead of an empty one.
+      [TEAMS_GLOB, TEAMS_WITH_PROJECT_RESPONSE],
     ],
     // The settings page is also the home of the endpoint administration and of
     // the team assignment, so the shot waits for those sections instead of only
@@ -206,7 +207,7 @@ export const QUALITY_CASES: QualityCase[] = [
     readyTestId: TEST_ID.comparisonView,
     // The rail opens on the populated section (history), so its rows gate the
     // shot instead of a tab that may still be switching.
-    readyAlsoTestId: [TEST_ID.breadcrumbGroup, TEST_ID.baselineHistoryRow],
+    readyAlsoTestId: TEST_ID.baselineHistoryRow,
   },
   {
     // The review page for a comparison whose changed areas are known: it opens
@@ -241,7 +242,7 @@ export const QUALITY_CASES: QualityCase[] = [
       [PDF_BASELINE_HISTORY_GLOB, PDF_BASELINE_HISTORY],
     ],
     readyTestId: TEST_ID.pdfPageCountUnknown,
-    readyAlsoTestId: [TEST_ID.breadcrumbGroup, TEST_ID.baselineHistoryRow],
+    readyAlsoTestId: TEST_ID.baselineHistoryRow,
   },
   {
     name: "inbox",
@@ -249,12 +250,6 @@ export const QUALITY_CASES: QualityCase[] = [
     routes: [["**/api/v1/review/pending*", REVIEW_INBOX_RESPONSE]],
     readyTestId: TEST_ID.inboxItem,
     maskTestIds: [TEST_ID.inboxBadge],
-  },
-  {
-    name: "groups",
-    story: "views/GroupsView/Groups",
-    routes: [["**/api/v1/groups", GROUPS_RESPONSE]],
-    readyTestId: TEST_ID.groupRow,
   },
   {
     name: "api-keys",
@@ -278,7 +273,6 @@ export const QUALITY_CASES: QualityCase[] = [
     props: { initialRoute: "/projects" },
     routes: [
       [PROJECTS_GLOB, PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/review/pending*", REVIEW_INBOX_RESPONSE],
     ],
     readyTestId: TEST_ID.tableRow,
@@ -429,15 +423,12 @@ export const QUALITY_CASES: QualityCase[] = [
   {
     name: "projects-new-dialog",
     story: "views/ProjectsView/Projects",
-    routes: [
-      [PROJECTS_GLOB, PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
-    ],
+    routes: [[PROJECTS_GLOB, PROJECTS_PENDING_RESPONSE]],
     readyTestId: TEST_ID.tableRow,
     openTestId: TEST_ID.newProject,
     overlayTestId: TEST_ID.projectNameInput,
     scanOnly:
-      "The new-project form dialog: the form semantics, the group select and " +
+      "The new-project form dialog: the form semantics, the team select and " +
       "the field labels are only in the DOM while it is open.",
   },
   {
@@ -446,7 +437,6 @@ export const QUALITY_CASES: QualityCase[] = [
     props: { initialRoute: "/projects" },
     routes: [
       [PROJECTS_GLOB, PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/review/pending*", REVIEW_INBOX_RESPONSE],
     ],
     readyTestId: TEST_ID.tableRow,

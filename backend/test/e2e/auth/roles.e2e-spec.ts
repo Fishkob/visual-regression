@@ -153,10 +153,16 @@ describe('Roles and users (e2e)', () => {
     const admin = await login('admin');
     const member = await login('member');
 
+    // A member creates a project in one of its own teams (ADR-083), so the
+    // account needs a membership before the create can succeed.
+    const team = await db.team.create({
+      data: { name: 'Checkout', members: { create: { userId: target.id } } },
+    });
+
     await request(app.getHttpServer())
       .post('/api/v1/projects')
       .set('Cookie', member.cookie)
-      .send({ name: 'allowed' })
+      .send({ name: 'allowed', teamId: team.id })
       .expect(201);
 
     await request(app.getHttpServer())

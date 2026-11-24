@@ -2,7 +2,7 @@
 
 export type AssignProjectTeamDto = {
     /**
-     * The team that owns the project, or null to make it shared (every authenticated principal keeps seeing it).
+     * The team that owns the project. A project always has one, so this moves it instead of clearing it; "everyone may read it" is the separate `isShared` flag.
      */
-    teamId: string | null;
+    teamId: string;
 };

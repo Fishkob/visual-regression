@@ -11,7 +11,7 @@ import { authQueryKeys } from "@/domains/auth/query-keys";
 import { baselineHistoryQueryKeys } from "@/domains/baseline-history/query-keys";
 import { branchQueryKeys } from "@/domains/branches/query-keys";
 import { commentQueryKeys } from "@/domains/comments/query-keys";
-import { groupQueryKeys } from "@/domains/groups/query-keys";
+import { teamQueryKeys } from "@/domains/teams/query-keys";
 import { pdfTestQueryKeys } from "@/domains/pdf-test/query-keys";
 import {
   pendingTestQueryKeys,
@@ -73,7 +73,7 @@ const projectDetail = projectQueryKeys.detail(PROJECT, BRANCH);
 const projectPage = projectQueryKeys.withPending({ page: 2, q: "check" });
 const projectPicker = projectQueryKeys.allProjects();
 const pendingList = pendingTestQueryKeys.list(PROJECT, BRANCH);
-const inboxList = reviewInboxQueryKeys.list({ page: 2, groupId: "g-1" });
+const inboxList = reviewInboxQueryKeys.list({ page: 2, teamId: "t-1" });
 const inboxBranches = reviewInboxQueryKeys.branches();
 const inboxCount = reviewInboxQueryKeys.count();
 const visualDetails = visualTestQueryKeys.details(DETAILS);
@@ -96,7 +96,7 @@ const runPage = runsQueryKeys.list(PROJECT, { page: 3 });
 const runDetail = runsQueryKeys.detail(PROJECT, RUN, BRANCH);
 const runStatus = runsQueryKeys.status(PROJECT, RUN, BRANCH);
 const branchList = branchQueryKeys.list(PROJECT, false);
-const groupList = groupQueryKeys.list();
+const teamList = teamQueryKeys.list();
 const approvalsForTest = approvalQueryKeys.forTest({
   projectName: PROJECT,
   testName: TEST,
@@ -138,7 +138,7 @@ const ALL_READS: Key[] = [
   runDetail,
   runStatus,
   branchList,
-  groupList,
+  teamList,
   approvalsForTest,
   storageUsage,
   retentionPreview,
@@ -244,9 +244,9 @@ const CONTRACTS: Contract[] = [
     leaves: [projectDetail, users, runDetail],
   },
   {
-    name: "invalidateProjectsForGroupChange",
-    run: (client) => invalidation.invalidateProjectsForGroupChange(client),
-    covers: [groupList, projectPage, projectDetail, inboxList],
+    name: "invalidateProjectsForAssignmentChange",
+    run: (client) => invalidation.invalidateProjectsForAssignmentChange(client),
+    covers: [teamList, projectPage, projectDetail, inboxList],
     leaves: [branchList, users, storageUsage],
   },
   {
@@ -304,12 +304,6 @@ const CONTRACTS: Contract[] = [
       runStatus,
     ],
     leaves: [storageUsage, webhookList, shareLinks, auditPage],
-  },
-  {
-    name: "invalidateAfterBulkMove",
-    run: (client) => invalidation.invalidateAfterBulkMove(client),
-    covers: [projectPage, projectDetail, groupList, inboxList],
-    leaves: [branchList, runList, storageUsage],
   },
   {
     name: "invalidateAfterProjectRename",

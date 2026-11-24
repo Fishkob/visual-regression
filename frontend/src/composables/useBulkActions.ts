@@ -5,28 +5,23 @@ import { toast } from "vue-sonner";
 import {
   bulkActionsControllerApprove,
   bulkActionsControllerDeleteTests,
-  projectsBulkControllerMove,
   type BulkApprovalResultDto,
   type BulkDeleteResultDto,
-  type BulkMoveResultDto,
 } from "@sdk";
 import {
   mapBulkApproveResult,
   mapBulkDeleteResult,
-  mapBulkMoveResult,
   mergeBulkApproveResults,
 } from "@/domains/bulk-actions/bulk-action.mapper";
 import type {
   BulkApproveResult,
   BulkApproveSelection,
   BulkDeleteResult,
-  BulkMoveResult,
 } from "@/domains/bulk-actions/bulk-action.model";
 import { unwrapSdkData } from "@/lib/sdk";
 import type { MaybeRef } from "@/composables/useDomainQuery";
 import {
   invalidateAfterBulkApprove,
-  invalidateAfterBulkMove,
   invalidateAfterBulkTestDelete,
 } from "@/lib/invalidation";
 
@@ -69,43 +64,6 @@ export function useBulkApproveSelection() {
     },
     onError: () => {
       toast.error(tm("toast.bulkApproveError"));
-    },
-  });
-}
-
-export function useBulkMoveProjects() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (input: {
-      projectNames: string[];
-      groupId: string | null;
-    }): Promise<BulkMoveResult> => {
-      const response = await projectsBulkControllerMove({
-        body: {
-          projectNames: [...input.projectNames],
-          groupId: input.groupId,
-        },
-      });
-      const payload = unwrapSdkData<BulkMoveResultDto>(
-        response,
-        "Could not move the selected projects",
-      );
-      if (!payload) throw new Error("The bulk move returned no result");
-      return mapBulkMoveResult(payload);
-    },
-    onSuccess: (result) => {
-      invalidateAfterBulkMove(queryClient);
-      toast.success(
-        `${tm("toast.bulkMoved", { count: result.moved.length })}${
-          result.failed.length > 0
-            ? tm("toast.failedSuffix", { count: result.failed.length })
-            : ""
-        }`,
-      );
-    },
-    onError: () => {
-      toast.error(tm("toast.bulkMoveError"));
     },
   });
 }

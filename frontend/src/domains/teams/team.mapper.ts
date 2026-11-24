@@ -50,14 +50,15 @@ export function mapProjectTeamAssignment(
   return {
     projectId: String(dto.projectId ?? ""),
     projectName: dto.projectName ?? "",
-    teamId: dto.teamId ?? null,
-    teamName: dto.teamName ?? null,
+    teamId: dto.teamId ?? "",
+    teamName: dto.teamName ?? "",
   };
 }
 
 // Which team owns a project, read from the team list the admin already loaded.
 // A project appears in at most one team's `projects`, so the first match is the
-// answer, and "no match" is the shared state rather than an error.
+// answer; no match means the list is stale, not that the project is unowned
+// (ADR-083).
 export function teamOfProject(
   teams: readonly Team[],
   projectName: string,

@@ -92,7 +92,7 @@ describe('BranchResolver', () => {
 
   describe('resolveForUpload', () => {
     it('creates a missing branch targeting the default branch', async () => {
-      projects.getOrCreate.mockResolvedValue(project);
+      projects.requireByName.mockResolvedValue(project);
       branches.findDefault.mockResolvedValue(main);
       branches.findByProjectAndName.mockResolvedValue(null);
       branches.create.mockResolvedValue({
@@ -107,7 +107,7 @@ describe('BranchResolver', () => {
     });
 
     it('treats an absent or empty branch name as the default branch', async () => {
-      projects.getOrCreate.mockResolvedValue(project);
+      projects.requireByName.mockResolvedValue(project);
       branches.findDefault.mockResolvedValue(main);
 
       const expected = {
@@ -129,7 +129,7 @@ describe('BranchResolver', () => {
     // A whitespace-only name is not "no branch": the read path rejects it with a
     // 400, so the upload path must not silently land it on the default branch.
     it('rejects a whitespace-only branch name', async () => {
-      projects.getOrCreate.mockResolvedValue(project);
+      projects.requireByName.mockResolvedValue(project);
       branches.findDefault.mockResolvedValue(main);
 
       await expect(
@@ -139,7 +139,7 @@ describe('BranchResolver', () => {
     });
 
     it('rejects uploads to an archived branch', async () => {
-      projects.getOrCreate.mockResolvedValue(project);
+      projects.requireByName.mockResolvedValue(project);
       branches.findDefault.mockResolvedValue(main);
       branches.findByProjectAndName.mockResolvedValue({
         ...main,
@@ -154,7 +154,7 @@ describe('BranchResolver', () => {
     });
 
     it('rejects an explicit target that does not exist', async () => {
-      projects.getOrCreate.mockResolvedValue(project);
+      projects.requireByName.mockResolvedValue(project);
       branches.findDefault.mockResolvedValue(main);
       branches.findByProjectAndName.mockResolvedValue(null);
 
@@ -164,7 +164,7 @@ describe('BranchResolver', () => {
     });
 
     it('creates a branch with an explicit non-default target', async () => {
-      projects.getOrCreate.mockResolvedValue(project);
+      projects.requireByName.mockResolvedValue(project);
       branches.findDefault.mockResolvedValue(main);
       branches.findByProjectAndName.mockImplementation(async (_p, name) =>
         name === 'release/2'
@@ -190,7 +190,7 @@ describe('BranchResolver', () => {
     // The Branch View CTE stops after MAX_BRANCH_CHAIN_DEPTH hops, so a branch
     // created on a deeper chain would silently miss the deepest ancestors.
     it('rejects a creation whose target chain is too deep', async () => {
-      projects.getOrCreate.mockResolvedValue(project);
+      projects.requireByName.mockResolvedValue(project);
       branches.findDefault.mockResolvedValue(main);
       branches.findByProjectAndName.mockImplementation(async (_p, name) =>
         name === 'release/2'
@@ -254,7 +254,7 @@ describe('BranchResolver', () => {
   // `targetBranch` only applies at creation. Accepting a different one silently
   // would leave CI uploading against an inheritance it did not get.
   it('rejects an upload whose targetBranch disagrees with the existing branch', async () => {
-    projects.getOrCreate.mockResolvedValue(project);
+    projects.requireByName.mockResolvedValue(project);
     branches.findDefault.mockResolvedValue(main);
     branches.findByProjectAndName.mockImplementation(async (_p, name) =>
       name === 'feature/x'
@@ -268,7 +268,7 @@ describe('BranchResolver', () => {
   });
 
   it('accepts an upload whose targetBranch matches the existing branch', async () => {
-    projects.getOrCreate.mockResolvedValue(project);
+    projects.requireByName.mockResolvedValue(project);
     branches.findDefault.mockResolvedValue(main);
     branches.findByProjectAndName.mockImplementation(async (_p, name) =>
       name === 'feature/x'

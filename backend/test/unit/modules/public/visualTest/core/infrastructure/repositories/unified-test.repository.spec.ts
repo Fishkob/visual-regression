@@ -39,11 +39,6 @@ describe('UnifiedTestRepository', () => {
     Object.defineProperty(mockTxCtx, 'client', { get: () => mockClient });
 
     mockProjects = createMockProjectRepository();
-    mockProjects.getOrCreate.mockResolvedValue({
-      id: 'proj-1',
-      name: 'my-project',
-      createdAt: new Date(),
-    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

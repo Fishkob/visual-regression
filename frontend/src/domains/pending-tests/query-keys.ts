@@ -4,7 +4,6 @@ export interface InboxListQuery {
   page?: number;
   q?: string;
   kind?: TestKind;
-  groupId?: string;
   branch?: string;
   // The CI run a pending comparison was uploaded under. Optional: the inbox
   // keeps showing ungrouped uploads when no run filter is set.

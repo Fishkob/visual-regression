@@ -52,6 +52,25 @@ test.describe("ProjectSettings", () => {
     );
   });
 
+  test("shows the owner and the visibility of the project", async ({
+    mount,
+  }) => {
+    const component = await mount<typeof Routed>(
+      "views/ProjectSettingsView/Routed",
+      { initialRoute: SETTINGS_ROUTE },
+    );
+
+    // A project always has an owner, and the flag says whether it is also
+    // readable by everyone (ADR-083) — the two are not one column, and there is
+    // no third "group" axis left (ADR-084).
+    await expect(component.getByTestId(TEST_ID.projectTeamCurrent)).toHaveText(
+      "Checkout",
+    );
+    await expect(
+      component.getByTestId(TEST_ID.projectVisibilityState),
+    ).toHaveText("Currently visible to its team only.");
+  });
+
   test("shows the project's webhook endpoints and opens the editor", async ({
     mount,
     page,
@@ -157,22 +176,21 @@ test.describe("ProjectSettings", () => {
     await expect(save).toBeEnabled();
   });
 
-  test("moves the project out of its team and reports the shared state", async ({
-    mount,
-    page,
-  }) => {
+  test("moves the project to another team", async ({ mount, page }) => {
     // Stateful on purpose: the page re-reads the team list after the write, so a
     // static answer would snap the dropdown back to the old owner and hide a
     // broken invalidation.
-    let ownedByTeam = true;
+    let owner = "Checkout";
     await page.route(TEAMS_GLOB, (route) =>
-      route.fulfill(ownedByTeam ? TEAMS_WITH_PROJECT_RESPONSE : TEAMS_RESPONSE),
+      route.fulfill(
+        owner === "Checkout" ? TEAMS_WITH_PROJECT_RESPONSE : TEAMS_RESPONSE,
+      ),
     );
     let patched: unknown;
     await page.route("**/api/v1/projects/checkout-ui/team", async (route) => {
       patched = route.request().postDataJSON();
-      const body = patched as { teamId: string | null };
-      ownedByTeam = body.teamId !== null;
+      const body = patched as { teamId: string };
+      owner = body.teamId === "team-platform" ? "Platform" : "Checkout";
       await route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -180,7 +198,7 @@ test.describe("ProjectSettings", () => {
           projectId: "p-1",
           projectName: "checkout-ui",
           teamId: body.teamId,
-          teamName: body.teamId === null ? null : "Checkout",
+          teamName: owner,
         }),
       });
     });
@@ -190,19 +208,54 @@ test.describe("ProjectSettings", () => {
       { initialRoute: SETTINGS_ROUTE },
     );
 
-    await expect(
-      component.getByTestId(TEST_ID.projectTeamCurrent),
-    ).toContainText("Owner: Checkout");
+    // The team row names the owner directly; the row label already says "Team".
+    await expect(component.getByTestId(TEST_ID.projectTeamCurrent)).toHaveText(
+      "Checkout",
+    );
 
     await component.getByTestId(TEST_ID.projectTeamSelect).click();
-    await page.getByRole("option", { name: "No team (shared)" }).click();
+    await page.getByRole("option", { name: "Platform" }).click();
     await component.getByTestId(TEST_ID.projectTeamSave).click();
 
-    // `null` is the shared state, and it has to reach the API as null rather
-    // than as an omitted field.
-    await expect.poll(() => patched).toEqual({ teamId: null });
+    // A project always has one owner, so a move sends a team id — there is no
+    // "no team" option left to send.
+    await expect.poll(() => patched).toEqual({ teamId: "team-platform" });
+  });
+
+  // Publishing is its own audited write (ADR-083), so the toggle saves on click
+  // instead of waiting for a "save" next to the dropdown.
+  test("publishes the project with the visibility toggle", async ({
+    mount,
+    page,
+  }) => {
+    await page.route(TEAMS_GLOB, (route) =>
+      route.fulfill(TEAMS_WITH_PROJECT_RESPONSE),
+    );
+    let patched: unknown;
+    await page.route(
+      "**/api/v1/projects/checkout-ui/visibility",
+      async (route) => {
+        patched = route.request().postDataJSON();
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ projectName: "checkout-ui", isShared: true }),
+        });
+      },
+    );
+
+    const component = await mount<typeof Routed>(
+      "views/ProjectSettingsView/Routed",
+      { initialRoute: SETTINGS_ROUTE },
+    );
+
+    const toggle = component.getByTestId(TEST_ID.projectVisibilityToggle);
+    await expect(toggle).not.toBeChecked();
+    await toggle.click();
+
+    await expect.poll(() => patched).toEqual({ isShared: true });
     await expect(
-      component.getByTestId(TEST_ID.projectTeamCurrent),
-    ).toContainText("Shared");
+      component.getByTestId(TEST_ID.projectVisibilityState),
+    ).toHaveText("Currently visible to every signed-in person.");
   });
 });

@@ -6,13 +6,16 @@ import {
   projectNotFound,
 } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ProjectReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-read.repository';
-import { ProjectGroupRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-group.repository';
 import { BranchCommandService } from '@public/visualTest/catalog/application/branch-command.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { DomainError } from '@common/domain/domain-error';
 import type { ProjectScope } from '@common/domain/project-scope';
 import { AuditService } from '@internal/audit/audit.service';
 import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
+import {
+  TeamsRepository,
+  type TeamRef,
+} from '@internal/teams/teams.repository';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { paginatedQuery } from '@common/utils/paginated-query';
 import { createPaginatedResponse } from '@common/dto/paginated-response.dto';
@@ -23,6 +26,7 @@ import {
   mapProjectToDto,
 } from '@public/visualTest/catalog/infrastructure/mappers/project-response.mapper';
 import type {
+  CreateProjectDto,
   ProjectDto,
   UpdateProjectDto,
 } from '@public/visualTest/catalog/presentation/dto/project.dto';
@@ -33,7 +37,7 @@ export class ProjectService {
     private readonly projects: ProjectRepository,
     private readonly projectRead: ProjectReadRepository,
     private readonly testDeletion: TestDeletionService,
-    private readonly groups: ProjectGroupRepository,
+    private readonly teams: TeamsRepository,
     private readonly branchCommands: BranchCommandService,
     private readonly audit: AuditService,
     private readonly uow: PrismaUnitOfWork,
@@ -41,7 +45,7 @@ export class ProjectService {
 
   async getAllWithPendingFlag(
     pagination: PaginationDto,
-    filters: { q?: string; groupId?: string } | undefined,
+    filters: { q?: string } | undefined,
     scope: ProjectScope,
   ) {
     return paginatedQuery(
@@ -98,22 +102,91 @@ export class ProjectService {
     return mapProjectDetailToDto(project, meta);
   }
 
-  async create(name: string, groupId?: string): Promise<ProjectDto> {
-    const group = groupId ? await this.groups.findById(groupId) : null;
-    if (groupId && !group) {
-      throw new DomainError(`Group "${groupId}" not found`, 'NOT_FOUND');
-    }
-    const project = await this.projects.create(name, groupId ?? null);
+  // Creating a project requires an owner (ADR-083). An ADMIN names any team; a
+  // MEMBER one of its own; a member that belongs to none is refused with `409`
+  // and a message that says why, instead of silently landing in a bucket nobody
+  // is responsible for. A missing `teamId` falls back to the creator's first team
+  // — the same order `/auth/me` returns and the dialog preselects — so a client
+  // that does not send one still ends up with a real owner.
+  async create(
+    dto: CreateProjectDto,
+    caller: { userId?: string; role: string },
+  ): Promise<ProjectDto> {
+    const team = await this.resolveOwnerTeam(dto.teamId, caller);
+    const project = await this.projects.create(dto.name, team.id);
     return mapProjectSummaryToDto({
       id: project.id,
       name: project.name,
       createdAt: project.createdAt,
-      groupId: group?.id ?? null,
-      groupName: group?.name ?? null,
+      teamId: team.id,
+      teamName: team.name,
+      isShared: false,
       pendingCount: 0,
       testCount: 0,
       hasPendingComparisons: false,
     });
+  }
+
+  // A team the caller cannot own answers `404`, not `403`: the id is
+  // user-supplied, and a distinguishable answer confirms that another team
+  // exists — the same reason a project outside the scope is a `404` (ADR-082).
+  private async resolveOwnerTeam(
+    teamId: string | undefined,
+    caller: { userId?: string; role: string },
+  ): Promise<TeamRef> {
+    const { userId, role } = caller;
+    const ownTeams = async (): Promise<TeamRef[]> =>
+      userId ? this.teams.findForUser(userId) : [];
+    if (teamId) {
+      const team = await this.teams.findById(teamId);
+      if (!team)
+        throw new DomainError(`Team "${teamId}" not found`, 'NOT_FOUND');
+      if (role === 'ADMIN') return { id: team.id, name: team.name };
+      const own = await ownTeams();
+      if (!own.some((candidate) => candidate.id === team.id)) {
+        throw new DomainError(`Team "${teamId}" not found`, 'NOT_FOUND');
+      }
+      return { id: team.id, name: team.name };
+    }
+    const [first] = await ownTeams();
+    if (first) return first;
+    if (role === 'ADMIN') {
+      throw new DomainError(
+        'A project needs an owning team; name the team that owns it',
+        'BAD_REQUEST',
+      );
+    }
+    throw new DomainError(
+      'You do not belong to a team yet, so you cannot create a project. Ask an admin to add you to the team that should own it.',
+      'CONFLICT',
+    );
+  }
+
+  // Visibility is its own audited write (ADR-083): it widens who may *read* the
+  // project, so it must not ride on the generic project patch, which is gated by
+  // an API-key scope rather than by `@Roles`.
+  async updateVisibility(
+    projectName: string,
+    isShared: boolean,
+    actor: string,
+  ): Promise<{ projectName: string; isShared: boolean }> {
+    const project = await this.projects.requireByName(projectName);
+    const isCurrentlyShared = project.isShared ?? false;
+    if (isCurrentlyShared === isShared) {
+      return { projectName: project.name, isShared };
+    }
+    await this.uow.execute(async () => {
+      await this.projects.updateVisibilityByName(project.name, isShared);
+      await this.audit.record({
+        actor: actor ?? null,
+        action: AUDIT_ACTIONS.projectVisibility,
+        projectName: project.name,
+        targetType: 'project',
+        targetId: project.id,
+        metadata: { from: isCurrentlyShared, to: isShared },
+      });
+    });
+    return { projectName: project.name, isShared };
   }
 
   async updateRetention(
@@ -212,32 +285,19 @@ export class ProjectService {
     return { pixelDiffThreshold };
   }
 
-  async updateProjectGroup(
+  // The generic project patch is down to its one remaining field: the default
+  // branch. The owner, the visibility and the threshold each have their own
+  // ADMIN-only route, because each of them is a privilege decision rather than a
+  // settings edit (ADR-082, ADR-083).
+  async updateDefaultBranch(
     projectName: string,
     dto: UpdateProjectDto,
   ): Promise<ProjectDto> {
-    if (dto.groupId === undefined && dto.defaultBranchName === undefined) {
+    if (dto.defaultBranchName === undefined) {
       return this.getWithLatestVariantStatuses(projectName);
     }
-    if (dto.defaultBranchName !== undefined) {
-      await this.branchCommands.setDefault(projectName, dto.defaultBranchName);
-    }
-    if (dto.groupId === undefined) {
-      return this.getWithLatestVariantStatuses(projectName);
-    }
-    const groupId = dto.groupId;
-    if (groupId) {
-      const group = await this.groups.findById(groupId);
-      if (!group) {
-        throw new DomainError(`Group "${groupId}" not found`, 'NOT_FOUND');
-      }
-    }
-    await this.projects.updateGroupByName(projectName, groupId);
-    const summary = await this.projectRead.getProjectSummary(projectName);
-    if (!summary) {
-      throw projectNotFound(projectName);
-    }
-    return mapProjectSummaryToDto(summary);
+    await this.branchCommands.setDefault(projectName, dto.defaultBranchName);
+    return this.getWithLatestVariantStatuses(projectName);
   }
 
   async deleteProject(projectName: string, actor: string): Promise<void> {

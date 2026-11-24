@@ -167,8 +167,10 @@ test('cart summary', async ({ page }, testInfo) => {
 - Any bytes work too: `await vrt.capture(testInfo, await page.pdf(), { kind: 'pdf' })`
   for a PDF, or a buffer you produced yourself. A PDF buffer is recognised by
   its `%PDF-` header when `kind` is omitted.
-- The first capture of a variant creates the project, the branch and the
-  baseline; later captures are compared against it. `viewport`, `browser` and
+- The first capture of a variant creates the branch and the baseline; the
+  project itself must already exist (create it in the UI — a project always has
+  an owning team, so a capture cannot create one). Later captures are compared
+  against it. `viewport`, `browser` and
   `environment` are the Variant and are matched verbatim, case included.
 - A failed upload does not fail the test run: `capture` resolves to a
   `CaptureUploadResult` with `ok: false` and `error`, and `onUpload` receives it.

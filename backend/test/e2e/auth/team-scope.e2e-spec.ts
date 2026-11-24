@@ -17,6 +17,8 @@ describe('Team-scoped project access (e2e)', () => {
   let db: PrismaClient;
   let adminCookie: string;
   let memberACookie: string;
+  let memberBCookie: string;
+  let memberCCookie: string;
   let apiKeyHeader: string;
   let memberAId: string;
 
@@ -60,9 +62,6 @@ describe('Team-scoped project access (e2e)', () => {
 
   beforeEach(async () => {
     await TestApp.resetDb();
-    for (const name of ['checkout-ui', 'billing-api', 'shared-ui']) {
-      await TestApp.createProject(name);
-    }
 
     await db.user.create({
       data: {
@@ -78,9 +77,18 @@ describe('Team-scoped project access (e2e)', () => {
         role: 'MEMBER',
       },
     });
-    await db.user.create({
+    const memberB = await db.user.create({
       data: {
         username: 'b',
+        passwordHash: await hashPassword('secret'),
+        role: 'MEMBER',
+      },
+    });
+    // A member that belongs to no team: the state the 409 and the "only shared
+    // projects" empty copy describe.
+    await db.user.create({
+      data: {
+        username: 'c',
         passwordHash: await hashPassword('secret'),
         role: 'MEMBER',
       },
@@ -89,22 +97,24 @@ describe('Team-scoped project access (e2e)', () => {
 
     adminCookie = await login('admin');
     memberACookie = await login('a');
+    memberBCookie = await login('b');
+    memberCCookie = await login('c');
 
-    // checkout-ui belongs to team A (member "a"); billing-api belongs to team B
-    // (member "b"); shared-ui has no team and stays visible to everyone.
-    await db.team.create({
-      data: {
-        name: 'Checkout',
-        members: { create: { userId: memberAId } },
-        projects: { connect: { name: 'checkout-ui' } },
-      },
+    // Every project has an owner (ADR-083): checkout-ui belongs to team A
+    // (member "a"), billing-api to team B (member "b"), and shared-ui is owned
+    // by B *and* flagged visible to everyone — the two properties are
+    // independent, so "everybody may look" no longer means "nobody owns it".
+    const checkoutTeam = await db.team.create({
+      data: { name: 'Checkout', members: { create: { userId: memberAId } } },
     });
-    await db.team.create({
-      data: {
-        name: 'Billing',
-        members: { create: { userId: (await userByName('b')).id } },
-        projects: { connect: { name: 'billing-api' } },
-      },
+    const billingTeam = await db.team.create({
+      data: { name: 'Billing', members: { create: { userId: memberB.id } } },
+    });
+    await TestApp.createProject('checkout-ui', { teamId: checkoutTeam.id });
+    await TestApp.createProject('billing-api', { teamId: billingTeam.id });
+    await TestApp.createProject('shared-ui', {
+      teamId: billingTeam.id,
+      isShared: true,
     });
   }, 30_000);
 
@@ -116,20 +126,28 @@ describe('Team-scoped project access (e2e)', () => {
     return response.get('Set-Cookie')![0]!.split(';')[0]!;
   }
 
-  async function userByName(username: string) {
-    const user = await db.user.findUnique({ where: { username } });
-    if (!user) throw new Error(`no user ${username}`);
-    return user;
-  }
-
   const asMember = (path: string) =>
     request(app.getHttpServer()).get(path).set('Cookie', memberACookie);
+  // Team B's member: everything team A's member may not see.
+  const asMemberB = (path: string) =>
+    request(app.getHttpServer()).get(path).set('Cookie', memberBCookie);
   const asAdmin = (path: string) =>
     request(app.getHttpServer()).get(path).set('Cookie', adminCookie);
 
   it('lets a member read the project of its team and the shared one', async () => {
-    await asMember('/api/v1/projects/checkout-ui').expect(200);
-    await asMember('/api/v1/projects/shared-ui').expect(200);
+    const owned = await asMember('/api/v1/projects/checkout-ui').expect(200);
+    const shared = await asMember('/api/v1/projects/shared-ui').expect(200);
+
+    // The owner's name rides on the project read a member already performs:
+    // reading it is not administering it (ADR-082 amendment). It is the answer
+    // to "why do I see this", which the ADMIN-only team list cannot give.
+    expect(owned.body).toMatchObject({
+      teamName: 'Checkout',
+      isShared: false,
+    });
+    // A shared project names its owner too: the flag says everybody may look,
+    // it does not say nobody is responsible.
+    expect(shared.body).toMatchObject({ teamName: 'Billing', isShared: true });
   });
 
   it('answers 404 for another team’s project, exactly like a missing one', async () => {
@@ -142,9 +160,46 @@ describe('Team-scoped project access (e2e)', () => {
     expect(missing.body.statusCode).toBe(404);
   });
 
+  // The third direction ADR-083 pins: a member that belongs to no team cannot
+  // create a project, because there is no team that could own it. It says so
+  // instead of landing the project in a bucket nobody is responsible for.
+  it('refuses a creator that belongs to no team', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/projects')
+      .set('Cookie', memberCCookie)
+      .send({ name: 'lonely-ui' })
+      .expect(409);
+
+    expect(response.body.message).toMatch(/do not belong to a team/i);
+    expect(await db.project.count({ where: { name: 'lonely-ui' } })).toBe(0);
+  });
+
+  it('creates a project in the creator’s own team, never a foreign one', async () => {
+    // No teamId: the service falls back to the caller's first team, which is the
+    // same order `/auth/me` reports and the dialog preselects.
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/projects')
+      .set('Cookie', memberACookie)
+      .send({ name: 'checkout-ui-2' })
+      .expect(201);
+    expect(created.body).toMatchObject({ teamName: 'Checkout' });
+
+    const foreign = await db.team.findUniqueOrThrow({
+      where: { name: 'Billing' },
+    });
+    await request(app.getHttpServer())
+      .post('/api/v1/projects')
+      .set('Cookie', memberACookie)
+      .send({ name: 'smuggled-ui', teamId: foreign.id })
+      .expect(404);
+    expect(await db.project.count({ where: { name: 'smuggled-ui' } })).toBe(0);
+  });
+
   it('refuses a nested route of a foreign project', async () => {
     await asMember('/api/v1/projects/billing-api/branches').expect(404);
     await asMember('/api/v1/projects/checkout-ui/branches').expect(200);
+    // The same boundary from the other side: B may not open A's project.
+    await asMemberB('/api/v1/projects/checkout-ui/branches').expect(404);
   });
 
   it('refuses an upload into a foreign project before the intake runs', async () => {
@@ -309,64 +364,6 @@ describe('Team-scoped project access (e2e)', () => {
     expect(foreign.body.projects).toEqual([]);
     expect(foreign.body.tests).toEqual([]);
     expect(foreign.body.branches).toEqual([]);
-  });
-
-  it('counts only the caller’s projects in the group badges', async () => {
-    const group = await request(app.getHttpServer())
-      .post('/api/v1/groups')
-      .set('Cookie', adminCookie)
-      .send({ name: 'Shop' })
-      .expect(201);
-    await request(app.getHttpServer())
-      .patch('/api/v1/projects/bulk/group')
-      .set('Cookie', adminCookie)
-      .send({
-        projectNames: ['checkout-ui', 'billing-api'],
-        groupId: group.body.id,
-      })
-      .expect(200);
-
-    const mine = await asMember('/api/v1/groups').expect(200);
-    expect(mine.body).toEqual([
-      expect.objectContaining({ name: 'Shop', projectCount: 1 }),
-    ]);
-
-    const all = await asAdmin('/api/v1/groups').expect(200);
-    expect(all.body).toEqual([
-      expect.objectContaining({ name: 'Shop', projectCount: 2 }),
-    ]);
-  });
-
-  it('refuses a group delete that would clear a foreign project’s label', async () => {
-    const group = await request(app.getHttpServer())
-      .post('/api/v1/groups')
-      .set('Cookie', adminCookie)
-      .send({ name: 'Shop' })
-      .expect(201);
-    await request(app.getHttpServer())
-      .patch('/api/v1/projects/bulk/group')
-      .set('Cookie', adminCookie)
-      .send({
-        projectNames: ['checkout-ui', 'billing-api'],
-        groupId: group.body.id,
-      })
-      .expect(200);
-
-    // Deleting the group clears `groupId` on every project in it (the FK is
-    // SET NULL), so a member that can see only half of it would rewrite the
-    // other half. The refusal names no count — a number would confirm what the
-    // member cannot open.
-    const refused = await request(app.getHttpServer())
-      .delete(`/api/v1/groups/${group.body.id}`)
-      .set('Cookie', memberACookie)
-      .expect(409);
-    expect(refused.body.message).not.toMatch(/\d/);
-
-    // An admin may, which is what makes the refusal above a scope rule.
-    await request(app.getHttpServer())
-      .delete(`/api/v1/groups/${group.body.id}`)
-      .set('Cookie', adminCookie)
-      .expect(200);
   });
 
   it('leaves a foreign assignment out of my work list', async () => {

@@ -18,7 +18,6 @@ const ROUTE_CASES: Record<string, string[]> = {
     "projects-new-dialog",
     "search-palette",
   ],
-  groups: ["groups"],
   teams: ["teams"],
   "change-password": ["change-password"],
   users: ["users"],

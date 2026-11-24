@@ -9,27 +9,27 @@ import type { PrismaClient } from '@/prisma/client';
 const OLDER_CREATED_AT = new Date('2026-10-01T10:00:00.000Z');
 const NEWER_CREATED_AT = new Date('2026-10-02T10:00:00.000Z');
 
+// Every project has an owner (ADR-083), so the fixture names the team instead of
+// assigning one afterwards. The inbox carries that owner on every row (ADR-084),
+// which is what both lists section by.
 async function seedTestWithBaseline(
   prisma: PrismaClient,
   options: {
     projectName: string;
     testName: string;
-    groupId?: string | null;
+    teamName?: string;
+    isShared?: boolean;
     testStatus?: TestStatus;
     /** Seeds the row on a feature branch instead of the default branch. */
     branchName?: string;
     archived?: boolean;
   },
 ) {
+  const team = await TestApp.ensureTeam(options.teamName ?? 'fixture-team');
   const { projectId, branchId: defaultBranchId } = await TestApp.createProject(
     options.projectName,
+    { teamId: team.id, isShared: options.isShared ?? false },
   );
-  if (options.groupId) {
-    await prisma.project.update({
-      where: { id: projectId },
-      data: { groupId: options.groupId },
-    });
-  }
   const project = await prisma.project.findUniqueOrThrow({
     where: { id: projectId },
   });
@@ -66,7 +66,8 @@ async function seedComparison(
     testName: string;
     status: ComparisonStatus;
     createdAt: Date;
-    groupId?: string | null;
+    teamName?: string;
+    isShared?: boolean;
     mismatchPixelCount?: number;
     branchName?: string;
     archived?: boolean;
@@ -77,7 +78,8 @@ async function seedComparison(
     {
       projectName: options.projectName,
       testName: options.testName,
-      groupId: options.groupId,
+      teamName: options.teamName,
+      isShared: options.isShared,
       branchName: options.branchName,
       archived: options.archived,
       testStatus:
@@ -132,19 +134,17 @@ describe('Review inbox (e2e)', () => {
       testName: 'signup',
       status: ComparisonStatus.PENDING_APPROVAL,
       createdAt: OLDER_CREATED_AT,
-      groupId: null,
+      teamName: 'Legacy',
       mismatchPixelCount: 12,
     });
 
-    const group = await prisma.projectGroup.create({
-      data: { name: 'Checkout' },
-    });
     const newer = await seedComparison(prisma, {
       projectName: 'checkout-ui',
       testName: 'login',
       status: ComparisonStatus.PENDING_APPROVAL,
       createdAt: NEWER_CREATED_AT,
-      groupId: group.id,
+      teamName: 'Checkout',
+      isShared: true,
       mismatchPixelCount: 42,
     });
 
@@ -175,8 +175,11 @@ describe('Review inbox (e2e)', () => {
     expect(res.body.data[0]).toMatchObject({
       comparisonId: older.comparison.id,
       projectName: 'legacy-ui',
-      groupId: null,
-      groupName: null,
+      // The section header names the owner and the row says whether everybody
+      // may look, so the inbox can group by team without a second read.
+      teamId: expect.any(String),
+      teamName: 'Legacy',
+      isShared: false,
       testName: 'signup',
       kind: 'image',
       variant: {
@@ -190,8 +193,9 @@ describe('Review inbox (e2e)', () => {
     expect(res.body.data[1]).toMatchObject({
       comparisonId: newer.comparison.id,
       projectName: 'checkout-ui',
-      groupId: group.id,
-      groupName: 'Checkout',
+      teamId: expect.any(String),
+      teamName: 'Checkout',
+      isShared: true,
       testName: 'login',
       kind: 'image',
       variant: {
@@ -213,7 +217,7 @@ describe('Review inbox (e2e)', () => {
       testName: 'signup',
       status: ComparisonStatus.PENDING_APPROVAL,
       createdAt: OLDER_CREATED_AT,
-      groupId: null,
+      teamName: 'Legacy',
     });
     const newer = await seedComparison(prisma, {
       projectName: 'checkout-ui',

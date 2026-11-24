@@ -45,9 +45,13 @@ revoked or expired key only offers delete.
 
 ## 2. Upload and wait
 
-Project and test names use letters, digits, `-` and `_`. The first upload creates
-the project, its default branch and the test, so a fresh install needs no manual
-setup — a name nobody has used yet is fine.
+Project and test names use letters, digits, `-` and `_`. The **project has to
+exist** before a capture reaches it: every project has an owning team
+([ADR-083](../docs/adr/ADR-083-project-always-has-a-team.md)), and a pipeline that
+holds an upload key cannot name one. Create it once in the UI (or with an
+`admin`-scoped key: `POST /projects` with a `teamId`); an unknown project answers
+`404`, which is what keeps a typo in a CI script from minting a project nobody
+owns. The first upload then creates the branch and the test.
 
 ```bash
 # 1) Upload the capture.
@@ -204,7 +208,7 @@ test("cart summary", async ({ page }, testInfo) => {
 
 - `capture(testInfo, page)` screenshots the page (`fullPage: true` unless `{ fullPage: false }`) and uploads it immediately into `<project>`, under the title path reduced to `[A-Za-z0-9_-]`, at most 100 characters: `checkout.spec.ts / cart summary` becomes `checkout-spec-ts-cart-summary`. An over-long name keeps a stable hash of the full title path, so two tests that share a prefix stay two tests.
 - Bytes work as well: `vrt.capture(testInfo, await page.pdf(), { kind: "pdf" })` for a PDF, or a buffer you produced yourself. A PDF buffer is recognised by its `%PDF-` header when `kind` is omitted.
-- The first capture of a variant creates the project, the branch and the baseline; later captures are compared against it. `viewport`, `browser` and `environment` are the Variant and are matched verbatim, case included.
+- The first capture of a variant creates the branch and the baseline; the project must already exist (an unknown project answers `404`). Later captures are compared against it. `viewport`, `browser` and `environment` are the Variant and are matched verbatim, case included.
 - A failed upload never fails the test run: `capture` resolves to a `CaptureUploadResult` (`ok: false`, `error`) and `onUpload` receives it. A page that cannot be screenshotted throws — that is a test bug, not an upload failure.
 - The remaining client options (`commitSha`/`commitMessage`/`ciUrl`, `configPath`, `maxAttempts`, `onUpload`, `onConfigError`) are on `VrtClientOptions` in the published types.
 - See [client-sdk/README.md](../client-sdk/README.md) for the full API and how the tarball is built.

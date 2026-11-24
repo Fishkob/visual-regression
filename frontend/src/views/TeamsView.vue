@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   useTeamsQuery,
+  useAssignProjectTeam,
   useCreateTeam,
   useRenameTeam,
   useDeleteTeam,
@@ -12,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import TeamFormDialog from "@/components/teams/TeamFormDialog.vue";
 import TeamMembersDialog from "@/components/teams/TeamMembersDialog.vue";
+import TeamProjectsDialog from "@/components/teams/TeamProjectsDialog.vue";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import { sdkErrorMessage } from "@/lib/sdk";
@@ -24,11 +26,14 @@ const createTeam = useCreateTeam();
 const renameTeam = useRenameTeam();
 const deleteTeam = useDeleteTeam();
 const replaceMembers = useReplaceTeamMembers();
+const assignProject = useAssignProjectTeam();
 
 const formOpen = ref(false);
 const editing = ref<Team | null>(null);
 const membersOpen = ref(false);
 const membersTeam = ref<Team | null>(null);
+const projectsOpen = ref(false);
+const projectsTeam = ref<Team | null>(null);
 const deleteOpen = ref(false);
 const pendingDelete = ref<Team | null>(null);
 
@@ -80,6 +85,17 @@ function submitMembers(userIds: string[]) {
     { id: membersTeam.value.id, userIds },
     { onSuccess: () => (membersOpen.value = false) },
   );
+}
+// The Teams page is where a team's projects are read and changed (ADR-084):
+// ownership is edited where ownership lives, not on a folder in the project
+// list.
+function openProjects(team: Team) {
+  assignProject.reset();
+  projectsTeam.value = team;
+  projectsOpen.value = true;
+}
+function assign(payload: { projectName: string; teamId: string }) {
+  assignProject.mutate(payload);
 }
 function requestDelete(team: Team) {
   deleteTeam.reset();
@@ -207,6 +223,16 @@ function projectNames(team: Team): string {
               type="button"
               variant="outline"
               size="sm"
+              :aria-label="t('teams.projectsAria', { name: team.name })"
+              :data-testid="TEST_ID.teamProjectsManage"
+              @click="openProjects(team)"
+            >
+              {{ t("teams.projects") }}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               :aria-label="t('teams.membersAria', { name: team.name })"
               :data-testid="TEST_ID.teamMembers"
               @click="openMembers(team)"
@@ -244,6 +270,15 @@ function projectNames(team: Team): string {
       :pending="formPending"
       :error="formError"
       @submit="submit"
+    />
+
+    <TeamProjectsDialog
+      v-model:open="projectsOpen"
+      :team="projectsTeam"
+      :teams="teams ?? []"
+      :pending="assignProject.isPending.value"
+      :error="assignProject.error.value"
+      @assign="assign"
     />
 
     <TeamMembersDialog

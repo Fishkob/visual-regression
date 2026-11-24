@@ -12,10 +12,7 @@ import { CatalogModule } from '@public/visualTest/catalog/catalog.module';
 import { ApprovalsController } from '@public/visualTest/review/presentation/controllers/approvals.controller';
 import { AssignmentController } from '@public/visualTest/review/presentation/controllers/assignment.controller';
 import { BaselineHistoryController } from '@public/visualTest/review/presentation/controllers/baseline-history.controller';
-import {
-  BulkActionsController,
-  ProjectsBulkController,
-} from '@public/visualTest/review/presentation/controllers/bulk-actions.controller';
+import { BulkActionsController } from '@public/visualTest/review/presentation/controllers/bulk-actions.controller';
 import { ReviewCommentController } from '@public/visualTest/review/presentation/controllers/comment.controller';
 import { ReviewInboxController } from '@public/visualTest/review/presentation/controllers/review-inbox.controller';
 import { TestCommandsController } from '@public/visualTest/review/presentation/controllers/test-commands.controller';
@@ -57,7 +54,7 @@ import { TestReadRepository } from '@public/visualTest/review/infrastructure/rep
     AssignmentController,
     BaselineHistoryController,
     BulkActionsController,
-    ProjectsBulkController,
+
     ReviewCommentController,
     ReviewInboxController,
     TestCommandsController,

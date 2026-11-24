@@ -113,7 +113,7 @@ own — `playwright-e2e.config.ts` sets one 10s expect timeout for the suite.
 | Trends metrics and range switch                                                    | `trends.spec.ts`                  |
 | Variant gallery, overview page, PDF overview note                                  | `test-overview.spec.ts`           |
 | Global search, theme persistence, locale switch, logout                            | `search-theme-locale.spec.ts`     |
-| Project list/search/filter, group CRUD, project move/delete                        | `groups-projects.spec.ts`         |
+| Project list/search/filter, project move/delete                                    | `bulk-actions.spec.ts`            |
 | Navigation and 404                                                                 | `navigation.spec.ts`              |
 
 ## Backend E2E coverage

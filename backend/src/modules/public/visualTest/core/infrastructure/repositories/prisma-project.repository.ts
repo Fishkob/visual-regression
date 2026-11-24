@@ -18,8 +18,8 @@ export interface ProjectData {
   id: string;
   name: string;
   createdAt: Date;
-  groupId?: string | null;
-  teamId?: string | null;
+  teamId?: string;
+  isShared?: boolean;
   baselineRevisionLimit?: number | null;
   runHistoryDays?: number | null;
   branchRetentionDays?: number | null;
@@ -77,8 +77,11 @@ export class ProjectRepository extends BaseRepository {
 
   // Standalone write by design: the project-create endpoint runs outside a
   // StateChangeWorkflow transaction (creating a project mutates no test status),
-  // so this primitive deliberately skips assertWritable.
-  async create(name: string, groupId?: string | null): Promise<ProjectData> {
+  // so this primitive deliberately skips assertWritable. The owner is a required
+  // argument because the column is `NOT NULL` (ADR-083): a project without a
+  // team is not a state the database allows, so it is not a parameter here
+  // either.
+  async create(name: string, teamId: string): Promise<ProjectData> {
     const existing = await this.client.project.findUnique({
       where: { name },
     });
@@ -89,7 +92,7 @@ export class ProjectRepository extends BaseRepository {
       const project = await tx.project.create({
         data: {
           name,
-          ...(groupId ? { groupId } : {}),
+          teamId,
           branches: { create: { name: DEFAULT_BRANCH_NAME } },
         },
         include: { branches: { select: { id: true } } },
@@ -101,28 +104,29 @@ export class ProjectRepository extends BaseRepository {
     });
   }
 
-  // Standalone write: moving a project between groups does not mutate test
-  // state, so it deliberately skips assertWritable like create.
-  async updateGroupByName(
-    projectName: string,
-    groupId: string | null,
-  ): Promise<ProjectData> {
-    return this.client.project.update({
-      where: { name: projectName },
-      data: { groupId },
-    });
-  }
-
-  // The one writer of `Project.teamId` (ADR-082). `null` means "shared": the
-  // project stays visible to every principal, which is why unassigning is a
-  // write that must be audited just like assigning.
+  // The one writer of `Project.teamId` (ADR-082). The owner is mandatory
+  // (ADR-083), so moving a project is always "from one team to another"; the
+  // shared state is a separate column and a separate route.
   async updateTeamByName(
     projectName: string,
-    teamId: string | null,
+    teamId: string,
   ): Promise<ProjectData> {
     return this.client.project.update({
       where: { name: projectName },
       data: { teamId },
+    });
+  }
+
+  // The one writer of `Project.isShared` (ADR-083). Widening the read is a
+  // governance decision, which is why it is its own audited route and not a
+  // field on the generic project patch.
+  async updateVisibilityByName(
+    projectName: string,
+    isShared: boolean,
+  ): Promise<ProjectData> {
+    return this.client.project.update({
+      where: { name: projectName },
+      data: { isShared },
     });
   }
 
@@ -197,15 +201,6 @@ export class ProjectRepository extends BaseRepository {
     await this.client.project.updateMany({
       where: { id: projectId },
       data: { storageUsedBytes: { increment: bytes } },
-    });
-  }
-
-  async getOrCreate(name: string): Promise<ProjectData> {
-    this.assertWritable();
-    return this.client.project.upsert({
-      where: { name },
-      create: { name },
-      update: {},
     });
   }
 

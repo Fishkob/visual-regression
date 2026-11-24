@@ -42,14 +42,29 @@ async function apiFetch(pathname: string, init: RequestInit = {}) {
   });
 }
 
-export async function createProject(
-  name: string,
-  groupId?: string,
-): Promise<Response> {
+// A project always has an owner (ADR-083), and team administration is
+// session-only — an API key cannot create a team. The suite therefore reuses the
+// owner of the seeded `e2e-project`: `seed:e2e` creates it before the run, so
+// every fixture project lands in the same team as the rest of the e2e data.
+const SEEDED_PROJECT = "e2e-project";
+
+async function seededTeamId(): Promise<string> {
+  const res = await apiFetch(`/projects/${encodeURIComponent(SEEDED_PROJECT)}`);
+  if (res.ok) {
+    const project = (await res.json()) as { teamId?: string };
+    if (project.teamId) return project.teamId;
+  }
+  throw new Error(
+    `No owning team to reuse: ${SEEDED_PROJECT} is missing or has none. Run the seeded e2e data first (cd backend && pnpm exec tsx src/scripts/seeds/seed-e2e.ts).`,
+  );
+}
+
+export async function createProject(name: string): Promise<Response> {
+  const teamId = await seededTeamId();
   return apiFetch("/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, ...(groupId ? { groupId } : {}) }),
+    body: JSON.stringify({ name, teamId }),
   }).catch(() => {
     throw new Error(`Could not create project ${name}`);
   });
@@ -72,32 +87,6 @@ export async function deleteProject(name: string) {
   await apiFetch(`/projects/${encodeURIComponent(name)}`, {
     method: "DELETE",
   }).catch(() => {});
-}
-
-export async function createGroup(name: string): Promise<Response> {
-  return apiFetch("/groups", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
-  });
-}
-
-export async function deleteGroup(id: string) {
-  await apiFetch(`/groups/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  }).catch(() => {});
-}
-
-export async function getGroups(): Promise<
-  { id: string; name: string; projectCount: number }[]
-> {
-  const res = await apiFetch("/groups");
-  if (!res.ok) return [];
-  return (await res.json()) as {
-    id: string;
-    name: string;
-    projectCount: number;
-  }[];
 }
 
 export async function uploadScreenshot(

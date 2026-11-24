@@ -3,8 +3,11 @@ import type { TestKind } from "@/domains/test-kind";
 export interface ReviewInboxItem {
   comparisonId: string;
   projectName: string;
-  groupId?: string | null;
-  groupName?: string | null;
+  // The owner of the item's project: the inbox sections by it (ADR-084), and
+  // the flag marks the blocks that everybody may read (ADR-083).
+  teamId: string;
+  teamName: string;
+  isShared: boolean;
   testName: string;
   kind?: TestKind;
   branchName: string;

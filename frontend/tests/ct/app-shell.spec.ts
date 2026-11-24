@@ -4,7 +4,6 @@ import {
   PROJECTS_PENDING_RESPONSE,
   REVIEW_INBOX_RESPONSE,
 } from "./mocks/projects.mocks";
-import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
 import type { AppShell } from "@/AppShell.story.ts";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -12,7 +11,6 @@ test.describe("App shell sidebar", () => {
   test("collapses and expands the navigation", async ({ mount, page }) => {
     await mockApi(page, [
       ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/review/pending*", REVIEW_INBOX_RESPONSE],
     ]);
 
@@ -63,5 +61,30 @@ test.describe("App shell sidebar", () => {
     } else {
       await expect(label).toBeHidden();
     }
+  });
+
+  // Groups and Teams used to sit next to each other as two equal entries, which
+  // made them read as one concept. The block boundary is what tells an operator
+  // that one is a member-maintained label and the other governs access.
+  test("separates the daily surfaces from administration", async ({
+    mount,
+    page,
+  }) => {
+    await mockApi(page, [
+      ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
+      ["**/api/v1/review/pending*", REVIEW_INBOX_RESPONSE],
+    ]);
+
+    const component = await mount<typeof AppShell>("AppShell/AppShell", {
+      initialRoute: "/projects",
+    });
+
+    const admin = component.getByTestId(TEST_ID.navAdministrationSection);
+    await expect(admin).toContainText("Administration");
+    await expect(admin.getByTestId(TEST_ID.navTeams)).toBeVisible();
+
+    const account = component.getByTestId(TEST_ID.navAccountSection);
+    await expect(account).toContainText("Account");
+    await expect(account.getByTestId(TEST_ID.securityNavLink)).toBeVisible();
   });
 });

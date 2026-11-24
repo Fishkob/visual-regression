@@ -71,6 +71,28 @@ describe("mapTeam", () => {
     });
   });
 
+  // A payload assembled by hand (or by an older backend) can leave out the
+  // primitives too. The mapper is the only place that decides what "missing"
+  // means, so the row never renders `undefined`.
+  it("defaults missing primitives and nested rows", () => {
+    const dto = {
+      members: [{}, { userId: "u-1" }],
+      projects: [{}],
+    } as unknown as TeamDto;
+
+    expect(mapTeam(dto)).toEqual({
+      id: "",
+      name: "",
+      createdBy: null,
+      createdAt: null,
+      members: [
+        { userId: "", username: "", role: "VIEWER" },
+        { userId: "u-1", username: "", role: "VIEWER" },
+      ],
+      projects: [{ id: "", name: "" }],
+    });
+  });
+
   it("maps a list", () => {
     expect(
       mapTeams([teamDto(), teamDto({ id: "t-2", name: "Platform" })]),
@@ -95,7 +117,10 @@ describe("mapProjectTeamAssignment", () => {
     });
   });
 
-  it("reads the unassigned (shared) answer as null, not undefined", () => {
+  // The owner is mandatory now (ADR-083), so a payload without one is a stale
+  // wire, not a "shared" answer. The mapper degrades to empty strings rather
+  // than leaking `undefined` into the copy.
+  it("reads a payload without an owner as empty, not undefined", () => {
     const dto = {
       projectId: "p-1",
       projectName: "checkout-ui",
@@ -104,8 +129,8 @@ describe("mapProjectTeamAssignment", () => {
     expect(mapProjectTeamAssignment(dto)).toEqual({
       projectId: "p-1",
       projectName: "checkout-ui",
-      teamId: null,
-      teamName: null,
+      teamId: "",
+      teamName: "",
     });
   });
 });

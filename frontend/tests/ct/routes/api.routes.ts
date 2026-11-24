@@ -15,12 +15,32 @@ export async function mockGet(
   await page.route(urlGlob, (route) => route.fulfill(response));
 }
 
+// A project always has an owner (ADR-083), so the "new project" flow reads the
+// teams list. Answering it by default keeps that read off the dev server for
+// every spec that mounts a view with a create button; a spec that cares about
+// the owner registers its own route afterwards and wins.
+export const DEFAULT_TEAMS_RESPONSE: FulfillResponse = {
+  status: 200,
+  contentType: "application/json",
+  body: JSON.stringify([
+    {
+      id: "team-storefront",
+      name: "Storefront",
+      createdBy: "admin",
+      createdAt: "2026-10-20T10:00:00.000Z",
+      members: [],
+      projects: [],
+    },
+  ]),
+};
+
 export async function mockApi(
   page: Page,
   routes: Array<[string, FulfillResponse]>,
 ) {
   await mockBaselineHistory(page);
   await mockEmptyThreads(page);
+  await mockGet(page, "**/api/v1/teams", DEFAULT_TEAMS_RESPONSE);
   for (const [glob, res] of routes) {
     await mockGet(page, glob, res);
   }

@@ -2,14 +2,10 @@ import type { Mocked } from 'vitest';
 import { BulkActionService } from '@public/visualTest/review/application/bulk-action.service';
 import { ApprovalBatch } from '@public/visualTest/review/application/approval-batch';
 import { ApprovalService } from '@public/visualTest/review/application/approval.service';
-import { ProjectService } from '@public/visualTest/catalog/application/project.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
 import { UnifiedComparisonsRepository } from '@public/visualTest/core/infrastructure/repositories/unified-comparisons.repository';
 import { UnifiedTestRepository } from '@public/visualTest/core/infrastructure/repositories/unified-test.repository';
-import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
-import { ALL_PROJECTS } from '@common/domain/project-scope';
-import { DomainError } from '@common/domain/domain-error';
 import { createMock } from '@test/utils/create-mock';
 
 describe('BulkActionService', () => {
@@ -19,8 +15,6 @@ describe('BulkActionService', () => {
   let comparisons: Mocked<UnifiedComparisonsRepository>;
   let tests: Mocked<UnifiedTestRepository>;
   let branches: Mocked<BranchResolver>;
-  let projects: Mocked<ProjectService>;
-  let projectRows: Mocked<ProjectRepository>;
 
   beforeEach(() => {
     approvals = createMock<ApprovalService>();
@@ -36,22 +30,12 @@ describe('BulkActionService', () => {
       isDefault: true,
       isArchived: false,
     });
-    projects = createMock<ProjectService>();
-    projects.updateProjectGroup.mockResolvedValue({} as never);
-    projectRows = createMock<ProjectRepository>();
-    projectRows.requireByName.mockImplementation(async (name: string) => ({
-      id: `p-${name}`,
-      name,
-      createdAt: new Date('2026-01-01'),
-    }));
     service = new BulkActionService(
       approvals,
       deletion,
       comparisons,
       tests,
       branches,
-      projects,
-      projectRows,
     );
   });
 
@@ -114,54 +98,5 @@ describe('BulkActionService', () => {
       't1',
       expect.objectContaining({ actor: 'ada', testName: 'login' }),
     );
-  });
-
-  it('moves projects and reports failures per item', async () => {
-    projects.updateProjectGroup
-      .mockResolvedValueOnce({} as never)
-      .mockRejectedValueOnce(new DomainError('Project not found', 'NOT_FOUND'));
-
-    const result = await service.moveProjects(['a', 'b'], 'g1', ALL_PROJECTS);
-
-    expect(result.moved).toEqual([{ id: 'a', success: true }]);
-    // A DomainError's message is written for the client, so it is returned.
-    expect(result.failed).toEqual([
-      { id: 'b', success: false, error: 'Project not found' },
-    ]);
-  });
-
-  it('refuses a project outside the caller scope without aborting the batch', async () => {
-    // The names arrive in the body, so this is the one bulk write the guard
-    // cannot check (ADR-082).
-    const result = await service.moveProjects(['mine', 'theirs'], 'g1', {
-      kind: 'ids',
-      ids: new Set(['p-mine']),
-    });
-
-    expect(result.moved).toEqual([{ id: 'mine', success: true }]);
-    expect(result.failed).toEqual([
-      {
-        id: 'theirs',
-        success: false,
-        error: 'Project "theirs" not found',
-      },
-    ]);
-    expect(projects.updateProjectGroup).not.toHaveBeenCalledWith(
-      'theirs',
-      expect.anything(),
-    );
-  });
-
-  it('does not leak an internal error message into a bulk row', async () => {
-    projects.updateProjectGroup.mockRejectedValueOnce(
-      new Error('connect ECONNREFUSED 10.0.0.5:5432'),
-    );
-
-    const result = await service.moveProjects(['a'], 'g1', ALL_PROJECTS);
-
-    expect(result.failed).toEqual([
-      { id: 'a', success: false, error: 'Move failed' },
-    ]);
-    expect(result.failed[0].error).not.toContain('ECONNREFUSED');
   });
 });

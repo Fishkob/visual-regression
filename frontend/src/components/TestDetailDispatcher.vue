@@ -14,15 +14,9 @@ import TestMetadataPanel from "@/components/test-lifecycle/TestMetadataPanel.vue
 import EmptyState from "@/components/EmptyState.vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import AsyncState from "@/components/AsyncState.vue";
-import { useProjectDetailQuery } from "@/composables/useProjects";
 
 const { t } = useI18n();
 const { projectName, testName, branch, filters } = useRouteParams();
-
-// The loading frame shows the real trail, so it needs the group of the project
-// it sits in. It shares the key the details views read, so this adds no request.
-const { data: project } = useProjectDetailQuery(projectName, branch);
-const groupName = computed(() => project.value?.groupName ?? undefined);
 
 // The kind lookup is branch-scoped: a test that only exists on the branch must
 // resolve there, not against the project default.
@@ -71,12 +65,7 @@ function retry(): void {
          comparison body is a placeholder, so entering a test or skipping to
          the next one never blanks the page. -->
     <template #loading>
-      <TestDetailsHeader
-        :test-name="testName"
-        :group-name="groupName"
-        :branch="branch"
-        :kind="kind"
-      />
+      <TestDetailsHeader :test-name="testName" :branch="branch" :kind="kind" />
       <TestMetadataPanel class="px-6 pb-3" />
       <div class="p-6 pt-0">
         <TestComparisonSkeleton />

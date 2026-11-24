@@ -37,8 +37,12 @@ describe('Team administration (e2e)', () => {
 
   beforeEach(async () => {
     await TestApp.resetDb();
-    await TestApp.createProject('checkout-ui');
-    await db.project.create({ data: { name: 'billing-api' } });
+    // A project always has an owner (ADR-083), so the fixture needs one before
+    // it can create any project. `Base` is what both projects start on; a test
+    // that moves one names the team it moves to.
+    const base = await db.team.create({ data: { name: 'Base' } });
+    await TestApp.createProject('checkout-ui', { teamId: base.id });
+    await db.project.create({ data: { name: 'billing-api', teamId: base.id } });
 
     await db.user.create({
       data: {
@@ -97,7 +101,8 @@ describe('Team administration (e2e)', () => {
       .post('/api/v1/teams')
       .send({ name: 'Checkout' })
       .expect(403);
-    expect(await db.team.count()).toBe(0);
+    // Still only the fixture's own team.
+    expect(await db.team.count()).toBe(1);
   });
 
   it('rejects an api key even with the admin scope', async () => {
@@ -174,6 +179,7 @@ describe('Team administration (e2e)', () => {
 
   it('refuses to delete a team that still owns a project', async () => {
     const team = await createTeam('Checkout');
+    const base = await db.team.findUniqueOrThrow({ where: { name: 'Base' } });
 
     await asCookie(adminCookie)
       .patch('/api/v1/projects/checkout-ui/team')
@@ -181,25 +187,26 @@ describe('Team administration (e2e)', () => {
       .expect(200);
 
     await asCookie(adminCookie).delete(`/api/v1/teams/${team.id}`).expect(409);
-    expect(await db.team.count()).toBe(1);
+    expect(await db.team.count()).toBe(2);
 
-    // Unassigning is the "shared" state, and only then may the team go.
-    const unassigned = await asCookie(adminCookie)
+    // The owner is mandatory, so the project moves to another team instead of
+    // becoming unowned — and only then may the team go.
+    const moved = await asCookie(adminCookie)
       .patch('/api/v1/projects/checkout-ui/team')
-      .send({ teamId: null })
+      .send({ teamId: base.id })
       .expect(200);
-    expect(unassigned.body.teamId).toBeNull();
+    expect(moved.body.teamName).toBe('Base');
 
     await asCookie(adminCookie).delete(`/api/v1/teams/${team.id}`).expect(200);
-    expect(await db.team.count()).toBe(0);
+    expect(await db.team.count()).toBe(1);
     const trail = await db.auditEvent.findMany({
       where: { action: 'team.project-assign' },
     });
     expect(trail).toHaveLength(2);
     expect(trail.map((row) => row.metadata)).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ from: null, to: 'Checkout' }),
-        expect.objectContaining({ from: 'Checkout', to: null }),
+        expect.objectContaining({ from: 'Base', to: 'Checkout' }),
+        expect.objectContaining({ from: 'Checkout', to: 'Base' }),
       ]),
     );
   });
@@ -208,6 +215,12 @@ describe('Team administration (e2e)', () => {
     await asCookie(adminCookie)
       .patch('/api/v1/projects/checkout-ui/team')
       .send({})
+      .expect(422);
+    // `null` used to mean "shared". Shared is a flag on the project now, so a
+    // null team is a validation error rather than a second way to spell it.
+    await asCookie(adminCookie)
+      .patch('/api/v1/projects/checkout-ui/team')
+      .send({ teamId: null })
       .expect(422);
   });
 
@@ -225,22 +238,70 @@ describe('Team administration (e2e)', () => {
       .expect(404);
   });
 
-  it('keeps an untagged project shared and a tagged one team-only', async () => {
-    // The promise the migration makes: a project nobody assigned stays visible
-    // to everybody, and tagging is what narrows it. `billing-api` is untagged
-    // here and the member belongs to no team.
+  it('narrows a project to its team and widens it again with the flag', async () => {
+    // The member belongs to no team, so it sees only what is shared. Moving a
+    // project into a team the member is not in hides it; nothing is shared by
+    // accident any more, because the flag starts out false (ADR-083).
     const team = await createTeam('Checkout');
     await asCookie(adminCookie)
       .patch('/api/v1/projects/checkout-ui/team')
       .send({ teamId: team.id })
       .expect(200);
 
-    const projects = await asCookie(memberCookie)
+    const hidden = await asCookie(memberCookie)
       .get('/api/v1/projects')
       .expect(200);
-    const names = (projects.body.data as { name: string }[]).map(
-      (project) => project.name,
-    );
-    expect(names).toEqual(['billing-api']);
+    // Both projects now sit in a team the member is not in, so there is nothing
+    // to see — the member-without-a-team state the empty copy describes.
+    expect(hidden.body.data).toEqual([]);
+
+    // Publishing is its own audited route, and the member may not call it.
+    await asCookie(memberCookie)
+      .patch('/api/v1/projects/checkout-ui/visibility')
+      .send({ isShared: true })
+      .expect(403);
+
+    const published = await asCookie(adminCookie)
+      .patch('/api/v1/projects/checkout-ui/visibility')
+      .send({ isShared: true })
+      .expect(200);
+    expect(published.body).toEqual({
+      projectName: 'checkout-ui',
+      isShared: true,
+    });
+
+    const visible = await asCookie(memberCookie)
+      .get('/api/v1/projects')
+      .expect(200);
+    expect(
+      (visible.body.data as { name: string }[]).map((project) => project.name),
+    ).toEqual(['checkout-ui']);
+
+    const trail = await db.auditEvent.findMany({
+      where: { action: 'project.visibility' },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(trail).toHaveLength(1);
+    expect(trail[0]).toMatchObject({
+      actor: 'admin',
+      projectName: 'checkout-ui',
+      metadata: { from: false, to: true },
+    });
+
+    // Publishing names the owner instead of replacing it: the team keeps seeing
+    // the project even after the flag is cleared again.
+    const narrowed = await asCookie(adminCookie)
+      .patch('/api/v1/projects/checkout-ui/visibility')
+      .send({ isShared: false })
+      .expect(200);
+    expect(narrowed.body.isShared).toBe(false);
+  });
+
+  it('refuses the visibility route for an api key', async () => {
+    await authRequest(app)
+      .patch('/api/v1/projects/checkout-ui/visibility')
+      .send({ isShared: true })
+      .expect(403);
+    expect(await db.auditEvent.count()).toBe(0);
   });
 });

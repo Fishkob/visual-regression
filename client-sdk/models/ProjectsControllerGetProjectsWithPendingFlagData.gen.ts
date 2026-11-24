@@ -24,10 +24,6 @@ export type ProjectsControllerGetProjectsWithPendingFlagData = {
          * Case-insensitive project-name search
          */
         q?: string;
-        /**
-         * Group id, or "unassigned" for projects without a group
-         */
-        groupId?: string;
     };
     url: '/projects/pending';
 };

@@ -19,11 +19,13 @@ export interface TeamSeedPlan {
 
 /**
  * Turns the demo fixtures into "which team owns which project, who belongs to
- * it", and refuses a fixture set that leaves a demo project unaccounted for: a
- * project that is neither owned nor shared would keep whatever team a previous
- * run left on it, so the map is checked instead of trusted. The seeder resolves
- * the plan before it touches the database, which is what makes a broken fixture
- * a failed run instead of a half-applied one.
+ * it", and refuses a fixture set that leaves a demo project unowned: ownership is
+ * mandatory (ADR-083), so an unaccounted project would keep whatever team a
+ * previous run left on it and the demo would silently lose a state. Being
+ * *shared* is a property on top of an owner, not an alternative to one — a
+ * project can be owned by `general` and still visible to everyone. The seeder
+ * resolves the plan before it touches the database, which is what makes a broken
+ * fixture a failed run instead of a half-applied one.
  */
 export function buildTeamPlan(fixtures: DemoTeamFixtures): TeamSeedPlan {
   const owner = new Map<string, string>();
@@ -33,11 +35,6 @@ export function buildTeamPlan(fixtures: DemoTeamFixtures): TeamSeedPlan {
       if (!fixtures.demoProjects.includes(project)) {
         throw new Error(
           `Team "${team}" names project "${project}", which is not one of the demo projects (${fixtures.demoProjects.join(', ')}).`,
-        );
-      }
-      if (fixtures.sharedProjects.includes(project)) {
-        throw new Error(
-          `Project "${project}" is owned by "${team}" and listed in DEMO_SHARED_PROJECTS — a project is either owned or shared.`,
         );
       }
       const previous = owner.get(project);
@@ -56,15 +53,19 @@ export function buildTeamPlan(fixtures: DemoTeamFixtures): TeamSeedPlan {
         `DEMO_SHARED_PROJECTS names project "${project}", which is not one of the demo projects.`,
       );
     }
+    if (!owner.has(project)) {
+      throw new Error(
+        `DEMO_SHARED_PROJECTS names project "${project}", which no team owns — a shared project still has an owner (ADR-083).`,
+      );
+    }
   }
 
   const unaccounted = fixtures.demoProjects.filter(
-    (project) =>
-      !owner.has(project) && !fixtures.sharedProjects.includes(project),
+    (project) => !owner.has(project),
   );
   if (unaccounted.length > 0) {
     throw new Error(
-      `Demo project(s) ${unaccounted.join(', ')} belong to no team and are not listed as shared — add them to DEMO_TEAMS or DEMO_SHARED_PROJECTS.`,
+      `Demo project(s) ${unaccounted.join(', ')} belong to no team — add them to DEMO_TEAMS.`,
     );
   }
 

@@ -8,10 +8,8 @@ import {
   PROJECT_NAMES,
   VIEWPORTS,
   approvePendingTest,
-  assignProjectGroup,
   createProject,
   demoStoryState,
-  ensureGroup,
   muteTest,
   resolveSeedApiKey,
   seedAuth,
@@ -57,15 +55,6 @@ const DEMO_RUNS: Record<
     commitMessage: 'fix: update admin tables',
     ciUrl: 'https://ci.example.com/runs/4823',
   },
-};
-
-// Groups make the dashboard's grouping surfaces (projects, inbox, filters)
-// non-empty in a local demo. Their names deliberately differ from the teams in
-// `seed:teams`: a group is a folder, so matching names would read as one
-// concept and invite exactly the mix-up the two surfaces must not have.
-const DEMO_GROUPS: Record<string, string[]> = {
-  'Customer-facing': ['checkout-ui'],
-  'Internal tools': ['dashboard-ui', 'admin-ui'],
 };
 
 async function deleteExistingProjects() {
@@ -190,14 +179,6 @@ async function seed() {
   console.log('\nApproving the demo tests that should read as clean...');
   for (const { project, test } of approvals) {
     await approvePendingTest(SEED_API_KEY, project, test);
-  }
-
-  console.log('\nSeeding project groups...');
-  for (const [groupName, projects] of Object.entries(DEMO_GROUPS)) {
-    const group = await ensureGroup(SEED_API_KEY, groupName);
-    for (const project of projects) {
-      await assignProjectGroup(SEED_API_KEY, project, group.id);
-    }
   }
 
   console.log('\nSeeding branch scenarios...');

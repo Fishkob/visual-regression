@@ -112,6 +112,7 @@
                 "share.access",
                 "review.assign",
                 "project.pixel-threshold",
+                "project.visibility",
                 "storage.retention",
                 "test.threshold",
                 "review.complete",
@@ -219,6 +220,7 @@
                 "share.access",
                 "review.assign",
                 "project.pixel-threshold",
+                "project.visibility",
                 "storage.retention",
                 "test.threshold",
                 "review.complete",
@@ -549,15 +551,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "groupId",
-            "required": false,
-            "in": "query",
-            "description": "Group id, or \"unassigned\" for projects without a group",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -680,7 +673,7 @@
             }
           }
         },
-        "summary": "Move a project to another group",
+        "summary": "Set the project's default branch",
         "tags": [
           "Projects"
         ]
@@ -982,67 +975,12 @@
         ]
       }
     },
-    "/groups": {
-      "get": {
-        "operationId": "ProjectGroupsController_findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProjectGroupDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "List project groups",
-        "tags": [
-          "Groups"
-        ]
-      },
-      "post": {
-        "operationId": "ProjectGroupsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateProjectGroupDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectGroupDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Create a project group",
-        "tags": [
-          "Groups"
-        ]
-      }
-    },
-    "/groups/{id}": {
+    "/projects/{projectName}/visibility": {
       "patch": {
-        "operationId": "ProjectGroupsController_rename",
+        "operationId": "ProjectVisibilityController_update",
         "parameters": [
           {
-            "name": "id",
+            "name": "projectName",
             "required": true,
             "in": "path",
             "schema": {
@@ -1055,7 +993,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateProjectGroupDto"
+                "$ref": "#/components/schemas/UpdateProjectVisibilityDto"
               }
             }
           }
@@ -1066,37 +1004,23 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProjectGroupDto"
+                  "$ref": "#/components/schemas/ProjectVisibilityDto"
                 }
               }
             }
+          },
+          "404": {
+            "description": "Project not found"
           }
         },
-        "summary": "Rename a project group",
-        "tags": [
-          "Groups"
-        ]
-      },
-      "delete": {
-        "operationId": "ProjectGroupsController_remove",
-        "parameters": [
+        "security": [
           {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
+            "sessionCookie": []
           }
         ],
-        "responses": {
-          "200": {
-            "description": "Projects move to Unassigned"
-          }
-        },
-        "summary": "Delete a project group",
+        "summary": "Make a project readable by everyone, or by its team only",
         "tags": [
-          "Groups"
+          "Projects"
         ]
       }
     },
@@ -1278,6 +1202,248 @@
         "summary": "Search projects, tests and branches (server-paginated groups)",
         "tags": [
           "Search"
+        ]
+      }
+    },
+    "/teams": {
+      "get": {
+        "operationId": "TeamsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TeamDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "List teams with members and owned projects",
+        "tags": [
+          "Teams"
+        ]
+      },
+      "post": {
+        "operationId": "TeamsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTeamDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Create a team",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/teams/{id}": {
+      "patch": {
+        "operationId": "TeamsController_rename",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Rename a team",
+        "tags": [
+          "Teams"
+        ]
+      },
+      "delete": {
+        "operationId": "TeamsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Delete a team that owns no projects",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/teams/{id}/members": {
+      "put": {
+        "operationId": "TeamsController_replaceMembers",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceTeamMembersDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Replace the member set of a team",
+        "tags": [
+          "Teams"
+        ]
+      }
+    },
+    "/projects/{projectName}/team": {
+      "patch": {
+        "operationId": "ProjectTeamController_assign",
+        "parameters": [
+          {
+            "name": "projectName",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignProjectTeamDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectTeamDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project or team not found"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Assign a project to a team, or null to make it shared",
+        "tags": [
+          "Teams"
         ]
       }
     },
@@ -1884,38 +2050,6 @@
         ]
       }
     },
-    "/projects/bulk/group": {
-      "patch": {
-        "operationId": "ProjectsBulkController_move",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BulkMoveProjectsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BulkMoveResultDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Move up to 100 projects into a group (null clears the group)",
-        "tags": [
-          "Bulk actions"
-        ]
-      }
-    },
     "/projects/{projectName}/tests/{testName}/comments": {
       "get": {
         "operationId": "ReviewCommentController_list",
@@ -2203,15 +2337,6 @@
                 "image",
                 "pdf"
               ]
-            }
-          },
-          {
-            "name": "groupId",
-            "required": false,
-            "in": "query",
-            "description": "Group id, or \"unassigned\" for projects without a group",
-            "schema": {
-              "type": "string"
             }
           },
           {
@@ -3163,248 +3288,6 @@
         ],
         "tags": [
           "Auth"
-        ]
-      }
-    },
-    "/teams": {
-      "get": {
-        "operationId": "TeamsController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TeamDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "List teams with members and owned projects",
-        "tags": [
-          "Teams"
-        ]
-      },
-      "post": {
-        "operationId": "TeamsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTeamDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TeamDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Create a team",
-        "tags": [
-          "Teams"
-        ]
-      }
-    },
-    "/teams/{id}": {
-      "patch": {
-        "operationId": "TeamsController_rename",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateTeamDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TeamDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Rename a team",
-        "tags": [
-          "Teams"
-        ]
-      },
-      "delete": {
-        "operationId": "TeamsController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "example": {
-                    "success": true
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Delete a team that owns no projects",
-        "tags": [
-          "Teams"
-        ]
-      }
-    },
-    "/teams/{id}/members": {
-      "put": {
-        "operationId": "TeamsController_replaceMembers",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReplaceTeamMembersDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TeamDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Replace the member set of a team",
-        "tags": [
-          "Teams"
-        ]
-      }
-    },
-    "/projects/{projectName}/team": {
-      "patch": {
-        "operationId": "ProjectTeamController_assign",
-        "parameters": [
-          {
-            "name": "projectName",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssignProjectTeamDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectTeamDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project or team not found"
-          }
-        },
-        "security": [
-          {
-            "sessionCookie": []
-          }
-        ],
-        "summary": "Assign a project to a team, or null to make it shared",
-        "tags": [
-          "Teams"
         ]
       }
     },
@@ -5632,9 +5515,10 @@
             "type": "string",
             "example": "checkout-ui"
           },
-          "groupId": {
+          "teamId": {
             "type": "string",
-            "example": "group_123"
+            "description": "The team that will own the project. Omitted: the creator’s first team.",
+            "example": "team_123"
           }
         },
         "required": [
@@ -5766,15 +5650,18 @@
               "$ref": "#/components/schemas/VisualTestDto"
             }
           },
-          "groupId": {
+          "teamId": {
             "type": "string",
-            "example": "group_123",
-            "nullable": true
+            "example": "team_123"
           },
-          "groupName": {
+          "teamName": {
             "type": "string",
-            "example": "Checkout",
-            "nullable": true
+            "example": "Storefront"
+          },
+          "isShared": {
+            "type": "boolean",
+            "description": "True when every authenticated principal may read the project in addition to the owning team",
+            "example": false
           },
           "branchName": {
             "type": "string",
@@ -5823,11 +5710,6 @@
             "minLength": 1,
             "maxLength": 100
           },
-          "groupId": {
-            "type": "string",
-            "description": "Group id, or null to move the project to Unassigned",
-            "nullable": true
-          },
           "defaultBranchName": {
             "type": "string",
             "description": "Branch to promote to the project default",
@@ -5863,52 +5745,34 @@
           "pixelDiffThreshold"
         ]
       },
-      "ProjectGroupDto": {
+      "UpdateProjectVisibilityDto": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "projectCount": {
-            "type": "number"
+          "isShared": {
+            "type": "boolean",
+            "description": "True makes the project readable by every authenticated principal in addition to the owning team",
+            "example": true
           }
         },
         "required": [
-          "id",
-          "name",
-          "createdAt",
-          "projectCount"
+          "isShared"
         ]
       },
-      "CreateProjectGroupDto": {
+      "ProjectVisibilityDto": {
         "type": "object",
         "properties": {
-          "name": {
+          "projectName": {
             "type": "string",
-            "example": "Checkout"
+            "example": "checkout-ui"
+          },
+          "isShared": {
+            "type": "boolean",
+            "example": true
           }
         },
         "required": [
-          "name"
-        ]
-      },
-      "UpdateProjectGroupDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "Storefront"
-          }
-        },
-        "required": [
-          "name"
+          "projectName",
+          "isShared"
         ]
       },
       "BranchSummaryDto": {
@@ -6072,6 +5936,170 @@
           "projects",
           "tests",
           "branches"
+        ]
+      },
+      "TeamMemberDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string",
+            "example": "alice"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "MEMBER",
+              "VIEWER"
+            ]
+          }
+        },
+        "required": [
+          "userId",
+          "username",
+          "role"
+        ]
+      },
+      "TeamProjectDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "example": "checkout-ui"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "TeamDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "example": "Checkout"
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true,
+            "description": "Who created the team"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMemberDto"
+            }
+          },
+          "projects": {
+            "description": "The projects this team owns",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamProjectDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "members",
+          "projects"
+        ]
+      },
+      "CreateTeamDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Checkout"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateTeamDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Storefront"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "ReplaceTeamMembersDto": {
+        "type": "object",
+        "properties": {
+          "userIds": {
+            "description": "The complete member set, replacing the current one. An empty list removes every member.",
+            "example": [
+              "usr_1",
+              "usr_2"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "userIds"
+        ]
+      },
+      "AssignProjectTeamDto": {
+        "type": "object",
+        "properties": {
+          "teamId": {
+            "type": "string",
+            "description": "The team that owns the project. A project always has one, so this moves it instead of clearing it; \"everyone may read it\" is the separate `isShared` flag.",
+            "example": "team_1"
+          }
+        },
+        "required": [
+          "teamId"
+        ]
+      },
+      "ProjectTeamDto": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string"
+          },
+          "projectName": {
+            "type": "string",
+            "example": "checkout-ui"
+          },
+          "teamId": {
+            "type": "string",
+            "description": "The team that owns the project"
+          },
+          "teamName": {
+            "type": "string",
+            "example": "Storefront"
+          }
+        },
+        "required": [
+          "projectId",
+          "projectName",
+          "teamId",
+          "teamName"
         ]
       },
       "ApproveComparisonBodyDto": {
@@ -6518,46 +6546,6 @@
           "failed"
         ]
       },
-      "BulkMoveProjectsDto": {
-        "type": "object",
-        "properties": {
-          "projectNames": {
-            "maxItems": 100,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "groupId": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "projectNames"
-        ]
-      },
-      "BulkMoveResultDto": {
-        "type": "object",
-        "properties": {
-          "moved": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BulkItemResultDto"
-            }
-          },
-          "failed": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/BulkItemResultDto"
-            }
-          }
-        },
-        "required": [
-          "moved",
-          "failed"
-        ]
-      },
       "CommentDto": {
         "type": "object",
         "properties": {
@@ -6642,13 +6630,16 @@
           "projectName": {
             "type": "string"
           },
-          "groupId": {
-            "type": "string",
-            "nullable": true
+          "teamId": {
+            "type": "string"
           },
-          "groupName": {
+          "teamName": {
             "type": "string",
-            "nullable": true
+            "example": "Storefront"
+          },
+          "isShared": {
+            "type": "boolean",
+            "example": false
           },
           "testName": {
             "type": "string"
@@ -6695,6 +6686,9 @@
         "required": [
           "comparisonId",
           "projectName",
+          "teamId",
+          "teamName",
+          "isShared",
           "testName",
           "kind",
           "branchName",
@@ -7362,170 +7356,6 @@
         "required": [
           "currentPassword",
           "newPassword"
-        ]
-      },
-      "TeamMemberDto": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string"
-          },
-          "username": {
-            "type": "string",
-            "example": "alice"
-          },
-          "role": {
-            "type": "string",
-            "enum": [
-              "ADMIN",
-              "MEMBER",
-              "VIEWER"
-            ]
-          }
-        },
-        "required": [
-          "userId",
-          "username",
-          "role"
-        ]
-      },
-      "TeamProjectDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string",
-            "example": "checkout-ui"
-          }
-        },
-        "required": [
-          "id",
-          "name"
-        ]
-      },
-      "TeamDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string",
-            "example": "Checkout"
-          },
-          "createdBy": {
-            "type": "string",
-            "nullable": true,
-            "description": "Who created the team"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "members": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TeamMemberDto"
-            }
-          },
-          "projects": {
-            "description": "The projects this team owns",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TeamProjectDto"
-            }
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "createdAt",
-          "members",
-          "projects"
-        ]
-      },
-      "CreateTeamDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "Checkout"
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
-      "UpdateTeamDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "example": "Storefront"
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
-      "ReplaceTeamMembersDto": {
-        "type": "object",
-        "properties": {
-          "userIds": {
-            "description": "The complete member set, replacing the current one. An empty list removes every member.",
-            "example": [
-              "usr_1",
-              "usr_2"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "userIds"
-        ]
-      },
-      "AssignProjectTeamDto": {
-        "type": "object",
-        "properties": {
-          "teamId": {
-            "type": "string",
-            "nullable": true,
-            "description": "The team that owns the project, or null to make it shared (every authenticated principal keeps seeing it).",
-            "example": "team_1"
-          }
-        },
-        "required": [
-          "teamId"
-        ]
-      },
-      "ProjectTeamDto": {
-        "type": "object",
-        "properties": {
-          "projectId": {
-            "type": "string"
-          },
-          "projectName": {
-            "type": "string",
-            "example": "checkout-ui"
-          },
-          "teamId": {
-            "type": "string",
-            "nullable": true,
-            "description": "Null means the project is shared"
-          },
-          "teamName": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "required": [
-          "projectId",
-          "projectName"
         ]
       },
       "RunDto": {

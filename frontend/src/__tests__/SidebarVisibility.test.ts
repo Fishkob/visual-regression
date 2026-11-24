@@ -61,7 +61,6 @@ describe("AppSidebar role visibility", () => {
     // The pages every role can open stay visible.
     expect(has(wrapper, TEST_ID.navInbox)).toBe(true);
     expect(has(wrapper, TEST_ID.navProjects)).toBe(true);
-    expect(has(wrapper, TEST_ID.navGroups)).toBe(true);
     // Security is available to every signed-in role.
     expect(has(wrapper, TEST_ID.securityNavLink)).toBe(true);
   });

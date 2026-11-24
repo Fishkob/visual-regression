@@ -1,10 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
-  createGroup,
   createProject,
-  deleteGroup,
   deleteProject,
-  getGroups,
   setupReviewableTest,
 } from "./fixtures/api";
 import { TEST_ID } from "@/lib/test-ids";
@@ -44,49 +41,6 @@ test.describe("Bulk actions", () => {
       ).toHaveCount(0);
     } finally {
       await deleteProject(projectName);
-    }
-  });
-
-  test("moves several projects into a group", async ({ page }) => {
-    const groupName = unique("e2e-bulk-group");
-    const first = unique("e2e-bulk-project-a");
-    const second = unique("e2e-bulk-project-b");
-    await createGroup(groupName);
-    await createProject(first);
-    await createProject(second);
-
-    try {
-      await page.goto("/projects");
-      for (const name of [first, second]) {
-        const row = byText(page, TEST_ID.projectRow, name);
-        await expect(row).toBeVisible();
-        await row.getByTestId(TEST_ID.projectSelectRow).check();
-      }
-      await expect(page.getByTestId(TEST_ID.projectBulkBar)).toContainText(
-        "2 selected",
-      );
-
-      await page.getByTestId(TEST_ID.projectBulkMove).click();
-      await page.getByTestId(TEST_ID.projectBulkMoveGroup).click();
-      await page.getByRole("option", { name: groupName }).click();
-      await page.getByTestId(TEST_ID.projectBulkMoveConfirm).click();
-
-      await expectToast(page, "Moved 2 projects");
-
-      await page.goto(`/projects/${encodeURIComponent(first)}`);
-      await expect(page.getByTestId(TEST_ID.projectGroupBadge)).toContainText(
-        groupName,
-      );
-      await page.goto(`/projects/${encodeURIComponent(second)}`);
-      await expect(page.getByTestId(TEST_ID.projectGroupBadge)).toContainText(
-        groupName,
-      );
-    } finally {
-      await deleteProject(first);
-      await deleteProject(second);
-      const groups = await getGroups();
-      const match = groups.find((entry) => entry.name === groupName);
-      if (match) await deleteGroup(match.id);
     }
   });
 });

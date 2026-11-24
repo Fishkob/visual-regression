@@ -2,15 +2,18 @@ import type { QueryClient } from "@tanstack/vue-query";
 import { translateMessage as tm } from "@/lib/i18n-messages";
 import {
   projectTeamControllerAssign,
+  projectVisibilityControllerUpdate,
   teamsControllerCreate,
   teamsControllerList,
   teamsControllerRemove,
   teamsControllerRename,
   teamsControllerReplaceMembers,
   type ProjectTeamDto,
+  type ProjectVisibilityDto,
   type TeamDto,
 } from "@sdk";
 import { teamQueryKeys } from "@/domains/teams/query-keys";
+import { projectQueryKeys } from "@/domains/projects/query-keys";
 import { mapTeams } from "@/domains/teams/team.mapper";
 import { useSdkQuery, type MaybeRef } from "@/composables/useDomainQuery";
 import { useSdkMutation } from "@/composables/useSdkMutation";
@@ -39,11 +42,11 @@ const invalidateTeams = (client: QueryClient) => {
 
 export interface AssignProjectTeamVariables {
   projectName: string;
-  teamId: string | null;
+  teamId: string;
 }
 
-// `teamId: null` is a real write — it makes the project shared, which widens who
-// can see it — so it gets its own toast instead of reading like a failed save.
+// Moving a project between teams. There is no "unassign" any more (ADR-083): a
+// project always has an owner, and publishing it is the visibility toggle below.
 export function useAssignProjectTeam() {
   return useSdkMutation<ProjectTeamDto, AssignProjectTeamVariables>({
     mutationFn: ({ projectName, teamId }) =>
@@ -51,10 +54,36 @@ export function useAssignProjectTeam() {
         path: { projectName },
         body: { teamId },
       }),
-    successMessage: (_data, { teamId }) =>
-      teamId ? tm("toast.teamAssigned") : tm("toast.teamUnassigned"),
+    successMessage: tm("toast.teamAssigned"),
     errorMessage: tm("toast.teamAssignError"),
     invalidate: invalidateTeams,
+  });
+}
+
+export interface SetProjectVisibilityVariables {
+  projectName: string;
+  isShared: boolean;
+}
+
+// Publishing a project is its own audited write (ADR-083), so it gets its own
+// mutation and toast: "visible to everyone" is a decision about who may read the
+// project, not a settings field that rides along with a rename.
+export function useSetProjectVisibility() {
+  return useSdkMutation<ProjectVisibilityDto, SetProjectVisibilityVariables>({
+    mutationFn: ({ projectName, isShared }) =>
+      projectVisibilityControllerUpdate({
+        path: { projectName },
+        body: { isShared },
+      }),
+    successMessage: (_data, { isShared }) =>
+      isShared ? tm("toast.projectShared") : tm("toast.projectUnshared"),
+    errorMessage: tm("toast.projectVisibilityError"),
+    // The project reads carry the flag (it decides whether a MEMBER may open the
+    // project at all), so both the team list and the project lists refresh.
+    invalidate: (client) => {
+      invalidateTeams(client);
+      client.invalidateQueries({ queryKey: projectQueryKeys.all() });
+    },
   });
 }
 
