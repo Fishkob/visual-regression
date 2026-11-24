@@ -152,7 +152,7 @@ function startProjectReview() {
                not belong to; the badge is what keeps that from reading as a
                scope bug (ADR-083). -->
           <Badge
-            v-if="section.items[0]?.isShared"
+            v-if="section.isShared"
             variant="outline"
             :data-testid="TEST_ID.inboxSharedBadge"
           >

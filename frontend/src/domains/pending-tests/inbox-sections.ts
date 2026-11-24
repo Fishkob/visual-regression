@@ -9,6 +9,9 @@ export interface InboxProjectSection {
   projectName: string;
   teamId: string;
   teamName: string;
+  // A project property, carried on the block: the row renders "visible to
+  // everyone" from it, and every item of one project shares the answer.
+  isShared: boolean;
   items: ReviewInboxItem[];
 }
 
@@ -27,6 +30,7 @@ export function groupReviewInbox(
       projectName: item.projectName,
       teamId: item.teamId,
       teamName: resolveTeamIdentity(item).name,
+      isShared: item.isShared,
       items: [],
     };
     project.items.push(item);
