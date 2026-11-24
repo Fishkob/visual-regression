@@ -56,9 +56,9 @@ const modelOpen = computed({
     <DialogPortal>
       <DialogOverlay class="fixed inset-0 z-50 bg-overlay/80" />
       <DialogContent
-        class="fixed left-1/2 top-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border bg-background p-6 shadow-lg"
+        class="fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-lg border bg-background p-6 shadow-lg"
       >
-        <div class="flex flex-col gap-2">
+        <div class="flex shrink-0 flex-col gap-2">
           <DialogTitle class="text-lg font-semibold">{{ title }}</DialogTitle>
           <DialogDescription
             v-if="description"
@@ -68,10 +68,20 @@ const modelOpen = computed({
           </DialogDescription>
         </div>
 
-        <form class="space-y-4" @submit.prevent="emit('submit')">
-          <slot />
+        <!-- A form taller than the viewport scrolls its fields, not its action
+             row: Cancel and Confirm stay reachable without scrolling a dialog
+             that is pinned to the window centre. -->
+        <form
+          class="flex min-h-0 flex-1 flex-col gap-4"
+          @submit.prevent="emit('submit')"
+        >
+          <div class="min-h-0 flex-1 space-y-4 overflow-y-auto">
+            <slot />
+          </div>
 
-          <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div
+            class="flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end"
+          >
             <DialogClose as-child>
               <Button
                 type="button"

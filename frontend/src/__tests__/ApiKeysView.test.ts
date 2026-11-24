@@ -110,15 +110,32 @@ function scopeCheckbox(wrapper: ReturnType<typeof mountView>, scope: string) {
   return checkbox;
 }
 
-function projectCheckbox(
+function projectOption(
   wrapper: ReturnType<typeof mountView>,
   projectName: string,
 ) {
-  const checkbox = wrapper
+  const option = wrapper
     .findAll(`[data-testid="${TEST_ID.apiKeyProject}"]`)
-    .find((input) => (input.element as HTMLInputElement).value === projectName);
-  if (!checkbox) throw new Error(`project checkbox ${projectName} not found`);
-  return checkbox;
+    .find((button) => button.attributes("data-value") === projectName);
+  if (!option) throw new Error(`project option ${projectName} not found`);
+  return option;
+}
+
+function projectChip(
+  wrapper: ReturnType<typeof mountView>,
+  projectName: string,
+) {
+  const chip = wrapper
+    .findAll(`[data-testid="${TEST_ID.apiKeyProjectChip}"]`)
+    .find((badge) => badge.attributes("data-value") === projectName);
+  if (!chip) throw new Error(`project chip ${projectName} not found`);
+  return chip;
+}
+
+function listedProjects(wrapper: ReturnType<typeof mountView>): string[] {
+  return wrapper
+    .findAll(`[data-testid="${TEST_ID.apiKeyProject}"]`)
+    .map((button) => button.attributes("data-value") ?? "");
 }
 
 beforeEach(() => {
@@ -282,7 +299,7 @@ describe("ApiKeysView", () => {
         wrapper.findAll(`[data-testid="${TEST_ID.apiKeyProject}"]`).length,
       ).toBe(2),
     );
-    await projectCheckbox(wrapper, "checkout-ui").setValue(true);
+    await projectOption(wrapper, "checkout-ui").trigger("click");
 
     await wrapper.find("form").trigger("submit");
 
@@ -295,6 +312,73 @@ describe("ApiKeysView", () => {
         },
       }),
     );
+  });
+
+  it("filters the project list and turns a pick into a chip", async () => {
+    const wrapper = mountView();
+    await waitForRows(wrapper, 2);
+    await openCreate(wrapper);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.apiKeyAllProjects}"]`)
+      .setValue(false);
+    await vi.waitFor(() =>
+      expect(listedProjects(wrapper)).toEqual(["admin-ui", "checkout-ui"]),
+    );
+
+    const search = wrapper.get(
+      `[data-testid="${TEST_ID.apiKeyProjectSearch}"]`,
+    );
+    // The filter is case-insensitive, and a picked project leaves the list so
+    // the chips are the only place a selection shows up twice.
+    await search.setValue("ADMIN");
+    expect(listedProjects(wrapper)).toEqual(["admin-ui"]);
+
+    await projectOption(wrapper, "admin-ui").trigger("click");
+    expect(projectChip(wrapper, "admin-ui").text()).toContain("admin-ui");
+    expect(listedProjects(wrapper)).toEqual([]);
+    expect(
+      wrapper.get(`[data-testid="${TEST_ID.apiKeyProjectEmpty}"]`).text(),
+    ).toContain("No project matches the search.");
+
+    // The chip's × is the way back, also for a project the filter hides.
+    await wrapper
+      .get(
+        `[data-testid="${TEST_ID.apiKeyProjectChipRemove}"][data-value="admin-ui"]`,
+      )
+      .trigger("click");
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.apiKeyProjectChip}"]`).exists(),
+    ).toBe(false);
+    expect(listedProjects(wrapper)).toEqual(["admin-ui"]);
+  });
+
+  it("picks the top match on Enter instead of submitting the key", async () => {
+    const wrapper = mountView();
+    await waitForRows(wrapper, 2);
+    await openCreate(wrapper);
+
+    await wrapper
+      .get(`[data-testid="${TEST_ID.apiKeyAllProjects}"]`)
+      .setValue(false);
+    await vi.waitFor(() => expect(listedProjects(wrapper)).toHaveLength(2));
+
+    const search = wrapper.get(
+      `[data-testid="${TEST_ID.apiKeyProjectSearch}"]`,
+    );
+    await search.setValue("checkout");
+    // A filter field is not a submit button: Enter must not mint the key.
+    await search.trigger("keydown", { key: "Enter" });
+
+    expect(projectChip(wrapper, "checkout-ui").exists()).toBe(true);
+    expect(mockCreate).not.toHaveBeenCalled();
+
+    // Backspace on an empty query drops the last pick.
+    await search.setValue("");
+    await search.trigger("keydown", { key: "Backspace" });
+    expect(
+      wrapper.find(`[data-testid="${TEST_ID.apiKeyProjectChip}"]`).exists(),
+    ).toBe(false);
   });
 
   it("warns about admin scope and requires at least one scope", async () => {
