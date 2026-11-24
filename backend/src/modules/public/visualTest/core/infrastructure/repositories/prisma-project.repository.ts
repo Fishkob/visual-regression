@@ -18,7 +18,6 @@ export interface ProjectData {
   id: string;
   name: string;
   createdAt: Date;
-  groupId?: string | null;
   teamId?: string;
   isShared?: boolean;
   baselineRevisionLimit?: number | null;
@@ -82,11 +81,7 @@ export class ProjectRepository extends BaseRepository {
   // argument because the column is `NOT NULL` (ADR-083): a project without a
   // team is not a state the database allows, so it is not a parameter here
   // either.
-  async create(
-    name: string,
-    teamId: string,
-    groupId?: string | null,
-  ): Promise<ProjectData> {
+  async create(name: string, teamId: string): Promise<ProjectData> {
     const existing = await this.client.project.findUnique({
       where: { name },
     });
@@ -98,7 +93,6 @@ export class ProjectRepository extends BaseRepository {
         data: {
           name,
           teamId,
-          ...(groupId ? { groupId } : {}),
           branches: { create: { name: DEFAULT_BRANCH_NAME } },
         },
         include: { branches: { select: { id: true } } },
@@ -107,18 +101,6 @@ export class ProjectRepository extends BaseRepository {
         where: { id: project.id },
         data: { defaultBranchId: project.branches[0].id },
       });
-    });
-  }
-
-  // Standalone write: moving a project between groups does not mutate test
-  // state, so it deliberately skips assertWritable like create.
-  async updateGroupByName(
-    projectName: string,
-    groupId: string | null,
-  ): Promise<ProjectData> {
-    return this.client.project.update({
-      where: { name: projectName },
-      data: { groupId },
     });
   }
 

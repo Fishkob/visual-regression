@@ -13,8 +13,6 @@ export type ProjectDto = {
      */
     pixelDiffThreshold?: number | null;
     visualTests?: Array<VisualTestDto>;
-    groupId?: string | null;
-    groupName?: string | null;
     teamId?: string;
     teamName?: string;
     /**

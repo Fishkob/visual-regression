@@ -48,10 +48,7 @@ function handleRenamed(name: string) {
 </script>
 
 <template>
-  <Breadcrumbs
-    class="px-6 py-3 text-sm text-muted-foreground"
-    :group-name="project?.groupName ?? undefined"
-  />
+  <Breadcrumbs class="px-6 py-3 text-sm text-muted-foreground" />
 
   <div class="space-y-6 p-6" :data-testid="TEST_ID.projectSettingsView">
     <div class="flex flex-wrap items-center justify-between gap-4">
@@ -107,14 +104,13 @@ function handleRenamed(name: string) {
       </div>
     </section>
 
-    <!-- Both axes in one place: the group is the navigation label, the team is
-    what decides who sees the project at all. The team name is read-only for
-    everyone the project is visible to; only an ADMIN may change it, because
-    that is a governance write rather than a normal project edit. -->
+    <!-- Ownership and visibility in one place: the team decides who sees the
+    project at all, and the flag says everybody may look as well. Both are
+    read-only for everyone who may open the project; only an ADMIN may change
+    them, because both are governance writes rather than settings edits. -->
     <ProjectAffiliationSection
       v-if="project"
       :project-name="projectName"
-      :group-name="project.groupName ?? null"
       :team-id="project.teamId"
       :team-name="project.teamName"
       :is-shared="project.isShared"

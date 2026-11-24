@@ -11,11 +11,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { TEST_ID } from "@/lib/test-ids";
 
 withDefaults(
   defineProps<{
-    groupName?: string;
     // A page that renders the test name as its own heading leaves it out of the
     // trail: the crumb and the heading would name the same thing twice.
     showTest?: boolean;
@@ -55,20 +53,6 @@ const branch = computed(() =>
           }}</RouterLink>
         </BreadcrumbLink>
       </BreadcrumbItem>
-
-      <!-- GroupName -->
-      <template v-if="groupName">
-        <BreadcrumbSeparator />
-
-        <BreadcrumbItem>
-          <span
-            class="text-muted-foreground"
-            :data-testid="TEST_ID.breadcrumbGroup"
-          >
-            {{ groupName }}
-          </span>
-        </BreadcrumbItem>
-      </template>
 
       <!-- ProjectName -->
       <template v-if="hasProject">

@@ -1,29 +1,32 @@
 import type { ReviewInboxItem } from "./review-inbox.model";
 import {
-  buildGroupSections,
-  resolveGroupIdentity,
-  type GroupSection,
-} from "@/domains/groups/group-section";
+  buildTeamSections,
+  resolveTeamIdentity,
+  type TeamSection,
+} from "@/domains/teams/team-section";
 
 export interface InboxProjectSection {
   projectName: string;
-  groupId: string | null;
-  groupName: string;
+  teamId: string;
+  teamName: string;
   items: ReviewInboxItem[];
 }
 
-export type InboxGroupSection = GroupSection<InboxProjectSection>;
+export type InboxTeamSection = TeamSection<InboxProjectSection>;
 
+// The inbox is sectioned by the owning team (ADR-084): the header states who is
+// responsible for the block, and the separate team *lens* narrows the page
+// itself. Those answer different questions, which is why both exist.
 export function groupReviewInbox(
   items: readonly ReviewInboxItem[],
-): InboxGroupSection[] {
+): InboxTeamSection[] {
   const projects = new Map<string, InboxProjectSection>();
 
   for (const item of items) {
     const project = projects.get(item.projectName) ?? {
       projectName: item.projectName,
-      groupId: item.groupId ?? null,
-      groupName: resolveGroupIdentity(item).name,
+      teamId: item.teamId,
+      teamName: resolveTeamIdentity(item).name,
       items: [],
     };
     project.items.push(item);
@@ -34,9 +37,9 @@ export function groupReviewInbox(
     project.items.sort(compareInboxItems);
   }
 
-  return buildGroupSections({
+  return buildTeamSections({
     items: [...projects.values()],
-    groupOf: (project) => project,
+    teamOf: (project) => project,
     sortItems: (a, b) =>
       new Date(a.items[0]?.createdAt ?? 0).getTime() -
         new Date(b.items[0]?.createdAt ?? 0).getTime() ||

@@ -4,7 +4,6 @@ import {
   PROJECTS_PENDING_RESPONSE,
   REVIEW_INBOX_RESPONSE,
 } from "./mocks/projects.mocks";
-import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
 import type { AppShell } from "@/AppShell.story.ts";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -12,7 +11,6 @@ test.describe("App shell sidebar", () => {
   test("collapses and expands the navigation", async ({ mount, page }) => {
     await mockApi(page, [
       ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/review/pending*", REVIEW_INBOX_RESPONSE],
     ]);
 
@@ -74,7 +72,6 @@ test.describe("App shell sidebar", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/review/pending*", REVIEW_INBOX_RESPONSE],
     ]);
 
@@ -85,9 +82,6 @@ test.describe("App shell sidebar", () => {
     const admin = component.getByTestId(TEST_ID.navAdministrationSection);
     await expect(admin).toContainText("Administration");
     await expect(admin.getByTestId(TEST_ID.navTeams)).toBeVisible();
-
-    // The groups stay above the line: a MEMBER maintains them.
-    await expect(admin.getByTestId(TEST_ID.navGroups)).toHaveCount(0);
 
     const account = component.getByTestId(TEST_ID.navAccountSection);
     await expect(account).toContainText("Account");

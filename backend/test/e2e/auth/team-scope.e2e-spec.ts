@@ -366,64 +366,6 @@ describe('Team-scoped project access (e2e)', () => {
     expect(foreign.body.branches).toEqual([]);
   });
 
-  it('counts only the caller’s projects in the group badges', async () => {
-    const group = await request(app.getHttpServer())
-      .post('/api/v1/groups')
-      .set('Cookie', adminCookie)
-      .send({ name: 'Shop' })
-      .expect(201);
-    await request(app.getHttpServer())
-      .patch('/api/v1/projects/bulk/group')
-      .set('Cookie', adminCookie)
-      .send({
-        projectNames: ['checkout-ui', 'billing-api'],
-        groupId: group.body.id,
-      })
-      .expect(200);
-
-    const mine = await asMember('/api/v1/groups').expect(200);
-    expect(mine.body).toEqual([
-      expect.objectContaining({ name: 'Shop', projectCount: 1 }),
-    ]);
-
-    const all = await asAdmin('/api/v1/groups').expect(200);
-    expect(all.body).toEqual([
-      expect.objectContaining({ name: 'Shop', projectCount: 2 }),
-    ]);
-  });
-
-  it('refuses a group delete that would clear a foreign project’s label', async () => {
-    const group = await request(app.getHttpServer())
-      .post('/api/v1/groups')
-      .set('Cookie', adminCookie)
-      .send({ name: 'Shop' })
-      .expect(201);
-    await request(app.getHttpServer())
-      .patch('/api/v1/projects/bulk/group')
-      .set('Cookie', adminCookie)
-      .send({
-        projectNames: ['checkout-ui', 'billing-api'],
-        groupId: group.body.id,
-      })
-      .expect(200);
-
-    // Deleting the group clears `groupId` on every project in it (the FK is
-    // SET NULL), so a member that can see only half of it would rewrite the
-    // other half. The refusal names no count — a number would confirm what the
-    // member cannot open.
-    const refused = await request(app.getHttpServer())
-      .delete(`/api/v1/groups/${group.body.id}`)
-      .set('Cookie', memberACookie)
-      .expect(409);
-    expect(refused.body.message).not.toMatch(/\d/);
-
-    // An admin may, which is what makes the refusal above a scope rule.
-    await request(app.getHttpServer())
-      .delete(`/api/v1/groups/${group.body.id}`)
-      .set('Cookie', adminCookie)
-      .expect(200);
-  });
-
   it('leaves a foreign assignment out of my work list', async () => {
     await seedPending('checkout-ui');
     await seedPending('billing-api');

@@ -3,22 +3,22 @@
 The authoritative matrix for human roles. The API enforces it in the global
 authentication guard (ADR-031); the UI mirrors it by hiding controls.
 
-| Action                                                       | ADMIN |       MEMBER       | VIEWER |
-| ------------------------------------------------------------ | :---: | :----------------: | :----: |
-| Read projects, tests, runs, reports, trends, audit           |  yes  |        yes         |  yes   |
-| Upload captures                                              |  yes  |        yes         |   no   |
-| Approve comparisons / restore baselines                      |  yes  |        yes         |   no   |
-| Change pixel default or per-variant threshold                |  yes  |         no         |   no   |
-| Assign reviews, complete own assignment                      |  yes  |        yes         |   no   |
-| Comment / resolve review threads                             |  yes  |        yes         |   no   |
-| Delete tests/variants                                        |  yes  |        yes         |   no   |
-| Create projects (in an own team), branches, groups, webhooks |  yes  | yes (webhooks: no) |   no   |
-| Delete projects/branches                                     |  yes  |         no         |   no   |
-| Webhook settings, audit log                                  |  yes  |         no         |   no   |
-| API keys                                                     |  yes  |         no         |   no   |
-| Users and roles                                              |  yes  |         no         |   no   |
-| Teams: create/rename/delete, members, assign a project       |  yes  |         no         |   no   |
-| Publish a project (visible to everyone)                      |  yes  |         no         |   no   |
+| Action                                                 | ADMIN |       MEMBER       | VIEWER |
+| ------------------------------------------------------ | :---: | :----------------: | :----: |
+| Read projects, tests, runs, reports, trends, audit     |  yes  |        yes         |  yes   |
+| Upload captures                                        |  yes  |        yes         |   no   |
+| Approve comparisons / restore baselines                |  yes  |        yes         |   no   |
+| Change pixel default or per-variant threshold          |  yes  |         no         |   no   |
+| Assign reviews, complete own assignment                |  yes  |        yes         |   no   |
+| Comment / resolve review threads                       |  yes  |        yes         |   no   |
+| Delete tests/variants                                  |  yes  |        yes         |   no   |
+| Create projects (in an own team), branches, webhooks   |  yes  | yes (webhooks: no) |   no   |
+| Delete projects/branches                               |  yes  |         no         |   no   |
+| Webhook settings, audit log                            |  yes  |         no         |   no   |
+| API keys                                               |  yes  |         no         |   no   |
+| Users and roles                                        |  yes  |         no         |   no   |
+| Teams: create/rename/delete, members, assign a project |  yes  |         no         |   no   |
+| Publish a project (visible to everyone)                |  yes  |         no         |   no   |
 
 Notes:
 

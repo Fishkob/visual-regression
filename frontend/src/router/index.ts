@@ -27,12 +27,6 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, titleKey: "projects.title" },
   },
   {
-    path: "/groups",
-    name: "groups",
-    component: () => import("@/views/GroupsView.vue"),
-    meta: { requiresAuth: true, titleKey: "groups.title" },
-  },
-  {
     path: "/change-password",
     name: "change-password",
     component: () => import("@/views/ChangePasswordView.vue"),

@@ -1,8 +1,5 @@
 <template>
-  <Breadcrumbs
-    class="px-6 py-3 text-sm text-muted-foreground"
-    :group-name="project?.groupName ?? undefined"
-  />
+  <Breadcrumbs class="px-6 py-3 text-sm text-muted-foreground" />
 
   <div class="space-y-6 p-6">
     <div class="flex flex-wrap items-center justify-between gap-4">
@@ -11,11 +8,19 @@
           {{ project?.name || projectName }}
         </h2>
         <template v-if="project">
-          <Badge variant="secondary" :data-testid="TEST_ID.projectGroupBadge">
-            <!-- The badge names the project's folder, not its owner: the team
-                 decides access and is only shown on the admin team page. -->
-            <Folder aria-hidden="true" />
-            {{ project.groupName || t("projects.unassigned") }}
+          <!-- The header names the owner and, when the project is published,
+               that everybody may look: the two facts a reader needs to answer
+               "why do I see this" (ADR-083). -->
+          <Badge variant="secondary" :data-testid="TEST_ID.projectTeamBadge">
+            <Users aria-hidden="true" />
+            {{ project.teamName || t("teams.unknownName") }}
+          </Badge>
+          <Badge
+            v-if="project.isShared"
+            variant="outline"
+            :data-testid="TEST_ID.projectSharedBadge"
+          >
+            {{ t("projectDetail.sharedBadge") }}
           </Badge>
           <span
             class="text-sm text-muted-foreground"
@@ -110,15 +115,6 @@
             {{ t("projectDetail.retry") }}
           </Button>
         </span>
-        <Button
-          v-if="project"
-          type="button"
-          variant="outline"
-          :data-testid="TEST_ID.moveProject"
-          @click="openMove"
-        >
-          {{ t("projectDetail.moveToGroup") }}
-        </Button>
         <RouterLink
           v-if="project"
           :to="{ name: 'project-settings', params: { projectName } }"
@@ -206,16 +202,6 @@
     :project-name="projectName"
     @update:open="shareOpen = $event"
   />
-
-  <MoveProjectDialog
-    :open="moveOpen"
-    :groups="groups ?? []"
-    :current-group-id="project?.groupId"
-    :pending="movePending"
-    :error="moveError"
-    @update:open="handleMoveOpen"
-    @submit="move"
-  />
 </template>
 
 <script setup lang="ts">
@@ -223,11 +209,11 @@ import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import {
-  Folder,
   ListChecks,
   Settings,
   Share2,
   TrendingUp,
+  Users,
   Webhook,
 } from "@lucide/vue";
 
@@ -235,7 +221,6 @@ import Breadcrumbs from "@/components/Breadcrumbs.vue";
 import AsyncState from "@/components/AsyncState.vue";
 import SkeletonAccordionGroups from "@/components/cards/SkeletonAccordionGroups.vue";
 import ShareLinksDialog from "@/components/share/ShareLinksDialog.vue";
-import MoveProjectDialog from "@/components/projects/MoveProjectDialog.vue";
 import VisualTestsTable from "@/components/tables/VisualTestsTable.vue";
 import PaginationBar from "@/components/PaginationBar.vue";
 import BranchActionsMenu from "@/components/branches/BranchActionsMenu.vue";
@@ -252,12 +237,10 @@ import { useBranchesQuery } from "@/composables/useBranches";
 import type { ProjectBranch } from "@/domains/branches/branch.model";
 import { useBranchMutations } from "@/composables/useBranchMutations";
 import { useCurrentRole } from "@/composables/useAuth";
-import { useGroupsQuery } from "@/composables/useGroups";
 import {
   useProjectDetailPage,
   type ProjectDetailFilters,
 } from "@/composables/useProjectDetailPage";
-import { useProjectGroupAssignment } from "@/composables/useProjectGroupAssignment";
 import { useProjectStorage } from "@/composables/useProjectStorage";
 import { useRouteParams } from "@/composables/useRouteParams";
 import { formatPercent } from "@/domains/storage/storage.model";
@@ -552,31 +535,5 @@ function handleArchiveAndDelete() {
   });
 }
 
-const { data: groups } = useGroupsQuery();
-const moveMutation = useProjectGroupAssignment();
 const shareOpen = ref(false);
-const moveOpen = ref(false);
-const movePending = computed(() => moveMutation.isPending.value);
-const moveError = computed(() => moveMutation.error.value);
-
-function openMove() {
-  moveMutation.reset();
-  moveOpen.value = true;
-}
-
-function handleMoveOpen(open: boolean) {
-  if (!open) moveMutation.reset();
-  moveOpen.value = open;
-}
-
-function move(groupId: string | null) {
-  moveMutation.mutate(
-    { projectName: projectName.value, groupId },
-    {
-      onSuccess: () => {
-        moveOpen.value = false;
-      },
-    },
-  );
-}
 </script>

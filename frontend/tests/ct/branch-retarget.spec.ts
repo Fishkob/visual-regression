@@ -4,7 +4,6 @@ import {
   BRANCHES_RESPONSE,
   PROJECT_CHECKOUT_UI_RESPONSE,
 } from "./mocks/projects.mocks";
-import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
 import type { Routed } from "../../src/views/ProjectDetailView.story";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -19,7 +18,6 @@ const FEATURE_BRANCH_ROUTE =
 async function mockProjectDetail(page: Page) {
   await mockApi(page, [
     ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
-    ["**/api/v1/groups", GROUPS_RESPONSE],
     ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
   ]);
 }

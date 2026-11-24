@@ -21,7 +21,6 @@ export const TEST_ID = {
   navInbox: "nav-inbox",
   navInboxLabel: "nav-inbox-label",
   navProjects: "nav-projects",
-  navGroups: "nav-groups",
   inboxScopedEmpty: "inbox-scoped-empty",
   navTeams: "nav-teams",
   navApiKeys: "nav-api-keys",
@@ -44,14 +43,9 @@ export const TEST_ID = {
   auditDetails: "audit-details",
 
   projectSearch: "project-search",
-  breadcrumbGroup: "breadcrumb-group",
   projectTitle: "project-title",
-  projectGroupBadge: "project-group-badge",
   projectPendingCount: "project-pending-count",
   projectTestCount: "project-test-count",
-  moveProject: "move-project",
-  moveProjectSelect: "move-project-select",
-  moveProjectSubmit: "move-project-submit",
 
   approvalHistoryRow: "approval-history-row",
   approvalHistoryList: "approval-history-list",
@@ -370,15 +364,16 @@ export const TEST_ID = {
   createUserRole: "create-user-role",
   createUserSubmit: "create-user-submit",
 
-  groupRow: "group-row",
-  groupProjectCount: "group-project-count",
-  groupRename: "group-rename",
-  groupDelete: "group-delete",
-  newGroup: "new-group",
-  groupNameInput: "group-name-input",
-  groupFormSubmit: "group-form-submit",
-
   teamsView: "teams-view",
+  teamProjectsManage: "team-projects-manage",
+  teamProjectsDialog: "team-projects-dialog",
+  teamProjectsCurrent: "team-projects-current",
+  teamProjectsAdd: "team-projects-add",
+  teamProjectsAddSelect: "team-projects-add-select",
+  teamProjectsAddSubmit: "team-projects-add-submit",
+  teamProjectsMove: "team-projects-move",
+  teamProjectsMoveSelect: "team-projects-move-select",
+  teamProjectsEmpty: "team-projects-empty",
   teamRow: "team-row",
   teamMemberCount: "team-member-count",
   teamProjects: "team-projects",
@@ -427,11 +422,10 @@ export const TEST_ID = {
   newProject: "new-project",
   newProjectEmpty: "new-project-empty",
   projectNameInput: "project-name-input",
-  projectGroupSelect: "project-group-select",
-  projectNewGroupName: "project-new-group-name",
-  projectAddGroup: "project-add-group",
   projectFormSubmit: "project-form-submit",
 
+  projectTeamBadge: "project-team-badge",
+  projectSharedBadge: "project-shared-badge",
   projectTeamSection: "project-team-section",
   projectTeamCurrent: "project-team-current",
   projectTeamSelect: "project-team-select",
@@ -445,8 +439,6 @@ export const TEST_ID = {
   newProjectNoTeam: "new-project-no-team",
 
   projectAffiliationSection: "project-affiliation-section",
-  projectAffiliationGroupRow: "project-affiliation-group-row",
-  projectAffiliationGroup: "project-affiliation-group",
 
   webhooksLink: "webhooks-link",
   webhooksView: "webhooks-view",
@@ -497,11 +489,6 @@ export const TEST_ID = {
   inboxBulkBar: "inbox-bulk-bar",
 
   projectRow: "project-row",
-  projectSelectRow: "project-select-row",
-  projectSelectAll: "project-select-all",
-  projectBulkMove: "project-bulk-move",
-  projectBulkBar: "project-bulk-bar",
-  projectBulkMoveGroup: "project-bulk-move-group",
   projectBulkMoveConfirm: "project-bulk-move-confirm",
 
   bulkFailureDialog: "bulk-failure-dialog",
@@ -528,6 +515,7 @@ export const TEST_ID = {
   trendsApprovalLatency: "trends-approval-latency",
 
   reviewInbox: "review-inbox",
+  inboxSharedBadge: "inbox-shared-badge",
   inboxProjectSection: "inbox-project-section",
   inboxItem: "inbox-item",
   reviewProjectButton: "review-project-button",
@@ -535,7 +523,6 @@ export const TEST_ID = {
   inboxFilterKind: "inbox-filter-kind",
   inboxFilterBranch: "inbox-filter-branch",
   inboxBranchBadge: "inbox-branch-badge",
-  filterGroup: "filter-group",
   inboxFilterTeam: "inbox-filter-team",
   inboxSearch: "inbox-search",
 } as const;

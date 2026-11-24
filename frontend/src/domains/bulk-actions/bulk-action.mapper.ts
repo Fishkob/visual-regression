@@ -2,13 +2,11 @@ import type {
   BulkApprovalResultDto,
   BulkDeleteResultDto,
   BulkItemResultDto,
-  BulkMoveResultDto,
 } from "@sdk";
 import type {
   BulkApproveResult,
   BulkDeleteResult,
   BulkItemResult,
-  BulkMoveResult,
 } from "./bulk-action.model";
 
 function presentString(value: unknown): string | null {
@@ -34,15 +32,6 @@ export function mapBulkApproveResult(
 ): BulkApproveResult {
   return {
     approved: mapItems(dto?.approved),
-    failed: mapItems(dto?.failed),
-  };
-}
-
-export function mapBulkMoveResult(
-  dto: BulkMoveResultDto | undefined,
-): BulkMoveResult {
-  return {
-    moved: mapItems(dto?.moved),
     failed: mapItems(dto?.failed),
   };
 }

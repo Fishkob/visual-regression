@@ -2,7 +2,6 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -11,10 +10,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import FormDialog from "@/components/FormDialog.vue";
-import { useCreateGroup } from "@/composables/useGroups";
 import { sdkErrorMessage } from "@/lib/sdk";
 import { TEST_ID } from "@/lib/test-ids";
-import type { ProjectGroup } from "@/domains/groups/group.model";
 import type { TeamChoice } from "@/domains/teams/team.model";
 
 // A project always has an owner (ADR-083), so the dialog asks for it. The team
@@ -23,7 +20,6 @@ import type { TeamChoice } from "@/domains/teams/team.model";
 // order the API falls back to when no team is sent at all.
 const props = defineProps<{
   open: boolean;
-  groups: ProjectGroup[];
   teams: TeamChoice[];
   pending?: boolean;
   error?: unknown;
@@ -31,23 +27,14 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
-  (
-    e: "submit",
-    payload: { name: string; teamId: string; groupId?: string },
-  ): void;
+  (e: "submit", payload: { name: string; teamId: string }): void;
 }>();
 
 const { t } = useI18n();
-const createGroup = useCreateGroup();
 const name = ref("");
 const teamId = ref("");
-const groupId = ref("none");
-const newGroupName = ref("");
 const invalid = computed(() => !name.value.trim());
 const teamMissing = computed(() => props.teams.length === 0);
-const newGroupInvalid = computed(() => !newGroupName.value.trim());
-const createGroupPending = computed(() => createGroup.isPending.value);
-const createGroupError = computed(() => createGroup.error.value);
 
 watch(
   () => props.open,
@@ -55,9 +42,6 @@ watch(
     if (open) {
       name.value = "";
       teamId.value = props.teams[0]?.id ?? "";
-      groupId.value = "none";
-      newGroupName.value = "";
-      createGroup.reset();
     }
   },
 );
@@ -74,24 +58,7 @@ watch(
 
 function submit() {
   if (invalid.value || teamMissing.value) return;
-  emit("submit", {
-    name: name.value.trim(),
-    teamId: teamId.value,
-    ...(groupId.value === "none" ? {} : { groupId: groupId.value }),
-  });
-}
-
-function addGroup() {
-  if (newGroupInvalid.value) return;
-  createGroup.mutate(
-    { name: newGroupName.value.trim() },
-    {
-      onSuccess: (group) => {
-        newGroupName.value = "";
-        if (group?.id) groupId.value = group.id;
-      },
-    },
-  );
+  emit("submit", { name: name.value.trim(), teamId: teamId.value });
 }
 </script>
 
@@ -138,39 +105,6 @@ function addGroup() {
       :data-testid="TEST_ID.newProjectNoTeam"
     >
       {{ t("newProject.noTeam") }}
-    </p>
-    <label class="block space-y-1 text-sm">
-      <span>{{ t("newProject.group") }}</span>
-      <Select v-model="groupId">
-        <SelectTrigger :data-testid="TEST_ID.projectGroupSelect">
-          <SelectValue :placeholder="t('newProject.unassigned')" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">{{ t("newProject.unassigned") }}</SelectItem>
-          <SelectItem v-for="group in groups" :key="group.id" :value="group.id">
-            {{ group.name }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
-    </label>
-    <div class="flex items-end gap-2">
-      <Input
-        v-model="newGroupName"
-        :placeholder="t('newProject.newGroupName')"
-        :aria-label="t('newProject.newGroupName')"
-        :data-testid="TEST_ID.projectNewGroupName"
-      />
-      <Button
-        type="button"
-        :disabled="newGroupInvalid || createGroupPending"
-        :data-testid="TEST_ID.projectAddGroup"
-        @click="addGroup"
-      >
-        {{ t("newProject.add") }}
-      </Button>
-    </div>
-    <p v-if="createGroupError" class="text-sm text-destructive" role="alert">
-      {{ sdkErrorMessage(createGroupError, t("newProject.createGroupError")) }}
     </p>
     <p v-if="error" class="text-sm text-destructive" role="alert">
       {{ sdkErrorMessage(error, t("newProject.createError")) }}

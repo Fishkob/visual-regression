@@ -19,7 +19,7 @@ import {
   type InboxListQuery,
 } from "@/domains/pending-tests/query-keys";
 import { mapReviewInbox } from "@/domains/pending-tests/review-inbox.mapper";
-import { groupReviewInbox } from "@/domains/pending-tests/group-review-inbox";
+import { groupReviewInbox } from "@/domains/pending-tests/inbox-sections";
 import type { ReviewInboxItem } from "@/domains/pending-tests/review-inbox.model";
 
 // CI uploads land while a reviewer has the dashboard open, so the inbox and its
@@ -54,9 +54,6 @@ export function useReviewInboxQuery(
           take,
           ...(queryRef.value.q ? { q: queryRef.value.q } : {}),
           ...(queryRef.value.kind ? { kind: queryRef.value.kind } : {}),
-          ...(queryRef.value.groupId
-            ? { groupId: queryRef.value.groupId }
-            : {}),
           ...(queryRef.value.branch ? { branch: queryRef.value.branch } : {}),
           ...(queryRef.value.runKey ? { runKey: queryRef.value.runKey } : {}),
           ...(queryRef.value.tag ? { tag: queryRef.value.tag } : {}),

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatRelativeAge } from "@/lib/format-date";
 import { formatVariantLabel } from "@/lib/format-variant-label";
-import type { InboxProjectSection } from "@/domains/pending-tests/group-review-inbox";
+import type { InboxProjectSection } from "@/domains/pending-tests/inbox-sections";
 import type { ReviewInboxItem } from "@/domains/pending-tests/review-inbox.model";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -52,8 +52,7 @@ const hasNarrowingFilter = computed(
     typeof route.query.q === "string" ||
     typeof route.query.runKey === "string" ||
     typeof route.query.tag === "string" ||
-    typeof route.query.kind === "string" ||
-    typeof route.query.group === "string",
+    typeof route.query.kind === "string",
 );
 
 const reviewStart = computed<ReviewInboxItem | undefined>(
@@ -147,7 +146,19 @@ function startProjectReview() {
   >
     <div class="flex items-center justify-between gap-4">
       <div>
-        <h3 class="font-semibold">{{ section.projectName }}</h3>
+        <div class="flex flex-wrap items-center gap-2">
+          <h3 class="font-semibold">{{ section.projectName }}</h3>
+          <!-- A published project shows up in a block whose team the caller may
+               not belong to; the badge is what keeps that from reading as a
+               scope bug (ADR-083). -->
+          <Badge
+            v-if="section.items[0]?.isShared"
+            variant="outline"
+            :data-testid="TEST_ID.inboxSharedBadge"
+          >
+            {{ t("inbox.sharedBadge") }}
+          </Badge>
+        </div>
         <p class="text-xs text-muted-foreground">
           {{ reviewChangeCount }}{{ reviewScopeLabel }}
         </p>

@@ -7,7 +7,6 @@ import {
   PROJECTS_PENDING_RESPONSE,
   REVIEW_INBOX_RESPONSE,
 } from "./mocks/projects.mocks";
-import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
 import { TEAMS_GLOB, TEAMS_RESPONSE } from "./mocks/teams.mocks";
 import {
   USERS_GLOB,
@@ -29,7 +28,6 @@ const INTERACTIVE_TAGS = ["A", "BUTTON", "INPUT", "SELECT", "TEXTAREA"];
 
 const SHELL_MOCKS: Array<[string, FulfillResponse]> = [
   ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-  ["**/api/v1/groups", GROUPS_RESPONSE],
   ["**/api/v1/review/pending*", REVIEW_INBOX_RESPONSE],
 ];
 
@@ -90,7 +88,6 @@ test.describe("Modal dialog focus", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
     ]);
 
     const component = await mount("views/ProjectsView/Projects");
@@ -417,7 +414,6 @@ test.describe("Bulk delete dialog focus", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
@@ -500,7 +496,6 @@ test.describe("Share links dialog focus", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
@@ -523,7 +518,6 @@ test.describe("Branch target dialog focus", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
@@ -594,9 +588,9 @@ test.describe("Tab order", () => {
     });
     await expect(component.getByTestId(TEST_ID.appShell)).toBeVisible();
     await expect(component.getByTestId(TEST_ID.projectSearch)).toBeVisible();
-    // The filter trigger stays disabled and the rows are absent until the list
-    // settles, and a half-loaded page would run out of tab stops.
-    await expect(component.getByTestId(TEST_ID.filterGroup)).toBeEnabled();
+    // The rows are absent until the list settles, and a half-loaded page would
+    // run out of tab stops.
+    await expect(component.getByTestId(TEST_ID.newProject)).toBeEnabled();
     await expect(component.getByTestId(TEST_ID.tableRow).first()).toBeVisible();
 
     for (let stop = 1; stop <= 6; stop++) {

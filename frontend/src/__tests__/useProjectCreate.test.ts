@@ -53,35 +53,25 @@ afterEach(() => {
 describe("useCreateProject", () => {
   it("creates the project with its group and invalidates the project lists", async () => {
     mockCreateProject.mockResolvedValue({
-      data: { id: "p1", name: "checkout", groupId: "g1" },
+      data: { id: "p1", name: "checkout", teamId: "t1" },
     });
 
     const { result, invalidate } = mountComposable(useCreateProject);
 
     const project = await result.mutateAsync({
       name: "checkout",
-      groupId: "g1",
+      teamId: "t1",
     });
 
     expect(mockCreateProject).toHaveBeenCalledWith({
-      body: { name: "checkout", groupId: "g1" },
+      body: { name: "checkout", teamId: "t1" },
     });
     expect(project).toMatchObject({ id: "p1", name: "checkout" });
     expect(toast.success).toHaveBeenCalledWith("Project created");
+    // The owner decides which block both lists show the project in, so the team
+    // read (each team's project names) ages out with the project list.
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["projects"] });
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["groups"] });
-  });
-
-  it("creates an unassigned project when no group is given", async () => {
-    mockCreateProject.mockResolvedValue({ data: { name: "checkout" } });
-
-    const { result } = mountComposable(useCreateProject);
-
-    await result.mutateAsync({ name: "checkout" });
-
-    expect(mockCreateProject).toHaveBeenCalledWith({
-      body: { name: "checkout" },
-    });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["teams"] });
   });
 
   it("surfaces the SDK message on failure without invalidating", async () => {
@@ -91,9 +81,9 @@ describe("useCreateProject", () => {
 
     const { result, invalidate } = mountComposable(useCreateProject);
 
-    await expect(result.mutateAsync({ name: "checkout" })).rejects.toThrow(
-      "Project name already taken",
-    );
+    await expect(
+      result.mutateAsync({ name: "checkout", teamId: "t1" }),
+    ).rejects.toThrow("Project name already taken");
 
     expect(toast.error).toHaveBeenCalledWith("Could not create project");
     expect(invalidate).not.toHaveBeenCalled();

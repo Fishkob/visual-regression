@@ -16,8 +16,9 @@ export const PROJECTS_PENDING_RESPONSE = {
         name: "checkout-ui",
         createdAt: "2025-11-25T18:28:50.934Z",
         pending: true,
-        groupId: "g1",
-        groupName: "Checkout",
+        teamId: "team-checkout",
+        teamName: "Checkout",
+        isShared: false,
         pendingCount: 1,
         testCount: 3,
       },
@@ -26,8 +27,9 @@ export const PROJECTS_PENDING_RESPONSE = {
         name: "dashboard-ui",
         createdAt: "2025-11-25T18:28:51.174Z",
         pending: false,
-        groupId: "g1",
-        groupName: "Checkout",
+        teamId: "team-checkout",
+        teamName: "Checkout",
+        isShared: false,
         pendingCount: 0,
         testCount: 2,
       },
@@ -36,8 +38,9 @@ export const PROJECTS_PENDING_RESPONSE = {
         name: "admin-ui",
         createdAt: "2025-11-25T18:28:51.416Z",
         pending: true,
-        groupId: null,
-        groupName: null,
+        teamId: "team-platform",
+        teamName: "Platform",
+        isShared: true,
         pendingCount: 2,
         testCount: 4,
       },
@@ -77,8 +80,6 @@ export const PROJECT_CHECKOUT_UI_RESPONSE = {
     name: "checkout-ui",
     branchName: "main",
     defaultBranchName: "main",
-    groupId: "g1",
-    groupName: "Checkout",
     // Every project has an owner (ADR-083); the flag is the "visible to everyone"
     // half, and this fixture keeps it off so the settings shot shows a project
     // that is readable by its team only.
@@ -183,8 +184,9 @@ export const PROJECT_CHECKOUT_UI_BRANCH_RESPONSE = {
     name: "checkout-ui",
     branchName: "feature/checkout-v2",
     defaultBranchName: "main",
-    groupId: "g1",
-    groupName: "Checkout",
+    teamId: "team-checkout",
+    teamName: "Checkout",
+    isShared: false,
     visualTests: [
       {
         name: "checkout-flow",
@@ -231,8 +233,9 @@ export const REVIEW_INBOX_RESPONSE = {
       {
         comparisonId: "c1",
         projectName: "checkout-ui",
-        groupId: "g1",
-        groupName: "Checkout",
+        teamId: "team-checkout",
+        teamName: "Checkout",
+        isShared: false,
         testName: "checkout-flow",
         branchName: "main",
         isDefaultBranch: true,
@@ -251,8 +254,9 @@ export const REVIEW_INBOX_RESPONSE = {
       {
         comparisonId: "c2",
         projectName: "admin-ui",
-        groupId: null,
-        groupName: null,
+        teamId: "team-platform",
+        teamName: "Platform",
+        isShared: true,
         testName: "users",
         branchName: "main",
         isDefaultBranch: true,
@@ -304,8 +308,9 @@ export const REVIEW_INBOX_MULTI_RESPONSE = {
       {
         comparisonId: "c1",
         projectName: "checkout-ui",
-        groupId: "g1",
-        groupName: "Checkout",
+        teamId: "team-checkout",
+        teamName: "Checkout",
+        isShared: false,
         testName: "checkout-flow",
         branchName: "main",
         isDefaultBranch: true,
@@ -324,8 +329,9 @@ export const REVIEW_INBOX_MULTI_RESPONSE = {
       {
         comparisonId: "c3",
         projectName: "checkout-ui",
-        groupId: "g1",
-        groupName: "Checkout",
+        teamId: "team-checkout",
+        teamName: "Checkout",
+        isShared: false,
         testName: "checkout-pdf",
         branchName: "main",
         isDefaultBranch: true,
@@ -344,8 +350,9 @@ export const REVIEW_INBOX_MULTI_RESPONSE = {
       {
         comparisonId: "c2",
         projectName: "admin-ui",
-        groupId: null,
-        groupName: null,
+        teamId: "team-platform",
+        teamName: "Platform",
+        isShared: true,
         testName: "users",
         branchName: "main",
         isDefaultBranch: true,
@@ -421,8 +428,9 @@ export const REVIEW_INBOX_BRANCHES_RESPONSE = {
       {
         comparisonId: "cb1",
         projectName: "checkout-ui",
-        groupId: "g1",
-        groupName: "Checkout",
+        teamId: "team-checkout",
+        teamName: "Checkout",
+        isShared: false,
         testName: "checkout-flow",
         kind: "image",
         branchName: "main",
@@ -441,8 +449,9 @@ export const REVIEW_INBOX_BRANCHES_RESPONSE = {
       {
         comparisonId: "cb2",
         projectName: "checkout-ui",
-        groupId: "g1",
-        groupName: "Checkout",
+        teamId: "team-checkout",
+        teamName: "Checkout",
+        isShared: false,
         testName: "checkout-pay",
         kind: "image",
         branchName: "feature/checkout-v2",
@@ -468,4 +477,40 @@ export const REVIEW_INBOX_BRANCHES_RESPONSE = {
       hasPreviousPage: false,
     },
   } satisfies ReviewInboxControllerGetPendingResponses[200]),
+};
+
+// The Teams page reads every project to show which team owns it (ADR-084).
+// `design-system` sits in Platform and `checkout-ui` in Checkout, so the page can
+// demonstrate a move in either direction.
+export const PROJECTS_OWNERS_RESPONSE = {
+  status: 200,
+  contentType: "application/json",
+  body: JSON.stringify({
+    data: [
+      {
+        id: "1",
+        name: "checkout-ui",
+        createdAt: "2025-11-25T18:28:50.934Z",
+        teamId: "team-checkout",
+        teamName: "Checkout",
+        isShared: false,
+      },
+      {
+        id: "2",
+        name: "design-system",
+        createdAt: "2025-11-25T18:28:51.174Z",
+        teamId: "team-platform",
+        teamName: "Platform",
+        isShared: false,
+      },
+    ],
+    meta: {
+      page: 1,
+      limit: 20,
+      total: 2,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  } satisfies ProjectsControllerGetProjectsWithPendingFlagResponses[200]),
 };

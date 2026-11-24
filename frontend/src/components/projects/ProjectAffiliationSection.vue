@@ -18,16 +18,16 @@ import { teamOfProject } from "@/domains/teams/team.mapper";
 import { sdkErrorMessage } from "@/lib/sdk";
 import { TEST_ID } from "@/lib/test-ids";
 
-// Where a project belongs and who may look at it — the two questions the
-// affiliation column answers (ADR-083). A project always has a team; "visible to
-// everyone" is a separate flag on top of that owner, not the absence of one.
+// Who owns the project and who may look at it (ADR-083). A project always has a
+// team; "visible to everyone" is a separate flag on top of that owner, not the
+// absence of one. The group row this section used to carry is gone with the
+// concept (ADR-084): the owner is the only axis a project has.
 //
 // Naming the owner is not administering it: the team name rides on the project
 // read for every principal that may open the project, while the assignment and
 // the flag stay ADMIN-only (`PATCH /projects/:projectName/team` and `.../visibility`).
 const props = defineProps<{
   projectName: string;
-  groupName: string | null;
   teamId: string;
   teamName: string;
   isShared: boolean;
@@ -110,29 +110,9 @@ function toggleShared() {
       </p>
     </div>
 
-    <div class="mt-4 divide-y">
+    <div class="mt-4">
       <div
-        class="flex flex-wrap items-start justify-between gap-4 py-3 first:pt-0"
-        :data-testid="TEST_ID.projectAffiliationGroupRow"
-      >
-        <div class="min-w-0">
-          <p class="text-sm font-medium">
-            {{ t("projectAffiliation.groupLabel") }}
-          </p>
-          <p class="max-w-2xl text-sm text-muted-foreground">
-            {{ t("projectAffiliation.groupHint") }}
-          </p>
-        </div>
-        <p
-          class="text-sm font-medium"
-          :data-testid="TEST_ID.projectAffiliationGroup"
-        >
-          {{ groupName || t("projectAffiliation.groupUnassigned") }}
-        </p>
-      </div>
-
-      <div
-        class="space-y-3 py-3 last:pb-0"
+        class="space-y-3 py-3 first:pt-0 last:pb-0"
         :data-testid="TEST_ID.projectTeamSection"
       >
         <div class="flex flex-wrap items-start justify-between gap-4">

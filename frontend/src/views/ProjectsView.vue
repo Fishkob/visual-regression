@@ -4,36 +4,18 @@ import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import BulkFailureDialog from "@/components/bulk-actions/BulkFailureDialog.vue";
 import ErrorAlert from "@/components/ErrorAlert.vue";
 import EmptyState from "@/components/EmptyState.vue";
-import ProjectGroupSection from "@/components/projects/ProjectGroupSection.vue";
-import BulkMoveProjectsDialog from "@/components/projects/BulkMoveProjectsDialog.vue";
+import ProjectListSection from "@/components/projects/ProjectListSection.vue";
 import NewProjectDialog from "@/components/projects/NewProjectDialog.vue";
-import { useBulkMoveProjects } from "@/composables/useBulkActions";
-import { useBulkSelection } from "@/composables/useBulkSelection";
 import { useCurrentRole } from "@/composables/useAuth";
 import { useCreateProject } from "@/composables/useProjectCreate";
 import { useProjectsWithPendingQuery } from "@/composables/useProjects";
-import { useGroupsQuery } from "@/composables/useGroups";
 import { useMeQuery } from "@/composables/useAuth";
 import { useTeamsQuery } from "@/composables/useTeams";
 import type { TeamChoice } from "@/domains/teams/team.model";
-import { FILTER_ALL } from "@/domains/test-status";
-import { groupProjectsByGroup } from "@/domains/projects/group-projects-by-group";
+import { groupProjectsByTeam } from "@/domains/projects/group-projects-by-team";
 import type { ProjectsListQuery } from "@/domains/projects/query-keys";
-import { UNASSIGNED_GROUP_QUERY } from "@/domains/groups/group-section";
-import {
-  bulkFailureRows,
-  type BulkFailureRow,
-} from "@/domains/bulk-actions/bulk-action.model";
 import { PROJECTS_PAGE_SIZE } from "@/lib/pagination";
 import { TEST_ID } from "@/lib/test-ids";
 import PaginationBar from "@/components/PaginationBar.vue";
@@ -86,27 +68,11 @@ onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer);
 });
 
-const groupFilter = computed({
-  get: () => {
-    const value = route.query.group;
-    return typeof value === "string" && value ? value : FILTER_ALL;
-  },
-  set: (value: string) => {
-    const query: Record<string, string | undefined> = {
-      ...route.query,
-      group: value === FILTER_ALL ? undefined : value,
-    };
-    delete query.page;
-    void router.replace({ query });
-  },
-});
-
 // Filtering happens on the server: the view only holds the current page, so a
 // client-side filter would silently filter 25 of N projects.
 const queryParams = computed<ProjectsListQuery>(() => ({
   page: page.value,
   ...(searchInput.value.trim() ? { q: searchInput.value.trim() } : {}),
-  ...(groupFilter.value !== FILTER_ALL ? { groupId: groupFilter.value } : {}),
 }));
 
 const { data, isLoading, error, refetch } =
@@ -116,10 +82,8 @@ const total = computed(() => data.value?.total ?? 0);
 const pageCount = computed(() =>
   Math.max(1, Math.ceil(total.value / PROJECTS_PAGE_SIZE)),
 );
-const sections = computed(() => groupProjectsByGroup(projects.value));
-const hasActiveFilters = computed(
-  () => searchInput.value.trim().length > 0 || groupFilter.value !== FILTER_ALL,
-);
+const sections = computed(() => groupProjectsByTeam(projects.value));
+const hasActiveFilters = computed(() => searchInput.value.trim().length > 0);
 
 // A filter change can shrink the result below the current page; keep the URL
 // and the request on a page that exists.
@@ -127,21 +91,13 @@ watch(pageCount, (count) => {
   if (page.value > count) page.value = count;
 });
 
-const {
-  data: groups,
-  isLoading: groupsLoading,
-  error: groupsError,
-  refetch: refetchGroups,
-} = useGroupsQuery();
 const createProject = useCreateProject();
 const dialogOpen = ref(false);
 
 const createPending = computed(() => createProject.isPending.value);
 const createError = computed(() => createProject.error.value);
 
-// Bulk move is a writer tool: VIEWERs get no checkboxes or bulk bar (the
-// backend answers 403 for them anyway).
-const { canWrite, seesAllProjects, isAdmin } = useCurrentRole();
+const { seesAllProjects, isAdmin } = useCurrentRole();
 
 // A project always has an owner (ADR-083), so "new project" asks for it. An ADMIN
 // may name any team (the team list is an ADMIN read); a MEMBER may only name one
@@ -154,77 +110,15 @@ const teamChoices = computed<TeamChoice[]>(() =>
     ? (allTeams.value ?? []).map((team) => ({ id: team.id, name: team.name }))
     : (me.value?.teams ?? []),
 );
-const bulkMove = useBulkMoveProjects();
-const {
-  selectedIds,
-  count: selectedCount,
-  toggle: toggleSelection,
-  selectAll,
-  clear: clearSelection,
-  prune: pruneSelection,
-} = useBulkSelection();
-
-const pageProjectNames = computed(() =>
-  projects.value.map((project) => project.name),
-);
-const allSelected = computed(
-  () =>
-    projects.value.length > 0 && selectedCount.value === projects.value.length,
-);
-
-// A refetch, a page change or a filter can remove rows; a stale name must not be
-// moved by a later bulk action.
-watch(pageProjectNames, (names) => pruneSelection(names));
-
-function toggleAllSelection() {
-  if (allSelected.value) clearSelection();
-  else selectAll(pageProjectNames.value);
-}
-
-const moveOpen = ref(false);
-const failureOpen = ref(false);
-const failureRows = ref<BulkFailureRow[]>([]);
-
-function confirmMove(payload: { groupId: string | null }) {
-  const labels = new Map(selectedIds.value.map((name) => [name, name]));
-  bulkMove.mutate(
-    {
-      // Sorted for a stable request payload regardless of the click order.
-      projectNames: [...selectedIds.value].sort(),
-      groupId: payload.groupId,
-    },
-    {
-      onSuccess: (result) => {
-        moveOpen.value = false;
-        clearSelection();
-        if (result.failed.length > 0) {
-          failureRows.value = bulkFailureRows(result.failed, labels);
-          failureOpen.value = true;
-        }
-      },
-    },
-  );
-}
-
-watch(
-  [groups, groupsLoading],
-  ([list, loading]) => {
-    if (loading || !list) return;
-    const value = groupFilter.value;
-    if (value === FILTER_ALL || value === UNASSIGNED_GROUP_QUERY) return;
-    if (!list.some((group) => group.id === value)) {
-      groupFilter.value = FILTER_ALL;
-    }
-  },
-  { immediate: true },
-);
-
+// The bulk bar moved with the group it wrote to: multi-select existed to file
+// projects into a folder, and the owner is edited where ownership lives — the
+// Teams page and the project's own settings (ADR-084).
 function openCreate() {
   createProject.reset();
   dialogOpen.value = true;
 }
 
-function create(payload: { name: string; teamId: string; groupId?: string }) {
+function create(payload: { name: string; teamId: string }) {
   if (!payload.name) return;
   createProject.mutate(payload, {
     onSuccess: (_data, variables) => {
@@ -267,34 +161,6 @@ function create(payload: { name: string; teamId: string; groupId?: string }) {
         :data-testid="TEST_ID.projectSearch"
         @update:model-value="searchInput = String($event)"
       />
-      <Select
-        :model-value="groupFilter"
-        :disabled="groupsLoading"
-        @update:model-value="groupFilter = String($event)"
-      >
-        <SelectTrigger
-          class="w-48"
-          :aria-label="t('projects.filterGroupLabel')"
-          :data-testid="TEST_ID.filterGroup"
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem :value="FILTER_ALL">{{
-            t("projects.allGroups")
-          }}</SelectItem>
-          <SelectItem
-            v-for="group in groups ?? []"
-            :key="group.id"
-            :value="group.id"
-          >
-            {{ group.name }}
-          </SelectItem>
-          <SelectItem :value="UNASSIGNED_GROUP_QUERY">
-            {{ t("projects.unassigned") }}
-          </SelectItem>
-        </SelectContent>
-      </Select>
     </div>
 
     <ErrorAlert
@@ -307,15 +173,6 @@ function create(payload: { name: string; teamId: string; groupId?: string }) {
     />
 
     <div v-if="!error" class="space-y-6">
-      <ErrorAlert
-        v-if="groupsError"
-        variant="error"
-        :title="t('projects.groupsErrorTitle')"
-        :message="groupsError.message"
-        retry
-        :on-retry="refetchGroups"
-      />
-
       <template v-if="isLoading">
         <section v-for="i in 3" :key="i" class="space-y-2" aria-hidden="true">
           <div class="flex items-center justify-between">
@@ -340,47 +197,10 @@ function create(payload: { name: string; teamId: string; groupId?: string }) {
       </template>
 
       <template v-else>
-        <div
-          v-if="canWrite && projects.length > 0"
-          class="flex flex-wrap items-center gap-3 rounded-xl border bg-card px-4 py-2 shadow-sm"
-          :data-testid="TEST_ID.projectBulkBar"
-        >
-          <label class="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              class="h-4 w-4"
-              :checked="allSelected"
-              :aria-label="
-                allSelected
-                  ? t('projects.selectAll')
-                  : t('projects.selectAllLabel')
-              "
-              :data-testid="TEST_ID.projectSelectAll"
-              @change="toggleAllSelection"
-            />
-            <span>{{ t("projects.selectAllText") }}</span>
-          </label>
-          <span class="text-sm text-muted-foreground">
-            {{ t("projects.selectedCount", selectedCount) }}
-          </span>
-          <Button
-            type="button"
-            size="sm"
-            :disabled="selectedCount === 0 || bulkMove.isPending.value"
-            :data-testid="TEST_ID.projectBulkMove"
-            @click="moveOpen = true"
-          >
-            {{ t("projects.moveToGroup") }}
-          </Button>
-        </div>
-
-        <ProjectGroupSection
+        <ProjectListSection
           v-for="section in sections"
           :key="section.key"
           :section="section"
-          :selectable="canWrite"
-          :selected-names="selectedIds"
-          @toggle="toggleSelection"
         />
 
         <PaginationBar
@@ -424,28 +244,10 @@ function create(payload: { name: string; teamId: string; groupId?: string }) {
 
     <NewProjectDialog
       v-model:open="dialogOpen"
-      :groups="groups ?? []"
       :teams="teamChoices"
       :pending="createPending"
       :error="createError"
       @submit="create"
-    />
-
-    <BulkMoveProjectsDialog
-      :open="moveOpen"
-      :groups="groups ?? []"
-      :selected-count="selectedCount"
-      :pending="bulkMove.isPending.value"
-      @update:open="moveOpen = $event"
-      @submit="confirmMove"
-    />
-
-    <BulkFailureDialog
-      :open="failureOpen"
-      :rows="failureRows"
-      :title="t('projects.bulkMoveFailureTitle')"
-      :description="t('projects.bulkMoveFailureBody')"
-      @update:open="failureOpen = $event"
     />
   </div>
 </template>

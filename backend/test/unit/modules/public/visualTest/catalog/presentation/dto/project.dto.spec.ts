@@ -3,44 +3,51 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import {
   CreateProjectDto,
-  UpdateProjectDto,
+  ProjectsListQueryDto,
 } from '@public/visualTest/catalog/presentation/dto/project.dto';
 
-describe('Project group DTO validation', () => {
+// The project DTOs lost their group fields with the concept (ADR-084), and
+// gained the owner (ADR-083). What is pinned here is the wire contract the SDK
+// and the seeder both rely on.
+describe('Project DTO validation', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('rejects an empty groupId on CreateProjectDto', async () => {
+  it('rejects an empty teamId on CreateProjectDto', async () => {
     const dto = plainToInstance(CreateProjectDto, {
       name: 'checkout-ui',
-      groupId: '',
+      teamId: '',
     });
 
     const errors = await validate(dto, { whitelist: true });
 
     expect(errors).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ property: 'groupId' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ property: 'teamId' })]),
     );
   });
 
-  it('rejects an empty groupId on UpdateProjectDto', async () => {
-    const dto = plainToInstance(UpdateProjectDto, { groupId: '' });
+  // Omitting the owner is allowed on the wire: the service falls back to the
+  // creator's first team, and a member without one is refused with a 409 that
+  // explains itself — a 400 from the validator could not say that.
+  it('accepts a CreateProjectDto without a teamId', async () => {
+    const dto = plainToInstance(CreateProjectDto, { name: 'checkout-ui' });
 
-    const errors = await validate(dto, { whitelist: true });
+    await expect(validate(dto, { whitelist: true })).resolves.toEqual([]);
+  });
+
+  it('rejects a groupId on the list query instead of ignoring it', async () => {
+    const dto = plainToInstance(ProjectsListQueryDto, { groupId: 'g-1' });
+
+    const errors = await validate(dto, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
 
     expect(errors).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ property: 'groupId' }),
       ]),
     );
-  });
-
-  it('allows null on UpdateProjectDto to unassign a project', async () => {
-    const dto = plainToInstance(UpdateProjectDto, { groupId: null });
-
-    await expect(validate(dto, { whitelist: true })).resolves.toEqual([]);
   });
 });

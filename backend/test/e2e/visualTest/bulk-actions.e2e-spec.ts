@@ -71,20 +71,6 @@ describe('Bulk actions (e2e)', () => {
     );
   });
 
-  it('moves projects into a group per item', async () => {
-    await TestApp.createProject('other');
-    const group = await db.projectGroup.create({ data: { name: 'Team' } });
-
-    const result = await authRequest(app)
-      .patch('/api/v1/projects/bulk/group')
-      .send({ projectNames: ['shop', 'other'], groupId: group.id })
-      .expect(200);
-
-    expect(result.body.moved).toHaveLength(2);
-    expect(result.body.failed).toEqual([]);
-    expect(await db.project.count({ where: { groupId: group.id } })).toBe(2);
-  });
-
   it('rejects bulk writes from a viewer session', async () => {
     await db.user.create({
       data: {

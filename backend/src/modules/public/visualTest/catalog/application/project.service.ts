@@ -6,7 +6,6 @@ import {
   projectNotFound,
 } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ProjectReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-read.repository';
-import { ProjectGroupRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-group.repository';
 import { BranchCommandService } from '@public/visualTest/catalog/application/branch-command.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { DomainError } from '@common/domain/domain-error';
@@ -38,7 +37,6 @@ export class ProjectService {
     private readonly projects: ProjectRepository,
     private readonly projectRead: ProjectReadRepository,
     private readonly testDeletion: TestDeletionService,
-    private readonly groups: ProjectGroupRepository,
     private readonly teams: TeamsRepository,
     private readonly branchCommands: BranchCommandService,
     private readonly audit: AuditService,
@@ -47,7 +45,7 @@ export class ProjectService {
 
   async getAllWithPendingFlag(
     pagination: PaginationDto,
-    filters: { q?: string; groupId?: string } | undefined,
+    filters: { q?: string } | undefined,
     scope: ProjectScope,
   ) {
     return paginatedQuery(
@@ -115,17 +113,11 @@ export class ProjectService {
     caller: { userId?: string; role: string },
   ): Promise<ProjectDto> {
     const team = await this.resolveOwnerTeam(dto.teamId, caller);
-    const group = dto.groupId ? await this.groups.findById(dto.groupId) : null;
-    if (dto.groupId && !group) {
-      throw new DomainError(`Group "${dto.groupId}" not found`, 'NOT_FOUND');
-    }
-    const project = await this.projects.create(dto.name, team.id, group?.id);
+    const project = await this.projects.create(dto.name, team.id);
     return mapProjectSummaryToDto({
       id: project.id,
       name: project.name,
       createdAt: project.createdAt,
-      groupId: group?.id ?? null,
-      groupName: group?.name ?? null,
       teamId: team.id,
       teamName: team.name,
       isShared: false,
@@ -293,32 +285,19 @@ export class ProjectService {
     return { pixelDiffThreshold };
   }
 
-  async updateProjectGroup(
+  // The generic project patch is down to its one remaining field: the default
+  // branch. The owner, the visibility and the threshold each have their own
+  // ADMIN-only route, because each of them is a privilege decision rather than a
+  // settings edit (ADR-082, ADR-083).
+  async updateDefaultBranch(
     projectName: string,
     dto: UpdateProjectDto,
   ): Promise<ProjectDto> {
-    if (dto.groupId === undefined && dto.defaultBranchName === undefined) {
+    if (dto.defaultBranchName === undefined) {
       return this.getWithLatestVariantStatuses(projectName);
     }
-    if (dto.defaultBranchName !== undefined) {
-      await this.branchCommands.setDefault(projectName, dto.defaultBranchName);
-    }
-    if (dto.groupId === undefined) {
-      return this.getWithLatestVariantStatuses(projectName);
-    }
-    const groupId = dto.groupId;
-    if (groupId) {
-      const group = await this.groups.findById(groupId);
-      if (!group) {
-        throw new DomainError(`Group "${groupId}" not found`, 'NOT_FOUND');
-      }
-    }
-    await this.projects.updateGroupByName(projectName, groupId);
-    const summary = await this.projectRead.getProjectSummary(projectName);
-    if (!summary) {
-      throw projectNotFound(projectName);
-    }
-    return mapProjectSummaryToDto(summary);
+    await this.branchCommands.setDefault(projectName, dto.defaultBranchName);
+    return this.getWithLatestVariantStatuses(projectName);
   }
 
   async deleteProject(projectName: string, actor: string): Promise<void> {

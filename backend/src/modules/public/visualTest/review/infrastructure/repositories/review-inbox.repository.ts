@@ -3,7 +3,6 @@ import { PrismaConnection } from '@/prisma/prisma-connection';
 import { findManyWithCount } from '@/prisma/find-many-with-count';
 import { Prisma } from '@/prisma/client';
 import type { TestKind } from '@common/domain/test-kind';
-import { UNASSIGNED_GROUP_FILTER } from '@common/domain/group-filter';
 import { projectIdFilter } from '@/prisma/project-scope-filter';
 import type { ProjectScope } from '@common/domain/project-scope';
 import {
@@ -16,8 +15,12 @@ import { variantFromRow } from '@public/visualTest/core/infrastructure/mappers/v
 export interface PendingReviewRow {
   comparisonId: string;
   projectName: string;
-  groupId: string | null;
-  groupName: string | null;
+  // The owner rides on the row for the same reason it rides on the project read
+  // (ADR-083): both lists section by it, and a member has to be able to answer
+  // "why do I see this" from the payload it already has.
+  teamId: string;
+  teamName: string;
+  isShared: boolean;
   testName: string;
   kind: string;
   branchName: string;
@@ -47,7 +50,8 @@ const INBOX_INCLUDE = {
             select: {
               name: true,
               defaultBranchId: true,
-              group: { select: { id: true, name: true } },
+              isShared: true,
+              team: { select: { id: true, name: true } },
             },
           },
         },
@@ -100,7 +104,6 @@ export class ReviewInboxRepository {
           branchName?: string;
           projectName?: string;
           kind?: string;
-          groupId?: string;
           teamId?: string;
           q?: string;
           runKey?: string;
@@ -129,9 +132,6 @@ export class ReviewInboxRepository {
       ...projectIdFilter(scope),
     };
     if (filters?.projectName) projectWhere.name = filters.projectName;
-    if (filters?.groupId === UNASSIGNED_GROUP_FILTER)
-      projectWhere.groupId = null;
-    else if (filters?.groupId) projectWhere.groupId = filters.groupId;
     // The team lens. It narrows *within* the scope, so naming a team the caller
     // cannot see matches nothing instead of widening the read.
     if (filters?.teamId) projectWhere.teamId = filters.teamId;
@@ -196,8 +196,9 @@ export class ReviewInboxRepository {
         return {
           comparisonId: row.id,
           projectName,
-          groupId: row.test.branch.project.group?.id ?? null,
-          groupName: row.test.branch.project.group?.name ?? null,
+          teamId: row.test.branch.project.team.id,
+          teamName: row.test.branch.project.team.name,
+          isShared: row.test.branch.project.isShared,
           testName: row.test.name,
           kind: row.test.kind,
           branchName,

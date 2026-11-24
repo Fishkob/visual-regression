@@ -5,7 +5,6 @@ import { ProjectService } from '@public/visualTest/catalog/application/project.s
 import { ALL_PROJECTS } from '@common/domain/project-scope';
 import { ProjectRepository } from '@public/visualTest/core/infrastructure/repositories/prisma-project.repository';
 import { ProjectReadRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-read.repository';
-import { ProjectGroupRepository } from '@public/visualTest/catalog/infrastructure/repositories/project-group.repository';
 import { BranchCommandService } from '@public/visualTest/catalog/application/branch-command.service';
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { DomainError } from '@common/domain/domain-error';
@@ -29,7 +28,6 @@ describe('ProjectService', () => {
   let projects: Mocked<ProjectRepository>;
   let projectRead: Mocked<ProjectReadRepository>;
   let testDeletion: Mocked<TestDeletionService>;
-  let groups: Mocked<ProjectGroupRepository>;
   let branchCommands: Mocked<BranchCommandService>;
   let teams: Mocked<TeamsRepository>;
   let audit: Mocked<AuditService>;
@@ -38,7 +36,6 @@ describe('ProjectService', () => {
     projects = createMockProjectRepository();
     projectRead = createMock<ProjectReadRepository>();
     testDeletion = createMock<TestDeletionService>();
-    groups = createMock<ProjectGroupRepository>();
     branchCommands = createMock<BranchCommandService>();
     teams = createMock<TeamsRepository>();
     audit = createMock<AuditService>();
@@ -49,7 +46,6 @@ describe('ProjectService', () => {
         { provide: ProjectRepository, useValue: projects },
         { provide: ProjectReadRepository, useValue: projectRead },
         { provide: TestDeletionService, useValue: testDeletion },
-        { provide: ProjectGroupRepository, useValue: groups },
         { provide: BranchCommandService, useValue: branchCommands },
         { provide: TeamsRepository, useValue: teams },
         { provide: AuditService, useValue: audit },
@@ -119,11 +115,7 @@ describe('ProjectService', () => {
         admin,
       );
 
-      expect(projects.create).toHaveBeenCalledWith(
-        'my-project',
-        'team-1',
-        undefined,
-      );
+      expect(projects.create).toHaveBeenCalledWith('my-project', 'team-1');
       expect(result).toMatchObject({
         id: 'proj-1',
         name: 'my-project',
@@ -160,11 +152,7 @@ describe('ProjectService', () => {
       await service.create({ name: 'my-project' }, member);
 
       expect(teams.findForUser).toHaveBeenCalledWith('user-member');
-      expect(projects.create).toHaveBeenCalledWith(
-        'my-project',
-        'team-1',
-        undefined,
-      );
+      expect(projects.create).toHaveBeenCalledWith('my-project', 'team-1');
     });
 
     it('refuses a member that belongs to no team with a conflict', async () => {
@@ -198,193 +186,38 @@ describe('ProjectService', () => {
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
       expect(projects.create).not.toHaveBeenCalled();
     });
-
-    it('creates the project in a known group', async () => {
-      teams.findById.mockResolvedValue(
-        teamRow({ id: 'team-1', name: 'Storefront' }),
-      );
-      groups.findById.mockResolvedValue({
-        id: 'group-1',
-        name: 'Checkout',
-        createdAt,
-      });
-      projects.create.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt,
-        teamId: 'team-1',
-        groupId: 'group-1',
-      });
-
-      const result = await service.create(
-        { name: 'my-project', teamId: 'team-1', groupId: 'group-1' },
-        admin,
-      );
-
-      expect(groups.findById).toHaveBeenCalledWith('group-1');
-      expect(projects.create).toHaveBeenCalledWith(
-        'my-project',
-        'team-1',
-        'group-1',
-      );
-      expect(result).toMatchObject({
-        groupId: 'group-1',
-        groupName: 'Checkout',
-        pendingCount: 0,
-        testCount: 0,
-        pending: false,
-      });
-    });
-
-    it('rejects an unknown group without creating the project', async () => {
-      teams.findById.mockResolvedValue(
-        teamRow({ id: 'team-1', name: 'Storefront' }),
-      );
-      groups.findById.mockResolvedValue(null);
-
-      await expect(
-        service.create(
-          { name: 'my-project', teamId: 'team-1', groupId: 'missing' },
-          admin,
-        ),
-      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
-      expect(projects.create).not.toHaveBeenCalled();
-    });
   });
 
-  describe('updateProjectGroup', () => {
-    it('validates and sets the group and returns project counts', async () => {
-      const createdAt = new Date('2024-01-01');
-      projects.findByName.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt,
-      });
-      groups.findById.mockResolvedValue({
-        id: 'group-1',
-        name: 'Checkout',
-        createdAt,
-      });
-      projects.updateGroupByName.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt,
-        groupId: 'group-1',
-      });
-      projectRead.getProjectSummary.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt,
-        groupId: 'group-1',
-        groupName: 'Checkout',
-        teamId: 'team-1',
-        teamName: 'Storefront',
-        isShared: false,
-        pendingCount: 3,
-        testCount: 4,
-        hasPendingComparisons: true,
-      });
-
-      const result = await service.updateProjectGroup('my-project', {
-        groupId: 'group-1',
-      });
-
-      expect(groups.findById).toHaveBeenCalledWith('group-1');
-      expect(projects.updateGroupByName).toHaveBeenCalledWith(
-        'my-project',
-        'group-1',
-      );
-      expect(result).toEqual({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt,
-        groupId: 'group-1',
-        groupName: 'Checkout',
-        teamId: 'team-1',
-        teamName: 'Storefront',
-        isShared: false,
-        pendingCount: 3,
-        testCount: 4,
-        pending: true,
-      });
-    });
-
-    it('unassigns a project when groupId is null', async () => {
-      const createdAt = new Date('2024-01-01');
-      projects.findByName.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt,
-        groupId: 'group-1',
-      });
-      projects.updateGroupByName.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt,
-        groupId: null,
-      });
-      projectRead.getProjectSummary.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt,
-        groupId: null,
-        groupName: null,
-        teamId: 'team-1',
-        teamName: 'Storefront',
-        isShared: false,
-        pendingCount: 0,
-        testCount: 0,
-        hasPendingComparisons: false,
-      });
-
-      const result = await service.updateProjectGroup('my-project', {
-        groupId: null,
-      });
-
-      expect(groups.findById).not.toHaveBeenCalled();
-      expect(projects.updateGroupByName).toHaveBeenCalledWith(
-        'my-project',
-        null,
-      );
-      expect(result).toMatchObject({
-        groupId: null,
-        groupName: null,
-        pending: false,
-      });
-    });
-
-    it('returns the project when only the name changes', async () => {
+  // The generic patch is down to the default branch: the owner, the visibility
+  // and the threshold each have their own ADMIN-only route (ADR-082, ADR-083).
+  describe('updateDefaultBranch', () => {
+    it('promotes a branch and returns the project it re-read', async () => {
+      const refreshed = { id: 'proj-1' } as never;
       vi.spyOn(service, 'getWithLatestVariantStatuses').mockResolvedValue(
-        {} as never,
+        refreshed,
       );
 
-      await expect(
-        service.updateProjectGroup('my-project', { groupId: undefined }),
-      ).resolves.toEqual({});
-    });
-
-    it('rejects a missing project', async () => {
-      projects.requireByName.mockRejectedValue(missingProject('missing'));
-
-      await expect(
-        service.updateProjectGroup('missing', { groupId: 'group-1' }),
-      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
-      expect(projects.updateGroupByName).not.toHaveBeenCalled();
-    });
-
-    it('rejects an unknown group without updating the project', async () => {
-      const createdAt = new Date('2024-01-01');
-      projects.findByName.mockResolvedValue({
-        id: 'proj-1',
-        name: 'my-project',
-        createdAt,
+      const result = await service.updateDefaultBranch('my-project', {
+        defaultBranchName: 'release/1.2',
       });
-      groups.findById.mockResolvedValue(null);
 
-      await expect(
-        service.updateProjectGroup('my-project', { groupId: 'missing' }),
-      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
-      expect(projects.updateGroupByName).not.toHaveBeenCalled();
+      expect(branchCommands.setDefault).toHaveBeenCalledWith(
+        'my-project',
+        'release/1.2',
+      );
+      expect(result).toBe(refreshed);
+    });
+
+    it('returns the project unchanged when the patch names no branch', async () => {
+      const current = { id: 'proj-1' } as never;
+      vi.spyOn(service, 'getWithLatestVariantStatuses').mockResolvedValue(
+        current,
+      );
+
+      const result = await service.updateDefaultBranch('my-project', {});
+
+      expect(branchCommands.setDefault).not.toHaveBeenCalled();
+      expect(result).toBe(current);
     });
   });
 
@@ -565,7 +398,7 @@ describe('ProjectService', () => {
   });
 
   describe('getAllWithPendingFlag', () => {
-    it('forwards the search and group filters to the read model', async () => {
+    it('forwards the search filter to the read model', async () => {
       const pagination = new PaginationDto();
       projectRead.getAllWithPendingFlag.mockResolvedValue({
         data: [],
@@ -574,13 +407,13 @@ describe('ProjectService', () => {
 
       await service.getAllWithPendingFlag(
         pagination,
-        { q: 'checkout', groupId: 'unassigned' },
+        { q: 'checkout' },
         ALL_PROJECTS,
       );
 
       expect(projectRead.getAllWithPendingFlag).toHaveBeenCalledWith(
         { skip: 0, take: 20 },
-        { q: 'checkout', groupId: 'unassigned' },
+        { q: 'checkout' },
         ALL_PROJECTS,
       );
     });
@@ -593,8 +426,6 @@ describe('ProjectService', () => {
             id: 'proj-1',
             name: 'a',
             createdAt: new Date('2024-01-01'),
-            groupId: 'group-1',
-            groupName: 'Checkout',
             teamId: 'team-1',
             teamName: 'Storefront',
             isShared: false,
@@ -606,8 +437,6 @@ describe('ProjectService', () => {
             id: 'proj-2',
             name: 'b',
             createdAt: new Date('2024-01-02'),
-            groupId: null,
-            groupName: null,
             teamId: 'team-1',
             teamName: 'Storefront',
             isShared: true,
@@ -635,8 +464,6 @@ describe('ProjectService', () => {
         id: 'proj-1',
         name: 'a',
         createdAt: expect.any(Date),
-        groupId: 'group-1',
-        groupName: 'Checkout',
         teamId: 'team-1',
         teamName: 'Storefront',
         isShared: false,
@@ -677,8 +504,6 @@ describe('ProjectService', () => {
         id: 'proj-1',
         name: 'my-project',
         createdAt,
-        groupId: null,
-        groupName: null,
         teamId: 'team-1',
         teamName: 'Storefront',
         isShared: false,
@@ -734,8 +559,8 @@ describe('ProjectService', () => {
         hasPreviousPage: false,
       });
       expect(result.id).toBe('proj-1');
-      expect(result.groupId).toBeNull();
-      expect(result.groupName).toBeNull();
+      expect(result.teamId).toBe('team-1');
+      expect(result.teamName).toBe('Storefront');
       expect(result.visualTests!).toHaveLength(2);
       expect(result.visualTests![0]).toEqual({
         name: 'test-1',

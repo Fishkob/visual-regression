@@ -2,7 +2,6 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { Allow, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { PaginationDto } from '@common/dto/pagination.dto';
-import { UNASSIGNED_GROUP_FILTER } from '@common/domain/group-filter';
 import { TEST_KINDS } from '@common/domain/test-kind';
 import { MAX_NAME_LENGTH } from '@common/http/pipes/name-validation.util';
 
@@ -45,13 +44,6 @@ export class ReviewInboxPaginationDto extends BranchPaginationDto {
   @IsOptional()
   @IsIn(TEST_KINDS as string[])
   kind?: string;
-
-  @ApiPropertyOptional({
-    description: `Group id, or "${UNASSIGNED_GROUP_FILTER}" for projects without a group`,
-  })
-  @IsOptional()
-  @IsString()
-  groupId?: string;
 
   @ApiPropertyOptional({
     description:

@@ -11,7 +11,6 @@ import {
   type ProjectVariantStatusRow,
 } from '@public/visualTest/core/infrastructure/repositories/variant-store';
 import { BranchResolver } from '@public/visualTest/core/application/services/branch-resolver.service';
-import { UNASSIGNED_GROUP_FILTER } from '@common/domain/group-filter';
 
 export interface PendingCount {
   projectId: string;
@@ -29,8 +28,6 @@ export interface ProjectWithVariants {
   id: string;
   name: string;
   createdAt: Date;
-  groupId: string | null;
-  groupName: string | null;
   teamId: string;
   teamName: string;
   isShared: boolean;
@@ -46,8 +43,6 @@ export interface ProjectPendingFlag {
   id: string;
   name: string;
   createdAt: Date;
-  groupId: string | null;
-  groupName: string | null;
   teamId: string;
   teamName: string;
   isShared: boolean;
@@ -86,10 +81,7 @@ export class ProjectReadRepository {
   ): Promise<ProjectWithVariants | null> {
     const project = await this.client.project.findUnique({
       where: { name: projectName },
-      include: {
-        group: { select: { id: true, name: true } },
-        team: { select: { id: true, name: true } },
-      },
+      include: { team: { select: { id: true, name: true } } },
     });
     if (!project) return null;
 
@@ -116,8 +108,6 @@ export class ProjectReadRepository {
       id: project.id,
       name: project.name,
       createdAt: project.createdAt,
-      groupId: project.group?.id ?? null,
-      groupName: project.group?.name ?? null,
       teamId: project.team.id,
       teamName: project.team.name,
       isShared: project.isShared,
@@ -132,19 +122,17 @@ export class ProjectReadRepository {
 
   async getAllWithPendingFlag(
     pagination: { skip: number; take: number } | undefined,
-    filters: { q?: string; groupId?: string } | undefined,
+    filters: { q?: string } | undefined,
     scope: ProjectScope,
   ): Promise<{
     data: ProjectPendingFlag[];
     total: number;
   }> {
-    // Server-side search + group filter: the project list pages through the
-    // result, so filtering client-side would only filter the current page.
+    // Server-side search: the project list pages through the result, so
+    // filtering client-side would only filter the current page.
     const where: Prisma.ProjectWhereInput = { ...projectIdFilter(scope) };
     const search = filters?.q?.trim();
     if (search) where.name = { contains: search, mode: 'insensitive' };
-    if (filters?.groupId === UNASSIGNED_GROUP_FILTER) where.groupId = null;
-    else if (filters?.groupId) where.groupId = filters.groupId;
 
     const [projects, total] = await Promise.all([
       this.client.project.findMany({
@@ -152,10 +140,7 @@ export class ProjectReadRepository {
         orderBy: { createdAt: 'desc' },
         skip: pagination?.skip,
         take: pagination?.take,
-        include: {
-          group: { select: { id: true, name: true } },
-          team: { select: { id: true, name: true } },
-        },
+        include: { team: { select: { id: true, name: true } } },
       }),
       this.client.project.count({ where }),
     ]);
@@ -168,7 +153,6 @@ export class ProjectReadRepository {
       name: string;
       createdAt: Date;
       isShared: boolean;
-      group: { id: string; name: string } | null;
       team: { id: string; name: string };
     }[],
   ): Promise<ProjectPendingFlag[]> {
@@ -191,8 +175,6 @@ export class ProjectReadRepository {
         id: project.id,
         name: project.name,
         createdAt: project.createdAt,
-        groupId: project.group?.id ?? null,
-        groupName: project.group?.name ?? null,
         teamId: project.team.id,
         teamName: project.team.name,
         isShared: project.isShared,
@@ -208,10 +190,7 @@ export class ProjectReadRepository {
   ): Promise<ProjectPendingFlag | null> {
     const project = await this.client.project.findUnique({
       where: { name: projectName },
-      include: {
-        group: { select: { id: true, name: true } },
-        team: { select: { id: true, name: true } },
-      },
+      include: { team: { select: { id: true, name: true } } },
     });
     if (!project) return null;
     const [summary] = await this.hydrateProjects([project]);

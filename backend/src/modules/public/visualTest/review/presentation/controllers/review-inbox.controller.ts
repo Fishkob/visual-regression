@@ -48,7 +48,6 @@ export class ReviewInboxController {
         branchName: branch,
         projectName: trimmedProject,
         kind: pagination.kind,
-        groupId: pagination.groupId,
         teamId: pagination.teamId,
         q: pagination.q?.trim(),
         runKey: pagination.runKey?.trim(),

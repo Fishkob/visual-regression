@@ -42,14 +42,35 @@ async function apiFetch(pathname: string, init: RequestInit = {}) {
   });
 }
 
-export async function createProject(
-  name: string,
-  groupId?: string,
-): Promise<Response> {
+// A project always has an owner (ADR-083), so the fixture creates (or reuses) a
+// team first. Every seeded run uses one fixture team; a spec that asserts the
+// owner builds its own through the teams page.
+const FIXTURE_TEAM = "e2e-fixture-team";
+
+async function ensureTeam(): Promise<void> {
+  const existing = await apiFetch("/teams");
+  const teams = existing.ok
+    ? ((await existing.json()) as { name: string }[])
+    : [];
+  if (teams.some((team) => team.name === FIXTURE_TEAM)) return;
+  await apiFetch("/teams", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: FIXTURE_TEAM }),
+  });
+}
+
+export async function createProject(name: string): Promise<Response> {
+  await ensureTeam();
+  const teams = await apiFetch("/teams");
+  const list = teams.ok
+    ? ((await teams.json()) as { id: string; name: string }[])
+    : [];
+  const teamId = list.find((team) => team.name === FIXTURE_TEAM)?.id;
   return apiFetch("/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, ...(groupId ? { groupId } : {}) }),
+    body: JSON.stringify({ name, teamId }),
   }).catch(() => {
     throw new Error(`Could not create project ${name}`);
   });
@@ -72,32 +93,6 @@ export async function deleteProject(name: string) {
   await apiFetch(`/projects/${encodeURIComponent(name)}`, {
     method: "DELETE",
   }).catch(() => {});
-}
-
-export async function createGroup(name: string): Promise<Response> {
-  return apiFetch("/groups", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
-  });
-}
-
-export async function deleteGroup(id: string) {
-  await apiFetch(`/groups/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  }).catch(() => {});
-}
-
-export async function getGroups(): Promise<
-  { id: string; name: string; projectCount: number }[]
-> {
-  const res = await apiFetch("/groups");
-  if (!res.ok) return [];
-  return (await res.json()) as {
-    id: string;
-    name: string;
-    projectCount: number;
-  }[];
 }
 
 export async function uploadScreenshot(

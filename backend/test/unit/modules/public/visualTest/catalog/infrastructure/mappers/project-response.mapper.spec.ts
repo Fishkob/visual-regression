@@ -19,8 +19,6 @@ describe('project-response.mapper', () => {
         id: 'proj-1',
         name: 'checkout-ui',
         createdAt,
-        groupId: 'group-1',
-        groupName: 'Checkout',
         teamId: 'team-1',
         teamName: 'Storefront',
         isShared: false,
@@ -34,8 +32,6 @@ describe('project-response.mapper', () => {
         id: 'proj-1',
         name: 'checkout-ui',
         createdAt,
-        groupId: 'group-1',
-        groupName: 'Checkout',
         teamId: 'team-1',
         teamName: 'Storefront',
         isShared: false,
@@ -45,13 +41,13 @@ describe('project-response.mapper', () => {
       });
     });
 
-    it('keeps an unassigned project unassigned', () => {
+    // Being shared is a flag on top of the owner (ADR-083), so the payload
+    // carries both instead of trading one for the other.
+    it('carries the owner next to the shared flag', () => {
       const dto = mapProjectSummaryToDto({
         id: 'proj-1',
         name: 'checkout-ui',
         createdAt: new Date('2024-01-01'),
-        groupId: null,
-        groupName: null,
         teamId: 'team-1',
         teamName: 'Storefront',
         isShared: true,
@@ -60,8 +56,9 @@ describe('project-response.mapper', () => {
         hasPendingComparisons: false,
       });
 
-      expect(dto.groupId).toBeNull();
-      expect(dto.groupName).toBeNull();
+      expect(dto.teamId).toBe('team-1');
+      expect(dto.teamName).toBe('Storefront');
+      expect(dto.isShared).toBe(true);
       expect(dto.pending).toBe(false);
     });
   });
@@ -74,6 +71,7 @@ describe('project-response.mapper', () => {
         id: 'proj-1',
         name: 'checkout-ui',
         createdAt,
+        teamId: 'team-1',
       });
 
       expect(dto).toBeInstanceOf(ProjectDto);
@@ -81,22 +79,12 @@ describe('project-response.mapper', () => {
         id: 'proj-1',
         name: 'checkout-ui',
         createdAt,
-        groupId: null,
+        teamId: 'team-1',
+        isShared: false,
       });
       expect(dto.pendingCount).toBeUndefined();
       expect(dto.testCount).toBeUndefined();
       expect(dto.pending).toBeUndefined();
-    });
-
-    it('keeps an assigned group id', () => {
-      const dto = mapProjectToDto({
-        id: 'proj-1',
-        name: 'checkout-ui',
-        createdAt: new Date('2024-01-01'),
-        groupId: 'group-1',
-      });
-
-      expect(dto.groupId).toBe('group-1');
     });
   });
 
@@ -109,8 +97,6 @@ describe('project-response.mapper', () => {
           id: 'proj-1',
           name: 'checkout-ui',
           createdAt,
-          groupId: 'group-1',
-          groupName: 'Checkout',
           teamId: 'team-1',
           teamName: 'Storefront',
           isShared: false,
@@ -150,10 +136,9 @@ describe('project-response.mapper', () => {
 
       expect(dto).toBeInstanceOf(ProjectDto);
       expect(dto.meta).toMatchObject({ page: 1, total: 1 });
-      expect(dto.groupId).toBe('group-1');
-      expect(dto.groupName).toBe('Checkout');
       expect(dto.teamId).toBe('team-1');
       expect(dto.teamName).toBe('Storefront');
+      expect(dto.isShared).toBe(false);
       expect(dto.filterOptions).toEqual({
         viewports: ['1920x1080'],
         browsers: ['chrome'],

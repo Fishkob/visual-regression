@@ -52,20 +52,17 @@ test.describe("ProjectSettings", () => {
     );
   });
 
-  test("shows both axes of the project's affiliation", async ({ mount }) => {
+  test("shows the owner and the visibility of the project", async ({
+    mount,
+  }) => {
     const component = await mount<typeof Routed>(
       "views/ProjectSettingsView/Routed",
       { initialRoute: SETTINGS_ROUTE },
     );
 
-    // The group is a navigation label and the team decides the access; the page
-    // that edits a project has to name both instead of leaving the group to the
-    // project list and the team to an admin-only corner.
-    await expect(
-      component.getByTestId(TEST_ID.projectAffiliationGroup),
-    ).toHaveText("Checkout");
-    // A project always has an owner now, and the flag says whether it is also
-    // readable by everyone (ADR-083) — the two are no longer one column.
+    // A project always has an owner, and the flag says whether it is also
+    // readable by everyone (ADR-083) — the two are not one column, and there is
+    // no third "group" axis left (ADR-084).
     await expect(component.getByTestId(TEST_ID.projectTeamCurrent)).toHaveText(
       "Checkout",
     );

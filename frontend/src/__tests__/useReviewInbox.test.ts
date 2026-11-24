@@ -76,6 +76,9 @@ describe("useReviewInboxCountQuery", () => {
 const inboxItem = (comparisonId: string): ReviewInboxItem => ({
   comparisonId,
   projectName: "p",
+  teamId: "t-1",
+  teamName: "Storefront",
+  isShared: false,
   testName: "t",
   kind: "image",
   branchName: "main",

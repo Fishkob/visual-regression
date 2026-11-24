@@ -33,7 +33,8 @@ describe('ReviewInboxRepository', () => {
           project: {
             name: 'checkout-ui',
             defaultBranchId: 'br-main',
-            group: { id: 'g-1', name: 'Shop' },
+            isShared: false,
+            team: { id: 't-1', name: 'Storefront' },
           },
         },
       },
@@ -81,8 +82,9 @@ describe('ReviewInboxRepository', () => {
     expect(result.data[0]).toEqual({
       comparisonId: 'cmp-1',
       projectName: 'checkout-ui',
-      groupId: 'g-1',
-      groupName: 'Shop',
+      teamId: 't-1',
+      teamName: 'Storefront',
+      isShared: false,
       testName: 'login',
       kind: 'image',
       branchName: 'feature/x',
@@ -113,7 +115,8 @@ describe('ReviewInboxRepository', () => {
             project: {
               name: 'checkout-ui',
               defaultBranchId: 'br-main',
-              group: null,
+              isShared: true,
+              team: { id: 't-1', name: 'Storefront' },
             },
           },
         },
@@ -133,8 +136,9 @@ describe('ReviewInboxRepository', () => {
     expect(result.data[0]).toMatchObject({
       branchName: 'main',
       isDefaultBranch: true,
-      groupId: null,
-      groupName: null,
+      teamId: 't-1',
+      teamName: 'Storefront',
+      isShared: true,
       projectPendingCount: 1,
       projectBranchCount: 1,
     });
@@ -218,13 +222,13 @@ describe('ReviewInboxRepository', () => {
     expect(sql).toContain('b."isArchived" = false');
   });
 
-  it('applies the kind, group and search filters to the same query', async () => {
+  it('applies the kind, team and search filters to the same query', async () => {
     mockClient.unifiedComparison.findMany.mockResolvedValue([]);
     mockClient.unifiedComparison.count.mockResolvedValue(0);
 
     await repository.findPending(
       undefined,
-      { kind: 'pdf', groupId: 'unassigned', q: 'login' },
+      { kind: 'pdf', teamId: 't1', q: 'login' },
       ALL_PROJECTS,
     );
 
@@ -233,7 +237,7 @@ describe('ReviewInboxRepository', () => {
         where: {
           status: 'PENDING_APPROVAL',
           test: expect.objectContaining({
-            branch: { isArchived: false, project: { groupId: null } },
+            branch: { isArchived: false, project: { teamId: 't1' } },
             kind: 'pdf',
             OR: [
               { name: { contains: 'login', mode: 'insensitive' } },

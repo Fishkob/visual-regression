@@ -99,7 +99,7 @@ export class ProjectsController {
   ) {
     return this.projectService.getAllWithPendingFlag(
       query,
-      { q: query.q, groupId: query.groupId },
+      { q: query.q },
       requireProjectScope(req),
     );
   }
@@ -162,7 +162,7 @@ export class ProjectsController {
 
   @Scope('admin')
   @Patch(':projectName')
-  @ApiOperation({ summary: 'Move a project to another group' })
+  @ApiOperation({ summary: "Set the project's default branch" })
   @ProjectScoped()
   @ApiOkResponse({ type: ProjectDto })
   async updateProject(
@@ -177,7 +177,10 @@ export class ProjectsController {
         requireActor(req),
       );
     }
-    return this.projectService.updateProjectGroup(dto.name ?? projectName, dto);
+    return this.projectService.updateDefaultBranch(
+      dto.name ?? projectName,
+      dto,
+    );
   }
 
   @Roles('ADMIN')

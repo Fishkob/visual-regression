@@ -1,12 +1,3 @@
-model ProjectGroup {
-  id        String    @id @default(cuid())
-  name      String    @unique
-  createdAt DateTime  @default(now())
-  projects  Project[]
-
-  @@map("ProjectGroup")
-}
-
 // An owner of Projects and the set of Users who may see them (ADR-082). Every
 // project has exactly one owner (ADR-083): `Project.teamId` is required, so a
 // project cannot be written without one and "who is responsible" is answerable
@@ -41,8 +32,6 @@ model Project {
   id                     String             @id @default(cuid())
   name                   String             @unique
   createdAt              DateTime           @default(now())
-  groupId                String?
-  group                  ProjectGroup?      @relation(fields: [groupId], references: [id], onDelete: SetNull)
   teamId                 String
   // `Restrict`, not `SetNull`: a cascade would silently turn a team's products
   // into an unowned set, which is a state that does not exist (ADR-083).
@@ -81,7 +70,6 @@ model Project {
   assignments            ReviewAssignment[]
   shareLinks             ShareLink[]
 
-  @@index([groupId])
   @@index([teamId])
   // Trigram index for the case-insensitive substring search (project list,
   // global search): `ILIKE '%q%'` cannot use a btree, so without it every search

@@ -37,10 +37,6 @@ export type ReviewInboxControllerGetPendingData = {
          */
         kind?: 'image' | 'pdf';
         /**
-         * Group id, or "unassigned" for projects without a group
-         */
-        groupId?: string;
-        /**
          * Team id: only the projects this team owns. An id outside the caller’s scope matches nothing.
          */
         teamId?: string;

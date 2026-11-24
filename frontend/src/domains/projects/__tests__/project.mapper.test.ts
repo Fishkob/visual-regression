@@ -101,21 +101,14 @@ describe("mapProject", () => {
     ).toBe(0);
   });
 
-  it("maps group and counts", () => {
+  it("maps the counts", () => {
     const result = mapProject({
       id: "1",
       name: "p",
-      groupId: "g1",
-      groupName: "Checkout",
       pendingCount: 2,
       testCount: 5,
     });
-    expect(result).toMatchObject({
-      groupId: "g1",
-      groupName: "Checkout",
-      pendingCount: 2,
-      testCount: 5,
-    });
+    expect(result).toMatchObject({ pendingCount: 2, testCount: 5 });
   });
 
   it("maps the owning team and the visibility flag", () => {

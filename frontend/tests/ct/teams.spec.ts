@@ -11,6 +11,7 @@ import {
   USERS_ONE_RESPONSE,
   USERS_RESPONSE,
 } from "./mocks/users.mocks";
+import { PROJECTS_OWNERS_RESPONSE } from "./mocks/projects.mocks";
 import type { Routed } from "../../src/views/TeamsView.story";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -75,9 +76,10 @@ test.describe("Teams", () => {
     });
 
     await expect(component).toContainText("No teams yet");
-    // The page has to say what "no team" means, not only what a team is.
+    // The page has to say what ownership means, not only what a team is: every
+    // project has exactly one owner (ADR-083).
     await expect(component).toContainText(
-      "without a team it stays visible to every signed-in person",
+      "Every project has exactly one owning team",
     );
   });
 
@@ -318,5 +320,69 @@ test.describe("Teams", () => {
       "Only one account",
     );
     await expect(page.getByTestId(TEST_ID.teamMembersSubmit)).toBeDisabled();
+  });
+
+  // ADR-084 decision 5: the Teams page is where a team's projects are read and
+  // changed. "Remove" cannot mean "unassign" — a project always has an owner —
+  // so it hands the project to another team in the same write the settings page
+  // uses.
+  test("hands a project to another team from the Teams page", async ({
+    mount,
+    page,
+  }) => {
+    await mockGet(page, TEAMS_GLOB, TEAMS_RESPONSE);
+    await mockGet(page, USERS_GLOB, USERS_RESPONSE);
+    const projects = JSON.parse(PROJECTS_OWNERS_RESPONSE.body) as {
+      data: Array<{ name: string; teamId: string; teamName: string }>;
+    };
+    await page.route("**/api/v1/projects/pending*", async (route) => {
+      await route.fulfill(json(projects));
+    });
+    let patched: unknown;
+    await page.route("**/api/v1/projects/*/team", async (route) => {
+      patched = route.request().postDataJSON();
+      const body = patched as { teamId: string };
+      const moved = projects.data.find(
+        (entry) => entry.name === "design-system",
+      );
+      if (moved) {
+        moved.teamId = body.teamId;
+        moved.teamName =
+          body.teamId === "team-checkout" ? "Checkout" : "Platform";
+      }
+      await route.fulfill(
+        json({
+          projectId: "p-2",
+          projectName: "design-system",
+          teamId: body.teamId,
+          teamName: moved?.teamName ?? "Checkout",
+        }),
+      );
+    });
+
+    const component = await mount<typeof Routed>("views/TeamsView/Routed", {
+      initialRoute: TEAMS_ROUTE,
+    });
+    const checkout = component
+      .getByTestId(TEST_ID.teamRow)
+      .filter({ hasText: "Checkout" });
+
+    await checkout.getByTestId(TEST_ID.teamProjectsManage).click();
+    const dialog = page.getByTestId(TEST_ID.teamProjectsDialog);
+    await expect(dialog).toBeVisible();
+    // The dialog reads the projects and lists the team's own, so the project it
+    // already owns is not offered as a candidate to take over.
+    await expect(dialog.getByTestId(TEST_ID.teamProjectsCurrent)).toContainText(
+      "checkout-ui",
+    );
+
+    await page.getByTestId(TEST_ID.teamProjectsAddSelect).click();
+    await expect(page.getByRole("option", { name: "checkout-ui" })).toHaveCount(
+      0,
+    );
+    await page.getByRole("option", { name: "design-system" }).click();
+    await page.getByTestId(TEST_ID.teamProjectsAddSubmit).click();
+
+    await expect.poll(() => patched).toEqual({ teamId: "team-checkout" });
   });
 });

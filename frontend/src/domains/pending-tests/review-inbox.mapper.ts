@@ -10,8 +10,9 @@ export function mapReviewInboxItem(dto: PendingReviewDto): ReviewInboxItem {
   return {
     comparisonId: dto.comparisonId,
     projectName: dto.projectName,
-    groupId: dto.groupId ?? null,
-    groupName: dto.groupName ?? null,
+    teamId: dto.teamId ?? "",
+    teamName: dto.teamName ?? "",
+    isShared: dto.isShared === true,
     testName: dto.testName,
     kind: toKind(dto.kind),
     branchName: dto.branchName,

@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/vue-query";
 import { branchQueryKeys } from "@/domains/branches/query-keys";
 import { projectQueryKeys } from "@/domains/projects/query-keys";
-import { groupQueryKeys } from "@/domains/groups/query-keys";
+import { teamQueryKeys } from "@/domains/teams/query-keys";
 import {
   pendingTestQueryKeys,
   reviewInboxQueryKeys,
@@ -107,8 +107,11 @@ export function invalidateReviewInbox(client: QueryClient) {
   client.invalidateQueries({ queryKey: reviewInboxQueryKeys.all() });
 }
 
-export function invalidateProjectsForGroupChange(client: QueryClient) {
-  client.invalidateQueries({ queryKey: groupQueryKeys.all() });
+// Creating or moving a project changes its owner, and the owner is what both
+// lists section by (ADR-084) — so the projects, the inbox and the teams read
+// (which carries each team's project names) age out together.
+export function invalidateProjectsForAssignmentChange(client: QueryClient) {
+  client.invalidateQueries({ queryKey: teamQueryKeys.all() });
   invalidateProjectList(client);
 }
 
@@ -183,14 +186,6 @@ export function invalidateAfterBulkApprove(client: QueryClient) {
   client.invalidateQueries({ queryKey: branchQueryKeys.all() });
   client.invalidateQueries({ queryKey: approvalQueryKeys.all() });
   client.invalidateQueries({ queryKey: runsQueryKeys.all() });
-}
-
-// Moving projects between groups changes each project's group name (and the
-// inbox's group sections), but not the groups themselves.
-export function invalidateAfterBulkMove(client: QueryClient) {
-  client.invalidateQueries({ queryKey: projectQueryKeys.all() });
-  client.invalidateQueries({ queryKey: groupQueryKeys.all() });
-  invalidateReviewInbox(client);
 }
 
 // A rename changes the project's address, and that address is part of nearly

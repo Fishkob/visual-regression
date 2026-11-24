@@ -57,7 +57,7 @@ pnpm run dev:frontend   # Frontend on :5173
 ## Seeding demo data
 
 `./scripts/dev.sh seed` runs four seeders: a demo set (projects, tests, variants,
-groups, CI runs and feature branches), the e2e fixtures, a dev project, and the
+CI runs and feature branches), the e2e fixtures, a dev project, and the
 multi-team demo. The first three talk to the authenticated REST API; the fourth
 writes users, teams and project ownership straight into the database
 ([why](#multi-team-demo-data)). `./install.sh --seed` runs the same four from the
@@ -97,24 +97,22 @@ the review UI does.
 distinguishes ([ADR-082](adr/ADR-082-team-scoped-project-access.md)): a project of
 your own team, a project of another team, and a **shared** one.
 
-| Team       | Owns           | Member             |
-| ---------- | -------------- | ------------------ |
-| Storefront | `checkout-ui`  | `storefront-lead`  |
-| Backoffice | `dashboard-ui` | `backoffice-lead`  |
-| — shared   | `admin-ui`     | everyone signed in |
+| Team       | Owns           | Member                           |
+| ---------- | -------------- | -------------------------------- |
+| Storefront | `checkout-ui`  | `storefront-lead`                |
+| Backoffice | `dashboard-ui` | `backoffice-lead`                |
+| general    | `admin-ui`     | everyone signed in (shared flag) |
 
-`demo-viewer` (VIEWER) belongs to no team and therefore sees only the shared
-project. The three demo logins use the published password from `DEMO_USER_PASSWORD`
+`demo-viewer` (VIEWER) belongs to no team and therefore sees only the project that
+the shared flag publishes (`admin-ui`). The three demo logins use the published password from `DEMO_USER_PASSWORD`
 (`demo-password`; `SEED_DEMO_USER_PASSWORD` overrides it) and are ordinary
 accounts — no forced password change, so a demo can log in again after a re-seed.
-`admin-ui` keeps its `Internal tools` group membership on purpose: a group is
-navigation, so a folder may hold a shared project next to a team-owned one. The
-demo groups are named `Customer-facing` and `Internal tools` — deliberately not
-like the teams, because a group is a folder and the two must not read as one
-concept. The fixtures
+Every demo project has an owner, and `admin-ui` is published on top of its owner
+(`general`), which is the state the project list and the inbox section headers
+show. The fixtures
 are `DEMO_USERS`, `DEMO_TEAMS` and `DEMO_SHARED_PROJECTS` in
 [`fixtures.ts`](../backend/src/scripts/seeds/fixtures.ts); `buildTeamPlan` refuses
-a set that leaves a demo project neither owned nor shared.
+a set that leaves a demo project without an owner.
 
 Unlike the other three, this seeder does not use the REST API: user and team
 administration is session-only and `ADMIN`-only by design, and a seeder must not

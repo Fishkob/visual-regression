@@ -99,16 +99,6 @@ import type { PdfControllerGetPdfTestDetailsData } from './models/PdfControllerG
 import type { PdfControllerGetPdfTestDetailsResponses } from './models/PdfControllerGetPdfTestDetailsResponses.gen';
 import type { PdfControllerRenderPdfPageData } from './models/PdfControllerRenderPdfPageData.gen';
 import type { PdfControllerRenderPdfPageResponses } from './models/PdfControllerRenderPdfPageResponses.gen';
-import type { ProjectGroupsControllerCreateData } from './models/ProjectGroupsControllerCreateData.gen';
-import type { ProjectGroupsControllerCreateResponses } from './models/ProjectGroupsControllerCreateResponses.gen';
-import type { ProjectGroupsControllerFindAllData } from './models/ProjectGroupsControllerFindAllData.gen';
-import type { ProjectGroupsControllerFindAllResponses } from './models/ProjectGroupsControllerFindAllResponses.gen';
-import type { ProjectGroupsControllerRemoveData } from './models/ProjectGroupsControllerRemoveData.gen';
-import type { ProjectGroupsControllerRemoveResponses } from './models/ProjectGroupsControllerRemoveResponses.gen';
-import type { ProjectGroupsControllerRenameData } from './models/ProjectGroupsControllerRenameData.gen';
-import type { ProjectGroupsControllerRenameResponses } from './models/ProjectGroupsControllerRenameResponses.gen';
-import type { ProjectsBulkControllerMoveData } from './models/ProjectsBulkControllerMoveData.gen';
-import type { ProjectsBulkControllerMoveResponses } from './models/ProjectsBulkControllerMoveResponses.gen';
 import type { ProjectsControllerCreateData } from './models/ProjectsControllerCreateData.gen';
 import type { ProjectsControllerCreateErrors } from './models/ProjectsControllerCreateErrors.gen';
 import type { ProjectsControllerCreateResponses } from './models/ProjectsControllerCreateResponses.gen';
@@ -319,7 +309,7 @@ export const projectsControllerGetOneProject = <ThrowOnError extends boolean = f
 });
 
 /**
- * Move a project to another group
+ * Set the project's default branch
  */
 export const projectsControllerUpdateProject = <ThrowOnError extends boolean = false>(options: Options<ProjectsControllerUpdateProjectData, ThrowOnError>): RequestResult<ProjectsControllerUpdateProjectResponses, unknown, ThrowOnError> => (options.client ?? client).patch<ProjectsControllerUpdateProjectResponses, unknown, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],
@@ -376,50 +366,6 @@ export const projectVisibilityControllerUpdate = <ThrowOnError extends boolean =
             type: 'apiKey'
         }],
     url: '/projects/{projectName}/visibility',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List project groups
- */
-export const projectGroupsControllerFindAll = <ThrowOnError extends boolean = false>(options?: Options<ProjectGroupsControllerFindAllData, ThrowOnError>): RequestResult<ProjectGroupsControllerFindAllResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ProjectGroupsControllerFindAllResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/groups',
-    ...options
-});
-
-/**
- * Create a project group
- */
-export const projectGroupsControllerCreate = <ThrowOnError extends boolean = false>(options: Options<ProjectGroupsControllerCreateData, ThrowOnError>): RequestResult<ProjectGroupsControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<ProjectGroupsControllerCreateResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/groups',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Delete a project group
- */
-export const projectGroupsControllerRemove = <ThrowOnError extends boolean = false>(options: Options<ProjectGroupsControllerRemoveData, ThrowOnError>): RequestResult<ProjectGroupsControllerRemoveResponses, unknown, ThrowOnError> => (options.client ?? client).delete<ProjectGroupsControllerRemoveResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/groups/{id}',
-    ...options
-});
-
-/**
- * Rename a project group
- */
-export const projectGroupsControllerRename = <ThrowOnError extends boolean = false>(options: Options<ProjectGroupsControllerRenameData, ThrowOnError>): RequestResult<ProjectGroupsControllerRenameResponses, unknown, ThrowOnError> => (options.client ?? client).patch<ProjectGroupsControllerRenameResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/groups/{id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -702,19 +648,6 @@ export const bulkActionsControllerApprove = <ThrowOnError extends boolean = fals
 export const bulkActionsControllerDeleteTests = <ThrowOnError extends boolean = false>(options: Options<BulkActionsControllerDeleteTestsData, ThrowOnError>): RequestResult<BulkActionsControllerDeleteTestsResponses, unknown, ThrowOnError> => (options.client ?? client).post<BulkActionsControllerDeleteTestsResponses, unknown, ThrowOnError>({
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/projects/{projectName}/bulk/test-deletions',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Move up to 100 projects into a group (null clears the group)
- */
-export const projectsBulkControllerMove = <ThrowOnError extends boolean = false>(options: Options<ProjectsBulkControllerMoveData, ThrowOnError>): RequestResult<ProjectsBulkControllerMoveResponses, unknown, ThrowOnError> => (options.client ?? client).patch<ProjectsBulkControllerMoveResponses, unknown, ThrowOnError>({
-    security: [{ name: 'x-api-key', type: 'apiKey' }],
-    url: '/projects/bulk/group',
     ...options,
     headers: {
         'Content-Type': 'application/json',

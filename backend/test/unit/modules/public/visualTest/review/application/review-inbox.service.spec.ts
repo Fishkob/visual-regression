@@ -31,8 +31,9 @@ describe('ReviewInboxService', () => {
         {
           comparisonId: 'c1',
           projectName: 'checkout-ui',
-          groupId: 'g1',
-          groupName: 'Checkout',
+          teamId: 't1',
+          teamName: 'Storefront',
+          isShared: false,
           testName: 'login',
           kind: 'image',
           branchName: 'feature/x',
@@ -62,7 +63,8 @@ describe('ReviewInboxService', () => {
     expect(result.data[0]).toMatchObject({
       comparisonId: 'c1',
       projectName: 'checkout-ui',
-      groupName: 'Checkout',
+      teamName: 'Storefront',
+      isShared: false,
       testName: 'login',
       branchName: 'feature/x',
       runKey: null,

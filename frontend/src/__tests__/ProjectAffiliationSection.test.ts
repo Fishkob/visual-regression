@@ -42,7 +42,6 @@ const TEAMS_RESPONSE = [
 ];
 
 function mountSection(props: {
-  groupName?: string | null;
   teamId?: string;
   teamName?: string;
   isShared?: boolean;
@@ -54,7 +53,6 @@ function mountSection(props: {
   return mount(ProjectAffiliationSection, {
     props: {
       projectName: "checkout-ui",
-      groupName: "Customer-facing",
       teamId: "team-storefront",
       teamName: "Storefront",
       isShared: false,
@@ -88,12 +86,9 @@ describe("ProjectAffiliationSection", () => {
   // The point of the section: a MEMBER sees both axes without a second read.
   // The team list is an ADMIN route, so asking for it would answer 403 and paint
   // an error into a panel that has nothing to fix.
-  it("shows both axes to a member without reading the admin team list", async () => {
+  it("shows the owner to a member without reading the admin team list", async () => {
     const wrapper = mountSection({});
 
-    expect(
-      wrapper.get(`[data-testid="${TEST_ID.projectAffiliationGroup}"]`).text(),
-    ).toBe("Customer-facing");
     expect(
       wrapper.get(`[data-testid="${TEST_ID.projectTeamCurrent}"]`).text(),
     ).toBe("Storefront");

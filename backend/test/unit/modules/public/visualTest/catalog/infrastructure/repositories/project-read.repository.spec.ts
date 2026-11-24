@@ -73,7 +73,6 @@ describe('ProjectReadRepository', () => {
       name: 'my-project',
       createdAt: new Date(),
       isShared: false,
-      group: null,
       team: { id: 't1', name: 'Storefront' },
     };
 
@@ -108,8 +107,6 @@ describe('ProjectReadRepository', () => {
         id: 'proj-1',
         name: 'my-project',
         createdAt: project.createdAt,
-        groupId: null,
-        groupName: null,
         teamId: 't1',
         teamName: 'Storefront',
         isShared: false,
@@ -179,10 +176,10 @@ describe('ProjectReadRepository', () => {
     // Both labels are read by the project read, so a project that carries a
     // group and a team answers "where does this belong" and "who may see it" in
     // one payload (ADR-082 amendment: naming the owner is not administering it).
-    it('carries the owning group and team', async () => {
+    it('carries the owning team and the shared flag', async () => {
       mockClient.project.findUnique.mockResolvedValue({
         ...project,
-        group: { id: 'g1', name: 'Checkout' },
+        isShared: true,
         team: { id: 't1', name: 'Storefront' },
       });
 
@@ -190,10 +187,9 @@ describe('ProjectReadRepository', () => {
         await repository.getWithLatestVariantStatuses('my-project');
 
       expect(result).toMatchObject({
-        groupId: 'g1',
-        groupName: 'Checkout',
         teamId: 't1',
         teamName: 'Storefront',
+        isShared: true,
       });
       expect(mockClient.project.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -213,7 +209,6 @@ describe('ProjectReadRepository', () => {
           name: 'a',
           createdAt: new Date(),
           isShared: false,
-          group: { id: 'g1', name: 'Checkout' },
           team: { id: 't1', name: 'Storefront' },
         },
         {
@@ -221,7 +216,6 @@ describe('ProjectReadRepository', () => {
           name: 'b',
           createdAt: new Date(),
           isShared: true,
-          group: null,
           team: { id: 't1', name: 'Storefront' },
         },
       ]);
@@ -243,8 +237,6 @@ describe('ProjectReadRepository', () => {
 
       expect(result.data[0]).toMatchObject({
         id: 'proj-1',
-        groupId: 'g1',
-        groupName: 'Checkout',
         teamId: 't1',
         teamName: 'Storefront',
         isShared: false,
@@ -254,8 +246,6 @@ describe('ProjectReadRepository', () => {
       });
       expect(result.data[1]).toMatchObject({
         id: 'proj-2',
-        groupId: null,
-        groupName: null,
         teamId: 't1',
         teamName: 'Storefront',
         isShared: true,
@@ -268,10 +258,7 @@ describe('ProjectReadRepository', () => {
         orderBy: { createdAt: 'desc' },
         skip: undefined,
         take: undefined,
-        include: {
-          group: { select: { id: true, name: true } },
-          team: { select: { id: true, name: true } },
-        },
+        include: { team: { select: { id: true, name: true } } },
       });
     });
 
@@ -304,10 +291,7 @@ describe('ProjectReadRepository', () => {
         orderBy: { createdAt: 'desc' },
         skip: 5,
         take: 5,
-        include: {
-          group: { select: { id: true, name: true } },
-          team: { select: { id: true, name: true } },
-        },
+        include: { team: { select: { id: true, name: true } } },
       });
     });
 
@@ -330,29 +314,23 @@ describe('ProjectReadRepository', () => {
       });
     });
 
-    it('applies the search and group filters in the query, not client-side', async () => {
+    it('applies the search filter in the query, not client-side', async () => {
       mockClient.project.findMany.mockResolvedValue([]);
       mockClient.project.count.mockResolvedValue(0);
 
       await repository.getAllWithPendingFlag(
         undefined,
-        { q: '  checkout  ', groupId: 'unassigned' },
+        { q: '  checkout  ' },
         ALL_PROJECTS,
       );
 
-      const where = {
-        name: { contains: 'checkout', mode: 'insensitive' },
-        groupId: null,
-      };
+      const where = { name: { contains: 'checkout', mode: 'insensitive' } };
       expect(mockClient.project.findMany).toHaveBeenCalledWith({
         where,
         orderBy: { createdAt: 'desc' },
         skip: undefined,
         take: undefined,
-        include: {
-          group: { select: { id: true, name: true } },
-          team: { select: { id: true, name: true } },
-        },
+        include: { team: { select: { id: true, name: true } } },
       });
       expect(mockClient.project.count).toHaveBeenCalledWith({ where });
     });

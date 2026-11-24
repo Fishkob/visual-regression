@@ -2,7 +2,6 @@
 
 export type CreateProjectDto = {
     name: string;
-    groupId?: string;
     /**
      * The team that will own the project. Omitted: the creator’s first team.
      */

@@ -2,7 +2,6 @@
 import { computed, ref, watch } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import {
-  Folder,
   Inbox,
   KeyRound,
   LayoutGrid,
@@ -48,9 +47,6 @@ const { isAdmin } = useCurrentRole();
 const onInbox = computed(() => route.name === "review-inbox");
 const onProjects = computed(
   () => route.path === "/projects" || route.path.startsWith("/projects/"),
-);
-const onGroups = computed(
-  () => route.path === "/groups" || route.path.startsWith("/groups/"),
 );
 const onTeams = computed(() => route.path === "/teams");
 const onApiKeys = computed(() => route.path === "/api-keys");
@@ -174,26 +170,9 @@ const pending = computed(() => pendingCount.value ?? 0);
         }}</span>
       </RouterLink>
 
-      <RouterLink
-        to="/groups"
-        class="flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-        :class="[
-          { 'bg-muted text-foreground': onGroups },
-          collapsed ? 'md:justify-center md:px-0' : '',
-        ]"
-        :aria-current="onGroups ? 'page' : undefined"
-        :aria-label="collapsed ? t('nav.groups') : undefined"
-        :title="collapsed ? t('nav.groups') : undefined"
-        :data-testid="TEST_ID.navGroups"
-      >
-        <Folder class="h-4 w-4 shrink-0" />
-        <span :class="collapsed ? 'md:hidden' : ''">{{ t("nav.groups") }}</span>
-      </RouterLink>
-
       <!-- The daily surfaces sit above this line, everything that governs the
-      installation below it. Groups stay up top because a MEMBER maintains them,
-      while the team pages are ADMIN-only; side by side the two read as one
-      concept, which is what the axis badges on their pages have to undo. -->
+      installation below it. Teams are the one project axis (ADR-084), and they
+      are administered by an ADMIN, so they belong below the line. -->
       <div
         v-if="isAdmin"
         class="mt-2 space-y-1 border-t pt-2"

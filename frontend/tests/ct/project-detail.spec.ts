@@ -6,7 +6,6 @@ import {
   PROJECT_CHECKOUT_UI_RESPONSE,
   PROJECT_EMPTY_RESPONSE,
 } from "./mocks/projects.mocks";
-import { GROUPS_RESPONSE } from "./mocks/groups.mocks";
 import type { Routed } from "../../src/views/ProjectDetailView.story";
 import { TEST_ID } from "@/lib/test-ids";
 
@@ -93,7 +92,6 @@ test.describe("ProjectDetail", () => {
   test("shows details", async ({ mount, page }) => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
@@ -103,7 +101,9 @@ test.describe("ProjectDetail", () => {
     );
 
     await expect(component).toContainText("checkout-ui");
-    await expect(component.getByTestId(TEST_ID.breadcrumbGroup)).toHaveText(
+    // The owner is named in the header: naming it is not administering it, and
+    // it is the answer to "why do I see this project" (ADR-083).
+    await expect(component.getByTestId(TEST_ID.projectTeamBadge)).toHaveText(
       "Checkout",
     );
     await expect(component.getByTestId(TEST_ID.tableRow)).toHaveCount(9);
@@ -112,7 +112,6 @@ test.describe("ProjectDetail", () => {
   test("opens the clicked variant from a test row", async ({ mount, page }) => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
@@ -138,7 +137,6 @@ test.describe("ProjectDetail", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
@@ -160,7 +158,6 @@ test.describe("ProjectDetail", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
@@ -172,7 +169,7 @@ test.describe("ProjectDetail", () => {
     await expect(component.getByTestId(TEST_ID.projectTitle)).toHaveText(
       "checkout-ui",
     );
-    await expect(component.getByTestId(TEST_ID.projectGroupBadge)).toHaveText(
+    await expect(component.getByTestId(TEST_ID.projectTeamBadge)).toHaveText(
       "Checkout",
     );
     await expect(
@@ -183,93 +180,8 @@ test.describe("ProjectDetail", () => {
     );
   });
 
-  test("moves a project to unassigned", async ({ mount, page }) => {
-    const unassignedProject = {
-      ...(JSON.parse(PROJECT_CHECKOUT_UI_RESPONSE.body) as Record<
-        string,
-        unknown
-      >),
-      groupId: null,
-      groupName: null,
-    };
-
-    await page.route("**/api/v1/projects/checkout-ui*", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body:
-          route.request().method() === "PATCH"
-            ? JSON.stringify(unassignedProject)
-            : PROJECT_CHECKOUT_UI_RESPONSE.body,
-      });
-    });
-    await mockApi(page, [["**/api/v1/groups", GROUPS_RESPONSE]]);
-
-    const component = await mount<typeof Routed>(
-      "views/ProjectDetailView/Routed",
-      { initialRoute: "/projects/checkout-ui" },
-    );
-
-    await component.getByTestId(TEST_ID.moveProject).click();
-    await page.getByTestId(TEST_ID.moveProjectSelect).click();
-    await page.getByRole("option", { name: "Unassigned" }).click();
-
-    const moveRequest = page.waitForRequest(
-      (request) =>
-        request.method() === "PATCH" &&
-        new URL(request.url()).pathname === "/api/v1/projects/checkout-ui",
-    );
-    await page.getByTestId(TEST_ID.moveProjectSubmit).click();
-
-    expect((await moveRequest).postDataJSON()).toEqual({ groupId: null });
-    await expect(page.getByTestId(TEST_ID.moveProjectSelect)).not.toBeVisible();
-  });
-
-  test("moves a project to the checkout group", async ({ mount, page }) => {
-    const checkoutProject = {
-      ...(JSON.parse(PROJECT_CHECKOUT_UI_RESPONSE.body) as Record<
-        string,
-        unknown
-      >),
-      groupId: "g1",
-      groupName: "Checkout",
-    };
-
-    await page.route("**/api/v1/projects/checkout-ui*", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body:
-          route.request().method() === "PATCH"
-            ? JSON.stringify(checkoutProject)
-            : PROJECT_CHECKOUT_UI_RESPONSE.body,
-      });
-    });
-    await mockApi(page, [["**/api/v1/groups", GROUPS_RESPONSE]]);
-
-    const component = await mount<typeof Routed>(
-      "views/ProjectDetailView/Routed",
-      { initialRoute: "/projects/checkout-ui" },
-    );
-
-    await component.getByTestId(TEST_ID.moveProject).click();
-    await page.getByTestId(TEST_ID.moveProjectSelect).click();
-    await page.getByRole("option", { name: "Checkout" }).click();
-
-    const moveRequest = page.waitForRequest(
-      (request) =>
-        request.method() === "PATCH" &&
-        new URL(request.url()).pathname === "/api/v1/projects/checkout-ui",
-    );
-    await page.getByTestId(TEST_ID.moveProjectSubmit).click();
-
-    expect((await moveRequest).postDataJSON()).toEqual({ groupId: "g1" });
-    await expect(page.getByTestId(TEST_ID.moveProjectSelect)).not.toBeVisible();
-  });
-
   test("filters by viewport and reset", async ({ mount, page }) => {
     await mockApi(page, [
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
     await mockProjectFilters(page);
@@ -296,7 +208,6 @@ test.describe("ProjectDetail", () => {
     page,
   }) => {
     await mockApi(page, [
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
     await mockProjectFilters(page);
@@ -325,7 +236,6 @@ test.describe("ProjectDetail", () => {
 
   test("filters by search", async ({ mount, page }) => {
     await mockApi(page, [
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
     await mockProjectFilters(page);
@@ -347,7 +257,6 @@ test.describe("ProjectDetail", () => {
     page,
   }) => {
     await mockApi(page, [
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
     await mockProjectFilters(page);
@@ -370,7 +279,6 @@ test.describe("ProjectDetail", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui*", PROJECT_EMPTY_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
@@ -391,7 +299,6 @@ test.describe("ProjectDetail", () => {
         "**/api/v1/projects/checkout-ui*",
         { status: 500, contentType: "application/json", body: "{}" },
       ],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
@@ -419,7 +326,6 @@ test.describe("ProjectDetail branch switcher", () => {
     // happened, otherwise this test would pass on branch-list data alone.
     const branchReads: Array<string | null> = [];
     await mockApi(page, [
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
     await page.route("**/api/v1/projects/checkout-ui*", async (route) => {
@@ -458,7 +364,6 @@ test.describe("ProjectDetail branch switcher", () => {
     await mockApi(page, [
       // The deep link carries the branch, so the project read has a query.
       ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
@@ -487,7 +392,6 @@ test.describe("ProjectDetail branch switcher", () => {
     const calls: string[] = [];
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
     // Registered after mockApi, so it wins for the writes while the list read
@@ -536,7 +440,6 @@ test.describe("ProjectDetail row actions", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
@@ -570,7 +473,6 @@ test.describe("ProjectDetail row actions", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_BRANCH_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 
@@ -598,7 +500,6 @@ test.describe("ProjectDetail bulk delete", () => {
   }) => {
     await mockApi(page, [
       ["**/api/v1/projects/checkout-ui*", PROJECT_CHECKOUT_UI_RESPONSE],
-      ["**/api/v1/groups", GROUPS_RESPONSE],
       ["**/api/v1/projects/*/branches*", BRANCHES_RESPONSE],
     ]);
 

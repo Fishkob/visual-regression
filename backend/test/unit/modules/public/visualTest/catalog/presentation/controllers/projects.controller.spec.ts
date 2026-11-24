@@ -128,29 +128,30 @@ describe('ProjectsController', () => {
   });
 
   describe('updateProject', () => {
-    it('moves a project to a group and returns group fields', async () => {
-      const dto: UpdateProjectDto = { groupId: 'group-1' };
-      const expected = {
-        id: 'proj-1',
-        name: 'checkout-ui',
-        createdAt: new Date(),
-        groupId: 'group-1',
-        groupName: 'Checkout',
-        pendingCount: 3,
-        testCount: 4,
-        pending: true,
+    it('renames, then applies the rest of the patch under the new name', async () => {
+      const dto: UpdateProjectDto = {
+        name: 'checkout-ui-v2',
+        defaultBranchName: 'release/1.2',
       };
-      projectService.updateProjectGroup.mockResolvedValue(expected);
+      const expected = { id: 'proj-1', name: 'checkout-ui-v2' };
+      projectService.updateDefaultBranch.mockResolvedValue(expected as never);
 
       const result = await controller.updateProject('checkout-ui', dto, {
         auth: { username: 'ada', userId: 'user-1' },
       } as never);
 
-      expect(result).toEqual(expected);
-      expect(projectService.updateProjectGroup).toHaveBeenCalledWith(
+      expect(projectService.rename).toHaveBeenCalledWith(
         'checkout-ui',
+        'checkout-ui-v2',
+        'ada',
+      );
+      // The rename moves the address: the rest of the patch lands on the new
+      // name, not on the one the caller used.
+      expect(projectService.updateDefaultBranch).toHaveBeenCalledWith(
+        'checkout-ui-v2',
         dto,
       );
+      expect(result).toEqual(expected);
     });
   });
 

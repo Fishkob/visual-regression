@@ -6,7 +6,6 @@ import type { ApiKeysControllerFindAllResponses } from "@sdk/models/ApiKeysContr
 import type { BranchesControllerListResponses } from "@sdk/models/BranchesControllerListResponses.gen";
 import type { PdfControllerGetPdfTestDetailsResponses } from "@sdk/models/PdfControllerGetPdfTestDetailsResponses.gen";
 import type { PendingTestDto } from "@sdk/models/PendingTestDto.gen";
-import type { ProjectGroupsControllerFindAllResponses } from "@sdk/models/ProjectGroupsControllerFindAllResponses.gen";
 import type { ProjectsControllerGetOneProjectResponses } from "@sdk/models/ProjectsControllerGetOneProjectResponses.gen";
 import type { ProjectsControllerGetProjectsWithPendingFlagResponses } from "@sdk/models/ProjectsControllerGetProjectsWithPendingFlagResponses.gen";
 import type { PublicShareControllerResolveResponses } from "@sdk/models/PublicShareControllerResolveResponses.gen";
@@ -32,10 +31,6 @@ import {
   PDF_BASELINE_HISTORY,
   VISUAL_BASELINE_HISTORY,
 } from "../../tests/ct/mocks/baselineHistory.mocks";
-import {
-  GROUPS_EMPTY_RESPONSE,
-  GROUPS_RESPONSE,
-} from "../../tests/ct/mocks/groups.mocks";
 import {
   TEAMS_EMPTY_RESPONSE,
   TEAMS_RESPONSE,
@@ -202,25 +197,6 @@ describe("review inbox fixtures", () => {
       expect(typeof branch.isDefault).toBe("boolean");
       expect(typeof branch.pendingCount).toBe("number");
     }
-  });
-});
-
-describe("groups fixtures", () => {
-  it("binds the group list to ProjectGroupDto", () => {
-    const body =
-      parse<ProjectGroupsControllerFindAllResponses[200]>(GROUPS_RESPONSE);
-    expect(body.length).toBeGreaterThan(0);
-    for (const group of body) {
-      expect(typeof group.id).toBe("string");
-      expect(typeof group.projectCount).toBe("number");
-    }
-  });
-
-  it("binds the empty group list to ProjectGroupDto", () => {
-    const body = parse<ProjectGroupsControllerFindAllResponses[200]>(
-      GROUPS_EMPTY_RESPONSE,
-    );
-    expect(body).toEqual([]);
   });
 });
 

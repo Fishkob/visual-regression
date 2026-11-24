@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { RouterLink, useRoute, useRouter } from "vue-router";
-import { Folder } from "@lucide/vue";
+import { Users } from "@lucide/vue";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -26,7 +26,6 @@ import {
   useReviewInboxSections,
 } from "@/composables/useReviewInbox";
 import { useOverdueAssignmentsQuery } from "@/composables/useAssignments";
-import { useGroupsQuery } from "@/composables/useGroups";
 import {
   bulkFailureRows,
   type BulkApproveSelection,
@@ -39,10 +38,6 @@ import {
   isTestKind,
   type TestKind,
 } from "@/domains/test-kind";
-import {
-  UNASSIGNED_GROUP_KEY,
-  UNASSIGNED_GROUP_QUERY,
-} from "@/domains/groups/group-section";
 import type { InboxListQuery } from "@/domains/pending-tests/query-keys";
 import { INBOX_PAGE_SIZE } from "@/lib/pagination";
 import { TEST_ID } from "@/lib/test-ids";
@@ -85,9 +80,9 @@ const branch = computed<string>({
   },
 });
 
-// Kind and group are part of the same review scope as the branch: the review
-// loop hands them back on "return to inbox", so they live in the URL too and a
-// deep link or refresh restores the filtered pass.
+// Kind is part of the same review scope as the branch: the review loop hands it
+// back on "return to inbox", so it lives in the URL too and a deep link or
+// refresh restores the filtered pass.
 const kind = computed<TestKind | typeof FILTER_ALL>({
   get: () => {
     const requested = route.query.kind;
@@ -99,20 +94,6 @@ const kind = computed<TestKind | typeof FILTER_ALL>({
     const query = { ...route.query };
     if (value === FILTER_ALL) delete query.kind;
     else query.kind = value;
-    delete query.page;
-    void router.replace({ query });
-  },
-});
-
-const group = computed<string>({
-  get: () => {
-    const requested = route.query.group;
-    return typeof requested === "string" && requested ? requested : FILTER_ALL;
-  },
-  set: (value: string) => {
-    const query = { ...route.query };
-    if (!value || value === FILTER_ALL) delete query.group;
-    else query.group = value;
     delete query.page;
     void router.replace({ query });
   },
@@ -137,7 +118,7 @@ const team = computed<string>({
 
 // The free-text filters are part of the review scope, not a local preference:
 // the pass started from a filtered inbox must walk the same set, so the values
-// live in the URL like branch/kind/group. The input stays local (and debounced)
+// live in the URL like branch and kind. The input stays local (and debounced)
 // so typing does not push a history entry per keystroke.
 function setFilterQuery(key: "q" | "runKey" | "tag", value: string): void {
   const query = { ...route.query };
@@ -191,7 +172,7 @@ watch(tagFilter, (value) => {
 
 // "My reviews" is review scope, not a local toggle: it narrows the server query,
 // the pass it starts and the count that describes that pass, so it lives in the
-// URL like the branch/kind/group filters. A refresh, a deep link and the review
+// URL like the branch and kind filters. A refresh, a deep link and the review
 // loop's "back to inbox" leg therefore all restore the same assigned queue.
 const assignedToMe = computed<boolean>({
   get: () => route.query.assignedToMe === "1",
@@ -221,7 +202,6 @@ const queryParams = computed<InboxListQuery>(() => ({
   page: page.value,
   ...(searchQuery.value.trim() ? { q: searchQuery.value.trim() } : {}),
   ...(kind.value !== FILTER_ALL ? { kind: kind.value } : {}),
-  ...(group.value !== FILTER_ALL ? { groupId: group.value } : {}),
   ...(branch.value !== FILTER_ALL ? { branch: branch.value } : {}),
   ...(runFilter.value ? { runKey: runFilter.value } : {}),
   ...(tagFilter.value ? { tag: tagFilter.value } : {}),
@@ -232,8 +212,7 @@ const queryParams = computed<InboxListQuery>(() => ({
 const { items, sections, total, isLoading, error, refetch } =
   useReviewInboxSections(queryParams);
 
-// The group/branch choices must describe the whole pending set, not the page.
-const { data: groupsData } = useGroupsQuery();
+// The branch choices must describe the whole pending set, not the page.
 const { data: branchData } = useInboxBranchesQuery(
   computed(() => (team.value === FILTER_ALL ? undefined : team.value)),
 );
@@ -252,14 +231,6 @@ const teamOptions = computed(() =>
         label: entry.name,
       })),
 );
-
-const groupOptions = computed(() => [
-  ...(groupsData.value ?? []).map((entry) => ({
-    value: entry.id,
-    label: entry.name,
-  })),
-  { value: UNASSIGNED_GROUP_QUERY, label: t("inbox.unassigned") },
-]);
 
 const branchOptions = computed(() => {
   const names = [...(branchData.value ?? [])];
@@ -281,7 +252,6 @@ const hasActiveFilters = computed(
   () =>
     searchQuery.value.trim().length > 0 ||
     kind.value !== FILTER_ALL ||
-    group.value !== FILTER_ALL ||
     branch.value !== FILTER_ALL ||
     team.value !== FILTER_ALL ||
     runFilter.value.length > 0 ||
@@ -544,27 +514,6 @@ function confirmBulkApprove() {
             </SelectItem>
           </SelectContent>
         </Select>
-        <Select v-model="group">
-          <SelectTrigger
-            class="w-48"
-            :aria-label="t('inbox.groupLabel')"
-            :data-testid="TEST_ID.filterGroup"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem :value="FILTER_ALL">{{
-              t("inbox.allGroups")
-            }}</SelectItem>
-            <SelectItem
-              v-for="groupOption in groupOptions"
-              :key="groupOption.value"
-              :value="groupOption.value"
-            >
-              {{ groupOption.label }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       <div
@@ -618,13 +567,11 @@ function confirmBulkApprove() {
         <h2
           class="flex items-center gap-2 text-sm font-semibold text-muted-foreground"
         >
-          <!-- A section is a group (a folder for navigation), never an access
-               boundary; the icon keeps it from reading as a team. -->
-          <Folder
-            v-if="section.key !== UNASSIGNED_GROUP_KEY"
-            class="h-3.5 w-3.5 shrink-0"
-            aria-hidden="true"
-          />
+          <!-- The header names the team that owns the block. It is the same
+               axis the team lens narrows by, but the two answer different
+               questions: what is in front of me now vs. what does this block
+               contain (ADR-084). -->
+          <Users class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           {{ section.name }}
         </h2>
         <InboxProjectSection

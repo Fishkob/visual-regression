@@ -6,28 +6,15 @@ import ConfirmDialog from "@/components/ConfirmDialog.vue";
 import RowActionsCell from "@/components/tables/RowActionsCell.vue";
 import { useProjectDelete } from "@/composables/useProjectDelete";
 import { STATUS } from "@/domains/test-status";
-import type { ProjectGroupSection } from "@/domains/projects/group-projects-by-group";
+import type { ProjectTeamSection } from "@/domains/projects/group-projects-by-team";
 import { TEST_ID } from "@/lib/test-ids";
 
-const props = withDefaults(
-  defineProps<{
-    section: ProjectGroupSection;
-    // Multi-select is a writer action; a VIEWER gets no checkboxes.
-    selectable?: boolean;
-    selectedNames?: string[];
-  }>(),
-  { selectable: false, selectedNames: () => [] },
-);
+// One block of the project list: the projects one team owns (ADR-084). The
+// header names the owner, which is what makes the grouping explain itself —
+// "why is this project here" and "who may open it" share an answer.
+defineProps<{ section: ProjectTeamSection }>();
 
 const { t } = useI18n();
-
-const emit = defineEmits<{
-  toggle: [projectName: string];
-}>();
-
-function isSelected(projectName: string): boolean {
-  return props.selectedNames.includes(projectName);
-}
 
 const {
   showConfirm,
@@ -57,15 +44,6 @@ const {
         class="flex items-center justify-between gap-4 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/50"
         :data-testid="TEST_ID.projectRow"
       >
-        <input
-          v-if="selectable"
-          type="checkbox"
-          class="h-4 w-4 shrink-0"
-          :checked="isSelected(project.name)"
-          :aria-label="t('projects.selectProject', { project: project.name })"
-          :data-testid="TEST_ID.projectSelectRow"
-          @change="emit('toggle', project.name)"
-        />
         <RouterLink
           :to="{
             name: 'project-detail',

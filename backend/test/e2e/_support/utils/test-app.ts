@@ -80,7 +80,6 @@ export class TestApp {
     await db.comparisonJob.deleteMany();
     await db.branch.deleteMany();
     await db.project.deleteMany();
-    await db.projectGroup.deleteMany();
     // Teams go after the projects that reference them (`Project.teamId` is
     // RESTRICT, ADR-082). Membership cascades from the team, but the reset
     // clears it explicitly instead of leaning on the constraint.

@@ -24,7 +24,6 @@ import { VariantFilterDto } from '@public/visualTest/review/presentation/dto/var
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { PaginationMetaDto } from '@common/dto/paginated-response.dto';
 import { TEST_KINDS } from '@common/domain/test-kind';
-import { UNASSIGNED_GROUP_FILTER } from '@common/domain/group-filter';
 import {
   NAME_REGEXP,
   MAX_NAME_LENGTH,
@@ -85,18 +84,6 @@ export class ProjectDto {
   @Expose()
   @Type(() => VisualTestDto)
   visualTests?: VisualTestDto[];
-
-  @ApiPropertyOptional({ example: 'group_123', nullable: true, type: String })
-  @IsOptional()
-  @IsString()
-  @Expose()
-  groupId?: string | null;
-
-  @ApiPropertyOptional({ example: 'Checkout', nullable: true, type: String })
-  @IsOptional()
-  @IsString()
-  @Expose()
-  groupName?: string | null;
 
   @ApiPropertyOptional({ example: 'team_123', type: String })
   @IsOptional()
@@ -227,12 +214,6 @@ export class CreateProjectDto {
   })
   name!: string;
 
-  @ApiPropertyOptional({ example: 'group_123', type: String })
-  @IsOptional()
-  @IsString()
-  @MinLength(1)
-  groupId?: string;
-
   // Optional on the wire, not in the rule: a missing id falls back to the
   // creator's own first team, and a member that belongs to none is refused with
   // `409` by the service (ADR-083). The dialog preselects that same first team.
@@ -271,16 +252,6 @@ export class UpdateProjectDto {
     message: 'This project name is reserved and cannot be used',
   })
   name?: string;
-
-  @ApiPropertyOptional({
-    description: 'Group id, or null to move the project to Unassigned',
-    nullable: true,
-    type: String,
-  })
-  @IsOptional()
-  @IsString()
-  @MinLength(1)
-  groupId?: string | null;
 
   @ApiPropertyOptional({
     description: 'Branch to promote to the project default',
@@ -360,9 +331,8 @@ export class ProjectVisibilityDto {
 
 // The whole query object is validated as one DTO so whitelist/forbidNonWhitelisted
 // can reject genuinely unknown params without rejecting the endpoint's own// extra params (kind) as if they were stray.
-// The project list's query: pagination plus the server-side search and group
-// filter the list UI drives. Filtering belongs on the server because the view
-// only loads one page.
+// The project list's query: pagination plus the server-side search the list UI
+// drives. Filtering belongs on the server because the view only loads one page.
 export class ProjectsListQueryDto extends PaginationDto {
   @ApiPropertyOptional({
     description: 'Case-insensitive project-name search',
@@ -371,13 +341,6 @@ export class ProjectsListQueryDto extends PaginationDto {
   @IsString()
   @MaxLength(MAX_NAME_LENGTH)
   q?: string;
-
-  @ApiPropertyOptional({
-    description: `Group id, or "${UNASSIGNED_GROUP_FILTER}" for projects without a group`,
-  })
-  @IsOptional()
-  @IsString()
-  groupId?: string;
 }
 
 // The project overview query: one page of variant rows plus the filters the

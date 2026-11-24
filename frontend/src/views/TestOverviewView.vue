@@ -6,7 +6,6 @@ import { useRouteParams } from "@/composables/useRouteParams";
 import { useTestKind } from "@/composables/useTestKind";
 import { useTestNavigation } from "@/composables/useTestNavigation";
 import { useTestVariantsQuery } from "@/composables/useTestVariants";
-import { useProjectDetailQuery } from "@/composables/useProjects";
 import { isImageKind, isPdfKind } from "@/domains/test-kind";
 import { isPendingApproval } from "@/domains/test-status";
 import {
@@ -53,9 +52,6 @@ const { isFullscreen, toggleFullscreen, exitFullscreen } = useFullscreen();
 onBeforeUnmount(() => {
   void exitFullscreen();
 });
-
-const { data: project } = useProjectDetailQuery(projectName, branch);
-const groupName = computed(() => project.value?.groupName ?? undefined);
 
 const {
   kind,
@@ -158,7 +154,7 @@ function openVariant(variant: VariantSummary) {
   >
     <div class="flex flex-wrap items-start justify-between gap-4">
       <div class="min-w-0 space-y-2">
-        <Breadcrumbs :group-name="groupName" />
+        <Breadcrumbs />
         <div class="flex flex-wrap items-center gap-2">
           <h1 class="truncate text-lg font-semibold">{{ testName }}</h1>
           <Badge v-if="branch" variant="outline" class="font-mono text-[10px]">

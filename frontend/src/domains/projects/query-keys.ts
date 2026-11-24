@@ -3,7 +3,6 @@ import type { TestKind } from "@/domains/test-kind";
 export interface ProjectsListQuery {
   page?: number;
   q?: string;
-  groupId?: string;
 }
 
 // The project overview's server-side query: one page of variant rows plus the
