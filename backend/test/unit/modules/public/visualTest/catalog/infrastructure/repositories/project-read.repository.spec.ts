@@ -72,8 +72,9 @@ describe('ProjectReadRepository', () => {
       id: 'proj-1',
       name: 'my-project',
       createdAt: new Date(),
+      isShared: false,
       group: null,
-      team: null,
+      team: { id: 't1', name: 'Storefront' },
     };
 
     it('returns the project with its variant page and filter options', async () => {
@@ -109,8 +110,9 @@ describe('ProjectReadRepository', () => {
         createdAt: project.createdAt,
         groupId: null,
         groupName: null,
-        teamId: null,
-        teamName: null,
+        teamId: 't1',
+        teamName: 'Storefront',
+        isShared: false,
         branchName: 'main',
         defaultBranchName: 'main',
         variants: [variantRow],
@@ -210,9 +212,18 @@ describe('ProjectReadRepository', () => {
           id: 'proj-1',
           name: 'a',
           createdAt: new Date(),
+          isShared: false,
           group: { id: 'g1', name: 'Checkout' },
+          team: { id: 't1', name: 'Storefront' },
         },
-        { id: 'proj-2', name: 'b', createdAt: new Date(), group: null },
+        {
+          id: 'proj-2',
+          name: 'b',
+          createdAt: new Date(),
+          isShared: true,
+          group: null,
+          team: { id: 't1', name: 'Storefront' },
+        },
       ]);
       mockClient.project.count.mockResolvedValue(2);
       mockClient.$queryRaw
@@ -234,6 +245,9 @@ describe('ProjectReadRepository', () => {
         id: 'proj-1',
         groupId: 'g1',
         groupName: 'Checkout',
+        teamId: 't1',
+        teamName: 'Storefront',
+        isShared: false,
         pendingCount: 3,
         testCount: 2,
         hasPendingComparisons: true,
@@ -242,6 +256,9 @@ describe('ProjectReadRepository', () => {
         id: 'proj-2',
         groupId: null,
         groupName: null,
+        teamId: 't1',
+        teamName: 'Storefront',
+        isShared: true,
         pendingCount: 0,
         testCount: 1,
         hasPendingComparisons: false,
@@ -251,7 +268,10 @@ describe('ProjectReadRepository', () => {
         orderBy: { createdAt: 'desc' },
         skip: undefined,
         take: undefined,
-        include: { group: { select: { id: true, name: true } } },
+        include: {
+          group: { select: { id: true, name: true } },
+          team: { select: { id: true, name: true } },
+        },
       });
     });
 
@@ -284,7 +304,10 @@ describe('ProjectReadRepository', () => {
         orderBy: { createdAt: 'desc' },
         skip: 5,
         take: 5,
-        include: { group: { select: { id: true, name: true } } },
+        include: {
+          group: { select: { id: true, name: true } },
+          team: { select: { id: true, name: true } },
+        },
       });
     });
 
@@ -326,7 +349,10 @@ describe('ProjectReadRepository', () => {
         orderBy: { createdAt: 'desc' },
         skip: undefined,
         take: undefined,
-        include: { group: { select: { id: true, name: true } } },
+        include: {
+          group: { select: { id: true, name: true } },
+          team: { select: { id: true, name: true } },
+        },
       });
       expect(mockClient.project.count).toHaveBeenCalledWith({ where });
     });

@@ -9,26 +9,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAssignProjectTeam, useTeamsQuery } from "@/composables/useTeams";
+import {
+  useAssignProjectTeam,
+  useSetProjectVisibility,
+  useTeamsQuery,
+} from "@/composables/useTeams";
 import { teamOfProject } from "@/domains/teams/team.mapper";
 import { sdkErrorMessage } from "@/lib/sdk";
 import { TEST_ID } from "@/lib/test-ids";
 
-// A project sits on two axes, and this is the one place that shows both: the
-// group is a navigation label, the team decides who may open the project. They
-// used to live on different pages — the group only on the project list, the team
-// only here behind `isAdmin` — so "where does this belong, and why do I see it"
-// had no single answer (and a MEMBER could not answer the second half at all).
+// Where a project belongs and who may look at it — the two questions the
+// affiliation column answers (ADR-083). A project always has a team; "visible to
+// everyone" is a separate flag on top of that owner, not the absence of one.
 //
 // Naming the owner is not administering it: the team name rides on the project
-// read for every principal that may open the project, while the assignment stays
-// ADMIN-only (`PATCH /projects/:projectName/team`, ADR-082).
-const SHARED = "__shared__";
-
+// read for every principal that may open the project, while the assignment and
+// the flag stay ADMIN-only (`PATCH /projects/:projectName/team` and `.../visibility`).
 const props = defineProps<{
   projectName: string;
   groupName: string | null;
-  teamName: string | null;
+  teamId: string;
+  teamName: string;
+  isShared: boolean;
   canManageTeam: boolean;
 }>();
 
@@ -38,38 +40,61 @@ const { t } = useI18n();
 const manageTeam = computed(() => props.canManageTeam);
 const { data: teams, isLoading, error, refetch } = useTeamsQuery(manageTeam);
 const assign = useAssignProjectTeam();
+const visibility = useSetProjectVisibility();
 
+// The admin reads the current owner off the team list it already has (so a save
+// refreshes it); everybody else reads it off the project payload.
 const owner = computed(() =>
-  props.canManageTeam
-    ? teamOfProject(teams.value ?? [], props.projectName)
-    : null,
+  teamOfProject(teams.value ?? [], props.projectName),
 );
-const selected = ref(SHARED);
-
+// The payload is the fallback: a team list that is stale or still loading must
+// not leave the select blank on a project that names its owner.
+const currentTeamId = computed(() => owner.value?.id ?? props.teamId);
+const selected = ref(props.teamId);
 watch(
-  owner,
-  (team) => {
-    selected.value = team?.id ?? SHARED;
+  currentTeamId,
+  (teamId) => {
+    selected.value = teamId;
   },
   { immediate: true },
 );
 
-const isDirty = computed(() => selected.value !== (owner.value?.id ?? SHARED));
+const isDirty = computed(
+  () => selected.value !== "" && selected.value !== currentTeamId.value,
+);
 
-// The admin reads the answer off the team list it already has (so a save
-// refreshes it); everybody else reads it off the project payload.
-const teamLabel = computed(() => {
-  if (props.canManageTeam) {
-    return owner.value?.name ?? t("projectTeam.shared");
-  }
-  return props.teamName ?? t("projectTeam.shared");
-});
+// The list is authoritative for an ADMIN — it is what the select writes to, so a
+// save refreshes the label instead of leaving the previous team on screen. Until
+// it arrives (or when it is stale) the payload names the owner, which is the
+// same value for everybody else.
+const teamLabel = computed(() => owner.value?.name ?? props.teamName);
 
-function save() {
-  assign.mutate({
-    projectName: props.projectName,
-    teamId: selected.value === SHARED ? null : selected.value,
-  });
+const shared = ref(props.isShared);
+watch(
+  () => props.isShared,
+  (value) => {
+    shared.value = value;
+  },
+);
+
+function saveTeam() {
+  if (!isDirty.value) return;
+  assign.mutate({ projectName: props.projectName, teamId: selected.value });
+}
+
+function toggleShared() {
+  const next = !shared.value;
+  shared.value = next;
+  visibility.mutate(
+    { projectName: props.projectName, isShared: next },
+    {
+      // The payload is the truth; a failed write must not leave the control
+      // claiming a state the server never accepted.
+      onError: () => {
+        shared.value = props.isShared;
+      },
+    },
+  );
 }
 </script>
 
@@ -155,11 +180,8 @@ function save() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem :value="SHARED">
-                    {{ t("projectTeam.sharedOption") }}
-                  </SelectItem>
                   <SelectItem
-                    v-for="team in teams"
+                    v-for="team in teams ?? []"
                     :key="team.id"
                     :value="team.id"
                   >
@@ -173,7 +195,7 @@ function save() {
               size="sm"
               :disabled="!isDirty || assign.isPending.value"
               :data-testid="TEST_ID.projectTeamSave"
-              @click="save"
+              @click="saveTeam"
             >
               {{ t("projectTeam.save") }}
             </Button>
@@ -186,6 +208,52 @@ function save() {
                 sdkErrorMessage(assign.error.value, t("projectTeam.saveError"))
               }}
             </p>
+
+            <div class="flex flex-wrap items-start gap-3 border-t pt-3">
+              <input
+                :id="`${TEST_ID.projectVisibilityToggle}-input`"
+                type="checkbox"
+                class="mt-0.5 h-4 w-4"
+                :checked="shared"
+                :disabled="visibility.isPending.value"
+                :data-testid="TEST_ID.projectVisibilityToggle"
+                @change="toggleShared"
+              />
+              <div class="min-w-0">
+                <label
+                  class="text-sm font-medium"
+                  :for="`${TEST_ID.projectVisibilityToggle}-input`"
+                >
+                  {{ t("projectAffiliation.visibilityLabel") }}
+                </label>
+                <p class="max-w-2xl text-sm text-muted-foreground">
+                  {{ t("projectAffiliation.visibilityHint") }}
+                </p>
+                <p
+                  class="text-sm text-muted-foreground"
+                  :data-testid="TEST_ID.projectVisibilityState"
+                >
+                  {{
+                    shared
+                      ? t("projectAffiliation.visibilityShared")
+                      : t("projectAffiliation.visibilityTeamOnly")
+                  }}
+                </p>
+                <p
+                  v-if="visibility.error.value"
+                  class="text-sm text-destructive"
+                  role="alert"
+                  :data-testid="TEST_ID.projectVisibilityError"
+                >
+                  {{
+                    sdkErrorMessage(
+                      visibility.error.value,
+                      t("projectAffiliation.visibilityError"),
+                    )
+                  }}
+                </p>
+              </div>
+            </div>
           </template>
         </template>
       </div>

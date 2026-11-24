@@ -15,8 +15,12 @@ export type ProjectDto = {
     visualTests?: Array<VisualTestDto>;
     groupId?: string | null;
     groupName?: string | null;
-    teamId?: string | null;
-    teamName?: string | null;
+    teamId?: string;
+    teamName?: string;
+    /**
+     * True when every authenticated principal may read the project in addition to the owning team
+     */
+    isShared?: boolean;
     branchName?: string;
     defaultBranchName?: string;
     pendingCount?: number;

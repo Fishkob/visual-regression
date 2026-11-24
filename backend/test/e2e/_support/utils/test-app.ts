@@ -96,16 +96,22 @@ export class TestApp {
 
   /**
    * Creates a project with its main branch linked as default. Every project has
-   * a default branch (the service enforces it), so e2e fixtures must not create
-   * a bare project row.
+   * a default branch (the service enforces it) and an owning team (ADR-083), so
+   * e2e fixtures must not create a bare project row: a fixture that wants a
+   * different owner passes the team id, and one that wants a *shared* project
+   * passes `isShared`.
    */
   static async createProject(
     name: string,
-  ): Promise<{ projectId: string; branchId: string }> {
+    options: { teamId?: string; isShared?: boolean } = {},
+  ): Promise<{ projectId: string; branchId: string; teamId: string }> {
     const app = this.appInstance;
     if (!app) throw new Error('App instance not initialized');
     const db = app.get(PrismaConnection).client;
-    const project = await db.project.create({ data: { name } });
+    const teamId = options.teamId ?? (await this.ensureTeam('fixture-team')).id;
+    const project = await db.project.create({
+      data: { name, teamId, isShared: options.isShared ?? false },
+    });
     const branch = await db.branch.create({
       data: { projectId: project.id, name: 'main' },
     });
@@ -113,7 +119,24 @@ export class TestApp {
       where: { id: project.id },
       data: { defaultBranchId: branch.id },
     });
-    return { projectId: project.id, branchId: branch.id };
+    return { projectId: project.id, branchId: branch.id, teamId };
+  }
+
+  /**
+   * A team row for a fixture that needs an owner but does not care which. Not a
+   * back door around the access rule: a fixture that asserts *visibility* builds
+   * its own teams and members through `createTeam`.
+   */
+  static async ensureTeam(name: string): Promise<{ id: string; name: string }> {
+    const app = this.appInstance;
+    if (!app) throw new Error('App instance not initialized');
+    const db = app.get(PrismaConnection).client;
+    return db.team.upsert({
+      where: { name },
+      create: { name, createdBy: 'fixture' },
+      update: {},
+      select: { id: true, name: true },
+    });
   }
 
   /**

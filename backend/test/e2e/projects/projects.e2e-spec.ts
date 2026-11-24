@@ -36,13 +36,21 @@ describe('ProjectsController (e2e)', () => {
   }, 30_000);
 
   it('should create a new project successfully', async () => {
+    const team = await TestApp.ensureTeam('Storefront');
+
     const res = await authRequest(app)
       .post('/api/v1/projects')
-      .send({ name: 'checkout-ui' })
+      .send({ name: 'checkout-ui', teamId: team.id })
       .expect(201);
 
     expect(res.body).toHaveProperty('id');
     expect(res.body.name).toBe('checkout-ui');
+    // A project always has an owner, and the read names it (ADR-083).
+    expect(res.body).toMatchObject({
+      teamId: team.id,
+      teamName: 'Storefront',
+      isShared: false,
+    });
   });
 
   it('should fail with 400 if name is missing', async () => {
@@ -56,12 +64,20 @@ describe('ProjectsController (e2e)', () => {
       .expect(422);
   });
 
+  it('should return 400 when an admin names no team and owns none', async () => {
+    await authRequest(app)
+      .post('/api/v1/projects')
+      .send({ name: 'checkout-ui' })
+      .expect(400);
+  });
+
   it('should return 409 if project with same name exists', async () => {
-    await TestApp.createProject('duplicate');
+    const team = await TestApp.ensureTeam('Storefront');
+    await TestApp.createProject('duplicate', { teamId: team.id });
 
     await authRequest(app)
       .post('/api/v1/projects')
-      .send({ name: 'duplicate' })
+      .send({ name: 'duplicate', teamId: team.id })
       .expect(409);
   });
 

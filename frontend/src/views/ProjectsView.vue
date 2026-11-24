@@ -23,6 +23,9 @@ import { useCurrentRole } from "@/composables/useAuth";
 import { useCreateProject } from "@/composables/useProjectCreate";
 import { useProjectsWithPendingQuery } from "@/composables/useProjects";
 import { useGroupsQuery } from "@/composables/useGroups";
+import { useMeQuery } from "@/composables/useAuth";
+import { useTeamsQuery } from "@/composables/useTeams";
+import type { TeamChoice } from "@/domains/teams/team.model";
 import { FILTER_ALL } from "@/domains/test-status";
 import { groupProjectsByGroup } from "@/domains/projects/group-projects-by-group";
 import type { ProjectsListQuery } from "@/domains/projects/query-keys";
@@ -138,7 +141,19 @@ const createError = computed(() => createProject.error.value);
 
 // Bulk move is a writer tool: VIEWERs get no checkboxes or bulk bar (the
 // backend answers 403 for them anyway).
-const { canWrite, seesAllProjects } = useCurrentRole();
+const { canWrite, seesAllProjects, isAdmin } = useCurrentRole();
+
+// A project always has an owner (ADR-083), so "new project" asks for it. An ADMIN
+// may name any team (the team list is an ADMIN read); a MEMBER may only name one
+// of its own, which `/auth/me` already carries. The first option is preselected,
+// matching the order the API falls back to.
+const { data: me } = useMeQuery();
+const { data: allTeams } = useTeamsQuery(isAdmin);
+const teamChoices = computed<TeamChoice[]>(() =>
+  isAdmin.value
+    ? (allTeams.value ?? []).map((team) => ({ id: team.id, name: team.name }))
+    : (me.value?.teams ?? []),
+);
 const bulkMove = useBulkMoveProjects();
 const {
   selectedIds,
@@ -209,7 +224,7 @@ function openCreate() {
   dialogOpen.value = true;
 }
 
-function create(payload: { name: string; groupId?: string }) {
+function create(payload: { name: string; teamId: string; groupId?: string }) {
   if (!payload.name) return;
   createProject.mutate(payload, {
     onSuccess: (_data, variables) => {
@@ -410,6 +425,7 @@ function create(payload: { name: string; groupId?: string }) {
     <NewProjectDialog
       v-model:open="dialogOpen"
       :groups="groups ?? []"
+      :teams="teamChoices"
       :pending="createPending"
       :error="createError"
       @submit="create"

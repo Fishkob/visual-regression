@@ -117,17 +117,20 @@ export const DEMO_USERS: readonly DemoUserSeed[] = [
   { username: 'demo-viewer', role: 'VIEWER', teams: [] },
 ];
 
-// The multi-team half of the demo dataset (ADR-082): two teams own one project
-// each and `admin-ui` stays shared, so a visitor sees the three states the
-// scope distinguishes — my team's project, another team's project, and a shared
-// one — instead of three identical rows. `admin-ui` keeps its `Internal tools`
-// group membership: a group is navigation, so a folder may hold a project no
-// team owns.
+// The multi-team half of the demo dataset (ADR-082, ADR-083): every project has
+// an owner, and `admin-ui` is *shared* on top of its owner, so a visitor sees the
+// three states the scope distinguishes — my team's project, another team's
+// project, and one everybody may open — instead of three identical rows. The
+// adopting team is `general`, the same name the ADR-083 migration uses for
+// projects that had no owner: an ordinary team with no special rules.
 export const DEMO_TEAMS: Readonly<Record<string, readonly string[]>> = {
   Storefront: ['checkout-ui'],
   Backoffice: ['dashboard-ui'],
+  general: ['admin-ui'],
 };
 
+// Owned by `general` *and* flagged visible to everyone. The two properties are
+// independent now: one says who maintains it, the other who may look.
 export const DEMO_SHARED_PROJECTS: readonly string[] = ['admin-ui'];
 
 const MUTE_WINDOW_DAYS = 14;
@@ -272,18 +275,59 @@ export async function verifyApiKeyAuth(apiKey: string): Promise<void> {
   }
 }
 
+// A project always has an owner (ADR-083), so a seeder that creates one has to
+// name a team. `general` is the adopting team of the ADR-083 migration; the demo
+// seed (`seed-teams`) reassigns the demo projects to their real owners afterwards.
+export const SEED_DEFAULT_TEAM = 'general';
+
+interface SeedTeam {
+  id: string;
+  name: string;
+}
+
+export async function ensureTeam(
+  apiKey: string,
+  name: string = SEED_DEFAULT_TEAM,
+): Promise<SeedTeam> {
+  const list = await request(BASE_URL)
+    .get('/api/v1/teams')
+    .set(seedAuth(apiKey));
+  const teams = (list.body as SeedTeam[] | undefined) ?? [];
+  const existing = teams.find((team) => team.name === name);
+  if (existing) return existing;
+
+  process.stdout.write(`Creating team "${name}"... `);
+  const res = await withRateLimitRetry(`creating team "${name}"`, () =>
+    request(BASE_URL)
+      .post('/api/v1/teams')
+      .set('Content-Type', 'application/json')
+      .set(seedAuth(apiKey))
+      .send({ name }),
+  );
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const id = String(res.body?.id ?? '');
+  if (res.status !== 201 || !id) {
+    console.log(`\n  ${res.status}`);
+    throw new Error(`Could not create team "${name}" (HTTP ${res.status}).`);
+  }
+  console.log(`done (${id})`);
+  return { id, name };
+}
+
 export async function createProject(
   apiKey: string,
   name: string,
+  teamName: string = SEED_DEFAULT_TEAM,
 ): Promise<void> {
   process.stdout.write(`Creating project "${name}"... `);
 
+  const team = await ensureTeam(apiKey, teamName);
   const res = await withRateLimitRetry(`creating project "${name}"`, () =>
     request(BASE_URL)
       .post('/api/v1/projects')
       .set('Content-Type', 'application/json')
       .set(seedAuth(apiKey))
-      .send({ name }),
+      .send({ name, teamId: team.id }),
   );
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

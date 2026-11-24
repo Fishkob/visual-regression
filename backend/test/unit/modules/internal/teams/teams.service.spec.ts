@@ -305,25 +305,17 @@ describe('TeamsService', () => {
       );
     });
 
-    it('unassigning writes the shared state and the trail', async () => {
+    it('refuses an unknown team instead of leaving the project unowned', async () => {
       projects.findByName.mockResolvedValue({
         ...project,
         teamId: 't-1',
       });
-      projects.updateTeamByName.mockResolvedValue(project as never);
+      teams.findById.mockResolvedValue(null);
 
-      const view = await service.assignProject('admin', 'checkout-ui', null);
-
-      expect(projects.updateTeamByName).toHaveBeenCalledWith(
-        'checkout-ui',
-        null,
-      );
-      expect(view.teamId).toBeNull();
-      expect(audit.record).toHaveBeenCalledWith(
-        expect.objectContaining({
-          metadata: { from: 'Checkout', to: null },
-        }),
-      );
+      await expect(
+        service.assignProject('admin', 'checkout-ui', 't-missing'),
+      ).rejects.toThrow(NotFoundException);
+      expect(projects.updateTeamByName).not.toHaveBeenCalled();
     });
 
     it('writes nothing when the project already belongs to that team', async () => {

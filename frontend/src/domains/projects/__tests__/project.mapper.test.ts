@@ -118,19 +118,25 @@ describe("mapProject", () => {
     });
   });
 
-  it("maps the owning team, and keeps an unowned project on null", () => {
+  it("maps the owning team and the visibility flag", () => {
     const owned = mapProject({
       id: "1",
       name: "p",
       teamId: "t1",
       teamName: "Storefront",
+      isShared: true,
     });
     expect(owned.teamId).toBe("t1");
     expect(owned.teamName).toBe("Storefront");
+    expect(owned.isShared).toBe(true);
 
-    const shared = mapProject({ id: "2", name: "q" });
-    expect(shared.teamId).toBeNull();
-    expect(shared.teamName).toBeNull();
+    // A wire that predates ADR-083 has neither field. Nobody owns nothing, so
+    // the missing values degrade to empty strings and a private project — not to
+    // `undefined`, which would render as "undefined" in the affiliation section.
+    const legacy = mapProject({ id: "2", name: "q" });
+    expect(legacy.teamId).toBe("");
+    expect(legacy.teamName).toBe("");
+    expect(legacy.isShared).toBe(false);
   });
 
   it("maps inherited test metadata", () => {

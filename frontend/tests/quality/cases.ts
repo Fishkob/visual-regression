@@ -13,7 +13,11 @@ import {
   REVIEW_INBOX_RESPONSE,
 } from "../ct/mocks/projects.mocks";
 import { GROUPS_RESPONSE } from "../ct/mocks/groups.mocks";
-import { TEAMS_GLOB, TEAMS_RESPONSE } from "../ct/mocks/teams.mocks";
+import {
+  TEAMS_GLOB,
+  TEAMS_RESPONSE,
+  TEAMS_WITH_PROJECT_RESPONSE,
+} from "../ct/mocks/teams.mocks";
 import {
   USERS_GLOB,
   USERS_RESPONSE as TEAM_USERS_RESPONSE,
@@ -159,7 +163,9 @@ export const QUALITY_CASES: QualityCase[] = [
       [PROJECT_STORAGE_GLOB, PROJECT_STORAGE_RESPONSE],
       [PROJECT_WEBHOOKS_GLOB, WEBHOOKS_RESPONSE],
       [PROJECT_DETAILS_GLOB, PROJECT_CHECKOUT_UI_RESPONSE],
-      [TEAMS_GLOB, TEAMS_RESPONSE],
+      // The project's own owner: the fixture set has it owned by Checkout, so the
+      // shot shows a filled assignment control instead of an empty one.
+      [TEAMS_GLOB, TEAMS_WITH_PROJECT_RESPONSE],
     ],
     // The settings page is also the home of the endpoint administration and of
     // the team assignment, so the shot waits for those sections instead of only

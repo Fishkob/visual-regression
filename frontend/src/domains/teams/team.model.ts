@@ -1,6 +1,5 @@
-// A team owns projects (ADR-082). `null` on a project means "shared": every
-// authenticated principal keeps seeing it, which is the state a project is in
-// until an admin assigns it.
+// A team owns projects (ADR-082). Every project has exactly one owner (ADR-083);
+// "visible to everyone" is a flag on the project, not the absence of one.
 export interface TeamProject {
   id: string;
   name: string;
@@ -24,6 +23,13 @@ export interface Team {
 export interface ProjectTeamAssignment {
   projectId: string;
   projectName: string;
-  teamId: string | null;
-  teamName: string | null;
+  teamId: string;
+  teamName: string;
+}
+
+// The shape the "new project" dialog needs: a team the caller may name as the
+// owner. A MEMBER's options are its own teams, an ADMIN's are all of them.
+export interface TeamChoice {
+  id: string;
+  name: string;
 }

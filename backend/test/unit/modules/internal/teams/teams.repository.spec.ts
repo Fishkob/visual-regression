@@ -14,7 +14,7 @@ function makeMockClient() {
       delete: vi.fn(),
     },
     teamMember: { deleteMany: vi.fn(), createMany: vi.fn() },
-    project: { count: vi.fn().mockResolvedValue(0) },
+    project: { count: vi.fn().mockResolvedValue(0), findMany: vi.fn() },
     user: { findMany: vi.fn().mockResolvedValue([]) },
   };
 }
@@ -135,6 +135,29 @@ describe('TeamsRepository', () => {
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     });
+  });
+
+  // The predicate has one owner (ADR-083 decision 3): a member sees the projects
+  // of its teams plus every shared one. Pinning the OR here is what keeps a
+  // future read from re-deriving the rule with one branch missing.
+  it('derives the visible project set from membership plus the shared flag', async () => {
+    mockClient.project.findMany.mockResolvedValue([
+      { id: 'p-1' },
+      { id: 'p-shared' },
+    ]);
+
+    const ids = await repository.findVisibleProjectIdsForUser('u-1');
+
+    expect(mockClient.project.findMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { team: { members: { some: { userId: 'u-1' } } } },
+          { isShared: true },
+        ],
+      },
+      select: { id: true },
+    });
+    expect(ids).toEqual(['p-1', 'p-shared']);
   });
 
   it('resolves the existing subset of a candidate member list', async () => {

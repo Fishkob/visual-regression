@@ -3,9 +3,11 @@ import { PrismaModule } from '@prisma/prisma.module';
 import { AppConfigModule } from '@config/app-config.module';
 import { AuditModule } from '@internal/audit/audit.module';
 import { StorageModule } from '@internal/storage/storage.module';
+import { TeamsModule } from '@internal/teams/teams.module';
 import { VisualTestInfraModule } from '@public/visualTest/core/visual-test-infra.module';
 import { VisualTestApplicationModule } from '@public/visualTest/core/visual-test-application.module';
 import { ProjectsController } from '@public/visualTest/catalog/presentation/controllers/projects.controller';
+import { ProjectVisibilityController } from '@public/visualTest/catalog/presentation/controllers/project-visibility.controller';
 import { ProjectGroupsController } from '@public/visualTest/catalog/presentation/controllers/project-groups.controller';
 import { BranchesController } from '@public/visualTest/catalog/presentation/controllers/branches.controller';
 import { SearchController } from '@public/visualTest/catalog/presentation/controllers/search.controller';
@@ -29,9 +31,14 @@ import { SearchRepository } from '@public/visualTest/catalog/infrastructure/repo
     AuditModule,
     VisualTestInfraModule,
     VisualTestApplicationModule,
+    // For `TeamsRepository`: creating a project needs the caller's teams and the
+    // team it names as owner (ADR-083). `TeamsModule` imports nothing from the
+    // catalog, so this is not a cycle.
+    TeamsModule,
   ],
   controllers: [
     ProjectsController,
+    ProjectVisibilityController,
     ProjectGroupsController,
     BranchesController,
     SearchController,

@@ -14,8 +14,8 @@ import {
   type TeamSeedPlan,
 } from './team-plan';
 /**
- * Team Seeder - seeds the multi-team demo (ADR-082)
- * - Demo users, two teams that own one demo project each, one shared project
+ * Team Seeder - seeds the multi-team demo (ADR-082, ADR-083)
+ * - Demo users, three teams, every demo project owned, one of them also shared
  * - Writes users, teams and `Project.teamId` through Prisma, not through the
  *   admin API: both surfaces are `@SessionOnly` + `@Roles('ADMIN')` by design,
  *   and a seeder must not log in as a human admin whose password is either
@@ -158,12 +158,10 @@ async function seedTeams(
           })),
         });
       }
-      // Release whatever this team used to own and claim its fixture projects,
-      // so a project that moved between fixtures does not stay on both.
-      await tx.project.updateMany({
-        where: { teamId: row.id, name: { notIn: [...team.projectNames] } },
-        data: { teamId: null },
-      });
+      // Claim its fixture projects. There is no "release" any more: a project
+      // always has an owner (ADR-083), and the plan covers every demo project
+      // exactly once, so a project that moved between fixtures is claimed by its
+      // new team instead of being left unowned.
       await tx.project.updateMany({
         where: { name: { in: [...team.projectNames] } },
         data: { teamId: row.id },
@@ -175,9 +173,17 @@ async function seedTeams(
     console.log(`  Team "${team.name}" -> ${projects} [${members}]`);
   }
 
+  // The flag is stated after every ownership, and for every demo project, so a
+  // project that left DEMO_SHARED_PROJECTS loses it: "owned by its team" and
+  // "visible to everyone" are two properties, and only one of them moved.
+  const owned = plan.teams.flatMap((team) => [...team.projectNames]);
+  await prisma.project.updateMany({
+    where: { name: { in: owned } },
+    data: { isShared: false },
+  });
   await prisma.project.updateMany({
     where: { name: { in: [...plan.sharedProjects] } },
-    data: { teamId: null },
+    data: { isShared: true },
   });
 }
 
@@ -209,7 +215,7 @@ async function seed(): Promise<void> {
 
     console.log('\nTeam seeding complete!');
     console.log(
-      `  Shared (no team, every signed-in user): ${plan.sharedProjects.join(', ')}`,
+      `  Shared (owned, but every signed-in user may read): ${plan.sharedProjects.join(', ')}`,
     );
     console.log(
       `  Demo logins: ${plan.users.map((user) => user.username).join(', ')} — password "${password}"`,

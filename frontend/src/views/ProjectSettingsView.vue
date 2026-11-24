@@ -115,7 +115,9 @@ function handleRenamed(name: string) {
       v-if="project"
       :project-name="projectName"
       :group-name="project.groupName ?? null"
-      :team-name="project.teamName ?? null"
+      :team-id="project.teamId"
+      :team-name="project.teamName"
+      :is-shared="project.isShared"
       :can-manage-team="isAdmin"
     />
 

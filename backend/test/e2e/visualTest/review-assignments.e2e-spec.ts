@@ -22,21 +22,20 @@ describe('Review assignments (e2e)', () => {
 
   beforeEach(async () => {
     await TestApp.resetDb();
-    await TestApp.createProject('shop');
-    await db.user.createMany({
-      data: [
-        {
-          username: 'admin',
-          passwordHash: await hashPassword('secret'),
-          role: 'ADMIN',
-        },
-        {
-          username: 'alice',
-          passwordHash: await hashPassword('secret'),
-          role: 'MEMBER',
-        },
-      ],
+    const passwordHash = await hashPassword('secret');
+    await db.user.create({
+      data: { username: 'admin', passwordHash, role: 'ADMIN' },
     });
+    const alice = await db.user.create({
+      data: { username: 'alice', passwordHash, role: 'MEMBER' },
+    });
+    // Alice is the assignee this suite reads its list as, so she has to be able
+    // to open the project: a member's scope is its teams, and a project always
+    // has an owner (ADR-083).
+    const team = await db.team.create({
+      data: { name: 'Shop', members: { create: { userId: alice.id } } },
+    });
+    await TestApp.createProject('shop', { teamId: team.id });
   }, 30_000);
 
   afterAll(async () => {

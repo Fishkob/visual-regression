@@ -193,8 +193,8 @@
     "deleteTitle": "Delete project",
     "deleteButton": "Delete",
     "pendingLabel": "pending",
-    "emptyScopedTitle": "Your team has no projects yet",
-    "emptyScopedBody": "You see the projects of your teams and every project without a team. An admin assigns projects to a team."
+    "emptyScopedTitle": "No shared projects",
+    "emptyScopedBody": "You are not in a team yet, so you only see projects an admin has published to everyone. Ask an admin to add you to a team."
   },
   "newProject": {
     "title": "New project",
@@ -207,7 +207,11 @@
     "add": "Add",
     "create": "Create",
     "createGroupError": "Could not create group",
-    "createError": "Could not create project"
+    "createError": "Could not create project",
+    "team": "Team",
+    "teamRequired": "Pick the team that will own the project.",
+    "noTeam": "You do not belong to a team yet. An admin has to add you to one before you can create a project.",
+    "createTeamError": "Could not load the teams"
   },
   "renameProject": {
     "title": "Rename project",
@@ -1221,9 +1225,9 @@
     "approveForTestError": "Could not approve {variant} of \"{test}\"",
     "refreshDetailsError": "Could not refresh the details",
     "importEmpty": "The import came back empty",
-    "teamAssigned": "Project assigned to the team",
+    "teamAssigned": "Project moved",
     "teamUnassigned": "Project is now shared",
-    "teamAssignError": "Assignment failed",
+    "teamAssignError": "Could not move the project",
     "teamCreated": "Team created",
     "teamCreateError": "Could not create the team",
     "teamRenamed": "Team renamed",
@@ -1231,7 +1235,10 @@
     "teamDeleted": "Team deleted",
     "teamDeleteError": "Could not delete the team",
     "teamMembersSaved": "Members saved",
-    "teamMembersError": "Could not save the members"
+    "teamMembersError": "Could not save the members",
+    "projectShared": "Project is now visible to everyone",
+    "projectUnshared": "Project is visible to its team again",
+    "projectVisibilityError": "Could not change the visibility"
   },
   "confirm": {
     "deleteProject": "Are you sure you want to delete \"{name}\"? This action cannot be undone."
@@ -1379,12 +1386,17 @@
   },
   "projectAffiliation": {
     "title": "Affiliation",
-    "description": "Two axes: the group is a sidebar and inbox label, the team decides the access.",
+    "description": "Where the project belongs and who may look at it.",
     "groupLabel": "Group",
     "groupUnassigned": "Unassigned",
     "groupHint": "Bundles projects for navigation, with no effect on tests or review state. Change it on the project list — there via multi-select.",
     "teamLabel": "Team",
-    "teamHint": "Decides who may see the project. Without a team it stays visible to every signed-in person."
+    "teamHint": "Decides who may see the project. Every project has an owner; publishing it lets everyone look as well.",
+    "visibilityLabel": "Visible to everyone",
+    "visibilityHint": "Every signed-in person may read the project in addition to its team. It grants no administration.",
+    "visibilityShared": "Currently visible to every signed-in person.",
+    "visibilityTeamOnly": "Currently visible to its team only.",
+    "visibilityError": "The visibility could not be changed"
   },
   "projectTeam": {
     "shared": "Shared — visible to everyone",

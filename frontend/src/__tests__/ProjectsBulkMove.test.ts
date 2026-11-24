@@ -19,13 +19,19 @@ vi.mock("@sdk", () => ({
   projectGroupsControllerFindAll: (...args: unknown[]) => mockGroups(...args),
   projectsBulkControllerMove: (...args: unknown[]) => mockMove(...args),
   projectsControllerDeleteProject: vi.fn(),
+  teamsControllerList: vi.fn().mockResolvedValue({ data: [] }),
   projectGroupsControllerCreate: vi.fn(),
   projectGroupsControllerRename: vi.fn(),
   projectGroupsControllerRemove: vi.fn(),
 }));
 
 vi.mock("@/composables/useAuth", () => ({
-  useCurrentRole: () => ({ canWrite: canWriteRef.value }),
+  useCurrentRole: () => ({
+    canWrite: canWriteRef.value,
+    isAdmin: canWriteRef.value,
+    seesAllProjects: true,
+  }),
+  useMeQuery: () => ({ data: { value: { teams: [] } } }),
 }));
 
 vi.mock("vue-sonner", () => ({

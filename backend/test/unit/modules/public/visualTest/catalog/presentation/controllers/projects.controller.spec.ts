@@ -97,26 +97,33 @@ describe('ProjectsController', () => {
 
   describe('create', () => {
     it('creates a project and returns the DTO', async () => {
-      const dto: CreateProjectDto = { name: 'new-project' };
+      const dto: CreateProjectDto = { name: 'new-project', teamId: 'team-1' };
       const expected = {
         id: 'proj-3',
         name: 'new-project',
         createdAt: new Date(),
         groupId: null,
         groupName: null,
+        teamId: 'team-1',
+        teamName: 'Storefront',
+        isShared: false,
         pendingCount: 0,
         testCount: 0,
         pending: false,
       };
       projectService.create.mockResolvedValue(expected);
 
-      const result = await controller.create(dto);
+      const result = await controller.create(dto, {
+        auth: { username: 'alice', userId: 'u1', role: 'MEMBER' },
+      } as never);
 
       expect(result).toEqual(expected);
-      expect(projectService.create).toHaveBeenCalledWith(
-        'new-project',
-        undefined,
-      );
+      // The owner rule reads team membership, which is keyed by the stable user
+      // id — the display name the audit trail records is not enough.
+      expect(projectService.create).toHaveBeenCalledWith(dto, {
+        userId: 'u1',
+        role: 'MEMBER',
+      });
     });
   });
 

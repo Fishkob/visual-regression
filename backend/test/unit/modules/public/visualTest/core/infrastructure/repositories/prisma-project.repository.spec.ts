@@ -170,7 +170,7 @@ describe('ProjectRepository', () => {
           fn(mockClient),
       );
 
-      await repository.create('checkout-ui');
+      await repository.create('checkout-ui', 'team-1');
 
       expect(mockClient.project.findUnique).toHaveBeenCalledWith({
         where: { name: 'checkout-ui' },
@@ -178,6 +178,7 @@ describe('ProjectRepository', () => {
       expect(mockClient.project.create).toHaveBeenCalledWith({
         data: {
           name: 'checkout-ui',
+          teamId: 'team-1',
           branches: { create: { name: 'main' } },
         },
         include: { branches: { select: { id: true } } },
@@ -196,8 +197,12 @@ describe('ProjectRepository', () => {
       };
       mockClient.project.findUnique.mockResolvedValue(existing);
 
-      await expect(repository.create('existing')).rejects.toThrow(DomainError);
-      await expect(repository.create('existing')).rejects.toMatchObject({
+      await expect(repository.create('existing', 'team-1')).rejects.toThrow(
+        DomainError,
+      );
+      await expect(
+        repository.create('existing', 'team-1'),
+      ).rejects.toMatchObject({
         code: 'E_UNIQUE_CONSTRAINT',
       });
       expect(mockClient.project.create).not.toHaveBeenCalled();

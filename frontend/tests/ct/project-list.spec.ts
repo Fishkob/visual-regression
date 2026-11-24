@@ -52,7 +52,10 @@ test.describe("ProjectList", () => {
     await expect(component).toContainText("Unassigned");
   });
 
-  test("opens the new project dialog", async ({ mount, page }) => {
+  test("opens the new project dialog and preselects the first team", async ({
+    mount,
+    page,
+  }) => {
     await mockApi(page, [
       ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
       ["**/api/v1/groups", GROUPS_RESPONSE],
@@ -63,8 +66,45 @@ test.describe("ProjectList", () => {
 
     await expect(page.getByTestId(TEST_ID.projectNameInput)).toBeVisible();
     await expect(page.getByTestId(TEST_ID.projectFormSubmit)).toBeDisabled();
+    // A project always has an owner (ADR-083), and the dialog picks the first
+    // team so the form is submittable without a second decision.
+    await expect(page.getByTestId(TEST_ID.newProjectTeam)).toHaveText(
+      "Storefront",
+    );
+    await expect(page.getByTestId(TEST_ID.newProjectNoTeam)).toHaveCount(0);
+
     await page.getByTestId(TEST_ID.projectNameInput).fill("new-project");
     await expect(page.getByTestId(TEST_ID.projectFormSubmit)).toBeEnabled();
+  });
+
+  // A member that belongs to no team cannot own a project, so the dialog says so
+  // instead of sending a request the API answers with 409.
+  test("explains a member without a team instead of a dead form", async ({
+    mount,
+    page,
+  }) => {
+    await page.route("**/api/v1/teams", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([]),
+      }),
+    );
+    await mockApi(page, [
+      ["**/api/v1/projects/pending*", PROJECTS_PENDING_RESPONSE],
+      ["**/api/v1/groups", GROUPS_RESPONSE],
+      [
+        "**/api/v1/teams",
+        { status: 200, contentType: "application/json", body: "[]" },
+      ],
+    ]);
+
+    const component = await mount("views/ProjectsView/Projects");
+    await component.getByTestId(TEST_ID.newProject).click();
+
+    await expect(page.getByTestId(TEST_ID.newProjectNoTeam)).toBeVisible();
+    await page.getByTestId(TEST_ID.projectNameInput).fill("new-project");
+    await expect(page.getByTestId(TEST_ID.projectFormSubmit)).toBeDisabled();
   });
 
   test("creates a project and navigates to it", async ({ mount, page }) => {
@@ -84,7 +124,18 @@ test.describe("ProjectList", () => {
     const component = await mount("views/ProjectsView/Projects");
     await component.getByTestId(TEST_ID.newProject).click();
     await page.getByTestId(TEST_ID.projectNameInput).fill("new-project");
+    const created = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        new URL(request.url()).pathname === "/api/v1/projects",
+    );
     await page.getByTestId(TEST_ID.projectFormSubmit).click();
+
+    // The owner rides along: the API refuses a project without one.
+    expect((await created).postDataJSON()).toMatchObject({
+      name: "new-project",
+      teamId: "team-storefront",
+    });
 
     await page.waitForURL((url) => url.pathname === "/projects/new-project");
   });

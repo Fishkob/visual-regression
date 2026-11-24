@@ -79,6 +79,12 @@ export const PROJECT_CHECKOUT_UI_RESPONSE = {
     defaultBranchName: "main",
     groupId: "g1",
     groupName: "Checkout",
+    // Every project has an owner (ADR-083); the flag is the "visible to everyone"
+    // half, and this fixture keeps it off so the settings shot shows a project
+    // that is readable by its team only.
+    teamId: "team-checkout",
+    teamName: "Checkout",
+    isShared: false,
     visualTests: [
       {
         name: "checkout-flow",

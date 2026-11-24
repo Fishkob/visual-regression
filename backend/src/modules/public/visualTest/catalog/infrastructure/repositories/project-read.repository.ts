@@ -31,8 +31,9 @@ export interface ProjectWithVariants {
   createdAt: Date;
   groupId: string | null;
   groupName: string | null;
-  teamId: string | null;
-  teamName: string | null;
+  teamId: string;
+  teamName: string;
+  isShared: boolean;
   branchName: string;
   defaultBranchName: string;
   pixelDiffThreshold: number | null;
@@ -47,6 +48,9 @@ export interface ProjectPendingFlag {
   createdAt: Date;
   groupId: string | null;
   groupName: string | null;
+  teamId: string;
+  teamName: string;
+  isShared: boolean;
   pendingCount: number;
   testCount: number;
   hasPendingComparisons: boolean;
@@ -114,8 +118,9 @@ export class ProjectReadRepository {
       createdAt: project.createdAt,
       groupId: project.group?.id ?? null,
       groupName: project.group?.name ?? null,
-      teamId: project.team?.id ?? null,
-      teamName: project.team?.name ?? null,
+      teamId: project.team.id,
+      teamName: project.team.name,
+      isShared: project.isShared,
       branchName: branch.branchName,
       defaultBranchName,
       pixelDiffThreshold: project.pixelDiffThreshold,
@@ -147,7 +152,10 @@ export class ProjectReadRepository {
         orderBy: { createdAt: 'desc' },
         skip: pagination?.skip,
         take: pagination?.take,
-        include: { group: { select: { id: true, name: true } } },
+        include: {
+          group: { select: { id: true, name: true } },
+          team: { select: { id: true, name: true } },
+        },
       }),
       this.client.project.count({ where }),
     ]);
@@ -159,7 +167,9 @@ export class ProjectReadRepository {
       id: string;
       name: string;
       createdAt: Date;
+      isShared: boolean;
       group: { id: string; name: string } | null;
+      team: { id: string; name: string };
     }[],
   ): Promise<ProjectPendingFlag[]> {
     if (projects.length === 0) return [];
@@ -183,6 +193,9 @@ export class ProjectReadRepository {
         createdAt: project.createdAt,
         groupId: project.group?.id ?? null,
         groupName: project.group?.name ?? null,
+        teamId: project.team.id,
+        teamName: project.team.name,
+        isShared: project.isShared,
         pendingCount,
         testCount: testsByProject.get(project.id) ?? 0,
         hasPendingComparisons: pendingCount > 0,
@@ -195,7 +208,10 @@ export class ProjectReadRepository {
   ): Promise<ProjectPendingFlag | null> {
     const project = await this.client.project.findUnique({
       where: { name: projectName },
-      include: { group: { select: { id: true, name: true } } },
+      include: {
+        group: { select: { id: true, name: true } },
+        team: { select: { id: true, name: true } },
+      },
     });
     if (!project) return null;
     const [summary] = await this.hydrateProjects([project]);

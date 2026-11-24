@@ -38,9 +38,13 @@ export interface Project {
   groupId?: string | null;
   groupName?: string | null;
   // Read-only: the owning team decides who may open the project, and naming it
-  // is not administering it (ADR-082). Assignment stays on the settings panel.
-  teamId?: string | null;
-  teamName?: string | null;
+  // is not administering it (ADR-082). Every project has one (ADR-083), so the
+  // field is not nullable; assignment stays on the settings panel.
+  teamId: string;
+  teamName: string;
+  // Read-only too: whether every signed-in person may read it on top of the
+  // team. Changing it is the ADMIN toggle on the settings panel (ADR-083).
+  isShared: boolean;
   branchName?: string;
   defaultBranchName?: string;
   pixelDiffThreshold?: number | null;

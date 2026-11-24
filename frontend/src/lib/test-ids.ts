@@ -437,6 +437,12 @@ export const TEST_ID = {
   projectTeamSelect: "project-team-select",
   projectTeamSave: "project-team-save",
   projectTeamRetry: "project-team-retry",
+  projectVisibilityToggle: "project-visibility-toggle",
+  projectVisibilityState: "project-visibility-state",
+  projectVisibilityError: "project-visibility-error",
+
+  newProjectTeam: "new-project-team",
+  newProjectNoTeam: "new-project-no-team",
 
   projectAffiliationSection: "project-affiliation-section",
   projectAffiliationGroupRow: "project-affiliation-group-row",

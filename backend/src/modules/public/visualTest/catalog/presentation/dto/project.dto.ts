@@ -2,6 +2,7 @@ import { Expose, Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Allow,
+  IsBoolean,
   IsDate,
   IsDefined,
   IsIn,
@@ -97,21 +98,33 @@ export class ProjectDto {
   @Expose()
   groupName?: string | null;
 
-  @ApiPropertyOptional({ example: 'team_123', nullable: true, type: String })
+  @ApiPropertyOptional({ example: 'team_123', type: String })
   @IsOptional()
   @IsString()
   @Expose()
-  teamId?: string | null;
+  teamId?: string;
 
   // Read-only, and visible to every principal that may open the project:
   // naming the owner is not administering it, and "why do I see this?" needs an
   // answer that does not require an ADMIN read. Assignment stays ADMIN-only on
   // `PATCH /projects/:projectName/team` (ADR-082).
-  @ApiPropertyOptional({ example: 'Storefront', nullable: true, type: String })
+  @ApiPropertyOptional({ example: 'Storefront', type: String })
   @IsOptional()
   @IsString()
   @Expose()
-  teamName?: string | null;
+  teamName?: string;
+
+  // Read-only too: the flag says everybody may read the project in addition to
+  // the owner's members. Changing it is `PATCH /projects/:projectName/visibility`
+  // (ADR-083).
+  @ApiPropertyOptional({
+    description:
+      'True when every authenticated principal may read the project in addition to the owning team',
+    example: false,
+  })
+  @IsOptional()
+  @Expose()
+  isShared?: boolean;
 
   @ApiPropertyOptional({ example: 'feature/x' })
   @IsOptional()
@@ -219,6 +232,20 @@ export class CreateProjectDto {
   @IsString()
   @MinLength(1)
   groupId?: string;
+
+  // Optional on the wire, not in the rule: a missing id falls back to the
+  // creator's own first team, and a member that belongs to none is refused with
+  // `409` by the service (ADR-083). The dialog preselects that same first team.
+  @ApiPropertyOptional({
+    description:
+      'The team that will own the project. Omitted: the creator’s first team.',
+    example: 'team_123',
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  teamId?: string;
 }
 
 export class UpdateProjectDto {
@@ -305,6 +332,30 @@ export class UpdateThresholdDto {
   @Max(100000)
   @Expose()
   threshold!: number;
+}
+
+// Its own route, the sibling of `PATCH /projects/:projectName/team`: widening who
+// may read a project is a governance decision, so it must not ride on the generic
+// project patch, which is gated by an API-key scope rather than by `@Roles`
+// (ADR-083).
+export class UpdateProjectVisibilityDto {
+  @ApiProperty({
+    description:
+      'True makes the project readable by every authenticated principal in addition to the owning team',
+    example: true,
+  })
+  @IsBoolean()
+  isShared!: boolean;
+}
+
+export class ProjectVisibilityDto {
+  @ApiProperty({ example: 'checkout-ui' })
+  @Expose()
+  projectName!: string;
+
+  @ApiProperty({ example: true })
+  @Expose()
+  isShared!: boolean;
 }
 
 // The whole query object is validated as one DTO so whitelist/forbidNonWhitelisted

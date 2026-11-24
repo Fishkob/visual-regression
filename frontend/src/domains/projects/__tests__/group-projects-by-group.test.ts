@@ -5,6 +5,9 @@ import type { Project } from "../project.model";
 const project = (overrides: Partial<Project>): Project => ({
   id: "p",
   name: "p",
+  teamId: "team-1",
+  teamName: "Storefront",
+  isShared: false,
   hasPendingTests: false,
   ...overrides,
 });

@@ -6,6 +6,9 @@ import type { Project } from "@/domains/projects/project.model";
 const project: Project = {
   id: "proj-1",
   name: "checkout",
+  teamId: "team-1",
+  teamName: "Storefront",
+  isShared: false,
   hasPendingTests: true,
   testCount: 3,
   pendingCount: 2,

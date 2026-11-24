@@ -95,7 +95,10 @@ describe("mapProjectTeamAssignment", () => {
     });
   });
 
-  it("reads the unassigned (shared) answer as null, not undefined", () => {
+  // The owner is mandatory now (ADR-083), so a payload without one is a stale
+  // wire, not a "shared" answer. The mapper degrades to empty strings rather
+  // than leaking `undefined` into the copy.
+  it("reads a payload without an owner as empty, not undefined", () => {
     const dto = {
       projectId: "p-1",
       projectName: "checkout-ui",
@@ -104,8 +107,8 @@ describe("mapProjectTeamAssignment", () => {
     expect(mapProjectTeamAssignment(dto)).toEqual({
       projectId: "p-1",
       projectName: "checkout-ui",
-      teamId: null,
-      teamName: null,
+      teamId: "",
+      teamName: "",
     });
   });
 });

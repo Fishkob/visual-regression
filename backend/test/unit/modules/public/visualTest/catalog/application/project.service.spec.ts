@@ -10,6 +10,10 @@ import { BranchCommandService } from '@public/visualTest/catalog/application/bra
 import { TestDeletionService } from '@public/visualTest/core/application/services/test-deletion.service';
 import { DomainError } from '@common/domain/domain-error';
 import { AuditService } from '@internal/audit/audit.service';
+import {
+  TeamsRepository,
+  type TeamRow,
+} from '@internal/teams/teams.repository';
 import { AUDIT_ACTIONS } from '@internal/audit/audit.types';
 import { PaginationDto } from '@common/dto/pagination.dto';
 import { TestStatus } from '@public/visualTest/core/domain/types/visual-test.types';
@@ -27,6 +31,7 @@ describe('ProjectService', () => {
   let testDeletion: Mocked<TestDeletionService>;
   let groups: Mocked<ProjectGroupRepository>;
   let branchCommands: Mocked<BranchCommandService>;
+  let teams: Mocked<TeamsRepository>;
   let audit: Mocked<AuditService>;
 
   beforeEach(async () => {
@@ -35,6 +40,7 @@ describe('ProjectService', () => {
     testDeletion = createMock<TestDeletionService>();
     groups = createMock<ProjectGroupRepository>();
     branchCommands = createMock<BranchCommandService>();
+    teams = createMock<TeamsRepository>();
     audit = createMock<AuditService>();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -45,6 +51,7 @@ describe('ProjectService', () => {
         { provide: TestDeletionService, useValue: testDeletion },
         { provide: ProjectGroupRepository, useValue: groups },
         { provide: BranchCommandService, useValue: branchCommands },
+        { provide: TeamsRepository, useValue: teams },
         { provide: AuditService, useValue: audit },
         { provide: PrismaUnitOfWork, useValue: createMockUoW() },
       ],
@@ -81,29 +88,121 @@ describe('ProjectService', () => {
   });
 
   describe('create', () => {
-    it('delegates project creation to the repository', async () => {
-      const created = {
+    const createdAt = new Date('2024-01-01');
+    const admin = { userId: 'user-admin', role: 'ADMIN' };
+    const member = { userId: 'user-member', role: 'MEMBER' };
+
+    function teamRow(overrides: { id: string; name: string }): TeamRow {
+      return {
+        createdBy: 'admin',
+        createdAt,
+        members: [],
+        projects: [],
+        ...overrides,
+      };
+    }
+
+    it('creates the project in the team the caller names', async () => {
+      teams.findById.mockResolvedValue(
+        teamRow({ id: 'team-1', name: 'Storefront' }),
+      );
+      projects.create.mockResolvedValue({
         id: 'proj-1',
         name: 'my-project',
-        createdAt: new Date(),
-      };
-      projects.create.mockResolvedValue(created);
+        createdAt,
+        teamId: 'team-1',
+        isShared: false,
+      });
 
-      const result = await service.create('my-project');
+      const result = await service.create(
+        { name: 'my-project', teamId: 'team-1' },
+        admin,
+      );
 
-      expect(projects.create).toHaveBeenCalledWith('my-project', null);
-      expect(result).toEqual({
-        ...created,
-        groupId: null,
-        groupName: null,
+      expect(projects.create).toHaveBeenCalledWith(
+        'my-project',
+        'team-1',
+        undefined,
+      );
+      expect(result).toMatchObject({
+        id: 'proj-1',
+        name: 'my-project',
+        teamId: 'team-1',
+        teamName: 'Storefront',
+        isShared: false,
         pendingCount: 0,
         testCount: 0,
         pending: false,
       });
     });
 
-    it('creates a project in a known group', async () => {
-      const createdAt = new Date('2024-01-01');
+    it('rejects an unknown team without creating the project', async () => {
+      teams.findById.mockResolvedValue(null);
+
+      await expect(
+        service.create({ name: 'my-project', teamId: 'missing' }, admin),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      expect(projects.create).not.toHaveBeenCalled();
+    });
+
+    it("falls back to the creator's first team when none is named", async () => {
+      teams.findForUser.mockResolvedValue([
+        { id: 'team-1', name: 'Backoffice' },
+        { id: 'team-2', name: 'Storefront' },
+      ]);
+      projects.create.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt,
+        teamId: 'team-1',
+      });
+
+      await service.create({ name: 'my-project' }, member);
+
+      expect(teams.findForUser).toHaveBeenCalledWith('user-member');
+      expect(projects.create).toHaveBeenCalledWith(
+        'my-project',
+        'team-1',
+        undefined,
+      );
+    });
+
+    it('refuses a member that belongs to no team with a conflict', async () => {
+      teams.findForUser.mockResolvedValue([]);
+
+      await expect(
+        service.create({ name: 'my-project' }, member),
+      ).rejects.toMatchObject({ code: 'CONFLICT' });
+      expect(projects.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses an admin that names no team and belongs to none', async () => {
+      teams.findForUser.mockResolvedValue([]);
+
+      await expect(
+        service.create({ name: 'my-project' }, admin),
+      ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+      expect(projects.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for a team the member does not belong to', async () => {
+      teams.findById.mockResolvedValue(
+        teamRow({ id: 'team-9', name: 'Foreign' }),
+      );
+      teams.findForUser.mockResolvedValue([
+        { id: 'team-1', name: 'Storefront' },
+      ]);
+
+      await expect(
+        service.create({ name: 'my-project', teamId: 'team-9' }, member),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      expect(projects.create).not.toHaveBeenCalled();
+    });
+
+    it('creates the project in a known group', async () => {
+      teams.findById.mockResolvedValue(
+        teamRow({ id: 'team-1', name: 'Storefront' }),
+      );
       groups.findById.mockResolvedValue({
         id: 'group-1',
         name: 'Checkout',
@@ -113,13 +212,21 @@ describe('ProjectService', () => {
         id: 'proj-1',
         name: 'my-project',
         createdAt,
+        teamId: 'team-1',
         groupId: 'group-1',
       });
 
-      const result = await service.create('my-project', 'group-1');
+      const result = await service.create(
+        { name: 'my-project', teamId: 'team-1', groupId: 'group-1' },
+        admin,
+      );
 
       expect(groups.findById).toHaveBeenCalledWith('group-1');
-      expect(projects.create).toHaveBeenCalledWith('my-project', 'group-1');
+      expect(projects.create).toHaveBeenCalledWith(
+        'my-project',
+        'team-1',
+        'group-1',
+      );
       expect(result).toMatchObject({
         groupId: 'group-1',
         groupName: 'Checkout',
@@ -130,10 +237,16 @@ describe('ProjectService', () => {
     });
 
     it('rejects an unknown group without creating the project', async () => {
+      teams.findById.mockResolvedValue(
+        teamRow({ id: 'team-1', name: 'Storefront' }),
+      );
       groups.findById.mockResolvedValue(null);
 
       await expect(
-        service.create('my-project', 'missing'),
+        service.create(
+          { name: 'my-project', teamId: 'team-1', groupId: 'missing' },
+          admin,
+        ),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
       expect(projects.create).not.toHaveBeenCalled();
     });
@@ -164,6 +277,9 @@ describe('ProjectService', () => {
         createdAt,
         groupId: 'group-1',
         groupName: 'Checkout',
+        teamId: 'team-1',
+        teamName: 'Storefront',
+        isShared: false,
         pendingCount: 3,
         testCount: 4,
         hasPendingComparisons: true,
@@ -184,6 +300,9 @@ describe('ProjectService', () => {
         createdAt,
         groupId: 'group-1',
         groupName: 'Checkout',
+        teamId: 'team-1',
+        teamName: 'Storefront',
+        isShared: false,
         pendingCount: 3,
         testCount: 4,
         pending: true,
@@ -210,6 +329,9 @@ describe('ProjectService', () => {
         createdAt,
         groupId: null,
         groupName: null,
+        teamId: 'team-1',
+        teamName: 'Storefront',
+        isShared: false,
         pendingCount: 0,
         testCount: 0,
         hasPendingComparisons: false,
@@ -263,6 +385,61 @@ describe('ProjectService', () => {
         service.updateProjectGroup('my-project', { groupId: 'missing' }),
       ).rejects.toMatchObject({ code: 'NOT_FOUND' });
       expect(projects.updateGroupByName).not.toHaveBeenCalled();
+    });
+  });
+
+  // Visibility is its own audited write (ADR-083 decision 5): it widens who may
+  // read the project, so a change without a record of who made it would be a
+  // silent access grant.
+  describe('updateVisibility', () => {
+    it('publishes the project and audits old → new', async () => {
+      projects.findByName.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt: new Date('2024-01-01'),
+        isShared: false,
+      });
+
+      const result = await service.updateVisibility('my-project', true, 'jane');
+
+      expect(projects.updateVisibilityByName).toHaveBeenCalledWith(
+        'my-project',
+        true,
+      );
+      expect(audit.record).toHaveBeenCalledWith({
+        actor: 'jane',
+        action: AUDIT_ACTIONS.projectVisibility,
+        projectName: 'my-project',
+        targetType: 'project',
+        targetId: 'proj-1',
+        metadata: { from: false, to: true },
+      });
+      expect(result).toEqual({ projectName: 'my-project', isShared: true });
+    });
+
+    it('writes nothing when the flag already says what was asked', async () => {
+      projects.findByName.mockResolvedValue({
+        id: 'proj-1',
+        name: 'my-project',
+        createdAt: new Date('2024-01-01'),
+        isShared: true,
+      });
+
+      const result = await service.updateVisibility('my-project', true, 'jane');
+
+      expect(projects.updateVisibilityByName).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
+      expect(result.isShared).toBe(true);
+    });
+
+    it('rejects a missing project without writing or auditing', async () => {
+      projects.findByName.mockResolvedValue(null);
+
+      await expect(
+        service.updateVisibility('ghost', true, 'jane'),
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+      expect(projects.updateVisibilityByName).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
     });
   });
 
@@ -418,6 +595,9 @@ describe('ProjectService', () => {
             createdAt: new Date('2024-01-01'),
             groupId: 'group-1',
             groupName: 'Checkout',
+            teamId: 'team-1',
+            teamName: 'Storefront',
+            isShared: false,
             pendingCount: 3,
             testCount: 2,
             hasPendingComparisons: true,
@@ -428,6 +608,9 @@ describe('ProjectService', () => {
             createdAt: new Date('2024-01-02'),
             groupId: null,
             groupName: null,
+            teamId: 'team-1',
+            teamName: 'Storefront',
+            isShared: true,
             pendingCount: 0,
             testCount: 1,
             hasPendingComparisons: false,
@@ -454,6 +637,9 @@ describe('ProjectService', () => {
         createdAt: expect.any(Date),
         groupId: 'group-1',
         groupName: 'Checkout',
+        teamId: 'team-1',
+        teamName: 'Storefront',
+        isShared: false,
         pendingCount: 3,
         testCount: 2,
         pending: true,
@@ -493,8 +679,9 @@ describe('ProjectService', () => {
         createdAt,
         groupId: null,
         groupName: null,
-        teamId: null,
-        teamName: null,
+        teamId: 'team-1',
+        teamName: 'Storefront',
+        isShared: false,
         branchName: 'main',
         pixelDiffThreshold: null,
         defaultBranchName: 'main',

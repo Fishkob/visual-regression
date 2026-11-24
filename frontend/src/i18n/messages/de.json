@@ -193,8 +193,8 @@
     "deleteTitle": "Projekt löschen",
     "deleteButton": "Löschen",
     "pendingLabel": "ausstehend",
-    "emptyScopedTitle": "Dein Team hat noch keine Projekte",
-    "emptyScopedBody": "Sichtbar sind die Projekte deiner Teams und alle Projekte ohne Team. Ein Admin ordnet Projekte einem Team zu."
+    "emptyScopedTitle": "Keine geteilten Projekte",
+    "emptyScopedBody": "Du bist in keinem Team, siehst also nur Projekte, die ein Admin für alle veröffentlicht hat. Bitte einen Admin, dich einem Team hinzuzufügen."
   },
   "newProject": {
     "title": "Neues Projekt",
@@ -207,7 +207,11 @@
     "add": "Hinzufügen",
     "create": "Erstellen",
     "createGroupError": "Gruppe konnte nicht erstellt werden",
-    "createError": "Projekt konnte nicht erstellt werden"
+    "createError": "Projekt konnte nicht erstellt werden",
+    "team": "Team",
+    "teamRequired": "Wähle das Team, dem das Projekt gehören soll.",
+    "noTeam": "Du gehörst noch keinem Team an. Ein Admin muss dich zuerst einem Team hinzufügen, dann kannst du ein Projekt anlegen.",
+    "createTeamError": "Teams konnten nicht geladen werden"
   },
   "renameProject": {
     "title": "Projekt umbenennen",
@@ -1221,9 +1225,9 @@
     "approveForTestError": "{variant} von „{test}“ konnte nicht genehmigt werden",
     "refreshDetailsError": "Details konnten nicht aktualisiert werden",
     "importEmpty": "Der Import kam leer zurück",
-    "teamAssigned": "Projekt dem Team zugewiesen",
+    "teamAssigned": "Projekt verschoben",
     "teamUnassigned": "Projekt ist jetzt geteilt",
-    "teamAssignError": "Zuweisung fehlgeschlagen",
+    "teamAssignError": "Projekt konnte nicht verschoben werden",
     "teamCreated": "Team erstellt",
     "teamCreateError": "Team konnte nicht erstellt werden",
     "teamRenamed": "Team umbenannt",
@@ -1231,7 +1235,10 @@
     "teamDeleted": "Team gelöscht",
     "teamDeleteError": "Team konnte nicht gelöscht werden",
     "teamMembersSaved": "Mitglieder gespeichert",
-    "teamMembersError": "Mitglieder konnten nicht gespeichert werden"
+    "teamMembersError": "Mitglieder konnten nicht gespeichert werden",
+    "projectShared": "Projekt ist jetzt für alle sichtbar",
+    "projectUnshared": "Projekt ist wieder nur für sein Team sichtbar",
+    "projectVisibilityError": "Sichtbarkeit konnte nicht geändert werden"
   },
   "confirm": {
     "deleteProject": "Möchtest du „{name}\" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
@@ -1379,12 +1386,17 @@
   },
   "projectAffiliation": {
     "title": "Zugehörigkeit",
-    "description": "Zwei Achsen: Die Gruppe ist ein Label für Seitenleiste und Posteingang, das Team entscheidet über den Zugriff.",
+    "description": "Wo das Projekt hingehört und wer es sehen darf.",
     "groupLabel": "Gruppe",
     "groupUnassigned": "Nicht zugewiesen",
     "groupHint": "Bündelt Projekte für die Navigation, ohne Einfluss auf Tests oder Prüfstatus. Änderbar über die Projektliste – dort per Mehrfachauswahl.",
     "teamLabel": "Team",
-    "teamHint": "Entscheidet, wer das Projekt sehen darf. Ohne Team ist es für alle angemeldeten Personen sichtbar."
+    "teamHint": "Entscheidet, wer das Projekt sehen darf. Jedes Projekt hat ein Team; eine Veröffentlichung lässt zusätzlich alle angemeldeten Personen hineinsehen.",
+    "visibilityLabel": "Für alle sichtbar",
+    "visibilityHint": "Jede angemeldete Person darf das Projekt zusätzlich zum Team lesen. Verwaltungsrechte entstehen dadurch nicht.",
+    "visibilityShared": "Derzeit für alle angemeldeten Personen sichtbar.",
+    "visibilityTeamOnly": "Derzeit nur für das Team sichtbar.",
+    "visibilityError": "Die Sichtbarkeit konnte nicht geändert werden"
   },
   "projectTeam": {
     "shared": "Geteilt – für alle sichtbar",

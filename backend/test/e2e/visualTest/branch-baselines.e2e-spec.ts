@@ -20,6 +20,9 @@ describe('Branch baselines (e2e)', () => {
 
   beforeEach(async () => {
     await TestApp.resetDb();
+    // An upload never creates a project (ADR-083): the fixture has to exist, or
+    // the upload answers 404 instead of materializing one without an owner.
+    await TestApp.createProject('branch-app');
   });
 
   afterAll(async () => {

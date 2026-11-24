@@ -130,6 +130,9 @@ import type { ProjectsControllerUpdateProjectResponses } from './models/Projects
 import type { ProjectTeamControllerAssignData } from './models/ProjectTeamControllerAssignData.gen';
 import type { ProjectTeamControllerAssignErrors } from './models/ProjectTeamControllerAssignErrors.gen';
 import type { ProjectTeamControllerAssignResponses } from './models/ProjectTeamControllerAssignResponses.gen';
+import type { ProjectVisibilityControllerUpdateData } from './models/ProjectVisibilityControllerUpdateData.gen';
+import type { ProjectVisibilityControllerUpdateErrors } from './models/ProjectVisibilityControllerUpdateErrors.gen';
+import type { ProjectVisibilityControllerUpdateResponses } from './models/ProjectVisibilityControllerUpdateResponses.gen';
 import type { PublicShareControllerResolveData } from './models/PublicShareControllerResolveData.gen';
 import type { PublicShareControllerResolveResponses } from './models/PublicShareControllerResolveResponses.gen';
 import type { PublicUserInviteControllerPreviewData } from './models/PublicUserInviteControllerPreviewData.gen';
@@ -364,6 +367,23 @@ export const projectsControllerUpdatePixelThreshold = <ThrowOnError extends bool
 });
 
 /**
+ * Make a project readable by everyone, or by its team only
+ */
+export const projectVisibilityControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<ProjectVisibilityControllerUpdateData, ThrowOnError>): RequestResult<ProjectVisibilityControllerUpdateResponses, ProjectVisibilityControllerUpdateErrors, ThrowOnError> => (options.client ?? client).patch<ProjectVisibilityControllerUpdateResponses, ProjectVisibilityControllerUpdateErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/visibility',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * List project groups
  */
 export const projectGroupsControllerFindAll = <ThrowOnError extends boolean = false>(options?: Options<ProjectGroupsControllerFindAllData, ThrowOnError>): RequestResult<ProjectGroupsControllerFindAllResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ProjectGroupsControllerFindAllResponses, unknown, ThrowOnError>({
@@ -445,6 +465,100 @@ export const searchControllerQuery = <ThrowOnError extends boolean = false>(opti
     security: [{ name: 'x-api-key', type: 'apiKey' }],
     url: '/search',
     ...options
+});
+
+/**
+ * List teams with members and owned projects
+ */
+export const teamsControllerList = <ThrowOnError extends boolean = false>(options?: Options<TeamsControllerListData, ThrowOnError>): RequestResult<TeamsControllerListResponses, unknown, ThrowOnError> => (options?.client ?? client).get<TeamsControllerListResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/teams',
+    ...options
+});
+
+/**
+ * Create a team
+ */
+export const teamsControllerCreate = <ThrowOnError extends boolean = false>(options: Options<TeamsControllerCreateData, ThrowOnError>): RequestResult<TeamsControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<TeamsControllerCreateResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/teams',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete a team that owns no projects
+ */
+export const teamsControllerRemove = <ThrowOnError extends boolean = false>(options: Options<TeamsControllerRemoveData, ThrowOnError>): RequestResult<TeamsControllerRemoveResponses, unknown, ThrowOnError> => (options.client ?? client).delete<TeamsControllerRemoveResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/teams/{id}',
+    ...options
+});
+
+/**
+ * Rename a team
+ */
+export const teamsControllerRename = <ThrowOnError extends boolean = false>(options: Options<TeamsControllerRenameData, ThrowOnError>): RequestResult<TeamsControllerRenameResponses, unknown, ThrowOnError> => (options.client ?? client).patch<TeamsControllerRenameResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/teams/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Replace the member set of a team
+ */
+export const teamsControllerReplaceMembers = <ThrowOnError extends boolean = false>(options: Options<TeamsControllerReplaceMembersData, ThrowOnError>): RequestResult<TeamsControllerReplaceMembersResponses, unknown, ThrowOnError> => (options.client ?? client).put<TeamsControllerReplaceMembersResponses, unknown, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/teams/{id}/members',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Assign a project to a team, or null to make it shared
+ */
+export const projectTeamControllerAssign = <ThrowOnError extends boolean = false>(options: Options<ProjectTeamControllerAssignData, ThrowOnError>): RequestResult<ProjectTeamControllerAssignResponses, ProjectTeamControllerAssignErrors, ThrowOnError> => (options.client ?? client).patch<ProjectTeamControllerAssignResponses, ProjectTeamControllerAssignErrors, ThrowOnError>({
+    security: [{
+            in: 'cookie',
+            name: 'vrt_session',
+            type: 'apiKey'
+        }],
+    url: '/projects/{projectName}/team',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -816,100 +930,6 @@ export const authControllerChangePassword = <ThrowOnError extends boolean = fals
             type: 'apiKey'
         }],
     url: '/auth/change-password',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * List teams with members and owned projects
- */
-export const teamsControllerList = <ThrowOnError extends boolean = false>(options?: Options<TeamsControllerListData, ThrowOnError>): RequestResult<TeamsControllerListResponses, unknown, ThrowOnError> => (options?.client ?? client).get<TeamsControllerListResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/teams',
-    ...options
-});
-
-/**
- * Create a team
- */
-export const teamsControllerCreate = <ThrowOnError extends boolean = false>(options: Options<TeamsControllerCreateData, ThrowOnError>): RequestResult<TeamsControllerCreateResponses, unknown, ThrowOnError> => (options.client ?? client).post<TeamsControllerCreateResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/teams',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Delete a team that owns no projects
- */
-export const teamsControllerRemove = <ThrowOnError extends boolean = false>(options: Options<TeamsControllerRemoveData, ThrowOnError>): RequestResult<TeamsControllerRemoveResponses, unknown, ThrowOnError> => (options.client ?? client).delete<TeamsControllerRemoveResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/teams/{id}',
-    ...options
-});
-
-/**
- * Rename a team
- */
-export const teamsControllerRename = <ThrowOnError extends boolean = false>(options: Options<TeamsControllerRenameData, ThrowOnError>): RequestResult<TeamsControllerRenameResponses, unknown, ThrowOnError> => (options.client ?? client).patch<TeamsControllerRenameResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/teams/{id}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Replace the member set of a team
- */
-export const teamsControllerReplaceMembers = <ThrowOnError extends boolean = false>(options: Options<TeamsControllerReplaceMembersData, ThrowOnError>): RequestResult<TeamsControllerReplaceMembersResponses, unknown, ThrowOnError> => (options.client ?? client).put<TeamsControllerReplaceMembersResponses, unknown, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/teams/{id}/members',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Assign a project to a team, or null to make it shared
- */
-export const projectTeamControllerAssign = <ThrowOnError extends boolean = false>(options: Options<ProjectTeamControllerAssignData, ThrowOnError>): RequestResult<ProjectTeamControllerAssignResponses, ProjectTeamControllerAssignErrors, ThrowOnError> => (options.client ?? client).patch<ProjectTeamControllerAssignResponses, ProjectTeamControllerAssignErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'vrt_session',
-            type: 'apiKey'
-        }],
-    url: '/projects/{projectName}/team',
     ...options,
     headers: {
         'Content-Type': 'application/json',

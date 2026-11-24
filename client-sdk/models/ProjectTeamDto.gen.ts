@@ -4,8 +4,8 @@ export type ProjectTeamDto = {
     projectId: string;
     projectName: string;
     /**
-     * Null means the project is shared
+     * The team that owns the project
      */
-    teamId?: string | null;
-    teamName?: string | null;
+    teamId: string;
+    teamName: string;
 };

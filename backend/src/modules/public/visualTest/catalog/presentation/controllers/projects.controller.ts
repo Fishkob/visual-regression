@@ -24,6 +24,7 @@ import {
 import { AuthenticatedRequest } from '@common/http/authenticated-request';
 import {
   requireActor,
+  requireAuthenticatedPrincipal,
   requireProjectScope,
 } from '@common/http/authenticated-principal';
 import { Roles } from '@common/http/roles.decorator';
@@ -144,8 +145,19 @@ export class ProjectsController {
   })
   @GlobalRoute()
   @ApiConflictResponse({ description: 'Project name already in use' })
-  async create(@Body() dto: CreateProjectDto): Promise<ProjectDto> {
-    return this.projectService.create(dto.name, dto.groupId);
+  async create(
+    @Body() dto: CreateProjectDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ProjectDto> {
+    // The owner rule needs the stable user id (team membership is keyed by it),
+    // not the display name the audit trail records. An API key has no
+    // membership, so it can only name a team — which its ADMIN-mapped role
+    // allows.
+    requireAuthenticatedPrincipal(req);
+    return this.projectService.create(dto, {
+      userId: req.auth?.userId,
+      role: req.auth?.role ?? 'MEMBER',
+    });
   }
 
   @Scope('admin')

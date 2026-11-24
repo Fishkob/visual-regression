@@ -9,11 +9,13 @@ import {
   useDeleteTeam,
   useRenameTeam,
   useReplaceTeamMembers,
+  useSetProjectVisibility,
   useTeamsQuery,
 } from "@/composables/useTeams";
 
 const mockList = vi.hoisted(() => vi.fn());
 const mockAssign = vi.hoisted(() => vi.fn());
+const mockSetVisibility = vi.hoisted(() => vi.fn());
 const mockCreate = vi.hoisted(() => vi.fn());
 const mockRename = vi.hoisted(() => vi.fn());
 const mockRemove = vi.hoisted(() => vi.fn());
@@ -22,6 +24,8 @@ const mockReplaceMembers = vi.hoisted(() => vi.fn());
 vi.mock("@sdk", () => ({
   teamsControllerList: (...args: unknown[]) => mockList(...args),
   projectTeamControllerAssign: (...args: unknown[]) => mockAssign(...args),
+  projectVisibilityControllerUpdate: (...args: unknown[]) =>
+    mockSetVisibility(...args),
   teamsControllerCreate: (...args: unknown[]) => mockCreate(...args),
   teamsControllerRename: (...args: unknown[]) => mockRename(...args),
   teamsControllerRemove: (...args: unknown[]) => mockRemove(...args),
@@ -128,31 +132,8 @@ describe("useAssignProjectTeam", () => {
       path: { projectName: "checkout-ui" },
       body: { teamId: "t-1" },
     });
-    expect(toast.success).toHaveBeenCalledWith("Project assigned to the team");
+    expect(toast.success).toHaveBeenCalledWith("Project moved");
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["teams"] });
-  });
-
-  it("reports the shared state in its own words", async () => {
-    mockAssign.mockResolvedValue({
-      data: {
-        projectId: "p-1",
-        projectName: "checkout-ui",
-        teamId: null,
-        teamName: null,
-      },
-    });
-
-    const { result } = mountComposable(useAssignProjectTeam);
-
-    await result.mutateAsync({ projectName: "checkout-ui", teamId: null });
-
-    // `null` is a real write (it makes the project shared), so it must not read
-    // like a failed save or like an assignment to some team.
-    expect(mockAssign).toHaveBeenCalledWith({
-      path: { projectName: "checkout-ui" },
-      body: { teamId: null },
-    });
-    expect(toast.success).toHaveBeenCalledWith("Project is now shared");
   });
 
   it("surfaces the SDK error and does not invalidate", async () => {
@@ -166,7 +147,62 @@ describe("useAssignProjectTeam", () => {
       result.mutateAsync({ projectName: "checkout-ui", teamId: "ghost" }),
     ).rejects.toThrow("Team not found");
 
-    expect(toast.error).toHaveBeenCalledWith("Assignment failed");
+    expect(toast.error).toHaveBeenCalledWith("Could not move the project");
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+});
+
+// Publishing is a separate write from moving (ADR-083): it widens who may read
+// the project without changing its owner, so it has its own route, its own
+// words, and its own refresh.
+describe("useSetProjectVisibility", () => {
+  it("publishes the project, toasts and refreshes the project reads", async () => {
+    mockSetVisibility.mockResolvedValue({
+      data: { projectName: "checkout-ui", isShared: true },
+    });
+
+    const { result, invalidate } = mountComposable(useSetProjectVisibility);
+
+    await result.mutateAsync({ projectName: "checkout-ui", isShared: true });
+
+    expect(mockSetVisibility).toHaveBeenCalledWith({
+      path: { projectName: "checkout-ui" },
+      body: { isShared: true },
+    });
+    expect(toast.success).toHaveBeenCalledWith(
+      "Project is now visible to everyone",
+    );
+    // Both lists carry the flag, so both keys are refreshed.
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["teams"] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["projects"] });
+  });
+
+  it("says so when the project is narrowed again", async () => {
+    mockSetVisibility.mockResolvedValue({
+      data: { projectName: "checkout-ui", isShared: false },
+    });
+
+    const { result } = mountComposable(useSetProjectVisibility);
+
+    await result.mutateAsync({ projectName: "checkout-ui", isShared: false });
+
+    expect(toast.success).toHaveBeenCalledWith(
+      "Project is visible to its team again",
+    );
+  });
+
+  it("surfaces the SDK error and does not invalidate", async () => {
+    mockSetVisibility.mockResolvedValue({
+      error: { message: "Forbidden" },
+    });
+
+    const { result, invalidate } = mountComposable(useSetProjectVisibility);
+
+    await expect(
+      result.mutateAsync({ projectName: "checkout-ui", isShared: true }),
+    ).rejects.toThrow("Forbidden");
+
+    expect(toast.error).toHaveBeenCalledWith("Could not change the visibility");
     expect(invalidate).not.toHaveBeenCalled();
   });
 });

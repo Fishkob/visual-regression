@@ -26,7 +26,11 @@ describe('Project groups (e2e)', () => {
 
     const project = await authRequest(app)
       .post('/api/v1/projects')
-      .send({ name: 'checkout-ui', groupId: group.body.id })
+      .send({
+        name: 'checkout-ui',
+        groupId: group.body.id,
+        teamId: (await TestApp.ensureTeam('general')).id,
+      })
       .expect(201);
     expect(project.body).toMatchObject({
       name: 'checkout-ui',
@@ -91,7 +95,11 @@ describe('Project groups (e2e)', () => {
 
     await authRequest(app)
       .post('/api/v1/projects')
-      .send({ name: 'checkout-ui', groupId: group.body.id })
+      .send({
+        name: 'checkout-ui',
+        groupId: group.body.id,
+        teamId: (await TestApp.ensureTeam('general')).id,
+      })
       .expect(201);
 
     await authRequest(app)
@@ -124,7 +132,11 @@ describe('Project groups (e2e)', () => {
 
     await authRequest(app)
       .post('/api/v1/projects')
-      .send({ name: 'checkout-ui', groupId: group.body.id })
+      .send({
+        name: 'checkout-ui',
+        groupId: group.body.id,
+        teamId: (await TestApp.ensureTeam('general')).id,
+      })
       .expect(201);
 
     const groups = await authRequest(app).get('/api/v1/groups').expect(200);

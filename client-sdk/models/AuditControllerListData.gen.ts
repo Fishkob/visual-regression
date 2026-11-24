@@ -21,7 +21,7 @@ export type AuditControllerListData = {
          */
         take?: number;
         actor?: string;
-        action?: 'approval' | 'baseline.restore' | 'test.delete' | 'variant.delete' | 'project.delete' | 'project.rename' | 'test.update' | 'branch.delete' | 'webhook.create' | 'webhook.update' | 'webhook.delete' | 'api-key.create' | 'api-key.revoke' | 'api-key.rotate' | 'api-key.delete' | 'user.create' | 'user.update' | 'user.reset-password' | 'user.invite-redeem' | 'team.create' | 'team.update' | 'team.delete' | 'team.members' | 'team.project-assign' | 'share.create' | 'share.revoke' | 'share.access' | 'review.assign' | 'project.pixel-threshold' | 'storage.retention' | 'test.threshold' | 'review.complete' | 'review.comment' | 'review.comment-resolve';
+        action?: 'approval' | 'baseline.restore' | 'test.delete' | 'variant.delete' | 'project.delete' | 'project.rename' | 'test.update' | 'branch.delete' | 'webhook.create' | 'webhook.update' | 'webhook.delete' | 'api-key.create' | 'api-key.revoke' | 'api-key.rotate' | 'api-key.delete' | 'user.create' | 'user.update' | 'user.reset-password' | 'user.invite-redeem' | 'team.create' | 'team.update' | 'team.delete' | 'team.members' | 'team.project-assign' | 'share.create' | 'share.revoke' | 'share.access' | 'review.assign' | 'project.pixel-threshold' | 'project.visibility' | 'storage.retention' | 'test.threshold' | 'review.complete' | 'review.comment' | 'review.comment-resolve';
         projectName?: string;
         from?: string;
         to?: string;
