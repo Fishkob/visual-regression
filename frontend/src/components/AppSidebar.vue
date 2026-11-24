@@ -21,6 +21,14 @@ import { Button } from "@/components/ui/button";
 import { TEST_ID } from "@/lib/test-ids";
 import { useI18n } from "vue-i18n";
 
+// A page that needs the desktop width (the review comparison) hides the column
+// above md only: below md this component is a bar plus a drawer, which sits
+// above the content and costs it no width — hiding it there would only remove
+// the mobile navigation.
+withDefaults(defineProps<{ desktopHidden?: boolean }>(), {
+  desktopHidden: false,
+});
+
 const route = useRoute();
 const { t } = useI18n();
 
@@ -59,7 +67,10 @@ const pending = computed(() => pendingCount.value ?? 0);
 <template>
   <aside
     class="w-full border-b bg-card/40 transition-[width] duration-200 md:min-h-screen md:border-b-0 md:border-r"
-    :class="collapsed ? 'md:w-16' : 'md:w-60'"
+    :class="[
+      collapsed ? 'md:w-16' : 'md:w-60',
+      desktopHidden ? 'md:hidden' : '',
+    ]"
     :data-testid="TEST_ID.appSidebar"
     :data-collapsed="collapsed ? 'true' : 'false'"
     @keydown.esc="onEscape"

@@ -117,7 +117,7 @@ const hasDiff = computed(() => Boolean(props.comparison.diffPdfUrl));
       class="grid gap-4"
       :class="
         viewMode === 'diff-only'
-          ? 'grid-cols-1 mx-auto max-w-5xl'
+          ? 'grid-cols-1'
           : hasDiff
             ? 'grid-cols-3'
             : 'grid-cols-2'

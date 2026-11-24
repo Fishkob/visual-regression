@@ -12,7 +12,10 @@
     >
       {{ t("common.skipToContent") }}
     </a>
-    <AppSidebar v-if="!isBare && routeReady && !isFullscreen" />
+    <AppSidebar
+      v-if="!isBare && routeReady && !isFullscreen"
+      :desktop-hidden="isWide"
+    />
     <div class="flex min-w-0 flex-col" :class="{ 'flex-1': !isBare }">
       <AppHeader v-if="!isBare && routeReady && !isFullscreen" />
       <main id="main-content" tabindex="-1" :class="mainClass">
@@ -47,6 +50,10 @@ const route = useRoute();
 const { t } = useI18n();
 const isBare = computed(() => BARE_ROUTES.has(String(route.name)));
 const routeReady = computed(() => route.matched.length > 0);
+// A route that is judged on its pictures asks for the full width instead of the
+// page area next to the navigation. The header stays: it sits above the content
+// and costs it no width.
+const isWide = computed(() => route.meta.wideLayout === true);
 
 // A page that asks for the whole window (the test overview) owns the mode and
 // gives it back on unmount; the shell only gets out of the way. The padding

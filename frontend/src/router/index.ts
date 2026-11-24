@@ -143,7 +143,9 @@ const routes: RouteRecordRaw[] = [
     path: "/projects/:projectName/tests/:testName",
     name: "test-detail",
     component: () => import("@/components/TestDetailDispatcher.vue"),
-    meta: { requiresAuth: true, titleKey: "nav.test" },
+    // The review page is a picture: the sidebar would take 240px of the one
+    // dimension the comparison is judged on (see AppShell).
+    meta: { requiresAuth: true, titleKey: "nav.test", wideLayout: true },
   },
   {
     path: "/projects/:projectName/tests/:testName/overview",

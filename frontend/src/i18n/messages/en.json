@@ -1051,6 +1051,7 @@
     "notFoundTitle": "Test not found",
     "notFoundBody": "The requested test does not exist.",
     "baselineAlt": "Baseline",
+    "baselineOnlyNote": "Only baseline available",
     "candidateAlt": "Candidate",
     "image": "Image",
     "pdf": "PDF",
