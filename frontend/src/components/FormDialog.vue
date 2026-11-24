@@ -75,7 +75,13 @@ const modelOpen = computed({
           class="flex min-h-0 flex-1 flex-col gap-4"
           @submit.prevent="emit('submit')"
         >
-          <div class="min-h-0 flex-1 space-y-4 overflow-y-auto">
+          <!-- The gutter is reserved so a field does not jump when the panel
+               starts to scroll, and the small negative margin keeps the fields
+               as wide as the header above them — the thumb takes that margin
+               inside the dialog padding instead of over a control's border. -->
+          <div
+            class="scrollbar-subtle -mr-2 min-h-0 flex-1 space-y-4 overflow-y-auto [scrollbar-gutter:stable]"
+          >
             <slot />
           </div>
 

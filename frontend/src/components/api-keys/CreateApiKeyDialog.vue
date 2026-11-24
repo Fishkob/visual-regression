@@ -335,7 +335,7 @@ function submit() {
           <div
             v-if="visibleProjects.length > 0"
             ref="projectListEl"
-            class="max-h-44 overflow-y-auto border-t p-1"
+            class="scrollbar-subtle max-h-44 overflow-y-auto border-t p-1"
           >
             <button
               v-for="project in visibleProjects"

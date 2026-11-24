@@ -152,6 +152,41 @@
   --overlay: oklch(0 0 0);
 }
 
+/* The platform scrollbar is 15px wide with arrow buttons and ignores the theme:
+   mid-panel that reads as a bright strip that eats the control borders next to
+   it. A scroll area that lives inside a card or dialog opts into this instead. */
+@utility scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent)
+    transparent;
+
+  &::-webkit-scrollbar {
+    width: 0.5rem;
+    height: 0.5rem;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: color-mix(
+      in oklab,
+      var(--muted-foreground) 35%,
+      transparent
+    );
+    border-radius: 9999px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(
+      in oklab,
+      var(--muted-foreground) 60%,
+      transparent
+    );
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
