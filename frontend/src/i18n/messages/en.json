@@ -436,7 +436,6 @@
     "emptyTitle": "No teams yet",
     "emptyDescription": "Create a team to assign projects to several people.",
     "memberCount": "{count} member | {count} members",
-    "projectNames": "Projects: {projects}",
     "noProjects": "No projects",
     "members": "Members",
     "membersAria": "Manage the members of {name}",

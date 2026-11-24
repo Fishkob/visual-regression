@@ -436,7 +436,6 @@
     "emptyTitle": "Noch keine Teams",
     "emptyDescription": "Erstelle ein Team, um Projekte mehreren Personen zuzuordnen.",
     "memberCount": "{count} Mitglied | {count} Mitglieder",
-    "projectNames": "Projekte: {projects}",
     "noProjects": "Keine Projekte",
     "members": "Mitglieder",
     "membersAria": "Mitglieder von {name} verwalten",

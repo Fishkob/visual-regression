@@ -125,9 +125,6 @@ function confirmDelete() {
 function memberNames(team: Team): string {
   return team.members.map((member) => member.username).join(", ");
 }
-function projectNames(team: Team): string {
-  return team.projects.map((project) => project.name).join(", ");
-}
 </script>
 
 <template>
@@ -207,16 +204,27 @@ function projectNames(team: Team): string {
                 · {{ memberNames(team) }}
               </template>
             </p>
-            <p
-              class="text-sm text-muted-foreground"
+            <div
+              class="mt-1.5 flex flex-wrap items-center gap-1.5"
               :data-testid="TEST_ID.teamProjects"
             >
-              {{
-                team.projects.length
-                  ? t("teams.projectNames", { projects: projectNames(team) })
-                  : t("teams.noProjects")
-              }}
-            </p>
+              <template v-if="team.projects.length">
+                <span class="text-xs text-muted-foreground">
+                  {{ t("teams.projects") }}
+                </span>
+                <Badge
+                  v-for="project in team.projects"
+                  :key="project.id"
+                  variant="outline"
+                  :data-testid="TEST_ID.teamProjectChip"
+                >
+                  {{ project.name }}
+                </Badge>
+              </template>
+              <span v-else class="text-sm text-muted-foreground">
+                {{ t("teams.noProjects") }}
+              </span>
+            </div>
           </div>
           <div class="flex flex-wrap gap-2">
             <Button

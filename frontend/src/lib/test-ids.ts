@@ -377,6 +377,7 @@ export const TEST_ID = {
   teamRow: "team-row",
   teamMemberCount: "team-member-count",
   teamProjects: "team-projects",
+  teamProjectChip: "team-project-chip",
   teamMembers: "team-members",
   teamRename: "team-rename",
   teamDelete: "team-delete",

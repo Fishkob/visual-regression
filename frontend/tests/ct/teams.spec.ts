@@ -59,9 +59,15 @@ test.describe("Teams", () => {
     await expect(platform.getByTestId(TEST_ID.teamMemberCount)).toHaveText(
       "0 members",
     );
-    await expect(platform.getByTestId(TEST_ID.teamProjects)).toHaveText(
-      "Projects: design-system, shared-lib",
+    // Owned projects are chips, not a comma-joined line: a team's reason to
+    // exist is which projects it owns (ADR-083).
+    await expect(platform.getByTestId(TEST_ID.teamProjects)).toContainText(
+      "Projects",
     );
+    await expect(platform.getByTestId(TEST_ID.teamProjectChip)).toHaveText([
+      "design-system",
+      "shared-lib",
+    ]);
   });
 
   test("explains the ownership rule and shows the empty state", async ({
