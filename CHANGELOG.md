@@ -7,6 +7,20 @@
 > resolve, and the repository starts at `v1.0.0`. Treat every tag below as
 > immutable history — it is never moved, and a released version is never reused.
 
+## [6.0.0](https://github.com/Fishkob/visual-regression/compare/v5.0.0...v6.0.0) (2026-11-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **projects:** `Project.teamId` is `NOT NULL`, so `POST /projects` needs an owning team (an ADMIN that names none answers 400, a member without a team 409). `PATCH /projects/:projectName/team` no longer accepts `teamId: null` — publishing is `PATCH /projects/:projectName/visibility`. An upload no longer creates a missing project; it answers 404, so a pipeline needs the project to exist. `ProjectGroup`/`Project.groupId` and `GET/POST /groups`, `PATCH/DELETE /groups/:id` and `PATCH /projects/bulk/group` are removed, together with `groupId` on `GET /projects/pending`, `GET /review/pending` and the bulk payload: export the group names before upgrading if you want to keep them.
+
+### Features
+
+* **projects:** require an owning team and drop groups ([cbc6e9e](https://github.com/Fishkob/visual-regression/commit/cbc6e9e24f53b7813b45ae1c0e099dae6c5d0736))
+* **seeds:** seed the multi-team demo ([#112](https://github.com/Fishkob/visual-regression/issues/112)) ([7a33ba4](https://github.com/Fishkob/visual-regression/commit/7a33ba4d22eef396381ff517a50abdf6af110c95))
+* **teams:** scope project access by team membership ([#109](https://github.com/Fishkob/visual-regression/issues/109)) ([137c54a](https://github.com/Fishkob/visual-regression/commit/137c54ad68e2916064c3aab3f30b22ccb1d5a443))
+* **ui:** make groups and teams distinguishable ([#113](https://github.com/Fishkob/visual-regression/issues/113)) ([da0796d](https://github.com/Fishkob/visual-regression/commit/da0796dd519f6e768aa0cd1f6ccab661da5017d2))
+
 ## [5.0.0](https://github.com/Fishkob/visual-regression/compare/v4.0.0...v5.0.0) (2026-11-13)
 
 
