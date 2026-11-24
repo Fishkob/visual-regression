@@ -550,17 +550,27 @@ describe("InteractiveImageViewer", () => {
     expect(byId(wrapper, TEST_ID.fullscreenClose).exists()).toBe(false);
   });
 
-  it("trades the third column for size in fullscreen", async () => {
+  it("puts two pictures per row and lets the third take the whole row", async () => {
     const wrapper = mountViewer();
     const grid = () =>
       byId(wrapper, TEST_ID.panelBaseline).element.parentElement as HTMLElement;
 
-    expect(grid().classList.contains("grid-cols-3")).toBe(true);
+    // Two per row at every width: a third column would leave each picture at a
+    // third of the page, which is the size this layout exists to avoid.
+    expect(grid().classList.contains("sm:grid-cols-2")).toBe(true);
+    expect(grid().classList.contains("grid-cols-3")).toBe(false);
+    expect(byId(wrapper, TEST_ID.panelDiff).classes()).toContain(
+      "sm:col-span-2",
+    );
 
+    // Fullscreen does not change the breakdown — the picture size is the point
+    // in both.
     await byId(wrapper, TEST_ID.fullscreenToggle).trigger("click");
 
-    expect(grid().classList.contains("grid-cols-2")).toBe(true);
-    expect(grid().classList.contains("grid-cols-3")).toBe(false);
+    expect(grid().classList.contains("sm:grid-cols-2")).toBe(true);
+    expect(byId(wrapper, TEST_ID.panelDiff).classes()).toContain(
+      "sm:col-span-2",
+    );
   });
 
   it("hides a pane and gives its room to the others", async () => {
@@ -579,12 +589,15 @@ describe("InteractiveImageViewer", () => {
     expect(
       byId(wrapper, TEST_ID.paneToggleDiff).attributes("aria-pressed"),
     ).toBe("false");
-    expect(grid().classList.contains("grid-cols-2")).toBe(true);
+    // Two pictures now share the row, so nothing has to take a full one.
+    expect(grid().querySelector(".sm\\:col-span-2")).toBeNull();
 
     await byId(wrapper, TEST_ID.paneToggleDiff).trigger("click");
 
     expect(byId(wrapper, TEST_ID.panelDiff).exists()).toBe(true);
-    expect(grid().classList.contains("grid-cols-3")).toBe(true);
+    expect(byId(wrapper, TEST_ID.panelDiff).classes()).toContain(
+      "sm:col-span-2",
+    );
   });
 
   it("keeps the last visible pane", async () => {

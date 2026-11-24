@@ -86,10 +86,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div
-    class="mx-auto w-full max-w-4xl space-y-6 p-6"
-    :data-testid="TEST_ID.shareView"
-  >
+  <!-- A shared comparison is the same picture as the review page's: it gets the
+       window width too, not a 896px column. -->
+  <div class="w-full space-y-6 p-6" :data-testid="TEST_ID.shareView">
     <header v-if="share" class="space-y-1">
       <p
         class="text-xs font-medium tracking-wide text-muted-foreground uppercase"

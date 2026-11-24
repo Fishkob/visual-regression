@@ -453,8 +453,13 @@ function measureSurface(): void {
 // shrinks once the picture is there.
 const stageFramed = computed(() => Boolean(sizes.baseline ?? sizes.candidate));
 
-const stageBoxStyle = computed((): Record<string, string> => {
-  const size = sizes.baseline ?? sizes.candidate;
+// The box a picture is drawn in: as wide as the surface allows and as tall as
+// 70vh allows, whichever binds first. Every single-picture mode uses it, so a
+// small capture (an 800×500 diff) is drawn as large as a 1920×1080 one instead
+// of sitting at its own pixel size in the middle of the card.
+function fitBoxStyle(
+  size: { width: number; height: number } | undefined,
+): Record<string, string> {
   if (!size || !fitToScreen.value || size.height <= 0) return {};
   const maxWidth =
     surfaceWidth.value > SURFACE_CHROME
@@ -470,7 +475,11 @@ const stageBoxStyle = computed((): Record<string, string> => {
     width: `${Math.round(width)}px`,
     height: `${Math.round(width / ratio)}px`,
   };
-});
+}
+
+const stageBoxStyle = computed(() =>
+  fitBoxStyle(sizes.baseline ?? sizes.candidate),
+);
 
 const activeRegionLabel = computed(() => {
   const total = props.regions?.length ?? 0;
@@ -777,16 +786,25 @@ const layeredDotClass = computed(() =>
   viewMode.value === "overlay" ? "bg-status-warning" : "bg-status-info",
 );
 
+// An odd last picture takes the whole row: the diff under two equally wide
+// captures would otherwise leave half a row of empty card. Only the two-column
+// grid can have a hole, and only from sm up, where it has two columns at all.
+const spansRow = (index: number): boolean =>
+  viewMode.value === "side-by-side" &&
+  panels.value.length > 2 &&
+  panels.value.length % 2 === 1 &&
+  index === panels.value.length - 1;
+
 const gridClass = computed(() => {
   if (isStage.value) return "grid-cols-1";
   if (viewMode.value === "side-by-side") {
     const count = panels.value.length;
     if (count <= 1) return "grid-cols-1";
-    if (count === 2) return "grid-cols-2";
-    // Fullscreen trades breadth for size, exactly like the variant overview:
-    // three columns share the window and stay small, two are worth the room,
-    // and the third picture wraps below at the same width.
-    return isFullscreen.value ? "grid-cols-2" : "grid-cols-3";
+    // Two pictures per row, every width: a third column shares the page and
+    // leaves each picture at a third of it, so the third picture (the diff)
+    // wraps below at the same width instead. A narrow window stacks them,
+    // where half of it would still be unreadable.
+    return "grid-cols-1 sm:grid-cols-2";
   }
   return "grid-cols-1";
 });
@@ -804,11 +822,24 @@ const layeredCandidateStyle = computed(() => ({
     viewMode.value === "wipe" ? `inset(0 0 0 ${wipePosition.value}%)` : "none",
 }));
 
-const imageFitClass = computed(() =>
-  fitToScreen.value
-    ? "block w-auto h-auto max-w-full max-h-[70vh] object-contain select-none"
-    : "block max-w-none max-h-none select-none",
-);
+// Diff only is a single picture, so its card hugs that picture just like the
+// stages do. The grid panes of side-by-side stay columns: there the equal width
+// is the comparison.
+const hugsPicture = computed(() => viewMode.value === "diff-only");
+
+// A picture that owns its card — the single diff, or the one that takes the
+// whole row — is sized by fitBoxStyle, so it fills the card instead of stopping
+// at the file's own pixel size. A pane next to its siblings stays inside its
+// column: there the width is what the comparison divides.
+const fillsBox = (index: number): boolean =>
+  hugsPicture.value || spansRow(index);
+
+const paneImageClass = (index: number): string => {
+  if (!fitToScreen.value) return "block max-w-none max-h-none select-none";
+  return fillsBox(index)
+    ? "block h-full w-full object-contain select-none"
+    : "block w-auto h-auto max-w-full max-h-[70vh] object-contain select-none";
+};
 
 // Inside a stage the box already carries the picture's ratio, so the picture fills
 // it edge to edge instead of being contained in a frame that is too wide; at 1:1
@@ -818,11 +849,6 @@ const stageImageClass = computed(() =>
     ? "block h-full w-full select-none object-contain"
     : "block max-w-none max-h-none select-none",
 );
-
-// Diff only is a single picture, so its card hugs that picture just like the
-// stages do. The grid panes of side-by-side stay columns: there the equal width
-// is the comparison.
-const hugsPicture = computed(() => viewMode.value === "diff-only");
 </script>
 
 <template>
@@ -1333,11 +1359,16 @@ const hugsPicture = computed(() => viewMode.value === "diff-only");
 
       <template v-else>
         <div
-          v-for="panel in panels"
+          v-for="(panel, index) in panels"
           :key="panel.key"
           :data-testid="panel.testId"
           class="rounded-3xl border border-border bg-card shadow p-4"
-          :class="hugsPicture && 'w-fit max-w-full mx-auto'"
+          :class="
+            cn(
+              hugsPicture && 'w-fit max-w-full mx-auto',
+              spansRow(index) && 'sm:col-span-2',
+            )
+          "
         >
           <div
             class="flex items-center gap-2 text-sm font-medium text-foreground/80 mb-3"
@@ -1374,7 +1405,12 @@ const hugsPicture = computed(() => viewMode.value === "diff-only");
               @mousedown="beginPan"
               @dblclick="doubleClickZoom"
             >
-              <span class="relative inline-block max-w-full">
+              <span
+                class="relative inline-block max-w-full"
+                :style="
+                  fillsBox(index) ? fitBoxStyle(sizes[panel.key]) : undefined
+                "
+              >
                 <img
                   :key="imageKey(panel.key)"
                   :src="panel.url"
@@ -1384,7 +1420,7 @@ const hugsPicture = computed(() => viewMode.value === "diff-only");
                   loading="lazy"
                   decoding="async"
                   draggable="false"
-                  :class="imageFitClass"
+                  :class="paneImageClass(index)"
                   @load="onImageLoad(panel.key, $event)"
                   @error="markFailed(panel.key)"
                 />
