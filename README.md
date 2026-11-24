@@ -80,7 +80,8 @@ cd visual-regression
 Open <http://localhost> and log in with the credentials the installer printed
 (`admin` by default). The password is stored as `BOOTSTRAP_ADMIN_PASSWORD` in the
 generated `.env` and should be removed after the first login. A fresh instance is
-empty: there are no projects until the first upload creates one. If port 80 is
+empty: create your first project in the UI (it needs an owning team), then let CI
+upload into it — a capture never creates a project. If port 80 is
 taken, set `FRONTEND_PORT` in `.env` and rerun `./install.sh up`.
 
 Day to day: `./install.sh up`, `down` and `logs` start, stop and tail the stack; an
@@ -151,9 +152,10 @@ test("cart summary", async ({ page }, testInfo) => {
 
 The capture is named after the test's title path, reduced to the characters a
 name may use (`checkout.spec.ts / cart summary` becomes
-`checkout-spec-ts-cart-summary`, at most 100 characters); its first upload
-creates the project, the branch and the baseline, later captures are compared
-against it. The project name is yours. `viewport`, `browser` and `environment`
+`checkout-spec-ts-cart-summary`, at most 100 characters). Create the project once
+in the UI; a capture never creates one (a project always has an owning team,
+ADR-083). Its first upload creates the branch and the baseline, later captures are
+compared against it. The project name is yours. `viewport`, `browser` and `environment`
 are the Variant — matched verbatim, case included, so a changed value is a new
 baseline that passes without comparing. A buffer or a PDF works the same way:
 `vrt.capture(testInfo, await page.pdf(), { kind: "pdf" })`. Any other stack posts

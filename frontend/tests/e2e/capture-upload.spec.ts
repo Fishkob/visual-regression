@@ -50,6 +50,18 @@ test.describe("Playwright capture upload", () => {
     await expect(page.getByTestId(TEST_ID.newProject)).toBeVisible();
     const apiUrl = new URL(API, page.url()).toString();
 
+    // A project always has an owning team (ADR-083) and a capture never creates
+    // one: the key under test carries `upload` only, so the signed-in admin
+    // creates the project here — exactly what an operator does in the UI before
+    // pointing a pipeline at it.
+    const teams = await page.request.get(`${API}/teams`);
+    expect(teams.status()).toBe(200);
+    const [team] = (await teams.json()) as { id: string }[];
+    const createdProject = await page.request.post(`${API}/projects`, {
+      data: { name: projectName, teamId: team.id },
+    });
+    expect(createdProject.status()).toBe(201);
+
     const created = await page.request.post(`${API}/api-keys`, {
       data: { name: `${projectName}-upload`, scopes: ["upload"] },
     });
