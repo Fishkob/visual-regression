@@ -59,11 +59,17 @@ pnpm run dev:frontend   # Frontend on :5173
 `./scripts/dev.sh seed` runs four seeders: a demo set (projects, tests, variants,
 CI runs and feature branches), the e2e fixtures, a dev project, and the
 multi-team demo. The first three talk to the authenticated REST API; the fourth
-writes users, teams and project ownership straight into the database
+writes users, teams and project ownership straight into the database. All four
+read the database once: a project always has an owning team (ADR-083), team
+administration is session-only, and an API-key seeder therefore cannot create that
+team through the API — it writes the one row through Prisma instead. So every
+seeder needs the database coordinates (`POSTGRES_*`, `DATABASE_URL` or
+`SEED_DATABASE_URL`), which `dev.sh` passes from `backend/.env.local`
 ([why](#multi-team-demo-data)). `./install.sh --seed` runs the same four from the
 host against the Docker stack, so they need the published ports (`:3000`, `:5432`).
 
-The three REST seeders authenticate with an API key, so they need `SEED_API_KEY`:
+The three REST seeders authenticate with an API key, so they need `SEED_API_KEY`
+(and, like `seed:teams`, a reachable database — see above):
 
 - `./scripts/dev.sh seed` sources `backend/.env.local` — set `SEED_API_KEY` there,
   or set `ADMIN_API_KEY` and `dev.sh` provisions a `dev-seed` key with every scope

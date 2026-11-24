@@ -338,10 +338,19 @@ jobs:
           POSTGRES_DB: vrt
           DB_URL: postgresql://postgres:postgres@127.0.0.1:5432/vrt?schema=public
 
+      # The seeder writes its projects' owning team through Prisma (team
+      # administration is `@SessionOnly`, so an API-key seeder cannot create one),
+      # so it reads the stack's database directly — same coordinates as the
+      # migration step above.
       - name: Seed E2E test data
         run: cd backend && pnpm exec tsx src/scripts/seeds/seed-e2e.ts
         env:
           E2E_API_KEY_FILE: /tmp/e2e-api-key
+          POSTGRES_HOST: 127.0.0.1
+          POSTGRES_PORT: "5432"
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vrt
 
       - name: Capture e2e API key
         run: echo "E2E_API_KEY=$(cat /tmp/e2e-api-key)" >> "$GITHUB_ENV"
