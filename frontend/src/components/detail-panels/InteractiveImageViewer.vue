@@ -822,10 +822,14 @@ const layeredCandidateStyle = computed(() => ({
     viewMode.value === "wipe" ? `inset(0 0 0 ${wipePosition.value}%)` : "none",
 }));
 
-// Diff only is a single picture, so its card hugs that picture just like the
-// stages do. The grid panes of side-by-side stay columns: there the equal width
-// is the comparison.
-const hugsPicture = computed(() => viewMode.value === "diff-only");
+// One picture owns its card: the diff-only mode, or the last pane left when the
+// others are toggled off. It hugs the picture and is drawn in the fit box, like
+// every other single-picture mode — a lone pane must not be the one view that
+// spans the page while its picture stays at its own pixel size. Panes next to
+// their siblings stay columns: there the equal width is the comparison.
+const hugsPicture = computed(
+  () => viewMode.value === "diff-only" || panels.value.length === 1,
+);
 
 // A picture that owns its card — the single diff, or the one that takes the
 // whole row — is sized by fitBoxStyle, so it fills the card instead of stopping

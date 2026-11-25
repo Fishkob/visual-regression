@@ -615,6 +615,14 @@ describe("InteractiveImageViewer", () => {
     const grid = byId(wrapper, TEST_ID.panelBaseline).element
       .parentElement as HTMLElement;
     expect(grid.classList.contains("grid-cols-1")).toBe(true);
+
+    // One picture left is a single-picture view: it hugs its card and fills the
+    // fit box like the stage modes, instead of spanning the page at the file's
+    // own pixel size.
+    const card = byId(wrapper, TEST_ID.panelBaseline).element as HTMLElement;
+    expect(card.className).toContain("w-fit");
+    const image = card.querySelector("img") as HTMLImageElement;
+    expect(image.className).toContain("h-full");
   });
 
   it("ignores a hidden pane in the single-picture modes", async () => {
